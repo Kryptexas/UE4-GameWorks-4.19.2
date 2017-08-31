@@ -71,6 +71,7 @@ public class UnrealEd : ModuleRules
 				"BspMode",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"DirectoryWatcher",
 				"Documentation",
 				"Engine",

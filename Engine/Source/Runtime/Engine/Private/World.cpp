@@ -2370,8 +2370,8 @@ void FLevelStreamingGCHelper::AddGarbageCollectorCallback()
 	static bool GarbageCollectAdded = false;
 	if ( GarbageCollectAdded == false )
 	{
-		FCoreUObjectDelegates::PreGarbageCollect.AddStatic( FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC );
-		FCoreUObjectDelegates::PostGarbageCollect.AddStatic( FLevelStreamingGCHelper::VerifyLevelsGotRemovedByGC );
+		FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddStatic( FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC );
+		FCoreUObjectDelegates::GetPostGarbageCollect().AddStatic( FLevelStreamingGCHelper::VerifyLevelsGotRemovedByGC );
 		GarbageCollectAdded = true;
 	}
 }
@@ -2639,7 +2639,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	FSoftObjectPath::AddPIEPackageName(PrefixedLevelFName);
 
 	UWorld::WorldTypePreLoadMap.FindOrAdd(PrefixedLevelFName) = EWorldType::PIE;
-	UPackage* PIELevelPackage = CastChecked<UPackage>(CreatePackage(NULL,*PrefixedLevelName));
+	UPackage* PIELevelPackage = CreatePackage(nullptr,*PrefixedLevelName);
 	PIELevelPackage->SetPackageFlags(PKG_PlayInEditor);
 	PIELevelPackage->PIEInstanceID = PIEInstanceID;
 	PIELevelPackage->SetGuid( EditorLevelPackage->GetGuid() );
@@ -2925,7 +2925,7 @@ static void ForceBuildStreamingData()
 {
 	for (TObjectIterator<UWorld> ObjIt;  ObjIt; ++ObjIt)
 	{
-		UWorld* WorldComp = Cast<UWorld>(*ObjIt);
+		UWorld* WorldComp = *ObjIt;
 		if (WorldComp && WorldComp->PersistentLevel && WorldComp->PersistentLevel->OwningWorld == WorldComp)
 		{
 			ULevel::BuildStreamingData(WorldComp);
@@ -6350,7 +6350,7 @@ static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
 	const FString PrefixedPackageName = UWorld::ConvertToPIEPackageName( OriginalPackageName, InstanceID );
 
 	// Create a package for duplicated level
-	UPackage* NewPackage = CastChecked<UPackage>( CreatePackage( NULL, *PrefixedPackageName ) );
+	UPackage* NewPackage = CreatePackage( nullptr, *PrefixedPackageName );
 	NewPackage->SetPackageFlags( PKG_PlayInEditor );
 	NewPackage->PIEInstanceID = InstanceID;
 	NewPackage->FileName = OriginalPackage->FileName;

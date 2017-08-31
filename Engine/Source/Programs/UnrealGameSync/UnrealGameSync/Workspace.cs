@@ -158,6 +158,10 @@ namespace UnrealGameSync
 			{
 				SyncPaths.Add(ClientRootPath + "/*");
 				SyncPaths.Add(ClientRootPath + "/Engine/...");
+				if(Utility.IsEnterpriseProject(SelectedLocalFileName))
+				{
+					SyncPaths.Add(ClientRootPath + "/Enterprise/...");
+				}
 				SyncPaths.Add(PerforceUtils.GetClientOrDepotDirectoryName(SelectedClientFileName) + "/...");
 			}
 			else
@@ -415,8 +419,27 @@ namespace UnrealGameSync
 
 						// Get the branch name
 						string BranchOrStreamName;
-						if(!Perforce.GetActiveStream(out BranchOrStreamName, Log))
+						if(Perforce.GetActiveStream(out BranchOrStreamName, Log))
 						{
+							// If it's a virtual stream, take the concrete parent stream instead
+							for (;;)
+							{
+								PerforceSpec StreamSpec;
+								if (!Perforce.TryGetStreamSpec(BranchOrStreamName, out StreamSpec, Log))
+								{
+									StatusMessage = String.Format("Unable to get stream spec for {0}.", BranchOrStreamName);
+									return WorkspaceUpdateResult.FailedToSync;
+								}
+								if (StreamSpec.GetField("Type") != "virtual")
+								{
+									break;
+								}
+								BranchOrStreamName = StreamSpec.GetField("Parent");
+							}
+						}
+						else
+						{
+							// Otherwise use the depot path for GenerateProjectFiles.bat in the root of the workspace
 							string DepotFileName;
 							if(!Perforce.ConvertToDepotPath(ClientRootPath + "/GenerateProjectFiles.bat", out DepotFileName, Log))
 							{

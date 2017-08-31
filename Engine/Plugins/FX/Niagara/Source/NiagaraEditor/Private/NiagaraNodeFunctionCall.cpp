@@ -32,7 +32,7 @@ void UNiagaraNodeFunctionCall::PostLoad()
 		{
 			UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(FunctionScript->GetSource());
 			Source->ConditionalPostLoad();
-			UNiagaraGraph* Graph = CastChecked<UNiagaraGraph>(Source->NodeGraph);
+			UNiagaraGraph* Graph = Source->NodeGraph;
 			Graph->ConditionalPostLoad();
 		}
 	}
@@ -71,7 +71,7 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 	if (FunctionScript)
 	{
 		UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(FunctionScript->GetSource());
-		UNiagaraGraph* Graph = CastChecked<UNiagaraGraph>(Source->NodeGraph);
+		UNiagaraGraph* Graph = Source->NodeGraph;
 
 		//These pins must be refreshed and kept in the correct order for the function
 		TArray<FNiagaraVariable> Inputs;
@@ -216,7 +216,7 @@ bool UNiagaraNodeFunctionCall::CanAddToGraph(UNiagaraGraph* TargetGraph, FString
 		UNiagaraScriptSource* Source = Cast<UNiagaraScriptSource>(SpawningFunctionScript->GetSource());
 		if (Source)
 		{
-			UNiagaraGraph* FunctionGraph = Cast<UNiagaraGraph>(Source->NodeGraph);
+			UNiagaraGraph* FunctionGraph = Source->NodeGraph;
 			if (FunctionGraph)
 			{
 				FunctionGraph->GetAllReferencedGraphs(FunctionGraphs);
@@ -253,7 +253,7 @@ void UNiagaraNodeFunctionCall::Compile(class FHlslNiagaraTranslator* Translator,
 		GetInputPins(CallerInputPins);
 
 		UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(FunctionScript->GetSource());
-		UNiagaraGraph* FunctionGraph = CastChecked<UNiagaraGraph>(Source->NodeGraph);
+		UNiagaraGraph* FunctionGraph = Source->NodeGraph;
 
 		TArray<UNiagaraNodeInput*> FunctionInputNodes;
 		UNiagaraGraph::FFindInputNodeOptions Options;

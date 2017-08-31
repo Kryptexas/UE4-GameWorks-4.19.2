@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -49,7 +50,16 @@ namespace UnrealBuildTool
 		/// Map of root folders to a cached list of all UBT-related source files in that folder or any of its sub-folders.
 		/// We cache these file names so we can avoid searching for them later on.
 		static Dictionary<DirectoryReference, RulesFileCache> RootFolderToRulesFileCache = new Dictionary<DirectoryReference, RulesFileCache>();
-		
+
+		/// <summary>
+		/// 
+		/// </summary>
+#if NET_CORE
+		const string FrameworkAssemblyExtension = "_NetCore.dll";
+#else
+		const string FrameworkAssemblyExtension = ".dll";
+#endif
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -294,7 +304,7 @@ namespace UnrealBuildTool
 			FindModuleRulesForPlugins(Plugins, ModuleFiles, ModuleFileToPluginInfo);
 
 			// Create a path to the assembly that we'll either load or compile
-			FileReference AssemblyFileName = FileReference.Combine(RootDirectory, "Intermediate", "Build", "BuildRules", AssemblyPrefix + "Rules.dll");
+			FileReference AssemblyFileName = FileReference.Combine(RootDirectory, "Intermediate", "Build", "BuildRules", AssemblyPrefix + "Rules" + FrameworkAssemblyExtension);
 			return new RulesAssembly(Plugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
 		}
 
@@ -309,7 +319,7 @@ namespace UnrealBuildTool
 			RulesAssembly ProjectRulesAssembly;
 			if (!LoadedAssemblyMap.TryGetValue(ProjectFileName, out ProjectRulesAssembly))
 			{
-				ProjectDescriptor Project = ProjectDescriptor.FromFile(ProjectFileName.FullName);
+				ProjectDescriptor Project = ProjectDescriptor.FromFile(ProjectFileName);
 
 				// Create the parent assembly
 				RulesAssembly Parent;
@@ -352,7 +362,7 @@ namespace UnrealBuildTool
 				}
 
 				// Compile the assembly
-				FileReference AssemblyFileName = FileReference.Combine(ProjectDirectory, "Intermediate", "Build", "BuildRules", ProjectFileName.GetFileNameWithoutExtension() + "ModuleRules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(ProjectDirectory, "Intermediate", "Build", "BuildRules", ProjectFileName.GetFileNameWithoutExtension() + "ModuleRules" + FrameworkAssemblyExtension);
 				ProjectRulesAssembly = new RulesAssembly(ProjectPlugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
 				LoadedAssemblyMap.Add(ProjectFileName, ProjectRulesAssembly);
 			}
@@ -387,7 +397,7 @@ namespace UnrealBuildTool
 				FindModuleRulesForPlugins(ForeignPlugins, ModuleFiles, ModuleFileToPluginInfo);
 
 				// Compile the assembly
-				FileReference AssemblyFileName = FileReference.Combine(PluginFileName.Directory, "Intermediate", "Build", "BuildRules", Path.GetFileNameWithoutExtension(PluginFileName.FullName) + "ModuleRules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(PluginFileName.Directory, "Intermediate", "Build", "BuildRules", Path.GetFileNameWithoutExtension(PluginFileName.FullName) + "ModuleRules" + FrameworkAssemblyExtension);
 				PluginRulesAssembly = new RulesAssembly(ForeignPlugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
 				LoadedAssemblyMap.Add(PluginFileName, PluginRulesAssembly);
 			}

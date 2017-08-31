@@ -15,6 +15,7 @@ public class MayaLiveLinkPlugin : ModuleRules
 		{
 			"Core",
             "CoreUObject",
+			"ApplicationCore",
 			"Projects",
             "UdpMessaging",
             "LiveLinkInterface",

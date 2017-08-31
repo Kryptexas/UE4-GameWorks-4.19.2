@@ -6,6 +6,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Serialization;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {

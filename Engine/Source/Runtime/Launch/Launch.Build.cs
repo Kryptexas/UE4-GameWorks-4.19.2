@@ -33,6 +33,7 @@ public class Launch : ModuleRules
 				"SandboxFile",
 				"Serialization",
 				"ShaderCore",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
 				"Sockets",

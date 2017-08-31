@@ -16,6 +16,7 @@ public class OnlineSubsystemGoogle : ModuleRules
 			new string[] { 
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"HTTP",
 				"ImageCore",
 				"Json",

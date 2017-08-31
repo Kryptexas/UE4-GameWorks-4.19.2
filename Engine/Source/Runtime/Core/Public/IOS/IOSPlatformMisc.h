@@ -17,7 +17,6 @@ struct CORE_API FIOSPlatformMisc : public FApplePlatformMisc
     static void PlatformPreInit();
 	static void PlatformInit();
     static void PlatformHandleSplashScreen(bool ShowSplashScreen = false);
-	static void* GetHardwareWindow();
 
 	static bool AllowThreadHeartBeat()
 	{
@@ -25,12 +24,10 @@ struct CORE_API FIOSPlatformMisc : public FApplePlatformMisc
 	}
 
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static void LoadPreInitModules();
 	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext& Context));
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool HasActiveWiFiConnection();
-	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& ScreenDensity);
 
 	static int GetAudioVolume();
 	static bool AreHeadphonesPluggedIn();

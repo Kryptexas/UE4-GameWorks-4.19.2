@@ -2020,8 +2020,19 @@ void UMaterialInstance::PostLoad()
 	SCOPED_LOADTIMER(MaterialInstancePostLoad);
 	Super::PostLoad();
 
-	// Resources can be processed / registered now that we're back on the main thread
-	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
+	if (FApp::CanEverRender())
+	{
+		// Resources can be processed / registered now that we're back on the main thread
+		ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
+	}
+	else
+	{
+		// Discard all loaded material resources
+		for (FMaterialResource& Resource : LoadedMaterialResources)
+		{
+			Resource.DiscardShaderMap();
+		}
+	}
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 

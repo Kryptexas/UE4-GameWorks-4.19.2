@@ -12,6 +12,7 @@ public class Slate : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"InputCore",
 				"Json",
 				"SlateCore",

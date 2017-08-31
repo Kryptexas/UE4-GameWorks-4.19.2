@@ -171,7 +171,7 @@ TArray<const UObject*> FSequencerCurveOwner::GetOwners() const
 	CastedOwners.Reserve(Owners.Num());
 	for (auto Owner : Owners)
 	{
-		const UObject* CastedOwner = Cast<const UObject>(Owner);
+		const UObject* CastedOwner = Owner;
 
 		if (CastedOwner)
 		{

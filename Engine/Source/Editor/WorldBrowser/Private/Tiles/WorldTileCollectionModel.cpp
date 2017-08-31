@@ -1615,7 +1615,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 		// All landscape tiles will go into it's own sub-levels
 		FGuid LandscapeGuid = FGuid::NewGuid();
 		{
-			ALandscape* Landscape = Cast<UWorld>(GetWorld())->SpawnActor<ALandscape>();
+			ALandscape* Landscape = GetWorld()->SpawnActor<ALandscape>();
 			Landscape->SetActorTransform(FTransform(FQuat::Identity, FVector::ZeroVector, ImportSettings.Scale3D));
 
 			// Setup layers list for importing

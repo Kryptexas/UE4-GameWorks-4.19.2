@@ -279,7 +279,7 @@ UPaintBrushSettings* FClothPainter::GetBrushSettings()
 
 UMeshPaintSettings* FClothPainter::GetPainterSettings()
 {
-	return Cast<UMeshPaintSettings>(PaintSettings);
+	return PaintSettings;
 }
 
 TSharedPtr<class SWidget> FClothPainter::GetWidget()

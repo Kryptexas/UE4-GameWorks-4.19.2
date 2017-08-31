@@ -241,7 +241,7 @@ void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
 
 	for (FString& Category : CategoryChain)
 	{
-		Category.Trim();
+		Category.TrimStartInline();
 	}
 #endif
 }

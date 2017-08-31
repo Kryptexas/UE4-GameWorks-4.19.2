@@ -19,6 +19,7 @@ public class MessageLog : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
                 "InputCore",

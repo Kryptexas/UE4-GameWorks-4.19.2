@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace AutomationTool
@@ -119,7 +120,7 @@ namespace AutomationTool
 					P4.CreateClient(Client, AllowSpew: false);
 
 					// Create a new P4 connection for this workspace
-					P4Connection SubmitP4 = new P4Connection(Client.Owner, Client.Name, P4Env.P4Port);
+					P4Connection SubmitP4 = new P4Connection(Client.Owner, Client.Name, P4Env.ServerAndPort);
 					SubmitP4.Revert("-k //...");
 
 					// Figure out where the zip file has to go in Perforce

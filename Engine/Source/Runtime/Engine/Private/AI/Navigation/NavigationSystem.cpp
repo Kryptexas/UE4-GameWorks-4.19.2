@@ -4063,9 +4063,9 @@ void UNavigationSystem::RegisterNavigationInvoker(AActor& Invoker, float TileGen
 {
 	UWorld* World = Invoker.GetWorld();
 
-	if (World && Cast<UNavigationSystem>(World->GetNavigationSystem()))
+	if (World && World->GetNavigationSystem())
 	{
-		((UNavigationSystem*)(World->GetNavigationSystem()))->RegisterInvoker(Invoker, TileGenerationRadius, TileRemovalRadius);
+		World->GetNavigationSystem()->RegisterInvoker(Invoker, TileGenerationRadius, TileRemovalRadius);
 	}
 }
 
@@ -4073,9 +4073,9 @@ void UNavigationSystem::UnregisterNavigationInvoker(AActor& Invoker)
 {
 	UWorld* World = Invoker.GetWorld();
 
-	if (World && Cast<UNavigationSystem>(World->GetNavigationSystem()))
+	if (World && World->GetNavigationSystem())
 	{
-		((UNavigationSystem*)(World->GetNavigationSystem()))->UnregisterInvoker(Invoker);
+		World->GetNavigationSystem()->UnregisterInvoker(Invoker);
 	}
 }
 

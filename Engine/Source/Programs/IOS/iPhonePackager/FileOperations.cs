@@ -20,6 +20,7 @@ using System.Runtime.Remoting.Channels.Ipc;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Lifetime;
 using System.Net.Sockets;
+using DotNETUtilities;
 
 namespace iPhonePackager
 {
@@ -32,11 +33,11 @@ namespace iPhonePackager
 		/** Cranks up the remoting utility if needed */
 		static private bool ConditionalInitRemoting(string MacName)
 		{
-			if (CommandHelper.PingRemoteHost(MacName))
+			if (RPCCommandHelper.PingRemoteHost(MacName))
 			{
 				try
 				{
-					RPCSocket = RPCUtility.CommandHelper.ConnectToUnrealRemoteTool(MacName);
+					RPCSocket = RPCCommandHelper.ConnectToUnrealRemoteTool(MacName);
 				}
 				catch (Exception)
 				{
@@ -266,7 +267,7 @@ namespace iPhonePackager
 				if (bDeleteTarget)
 				{
 					// tell Mac to delete target if requested
-					RPCUtility.CommandHelper.RemoveDirectory(RPCSocket, DestFolder);
+					RPCCommandHelper.RemoveDirectory(RPCSocket, DestFolder);
 				}
 			}
 
@@ -286,7 +287,7 @@ namespace iPhonePackager
 			if (Config.bUseRPCUtil)
 			{
 				// send them off!
-				RPCUtility.CommandHelper.RPCBatchUpload(RPCSocket, FilesToUpload.ToArray());
+				RPCCommandHelper.RPCBatchUpload(RPCSocket, FilesToUpload.ToArray());
 			}
 			else
 			{
@@ -307,7 +308,7 @@ namespace iPhonePackager
 					return false;
 				}
 
-				Results = RPCUtility.CommandHelper.RPCDownload(RPCSocket, SourceFilename, DestFilename);
+				Results = RPCCommandHelper.RPCDownload(RPCSocket, SourceFilename, DestFilename);
 			}
 			else
 			{

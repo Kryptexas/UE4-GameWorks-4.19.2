@@ -26,6 +26,7 @@ public class Landscape : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Engine",
 				"RenderCore", 
 				"RHI",

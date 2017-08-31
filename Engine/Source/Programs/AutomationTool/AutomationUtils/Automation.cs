@@ -99,7 +99,6 @@ namespace AutomationTool
 		public static CommandLineArg Verbose = new CommandLineArg("-Verbose");
 		public static CommandLineArg Submit = new CommandLineArg("-Submit");
 		public static CommandLineArg NoSubmit = new CommandLineArg("-NoSubmit");
-		public static CommandLineArg ForceLocal = new CommandLineArg("-ForceLocal");
 		public static CommandLineArg NoP4 = new CommandLineArg("-NoP4");
 		public static CommandLineArg P4 = new CommandLineArg("-P4");
         public static CommandLineArg Preprocess = new CommandLineArg("-Preprocess");
@@ -150,7 +149,6 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 	[Help("p4", "Enables Perforce functionality (default if run on a build machine)")]
 	[Help("compileonly", "Does not run any commands, only compiles them")]
     [Help("compile", "Dynamically compiles all commands (otherwise assumes they are already built)")]
-    [Help("forcelocal", "Forces local execution")]
 	[Help("help", "Displays help")]
 	[Help("list", "Lists all available commands")]
 	[Help("submit", "Allows UAT command to submit changes")]

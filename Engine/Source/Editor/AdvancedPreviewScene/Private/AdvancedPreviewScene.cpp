@@ -133,7 +133,7 @@ void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpd
 		static const FName CubeMapRotationName("CubemapRotation");
 
 		UTextureCube* EnvironmentTexture = Profile.EnvironmentCubeMap.LoadSynchronous();
-		UTexture* Texture = Cast<UTexture>(EnvironmentTexture);
+		UTexture* Texture = EnvironmentTexture;
 		InstancedSkyMaterial->GetTextureParameterValue(SkyBoxName, Texture);
 
 		if (Texture != EnvironmentTexture)

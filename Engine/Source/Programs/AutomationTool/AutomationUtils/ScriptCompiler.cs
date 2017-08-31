@@ -10,6 +10,7 @@ using Microsoft.Win32;
 using System.Reflection;
 using System.Diagnostics;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {
@@ -119,7 +120,7 @@ namespace AutomationTool
 			List<DirectoryReference> AllGameFolders;
 			if(ScriptsForProjectFileName == null)
 			{
-				AllGameFolders = UProjectInfo.FilterGameProjects(true, null).Select(x => x.Folder).ToList();
+				AllGameFolders = UProjectInfo.AllProjectFiles.Select(x => x.Directory).ToList();
 			}
 			else
 			{

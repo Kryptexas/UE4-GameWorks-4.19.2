@@ -706,7 +706,7 @@ APlayerController* UGameInstance::GetPrimaryPlayerController() const
 	APlayerController* PrimaryController = nullptr;
 	for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* NextPlayer = Cast<APlayerController>(*Iterator);
+		APlayerController* NextPlayer = Iterator->Get();
 		if (NextPlayer && NextPlayer->PlayerState && NextPlayer->PlayerState->UniqueId.IsValid() && NextPlayer->IsPrimaryPlayer())
 		{
 			PrimaryController = NextPlayer;

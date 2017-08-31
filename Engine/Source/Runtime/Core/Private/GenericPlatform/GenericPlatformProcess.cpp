@@ -319,12 +319,6 @@ FString FGenericPlatformProcess::GetApplicationName( uint32 ProcessId )
 	return FString(TEXT(""));
 }
 
-bool FGenericPlatformProcess::IsThisApplicationForeground()
-{
-	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::IsThisApplicationForeground not implemented on this platform"));
-	return false;
-}
-
 bool FGenericPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ExecProcess not implemented on this platform"));

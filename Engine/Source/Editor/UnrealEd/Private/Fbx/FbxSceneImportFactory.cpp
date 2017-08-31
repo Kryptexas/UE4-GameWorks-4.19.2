@@ -1481,7 +1481,7 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 			//When importing a scene we don't want to change the actor name even if there is similar label already existing
 			PlacedActor->SetActorLabel(NodeInfo->NodeName);
 
-			USceneComponent* RootComponent = Cast<USceneComponent>(PlacedActor->GetRootComponent());
+			USceneComponent* RootComponent = PlacedActor->GetRootComponent();
 			if (RootComponent)
 			{
 				RootComponent->SetFlags(RF_Transactional);
@@ -1501,7 +1501,7 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 					ParentActor = *NewActorNameMap.Find(ParentUniqueId);
 					if (ParentActor != nullptr)
 					{
-						USceneComponent* ParentRootComponent = Cast<USceneComponent>(ParentActor->GetRootComponent());
+						USceneComponent* ParentRootComponent = ParentActor->GetRootComponent();
 						if (ParentRootComponent)
 						{
 							if (GEditor->CanParentActors(ParentActor, PlacedActor))

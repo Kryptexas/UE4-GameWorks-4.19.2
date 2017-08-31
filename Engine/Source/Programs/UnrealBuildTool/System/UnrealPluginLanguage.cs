@@ -8,6 +8,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Diagnostics;
 using System.IO;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {

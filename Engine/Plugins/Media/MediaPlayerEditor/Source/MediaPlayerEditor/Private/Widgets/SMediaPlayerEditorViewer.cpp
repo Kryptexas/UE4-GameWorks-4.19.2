@@ -640,8 +640,7 @@ void SMediaPlayerEditorViewer::OpenUrl(const FText& TextUrl)
 
 	FString Url = TextUrl.ToString();
 	{
-		Url.Trim();
-		Url.TrimTrailing();
+		Url.TrimStartAndEndInline();
 	}
 
 	if (!Url.Contains(TEXT("://"), ESearchCase::CaseSensitive))

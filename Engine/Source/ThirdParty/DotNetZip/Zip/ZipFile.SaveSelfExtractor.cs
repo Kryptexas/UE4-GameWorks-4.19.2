@@ -735,6 +735,9 @@ namespace Ionic.Zip
 
         private void _SaveSfxStub(string exeToGenerate, SelfExtractorSaveOptions options)
         {
+#if NET_CORE
+            throw new Exception("Dynamic code compilation is not supported when using the dot net core frameworks");
+#else
             string nameOfIconFile = null;
             string stubExe = null;
             string unpackedResourceDir = null;
@@ -1070,7 +1073,7 @@ namespace Ionic.Zip
             }
 
             return;
-
+#endif
         }
 
 

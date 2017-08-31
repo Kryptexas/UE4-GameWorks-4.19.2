@@ -1031,7 +1031,7 @@ FSlateApplication::~FSlateApplication()
 void FSlateApplication::SetupPhysicalSensitivities()
 {
 	const float DragTriggerDistanceInInches = FUnitConversion::Convert(1.0f, EUnit::Millimeters, EUnit::Inches);
-	FPlatformMisc::ConvertInchesToPixels(DragTriggerDistanceInInches, DragTriggerDistance);
+	FPlatformApplicationMisc::ConvertInchesToPixels(DragTriggerDistanceInInches, DragTriggerDistance);
 
 	// TODO Rather than allow people to request the DragTriggerDistance directly, we should
 	// probably store a drag trigger distance for touch and mouse, and force users to pass
@@ -5184,7 +5184,7 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 				if ( !bIsContextMenu && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.IsDetectingDrag(PointerEvent) && ActiveWindow == [NSApp keyWindow] )
 				{
 					MouseCaptorHelper Captor = MouseCaptor;
-					FPlatformMisc::ActivateApplication();
+					FPlatformApplicationMisc::ActivateApplication();
 					if ( TopLevelWindow.IsValid() )
 					{
 						TopLevelWindow->BringToFront(true);
@@ -5323,7 +5323,7 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 	if ( PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && TopLevelWindow.IsValid() && ActiveWindow != TopLevelWindow
 		&& ActiveNativeWindow == [NSApp keyWindow] && ![(NSWindow*)TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() isMiniaturized] )
 	{
-		FPlatformMisc::ActivateApplication();
+		FPlatformApplicationMisc::ActivateApplication();
 
 		if ( !TopLevelWindow->IsVirtualWindow() )
 		{

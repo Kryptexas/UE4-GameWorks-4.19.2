@@ -957,7 +957,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 		Buffer++;
 
 		FString PropertyToken(NumCharsInToken, StartBuffer);
-		PropertyToken = PropertyToken.TrimTrailing();
+		PropertyToken.TrimEndInline();
 		bool bParseSuccess = false;
 		if (PropertyToken == PinHelpers::PinIdName)
 		{
@@ -1251,9 +1251,9 @@ UEdGraphPin::~UEdGraphPin()
 
 void UEdGraphPin::ResolveAllPinReferences()
 {
-	for (auto& Entry : PinHelpers::UnresolvedPins)
+	for(TMap<FPinResolveId, TArray<FUnresolvedPinData>>::TIterator Iter(PinHelpers::UnresolvedPins); Iter; ++Iter)
 	{
-		const FPinResolveId& Key = Entry.Key;
+		const FPinResolveId& Key = Iter->Key;
 		UEdGraphNode* Node = Key.OwningNode.Get();
 		if (!Node)
 		{
@@ -1405,7 +1405,7 @@ void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* Deprecated
 
 				case EPinResolveType::OwningNode:
 				default:
-					checkf(0, TEXT("Unhandled ResolveType %d"), PinData.ResolveType);
+					checkf(0, TEXT("Unhandled ResolveType %d"), (int32)PinData.ResolveType);
 					break;
 				}
 			}
@@ -1627,7 +1627,7 @@ void UEdGraphPin::ResolveReferencesToPin(UEdGraphPin* Pin, bool bStrictValidatio
 
 			case EPinResolveType::OwningNode:
 			default:
-				checkf(0, TEXT("Unhandled ResolveType %d"), PinData.ResolveType);
+				checkf(0, TEXT("Unhandled ResolveType %d"), (int32)PinData.ResolveType);
 				break;
 			}
 		}

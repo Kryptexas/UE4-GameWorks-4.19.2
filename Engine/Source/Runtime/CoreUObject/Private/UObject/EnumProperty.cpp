@@ -98,7 +98,7 @@ void UEnumProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaul
 
 			// There's no guarantee EnumValueName is still present in Enum, in which case Value will be set to the enum's max value.
 			// On save, it will then be serialized as NAME_None.
-			const int32 EnumIndex = Enum->GetIndexByName(EnumValueName, true);
+			const int32 EnumIndex = Enum->GetIndexByName(EnumValueName, EGetByNameFlags::ErrorIfNotFound);
 			if (EnumIndex == INDEX_NONE)
 			{
 				NewEnumValue = Enum->GetMaxEnumValue();
@@ -258,7 +258,7 @@ const TCHAR* UEnumProperty::ImportText_Internal(const TCHAR* InBuffer, void* Dat
 		FString Temp;
 		if (const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp, true))
 		{
-			int32 EnumIndex = Enum->GetIndexByName(*Temp, true);
+			int32 EnumIndex = Enum->GetIndexByName(*Temp, EGetByNameFlags::ErrorIfNotFound);
 			if (EnumIndex != INDEX_NONE)
 			{
 				UnderlyingProp->SetIntPropertyValue(Data, Enum->GetValueByIndex(EnumIndex));
@@ -352,7 +352,7 @@ bool UEnumProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 				InnerPropertyTag.EnumName = Enum->GetFName();
 				InnerPropertyTag.ArrayIndex = 0;
 
-				PreviousValue = UNumericProperty::ReadEnumAsUint8(Ar, DefaultsStruct, InnerPropertyTag);
+				PreviousValue = (uint8)UNumericProperty::ReadEnumAsInt64(Ar, DefaultsStruct, InnerPropertyTag);
 			}
 			else
 			{
@@ -363,7 +363,7 @@ bool UEnumProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 		else
 		{
 			// attempt to find the old enum and get the byte value from the serialized enum name
-			PreviousValue = UNumericProperty::ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
+			PreviousValue = (uint8)UNumericProperty::ReadEnumAsInt64(Ar, DefaultsStruct, Tag);
 		}
 
 		// now copy the value into the object's address space

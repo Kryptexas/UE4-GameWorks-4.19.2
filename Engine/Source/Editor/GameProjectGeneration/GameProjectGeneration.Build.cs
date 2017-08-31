@@ -29,6 +29,7 @@ public class GameProjectGeneration : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Analytics",
+				"ApplicationCore",
 				"AppFramework",
 				"ClassViewer",
 				"Core",

@@ -15,6 +15,7 @@ public class UnrealLaunchDaemon : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"NetworkFile",
 				"Projects",
 				"StreamingFile",

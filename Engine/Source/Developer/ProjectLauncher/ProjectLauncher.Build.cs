@@ -23,6 +23,7 @@ public class ProjectLauncher : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"DesktopPlatform",
+				"ApplicationCore",
                 "InputCore",
 				"Slate",
 				"SlateCore",

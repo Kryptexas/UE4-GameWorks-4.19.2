@@ -11,6 +11,7 @@ using System.Threading;
 using System.Linq;
 using UnrealBuildTool;
 using System.Text;
+using Tools.DotNETCommon;
 
 /// <summary>
 /// Helper command used for cooking.

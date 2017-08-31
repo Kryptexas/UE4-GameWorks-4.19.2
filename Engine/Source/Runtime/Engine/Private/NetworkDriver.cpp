@@ -3347,8 +3347,7 @@ void UNetDriver::PrintDebugRelevantActors()
 
 			for (auto It = List.CreateIterator(); It; ++It)
 			{
-				AActor* Actor = Cast<AActor>(It->Get());
-				if (Actor)
+				if (AActor* Actor = It->Get())
 				{
 
 					ClassSummary.FindOrAdd(Actor->GetClass())++;

@@ -1051,7 +1051,7 @@ private:
 	}
 
 	/** The base type of whole set iterators. */
-	template<bool bConst>
+	template<bool bConst, bool bRangedFor = false>
 	class TBaseIterator
 	{
 	private:
@@ -1060,7 +1060,11 @@ private:
 		typedef typename TChooseClass<bConst,const ElementType,ElementType>::Result ItElementType;
 
 	public:
-		typedef typename TChooseClass<bConst,typename ElementArrayType::TConstIterator,typename ElementArrayType::TIterator>::Result ElementItType;
+		typedef typename TChooseClass<
+			bConst,
+			typename TChooseClass<bRangedFor, typename ElementArrayType::TRangedForConstIterator, typename ElementArrayType::TConstIterator>::Result,
+			typename TChooseClass<bRangedFor, typename ElementArrayType::TRangedForIterator,      typename ElementArrayType::TIterator     >::Result
+		>::Result ElementItType;
 
 		FORCEINLINE TBaseIterator(const ElementItType& InElementIt)
 			: ElementIt(InElementIt)
@@ -1185,11 +1189,6 @@ public:
 		friend class TSet;
 
 	public:
-		FORCEINLINE TConstIterator(const typename TBaseIterator<true>::ElementItType& InElementId)
-			: TBaseIterator<true>(InElementId)
-		{
-		}
-
 		FORCEINLINE TConstIterator(const TSet& InSet)
 			: TBaseIterator<true>(begin(InSet.Elements))
 		{
@@ -1202,12 +1201,6 @@ public:
 		friend class TSet;
 
 	public:
-		FORCEINLINE TIterator(TSet& InSet, const typename TBaseIterator<false>::ElementItType& InElementId)
-			: TBaseIterator<false>(InElementId)
-			, Set                 (InSet)
-		{
-		}
-
 		FORCEINLINE TIterator(TSet& InSet)
 			: TBaseIterator<false>(begin(InSet.Elements))
 			, Set                 (InSet)
@@ -1223,7 +1216,10 @@ public:
 	private:
 		TSet& Set;
 	};
-	
+
+	using TRangedForConstIterator = TBaseIterator<true, true>;
+	using TRangedForIterator      = TBaseIterator<false, true>;
+
 	/** Used to iterate over the elements of a const TSet. */
 	class TConstKeyIterator : public TBaseKeyIterator<true>
 	{
@@ -1269,10 +1265,10 @@ private:
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	FORCEINLINE friend TIterator      begin(      TSet& Set) { return TIterator     (Set, begin(Set.Elements)); }
-	FORCEINLINE friend TConstIterator begin(const TSet& Set) { return TConstIterator(     begin(Set.Elements)); }
-	FORCEINLINE friend TIterator      end  (      TSet& Set) { return TIterator     (Set, end  (Set.Elements)); }
-	FORCEINLINE friend TConstIterator end  (const TSet& Set) { return TConstIterator(     end  (Set.Elements)); }
+	FORCEINLINE friend TRangedForIterator      begin(      TSet& Set) { return TRangedForIterator     (begin(Set.Elements)); }
+	FORCEINLINE friend TRangedForConstIterator begin(const TSet& Set) { return TRangedForConstIterator(begin(Set.Elements)); }
+	FORCEINLINE friend TRangedForIterator      end  (      TSet& Set) { return TRangedForIterator     (end  (Set.Elements)); }
+	FORCEINLINE friend TRangedForConstIterator end  (const TSet& Set) { return TRangedForConstIterator(end  (Set.Elements)); }
 };
 
 template<typename ElementType, typename KeyFuncs, typename Allocator>

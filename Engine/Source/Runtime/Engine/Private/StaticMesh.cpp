@@ -845,7 +845,7 @@ void FStaticMeshLODSettings::ReadEntry(FStaticMeshLODGroup& Group, FString Entry
 	int32 Importance = EMeshFeatureImportance::Normal;
 
 	// Trim whitespace at the beginning.
-	Entry = Entry.Trim();
+	Entry.TrimStartInline();
 
 	FParse::Value(*Entry, TEXT("Name="), Group.DisplayName, TEXT("StaticMeshLODSettings"));
 

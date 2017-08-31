@@ -872,7 +872,7 @@ namespace HLODOutliner
 				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
 				if (Type == ITreeItem::HierarchicalLODActor)
 				{
-					AActor* Actor = Cast<AActor>(ActorItem->StaticMeshActor.Get());
+					AActor* Actor = ActorItem->StaticMeshActor.Get();
 					
 					if (HierarchicalLODUtilities->RemoveActorFromCluster(Actor))
 					{
@@ -912,7 +912,7 @@ namespace HLODOutliner
 				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
 				if (Type == ITreeItem::HierarchicalLODActor)
 				{
-					AActor* Actor = Cast<AActor>(ActorItem->LODActor.Get());
+					AActor* Actor = ActorItem->LODActor.Get();
 					checkf(Actor != nullptr, TEXT("Invalid actor in tree view"));
 					
 					if (HierarchicalLODUtilities->RemoveActorFromCluster(Actor))

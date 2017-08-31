@@ -19,6 +19,7 @@
 #include "Templates/IsAbstract.h"
 #include "Templates/IsEnum.h"
 #include "Misc/Optional.h"
+#include "Misc/EnumClassFlags.h"
 
 struct FCustomPropertyListNode;
 struct FFrame;
@@ -1430,6 +1431,17 @@ public:
 
 typedef FText(*FEnumDisplayNameFn)(int32);
 
+// Optional flags for the UEnum::Get*ByName() functions.
+enum class EGetByNameFlags
+{
+	None = 0,
+
+	ErrorIfNotFound = 0x01,
+	CaseSensitive   = 0x02
+};
+
+ENUM_CLASS_FLAGS(EGetByNameFlags)
+
 //
 // Reflection data for an enumeration.
 //
@@ -1479,25 +1491,25 @@ public:
 	FName GetNameByIndex(int32 Index) const;
 
 	/** Gets index of name in enum, returns INDEX_NONE and optionally errors when name is not found. This is faster than ByNameString if the FName is exact, but will fall back if needed */
-	int32 GetIndexByName(FName InName, bool bErrorIfNotFound = false) const;
+	int32 GetIndexByName(FName InName, EGetByNameFlags Flags = EGetByNameFlags::None) const;
 
 	/** Gets enum name by value. Returns NAME_None if value is not found. */
 	FName GetNameByValue(int64 InValue) const;
 
 	/** Gets enum value by name, returns INDEX_NONE and optionally errors when name is not found. This is faster than ByNameString if the FName is exact, but will fall back if needed */
-	int64 GetValueByName(FName InName, bool bErrorIfNotFound = false) const;
+	int64 GetValueByName(FName InName, EGetByNameFlags Flags = EGetByNameFlags::None) const;
 
 	/** Returns the short name at the enum index, returns empty string if invalid */
 	FString GetNameStringByIndex(int32 InIndex) const;
 
 	/** Gets index of name in enum, returns INDEX_NONE and optionally errors when name is not found. Handles full or short names. */
-	int32 GetIndexByNameString(const FString& SearchString, bool bErrorIfNotFound = false) const;
+	int32 GetIndexByNameString(const FString& SearchString, EGetByNameFlags Flags = EGetByNameFlags::None) const;
 
 	/** Returns the short name matching the enum Value, returns empty string if invalid */
 	FString GetNameStringByValue(int64 InValue) const;
 
 	/** Gets enum value by name, returns INDEX_NONE and optionally errors when name is not found. Handles full or short names */
-	int64 GetValueByNameString(const FString& SearchString, bool bErrorIfNotFound = false) const;
+	int64 GetValueByNameString(const FString& SearchString, EGetByNameFlags Flags = EGetByNameFlags::None) const;
 
 	/**
 	 * Finds the localized display name or native display name as a fallback.
@@ -1742,7 +1754,7 @@ public:
 
 	// Deprecated Functions
 	DEPRECATED(4.16, "FindEnumIndex is deprecated, call GetIndexByName or GetValueByName instead")
-	int32 FindEnumIndex(FName InName) const { return GetIndexByName(InName, true); }
+	int32 FindEnumIndex(FName InName) const { return GetIndexByName(InName, EGetByNameFlags::ErrorIfNotFound); }
 
 	DEPRECATED(4.16, "FindEnumRedirects is deprecated, call GetIndexByNameString instead")
 	static int32 FindEnumRedirects(const UEnum* Enum, FName EnumEntryName) { return Enum->GetIndexByNameString(EnumEntryName.ToString()); }
@@ -2119,7 +2131,7 @@ public:
 	/** CS for the token stream. Token stream can assemble code can sometimes be called from two threads throuh a web of async loading calls. */
 	FCriticalSection ReferenceTokenStreamCritical;
 
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+#if ENABLE_GC_OBJECT_CHECKS
 	/** TokenIndex map to look-up token stream index origin. */
 	FGCDebugReferenceTokenMap DebugTokenMap;
 #endif

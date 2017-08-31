@@ -633,8 +633,7 @@ void FSequencerNodeTree::FilterNodes(const FString& InFilter)
 
 		FilterString = InFilter;
 		// Remove whitespace from the front and back of the string
-		FilterString.Trim();
-		FilterString.TrimTrailing();
+		FilterString.TrimStartAndEndInline();
 		FilterString.ParseIntoArray(FilterStrings, TEXT(" "), true /*bCullEmpty*/);
 
 		for (auto It = ObjectBindingMap.CreateIterator(); It; ++It)

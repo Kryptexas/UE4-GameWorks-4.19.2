@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 /// <summary>
 /// Helper command used for cooking.
@@ -463,7 +464,7 @@ public partial class Project : CommandUtils
 
                 const string RootFailedContentDirectory = "\\\\epicgames.net\\root\\Developers\\Daniel.Lamb";
 
-                string FailedContentDirectory = CombinePaths(RootFailedContentDirectory, CommandUtils.P4Env.BuildRootP4 + CommandUtils.P4Env.ChangelistString, Params.ShortProjectName, CookPlatformString);
+                string FailedContentDirectory = CombinePaths(RootFailedContentDirectory, CommandUtils.P4Env.Branch + CommandUtils.P4Env.Changelist.ToString(), Params.ShortProjectName, CookPlatformString);
 
                 Directory.CreateDirectory(FailedContentDirectory);
 

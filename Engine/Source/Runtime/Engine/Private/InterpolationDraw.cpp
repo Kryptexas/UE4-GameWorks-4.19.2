@@ -316,8 +316,7 @@ void UInterpTrackMove::Render3DTrack(UInterpTrackInst* TrInst,
 				// 	Draw keypoints on top of curve
 				// 		
 				UInterpTrackMoveAxis* SubTrack = Cast<UInterpTrackMoveAxis>( SubTracks[ SubTrackIndex ] );
-				FInterpCurveFloat& FloatTrack = Cast<UInterpTrackMoveAxis>( SubTrack )->FloatTrack;
-				for(int32 KeyIndex = 0; KeyIndex < FloatTrack.Points.Num(); ++KeyIndex )
+				for(int32 KeyIndex = 0; KeyIndex < SubTrack->FloatTrack.Points.Num(); ++KeyIndex )
 				{
 					// Find if this key is one of the selected ones.
 					bool bKeySelected = false;
@@ -333,7 +332,7 @@ void UInterpTrackMove::Render3DTrack(UInterpTrackInst* TrInst,
 					}
 
 					// Find the time, position and orientation of this Key.
-					float NewKeyTime = FloatTrack.Points[KeyIndex].InVal;
+					float NewKeyTime = SubTrack->FloatTrack.Points[KeyIndex].InVal;
 
 					FVector NewKeyPos(0);
 					FRotator NewKeyRot(0,0,0);

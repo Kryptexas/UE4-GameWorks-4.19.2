@@ -10,6 +10,7 @@ using System.Net.NetworkInformation;
 using System.Collections;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 /// <summary>
 /// Helper command to run a game.

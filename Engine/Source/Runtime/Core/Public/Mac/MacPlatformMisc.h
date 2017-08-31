@@ -9,8 +9,6 @@
 #include "Mac/MacSystemIncludes.h"
 #include "Apple/ApplePlatformMisc.h"
 
-typedef void (*UpdateCachedMacMenuStateProc)(void);
-
 /**
 * Mac implementation of the misc OS functions
 **/
@@ -18,7 +16,6 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static void PlatformTearDown();
 	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
 	static const TCHAR* GetPathVarDelimiter()
@@ -29,14 +26,11 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 	DEPRECATED(4.14, "GetMacAddress is deprecated. It is not reliable on all platforms")
 	static TArray<uint8> GetMacAddress();
 
-	static void PumpMessages(bool bFromMainLoop);
 	static void RequestExit(bool Force);
-	static void RequestMinimize();
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static bool CommandLineCommands();
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
-	static void LoadPreInitModules();
 	static void NormalizePath(FString& InPath);
 	static FString GetPrimaryGPUBrand();
 	static struct FGPUDriverInfo GetGPUDriverInfo(const FString& DeviceDescription);
@@ -92,12 +86,6 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 	/** @return Get the name of the platform specific file manager (Finder) */
 	static FText GetFileManagerName();
 
-	static void UpdateWindowMenu();
-
-	static UpdateCachedMacMenuStateProc UpdateCachedMacMenuState;
-
-	static void ActivateApplication();
-
 	/**
 	 * Returns whether the platform is running on battery power or not.
 	 */
@@ -121,10 +109,6 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 	static FString GetXcodePath();
 
 	static bool IsSupportedXcodeVersionInstalled();
-
-	static bool bChachedMacMenuStateNeedsUpdate;
-
-	static id<NSObject> CommandletActivity;
     
     static void MergeDefaultArgumentsIntoCommandLine(FString& CommandLine, FString DefaultArguments);
 	

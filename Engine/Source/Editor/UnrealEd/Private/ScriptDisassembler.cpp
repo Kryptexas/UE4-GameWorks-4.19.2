@@ -163,7 +163,7 @@ FString FKismetBytecodeDisassembler::ReadString(int32& ScriptIndex)
 		return ReadString16(ScriptIndex);
 
 	default:
-		checkf(false, TEXT("FKismetBytecodeDisassembler::ReadString - Unexpected opcode. Expected %d or %d, got %d"), EX_StringConst, EX_UnicodeStringConst, Opcode);
+		checkf(false, TEXT("FKismetBytecodeDisassembler::ReadString - Unexpected opcode. Expected %d or %d, got %d"), (int)EX_StringConst, (int)EX_UnicodeStringConst, (int)Opcode);
 		break;
 	}
 

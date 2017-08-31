@@ -552,7 +552,7 @@ void ApplyExtensionsOverrides(FString& ExtensionsString)
 
 		for (FString& ExtName : ExtList)
 		{
-			ExtName = ExtName.Trim().TrimTrailing();
+			ExtName.TrimStartAndEndInline();
 			if (ExtensionsString.ReplaceInline(*ExtName, TEXT("")) > 0)
 			{
 				UE_LOG(LogRHI, Log, TEXT("Stripped extension: %s"), *ExtName);
@@ -568,7 +568,7 @@ void ApplyExtensionsOverrides(FString& ExtensionsString)
 
 		for (FString& ExtName : ExtList)
 		{
-			ExtName = ExtName.Trim().TrimTrailing();
+			ExtName.TrimStartAndEndInline();
 			if (!ExtensionsString.Contains(ExtName))
 			{
 				ExtensionsString.Append(TEXT(" ")); // extensions delimiter

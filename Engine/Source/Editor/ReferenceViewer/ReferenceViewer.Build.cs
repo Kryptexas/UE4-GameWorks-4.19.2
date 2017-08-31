@@ -10,6 +10,7 @@ namespace UnrealBuildTool.Rules
                 new string[] {
 				    "Core",
 				    "CoreUObject",
+					"ApplicationCore",
 				    "Engine",
                     "InputCore",
 				    "Slate",

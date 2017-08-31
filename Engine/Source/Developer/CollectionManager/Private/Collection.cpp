@@ -91,7 +91,8 @@ bool FCollection::Load(FText& OutError)
 	while ( FileContents.Num() )
 	{
 		// Pop the 0th element from the contents array and read it
-		const FString Line = FileContents[0].Trim().TrimTrailing();
+		FileContents[0].TrimStartAndEndInline();
+		const FString Line = FileContents[0];
 		FileContents.RemoveAt(0);
 
 		if (Line.Len() == 0)
@@ -122,8 +123,7 @@ bool FCollection::Load(FText& OutError)
 		// Static collection, a flat list of asset paths
 		for (FString Line : FileContents)
 		{
-			Line.Trim();
-			Line.TrimTrailing();
+			Line.TrimStartAndEndInline();
 
 			if ( Line.Len() )
 			{
@@ -136,8 +136,7 @@ bool FCollection::Load(FText& OutError)
 		// Dynamic collection, a single query line
 		DynamicQueryText = (FileContents.Num() > 0) ? FileContents[0] : FString();
 
-		DynamicQueryText.Trim();
-		DynamicQueryText.TrimTrailing();
+		DynamicQueryText.TrimStartAndEndInline();
 	}
 
 	DiskSnapshot.TakeSnapshot(*this);

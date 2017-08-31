@@ -218,8 +218,10 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 	
 	// Look for any removed maps
 	TSet<FFoliageInstanceBasePtr> InvalidBasePtrs;
-	for (auto& Pair : Cache.InstanceBaseLevelMap)
+	for (auto Iter = Cache.InstanceBaseLevelMap.CreateIterator(); Iter; ++Iter)
 	{
+		TPair<TSoftObjectPtr<UWorld>, TArray<FFoliageInstanceBasePtr>>& Pair = *Iter;
+
 		const auto& WorldAsset = Pair.Key;
 		
 		bool bExists = (WorldAsset == World);
@@ -240,7 +242,7 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 		if (!bExists)
 		{
 			InvalidBasePtrs.Append(Pair.Value);
-			Cache.InstanceBaseLevelMap.Remove(Pair.Key);
+			Iter.RemoveCurrent();
 		}
 		else
 		{
@@ -257,7 +259,7 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 
 			if (Pair.Value.Num() == 0)
 			{
-				Cache.InstanceBaseLevelMap.Remove(Pair.Key);
+				Iter.RemoveCurrent();
 			}
 		}
 	}
@@ -265,13 +267,15 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 	TSet<FFoliageInstanceBaseId> InvalidBaseIds;
 	Cache.InstanceBaseInvMap.Empty();
 	// Look for any removed base components
-	for (const auto& Pair : Cache.InstanceBaseMap)
+	for (auto Iter = Cache.InstanceBaseMap.CreateIterator(); Iter; ++Iter)
 	{
+		const TPair<FFoliageInstanceBaseId, FFoliageInstanceBaseInfo>& Pair = *Iter;
+
 		const FFoliageInstanceBaseInfo& BaseInfo = Pair.Value;
 		if (InvalidBasePtrs.Contains(BaseInfo.BasePtr))
 		{
 			InvalidBaseIds.Add(Pair.Key);
-			Cache.InstanceBaseMap.Remove(Pair.Key);
+			Iter.RemoveCurrent();
 		}
 		else
 		{

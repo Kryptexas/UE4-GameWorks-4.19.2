@@ -620,7 +620,7 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface, bool bCreateWndSurface)
 {
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("AndroidEGL::InitSurface %d, %d"), int(bUseSmallSurface), int(bCreateWndSurface));
 
-	ANativeWindow* window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
+	ANativeWindow* window = (ANativeWindow*)FAndroidWindow::GetHardwareWindow();
 	if (window == NULL)
 	{
 		// Sleep if the hardware window isn't currently available.
@@ -633,7 +633,7 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface, bool bCreateWndSurface)
 		while (window == NULL)
 		{
 			FPlatformProcess::Sleep(0.001f);
-			window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
+			window = (ANativeWindow*)FAndroidWindow::GetHardwareWindow();
 		}
 	}
 

@@ -2617,7 +2617,7 @@ UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
 
 bool UTextureFactory::FactoryCanImport(const FString& Filename)
 {
-	FString Extension = FPaths::GetExtension(Filename).ToLower();
+	FString Extension = FPaths::GetExtension(Filename);
 
 	return (Formats.ContainsByPredicate(
 		[&Extension](const FString& Format)
@@ -5190,7 +5190,7 @@ bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>
 				//This skeletal mesh was import with a scene import, we cannot reimport it here
 				return false;
 			}
-			else if (FPaths::GetExtension(SkeletalMesh->AssetImportData->GetFirstFilename()).ToLower() == "abc")
+			else if (FPaths::GetExtension(SkeletalMesh->AssetImportData->GetFirstFilename()) == TEXT("abc"))
 			{
 				return false;
 			}
@@ -5411,7 +5411,7 @@ bool UReimportFbxAnimSequenceFactory::CanReimport( UObject* Obj, TArray<FString>
 				//This mesh was import with a scene import, we cannot reimport it
 				return false;
 			}
-			else if (FPaths::GetExtension(AnimSequence->AssetImportData->GetFirstFilename()).ToLower() == "abc")
+			else if (FPaths::GetExtension(AnimSequence->AssetImportData->GetFirstFilename()) == TEXT("abc"))
 			{
 				return false;
 			}

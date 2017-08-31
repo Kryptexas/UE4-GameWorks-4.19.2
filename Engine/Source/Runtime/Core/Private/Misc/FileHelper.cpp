@@ -103,7 +103,7 @@ void FFileHelper::BufferToString( FString& Result, const uint8* Buffer, int32 Si
  * @param Filename name of the file to load
  * @param VerifyFlags flags controlling the hash verification behavior ( see EHashOptions )
  */
-bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint32 VerifyFlags )
+bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, EHashOptions VerifyFlags )
 {
 	FScopedLoadingState ScopedLoadingState(Filename);
 
@@ -127,7 +127,7 @@ bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint
 	BufferToString( Result, Ch, Size );
 
 	// handle SHA verify of the file
-	if( (VerifyFlags & EHashOptions::EnableVerify) && ( (VerifyFlags & EHashOptions::ErrorMissingHash) || FSHA1::GetFileSHAHash(Filename, NULL) ) )
+	if( EnumHasAnyFlags(VerifyFlags, EHashOptions::EnableVerify) && ( EnumHasAnyFlags(VerifyFlags, EHashOptions::ErrorMissingHash) || FSHA1::GetFileSHAHash(Filename, NULL) ) )
 	{
 		// kick off SHA verify task. this frees the buffer on close
 		FBufferReaderWithSHA Ar( Ch, Size, true, Filename, false, true );
@@ -139,6 +139,39 @@ bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint
 	}
 
 	return Success;
+}
+
+bool FFileHelper::LoadFileToStringArray( TArray<FString>& Result, const TCHAR* Filename, EHashOptions VerifyFlags )
+{
+	Result.Empty();
+
+	FString Buffer;
+	if(!LoadFileToString(Buffer, Filename, VerifyFlags))
+	{
+		return false;
+	}
+
+	for(const TCHAR* Pos = *Buffer; *Pos != 0; )
+	{
+		const TCHAR* LineStart = Pos;
+		while(*Pos != 0 && *Pos != '\r' && *Pos != '\n')
+		{
+			Pos++;
+		}
+
+		Result.Add(FString(Pos - LineStart, LineStart));
+
+		if(*Pos == '\r')
+		{
+			Pos++;
+		}
+		if(*Pos == '\n')
+		{
+			Pos++;
+		}
+	}
+
+	return true;
 }
 
 /**
@@ -160,7 +193,7 @@ bool FFileHelper::SaveArrayToFile(TArrayView<const uint8> Array, const TCHAR* Fi
  * Write the FString to a file.
  * Supports all combination of ANSI/Unicode files and platforms.
  */
-bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename,  EEncodingOptions::Type EncodingOptions, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags )
+bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename,  EEncodingOptions EncodingOptions, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags )
 {
 	// max size of the string is a UCS2CHAR for each character and some UNICODE magic 
 	auto Ar = TUniquePtr<FArchive>( FileManager->CreateFileWriter( Filename, WriteFlags ) );
@@ -201,6 +234,26 @@ bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename
 	}
 
 	return true;
+}
+
+bool FFileHelper::SaveStringArrayToFile( const TArray<FString>& Lines, const TCHAR* Filename, EEncodingOptions EncodingOptions, IFileManager* FileManager, uint32 WriteFlags )
+{
+	int32 Length = 10;
+	for(const FString& Line : Lines)
+	{
+		Length += Line.Len() + ARRAY_COUNT(LINE_TERMINATOR);
+	}
+	
+	FString CombinedString;
+	CombinedString.Reserve(Length);
+
+	for(const FString& Line : Lines)
+	{
+		CombinedString += Line;
+		CombinedString += LINE_TERMINATOR;
+	}
+
+	return SaveStringToFile(CombinedString, Filename, EncodingOptions, FileManager, WriteFlags);
 }
 
 /**

@@ -280,7 +280,7 @@ void InitGamePhys()
 
 	GPhysCommandHandler = new FPhysCommandHandler();
 
-	GPreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
+	GPreGarbageCollectDelegateHandle = FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK, GPhysXVisualDebugger);
@@ -406,7 +406,7 @@ void TermGamePhys()
 	if (GPhysCommandHandler != NULL)
 	{
 		GPhysCommandHandler->Flush();	//finish off any remaining commands
-		FCoreUObjectDelegates::PreGarbageCollect.Remove(GPreGarbageCollectDelegateHandle);
+		FCoreUObjectDelegates::GetPreGarbageCollectDelegate().Remove(GPreGarbageCollectDelegateHandle);
 		delete GPhysCommandHandler;
 		GPhysCommandHandler = NULL;
 	}

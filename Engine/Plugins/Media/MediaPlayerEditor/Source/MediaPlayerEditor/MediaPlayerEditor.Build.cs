@@ -32,6 +32,7 @@ public class MediaPlayerEditor : ModuleRules
 				"ContentBrowser",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"DesktopPlatform",
 				"DesktopWidgets",
 				"EditorStyle",

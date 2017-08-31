@@ -113,7 +113,7 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 			UStructProperty* StructProperty = CastChecked<UStructProperty>(Inner);
 			// if check redirector to make sure if the name has changed
 			FName NewName = FLinkerLoad::FindNewNameForStruct(InnerTag.StructName);
-			FName StructName = CastChecked<UStructProperty>(StructProperty)->Struct->GetFName();
+			FName StructName = StructProperty->Struct->GetFName();
 			if (NewName != NAME_None && NewName == StructName)
 			{
 				InnerTag.StructName = NewName;

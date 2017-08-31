@@ -4,6 +4,7 @@
 #include "ExceptionHandling.h"
 #include "MacPlatformCrashContext.h"
 #include "CocoaThread.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 /**
 * Because crash reporters can crash, too - only used for Sandboxed applications
@@ -71,7 +72,7 @@ static FString GSavedCommandLine;
 	NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
 	[appleEventManager setEventHandler : self andSelector : @selector(handleQuitEvent : withReplyEvent : ) forEventClass:kCoreEventClass andEventID : kAEQuitApplication];
 
-	FPlatformMisc::ActivateApplication();
+	FPlatformApplicationMisc::ActivateApplication();
 	RunGameThread(self, @selector(runGameThread:));
 }
 

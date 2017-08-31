@@ -137,7 +137,7 @@ void FMarginStructCustomization::OnMarginTextCommitted( const FText& InText, ETe
 					InString.Empty();
 				}
 
-				LeftString = LeftString.Trim().TrimTrailing();
+				LeftString.TrimStartAndEndInline();
 
 				if( LeftString.IsNumeric() )
 				{

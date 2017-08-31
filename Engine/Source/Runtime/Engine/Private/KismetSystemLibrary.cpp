@@ -2092,6 +2092,7 @@ bool UKismetSystemLibrary::GetConvenientWindowedResolutions(TArray<FIntPoint>& R
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 	}
 
+	extern void GenerateConvenientWindowedResolutions(const struct FDisplayMetrics& InDisplayMetrics, TArray<FIntPoint>& OutResolutions);
 	GenerateConvenientWindowedResolutions(DisplayMetrics, Resolutions);
 
 	return true;

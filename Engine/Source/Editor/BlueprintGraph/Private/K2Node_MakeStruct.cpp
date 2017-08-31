@@ -126,7 +126,7 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 		
 		bool bHasAdvancedPins = false;
 		{
-			FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
+			FStructOnScope StructOnScope(StructType);
 			FMakeStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
 			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
 			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Input, this);

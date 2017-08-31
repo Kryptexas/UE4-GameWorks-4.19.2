@@ -30,6 +30,8 @@ extern TMap<UField*, uint32> GGeneratedCodeCRCs;
 extern TMap<UEnum*, EUnderlyingEnumType> GEnumUnderlyingTypes;
 extern TMap<FName, TSharedRef<FClassDeclarationMetaData> > GClassDeclarations;
 extern TSet<UProperty*> GUnsizedProperties;
+extern TSet<UField*> GEditorOnlyDataTypes;
+extern TMap<UStruct*, TTuple<TSharedRef<FUnrealSourceFile>, int32>> GStructToSourceLine;
 
 /** Types access specifiers. */
 enum EAccessSpecifier

@@ -187,16 +187,6 @@ struct CORE_API FSHA256Signature
 };
 
 /**
- * The accuracy when dealing with physical characteristics of the monitor/screen of the device we're running on.
- */
-enum class EScreenPhysicalAccuracy
-{
-	Unknown,
-	Approximation,
-	Truth
-};
-
-/**
 * Generic implementation for most platforms
 **/
 struct CORE_API FGenericPlatformMisc
@@ -206,7 +196,6 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static void PlatformPreInit();
 	static void PlatformInit() { }
-	static void PlatformPostInit() { }
 
 	/**
 	* Called to dismiss splash screen
@@ -217,11 +206,6 @@ struct CORE_API FGenericPlatformMisc
 	 * Called during AppExit(). Log, Config still exist at this point, but not much else does.
 	 */
 	static void PlatformTearDown() { }
-
-	static void* GetHardwareWindow()
-	{
-		return nullptr;
-	}
 
 	/** Set/restore the Console Interrupt (Control-C, Control-Break, Close) handler. */
 	static void SetGracefulTerminationHandler() { }
@@ -532,9 +516,6 @@ public:
 	 */
 	static bool HasSeparateChannelForDebugOutput();
 
-	/** Request application to minimize (goto background). **/
-	static void RequestMinimize();
-
 	/**
 	 * Requests application exit.
 	 *
@@ -719,20 +700,6 @@ public:
 	*/
 	static const TCHAR* GamePersistentDownloadDir();
 
-	/**
-	 * Load the preinit modules required by this platform, typically they are the renderer modules
-	 */
-	static void LoadPreInitModules()
-	{
-	}
-
-	/**
-	 * Load the platform-specific startup modules
-	 */
-	static void LoadStartupModules()
-	{
-	}
-
 	static const TCHAR* GetUBTPlatform();
 
 	static const TCHAR* GetUBTTarget();
@@ -915,13 +882,6 @@ public:
 
 	/** @return Memory representing a true type or open type font provided by the platform as a default font for unreal to consume; empty array if the default font failed to load. */
 	static TArray<uint8> GetSystemFontBytes();
-	/**
-	* Returns whether the platform wants to use a touch screen for a virtual keyboard.
-	*/
-	static bool GetRequiresVirtualKeyboard()
-	{
-		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
-	}
 
 	/**
 	 * Returns whether WiFi connection is currently active
@@ -1039,28 +999,6 @@ public:
 	static void UnregisterForRemoteNotifications();
 
 	/**
-	 * Gets the physical size of the screen if possible.  Some platforms lie, some platforms don't know.
-	 */
-	static EScreenPhysicalAccuracy GetPhysicalScreenDensity(int32& OutScreenDensity);
-
-	/**
-	 * Gets the physical size of the screen if possible.  Some platforms lie, some platforms don't know.
-	 */
-	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& OutScreenDensity);
-
-	/**
-	 * If we know or can approximate the pixel density of the screen we will convert the incoming inches
-	 * to pixels on the device.  If the accuracy is unknown OutPixels will be set to 0.
-	 */
-	static EScreenPhysicalAccuracy ConvertInchesToPixels(float Inches, float& OutPixels);
-
-	/**
-	 * If we know or can approximate the pixel density of the screen we will convert the incoming pixels
-	 * to inches on the device.  If the accuracy is unknown OutInches will be set to 0.
-	 */
-	static EScreenPhysicalAccuracy ConvertPixelsToInches(float Pixels, float& OutInches);
-
-	/**
 	 * Allows platform at runtime to disable unsupported plugins
 	 *  @param	PluginName	Name of enabled plugin to consider
 	 *	@return	bool		true if plugin should be disabled
@@ -1084,11 +1022,6 @@ public:
 	{
 		return true;
 	}
-
-protected:
-	static bool CachedPhysicalScreenData;
-	static EScreenPhysicalAccuracy CachedPhysicalScreenAccuracy;
-	static int32 CachedPhysicalScreenDensity;
 
 #if !UE_BUILD_SHIPPING
 protected:

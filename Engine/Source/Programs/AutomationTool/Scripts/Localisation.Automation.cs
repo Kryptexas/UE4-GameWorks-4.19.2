@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using AutomationTool;
 using UnrealBuildTool;
 using EpicGames.Localization;
+using Tools.DotNETCommon;
 
 [Help("Updates the external localization data using the arguments provided.")]
 [Help("UEProjectRoot", "Optional root-path to the project we're gathering for (defaults to CmdEnv.LocalRoot if unset).")]
@@ -237,8 +238,8 @@ class Localise : BuildCommand
 		if (P4Enabled)
 		{
 			Log("Sync necessary content to head revision");
-			P4.Sync(P4Env.BuildRootP4 + "/" + LocalizationBatch.LocalizationTargetDirectory + "/Config/Localization/...");
-			P4.Sync(P4Env.BuildRootP4 + "/" + LocalizationBatch.LocalizationTargetDirectory + "/Content/Localization/...");
+			P4.Sync(P4Env.Branch + "/" + LocalizationBatch.LocalizationTargetDirectory + "/Config/Localization/...");
+			P4.Sync(P4Env.Branch + "/" + LocalizationBatch.LocalizationTargetDirectory + "/Content/Localization/...");
 		}
 
 		// Generate the info we need to gather for each project
@@ -261,7 +262,7 @@ class Localise : BuildCommand
 		string EditorArguments = String.Empty;
 		if (P4Enabled)
 		{
-			EditorArguments = String.Format("-SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Passwd={4} -P4Changelist={5} -EnableSCC -DisableSCCSubmit", "Perforce", P4Env.P4Port, P4Env.User, P4Env.Client, P4.GetAuthenticationToken(), PendingChangeList);
+			EditorArguments = String.Format("-SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Passwd={4} -P4Changelist={5} -EnableSCC -DisableSCCSubmit", "Perforce", P4Env.ServerAndPort, P4Env.User, P4Env.Client, P4.GetAuthenticationToken(), PendingChangeList);
 		}
 		else
 		{

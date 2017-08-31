@@ -395,14 +395,14 @@ bool UKismetStringLibrary::MatchesWildcard(const FString& SourceString, const FS
 
 FString UKismetStringLibrary::Trim(const FString& SourceString)
 {
-	FString Trimmed = SourceString;
-	return Trimmed.Trim();
+	FString Trimmed = SourceString.TrimStart();
+	return Trimmed;
 }
 
 FString UKismetStringLibrary::TrimTrailing(const FString& SourceString)
 {
-	FString Trimmed = SourceString;
-	return Trimmed.TrimTrailing();
+	FString Trimmed = SourceString.TrimEnd();
+	return Trimmed;
 }
 
 int32 UKismetStringLibrary::CullArray(const FString& SourceString,TArray<FString>& InArray)

@@ -13,6 +13,7 @@ public class DsymExporter : ModuleRules
 			new string[] 
 			{ 
 				"Core",
+				"ApplicationCore",
 				"Projects"
 			}
 			);

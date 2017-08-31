@@ -218,7 +218,7 @@ FSlateEditableTextLayout::~FSlateEditableTextLayout()
 		TextInputMethodSystem->UnregisterContext(TextInputMethodContextRef);
 	}
 
-	if(FSlateApplication::IsInitialized() && FPlatformMisc::GetRequiresVirtualKeyboard())
+	if(FSlateApplication::IsInitialized() && FPlatformApplicationMisc::RequiresVirtualKeyboard())
 	{
 		FSlateApplication::Get().ShowVirtualKeyboard(false, 0);
 	}
@@ -669,7 +669,7 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	// We need to Tick() while we have focus to keep some things up-to-date
 	OwnerWidget->EnsureActiveTick();
 
-	if (FPlatformMisc::GetRequiresVirtualKeyboard())
+	if (FPlatformApplicationMisc::RequiresVirtualKeyboard())
 	{
 		if (!OwnerWidget->IsTextReadOnly())
 		{
@@ -730,7 +730,7 @@ bool FSlateEditableTextLayout::HandleFocusLost(const FFocusEvent& InFocusEvent)
 		return false;
 	}
 
-	if (FPlatformMisc::GetRequiresVirtualKeyboard())
+	if (FPlatformApplicationMisc::RequiresVirtualKeyboard())
 	{
 		FSlateApplication::Get().ShowVirtualKeyboard(false, InFocusEvent.GetUser());
 	}
@@ -1043,7 +1043,7 @@ FReply FSlateEditableTextLayout::HandleKeyDown(const FKeyEvent& InKeyEvent)
 
 FReply FSlateEditableTextLayout::HandleKeyUp(const FKeyEvent& InKeyEvent)
 {
-	if (FPlatformMisc::GetRequiresVirtualKeyboard() && InKeyEvent.GetKey() == EKeys::Virtual_Accept)
+	if (FPlatformApplicationMisc::RequiresVirtualKeyboard() && InKeyEvent.GetKey() == EKeys::Virtual_Accept)
 	{
 		if (!OwnerWidget->IsTextReadOnly())
 		{
@@ -1083,7 +1083,7 @@ FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeomet
 			else
 			{
 				// On platforms using a virtual keyboard open the virtual keyboard again 
-				if (FPlatformMisc::GetRequiresVirtualKeyboard())
+				if (FPlatformApplicationMisc::RequiresVirtualKeyboard())
 				{
 					if (!OwnerWidget->IsTextReadOnly())
 					{

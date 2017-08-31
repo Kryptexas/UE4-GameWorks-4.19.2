@@ -561,6 +561,31 @@ namespace UE4Tuple_Private
 			return MakeTuple(Func(Forward<TupleType>(Tuple).template Get<Indices>())...);
 		}
 	};
+
+	template <typename IntegerSequence>
+	struct TVisitTupleElements_Impl;
+
+	template <uint32... Indices>
+	struct TVisitTupleElements_Impl<TIntegerSequence<uint32, Indices...>>
+	{
+		template <typename TupleType, typename FuncType>
+		static void Do(TupleType&& Tuple, FuncType Func)
+		{
+			// This should be implemented with a fold expression when our compilers support it
+			int Temp[] = { 0, (Func(Tuple.template Get<Indices>()), 0)... };
+			(void)Temp;
+		}
+	};
+
+
+	template <typename TupleType>
+	struct TCVTupleArity;
+
+	template <typename... Types>
+	struct TCVTupleArity<const volatile TTuple<Types...>>
+	{
+		enum { Value = sizeof...(Types) };
+	};
 }
 
 template <typename... Types>
@@ -629,6 +654,15 @@ public:
 
 
 /**
+ * Traits class which calculates the number of elements in a tuple.
+ */
+template <typename TupleType>
+struct TTupleArity : UE4Tuple_Private::TCVTupleArity<const volatile TupleType>
+{
+};
+
+
+/**
  * Makes a TTuple from some arguments.  The type of the TTuple elements are the decayed versions of the arguments.
  *
  * @param  Args  The arguments used to construct the tuple.
@@ -673,9 +707,9 @@ TTuple<typename TDecay<Types>::Type...> MakeTuple(Types&&... Args)
  */
 template <typename FuncType, typename... Types>
 #if USE_TUPLE_AUTO_RETURN_TYPES
-	decltype(auto) TransformTuple(TTuple<Types...>&& Tuple, FuncType Func)
+	FORCEINLINE decltype(auto) TransformTuple(TTuple<Types...>&& Tuple, FuncType Func)
 #else
-	auto TransformTuple(TTuple<Types...>&& Tuple, FuncType Func) -> decltype(UE4Tuple_Private::TTransformTuple_Impl<TMakeIntegerSequence<uint32, sizeof...(Types)>>::Do(MoveTemp(Tuple), MoveTemp(Func)))
+	FORCEINLINE auto TransformTuple(TTuple<Types...>&& Tuple, FuncType Func) -> decltype(UE4Tuple_Private::TTransformTuple_Impl<TMakeIntegerSequence<uint32, sizeof...(Types)>>::Do(MoveTemp(Tuple), MoveTemp(Func)))
 #endif
 {
 	return UE4Tuple_Private::TTransformTuple_Impl<TMakeIntegerSequence<uint32, sizeof...(Types)>>::Do(MoveTemp(Tuple), MoveTemp(Func));
@@ -683,10 +717,23 @@ template <typename FuncType, typename... Types>
 
 template <typename FuncType, typename... Types>
 #if USE_TUPLE_AUTO_RETURN_TYPES
-	decltype(auto) TransformTuple(const TTuple<Types...>& Tuple, FuncType Func)
+	FORCEINLINE decltype(auto) TransformTuple(const TTuple<Types...>& Tuple, FuncType Func)
 #else
-	auto TransformTuple(const TTuple<Types...>& Tuple, FuncType Func) -> decltype(UE4Tuple_Private::TTransformTuple_Impl<TMakeIntegerSequence<uint32, sizeof...(Types)>>::Do(Tuple, MoveTemp(Func)))
+	FORCEINLINE auto TransformTuple(const TTuple<Types...>& Tuple, FuncType Func) -> decltype(UE4Tuple_Private::TTransformTuple_Impl<TMakeIntegerSequence<uint32, sizeof...(Types)>>::Do(Tuple, MoveTemp(Func)))
 #endif
 {
 	return UE4Tuple_Private::TTransformTuple_Impl<TMakeIntegerSequence<uint32, sizeof...(Types)>>::Do(Tuple, MoveTemp(Func));
+}
+
+
+/**
+ * Visits each element in the tuple in turn and applies the supplied functor to it.
+ *
+ * @param  Tuple  The tuple to apply the functor to.
+ * @param  Func   The functor to apply.
+ */
+template <typename TupleType, typename FuncType>
+FORCEINLINE void VisitTupleElements(TupleType& Tuple, FuncType Func)
+{
+	UE4Tuple_Private::TVisitTupleElements_Impl<TMakeIntegerSequence<uint32, TTupleArity<TupleType>::Value>>::Do(Tuple, MoveTemp(Func));
 }

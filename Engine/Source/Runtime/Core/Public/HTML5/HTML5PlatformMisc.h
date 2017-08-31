@@ -18,7 +18,6 @@
 struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static const TCHAR* GetPlatformFeaturesModuleName();
 	static FString GetDefaultLocale();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));

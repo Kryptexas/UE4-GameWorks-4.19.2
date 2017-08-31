@@ -321,7 +321,8 @@ size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void* Ptr, size_t SizeInB
 					{
 						NewValue = (*PreviousValue) + TEXT(", ");
 					}
-					NewValue += HeaderValue.Trim();
+					HeaderValue.TrimStartInline();
+					NewValue += HeaderValue;
 					Response->Headers.Add(HeaderKey, NewValue);
 
 					//Store the content length so OnRequestProgress() delegates have something to work with

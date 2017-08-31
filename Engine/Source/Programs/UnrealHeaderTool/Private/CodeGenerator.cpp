@@ -1913,7 +1913,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FOutputDevice& O
 		}
 		if (!bIsDynamic)
 		{
-			FString PackageSingletonName = GetPackageSingletonName(CastChecked<UPackage>(Class->GetOutermost()));
+			FString PackageSingletonName = GetPackageSingletonName(Class->GetOutermost());
 
 			OutDeclarations.Logf(TEXT("\t%s_API UPackage* %s;\r\n"), *ApiString, *PackageSingletonName);
 			Singletons.Logf(TEXT("\t\t\t\t(UObject* (*)())%s,\r\n"), *PackageSingletonName.LeftChop(2));
@@ -2618,8 +2618,8 @@ void FNativeClassHeaderGenerator::ExportClassFromSourceFileInner(
 		{
 			ExportConstructorsMacros(OutGeneratedHeaderText, OutCpp, StandardUObjectConstructorsMacroCall, EnhancedUObjectConstructorsMacroCall, SourceFile.GetGeneratedMacroName(ClassData), Class, *APIArg);
 
-			OutGeneratedHeaderText.Log(TEXT("#undef GENERATED_UINTERFACE_BODY_COMMON\r\n"));
-			OutGeneratedHeaderText.Log(Macroize(TEXT("GENERATED_UINTERFACE_BODY_COMMON()"), *Boilerplate));
+			FString InterfaceMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_GENERATED_UINTERFACE_BODY"));
+			OutGeneratedHeaderText.Log(Macroize(*(InterfaceMacroName + TEXT("()")), *Boilerplate));
 
 			int32 ClassGeneratedBodyLine = ClassData->GetGeneratedBodyLine();
 
@@ -2637,7 +2637,7 @@ void FNativeClassHeaderGenerator::ExportClassFromSourceFileInner(
 						FString() +
 						Offset + DeprecationWarning +
 						Offset + DeprecationPushString +
-						Offset + TEXT("GENERATED_UINTERFACE_BODY_COMMON()") LINE_TERMINATOR +
+						Offset + InterfaceMacroName + TEXT("()") LINE_TERMINATOR +
 						StandardUObjectConstructorsMacroCall +
 						Offset + DeprecationPopString
 					)
@@ -2651,7 +2651,7 @@ void FNativeClassHeaderGenerator::ExportClassFromSourceFileInner(
 					*(
 						FString() +
 						Offset + DeprecationPushString +
-						Offset + TEXT("GENERATED_UINTERFACE_BODY_COMMON()") LINE_TERMINATOR +
+						Offset + InterfaceMacroName + TEXT("()") LINE_TERMINATOR +
 						EnhancedUObjectConstructorsMacroCall +
 						GetPreservedAccessSpecifierString(Class) +
 						Offset + DeprecationPopString
@@ -3252,6 +3252,11 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumInitCode(FOutputDevice& Out
 	const FString EnumNameCpp           = Enum->GetName(); //UserDefinedEnum should already have a valid cpp name.
 	const FString OverriddenEnumNameCpp = FNativeClassHeaderGenerator::GetOverriddenName(Enum);
 
+	const bool bIsEditorOnlyDataType = GEditorOnlyDataTypes.Contains(Enum);
+
+	FMacroBlockEmitter EditorOnlyData(Out, TEXT("WITH_EDITORONLY_DATA"));
+	EditorOnlyData(bIsEditorOnlyDataType);
+
 	FString PackageSingletonName;
 	if (!bIsDynamic)
 	{
@@ -3346,7 +3351,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumInitCode(FOutputDevice& Out
 	{
 		const TCHAR* OverridenNameMetaDatakey = TEXT("OverrideName");
 		const FString KeyName = Enum->HasMetaData(OverridenNameMetaDatakey, Index) ? Enum->GetMetaData(OverridenNameMetaDatakey, Index) : Enum->GetNameByIndex(Index).ToString();
-		GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\t\t{ %s, %lld },\r\n"), *CreateUTF8LiteralString(KeyName), Enum->GetValueByIndex(Index));
+		GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\t\t{ %s, (int64)%s },\r\n"), *CreateUTF8LiteralString(KeyName), *Enum->GetNameByIndex(Index).ToString());
 	}
 	GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\t};\r\n"));
 
@@ -4233,7 +4238,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	//Emit warning here if necessary
 	FUHTStringBuilder FunctionDeclaration;
 	ExportNativeFunctionHeader(FunctionDeclaration, ForwardDeclarations, FunctionData, EExportFunctionType::Function, EExportFunctionHeaderStyle::Declaration, nullptr, *GetAPIString());
-	FunctionDeclaration.Trim();
 
 	// Call the validate function if there is one
 	if (!(FunctionData.FunctionExportFlags & FUNCEXPORT_CppStatic) && (FunctionData.FunctionFlags & FUNC_NetValidate))
@@ -4736,7 +4740,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 
 	struct FGeneratedCPP
 	{
-		explicit FGeneratedCPP(FString InGeneratedCppFullFilename)
+		explicit FGeneratedCPP(FString&& InGeneratedCppFullFilename)
 			: GeneratedCppFullFilename(MoveTemp(InGeneratedCppFullFilename))
 		{
 		}
@@ -5805,6 +5809,7 @@ TSharedRef<FUnrealSourceFile> PerformInitialParseOnHeader(UPackage* InParent, co
 	for (auto& ParsedClassInfo : ParsedClassArray)
 	{
 		UClass* ResultClass = ProcessParsedClass(ParsedClassInfo.IsInterface(), DependsOn, ParsedClassInfo.GetClassName(), ParsedClassInfo.GetBaseClassName(), InParent, Flags);
+		GStructToSourceLine.Add(ResultClass, MakeTuple(UnrealSourceFile, ParsedClassInfo.GetClassDefLine()));
 
 		FScope::AddTypeScope(ResultClass, &UnrealSourceFile->GetScope().Get());
 

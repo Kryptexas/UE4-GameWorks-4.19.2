@@ -9,6 +9,7 @@ using AutomationTool;
 using UnrealBuildTool;
 using System.Xml;
 using System.IO;
+using Tools.DotNETCommon;
 
 namespace BuildGraph.Tasks
 {
@@ -112,7 +113,7 @@ namespace BuildGraph.Tasks
 			if (Parameters.MergeTelemetryWithPrefix != null)
 			{
 				TelemetryData NewTelemetry;
-				if (TelemetryData.TryRead(TelemetryFile.FullName, out NewTelemetry))
+				if (TelemetryData.TryRead(TelemetryFile, out NewTelemetry))
 				{
 					CommandUtils.Telemetry.Merge(Parameters.MergeTelemetryWithPrefix, NewTelemetry);
 				}

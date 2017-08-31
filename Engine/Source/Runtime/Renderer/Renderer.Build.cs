@@ -27,6 +27,7 @@ public class Renderer : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"CoreUObject", 
+				"ApplicationCore",
 				"RenderCore", 
 				"RHI", 
 				"ShaderCore",

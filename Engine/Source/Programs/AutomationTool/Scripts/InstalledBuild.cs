@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace AutomationTool

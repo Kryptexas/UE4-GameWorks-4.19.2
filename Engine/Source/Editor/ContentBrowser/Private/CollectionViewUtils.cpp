@@ -167,7 +167,7 @@ bool CollectionViewUtils::HasCustomColors( TArray< FLinearColor >* OutColors )
 
 	for(FString& EntryStr : Section)
 	{
-		EntryStr.Trim();
+		EntryStr.TrimStartInline();
 
 		FString ColorKeyStr;
 		FString ColorStr;

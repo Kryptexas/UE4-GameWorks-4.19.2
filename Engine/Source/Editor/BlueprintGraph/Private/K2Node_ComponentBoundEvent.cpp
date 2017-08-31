@@ -101,7 +101,7 @@ bool UK2Node_ComponentBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 
 UMulticastDelegateProperty* UK2Node_ComponentBoundEvent::GetTargetDelegateProperty() const
 {
-	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
+	return FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
 }
 
 

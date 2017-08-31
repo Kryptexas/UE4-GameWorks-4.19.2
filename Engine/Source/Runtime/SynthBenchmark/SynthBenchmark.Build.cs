@@ -34,6 +34,7 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
+					"ApplicationCore"
 					// ... add private dependencies that you statically link with here ...
 				}
 				);

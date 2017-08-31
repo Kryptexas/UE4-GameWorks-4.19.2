@@ -12,6 +12,7 @@ public class Paper2DEditor : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Json",
 				"Slate",
 				"SlateCore",

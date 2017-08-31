@@ -89,30 +89,14 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 	DWORD PrevErrorMode = 0;
 	BOOL bHavePrevErrorMode = ::SetThreadErrorMode(ErrorMode, &PrevErrorMode);
 
+	// Load the DLL, avoiding windows dialog boxes if missing
 	void* Handle = LoadLibraryWithSearchPaths(FileName, SearchPaths);
-	if (!Handle)
-	{
-		DWORD LastError = ::GetLastError();
-
-		UE_LOG(LogWindows, Log, TEXT("LoadLibraryWithSearchPaths failed for file %s. GetLastError=%d"), FileName, LastError);
-
-		// if errors == 126 (module not found) then write out more info
-		if (LastError == ERROR_MOD_NOT_FOUND)
-		{
-			BOOL Missing = IFileManager::Get().FileExists(FileName);
-			UE_LOG(LogWindows, Log, TEXT("FileExists returned %d for Module %s"), Missing, FileName);
-
-			for (const auto& Path : SearchPaths)
-			{
-				UE_LOG(LogWindows, Log, TEXT("\t%s"), *Path);
-			}
-		}
-	}
 	
 	if(bHavePrevErrorMode)
 	{
 		::SetThreadErrorMode(PrevErrorMode, NULL);
 	}
+
 	return Handle;
 }
 
@@ -329,7 +313,7 @@ void FWindowsPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, F
 	}
 	else
 	{
-		FString URLParams = FString::Printf(TEXT("%s %s"), URL, Parms ? Parms : TEXT("")).TrimTrailing();
+		FString URLParams = FString::Printf(TEXT("%s %s"), URL, Parms ? Parms : TEXT("")).TrimEnd();
 		LaunchWebURL( URLParams, Error );
 	}
 
@@ -602,14 +586,6 @@ FString FWindowsPlatformProcess::GetApplicationName( uint32 ProcessId )
 	}
 
 	return Output;
-}
-
-
-bool FWindowsPlatformProcess::IsThisApplicationForeground()
-{
-	uint32 ForegroundProcess;
-	::GetWindowThreadProcessId(GetForegroundWindow(), (::DWORD *)&ForegroundProcess);
-	return (ForegroundProcess == GetCurrentProcessId());
 }
 
 void FWindowsPlatformProcess::ReadFromPipes(FString* OutStrings[], HANDLE InPipes[], int32 PipeCount)
@@ -1451,11 +1427,38 @@ void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileNam
 		{
 			if (GetModuleHandle(*ImportFileNames[Idx]) == nullptr)
 			{
-				LoadLibrary(*ImportFileNames[Idx]);
+				if(LoadLibrary(*ImportFileNames[Idx]))
+				{
+					UE_LOG(LogWindows, Verbose, TEXT("Preloaded '%s'"), *ImportFileNames[Idx]);
+				}
+				else
+				{
+					UE_LOG(LogWindows, Log, TEXT("Failed to preload '%s' (GetLastError=%d)"), *ImportFileNames[Idx], GetLastError());
+					LogImportDiagnostics(ImportFileNames[Idx], SearchPaths);
+				}
 			}
 		}
 	}
-	return LoadLibrary(*FullFileName);
+
+	// Try to load the actual library
+	void* Handle = LoadLibrary(*FullFileName);
+	if(Handle)
+	{
+		UE_LOG(LogWindows, Verbose, TEXT("Loaded %s"), *FullFileName);
+	}
+	else
+	{
+		UE_LOG(LogWindows, Log, TEXT("Failed to load '%s' (GetLastError=%d)"), *FileName, ::GetLastError());
+		if(IFileManager::Get().FileExists(*FileName))
+		{
+			LogImportDiagnostics(FileName, SearchPaths);
+		}
+		else
+		{
+			UE_LOG(LogWindows, Log, TEXT("File '%s' does not exist"), *FileName);
+		}
+	}
+	return Handle;
 }
 
 void FWindowsPlatformProcess::ResolveImportsRecursive(const FString& FileName, const TArray<FString>& SearchPaths, TArray<FString>& ImportFileNames, TArray<FString>& VisitedImportNames)
@@ -1567,6 +1570,30 @@ const void *MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADE
 		}
 	}
 	return NULL;
+}
+
+void FWindowsPlatformProcess::LogImportDiagnostics(const FString& FileName, const TArray<FString>& SearchPaths)
+{
+	TArray<FString> ImportNames;
+	if(ReadLibraryImports(*FileName, ImportNames))
+	{
+		bool bIncludeSearchPaths = false;
+		for(const FString& ImportName : ImportNames)
+		{
+			if(GetModuleHandle(*ImportName) == nullptr)
+			{
+				UE_LOG(LogWindows, Log, TEXT("  Missing import: %s"), *ImportName);
+				bIncludeSearchPaths = true;
+			}
+		}
+		if(bIncludeSearchPaths)
+		{
+			for (const FString& SearchPath : SearchPaths)
+			{
+				UE_LOG(LogWindows, Log, TEXT("  Looked in: %s"), *SearchPath);
+			}
+		}
+	}
 }
 
 FWindowsPlatformProcess::FProcEnumerator::FProcEnumerator()

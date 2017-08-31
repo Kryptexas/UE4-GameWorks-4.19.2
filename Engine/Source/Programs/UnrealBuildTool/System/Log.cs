@@ -50,6 +50,23 @@ namespace UnrealBuildTool
 	}
 
 	/// <summary>
+	/// Options for formatting messages
+	/// </summary>
+	[Flags]
+	public enum LogFormatOptions
+	{
+		/// <summary>
+		/// Format normally
+		/// </summary>
+		None = 0,
+
+		/// <summary>
+		/// Never write a severity prefix. Useful for pre-formatted messages that need to be in a particular format for, eg. the Visual Studio output window
+		/// </summary>
+		NoSeverityPrefix = 1,
+	}
+
+	/// <summary>
 	/// UAT/UBT Custom log system.
 	/// 
 	/// This lets you use any TraceListeners you want, but you should only call the static 
@@ -69,9 +86,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		private static bool bIsInitialized = false;
 		/// <summary>
-		/// When true, verbose loggin is enabled.
+		/// When true, verbose logging is enabled.
 		/// </summary>
-		private static LogEventType LogLevel = LogEventType.Log;
+		private static LogEventType LogLevel = LogEventType.VeryVerbose;
 		/// <summary>
 		/// When true, warnings and errors will have a WARNING: or ERROR: prexifx, respectively.
 		/// </summary>
@@ -162,7 +179,7 @@ namespace UnrealBuildTool
 
 			// ensure that if InitLogging is called more than once we don't stack listeners.
 			// but always leave the default listener around.
-			for (int ListenerNdx = 0; ListenerNdx < Trace.Listeners.Count; )
+			for (int ListenerNdx = 0; ListenerNdx < Trace.Listeners.Count;)
 			{
 				if (Trace.Listeners[ListenerNdx].GetType() != typeof(DefaultTraceListener))
 				{
@@ -233,16 +250,17 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="StackFramesToSkip">Number of frames to skip to get to the originator of the log request.</param>
 		/// <param name="Verbosity">Message verbosity level</param>
+		/// <param name="Options">Options for formatting this string</param>
 		/// <param name="bForConsole">Whether the message is intended for console output</param>
 		/// <param name="Format">Message text format string</param>
 		/// <param name="Args">Message text parameters</param>
 		/// <returns>Formatted message</returns>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		private static List<string> FormatMessage(int StackFramesToSkip, LogEventType Verbosity, bool bForConsole, string Format, params object[] Args)
+		private static List<string> FormatMessage(int StackFramesToSkip, LogEventType Verbosity, LogFormatOptions Options, bool bForConsole, string Format, params object[] Args)
 		{
 			string TimePrefix = (Timer != null) ? String.Format("[{0:hh\\:mm\\:ss\\.fff}] ", Timer.Elapsed) : "";
 			string SourcePrefix = (bForConsole ? bLogSourcesToConsole : bLogSources) ? string.Format("{0}: ", GetSource(StackFramesToSkip)) : "";
-			string SeverityPrefix = bLogSeverity ? GetSeverityPrefix(Verbosity) : "";
+			string SeverityPrefix = (bLogSeverity && ((Options & LogFormatOptions.NoSeverityPrefix) == 0)) ? GetSeverityPrefix(Verbosity) : "";
 
 			// If there are no extra args, don't try to format the string, in case it has any format control characters in it (our LOCTEXT strings tend to).
 			string[] Lines = ((Args.Length > 0) ? String.Format(Format, Args) : Format).TrimEnd(' ', '\t', '\r', '\n').Split('\n');
@@ -250,10 +268,10 @@ namespace UnrealBuildTool
 			List<string> FormattedLines = new List<string>();
 			FormattedLines.Add(String.Format("{0}{1}{2}{3}{4}", TimePrefix, SourcePrefix, Indent, SeverityPrefix, Lines[0].TrimEnd('\r')));
 
-			if(Lines.Length > 1)
+			if (Lines.Length > 1)
 			{
 				string Padding = new string(' ', SeverityPrefix.Length);
-				for(int Idx = 1; Idx < Lines.Length; Idx++)
+				for (int Idx = 1; Idx < Lines.Length; Idx++)
 				{
 					FormattedLines.Add(String.Format("{0}{1}{2}{3}{4}", TimePrefix, SourcePrefix, Indent, Padding, Lines[Idx].TrimEnd('\r')));
 				}
@@ -268,10 +286,11 @@ namespace UnrealBuildTool
 		/// <param name="StackFramesToSkip">Number of frames to skip to get to the originator of the log request.</param>
 		/// <param name="bWriteOnce">If true, this message will be written only once</param>
 		/// <param name="Verbosity">Message verbosity level. We only meaningfully use values up to Verbose</param>
+		/// <param name="FormatOptions">Options for formatting messages</param>
 		/// <param name="Format">Message format string.</param>
 		/// <param name="Args">Optional arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		private static void WriteLinePrivate(int StackFramesToSkip, bool bWriteOnce, LogEventType Verbosity, string Format, params object[] Args)
+		private static void WriteLinePrivate(int StackFramesToSkip, bool bWriteOnce, LogEventType Verbosity, LogFormatOptions FormatOptions, string Format, params object[] Args)
 		{
 			if (!bIsInitialized)
 			{
@@ -321,11 +340,11 @@ namespace UnrealBuildTool
 					{
 						foreach (TraceListener l in Trace.Listeners)
 						{
-							bool bIsConsole = l is ConsoleTraceListener;
+							bool bIsConsole = l is UEConsoleTraceListener;
 							if (Verbosity != LogEventType.Log || !bIsConsole || LogLevel >= LogEventType.Verbose)
 							{
-								List<string> Lines = FormatMessage(StackFramesToSkip + 1, Verbosity, bIsConsole, Format, Args);
-								foreach(string Line in Lines)
+								List<string> Lines = FormatMessage(StackFramesToSkip + 1, Verbosity, FormatOptions, bIsConsole, Format, Args);
+								foreach (string Line in Lines)
 								{
 									l.WriteLine(Line);
 								}
@@ -361,7 +380,7 @@ namespace UnrealBuildTool
 		{
 			if (Condition)
 			{
-				WriteLinePrivate(1, false, Verbosity, Format, Args);
+				WriteLinePrivate(1, false, Verbosity, LogFormatOptions.None, Format, Args);
 			}
 		}
 
@@ -375,11 +394,24 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void WriteLine(int StackFramesToSkip, LogEventType Verbosity, string Format, params object[] Args)
 		{
-			WriteLinePrivate(StackFramesToSkip + 1, false, Verbosity, Format, Args);
+			WriteLinePrivate(StackFramesToSkip + 1, false, Verbosity, LogFormatOptions.None, Format, Args);
+		}
+		/// <summary>
+		/// Mostly an internal function, but expose StackFramesToSkip to allow UAT to use existing wrapper functions and still get proper formatting.
+		/// </summary>
+		/// <param name="StackFramesToSkip"></param>
+		/// <param name="Verbosity"></param>
+		/// <param name="FormatOptions"></param>
+		/// <param name="Format"></param>
+		/// <param name="Args"></param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void WriteLine(int StackFramesToSkip, LogEventType Verbosity, LogFormatOptions FormatOptions, string Format, params object[] Args)
+		{
+			WriteLinePrivate(StackFramesToSkip + 1, false, Verbosity, FormatOptions, Format, Args);
 		}
 
 		/// <summary>
-		/// Similar to Trace.WriteLin
+		/// Similar to Trace.WriteLine
 		/// </summary>
 		/// <param name="Verbosity"></param>
 		/// <param name="Format"></param>
@@ -387,7 +419,20 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void WriteLine(LogEventType Verbosity, string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, false, Verbosity, Format, Args);
+			WriteLinePrivate(1, false, Verbosity, LogFormatOptions.None, Format, Args);
+		}
+
+		/// <summary>
+		/// Similar to Trace.WriteLine
+		/// </summary>
+		/// <param name="Verbosity"></param>
+		/// <param name="FormatOptions"></param>
+		/// <param name="Format"></param>
+		/// <param name="Args"></param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void WriteLine(LogEventType Verbosity, LogFormatOptions FormatOptions, string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, false, Verbosity, FormatOptions, Format, Args);
 		}
 
 		/// <summary>
@@ -398,7 +443,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceError(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, false, LogEventType.Error, Format, Args);
+			WriteLinePrivate(1, false, LogEventType.Error, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -410,7 +455,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceVerbose(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, false, LogEventType.Verbose, Format, Args);
+			WriteLinePrivate(1, false, LogEventType.Verbose, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -421,7 +466,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceInformation(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, false, LogEventType.Console, Format, Args);
+			WriteLinePrivate(1, false, LogEventType.Console, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -432,7 +477,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceWarning(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, false, LogEventType.Warning, Format, Args);
+			WriteLinePrivate(1, false, LogEventType.Warning, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -444,7 +489,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceVeryVerbose(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, false, LogEventType.VeryVerbose, Format, Args);
+			WriteLinePrivate(1, false, LogEventType.VeryVerbose, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -456,7 +501,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceLog(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, false, LogEventType.Log, Format, Args);
+			WriteLinePrivate(1, false, LogEventType.Log, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -468,7 +513,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void WriteLineOnce(LogEventType Verbosity, string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, true, Verbosity, Format, Args);
+			WriteLinePrivate(1, true, Verbosity, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -479,7 +524,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceErrorOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, true, LogEventType.Error, Format, Args);
+			WriteLinePrivate(1, true, LogEventType.Error, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -491,7 +536,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceVerboseOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, true, LogEventType.Verbose, Format, Args);
+			WriteLinePrivate(1, true, LogEventType.Verbose, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -502,7 +547,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceInformationOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, true, LogEventType.Console, Format, Args);
+			WriteLinePrivate(1, true, LogEventType.Console, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -513,7 +558,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceWarningOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, true, LogEventType.Warning, Format, Args);
+			WriteLinePrivate(1, true, LogEventType.Warning, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -525,7 +570,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceVeryVerboseOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, true, LogEventType.VeryVerbose, Format, Args);
+			WriteLinePrivate(1, true, LogEventType.VeryVerbose, LogFormatOptions.None, Format, Args);
 		}
 
 		/// <summary>
@@ -537,7 +582,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceLogOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, true, LogEventType.Log, Format, Args);
+			WriteLinePrivate(1, true, LogEventType.Log, LogFormatOptions.None, Format, Args);
 		}
 	}
 

@@ -15,6 +15,7 @@
 #include "Editor.h"
 #include "Dialogs/SBuildProgress.h"
 #include "Interfaces/IMainFrameModule.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 /** Called to cancel the slow task activity */
 DECLARE_DELEGATE( FOnCancelClickedDelegate );
@@ -416,7 +417,7 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 				OnCancelClicked = FOnCancelClickedDelegate::CreateRaw(this, &FFeedbackContextEditor::OnUserCancel);
 			}
 
-			const bool bFocusAndActivate = FPlatformProcess::IsThisApplicationForeground();
+			const bool bFocusAndActivate = FPlatformApplicationMisc::IsThisApplicationForeground();
 
 			TSharedRef<SWindow> SlowTaskWindowRef = SNew(SWindow)
 				.SizingRule(ESizingRule::Autosized)

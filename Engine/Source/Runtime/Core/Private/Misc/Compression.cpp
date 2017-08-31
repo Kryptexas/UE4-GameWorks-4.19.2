@@ -594,3 +594,14 @@ void* FCompressedGrowableBuffer::Access( int32 Offset )
 }
 
 
+bool FCompression::VerifyCompressionFlagsValid(int32 InCompressionFlags)
+{
+	const int32 CompressionFlagsMask = COMPRESSION_FLAGS_TYPE_MASK | COMPRESSION_FLAGS_OPTIONS_MASK;
+	if (InCompressionFlags & (~CompressionFlagsMask))
+	{
+		return false;
+	}
+	// @todo: check the individual flags here
+	return true;
+}
+

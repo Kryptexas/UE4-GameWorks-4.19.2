@@ -134,7 +134,7 @@ public:
 		if( GConfig->GetString( IniSection, NodeName, Entry, IniFilename ) )
 		{
 			// Trim whitespace at the beginning.
-			Entry = Entry.Trim();
+			Entry.TrimStartInline();
 			// Remove brackets.
 			Entry.RemoveFromStart(TEXT("("));
 			Entry.RemoveFromEnd(TEXT(")"));
@@ -504,6 +504,25 @@ public:
 		else if (Path.StartsWith(TEXT("?")))
 		{
 			Path = TEXT("");
+		}
+
+		// Allow the user to override it from the editor
+		FString EditorOverrideSetting;
+		if(FParse::Value(Entry, TEXT("EditorOverrideSetting="), EditorOverrideSetting))
+		{
+			FString Setting = GConfig->GetStr(TEXT("/Script/UnrealEd.EditorSettings"), *EditorOverrideSetting, GEditorSettingsIni);
+			if(Setting.Len() > 0)
+			{
+				FString SettingPath;
+				if(FParse::Value(*Setting, TEXT("Path="), SettingPath))
+				{
+					SettingPath = SettingPath.TrimQuotes();
+					if(SettingPath.Len() > 0)
+					{
+						Path = SettingPath;
+					}
+				}
+			}
 		}
 
 		if( !Path.Len() )

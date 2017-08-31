@@ -1465,7 +1465,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 
 	if (EntryPoints.Num())
 	{
-		Context.EntryPoint = CastChecked<UK2Node_FunctionEntry>(EntryPoints[0]);
+		Context.EntryPoint = EntryPoints[0];
 
 		// Make sure there was only one function entry node
 		for (int32 i = 1; i < EntryPoints.Num(); ++i)
@@ -2003,7 +2003,7 @@ void FKismetCompilerContext::PostcompileFunction(FKismetFunctionContext& Context
  */
 void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Context)
 {
-	SetCalculatedMetaDataAndFlags( Context.Function, CastChecked<UK2Node_FunctionEntry>(Context.EntryPoint), Schema );
+	SetCalculatedMetaDataAndFlags( Context.Function, Context.EntryPoint, Schema );
 }
 
 void FKismetCompilerContext::SetCalculatedMetaDataAndFlags(UFunction* Function, UK2Node_FunctionEntry* EntryNode, const UEdGraphSchema_K2* K2Schema)
@@ -2117,7 +2117,7 @@ void FKismetCompilerContext::AddInterfacesFromBlueprint(UClass* Class)
 	// Iterate over all implemented interfaces, and add them to the class
 	for(int32 i = 0; i < Blueprint->ImplementedInterfaces.Num(); i++)
 	{
-		UClass* Interface = Cast<UClass>(Blueprint->ImplementedInterfaces[i].Interface);
+		UClass* Interface = Blueprint->ImplementedInterfaces[i].Interface;
 		if( Interface )
 		{
 			// Make sure it's a valid interface

@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 [Help("Builds PhysX/APEX libraries using CMake build system.")]
 [Help("TargetLibs", "Specify a list of target libraries to build, separated by '+' characters (eg. -TargetLibs=PhysX+APEX). Default is PhysX+APEX.")]
@@ -31,7 +32,7 @@ class BuildPhysX : BuildCommand
 	{
 		PhysX,
 		APEX,		// Note: Building APEX deploys shared binaries and libs
-		NvCloth
+        NvCloth
 	}
 
 	private struct TargetPlatformData
@@ -61,27 +62,27 @@ class BuildPhysX : BuildCommand
 	private static string[] APEXSpecialLibs = { "NvParameterized", "RenderDebug" };
 
 	// We cache our own MSDev and MSBuild executables
-	private static UnrealBuildTool.FileReference MsDev14Exe;
-	private static UnrealBuildTool.FileReference MsBuildExe;
+	private static FileReference MsDev14Exe;
+	private static FileReference MsBuildExe;
 
 	// Cache directories under the PhysX/ directory
-	private static UnrealBuildTool.DirectoryReference PhysXSourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Source", "ThirdParty", "PhysX");
-	private static UnrealBuildTool.DirectoryReference PhysX34SourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "PhysX_3.4");
-	private static UnrealBuildTool.DirectoryReference APEX14SourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "APEX_1.4");
-	private static UnrealBuildTool.DirectoryReference NvClothSourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "NvCloth");
-	private static UnrealBuildTool.DirectoryReference SharedSourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "PxShared");
-	private static UnrealBuildTool.DirectoryReference RootOutputBinaryDirectory = UnrealBuildTool.DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries", "ThirdParty", "PhysX");
-	private static UnrealBuildTool.DirectoryReference RootOutputLibDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "Lib");
+	private static DirectoryReference PhysXSourceRootDirectory = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Source", "ThirdParty", "PhysX");
+	private static DirectoryReference PhysX34SourceRootDirectory = DirectoryReference.Combine(PhysXSourceRootDirectory, "PhysX_3.4");
+	private static DirectoryReference APEX14SourceRootDirectory = DirectoryReference.Combine(PhysXSourceRootDirectory, "APEX_1.4");
+    private static DirectoryReference NvClothSourceRootDirectory = DirectoryReference.Combine(PhysXSourceRootDirectory, "NvCloth");
+	private static DirectoryReference SharedSourceRootDirectory = DirectoryReference.Combine(PhysXSourceRootDirectory, "PxShared");
+	private static DirectoryReference RootOutputBinaryDirectory = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries", "ThirdParty", "PhysX");
+	private static DirectoryReference RootOutputLibDirectory = DirectoryReference.Combine(PhysXSourceRootDirectory, "Lib");
 
-	//private static UnrealBuildTool.DirectoryReference PhysX34SourceLibRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysX34SourceRootDirectory, "Lib");
-	//private static UnrealBuildTool.DirectoryReference APEX14SourceLibRootDirectory = UnrealBuildTool.DirectoryReference.Combine(APEX14SourceRootDirectory, "Lib");
-	//private static UnrealBuildTool.DirectoryReference SharedSourceLibRootDirectory = UnrealBuildTool.DirectoryReference.Combine(SharedSourceRootDirectory, "Lib");
+	//private static DirectoryReference PhysX34SourceLibRootDirectory = DirectoryReference.Combine(PhysX34SourceRootDirectory, "Lib");
+	//private static DirectoryReference APEX14SourceLibRootDirectory = DirectoryReference.Combine(APEX14SourceRootDirectory, "Lib");
+	//private static DirectoryReference SharedSourceLibRootDirectory = DirectoryReference.Combine(SharedSourceRootDirectory, "Lib");
 
 
-	//private static UnrealBuildTool.DirectoryReference PhysXEngineBinaryRootDirectory = UnrealBuildTool.DirectoryReference.Combine(UnrealBuildTool.UnrealBuildTool.RootDirectory, "Engine\\Binaries\\ThirdParty\\PhysX");
-	//private static UnrealBuildTool.DirectoryReference PhysX34EngineBinaryRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXEngineBinaryRootDirectory, "PhysX-3.4");
-	//private static UnrealBuildTool.DirectoryReference APEX14EngineBinaryRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXEngineBinaryRootDirectory, "APEX-1.4");
-	//private static UnrealBuildTool.DirectoryReference SharedEngineBinaryRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXEngineBinaryRootDirectory, "PxShared-1.0");
+	//private static DirectoryReference PhysXEngineBinaryRootDirectory = DirectoryReference.Combine(UnrealBuildTool.UnrealBuildTool.RootDirectory, "Engine\\Binaries\\ThirdParty\\PhysX");
+	//private static DirectoryReference PhysX34EngineBinaryRootDirectory = DirectoryReference.Combine(PhysXEngineBinaryRootDirectory, "PhysX-3.4");
+	//private static DirectoryReference APEX14EngineBinaryRootDirectory = DirectoryReference.Combine(PhysXEngineBinaryRootDirectory, "APEX-1.4");
+	//private static DirectoryReference SharedEngineBinaryRootDirectory = DirectoryReference.Combine(PhysXEngineBinaryRootDirectory, "PxShared-1.0");
 
 	private static string GetCMakeNameAndSetupEnv(TargetPlatformData TargetData)
 	{
@@ -141,21 +142,21 @@ class BuildPhysX : BuildCommand
 		}
 	}
 
-	private static UnrealBuildTool.DirectoryReference GetProjectDirectory(PhysXTargetLib TargetLib, TargetPlatformData TargetData, WindowsCompiler TargetWindowsCompiler = WindowsCompiler.VisualStudio2015)
+	private static DirectoryReference GetProjectDirectory(PhysXTargetLib TargetLib, TargetPlatformData TargetData, WindowsCompiler TargetWindowsCompiler = WindowsCompiler.VisualStudio2015)
 	{
-		UnrealBuildTool.DirectoryReference Directory = new UnrealBuildTool.DirectoryReference(GetTargetLibRootDirectory(TargetLib).ToString());
+		DirectoryReference Directory = new DirectoryReference(GetTargetLibRootDirectory(TargetLib).ToString());
 
 		switch(TargetLib)
 		{
 			case PhysXTargetLib.PhysX:
-				Directory = UnrealBuildTool.DirectoryReference.Combine(Directory, "Source");
+				Directory = DirectoryReference.Combine(Directory, "Source");
 				break;
 			case PhysXTargetLib.APEX:
 				// APEX has its 'compiler' directory in a different location off the root of APEX
 				break;
 		}
 
-		return UnrealBuildTool.DirectoryReference.Combine(Directory, "compiler", GetCMakeTargetDirectoryName(TargetData, TargetWindowsCompiler));
+		return DirectoryReference.Combine(Directory, "compiler", GetCMakeTargetDirectoryName(TargetData, TargetWindowsCompiler));
 	}
 
 	private static string GetLinuxToolchainSettings(TargetPlatformData TargetData)
@@ -193,8 +194,8 @@ class BuildPhysX : BuildCommand
 		switch (TargetData.Platform)
 		{
 			case UnrealTargetPlatform.PS4:
-			case UnrealTargetPlatform.Switch:
-			case UnrealTargetPlatform.Linux:
+            case UnrealTargetPlatform.Switch:
+            case UnrealTargetPlatform.Linux:
 				OutputFlags += " -DUSE_RESPONSE_FILES=1";
 				break;
 		}
@@ -278,26 +279,26 @@ class BuildPhysX : BuildCommand
 					 default:
 						throw new AutomationException(String.Format("Non-CMake or unsupported platform '{0}' supplied to GetCMakeArguments", TargetData.ToString()));
 				}
-			case PhysXTargetLib.NvCloth:
-				DirectoryReference NvClothCMakeFiles = DirectoryReference.Combine(NvClothSourceRootDirectory, "compiler", "cmake");
-				switch (TargetData.Platform)
-				{
-					case UnrealTargetPlatform.Win32:
-						return DirectoryReference.Combine(NvClothCMakeFiles, "Windows").ToString() + " -G \"" + VisualStudioName + "\" -AWin32 -DTARGET_BUILD_PLATFORM=Windows" + OutputFlags;
-					case UnrealTargetPlatform.Win64:
-						return DirectoryReference.Combine(NvClothCMakeFiles, "Windows").ToString() + " -G \"" + VisualStudioName + "\" -Ax64 -DTARGET_BUILD_PLATFORM=Windows" + OutputFlags;
-					case UnrealTargetPlatform.PS4:
-						return DirectoryReference.Combine(NvClothCMakeFiles, "PS4").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=PS4 -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\PS4\\PS4Toolchain.txt\"" + OutputFlags;
-					case UnrealTargetPlatform.Switch:
-						return DirectoryReference.Combine(NvClothCMakeFiles, "Switch").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=Switch -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\Switch\\SwitchToolchain.cmake\"" + OutputFlags;
-					case UnrealTargetPlatform.XboxOne:
-						return DirectoryReference.Combine(NvClothCMakeFiles, "XboxOne").ToString() + " -G \"Visual Studio 14 2015\" -DTARGET_BUILD_PLATFORM=XboxOne -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\XboxOne\\XboxOneToolchain.txt\" -DCMAKE_GENERATOR_PLATFORM=DURANGO" + OutputFlags;
-					case UnrealTargetPlatform.Linux:
-						return DirectoryReference.Combine(NvClothCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=Linux -DPX_STATIC_LIBRARIES=1 -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags;
-					case UnrealTargetPlatform.Mac:
-						return DirectoryReference.Combine(NvClothCMakeFiles, "Mac").ToString() + " -G \"Xcode\" -DTARGET_BUILD_PLATFORM=Mac" + OutputFlags;
+            case PhysXTargetLib.NvCloth:
+                DirectoryReference NvClothCMakeFiles = DirectoryReference.Combine(NvClothSourceRootDirectory, "compiler", "cmake");
+                switch (TargetData.Platform)
+                {
+                    case UnrealTargetPlatform.Win32:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "Windows").ToString() + " -G \"" + VisualStudioName + "\" -AWin32 -DTARGET_BUILD_PLATFORM=Windows" + OutputFlags;
+                    case UnrealTargetPlatform.Win64:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "Windows").ToString() + " -G \"" + VisualStudioName + "\" -Ax64 -DTARGET_BUILD_PLATFORM=Windows" + OutputFlags;
+                    case UnrealTargetPlatform.PS4:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "PS4").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=PS4 -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\PS4\\PS4Toolchain.txt\"" + OutputFlags;
+                    case UnrealTargetPlatform.Switch:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "Switch").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=Switch -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\Switch\\SwitchToolchain.cmake\"" + OutputFlags;
+                    case UnrealTargetPlatform.XboxOne:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "XboxOne").ToString() + " -G \"Visual Studio 14 2015\" -DTARGET_BUILD_PLATFORM=XboxOne -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\XboxOne\\XboxOneToolchain.txt\" -DCMAKE_GENERATOR_PLATFORM=DURANGO" + OutputFlags;
+                    case UnrealTargetPlatform.Linux:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=Linux -DPX_STATIC_LIBRARIES=1 -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags;
+                    case UnrealTargetPlatform.Mac:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "Mac").ToString() + " -G \"Xcode\" -DTARGET_BUILD_PLATFORM=Mac" + OutputFlags;
 
-					default:
+                    default:
 						throw new AutomationException(String.Format("Non-CMake or unsupported platform '{0}' supplied to GetCMakeArguments", TargetData.ToString()));
 				}
 			default:
@@ -341,17 +342,17 @@ class BuildPhysX : BuildCommand
 				return "PhysX.sln";
 			case PhysXTargetLib.APEX:
 				return "APEX.sln";
-			case PhysXTargetLib.NvCloth:
-				return "NvCloth.sln";
+            case PhysXTargetLib.NvCloth:
+                return "NvCloth.sln";
 			default:
 				throw new AutomationException(String.Format("Unknown target lib '{0}' specified to GetTargetLibSolutionName", TargetLib));
 		}
 	}
 
-	private static UnrealBuildTool.FileReference GetTargetLibSolutionFileName(PhysXTargetLib TargetLib, TargetPlatformData TargetData, WindowsCompiler TargetWindowsCompiler)
+	private static FileReference GetTargetLibSolutionFileName(PhysXTargetLib TargetLib, TargetPlatformData TargetData, WindowsCompiler TargetWindowsCompiler)
 	{
-		UnrealBuildTool.DirectoryReference Directory = GetProjectDirectory(TargetLib, TargetData, TargetWindowsCompiler);
-		return UnrealBuildTool.FileReference.Combine(Directory, GetTargetLibSolutionName(TargetLib));
+		DirectoryReference Directory = GetProjectDirectory(TargetLib, TargetData, TargetWindowsCompiler);
+		return FileReference.Combine(Directory, GetTargetLibSolutionName(TargetLib));
 	}
 
 	private static bool DoesPlatformUseMSBuild(TargetPlatformData TargetData)
@@ -403,8 +404,8 @@ class BuildPhysX : BuildCommand
 				return PhysX34SourceRootDirectory;
 			case PhysXTargetLib.APEX:
 				return APEX14SourceRootDirectory;
-			case PhysXTargetLib.NvCloth:
-				return NvClothSourceRootDirectory;
+            case PhysXTargetLib.NvCloth:
+                return NvClothSourceRootDirectory;
 			default:
 				throw new AutomationException(String.Format("Unknown target lib '{0}' specified to GetTargetLibRootDirectory", TargetLib));
 		}
@@ -514,7 +515,7 @@ class BuildPhysX : BuildCommand
 		return TargetWindowsCompilers;
 	}
 
-	private static void MakeFreshDirectoryIfRequired(UnrealBuildTool.DirectoryReference Directory)
+	private static void MakeFreshDirectoryIfRequired(DirectoryReference Directory)
 	{
 		if (!DirectoryReference.Exists(Directory))
 		{
@@ -580,7 +581,7 @@ class BuildPhysX : BuildCommand
 				// for windows platforms we support building against multiple compilers
 				foreach(WindowsCompiler TargetWindowsCompiler in TargetWindowsCompilers)
 				{
-					UnrealBuildTool.DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData, TargetWindowsCompiler);
+					DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData, TargetWindowsCompiler);
 					MakeFreshDirectoryIfRequired(CMakeTargetDirectory);
 
 					if(!bCleanOnly)
@@ -602,8 +603,8 @@ class BuildPhysX : BuildCommand
 			case UnrealTargetPlatform.Switch:
 				foreach (string BuildConfig in TargetConfigurations)
 				{
-					UnrealBuildTool.DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
-					CMakeTargetDirectory = UnrealBuildTool.DirectoryReference.Combine(CMakeTargetDirectory, BuildConfig);
+					DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
+					CMakeTargetDirectory = DirectoryReference.Combine(CMakeTargetDirectory, BuildConfig);
 					MakeFreshDirectoryIfRequired(CMakeTargetDirectory);
 
 					if (!bCleanOnly)
@@ -620,7 +621,7 @@ class BuildPhysX : BuildCommand
 
 						System.Console.WriteLine("{0} {1}", StartInfo.FileName, StartInfo.Arguments);
 						Log("{0} {1}", StartInfo.FileName, StartInfo.Arguments);
-
+						
 						if (RunLocalProcessAndLogOutput(StartInfo) != 0)
 						{
 							throw new AutomationException(String.Format("Unable to generate projects for {0}.", TargetLib.ToString() + ", " + TargetData.ToString()));
@@ -632,7 +633,7 @@ class BuildPhysX : BuildCommand
 			case UnrealTargetPlatform.IOS:
 			case UnrealTargetPlatform.TVOS:
 				{
-					UnrealBuildTool.DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
+					DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
 					MakeFreshDirectoryIfRequired(CMakeTargetDirectory);
 
 					if (!bCleanOnly)
@@ -659,13 +660,13 @@ class BuildPhysX : BuildCommand
 					{"profile", "-Oz"},
 					{"release", "-O3"}
 				};
-				UnrealBuildTool.DirectoryReference HTML5CMakeModules = DirectoryReference.Combine(PhysXSourceRootDirectory, "Externals", "CMakeModules", "HTML5");
+				DirectoryReference HTML5CMakeModules = DirectoryReference.Combine(PhysXSourceRootDirectory, "Externals", "CMakeModules", "HTML5");
 				MakeFreshDirectoryIfRequired(HTML5CMakeModules);
 
 				foreach(string BuildConfig in TargetConfigurations)
 				{
-					UnrealBuildTool.DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
-					CMakeTargetDirectory = UnrealBuildTool.DirectoryReference.Combine(CMakeTargetDirectory, "BUILD" + BuildMap[BuildConfig]);
+					DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
+					CMakeTargetDirectory = DirectoryReference.Combine(CMakeTargetDirectory, "BUILD" + BuildMap[BuildConfig]);
 					MakeFreshDirectoryIfRequired(CMakeTargetDirectory);
 
 					if (!bCleanOnly)
@@ -690,7 +691,7 @@ class BuildPhysX : BuildCommand
 
 						Log("Working in: {0}", StartInfo.WorkingDirectory);
 						Log("{0} {1}", StartInfo.FileName, StartInfo.Arguments);
-
+						
 						if (RunLocalProcessAndLogOutput(StartInfo) != 0)
 						{
 							throw new AutomationException(String.Format("Unabled to generate projects for {0}.", TargetLib.ToString() + ", " + TargetData.ToString()));
@@ -700,7 +701,7 @@ class BuildPhysX : BuildCommand
 				break;
 			default:
 				{
-					UnrealBuildTool.DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
+					DirectoryReference CMakeTargetDirectory = GetProjectDirectory(TargetLib, TargetData);
 					MakeFreshDirectoryIfRequired(CMakeTargetDirectory);
 
 					if (!bCleanOnly)
@@ -777,8 +778,8 @@ class BuildPhysX : BuildCommand
 			string VS2015Path = GetMsDevExe(WindowsCompiler.VisualStudio2015);
 			if (VS2015Path != null)
 			{
-				MsDev14Exe = new UnrealBuildTool.FileReference(GetMsDevExe(WindowsCompiler.VisualStudio2015));
-				MsBuildExe = new UnrealBuildTool.FileReference(GetMsBuildExe(WindowsCompiler.VisualStudio2015));
+				MsDev14Exe = new FileReference(GetMsDevExe(WindowsCompiler.VisualStudio2015));
+				MsBuildExe = new FileReference(GetMsBuildExe(WindowsCompiler.VisualStudio2015));
 			}
 
 			// ================================================================================
@@ -912,15 +913,15 @@ class BuildPhysX : BuildCommand
 				{
 					// Use make from Android toolchain
 					string NDKDirectory = Environment.GetEnvironmentVariable("NDKROOT");
-
+		
 					// don't register if we don't have an NDKROOT specified
 					if (String.IsNullOrEmpty(NDKDirectory))
 					{
 						throw new BuildException("NDKROOT is not specified; cannot build Android.");
 					}
-
+		
 					NDKDirectory = NDKDirectory.Replace("\"", "");
-
+		
 					MakeCommand = NDKDirectory + "\\prebuilt\\windows-x86_64\\bin\\make.exe";
 				}
 				break;
@@ -945,10 +946,10 @@ class BuildPhysX : BuildCommand
 		// makefile build has "projects" for every configuration. However, we abstract away from that by assuming GetProjectDirectory points to the "meta-project"
 		foreach (string BuildConfig in TargetConfigurations)
 		{
-			UnrealBuildTool.DirectoryReference MetaProjectDirectory = GetProjectDirectory(TargetLib, TargetData);
-			UnrealBuildTool.DirectoryReference ConfigDirectory = UnrealBuildTool.DirectoryReference.Combine(MetaProjectDirectory, BuildMap[BuildConfig]);
+			DirectoryReference MetaProjectDirectory = GetProjectDirectory(TargetLib, TargetData);
+			DirectoryReference ConfigDirectory = DirectoryReference.Combine(MetaProjectDirectory, BuildMap[BuildConfig]);
 			Environment.SetEnvironmentVariable("LIB_SUFFIX", GetConfigurationSuffix(BuildConfig, TargetData)); // only used in HTML5's CMakefiles
-			string Makefile = UnrealBuildTool.FileReference.Combine(ConfigDirectory, "Makefile").ToString();
+			string Makefile = FileReference.Combine(ConfigDirectory, "Makefile").ToString();
 			if (!FileExists(Makefile))
 			{
 				throw new AutomationException(String.Format("Unabled to build {0} - file not found.", Makefile));
@@ -971,25 +972,25 @@ class BuildPhysX : BuildCommand
 
 	private static void BuildXcodeTarget(PhysXTargetLib TargetLib, TargetPlatformData TargetData, List<string> TargetConfigurations)
 	{
-		UnrealBuildTool.DirectoryReference Directory = GetProjectDirectory(TargetLib, TargetData);
-		string ProjectName = "";
+		DirectoryReference Directory = GetProjectDirectory(TargetLib, TargetData);
+        string ProjectName = "";
 
-		switch(TargetLib)
-		{
-			case PhysXTargetLib.APEX:
-				ProjectName = "APEX";
-				break;
-			case PhysXTargetLib.NvCloth:
-				ProjectName = "NvCloth";
-				break;
-			case PhysXTargetLib.PhysX:
-				ProjectName = "PhysX";
-				break;
-			default:
-				throw new AutomationException(String.Format("Unabled to build XCode target, Unsupported library {0}.", TargetLib.ToString()));
-		}
+        switch(TargetLib)
+        {
+            case PhysXTargetLib.APEX:
+                ProjectName = "APEX";
+                break;
+            case PhysXTargetLib.NvCloth:
+                ProjectName = "NvCloth";
+                break;
+            case PhysXTargetLib.PhysX:
+                ProjectName = "PhysX";
+                break;
+            default:
+                throw new AutomationException(String.Format("Unabled to build XCode target, Unsupported library {0}.", TargetLib.ToString()));
+        }
 
-		string ProjectFile = UnrealBuildTool.FileReference.Combine(Directory, ProjectName + ".xcodeproj").ToString();
+		string ProjectFile = FileReference.Combine(Directory, ProjectName + ".xcodeproj").ToString();
 
 		if (!DirectoryExists(ProjectFile))
 		{
@@ -1071,7 +1072,7 @@ class BuildPhysX : BuildCommand
 				throw new AutomationException(String.Format("Unsupported platform '{0}' supplied to GetOutputBinaryDirectory", TargetData.ToString()));
 		}
 
-		return UnrealBuildTool.DirectoryReference.Combine(RootOutputBinaryDirectory, ArchName, VisualStudioName);
+		return DirectoryReference.Combine(RootOutputBinaryDirectory, ArchName, VisualStudioName);
 	}
 
 	private static DirectoryReference GetPlatformLibDirectory(TargetPlatformData TargetData, WindowsCompiler TargetWindowsCompiler)
@@ -1137,7 +1138,7 @@ class BuildPhysX : BuildCommand
 				throw new AutomationException(String.Format("Unsupported platform '{0}' supplied to GetOutputLibDirectory", TargetData.ToString()));
 		}
 
-		return UnrealBuildTool.DirectoryReference.Combine(RootOutputLibDirectory, ArchName, VisualStudioName);
+		return DirectoryReference.Combine(RootOutputLibDirectory, ArchName, VisualStudioName);
 	}
 
 	private static bool PlatformHasBinaries(TargetPlatformData TargetData)
@@ -1212,32 +1213,32 @@ class BuildPhysX : BuildCommand
 		throw new AutomationException(String.Format("No lib extension for platform '{0}'", TargetData.Platform.ToString()));
 	}
 
-	private static bool FileGeneratedByLib(string FileNameUpper, PhysXTargetLib TargetLib)
-	{
-		switch(TargetLib)
-		{
-			case PhysXTargetLib.APEX:
-				return FileGeneratedByAPEX(FileNameUpper);
-			case PhysXTargetLib.NvCloth:
-				return FileGeneratedByNvCloth(FileNameUpper);
-			default:
-				break;
-		}
+    private static bool FileGeneratedByLib(string FileNameUpper, PhysXTargetLib TargetLib)
+    {
+        switch(TargetLib)
+        {
+            case PhysXTargetLib.APEX:
+                return FileGeneratedByAPEX(FileNameUpper);
+            case PhysXTargetLib.NvCloth:
+                return FileGeneratedByNvCloth(FileNameUpper);
+            default:
+                break;
+        }
 
-		// Must have been PhysX if we got here, if it wasn't generated by other libs, then it's PhysX
-		return !FileGeneratedByAPEX(FileNameUpper) && !FileGeneratedByNvCloth(FileNameUpper);
-	}
+        // Must have been PhysX if we got here, if it wasn't generated by other libs, then it's PhysX
+        return !FileGeneratedByAPEX(FileNameUpper) && !FileGeneratedByNvCloth(FileNameUpper);
+    }
 
-	private static bool FileGeneratedByNvCloth(string FileNameUpper)
-	{
-		if(FileNameUpper.StartsWith("NVCLOTH"))
-		{
-			return true;
-		}
+    private static bool FileGeneratedByNvCloth(string FileNameUpper)
+    {
+        if(FileNameUpper.StartsWith("NVCLOTH"))
+        {
+            return true;
+        }
 
-		return false;
-	}
-
+        return false;
+    }
+    
 	private static bool FileGeneratedByAPEX(string FileNameUpper)
 	{
 		if (FileNameUpper.StartsWith("APEX"))
@@ -1268,7 +1269,7 @@ class BuildPhysX : BuildCommand
 		foreach (FileReference FoundFile in DirectoryReference.EnumerateFiles(BaseDir, SearchPrefix))
 		{
 			string FileNameUpper = FoundFile.GetFileName().ToString().ToUpper();
-
+			
 			if(FileGeneratedByLib(FileNameUpper, TargetLib))
 			{
 				OutputFiles.Add(FoundFile);
@@ -1359,24 +1360,24 @@ class BuildPhysX : BuildCommand
 			}
 		}
 
-		if(TargetLib == PhysXTargetLib.NvCloth)
-		{
-			switch(TargetData.Platform)
-			{
-				case UnrealTargetPlatform.Win32:
-				case UnrealTargetPlatform.Win64:
-				case UnrealTargetPlatform.PS4:
-				case UnrealTargetPlatform.Switch:
-				case UnrealTargetPlatform.XboxOne:
-				case UnrealTargetPlatform.Mac:
-					return true;
-				case UnrealTargetPlatform.Linux:
-					// only x86_64 Linux supports it.
-					return TargetData.Architecture.StartsWith("x86_64");
-				default:
-					return false;
-			}
-		}
+        if(TargetLib == PhysXTargetLib.NvCloth)
+        {
+            switch(TargetData.Platform)
+            {
+                case UnrealTargetPlatform.Win32:
+                case UnrealTargetPlatform.Win64:
+                case UnrealTargetPlatform.PS4:
+                case UnrealTargetPlatform.Switch:
+                case UnrealTargetPlatform.XboxOne:
+                case UnrealTargetPlatform.Mac:
+                    return true;
+                case UnrealTargetPlatform.Linux:
+                    // only x86_64 Linux supports it.
+                    return TargetData.Architecture.StartsWith("x86_64");
+                default:
+                    return false;
+            }
+        }
 
 		return true;
 	}
@@ -1469,7 +1470,7 @@ class BuildPhysX : BuildCommand
 								break;
 						}
 					}
-
+					
 					foreach(FileReference FileToDelete in FilesToDelete)
 					{
 						FilesToReconcile.Add(FileToDelete);
@@ -1486,14 +1487,14 @@ class BuildPhysX : BuildCommand
 		{
 			string LibDeploymentDesc = "";
 
-			foreach(PhysXTargetLib Lib in TargetLibs)
+            foreach(PhysXTargetLib Lib in TargetLibs)
 			{
-				if(LibDeploymentDesc.Length != 0)
-				{
-					LibDeploymentDesc += " & ";
-				}
+                if(LibDeploymentDesc.Length != 0)
+                {
+                    LibDeploymentDesc += " & ";
+			}
 
-				LibDeploymentDesc += Lib.ToString();
+                LibDeploymentDesc += Lib.ToString();
 			}
 
 			foreach (TargetPlatformData TargetData in TargetPlatforms)
@@ -1501,7 +1502,7 @@ class BuildPhysX : BuildCommand
 				LibDeploymentDesc += " " + TargetData.ToString();
 			}
 
-			P4ChangeList = P4.CreateChange(P4Env.Client, String.Format("BuildPhysX.Automation: Deploying {0} libs.", LibDeploymentDesc) + Environment.NewLine + "#rb none" + Environment.NewLine + "#lockdown Nick.Penwarden" + Environment.NewLine + "#tests none");
+            P4ChangeList = P4.CreateChange(P4Env.Client, String.Format("BuildPhysX.Automation: Deploying {0} libs.", LibDeploymentDesc) + Environment.NewLine + "#rb none" + Environment.NewLine + "#lockdown Nick.Penwarden" + Environment.NewLine + "#tests none");
 		}
 
 
@@ -1536,7 +1537,7 @@ class BuildPhysX : BuildCommand
 					}
 				}
 			}
-
+			
 			foreach(FileReference FileToReconcile in FilesToReconcile)
 			{
 				P4.Reconcile(P4ChangeList, FileToReconcile.ToString());

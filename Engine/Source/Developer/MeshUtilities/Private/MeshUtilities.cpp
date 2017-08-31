@@ -5519,7 +5519,7 @@ TSharedRef<FExtender> FMeshUtilities::GetAnimationBlueprintEditorToolbarExtender
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InAnimationBlueprintEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InAnimationBlueprintEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",
@@ -5554,7 +5554,7 @@ TSharedRef<FExtender> FMeshUtilities::GetAnimationEditorToolbarExtender(const TS
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InAnimationEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InAnimationEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",
@@ -5589,7 +5589,7 @@ TSharedRef<FExtender> FMeshUtilities::GetSkeletalMeshEditorToolbarExtender(const
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InSkeletalMeshEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InSkeletalMeshEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",
@@ -5624,7 +5624,7 @@ TSharedRef<FExtender> FMeshUtilities::GetSkeletonEditorToolbarExtender(const TSh
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InSkeletonEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InSkeletonEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",

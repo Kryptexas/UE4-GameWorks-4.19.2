@@ -653,12 +653,20 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 	{
 		// Verify no recursion.
 		APawn* Loop = (NewBaseComponent ? Cast<APawn>(NewBaseComponent->GetOwner()) : NULL);
-		for(  ; Loop!=NULL; Loop=Cast<APawn>(Loop->GetMovementBase()) )
+		while (Loop)
 		{
-			if( Loop == this )
+			if (Loop == this)
 			{
 				UE_LOG(LogCharacter, Warning, TEXT(" SetBase failed! Recursion detected. Pawn %s already based on %s."), *GetName(), *NewBaseComponent->GetName()); //-V595
 				return;
+			}
+			if (UPrimitiveComponent* LoopBase =	Loop->GetMovementBase())
+			{
+				Loop = Cast<APawn>(LoopBase->GetOwner());
+			}
+			else
+			{
+				break;
 			}
 		}
 

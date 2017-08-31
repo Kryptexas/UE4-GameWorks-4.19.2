@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using UnrealBuildTool;
 using AutomationTool;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {

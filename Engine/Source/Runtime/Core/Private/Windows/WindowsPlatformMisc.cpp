@@ -31,7 +31,7 @@
 #include "Misc/App.h"
 #include "HAL/ExceptionHandling.h"
 #include "Misc/SecureHash.h"
-#include "Windows/WindowsApplication.h"
+#include "HAL/IConsoleManager.h"
 #include "Misc/EngineVersion.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "Windows/WindowsPlatformCrashContext.h"
@@ -970,11 +970,6 @@ void FWindowsPlatformMisc::RequestExit( bool Force )
 	}
 }
 
-void FWindowsPlatformMisc::RequestMinimize()
-{
-	::ShowWindow(::GetActiveWindow(), SW_MINIMIZE);
-}
-
 const TCHAR* FWindowsPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
 	check(OutBuffer && BufferCount);
@@ -1718,34 +1713,6 @@ int32 FWindowsPlatformMisc::NumberOfCoresIncludingHyperthreads()
 		CoreCount = (int32)SI.dwNumberOfProcessors;
 	}
 	return CoreCount;
-}
-
-void FWindowsPlatformMisc::LoadPreInitModules()
-{
-	// D3D11 is not supported on WinXP, so in this case we use the OpenGL RHI
-	if(FWindowsPlatformMisc::VerifyWindowsVersion(6, 0))
-	{
-		//#todo-rco: Only try on Win10
-		const bool bForceD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
-		if (bForceD3D12)
-		{
-			FModuleManager::Get().LoadModule(TEXT("D3D12RHI"));
-		}
-		FModuleManager::Get().LoadModule(TEXT("D3D11RHI"));
-	}
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-}
-
-void FWindowsPlatformMisc::LoadStartupModules()
-{
-#if !UE_SERVER
-	FModuleManager::Get().LoadModule(TEXT("XAudio2"));
-	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
-#endif // !UE_SERVER
-
-#if WITH_EDITOR
-	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
-#endif	//WITH_EDITOR
 }
 
 bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command, const TCHAR* CommandLine)

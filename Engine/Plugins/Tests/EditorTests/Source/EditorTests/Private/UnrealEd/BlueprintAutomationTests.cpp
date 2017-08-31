@@ -1015,7 +1015,7 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 				DiffDescription = FString::Printf(TEXT("%s (%s)"), *DiffDescription, *DiffIt->DisplayString.ToString());
 			}
 
-			const UEdGraphNode* NodeFromPin = DiffIt->Pin1 ? Cast<const UEdGraphNode>(DiffIt->Pin1->GetOuter()) : NULL;
+			const UEdGraphNode* NodeFromPin = DiffIt->Pin1 ? DiffIt->Pin1->GetOuter() : nullptr;
 			const UEdGraphNode* Node = DiffIt->Node1 ? DiffIt->Node1 : NodeFromPin;
 			const UEdGraph* Graph = Node ? Node->GetGraph() : NULL;
 			const FString GraphName = Graph ? Graph->GetName() : FString(TEXT("Unknown Graph"));

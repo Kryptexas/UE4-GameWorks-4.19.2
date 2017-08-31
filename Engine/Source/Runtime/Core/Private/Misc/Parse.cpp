@@ -12,7 +12,6 @@
 #include "Misc/Guid.h"
 #include "Misc/OutputDeviceNull.h"
 #include "HAL/IConsoleManager.h"
-#include "GenericPlatform/GenericWindow.h"
 #include "Containers/LazyPrintf.h"
 
 #if !UE_BUILD_SHIPPING 
@@ -1104,80 +1103,6 @@ uint32 FParse::HexNumber (const TCHAR* HexString)
 	}
 
 	return Ret;
-}
-
-bool FParse::Resolution(const TCHAR* InResolution, uint32& OutX, uint32& OutY, int32& OutWindowMode)
-{
-	if(*InResolution)
-	{
-		FString CmdString(InResolution);
-		CmdString = CmdString.Trim().TrimTrailing().ToLower();
-
-		//Retrieve the X dimensional value
-		const uint32 X = FMath::Max(FCString::Atof(*CmdString), 0.0f);
-
-		// Determine whether the user has entered a resolution and extract the Y dimension.
-		FString YString;
-
-		// Find separator between values (Example of expected format: 1280x768)
-		const TCHAR* YValue = NULL;
-		if(FCString::Strchr(*CmdString,'x'))
-		{
-			YValue = const_cast<TCHAR*> (FCString::Strchr(*CmdString,'x')+1);
-			YString = YValue;
-			// Remove any whitespace from the end of the string
-			YString = YString.Trim().TrimTrailing();
-		}
-
-		// If the Y dimensional value exists then setup to use the specified resolution.
-		uint32 Y = 0;
-		if ( YValue && YString.Len() > 0 )
-		{
-			// See if there is a fullscreen flag on the end
-			FString FullScreenChar = YString.Mid(YString.Len() - 1);
-			FString WindowFullScreenChars = YString.Mid(YString.Len() - 2);
-			int32 WindowMode = OutWindowMode;
-			if (!FullScreenChar.IsNumeric())
-			{
-				int StringTripLen = 0;
-
-				if (WindowFullScreenChars == TEXT("wf"))
-				{
-					WindowMode = EWindowMode::WindowedFullscreen;
-					StringTripLen = 2;
-				}
-				else if (FullScreenChar == TEXT("f"))
-				{
-					WindowMode = EWindowMode::Fullscreen;
-					StringTripLen = 1;
-				}
-				else if (FullScreenChar == TEXT("w"))
-				{
-					WindowMode = EWindowMode::Windowed;
-					StringTripLen = 1;
-				}
-
-				YString = YString.Left(YString.Len() - StringTripLen).Trim().TrimTrailing();
-			}
-
-			if (YString.IsNumeric())
-			{
-				Y = FMath::Max(FCString::Atof(YValue), 0.0f);
-				OutX = X;
-				OutY = Y;
-				OutWindowMode = WindowMode;
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool FParse::Resolution( const TCHAR* InResolution, uint32& OutX, uint32& OutY )
-{
-	int32 WindowModeDummy;
-	return Resolution(InResolution, OutX, OutY, WindowModeDummy);
 }
 
 bool FParse::SchemeNameFromURI(const TCHAR* URI, FString& OutSchemeName)

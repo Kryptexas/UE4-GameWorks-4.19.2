@@ -991,8 +991,7 @@ void SPropertyTreeViewImpl::FilterView( const FString& InFilterText )
 
 	FString ParseString = InFilterText;
 	// Remove whitespace from the front and back of the string
-	ParseString.Trim();
-	ParseString.TrimTrailing();
+	ParseString.TrimStartAndEndInline();
 	ParseString.ParseIntoArray(FilterStrings, TEXT(" "), true);
 
 	RootPropertyNode->FilterNodes( FilterStrings );

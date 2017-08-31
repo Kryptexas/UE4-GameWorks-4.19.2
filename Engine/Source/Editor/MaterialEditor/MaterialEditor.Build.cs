@@ -27,6 +27,7 @@ public class MaterialEditor : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"InputCore",
 				"Engine",
 				"Slate",

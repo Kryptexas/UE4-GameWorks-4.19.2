@@ -27,6 +27,7 @@ public class Kismet : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",

@@ -11,7 +11,7 @@ REGISTER_NAME(4,FloatProperty)
 REGISTER_NAME(5,ObjectProperty) // ClassProperty shares the same tag
 REGISTER_NAME(6,NameProperty)
 REGISTER_NAME(7,DelegateProperty)
-//REGISTER_NAME(8,Available)
+REGISTER_NAME(8,DoubleProperty)
 REGISTER_NAME(9,ArrayProperty)
 REGISTER_NAME(10,StructProperty)
 REGISTER_NAME(11,VectorProperty)

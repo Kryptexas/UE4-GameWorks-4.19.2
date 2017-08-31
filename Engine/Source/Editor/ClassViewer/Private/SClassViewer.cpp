@@ -1200,7 +1200,7 @@ namespace ClassViewer
 				if( Object->IsA(UBlueprint::StaticClass()) )
 				{
 					InOutClassNode->Blueprint = Cast<UBlueprint>(Object);
-					InOutClassNode->Class = Cast<UClass>(InOutClassNode->Blueprint->GeneratedClass);
+					InOutClassNode->Class = *InOutClassNode->Blueprint->GeneratedClass;
 
 					// Tell the original node to update so when a refresh happens it will still know about the newly loaded class.
 					ClassViewer::Helpers::UpdateClassInNode(InOutClassNode->GeneratedClassPackage, InOutClassNode->Class.Get(), InOutClassNode->Blueprint.Get() );
@@ -1954,7 +1954,7 @@ void FClassHierarchy::FindClass(TSharedPtr< FClassViewerNode > InOutClassNode)
 				InOutClassNode->Blueprint = Cast<UBlueprint>(Object);
 				if (InOutClassNode->Blueprint.IsValid())
 				{
-					InOutClassNode->Class = Cast<UClass>(InOutClassNode->Blueprint->GeneratedClass);
+					InOutClassNode->Class = *InOutClassNode->Blueprint->GeneratedClass;
 				}
 			}
 			else if (UClass* Class = Cast<UClass>(Object))

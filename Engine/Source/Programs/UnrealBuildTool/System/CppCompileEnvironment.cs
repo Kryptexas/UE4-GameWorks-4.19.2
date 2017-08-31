@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -65,22 +66,6 @@ namespace UnrealBuildTool
 		public List<FileItem> ObjectFiles = new List<FileItem>();
 		public List<FileItem> DebugDataFiles = new List<FileItem>();
 		public FileItem PrecompiledHeaderFile = null;
-	}
-
-	/// <summary>
-	/// Encapsulates the environment that a C# file is compiled in.
-	/// </summary>
-	class CSharpEnvironment
-	{
-		/// <summary>
-		/// The configuration to be compiled for.
-		/// </summary>
-		public CSharpTargetConfiguration TargetConfiguration;
-
-		/// <summary>
-		/// The target platform used to set the environment. Doesn't affect output.
-		/// </summary>
-		public CppPlatform EnvironmentTargetPlatform;
 	}
 
 	/// <summary>

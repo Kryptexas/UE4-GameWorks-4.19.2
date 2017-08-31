@@ -134,7 +134,7 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 					{
 						PPGroup.RootCategory = Category;
 						PPGroup.RawGroupName = RawCategoryName;
-						PPGroup.DisplayName = CategoryAndGroups[1].Trim().TrimTrailing();
+						PPGroup.DisplayName = CategoryAndGroups[1].TrimStartAndEnd();
 					}
 	
 					bool bIsSimple = !ChildHandle->GetProperty()->HasAnyPropertyFlags(CPF_AdvancedDisplay);

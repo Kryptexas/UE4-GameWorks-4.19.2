@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {

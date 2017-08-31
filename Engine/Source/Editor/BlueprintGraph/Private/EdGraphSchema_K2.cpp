@@ -969,8 +969,7 @@ void UEdGraphSchema_K2::GetAutoEmitTermParameters(const UFunction* Function, TAr
 		for (int32 NameIndex = 0; NameIndex < AutoEmitParameterNames.Num();)
 		{
 			FString& ParameterName = AutoEmitParameterNames[NameIndex];
-			ParameterName.Trim();
-			ParameterName.TrimTrailing();
+			ParameterName.TrimStartAndEndInline();
 			if (ParameterName.IsEmpty())
 			{
 				AutoEmitParameterNames.RemoveAtSwap(NameIndex);
@@ -3857,7 +3856,7 @@ namespace
 	static UClass* GetOriginalClassToFixCompatibilit(const UClass* InClass)
 	{
 		const UBlueprint* BP = InClass ? Cast<const UBlueprint>(InClass->ClassGeneratedBy) : nullptr;
-		return BP ? Cast<UClass>(BP->OriginalClass) : nullptr;
+		return BP ? BP->OriginalClass : nullptr;
 	}
 
 	// During compilation, pins are moved around for node expansion and the Blueprints may still inherit from REINST_ classes
@@ -6803,7 +6802,7 @@ void UEdGraphSchema_K2::OnPinConnectionDoubleCicked(UEdGraphPin* PinA, UEdGraphP
 		NewKnot->PostReconstructNode();
 
 		// Dirty the blueprint
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(ParentGraph));
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 	}
 }

@@ -2492,7 +2492,7 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 		}
 	}
 
-	AGameModeBase* DefaultGameMode = Cast<AGameModeBase>(DefaultGameModeClass.GetDefaultObject());
+	AGameModeBase* DefaultGameMode = DefaultGameModeClass.GetDefaultObject();
 	UClass* C = DefaultGameMode != nullptr ? DefaultGameMode->ReplaySpectatorPlayerControllerClass : nullptr;
 
 	if ( C == NULL )

@@ -158,8 +158,8 @@ private:
 		Switch.Split(Constants::Equals, &Type, &Right);
 		Type.ToLowerInline();
 		Right.Split(Constants::Equals, &Left, &Right);
-		Left = Left.Trim().TrimTrailing();
-		Right = Right.Trim().TrimTrailing();
+		Left.TrimStartAndEndInline();
+		Right.TrimStartAndEndInline();
 		if (Type.Equals(Constants::Custom, ESearchCase::CaseSensitive))
 		{
 			CustomFields.Add(Left, FVariant(Right));

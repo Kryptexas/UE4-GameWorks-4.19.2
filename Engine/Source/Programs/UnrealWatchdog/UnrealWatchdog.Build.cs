@@ -24,6 +24,7 @@ public class UnrealWatchdog : ModuleRules
 				"Analytics",
 				"AnalyticsET",
 				"Projects",
+				"ApplicationCore"
 		   }
 		);
 

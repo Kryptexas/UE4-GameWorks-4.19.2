@@ -217,7 +217,7 @@ bool SAndroidLicenseDialog::HasLicense()
 	FString LicenseString = LicenseHash.ToString().ToLower();
 	for (FString &line : lines)
 	{
-		if (line.TrimTrailing().Trim().Equals(LicenseString))
+		if (line.TrimStartAndEnd().Equals(LicenseString))
 		{
 			return true;
 		}
@@ -249,7 +249,7 @@ FReply SAndroidLicenseDialog::OnAgree()
 		IFileHandle* FileHandle = PlatformFile.OpenWrite(*LicenseFilename);
 		if (FileHandle)
 		{
-			FString HashText = FString("\015\012") + LicenseHash.ToString().ToLower();
+			FString HashText = TEXT("\015\012") + LicenseHash.ToString().ToLower();
 			FileHandle->Write((const uint8*)TCHAR_TO_ANSI(*HashText), HashText.Len());
 			delete FileHandle;
 		}

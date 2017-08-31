@@ -747,7 +747,7 @@ void BuildShaderFileToUniformBufferMap(TMap<FString, TArray<const TCHAR*> >& Sha
 			LoadShaderSourceFileChecked(*ShaderSourceFiles[FileIndex], ShaderFileContents);
 
 			// To allow case sensitive search which is way faster on some platforms (no need to look up locale, etc)
-			ShaderFileContents = ShaderFileContents.ToUpper();
+			ShaderFileContents.ToUpperInline();
 
 			TArray<const TCHAR*>& ReferencedUniformBuffers = ShaderFileToUniformBufferVariables.FindOrAdd(ShaderSourceFiles[FileIndex]);
 

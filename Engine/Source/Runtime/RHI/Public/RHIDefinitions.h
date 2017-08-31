@@ -8,7 +8,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/Engine/Public/PixelFormat.h"
+#include "PixelFormat.h"
 #include "HAL/IConsoleManager.h"
 
 enum EShaderFrequency

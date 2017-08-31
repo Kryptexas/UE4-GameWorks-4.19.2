@@ -199,7 +199,7 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	{
 		FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[ExplicitRendererId];
 		TArray<FString> NameComponents;
-		FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" "));	
+		FString(GPU.GPUName).TrimStart().ParseIntoArray(NameComponents, TEXT(" "));	
 		for (id<MTLDevice> Device in DeviceList)
 		{
 			if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
@@ -237,7 +237,7 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 			   || ([SelectedDevice.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
 				NameComponents.Empty();
-				bool bMatchesName = FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
+				bool bMatchesName = FString(GPU.GPUName).TrimStart().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
 				for (FString& Component : NameComponents)
 				{
 					bMatchesName &= FString(SelectedDevice.name).Contains(Component);

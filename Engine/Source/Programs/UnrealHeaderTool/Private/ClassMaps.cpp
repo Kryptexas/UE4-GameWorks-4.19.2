@@ -15,3 +15,5 @@ TMap<UField*, uint32> GGeneratedCodeCRCs;
 TMap<UEnum*,  EUnderlyingEnumType> GEnumUnderlyingTypes;
 TMap<FName, TSharedRef<FClassDeclarationMetaData> > GClassDeclarations;
 TSet<UProperty*> GUnsizedProperties;
+TSet<UField*> GEditorOnlyDataTypes;
+TMap<UStruct*, TTuple<TSharedRef<FUnrealSourceFile>, int32>> GStructToSourceLine;

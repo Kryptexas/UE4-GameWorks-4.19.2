@@ -26,6 +26,7 @@ public class LogVisualizer : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
                 "InputCore",
 				"Json",
 				"Slate",

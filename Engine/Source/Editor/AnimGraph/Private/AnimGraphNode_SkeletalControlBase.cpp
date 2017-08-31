@@ -305,8 +305,7 @@ void UAnimGraphNode_SkeletalControlBase::GetDefaultValue(const FString& UpdateDe
 					TArray<FString> ResultString;
 
 					//Parse string to split its contents separated by ','
-					DefaultString.Trim();
-					DefaultString.TrimTrailing();
+					DefaultString.TrimStartAndEndInline();
 					DefaultString.ParseIntoArray(ResultString, TEXT(","), true);
 
 					check(ResultString.Num() == 3);

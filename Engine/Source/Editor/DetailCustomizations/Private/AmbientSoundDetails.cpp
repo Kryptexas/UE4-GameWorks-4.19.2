@@ -167,7 +167,7 @@ void FAmbientSoundDetails::CreateNewSoundCue( ESoundCueLayouts Layout )
 	{
 		OnStopSoundClicked();
 
-		AAmbientSound* AS = CastChecked<AAmbientSound>(AmbientSound.Get());
+		AAmbientSound* AS = AmbientSound.Get();
 
 		// First if the existing SoundCue is a child of the AmbientSound rename it off to oblivion so we can have a good name
 		USoundCue* SoundCue = Cast<USoundCue>(AmbientSound->GetAudioComponent()->Sound);
@@ -279,7 +279,7 @@ FReply FAmbientSoundDetails::OnPlaySoundClicked()
 {
 	if( AmbientSound.IsValid() )
 	{
-		USoundBase* Sound = Cast<USoundBase>(AmbientSound.Get()->GetAudioComponent()->Sound);
+		USoundBase* Sound = AmbientSound.Get()->GetAudioComponent()->Sound;
 		if (Sound)
 		{
 			GEditor->PlayPreviewSound(Sound);

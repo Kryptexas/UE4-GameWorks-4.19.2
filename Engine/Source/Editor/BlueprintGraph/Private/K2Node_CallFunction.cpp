@@ -1385,7 +1385,7 @@ void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, cons
 		}
 
 		// trim any trailing whitespace from the descriptive text
-		ParamDesc.TrimTrailing();
+		ParamDesc.TrimEndInline();
 
 		// if we came up with a valid description for the param/return-val
 		if (!ParamDesc.IsEmpty())
@@ -1444,8 +1444,7 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 		Tooltip.ReplaceInline(*DoxygenSee, *TooltipSee);
 		Tooltip.ReplaceInline(*DoxygenNote, *TooltipNote);
 
-		Tooltip.Trim();
-		Tooltip.TrimTrailing();
+		Tooltip.TrimStartAndEndInline();
 
 		UClass* CurrentSelfClass = (Function != NULL) ? Function->GetOwnerClass() : NULL;
 		UClass const* TrueSelfClass = CurrentSelfClass;

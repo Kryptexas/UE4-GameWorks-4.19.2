@@ -22,6 +22,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_Pa
 DECLARE_DELEGATE_RetVal_OneParam(bool, FFilenameSecurityDelegate, const TCHAR* /*InFilename*/);
 
 #define PAKHASH_USE_CRC	1
+#define PAK_SIGNATURE_CHECK_FAILS_ARE_FATAL 0
 
 #if PAKHASH_USE_CRC
 typedef uint32 TPakChunkHash;
@@ -1745,6 +1746,7 @@ public:
 	void HandlePakListCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	void HandleMountCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	void HandleUnmountCommand(const TCHAR* Cmd, FOutputDevice& Ar);
+	void HandlePakCorruptCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 	// END Console commands
 };

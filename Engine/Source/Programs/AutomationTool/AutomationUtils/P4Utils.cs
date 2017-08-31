@@ -968,8 +968,7 @@ namespace AutomationTool
 		static internal void InitP4Environment()
 		{
 			// Temporary connection - will use only the currently set env vars to connect to P4
-			var DefaultConnection = new P4Connection(User: null, Client: null);
-			PerforceEnvironment = (Automation.IsBuildMachine && !GlobalCommandLine.ForceLocal) ? new P4Environment(DefaultConnection, CmdEnv) : new LocalP4Environment(DefaultConnection, CmdEnv);
+			PerforceEnvironment = new P4Environment(CmdEnv);
 		}
 
 		/// <summary>
@@ -977,7 +976,7 @@ namespace AutomationTool
 		/// </summary>
 		static internal void InitDefaultP4Connection()
 		{
-			PerforceConnection = new P4Connection(User: P4Env.User, Client: P4Env.Client, ServerAndPort: P4Env.P4Port);
+			PerforceConnection = new P4Connection(User: P4Env.User, Client: P4Env.Client, ServerAndPort: P4Env.ServerAndPort);
 		}
 
 		#endregion

@@ -24,6 +24,7 @@
 #include "Engine/Engine.h"
 #include "HAL/PlatformFile.h"
 #include "HAL/PlatformAffinity.h"
+#include "HAL/PlatformInput.h"
 #include "Modules/ModuleManager.h"
 #include "IMessagingModule.h"
 #include "AndroidStats.h"
@@ -270,7 +271,7 @@ int32 AndroidMain(struct android_app* state)
 	// setup key filtering
 	static const uint32 MAX_KEY_MAPPINGS(256);
 	uint32 KeyCodes[MAX_KEY_MAPPINGS];
-	uint32 NumKeyCodes = FPlatformApplicationMisc::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
+	uint32 NumKeyCodes = FPlatformInput::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
 
 	for (int i = 0; i < NumKeyCodes; ++i)
 	{
@@ -542,7 +543,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 				return 1;
 			}
 
-			ANativeWindow* Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
+			ANativeWindow* Window = (ANativeWindow*)FAndroidWindow::GetHardwareWindow();
 			if (!Window)
 			{
 				return 0;

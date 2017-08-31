@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -78,7 +79,7 @@ namespace UnrealBuildTool
 
 				// Define macros for the UE4 version, starting with 4.17
 				BuildVersion Version;
-				if (BuildVersion.TryRead(out Version))
+				if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 				{
 					for(int MinorVersion = 17; MinorVersion <= Version.MinorVersion; MinorVersion++)
 					{

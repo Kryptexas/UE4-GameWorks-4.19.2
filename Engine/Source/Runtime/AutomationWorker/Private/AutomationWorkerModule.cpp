@@ -311,7 +311,7 @@ void FAutomationWorkerModule::SendWorkerFound()
 	FPlatformMisc::GetOSVersions(OSMajorVersionString, OSSubVersionString);
 
 	FString OSVersionString = OSMajorVersionString + TEXT(" ") + OSSubVersionString;
-	FString CPUModelString = FPlatformMisc::GetCPUBrand().Trim();
+	FString CPUModelString = FPlatformMisc::GetCPUBrand().TrimStart();
 
 	Response->DeviceName = FPlatformProcess::ComputerName();
 	Response->InstanceName = FString::Printf(TEXT("%s-%i"), FPlatformProcess::ComputerName(), FPlatformProcess::GetCurrentProcessId());

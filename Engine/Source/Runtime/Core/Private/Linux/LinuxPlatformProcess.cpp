@@ -19,7 +19,6 @@
 #include <sys/file.h>
 #include <asm/ioctls.h>
 #include <sys/prctl.h>
-#include "Linux/LinuxApplication.h"
 #include "Linux/LinuxPlatformOutputDevices.h"
 #include "Linux/LinuxPlatformTLS.h"
 #include "Containers/CircularQueue.h"
@@ -1462,12 +1461,6 @@ bool FLinuxPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 	errno = 0;
 	getpriority(PRIO_PROCESS, ProcessId);
 	return errno == 0;
-}
-
-bool FLinuxPlatformProcess::IsThisApplicationForeground()
-{
-	extern FLinuxApplication* LinuxApplication;
-	return (LinuxApplication != nullptr) ? LinuxApplication->IsForeground() : true;
 }
 
 bool FLinuxPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )

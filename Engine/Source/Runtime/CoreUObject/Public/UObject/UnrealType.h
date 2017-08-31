@@ -1220,7 +1220,7 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	virtual FString GetNumericPropertyValueToString(void const* Data) const;
 	// End of UNumericProperty interface
 
-	static uint8 ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag);
+	static int64 ReadEnumAsInt64(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag);
 
 private:
 	virtual bool CanHoldDoubleValueInternal  (double Value) const PURE_VIRTUAL(UNumericProperty::CanHoldDoubleValueInternal,   return false;);
@@ -1266,16 +1266,16 @@ public:
 	}
 
 protected:
-	template <typename OldIntType>
-	void ConvertFromInt(FArchive& Ar, void* Obj, const FPropertyTag& Tag)
+	template <typename OldNumericType>
+	void ConvertFromArithmeticValue(FArchive& Ar, void* Obj, const FPropertyTag& Tag)
 	{
-		OldIntType OldValue;
+		OldNumericType OldValue;
 		Ar << OldValue;
-		TCppType NewValue = OldValue;
+		TCppType NewValue = (TCppType)OldValue;
 		this->SetPropertyValue_InContainer(Obj, NewValue, Tag.ArrayIndex);
 
 		UE_CLOG(
-			(TIsSigned<OldIntType>::Value && (!TIsSigned<TCppType>::Value && !TIsFloatingPoint<TCppType>::Value) && OldValue < 0) || (sizeof(TCppType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
+			((TIsSigned<OldNumericType>::Value || TIsFloatingPoint<OldNumericType>::Value) && (!TIsSigned<TCppType>::Value && !TIsFloatingPoint<TCppType>::Value) && OldValue < 0) || ((OldNumericType)NewValue != OldValue),
 			LogClass,
 			Warning,
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),
@@ -1290,62 +1290,69 @@ protected:
 public:
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override
 	{
+		// Assume we're going to convert it successfully
+		bOutAdvanceProperty = true;
+
 		if (Tag.Type == NAME_Int8Property)
 		{
-			ConvertFromInt<int8>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int8>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_Int16Property)
 		{
-			ConvertFromInt<int16>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int16>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_IntProperty)
 		{
-			ConvertFromInt<int32>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int32>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_Int64Property)
 		{
-			ConvertFromInt<int64>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int64>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_ByteProperty)
 		{
 			if (Tag.EnumName != NAME_None)
 			{
-				uint8 PreviousValue = this->ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
+				int64 PreviousValue = this->ReadEnumAsInt64(Ar, DefaultsStruct, Tag);
 				this->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
 			}
 			else
 			{
-				ConvertFromInt<int8>(Ar, Data, Tag);
+				ConvertFromArithmeticValue<int8>(Ar, Data, Tag);
 			}
-			return true;
 		}
 		else if (Tag.Type == NAME_EnumProperty)
 		{
-			uint8 PreviousValue = this->ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
-			this->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
-			return true;
+			int64 PreviousValue = this->ReadEnumAsInt64(Ar, DefaultsStruct, Tag);
+			this->SetPropertyValue_InContainer(Data, (TCppType)PreviousValue, Tag.ArrayIndex);
 		}
 		else if (Tag.Type == NAME_UInt16Property)
 		{
-			ConvertFromInt<uint16>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<uint16>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_UInt32Property)
 		{
-			ConvertFromInt<uint32>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<uint32>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_UInt64Property)
 		{
-			ConvertFromInt<uint64>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<uint64>(Ar, Data, Tag);
+		}
+		else if (Tag.Type == NAME_FloatProperty)
+		{
+			ConvertFromArithmeticValue<float>(Ar, Data, Tag);
+		}
+		else if (Tag.Type == NAME_DoubleProperty)
+		{
+			ConvertFromArithmeticValue<double>(Ar, Data, Tag);
+		}
+		else
+		{
+			// We didn't convert it
+			bOutAdvanceProperty = false;
 		}
 
-		return false;
+		return bOutAdvanceProperty;
 	}
 	// End of UProperty interface
 

@@ -627,13 +627,13 @@ struct FStreamable
 
 FStreamableManager::FStreamableManager()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
 	bForceSynchronousLoads = false;
 }
 
 FStreamableManager::~FStreamableManager()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().RemoveAll(this);
 
 	for (TStreamableMap::TIterator It(StreamableItems); It; ++It)
 	{

@@ -474,7 +474,7 @@ namespace
 			for (auto EntryPairIter = PortableObject.GetEntriesIterator(); EntryPairIter; ++EntryPairIter)
 			{
 				auto POEntry = EntryPairIter->Value;
-				if (POEntry->MsgId.IsEmpty() || POEntry->MsgStr.Num() == 0 || POEntry->MsgStr[0].Trim().IsEmpty())
+				if (POEntry->MsgId.IsEmpty() || POEntry->MsgStr.Num() == 0 || POEntry->MsgStr[0].TrimStart().IsEmpty())
 				{
 					// We ignore the header entry or entries with no translation.
 					continue;

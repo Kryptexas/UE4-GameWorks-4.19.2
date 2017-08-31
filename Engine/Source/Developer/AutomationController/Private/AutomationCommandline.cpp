@@ -127,7 +127,7 @@ public:
 		//trim cruft from all entries
 		for (int32 FilterIndex = 0; FilterIndex < Filters.Num(); ++FilterIndex)
 		{
-			Filters[FilterIndex] = Filters[FilterIndex].Trim().Replace(TEXT(" "), TEXT(""));
+			Filters[FilterIndex] = Filters[FilterIndex].TrimStart().Replace(TEXT(" "), TEXT(""));
 		}
 
 		for ( int32 TestIndex = 0; TestIndex < AllTestNames.Num(); ++TestIndex )

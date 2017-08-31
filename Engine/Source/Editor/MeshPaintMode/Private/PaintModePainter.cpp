@@ -413,11 +413,11 @@ bool FPaintModePainter::CanSaveMeshPackages() const
 		UObject* Object = nullptr;
 		if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Component))
 		{
-			Object = Cast<UObject>(StaticMeshComponent->GetStaticMesh());
+			Object = StaticMeshComponent->GetStaticMesh();
 		}
 		else if (USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component))
 		{
-			Object = Cast<UObject>(SkeletalMeshComponent->SkeletalMesh);
+			Object = SkeletalMeshComponent->SkeletalMesh;
 		}
 
 		if (Object != nullptr && Object->GetOutermost()->IsDirty())
@@ -967,11 +967,11 @@ bool FPaintModePainter::ContainsDuplicateMeshes(TArray<UMeshComponent*>& Compone
 		UObject* Object = nullptr;
 		if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Component))
 		{
-			Object = Cast<UObject>(StaticMeshComponent->GetStaticMesh());
+			Object = StaticMeshComponent->GetStaticMesh();
 		}
 		else if (USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component))
 		{
-			Object = Cast<UObject>(SkeletalMeshComponent->SkeletalMesh);			
+			Object = SkeletalMeshComponent->SkeletalMesh;
 		}
 
 		if (Object)

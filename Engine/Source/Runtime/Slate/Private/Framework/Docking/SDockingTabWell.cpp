@@ -4,7 +4,7 @@
 #include "Types/PaintArgs.h"
 #include "Layout/ArrangedChildren.h"
 #include "Framework/Docking/FDockingDragOperation.h"
-
+#include "HAL/PlatformApplicationMisc.h"
 
 const FVector2D FDockingConstants::MaxMinorTabSize(150.f, 50.0f);
 const FVector2D FDockingConstants::MaxMajorTabSize(210.f, 50.f);
@@ -271,7 +271,7 @@ FReply SDockingTabWell::StartDraggingTab( TSharedRef<SDockTab> TabToStartDraggin
 
 #if PLATFORM_MAC
 		// On Mac we need to activate the app as we may be dragging a window that is set to be invisible if the app is inactive
-		FPlatformMisc::ActivateApplication();
+		FPlatformApplicationMisc::ActivateApplication();
 #endif
 
 		// Start dragging.

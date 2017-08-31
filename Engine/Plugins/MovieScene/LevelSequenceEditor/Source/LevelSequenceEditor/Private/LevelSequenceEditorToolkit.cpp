@@ -613,7 +613,7 @@ void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute(UPrimi
 
 		FocusedMovieScene->Modify();
 
-		UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>( ObjectHandle ) );
+		UMovieSceneComponentMaterialTrack* MaterialTrack = FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>( ObjectHandle );
 		MaterialTrack->Modify();
 		MaterialTrack->SetMaterialIndex( MaterialIndex );
 

@@ -6,6 +6,7 @@ using System.Text;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
+using UnrealBuildTool;
 
 namespace AutomationTool
 {
@@ -38,7 +39,7 @@ namespace AutomationTool
                 bColorConsoleOutput: true,
                 TraceListeners: new TraceListener[]
                 {
-                    new ConsoleTraceListener(),
+                    new UEConsoleTraceListener(),
                     // could return null, but InitLogging handles this gracefully.
                     CreateLogFileListener(out LogFilename),
                     //@todo - this is only used by GUBP nodes. Ideally we don't waste this 20MB if we are not running GUBP.

@@ -8,7 +8,7 @@ using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
 using System.Diagnostics;
-
+using Tools.DotNETCommon;
 
 public class HTMLPakAutomation
 {

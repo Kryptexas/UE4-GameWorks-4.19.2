@@ -119,9 +119,20 @@ FCoreUObjectDelegates::FOnObjectSaved FCoreUObjectDelegates::OnObjectSaved;
 #endif // WITH_EDITOR
 
 
+FSimpleMulticastDelegate& FCoreUObjectDelegates::GetPreGarbageCollectDelegate()
+{
+	static FSimpleMulticastDelegate Delegate;
+	return Delegate;
+}
 
-FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollect;
-FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollect;
+FSimpleMulticastDelegate& FCoreUObjectDelegates::GetPostGarbageCollect()
+{
+	static FSimpleMulticastDelegate Delegate;
+	return Delegate;
+}
+
+FCoreUObjectDelegates::FTraceExternalRootsForReachabilityAnalysisDelegate FCoreUObjectDelegates::TraceExternalRootsForReachabilityAnalysis;
+FSimpleMulticastDelegate FCoreUObjectDelegates::PostReachabilityAnalysis;
 
 FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy;
@@ -1343,6 +1354,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 
 		Linker->Flush();
 
+		if (!FPlatformProperties::RequiresCookedData())
+		{
+			// Flush cache on uncooked platforms to free precache memory
+			Linker->FlushCache();
+		}
+
 		// With UE4 and single asset per package, we load so many packages that some platforms will run out
 		// of file handles. So, this will close the package, but just things like bulk data loading will
 		// fail, so we only currently do this when loading on consoles.
@@ -1638,9 +1655,11 @@ void EndLoad()
 
 		if ( GIsEditor && LoadedLinkers.Num() > 0 )
 		{
-			for (auto LoadedLinker : LoadedLinkers)
+			for (FLinkerLoad* LoadedLinker : LoadedLinkers)
 			{
 				check(LoadedLinker != nullptr);
+
+				LoadedLinker->FlushCache();
 
 				if (LoadedLinker->LinkerRoot != nullptr && !LoadedLinker->LinkerRoot->IsFullyLoaded())
 				{
@@ -1672,12 +1691,12 @@ void EndLoad()
 		for (FLinkerLoad* Linker : PackagesToClose)
 		{
 			if (Linker)
-			{
+			{				
 				if (Linker->Loader && Linker->LinkerRoot)
 				{
 					ResetLoaders(Linker->LinkerRoot);
 				}
-				check(Linker->Loader == nullptr);
+				check(Linker->Loader == nullptr);				
 			}
 		}
 
@@ -2623,9 +2642,10 @@ FObjectInitializer::~FObjectInitializer()
 					SuperBpCDO = SuperClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
 				}
 
+				FLinkerLoad* SuperClassLinker = SuperClass->GetLinker();
 				const bool bSuperLoadPending = FDeferredObjInitializerTracker::IsCdoDeferred(SuperClass) ||
 					(SuperBpCDO && SuperBpCDO->HasAnyFlags(RF_NeedLoad)) ||
-					(SuperClass->GetLinker() && SuperClass->GetLinker()->IsBlueprintFinalizationPending());
+					(SuperClassLinker && SuperClassLinker->IsBlueprintFinalizationPending());
 
 				FLinkerLoad* ObjLinker = BlueprintClass->GetLinker();
 				const bool bIsBpClassSerializing    = ObjLinker && (ObjLinker->LoadFlags & LOAD_DeferDependencyLoads);
@@ -3979,6 +3999,7 @@ namespace UE4CodeGen_Private
 
 					SetBit(Buffer.Get());
 
+					// Here we are making the assumption that bitfields are aligned in the struct. Probably true.
 					// If not, it may be ok unless we are on a page boundary or something, but the check will fire in that case.
 					// Have faith.
 					for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
@@ -4124,6 +4145,7 @@ namespace UE4CodeGen_Private
 				const FArrayPropertyParams* Prop = (const FArrayPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UArrayProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
 
+				// Next property is the array inner
 				ReadMore = 1;
 
 #if WITH_METADATA
@@ -4137,6 +4159,7 @@ namespace UE4CodeGen_Private
 			{
 				const FMapPropertyParams* Prop = (const FMapPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UMapProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
 				// Next two properties are the map key and value inners
 				ReadMore = 2;
 
@@ -4151,6 +4174,7 @@ namespace UE4CodeGen_Private
 			{
 				const FSetPropertyParams* Prop = (const FSetPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) USetProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
 				// Next property is the set inner
 				ReadMore = 1;
 
@@ -4214,6 +4238,7 @@ namespace UE4CodeGen_Private
 				const FEnumPropertyParams* Prop = (const FEnumPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UEnumProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->EnumFunc ? Prop->EnumFunc() : nullptr);
 
+				// Next property is the underlying integer property
 				ReadMore = 1;
 
 #if WITH_METADATA
@@ -4421,7 +4446,7 @@ namespace UE4CodeGen_Private
 
 		UObjectForceRegistration(NewClass);
 
-		NewClass->ClassFlags = (EClassFlags)(Params.ClassFlags | CLASS_Constructed);
+		NewClass->ClassFlags |= (EClassFlags)(Params.ClassFlags | CLASS_Constructed);
 		// Make sure the reference token stream is empty since it will be reconstructed later on
 		// This should not apply to intrinsic classes since they emit native references before AssembleReferenceTokenStream is called.
 		if ((NewClass->ClassFlags & CLASS_Intrinsic) != CLASS_Intrinsic)

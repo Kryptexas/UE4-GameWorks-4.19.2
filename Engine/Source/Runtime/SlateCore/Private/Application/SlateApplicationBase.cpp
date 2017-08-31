@@ -29,6 +29,11 @@ FSlateApplicationBase::FSlateApplicationBase()
 
 }
 
+void FSlateApplicationBase::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const 
+{ 
+	FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); 
+}
+
 const FHitTesting& FSlateApplicationBase::GetHitTesting() const
 {
 	return HitTesting;

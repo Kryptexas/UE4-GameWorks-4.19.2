@@ -2146,7 +2146,7 @@ void UBehaviorTreeComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) con
 			if (Descriptions[DescriptionIndex].FindChar(TEXT(','), SplitIdx))
 			{
 				const FString KeyDesc = Descriptions[DescriptionIndex].Left(SplitIdx);
-				const FString ValueDesc = Descriptions[DescriptionIndex].Mid(SplitIdx + 1).Trim();
+				const FString ValueDesc = Descriptions[DescriptionIndex].Mid(SplitIdx + 1).TrimStart();
 
 				StatusCategory.Add(KeyDesc, ValueDesc);
 			}

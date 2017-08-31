@@ -184,7 +184,7 @@ FControlRigFunction_Name::FControlRigFunction_Name(const FName& InLabel, UFuncti
 		TrimmedFunctionName = TrimmedFunctionName.RightChop(3);
 	}
 
-	TrimmedFunctionName.Trim();
+	TrimmedFunctionName.TrimStartInline();
 
 	FFormatNamedArguments NamedArguments;
 	NamedArguments.Add(TEXT("UserLabel"), FText::FromName(InLabel));

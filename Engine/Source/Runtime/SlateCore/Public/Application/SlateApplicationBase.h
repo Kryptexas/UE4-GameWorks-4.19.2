@@ -194,7 +194,7 @@ public:
 	 *
 	 * @param OutDisplayMetrics Will contain the display metrics.
 	 */
-	void GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const { FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); }
+	void GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const;
 
 	/**
 	 * Get the highest level of window transparency support currently enabled by this application

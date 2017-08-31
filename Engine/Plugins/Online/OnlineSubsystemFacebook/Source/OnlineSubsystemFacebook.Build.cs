@@ -16,6 +16,7 @@ public class OnlineSubsystemFacebook : ModuleRules
 			new string[] { 
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"HTTP",
 				"ImageCore",
 				"Json",

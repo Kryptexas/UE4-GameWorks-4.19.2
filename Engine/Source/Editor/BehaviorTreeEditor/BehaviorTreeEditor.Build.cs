@@ -27,6 +27,7 @@ public class BehaviorTreeEditor : ModuleRules
 			new string[] {
 				"Core", 
 				"CoreUObject", 
+				"ApplicationCore",
 				"Engine", 
                 "RenderCore",
                 "InputCore",

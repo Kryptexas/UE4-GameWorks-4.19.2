@@ -87,7 +87,7 @@ const UClass* FClassIconFinder::GetIconClassForBlueprint(const UBlueprint* InBlu
 	}
 
 	// If we're loaded and have a generated class, just use that
-	if ( const UClass* GeneratedClass = Cast<UClass>(InBlueprint->GeneratedClass) )
+	if ( const UClass* GeneratedClass = InBlueprint->GeneratedClass )
 	{
 		return GeneratedClass;
 	}

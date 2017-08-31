@@ -936,7 +936,7 @@ namespace AutomationTool
 			}
 			if (String.IsNullOrEmpty(InBranchName))
 			{
-				BranchName = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "UnknownBranch";
+				BranchName = CommandUtils.P4Enabled ? CommandUtils.EscapePath(CommandUtils.P4Env.Branch) : "UnknownBranch";
 			}
 			else
 			{
@@ -1038,10 +1038,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		public VersionFileUpdater(string Filename)
+		public VersionFileUpdater(FileReference Filename)
 		{
-			MyFile = new FileInfo(Filename);
-			OriginalLines = new List<string>(InternalUtils.SafeReadAllLines(Filename));
+			MyFile = new FileInfo(Filename.FullName);
+			OriginalLines = new List<string>(InternalUtils.SafeReadAllLines(Filename.FullName));
 			Lines = new List<string>(OriginalLines);
 
             if (CommandUtils.IsNullOrEmpty(Lines))

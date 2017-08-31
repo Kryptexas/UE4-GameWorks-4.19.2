@@ -659,11 +659,8 @@ void UVREditorUISystem::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector
 							
 							bWasHandled = true;
 
-							if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(WidgetComponent) )
-							{
-								VRWidgetComponent->SetIsHovering(true);
-								OnHoverBeginEffect(VRWidgetComponent);
-							}
+							WidgetComponent->SetIsHovering(true);
+							OnHoverBeginEffect(WidgetComponent);
 
 							// Route the mouse scrolling
 							if ( VREditorInteractor->IsTrackpadPositionValid( 1 ) )

@@ -58,7 +58,7 @@ FBlueprintNodeSignature::FBlueprintNodeSignature(FString const& UserString)
 
 	for (FString& SignatureElement : SignatureElements)
 	{
-		SignatureElement.Trim();
+		SignatureElement.TrimStartInline();
 
 		FString SignatureKey, SignatureValue;
 		SignatureElement.Split(SignatureKeyDelim, &SignatureKey, &SignatureValue);

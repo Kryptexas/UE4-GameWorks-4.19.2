@@ -288,7 +288,7 @@ FText UField::GetToolTipText(bool bShortTooltip) const
 			static const FString TooltipSee(TEXT("See:"));
 			if (NativeToolTip.ReplaceInline(*DoxygenSee, *TooltipSee) > 0)
 			{
-				NativeToolTip.TrimTrailing();
+				NativeToolTip.TrimEndInline();
 			}
 		}
 		LocalizedToolTip = FText::FromString(NativeToolTip);
@@ -921,7 +921,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				{
 					Property = Property->PropertyLinkNext;
 				}
-				bAdvanceProperty		= 0;
+				bAdvanceProperty = false;
 				RemainingArrayDim	= Property ? Property->ArrayDim : 0;
 			}
 			
@@ -4032,6 +4032,17 @@ bool UClass::HotReloadPrivateStaticClass(
 	{
 		UE_LOG(LogClass, Error, TEXT("VTable for class %s did not change?"),*GetName());
 	}
+
+	// Mark class as no longer constructed and collapse the Children list so that it gets rebuilt
+	ClassFlags &= ~CLASS_Constructed;
+	for (UField* Child = Children; Child; )
+	{
+		UField* NextChild = Child->Next;
+		Child->Next = nullptr;
+		Child = NextChild;
+	}
+	Children = nullptr;
+
 	return true;
 }
 

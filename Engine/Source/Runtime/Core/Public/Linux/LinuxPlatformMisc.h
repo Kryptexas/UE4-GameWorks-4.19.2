@@ -99,8 +99,6 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
-	static void LoadPreInitModules();
-	static void LoadStartupModules();
 	static FString GetOperatingSystemId();
 	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
 

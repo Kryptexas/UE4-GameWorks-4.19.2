@@ -6,6 +6,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -122,6 +123,134 @@ namespace UnrealBuildTool
 		{
 			// by default, use the architecture name
 			return Architecture;
+		}
+
+		/// <summary>
+		/// Searches a directory tree for build products to be cleaned.
+		/// </summary>
+		/// <param name="BaseDir">The directory to search</param>
+		/// <param name="NamePrefixes">Target or application names that may appear at the start of the build product name (eg. "UE4Editor", "ShooterGameEditor")</param>
+		/// <param name="NameSuffixes">Suffixes which may appear at the end of the build product name</param>
+		/// <param name="FilesToClean">List to receive a list of files to be cleaned</param>
+		/// <param name="DirectoriesToClean">List to receive a list of directories to be cleaned</param>
+		public void FindBuildProductsToClean(DirectoryReference BaseDir, string[] NamePrefixes, string[] NameSuffixes, List<FileReference> FilesToClean, List<DirectoryReference> DirectoriesToClean)
+		{
+			foreach (FileReference File in DirectoryReference.EnumerateFiles(BaseDir))
+			{
+				string FileName = File.GetFileName();
+				if (IsDefaultBuildProduct(FileName, NamePrefixes, NameSuffixes) || IsBuildProduct(FileName, NamePrefixes, NameSuffixes))
+				{
+					FilesToClean.Add(File);
+				}
+			}
+			foreach (DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(BaseDir))
+			{
+				string SubDirName = SubDir.GetDirectoryName();
+				if (IsBuildProduct(SubDirName, NamePrefixes, NameSuffixes))
+				{
+					DirectoriesToClean.Add(SubDir);
+				}
+				else
+				{
+					FindBuildProductsToClean(SubDir, NamePrefixes, NameSuffixes, FilesToClean, DirectoriesToClean);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Determines if a filename is a default UBT build product
+		/// </summary>
+		/// <param name="FileName">The name to check</param>
+		/// <param name="NamePrefixes">Target or application names that may appear at the start of the build product name (eg. "UE4Editor", "ShooterGameEditor")</param>
+		/// <param name="NameSuffixes">Suffixes which may appear at the end of the build product name</param>
+		/// <returns>True if the substring matches the name of a build product, false otherwise</returns>
+		public static bool IsDefaultBuildProduct(string FileName, string[] NamePrefixes, string[] NameSuffixes)
+		{
+			return UEBuildPlatform.IsBuildProductName(FileName, NamePrefixes, NameSuffixes, ".target")
+				|| UEBuildPlatform.IsBuildProductName(FileName, NamePrefixes, NameSuffixes, ".modules")
+				|| UEBuildPlatform.IsBuildProductName(FileName, NamePrefixes, NameSuffixes, ".version");
+		}
+
+		/// <summary>
+		/// Determines if the given name is a build product for a target.
+		/// </summary>
+		/// <param name="FileName">The name to check</param>
+		/// <param name="NamePrefixes">Target or application names that may appear at the start of the build product name (eg. "UE4Editor", "ShooterGameEditor")</param>
+		/// <param name="NameSuffixes">Suffixes which may appear at the end of the build product name</param>
+		/// <returns>True if the string matches the name of a build product, false otherwise</returns>
+		public abstract bool IsBuildProduct(string FileName, string[] NamePrefixes, string[] NameSuffixes);
+
+		/// <summary>
+		/// Determines if a string is in the canonical name of a UE build product, with a specific extension (eg. "UE4Editor-Win64-Debug.exe" or "UE4Editor-ModuleName-Win64-Debug.dll"). 
+		/// </summary>
+		/// <param name="FileName">The file name to check</param>
+		/// <param name="NamePrefixes">Target or application names that may appear at the start of the build product name (eg. "UE4Editor", "ShooterGameEditor")</param>
+		/// <param name="NameSuffixes">Suffixes which may appear at the end of the build product name</param>
+		/// <param name="Extension">The extension to check for</param>
+		/// <returns>True if the string matches the name of a build product, false otherwise</returns>
+		public static bool IsBuildProductName(string FileName, string[] NamePrefixes, string[] NameSuffixes, string Extension)
+		{
+			return IsBuildProductName(FileName, 0, FileName.Length, NamePrefixes, NameSuffixes, Extension);
+		}
+
+		/// <summary>
+		/// Determines if a substring is in the canonical name of a UE build product, with a specific extension (eg. "UE4Editor-Win64-Debug.exe" or "UE4Editor-ModuleName-Win64-Debug.dll"). 
+		/// </summary>
+		/// <param name="FileName">The name to check</param>
+		/// <param name="Index">Index of the first character to be checked</param>
+		/// <param name="Count">Number of characters of the substring to check</param>
+		/// <param name="NamePrefixes">Target or application names that may appear at the start of the build product name (eg. "UE4Editor", "ShooterGameEditor")</param>
+		/// <param name="NameSuffixes">Suffixes which may appear at the end of the build product name</param>
+		/// <param name="Extension">The extension to check for</param>
+		/// <returns>True if the substring matches the name of a build product, false otherwise</returns>
+		public static bool IsBuildProductName(string FileName, int Index, int Count, string[] NamePrefixes, string[] NameSuffixes, string Extension)
+		{
+			// Check if the extension matches, and forward on to the next IsBuildProductName() overload without it if it does.
+			if (Count > Extension.Length && String.Compare(FileName, Index + Count - Extension.Length, Extension, 0, Extension.Length, StringComparison.InvariantCultureIgnoreCase) == 0)
+			{
+				return IsBuildProductName(FileName, Index, Count - Extension.Length, NamePrefixes, NameSuffixes);
+			}
+			return false;
+		}
+
+		/// <summary>
+		/// Determines if a substring is in the canonical name of a UE build product, excluding extension or other decoration (eg. "UE4Editor-Win64-Debug" or "UE4Editor-ModuleName-Win64-Debug"). 
+		/// </summary>
+		/// <param name="FileName">The name to check</param>
+		/// <param name="Index">Index of the first character to be checked</param>
+		/// <param name="Count">Number of characters of the substring to check</param>
+		/// <param name="NamePrefixes">Target or application names that may appear at the start of the build product name (eg. "UE4Editor", "ShooterGameEditor")</param>
+		/// <param name="NameSuffixes">Suffixes which may appear at the end of the build product name</param>
+		/// <returns>True if the substring matches the name of a build product, false otherwise</returns>
+		public static bool IsBuildProductName(string FileName, int Index, int Count, string[] NamePrefixes, string[] NameSuffixes)
+		{
+			foreach (string NamePrefix in NamePrefixes)
+			{
+				if (Count >= NamePrefix.Length && String.Compare(FileName, Index, NamePrefix, 0, NamePrefix.Length, StringComparison.InvariantCultureIgnoreCase) == 0)
+				{
+					int MinIdx = Index + NamePrefix.Length;
+					foreach (string NameSuffix in NameSuffixes)
+					{
+						int MaxIdx = Index + Count - NameSuffix.Length;
+						if (MaxIdx >= MinIdx && String.Compare(FileName, MaxIdx, NameSuffix, 0, NameSuffix.Length, StringComparison.InvariantCultureIgnoreCase) == 0)
+						{
+							if (MinIdx < MaxIdx && FileName[MinIdx] == '-')
+							{
+								MinIdx++;
+								while (MinIdx < MaxIdx && FileName[MinIdx] != '-' && FileName[MinIdx] != '.')
+								{
+									MinIdx++;
+								}
+							}
+							if (MinIdx == MaxIdx)
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+			return false;
 		}
 
 		public virtual void PreBuildSync()

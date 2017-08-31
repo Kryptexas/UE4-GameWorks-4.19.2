@@ -1240,7 +1240,7 @@ FText SWorldComposition::GetCurrentLevelText() const
 
 	if (CurrentWorld->GetCurrentLevel())
 	{
-		UPackage* Package = CastChecked<UPackage>(CurrentWorld->GetCurrentLevel()->GetOutermost());
+		UPackage* Package = CurrentWorld->GetCurrentLevel()->GetOutermost();
 		return FText::FromString(FPackageName::GetShortName(Package->GetName()));
 	}
 	

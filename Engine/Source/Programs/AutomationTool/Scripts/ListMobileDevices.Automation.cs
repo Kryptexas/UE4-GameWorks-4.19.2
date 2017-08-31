@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 namespace AutomationScripts.Automation
 {

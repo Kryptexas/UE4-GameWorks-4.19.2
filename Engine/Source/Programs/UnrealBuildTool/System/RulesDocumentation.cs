@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -22,7 +23,7 @@ namespace UnrealBuildTool
 
 			// Get the current engine version for versioning the page
 			BuildVersion Version;
-			if(!BuildVersion.TryRead(out Version))
+			if(!BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 			{
 				throw new BuildException("Unable to read the current build version");
 			}

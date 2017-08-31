@@ -8,7 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutomationTool;
 using UnrealBuildTool;
-
+using Tools.DotNETCommon;
 
 public class SharedCookedBuild
 {
@@ -17,11 +17,11 @@ public class SharedCookedBuild
 	private static bool CopySharedCookedBuildForTargetInternal(string CookedBuildPath, string CookPlatform, string LocalPath, bool bOnlyCopyAssetRegistry)
 	{
 
-		string BuildRoot = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootP4.Replace("/", "+") : "";
+		string BuildRoot = CommandUtils.P4Enabled ? CommandUtils.P4Env.Branch.Replace("/", "+") : "";
 		string RecentCL = CommandUtils.P4Enabled ? CommandUtils.P4Env.Changelist.ToString() : "";
 
 		BuildVersion Version;
-		if (BuildVersion.TryRead(out Version))
+		if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 		{
 			RecentCL = Version.Changelist.ToString();
 			BuildRoot = Version.BranchName;

@@ -171,7 +171,7 @@ FReply SBlueprintReferenceListRow::OnViewInContentBrowserClicked()
 {
 	check(ReferenceInfo->AnimBlueprint);
 	TArray<UObject*> Objects;
-	UObject* BPAsObject = Cast<UObject>(ReferenceInfo->AnimBlueprint);
+	UObject* BPAsObject = ReferenceInfo->AnimBlueprint;
 	Objects.Add(BPAsObject);
 	GEditor->SyncBrowserToObjects(Objects);
 

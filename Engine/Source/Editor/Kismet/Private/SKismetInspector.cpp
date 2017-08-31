@@ -711,7 +711,7 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 		// Only hide properties if we are editing a CDO/archetype
 		for (const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects)
 		{
-			UObject* Object = Cast<UObject>(SelectedObject.Get());
+			UObject* Object = SelectedObject.Get();
 			if (!Object->IsTemplate())
 			{
 				bEditOnTemplateDisabled = false;

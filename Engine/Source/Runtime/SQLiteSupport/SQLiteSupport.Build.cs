@@ -56,8 +56,8 @@ namespace UnrealBuildTool.Rules
 			{
 				LibraryFilename = Path.Combine(LibraryPath, "sqlite.a");
 			}
-
-			if (!File.Exists(LibraryFilename))
+		
+			if (!File.Exists(LibraryFilename) && !Target.bPrecompile)
 			{
 				throw new BuildException("Please refer to the Engine/Source/ThirdParty/sqlite/README.txt file prior to enabling this module.");
 			}
@@ -74,6 +74,8 @@ namespace UnrealBuildTool.Rules
 			// Lib file
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryFilename);
+
+			PrecompileForTargets = PrecompileTargetsType.None;
 		}
 	}
 }

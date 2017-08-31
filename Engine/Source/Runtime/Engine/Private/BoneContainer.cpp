@@ -328,7 +328,7 @@ void FBoneContainer::RemapFromSkeleton(USkeleton const & SourceSkeleton)
 
 bool FBoneReference::Initialize(const FBoneContainer& RequiredBones)
 {
-	BoneName = *BoneName.ToString().Trim().TrimTrailing();
+	BoneName = *BoneName.ToString().TrimStartAndEnd();
 	BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(BoneName);
 
 	bUseSkeletonIndex = false;
@@ -356,7 +356,7 @@ bool FBoneReference::Initialize(const USkeleton* Skeleton)
 {
 	if (Skeleton && (BoneName != NAME_None))
 	{
-		BoneName = *BoneName.ToString().Trim().TrimTrailing();
+		BoneName = *BoneName.ToString().TrimStartAndEnd();
 		BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(BoneName);
 		bUseSkeletonIndex = true;
 	}

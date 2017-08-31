@@ -6,6 +6,7 @@ using System.Text;
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -161,12 +162,14 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target we're building</param>
 		/// <param name="CPPFiles">The C++ files to #include.</param>
 		/// <param name="CompileEnvironment">The environment that is used to compile the C++ files.</param>
+		/// <param name="WorkingSet">Interface to query files which belong to the working set</param>
 		/// <param name="BaseName">Base name to use for the Unity files</param>
 		/// <returns>The "unity" C++ files.</returns>
 		public static List<FileItem> GenerateUnityCPPs(
 			ReadOnlyTargetRules Target,
 			List<FileItem> CPPFiles,
 			CppCompileEnvironment CompileEnvironment,
+			ISourceFileWorkingSet WorkingSet,
 			string BaseName
 			)
 		{
@@ -215,7 +218,7 @@ namespace UnrealBuildTool
 						++CandidateWorkingSetSourceFileCount;
 
 						// Don't include writable source files into unity blobs
-						if (UnrealBuildTool.ShouldSourceFileBePartOfWorkingSet(CPPFile.AbsolutePath))
+						if (WorkingSet.Contains(CPPFile.Reference))
 						{
 							++WorkingSetSourceFileCount;
 

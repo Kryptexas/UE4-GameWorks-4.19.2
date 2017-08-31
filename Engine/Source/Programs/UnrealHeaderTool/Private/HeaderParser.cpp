@@ -21,8 +21,8 @@
 #include "FileLineException.h"
 #include "UnrealTypeDefinitionInfo.h"
 #include "Containers/EnumAsByte.h"
-
-#include "Containers/Algo/FindSortedStringCaseInsensitive.h"
+#include "Algo/AllOf.h"
+#include "Algo/FindSortedStringCaseInsensitive.h"
 
 #include "Specifiers/CheckedMetadataSpecifiers.h"
 #include "Specifiers/FunctionSpecifiers.h"
@@ -936,7 +936,7 @@ namespace
 					if (Function->HasAnyFunctionFlags(FUNC_Static))
 					{
 						// Determine if it's a function library
-						UClass* Class = Cast<UClass>(Function->GetOuterUClass());
+						UClass* Class = Function->GetOuterUClass();
 						while (Class != nullptr && Class->GetSuperClass() != UObject::StaticClass())
 						{
 							Class = Class->GetSuperClass();
@@ -1342,6 +1342,11 @@ UEnum* FHeaderParser::CompileEnum()
 	UEnum* Enum = new(EC_InternalUseOnlyConstructor, CurrentSrcFile->GetPackage(), EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
 	Scope->AddType(Enum);
 
+	if (CompilerDirectiveStack.Num() > 0 && (CompilerDirectiveStack.Last() & ECompilerDirective::WithEditorOnlyData) != 0)
+	{
+		GEditorOnlyDataTypes.Add(Enum);
+	}
+
 	GTypeDefinitionInfoMap.Add(Enum, MakeShared<FUnrealTypeDefinitionInfo>(*CurrentSrcFile, InputLine));
 
 	// Validate the metadata for the enum
@@ -1449,78 +1454,61 @@ UEnum* FHeaderParser::CompileEnum()
 	// Parse all enums tags.
 	FToken TagToken;
 
-	TArray<FScriptLocation> EnumTagLocations;
 	TArray<TPair<FName, int64>> EnumNames;
-
 	int64 CurrentEnumValue = 0;
-
 	while (GetIdentifier(TagToken))
 	{
 		AddFormattedPrevCommentAsTooltipMetaData(TagToken.MetaData);
 
-		FScriptLocation* ValueDeclarationPos = new(EnumTagLocations) FScriptLocation();
-
 		// Try to read an optional explicit enum value specification
 		if (MatchSymbol(TEXT("=")))
 		{
-			int64 NewEnumValue = 0;
-			GetConstInt64(/*out*/ NewEnumValue, TEXT("Enumerator value"));
-
-			if (EnumNames.Num() > 0 && NewEnumValue < CurrentEnumValue)
+			FToken InitToken;
+			if (!GetToken(InitToken))
 			{
-				FError::Throwf(TEXT("Explicitly specified enum value (%d) must be greater than the previous value (%d)"), NewEnumValue, CurrentEnumValue);
+				FError::Throwf(TEXT("UENUM: missing enumerator initializer"));
 			}
 
-			if (UnderlyingType == EUnderlyingEnumType::Unspecified || UnderlyingType == EUnderlyingEnumType::int8 || UnderlyingType == EUnderlyingEnumType::int16 || UnderlyingType == EUnderlyingEnumType::int32 || UnderlyingType == EUnderlyingEnumType::int64)
+			int64 NewEnumValue = -1;
+			if (!InitToken.GetConstInt64(NewEnumValue))
 			{
-				int64 Min = 0;
-				int64 Max = 0;
-				switch (UnderlyingType)
-				{
-					case EUnderlyingEnumType::Unspecified: Min = TNumericLimits<int>  ::Min(); Max = TNumericLimits<int>  ::Max(); break;
-					case EUnderlyingEnumType::int8:        Min = TNumericLimits<int8> ::Min(); Max = TNumericLimits<int8> ::Max(); break;
-					case EUnderlyingEnumType::int16:       Min = TNumericLimits<int16>::Min(); Max = TNumericLimits<int16>::Max(); break;
-					case EUnderlyingEnumType::int32:       Min = TNumericLimits<int32>::Min(); Max = TNumericLimits<int32>::Max(); break;
-					case EUnderlyingEnumType::int64:       Min = TNumericLimits<int64>::Min(); Max = TNumericLimits<int64>::Max(); break;
-
-					default:
-						check(false);
-				}
-
-				if (NewEnumValue < Min || NewEnumValue > Max)
-				{
-					FError::Throwf(TEXT("Explicitly specified enum value (%lld) must be in the range of the underlying type of the enum (%lld to %lld)"), NewEnumValue, Min, Max);
-				}
+				// We didn't parse a literal, so set an invalid value
+				NewEnumValue = -1;
 			}
-			else
+
+			// Skip tokens until we encounter a comma, a closing brace or a UMETA declaration
+			for (;;)
 			{
-				uint64 Min = 0;
-				uint64 Max = 0;
-				switch (UnderlyingType)
+				if (!GetToken(InitToken))
 				{
-					case EUnderlyingEnumType::uint8:  Min = TNumericLimits<uint8> ::Min(); Max = TNumericLimits<uint8> ::Max(); break;
-					case EUnderlyingEnumType::uint16: Min = TNumericLimits<uint16>::Min(); Max = TNumericLimits<uint16>::Max(); break;
-					case EUnderlyingEnumType::uint32: Min = TNumericLimits<uint32>::Min(); Max = TNumericLimits<uint32>::Max(); break;
-					case EUnderlyingEnumType::uint64: Min = TNumericLimits<uint64>::Min(); Max = TNumericLimits<uint64>::Max(); break;
-
-					default:
-						check(false);
+					FError::Throwf(TEXT("Enumerator: end of file encountered while parsing the initializer"));
 				}
 
-				if (NewEnumValue < 0)
+				if (InitToken.TokenType == TOKEN_Symbol)
 				{
-					FError::Throwf(TEXT("Explicitly specified enum value (%lld) must be in the range of the underlying type of the enum (%llu to %llu)"), NewEnumValue, Min, Max);
+					if (FCString::Stricmp(InitToken.Identifier, TEXT(",")) == 0 || FCString::Stricmp(InitToken.Identifier, TEXT("}")) == 0)
+					{
+						UngetToken(InitToken);
+						break;
+					}
 				}
-				else if ((uint64)NewEnumValue < Min || (uint64)NewEnumValue > Max)
+				else if (InitToken.TokenType == TOKEN_Identifier)
 				{
-					FError::Throwf(TEXT("Explicitly specified enum value (%llu) must be in the range of the underlying type of the enum (%llu to %llu)"), (uint64)NewEnumValue, Min, Max);
+					if (FCString::Stricmp(InitToken.Identifier, TEXT("UMETA")) == 0)
+					{
+						UngetToken(InitToken);
+						break;
+					}
 				}
+
+				// There are tokens after the initializer so it's not a standalone literal,
+				// so set it to an invalid value.
+				NewEnumValue = -1;
 			}
 
 			CurrentEnumValue = NewEnumValue;
 		}
 
-		int32 iFound;
 		FName NewTag;
 		switch (CppForm)
 		{
@@ -1538,24 +1526,14 @@ UEnum* FHeaderParser::CompileEnum()
 			break;
 		}
 
-		TPair<FName, int64> CurrentEnum(NewTag, CurrentEnumValue);
-
-		if (EnumNames.Find(CurrentEnum, iFound))
-		{
-			FError::Throwf(TEXT("Duplicate enumeration tag %s"), TagToken.Identifier );
-		}
-
-		UEnum* FoundEnum = NULL;
-		if (UEnum::LookupEnumName(NewTag, &FoundEnum) != INDEX_NONE)
-		{
-			FError::Throwf(TEXT("Enumeration tag '%s' already in use by enum '%s'"), TagToken.Identifier, *FoundEnum->GetPathName());
-		}
-
 		// Save the new tag
-		EnumNames.Add(CurrentEnum);
+		EnumNames.Emplace(NewTag, CurrentEnumValue);
 
-		// Autoincrement the current enumerant value
-		CurrentEnumValue++;
+		// Autoincrement the current enumeration value
+		if (CurrentEnumValue != -1)
+		{
+			++CurrentEnumValue;
+		}
 
 		// check for metadata on this enum value
 		ParseFieldMetaData(TagToken.MetaData, TagToken.Identifier);
@@ -1566,7 +1544,7 @@ UEnum* FHeaderParser::CompileEnum()
 			for (const auto& MetaData : TagToken.MetaData)
 			{
 				FString KeyString = TokenString + TEXT(".") + MetaData.Key.ToString();
-				EnumValueMetaData.Add(FName(*KeyString), MetaData.Value);
+				EnumValueMetaData.Emplace(*KeyString, MetaData.Value);
 			}
 
 			// now clear the metadata because we're going to reuse this token for parsing the next enum value
@@ -1575,7 +1553,17 @@ UEnum* FHeaderParser::CompileEnum()
 
 		if (!MatchSymbol(TEXT(",")))
 		{
-			break;
+			FToken ClosingBrace;
+			if (!GetToken(ClosingBrace))
+			{
+				FError::Throwf(TEXT("UENUM: end of file encountered"));
+			}
+
+			if (ClosingBrace.TokenType == TOKEN_Symbol && !FCString::Stricmp(ClosingBrace.Identifier, TEXT("}")))
+			{
+				UngetToken(ClosingBrace);
+				break;
+			}
 		}
 	}
 
@@ -1586,11 +1574,6 @@ UEnum* FHeaderParser::CompileEnum()
 		checkSlow(PackageMetaData);
 
 		PackageMetaData->SetObjectValues(Enum, EnumValueMetaData);
-	}
-
-	if (!EnumNames.Num())
-	{
-		FError::Throwf(TEXT("Enumeration must contain at least one enumerator") );
 	}
 
 	// Trailing brace and semicolon for the enum
@@ -1604,13 +1587,12 @@ UEnum* FHeaderParser::CompileEnum()
 	}
 
 	// Register the list of enum names.
-	if (!Enum->SetEnums(EnumNames, CppForm, !FClass::IsDynamic(Enum)))
+	if (!Enum->SetEnums(EnumNames, CppForm, false))
 	{
 		const FName MaxEnumItem      = *(Enum->GenerateEnumPrefix() + TEXT("_MAX"));
 		const int32 MaxEnumItemIndex = Enum->GetIndexByName(MaxEnumItem);
 		if (MaxEnumItemIndex != INDEX_NONE)
 		{
-			ReturnToLocation(EnumTagLocations[MaxEnumItemIndex], false, true);
 			FError::Throwf(TEXT("Illegal enumeration tag specified.  Conflicts with auto-generated tag '%s'"), *MaxEnumItem.ToString());
 		}
 
@@ -1757,7 +1739,7 @@ FString FHeaderParser::FormatCommentForToolTip(const FString& Input)
 	for (FString& Line : Lines)
 	{
 		// Remove trailing whitespace
-		Line.TrimTrailing();
+		Line.TrimEndInline();
 
 		// Remove leading "*" and "* " in javadoc comments.
 		if (bJavaDocStyle)
@@ -1787,7 +1769,7 @@ FString FHeaderParser::FormatCommentForToolTip(const FString& Input)
 	int32 FirstIndex = 0;
 	for (FString Line : Lines)
 	{
-		Line.Trim();
+		Line.TrimStartInline();
 
 		if (Line.Len() && !IsLineSeparator(*Line))
 			break;
@@ -1799,7 +1781,7 @@ FString FHeaderParser::FormatCommentForToolTip(const FString& Input)
 	while (LastIndex != FirstIndex)
 	{
 		FString Line = Lines[LastIndex - 1];
-		Line.Trim();
+		Line.TrimStartInline();
 
 		if (Line.Len() && !IsLineSeparator(*Line))
 			break;
@@ -2028,9 +2010,22 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 			FError::Throwf(TEXT("struct: '%s' already defined here"), *EffectiveStructName);
 		}
 
-		if (FindObject<UStruct>(ANY_PACKAGE, *EffectiveStructName) != NULL)
+		if (UStruct* FoundType = FindObject<UStruct>(ANY_PACKAGE, *EffectiveStructName))
 		{
-			FError::Throwf(TEXT("struct: '%s' conflicts with class name"), *EffectiveStructName);
+			if (TTuple<TSharedRef<FUnrealSourceFile>, int32>* FoundTypeInfo = GStructToSourceLine.Find(FoundType))
+			{
+				FError::Throwf(
+					TEXT("struct: '%s' conflicts with another type of the same name defined at %s(%d)"),
+					*EffectiveStructName,
+					*FoundTypeInfo->Get<0>()->GetFilename(),
+					FoundTypeInfo->Get<1>()
+				);
+			}
+			else
+			{
+				FError::Throwf(TEXT("struct: '%s' conflicts with another type of the same name"), *EffectiveStructName);
+			}
+
 		}
 	}
 
@@ -2545,7 +2540,7 @@ void FHeaderParser::PopNest(ENestType NestType, const TCHAR* Descr)
 	bool bLinkProps = true;
 	if (NestType == ENestType::Class)
 	{
-		UClass* TopClass = CastChecked<UClass>(GetCurrentClass());
+		UClass* TopClass = GetCurrentClass();
 		bLinkProps = !TopClass->HasAnyClassFlags(CLASS_Intrinsic);
 	}
 
@@ -3229,7 +3224,8 @@ void FHeaderParser::GetVarType(
 					}
 
 					Flags |= CPF_BlueprintVisible;
-					bSeenBlueprintWriteSpecifier = true;				}
+					bSeenBlueprintWriteSpecifier = true;
+				}
 				break;
 
 				case EVariableSpecifier::BlueprintSetter:
@@ -3812,7 +3808,7 @@ void FHeaderParser::GetVarType(
 		VarType.PropertyFlags = OriginalVarTypeFlags;
 		FToken* MapKeyProp = new FToken(MapKeyType);
 		VarProperty.MapKeyProp = MakeShareable<FToken>(MapKeyProp);
-		VarProperty.MapKeyProp->PropertyFlags = OriginalVarTypeFlags;
+		VarProperty.MapKeyProp->PropertyFlags = OriginalVarTypeFlags | (VarProperty.MapKeyProp->PropertyFlags & CPF_UObjectWrapper); // Make sure the 'UObjectWrapper' flag is maintained so that 'TMap<TSubclassOf<...>, ...>' works
 
 		FToken CloseTemplateToken;
 		if (!GetToken(CloseTemplateToken, /*bNoConsts=*/ true, ESymbolParseOption::CloseTemplateBracket))
@@ -3881,14 +3877,14 @@ void FHeaderParser::GetVarType(
 				FError::Throwf(TEXT("Expected '>' but found '%s'"), CloseTemplateToken.Identifier);
 			}
 
-			// If we found a comma, read the next thing, assume it's an allocator, and report that
+			// If we found a comma, read the next thing, assume it's a keyfuncs, and report that
 			FToken AllocatorToken;
 			if (!GetToken(AllocatorToken, /*bNoConsts=*/ true, ESymbolParseOption::CloseTemplateBracket))
 			{
 				FError::Throwf(TEXT("Expected '>' but found '%s'"), CloseTemplateToken.Identifier);
 			}
 
-			FError::Throwf(TEXT("Found '%s' - explicit allocators are not supported in TSet properties."), AllocatorToken.Identifier);
+			FError::Throwf(TEXT("Found '%s' - explicit KeyFuncs are not supported in TSet properties."), AllocatorToken.Identifier);
 		}
 	}
 	else if ( VarType.Matches(TEXT("FString")) )
@@ -4443,7 +4439,8 @@ void FHeaderParser::GetVarType(
 	// For now, copy the flags that a TMap value has to the key
 	if (FPropertyBase* KeyProp = VarProperty.MapKeyProp.Get())
 	{
-		KeyProp->PropertyFlags = VarProperty.PropertyFlags;
+		// Make sure the 'UObjectWrapper' flag is maintained so that both 'TMap<TSubclassOf<...>, ...>' and 'TMap<UClass*, TSubclassOf<...>>' works correctly
+		KeyProp->PropertyFlags = (VarProperty.PropertyFlags & ~CPF_UObjectWrapper) | (KeyProp->PropertyFlags & CPF_UObjectWrapper);
 	}
 
 	VarProperty.MetaData = MetaDataFromNewStyle;
@@ -4966,7 +4963,8 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 	{
 		bHaveSeenUClass = true;
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
-		CompileClassDeclaration(AllClasses);
+		UClass* Class = CompileClassDeclaration(AllClasses);
+		GStructToSourceLine.Add(Class, MakeTuple(GetCurrentSourceFile()->AsShared(), Token.StartLine));
 		return true;
 	}
 
@@ -5017,7 +5015,8 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 	if (Token.Matches(TEXT("USTRUCT")))
 	{
 		// Struct definition.
-		CompileStructDeclaration(AllClasses);
+		UScriptStruct* Struct = CompileStructDeclaration(AllClasses);
+		GStructToSourceLine.Add(Struct, MakeTuple(GetCurrentSourceFile()->AsShared(), Token.StartLine));
 		return true;
 	}
 
@@ -5179,8 +5178,24 @@ bool FHeaderParser::SkipDeclaration(FToken& Token)
 			NestedScopes--;
 			if (NestedScopes == 0)
 			{
-				bEndOfDeclarationFound = true;
-				break;
+				// Could be a class declaration in all capitals, and not a macro
+				bool bReallyEndDeclaration = true;
+				if (bMacroDeclaration)
+				{
+					FToken PossibleBracketToken;
+					GetToken(PossibleBracketToken);
+					UngetToken(Token);
+					GetToken(Token);
+
+					// If Strcmp returns 0, it is probably a class, else a macro.
+					bReallyEndDeclaration = FCString::Strcmp(PossibleBracketToken.Identifier, TEXT("{")) != 0;
+				}
+
+				if (bReallyEndDeclaration)
+				{
+					bEndOfDeclarationFound = true;
+					break;
+				}
 			}
 
 			if (NestedScopes < 0)
@@ -5421,7 +5436,7 @@ void PostParsingClassSetup(UClass* Class)
 /**
  * Compiles a class declaration.
  */
-void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
+UClass* FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 {
 	// Start of a class block.
 	CheckAllow(TEXT("'class'"), ENestAllowFlags::Class);
@@ -5540,6 +5555,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 			}
 		}
 	}
+
+	return Class;
 }
 
 FClass* FHeaderParser::ParseInterfaceNameDeclaration(FClasses& AllClasses, FString& DeclaredInterfaceName, FString& RequiredAPIMacroIfPresent)
@@ -6991,7 +7008,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	if (OriginalProperty.PointerType == EPointerType::Native && OriginalProperty.Struct->IsChildOf(UInterface::StaticClass()))
 	{
 		// Get the name of the type, removing the asterisk representing the pointer
-		FString TypeName = FString(TypeRange.Count, Input + TypeRange.StartIndex).Trim().TrimTrailing().LeftChop(1).TrimTrailing();
+		FString TypeName = FString(TypeRange.Count, Input + TypeRange.StartIndex).TrimStartAndEnd().LeftChop(1).TrimEnd();
 		FError::Throwf(TEXT("UPROPERTY pointers cannot be interfaces - did you mean TScriptInterface<%s>?"), *TypeName);
 	}
 
@@ -8003,6 +8020,27 @@ bool ShouldKeepBlockContents(EBlockDirectiveType DirectiveType)
 	ASSUME(false);
 }
 
+bool ShouldKeepDirective(EBlockDirectiveType DirectiveType)
+{
+	switch (DirectiveType)
+	{
+		case EBlockDirectiveType::WithHotReload:
+		case EBlockDirectiveType::WithEditor:
+		case EBlockDirectiveType::WithEditorOnlyData:
+			return true;
+
+		case EBlockDirectiveType::CPPBlock:
+		case EBlockDirectiveType::NotCPPBlock:
+		case EBlockDirectiveType::ZeroBlock:
+		case EBlockDirectiveType::OneBlock:
+		case EBlockDirectiveType::UnrecognizedBlock:
+			return false;
+	}
+
+	check(false);
+	ASSUME(false);
+}
+
 EBlockDirectiveType ParseCommandToBlockDirectiveType(const TCHAR** Str)
 {
 	if (FParse::Command(Str, TEXT("0")))
@@ -8041,6 +8079,24 @@ EBlockDirectiveType ParseCommandToBlockDirectiveType(const TCHAR** Str)
 	}
 
 	return EBlockDirectiveType::UnrecognizedBlock;
+}
+
+const TCHAR* GetBlockDirectiveTypeString(EBlockDirectiveType DirectiveType)
+{
+	switch (DirectiveType)
+	{
+		case EBlockDirectiveType::CPPBlock:           return TEXT("CPP");
+		case EBlockDirectiveType::NotCPPBlock:        return TEXT("!CPP");
+		case EBlockDirectiveType::ZeroBlock:          return TEXT("0");
+		case EBlockDirectiveType::OneBlock:           return TEXT("1");
+		case EBlockDirectiveType::WithHotReload:      return TEXT("WITH_HOT_RELOAD");
+		case EBlockDirectiveType::WithEditor:         return TEXT("WITH_EDITOR");
+		case EBlockDirectiveType::WithEditorOnlyData: return TEXT("WITH_EDITORONLY_DATA");
+		case EBlockDirectiveType::UnrecognizedBlock:  return TEXT("<unrecognized>");
+	}
+
+	check(false);
+	ASSUME(false);
 }
 
 // Performs a preliminary parse of the text in the specified buffer, pulling out useful information for the header generation process
@@ -8092,37 +8148,58 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 			bool bShouldKeepBlockContents = ShouldKeepBlockContents(RootDirective);
 			bool bIsZeroBlock = RootDirective == EBlockDirectiveType::ZeroBlock;
 
-			ClassHeaderTextStrippedOfCppText.Logf(TEXT("%s\r\n"), bShouldKeepBlockContents ? *StrLine : TEXT(""));
+			ClassHeaderTextStrippedOfCppText.Logf(TEXT("%s\r\n"), ShouldKeepDirective(RootDirective) ? *StrLine : TEXT(""));
 
 			while ((DirectiveStack.Num() > 0) && FParse::Line(&Buffer, StrLine, 1))
 			{
 				CurrentLine++;
 				Str = *StrLine;
 
+				bool bShouldKeepLine = bShouldKeepBlockContents;
+
 				bool bIsDirective = false;
 				if( FParse::Command(&Str,TEXT("#endif")) )
 				{
-					DirectiveStack.Pop();
+					EBlockDirectiveType OldDirective = DirectiveStack.Pop();
 
-					bIsDirective = true;
+					bShouldKeepLine &= ShouldKeepDirective(OldDirective);
+					bIsDirective     = true;
 				}
 				else if( FParse::Command(&Str,TEXT("#if")) || FParse::Command(&Str,TEXT("#ifdef")) || FParse::Command(&Str,TEXT("#ifndef")) )
 				{
 					EBlockDirectiveType Directive = ParseCommandToBlockDirectiveType(&Str);
 					DirectiveStack.Push(Directive);
 
-					bIsDirective = true;
+					bShouldKeepLine &= ShouldKeepDirective(Directive);
+					bIsDirective     = true;
 				}
 				else if (FParse::Command(&Str,TEXT("#elif")))
 				{
-					EBlockDirectiveType Directive = ParseCommandToBlockDirectiveType(&Str);
-					DirectiveStack.Top() = Directive;
+					EBlockDirectiveType NewDirective = ParseCommandToBlockDirectiveType(&Str);
+					EBlockDirectiveType OldDirective = DirectiveStack.Top();
 
-					bIsDirective = true;
+					// Check to see if we're mixing ignorable directive types - we don't support this
+					bool bKeepNewDirective = ShouldKeepDirective(NewDirective);
+					bool bKeepOldDirective = ShouldKeepDirective(OldDirective);
+					if (bKeepNewDirective != bKeepOldDirective)
+					{
+						FFileLineException::Throwf(
+							Filename,
+							CurrentLine,
+							TEXT("Mixing %s with %s in an #elif preprocessor block is not supported"),
+							GetBlockDirectiveTypeString(OldDirective),
+							GetBlockDirectiveTypeString(NewDirective)
+						);
+					}
+
+					DirectiveStack.Top() = NewDirective;
+
+					bShouldKeepLine &= bKeepNewDirective;
+					bIsDirective     = true;
 				}
 				else if (FParse::Command(&Str, TEXT("#else")))
 				{
-					switch (DirectiveStack[0])
+					switch (DirectiveStack.Top())
 					{
 						case EBlockDirectiveType::ZeroBlock:
 							DirectiveStack.Top() = EBlockDirectiveType::OneBlock;
@@ -8151,44 +8228,47 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 							break;
 					}
 
-					bIsDirective = true;
+					bShouldKeepLine &= ShouldKeepDirective(DirectiveStack.Top());
+					bIsDirective     = true;
 				}
-
-				// Check for UHT identifiers inside skipped blocks, unless it's a zero block, because the compiler is going to skip those anyway.
-				if (!bShouldKeepBlockContents && !bIsZeroBlock)
+				else
 				{
-					auto FindInitialStr = [](const TCHAR*& FoundSubstr, const FString& StrToSearch, const TCHAR* ConstructName) -> bool
+					// Check for UHT identifiers inside skipped blocks, unless it's a zero block, because the compiler is going to skip those anyway.
+					if (!bShouldKeepBlockContents && !bIsZeroBlock)
 					{
-						if (StrToSearch.StartsWith(ConstructName, ESearchCase::CaseSensitive))
+						auto FindInitialStr = [](const TCHAR*& FoundSubstr, const FString& StrToSearch, const TCHAR* ConstructName) -> bool
 						{
-							FoundSubstr = ConstructName;
-							return true;
+							if (StrToSearch.StartsWith(ConstructName, ESearchCase::CaseSensitive))
+							{
+								FoundSubstr = ConstructName;
+								return true;
+							}
+
+							return false;
+						};
+
+						FString TrimmedStrLine = StrLine;
+						TrimmedStrLine.TrimStartInline();
+
+						const TCHAR* FoundSubstr = nullptr;
+						if (FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UPROPERTY"))
+							|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UCLASS"))
+							|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("USTRUCT"))
+							|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UENUM"))
+							|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UINTERFACE"))
+							|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UDELEGATE"))
+							|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UFUNCTION")))
+						{
+							FFileLineException::Throwf(Filename, CurrentLine, TEXT("%s inside this preprocessor block will be skipped"), FoundSubstr);
 						}
-
-						return false;
-					};
-
-					FString TrimmedStrLine = StrLine;
-					TrimmedStrLine.Trim();
-
-					const TCHAR* FoundSubstr = nullptr;
-					if (FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UPROPERTY"))
-						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UCLASS"))
-						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("USTRUCT"))
-						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UENUM"))
-						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UINTERFACE"))
-						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UDELEGATE"))
-						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UFUNCTION")))
-					{
-						FFileLineException::Throwf(Filename, CurrentLine, TEXT("%s inside this preprocessor block will be skipped"), FoundSubstr);
 					}
 				}
 
-				ClassHeaderTextStrippedOfCppText.Logf(TEXT("%s\r\n"), bShouldKeepBlockContents ? *StrLine : TEXT(""));
+				ClassHeaderTextStrippedOfCppText.Logf(TEXT("%s\r\n"), bShouldKeepLine ? *StrLine : TEXT(""));
 
 				if (bIsDirective)
 				{
-					bShouldKeepBlockContents = !DirectiveStack.ContainsByPredicate([](EBlockDirectiveType Directive) { return !ShouldKeepBlockContents(Directive); });
+					bShouldKeepBlockContents = Algo::AllOf(DirectiveStack, &ShouldKeepBlockContents);
 					bIsZeroBlock = DirectiveStack.Contains(EBlockDirectiveType::ZeroBlock);
 				}
 			}
@@ -8349,7 +8429,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 				}
 			}
 
-			StrLine.Trim();
+			StrLine.TrimStartInline();
 			if (!bProcess || StrLine == TEXT(""))
 			{
 				continue;

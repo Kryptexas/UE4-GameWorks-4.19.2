@@ -6,6 +6,7 @@ using System.Text;
 using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 public class MacPlatform : Platform
 {

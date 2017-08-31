@@ -15,6 +15,7 @@ public class SlateReflector : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"CoreUObject",
+				"ApplicationCore",
 				"InputCore",
 				"Slate",
 				"SlateCore",

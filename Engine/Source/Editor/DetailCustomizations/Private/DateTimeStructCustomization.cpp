@@ -140,8 +140,8 @@ bool FDateTimeStructCustomization::ParseDateTimeZone(const FString& DateTimeZone
 	}
 
 	// Trim surrounding whitespace
-	DateString = DateString.TrimTrailing().Trim();
-	TimezoneString = TimezoneString.TrimTrailing().Trim();
+	DateString.TrimStartAndEndInline();
+	TimezoneString.TrimStartAndEndInline();
 
 	// Validate date
 	FDateTime LocalizedDate;

@@ -1931,7 +1931,7 @@ void FKismetFunctionContext::ResolveGotoFixups()
 
 void FKismetFunctionContext::FinalSortLinearExecList()
 {
-	auto K2Schema = CastChecked<UEdGraphSchema_K2>(Schema);
+	auto K2Schema = Schema;
 	LinearExecutionList.RemoveAllSwap([&](UEdGraphNode* CurrentNode)
 	{
 		auto CurStatementList = StatementsPerNode.Find(CurrentNode);

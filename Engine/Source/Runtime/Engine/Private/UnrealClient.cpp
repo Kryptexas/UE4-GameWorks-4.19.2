@@ -1740,6 +1740,8 @@ ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitma
 	return false;
 }
 
+extern bool ParseResolution( const TCHAR* InResolution, uint32& OutX, uint32& OutY, int32& WindowMode );
+
 ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask, bool& OutDumpBufferVisualizationTargets, bool& OutCaptureHDR, FString& OutFilenameOverride)
 {
 	FString CmdString = Cmd;
@@ -1756,8 +1758,7 @@ ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, u
 		FParse::Value(Cmd, TEXT("filename="), FilenameOverride);
 		OutFilenameOverride = FilenameOverride;
 		CmdString.RemoveAt(FilenamePos, FilenameSearchString.Len() + FilenameOverride.Len());
-		CmdString.Trim(); 
-		CmdString.TrimTrailing();
+		CmdString.TrimStartAndEndInline(); 
 	}
 
 	while (CmdString.FindChar(TCHAR(' '), SeperatorPos))
@@ -1775,7 +1776,8 @@ ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, u
 
 	if (NumArguments >= 1)
 	{
-		if( !FParse::Resolution( *Arguments[0], OutXRes, OutYRes ) )
+		int32 WindowModeDummy;
+		if( !ParseResolution( *Arguments[0], OutXRes, OutYRes, WindowModeDummy ) )
 		{
 			//If Cmd is valid and it's not a resolution then the input must be a multiplier.
 			float Mult = FCString::Atof(*Arguments[0]);

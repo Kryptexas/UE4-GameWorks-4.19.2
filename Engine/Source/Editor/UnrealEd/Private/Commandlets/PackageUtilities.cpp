@@ -2405,7 +2405,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 		// get the full path name to the file
 		FString FileName = PathPrefix + PackageName;
 
-		const bool bIsAutoSave = FString(*FileName).ToUpper().Contains( TEXT("AUTOSAVES") );
+		const bool bIsAutoSave = FileName.Contains( TEXT("AUTOSAVES") );
 
 		FSourceControlStatePtr SourceControlState = SourceControl.GetProvider().GetState(FileName, EStateCacheUsage::ForceUpdate);
 

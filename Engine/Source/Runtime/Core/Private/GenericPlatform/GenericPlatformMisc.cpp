@@ -18,7 +18,6 @@
 #include "Math/Color.h"
 #include "GenericPlatform/GenericPlatformCompression.h"
 #include "Misc/ConfigCacheIni.h"
-#include "GenericPlatform/GenericApplication.h"
 #include "Misc/App.h"
 #include "GenericPlatform/GenericPlatformChunkInstall.h"
 #include "HAL/FileManagerGeneric.h"
@@ -27,7 +26,6 @@
 #include "HAL/ExceptionHandling.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "GenericPlatform/GenericPlatformDriver.h"
-#include "HAL/PlatformApplicationMisc.h"
 
 #include "Misc/UProjectInfo.h"
 
@@ -42,6 +40,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformMisc, Log, All);
 /** Holds an override path if a program has special needs */
 FString OverrideProjectDir;
 
+/** Hooks for moving ClipboardCopy and ClipboardPaste into FPlatformApplicationMisc */
+CORE_API void (*ClipboardCopyShim)(const TCHAR* Text) = nullptr;
+CORE_API void (*ClipboardPasteShim)(FString& Dest) = nullptr;
 
 /* EBuildConfigurations interface
  *****************************************************************************/
@@ -179,10 +180,6 @@ FString FSHA256Signature::ToString() const
 /* FGenericPlatformMisc interface
  *****************************************************************************/
 
-bool FGenericPlatformMisc::CachedPhysicalScreenData = false;
-EScreenPhysicalAccuracy FGenericPlatformMisc::CachedPhysicalScreenAccuracy = EScreenPhysicalAccuracy::Unknown;
-int32 FGenericPlatformMisc::CachedPhysicalScreenDensity = 0;
-
 #if !UE_BUILD_SHIPPING
 	bool FGenericPlatformMisc::bShouldPromptForRemoteDebugging = false;
 	bool FGenericPlatformMisc::bPromptForRemoteDebugOnEnsure = false;
@@ -303,8 +300,8 @@ FString FGenericPlatformMisc::GetPrimaryGPUBrand()
 
 FString FGenericPlatformMisc::GetDeviceMakeAndModel()
 {
-	const FString CPUVendor = FPlatformMisc::GetCPUVendor().Trim().TrimTrailing();
-	const FString CPUBrand = FPlatformMisc::GetCPUBrand().Trim().TrimTrailing();
+	const FString CPUVendor = FPlatformMisc::GetCPUVendor().TrimStartAndEnd();
+	const FString CPUBrand = FPlatformMisc::GetCPUBrand().TrimStartAndEnd();
 	return FString::Printf(TEXT("%s|%s"), *CPUVendor, *CPUBrand);
 }
 
@@ -460,10 +457,6 @@ bool FGenericPlatformMisc::HasSeparateChannelForDebugOutput()
 	return true;
 }
 
-void FGenericPlatformMisc::RequestMinimize()
-{
-}
-
 void FGenericPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogGenericPlatformMisc, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );
@@ -500,12 +493,26 @@ const TCHAR* FGenericPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32
 
 void FGenericPlatformMisc::ClipboardCopy(const TCHAR* Str)
 {
-	FPlatformApplicationMisc::ClipboardCopy(Str);
+	if(ClipboardCopyShim == nullptr)
+	{
+		UE_LOG(LogGenericPlatformMisc, Warning, TEXT("ClipboardCopyShim() is not bound; ignoring."));
+	}
+	else
+	{
+		ClipboardCopyShim(Str);
+	}
 }
 
 void FGenericPlatformMisc:: ClipboardPaste(class FString& Dest)
 {
-	FPlatformApplicationMisc::ClipboardPaste(Dest);
+	if(ClipboardPasteShim == nullptr)
+	{
+		UE_LOG(LogGenericPlatformMisc, Warning, TEXT("ClipboardPasteShim() is not bound; ignoring."));
+	}
+	else
+	{
+		ClipboardPasteShim(Dest);
+	}
 }
 
 void FGenericPlatformMisc::CreateGuid(FGuid& Guid)
@@ -1024,58 +1031,6 @@ bool FGenericPlatformMisc::IsRegisteredForRemoteNotifications()
 void FGenericPlatformMisc::UnregisterForRemoteNotifications()
 {
 	// not implemented by default
-}
-
-EScreenPhysicalAccuracy FGenericPlatformMisc::GetPhysicalScreenDensity(int32& ScreenDensity)
-{
-	if ( !CachedPhysicalScreenData )
-	{
-		CachedPhysicalScreenData = true;
-		CachedPhysicalScreenAccuracy = FPlatformMisc::ComputePhysicalScreenDensity(CachedPhysicalScreenDensity);
-	}
-
-	ScreenDensity = CachedPhysicalScreenDensity;
-	return CachedPhysicalScreenAccuracy;
-}
-
-EScreenPhysicalAccuracy FGenericPlatformMisc::ConvertInchesToPixels(float Inches, float& OutPixels)
-{
-	int32 ScreenDensity;
-	EScreenPhysicalAccuracy Accuracy = GetPhysicalScreenDensity(ScreenDensity);
-	
-	if ( Accuracy != EScreenPhysicalAccuracy::Unknown )
-	{
-		OutPixels = Inches * ScreenDensity;
-	}
-	else
-	{
-		OutPixels = 0;
-	}
-
-	return Accuracy;
-}
-
-EScreenPhysicalAccuracy FGenericPlatformMisc::ConvertPixelsToInches(float Pixels, float& OutInches)
-{
-	int32 ScreenDensity;
-	EScreenPhysicalAccuracy Accuracy = GetPhysicalScreenDensity(ScreenDensity);
-
-	if ( Accuracy != EScreenPhysicalAccuracy::Unknown )
-	{
-		OutInches = Pixels / (float)ScreenDensity;
-	}
-	else
-	{
-		OutInches = 0;
-	}
-
-	return Accuracy;
-}
-
-EScreenPhysicalAccuracy FGenericPlatformMisc::ComputePhysicalScreenDensity(int32& ScreenDensity)
-{
-	ScreenDensity = 0;
-	return EScreenPhysicalAccuracy::Unknown;
 }
 
 const TArray<FString>& FGenericPlatformMisc::GetConfidentialPlatforms()

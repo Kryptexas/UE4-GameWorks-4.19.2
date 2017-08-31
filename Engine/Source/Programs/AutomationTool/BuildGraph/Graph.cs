@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Xml;
 using System.Linq;
 using System.Diagnostics;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {

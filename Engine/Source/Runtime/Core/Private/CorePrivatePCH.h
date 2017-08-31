@@ -162,7 +162,6 @@
 #include "Internationalization/Culture.h"
 #include "Math/Transform.h"
 #include "Math/IntRect.h"
-#include "GenericPlatform/GenericWindow.h"
 #include "Misc/MemStack.h"
 #include "Containers/LockFreeFixedSizeAllocator.h"
 #include "GenericPlatform/GenericPlatformCompression.h"

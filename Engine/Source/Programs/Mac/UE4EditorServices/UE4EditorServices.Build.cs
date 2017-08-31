@@ -12,6 +12,7 @@ public class UE4EditorServices : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"DesktopPlatform",
 				"Json",
 				"Projects",

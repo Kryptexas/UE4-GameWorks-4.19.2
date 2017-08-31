@@ -1046,7 +1046,7 @@ FNiagaraVariable UEdGraphSchema_Niagara::PinToNiagaraVariable(const UEdGraphPin*
 		}
 		else if (const UEnum* Enum = Var.GetType().GetEnum())
 		{
-			int64 EnumValue = Enum->GetValueByNameString(Pin->DefaultValue, true);
+			int64 EnumValue = Enum->GetValueByNameString(Pin->DefaultValue, EGetByNameFlags::None);
 			if (EnumValue != INDEX_NONE)
 			{
 				Var.SetValue<int32>((int32)EnumValue);

@@ -1573,7 +1573,7 @@ bool ContentBrowserUtils::HasCustomColors( TArray< FLinearColor >* OutColors )
 		for( int32 SectionIndex = 0; SectionIndex < Section.Num(); SectionIndex++ )
 		{
 			FString EntryStr = Section[ SectionIndex ];
-			EntryStr.Trim();
+			EntryStr.TrimStartInline();
 
 			FString PathStr;
 			FString ColorStr;

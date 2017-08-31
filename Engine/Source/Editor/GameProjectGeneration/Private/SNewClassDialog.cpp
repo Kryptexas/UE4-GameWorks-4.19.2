@@ -469,7 +469,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 								.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
 								.OnNavigate(this, &SNewClassDialog::OnEditCodeClicked)
 								.Text(this, &SNewClassDialog::GetSelectedParentClassFilename)
-								.ToolTipText(FText::Format(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE()))
+								.ToolTipText(FText::Format(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSelectedSourceCodeIDE()))
 								.Visibility(this, &SNewClassDialog::GetSourceHyperlinkVisibility)
 							]
 						]

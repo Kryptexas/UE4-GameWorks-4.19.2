@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
 #include "Scalability.h"
+#include "Engine/EngineTypes.h"
 #include "EditorSettings.generated.h"
 
 UCLASS(config=EditorSettings)
@@ -25,6 +26,10 @@ class UNREALED_API UEditorSettings : public UObject
 	/** Whether the Content Browser should open the Sources Panel by default */
 	UPROPERTY(EditAnywhere, config, Category=ContentBrowser)
 	bool bOpenSourcesPanelByDefault;
+
+	/** Sets the path to be used for caching derived data (native textures, compiled shaders, etc...). The editor must be restarted for changes to take effect. */
+	UPROPERTY(EditAnywhere, config, Category=DerivedData)
+	FDirectoryPath LocalDerivedDataCache;
 
 	// =====================================================================
 	// The following options are NOT exposed in the preferences Editor

@@ -43,7 +43,7 @@ UPhononSpatializationSettingsFactory::UPhononSpatializationSettingsFactory(const
 UObject* UPhononSpatializationSettingsFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName InName, EObjectFlags Flags,
 	UObject* Context, FFeedbackContext* Warn)
 {
-	return Cast<UObject>(NewObject<UPhononSpatializationSourceSettings>(InParent, InName, Flags));
+	return NewObject<UPhononSpatializationSourceSettings>(InParent, InName, Flags);
 }
 
 uint32 UPhononSpatializationSettingsFactory::GetMenuCategories() const

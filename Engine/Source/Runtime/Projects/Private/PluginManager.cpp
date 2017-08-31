@@ -750,14 +750,19 @@ bool FPluginManager::ConfigureEnabledPlugin(const FPluginReferenceDescriptor& Fi
 				const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin.FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
 				FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin.GetLoadedFrom() == EPluginLoadedFrom::Project);
 
-				// Check if the modules are valid
-				TArray<FString> IncompatibleFiles;
-				if (!FModuleDescriptor::CheckModuleCompatibility(Plugin.Descriptor.Modules, Plugin.GetLoadedFrom() == EPluginLoadedFrom::Project, IncompatibleFiles))
+				// If this is a content-only project, make sure the modules are compatible with the engine (or allow the user to disable it). If it's a code project,
+				// we'll run a separate check in LaunchEngineLoop.cpp to do the compile-on-startup stuff.
+				const FProjectDescriptor* Project = IProjectManager::Get().GetCurrentProject();
+				if (Project != nullptr && Project->Modules.Num() == 0)
 				{
-					if (PromptToDisableIncompatiblePlugin(FirstReference.Name, Reference.Name))
+					TArray<FString> IncompatibleFiles;
+					if (!FModuleDescriptor::CheckModuleCompatibility(Plugin.Descriptor.Modules, Plugin.GetLoadedFrom() == EPluginLoadedFrom::Project, IncompatibleFiles))
 					{
-						UE_LOG(LogPluginManager, Display, TEXT("Disabled plugin '%s', continuing."), *FirstReference.Name);
-						return true;
+						if (PromptToDisableIncompatiblePlugin(FirstReference.Name, Reference.Name))
+						{
+							UE_LOG(LogPluginManager, Display, TEXT("Disabled plugin '%s', continuing."), *FirstReference.Name);
+							return true;
+						}
 					}
 				}
 			}
@@ -832,11 +837,11 @@ bool FPluginManager::PromptToDisableIncompatiblePlugin(const FString& PluginName
 	FText Message;
 	if (PluginName == IncompatiblePluginName)
 	{
-		Message = FText::Format(LOCTEXT("DisablePluginMessage_IncompatibleEngineVersion", "This project requires the '{0}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName));
+		Message = FText::Format(LOCTEXT("DisablePluginMessage_MissingOrIncompatibleEngineVersion", "Binaries for the '{0}' plugin are missing or incompatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open assets that were created with it."), FText::FromString(PluginName));
 	}
 	else
 	{
-		Message = FText::Format(LOCTEXT("DisablePluginMessage_IncompatibleDependency", "This project requires the '{0}' plugin, which has a dependency on the '{1}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName), FText::FromString(IncompatiblePluginName));
+		Message = FText::Format(LOCTEXT("DisablePluginMessage_MissingOrIncompatibleDependency", "Binaries for the '{0}' plugin (a dependency of '{1}') are missing or incompatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open assets that were created with it."), FText::FromString(IncompatiblePluginName), FText::FromString(PluginName));
 	}
 
 	FText Caption(LOCTEXT("DisablePluginCaption", "Missing Plugin"));

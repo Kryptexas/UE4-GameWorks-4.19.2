@@ -1174,12 +1174,8 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 				FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
 				FbxImporter->ImportStaticMeshAsSingle(Pkg, AllNodeInLod, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData, NewObject, LODIndex);
 			}
-			UStaticMesh *NewMesh = Cast<UStaticMesh>(NewObject);
-			if (NewMesh != nullptr)
-			{
-				FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
-				FbxImporter->PostImportStaticMesh(NewMesh, AllNodeInLod);
-			}
+			FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+			FbxImporter->PostImportStaticMesh(NewObject, AllNodeInLod);
 		}
 	}
 	else

@@ -106,7 +106,7 @@ struct FStatsCallstack
 			const FString ShortName = FStatNameAndInfo::GetShortNameFrom( LongName ).ToString();
 			//const FString Group = FStatNameAndInfo::GetGroupNameFrom( LongName ).ToString();
 			FString Desc = FStatNameAndInfo::GetDescriptionFrom( LongName );
-			Desc.Trim();
+			Desc.TrimStartInline();
 
 			if (Desc.Len() == 0)
 			{

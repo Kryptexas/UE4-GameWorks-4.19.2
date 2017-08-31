@@ -15,5 +15,6 @@ enum class EHierarchicalLODActionType : uint8
 	RemoveActorFromCluster,
 	MergeClusters,
 	ChildCluster,
-	Max
+
+	MAX
 };

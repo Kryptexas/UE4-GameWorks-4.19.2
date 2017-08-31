@@ -73,7 +73,7 @@ void FAppEventManager::Tick()
 				else
 				{
 					FAndroidAppEntry::DestroyWindow();
-					FPlatformMisc::SetHardwareWindow(NULL);
+					FAndroidWindow::SetHardwareWindow(NULL);
 				}
 			}
 
@@ -185,7 +185,7 @@ void FAppEventManager::Tick()
 		if (bDestroyWindow)
 		{
 			FAndroidAppEntry::DestroyWindow();
-			FPlatformMisc::SetHardwareWindow(NULL);
+			FAndroidWindow::SetHardwareWindow(NULL);
 			bDestroyWindow = false;
 
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidAppEntry::DestroyWindow() called"));
@@ -198,7 +198,7 @@ void FAppEventManager::Tick()
 	}
 	if (bIsDaydreamApp)
 	{
-		if (!bRunning && FPlatformMisc::GetHardwareWindow() != NULL)
+		if (!bRunning && FAndroidWindow::GetHardwareWindow() != NULL)
 		{
 			EventHandlerEvent->Wait();
 		}
@@ -266,7 +266,7 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 		// If we already have a window, destroy it
 		ExecDestroyWindow();
 
-		FPlatformMisc::SetHardwareWindow(InWindow);
+		FAndroidWindow::SetHardwareWindow(InWindow);
 
 		rc = pthread_mutex_unlock(&MainMutex);
 		check(rc == 0);
@@ -300,8 +300,8 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 		rc = pthread_mutex_lock(&MainMutex);
 		check(rc == 0);
 
-		check(FPlatformMisc::GetHardwareWindow() == NULL);
-		FPlatformMisc::SetHardwareWindow(InWindow);
+		check(FAndroidWindow::GetHardwareWindow() == NULL);
+		FAndroidWindow::SetHardwareWindow(InWindow);
 		FirstInitialized = true;
 
 		rc = pthread_mutex_unlock(&MainMutex);
@@ -385,7 +385,7 @@ void FAppEventManager::ExecWindowCreated()
 	if (!bIsDaydreamApp)
 	{
 		check(PendingWindow);
-		FPlatformMisc::SetHardwareWindow(PendingWindow);
+		FAndroidWindow::SetHardwareWindow(PendingWindow);
 	}
 
 	// When application launched while device is in sleep mode SystemResolution could be set to opposite orientation values
@@ -420,12 +420,12 @@ void FAppEventManager::ExecWindowResized()
 
 void FAppEventManager::ExecDestroyWindow()
 {
-	if (FPlatformMisc::GetHardwareWindow() != NULL)
+	if (FAndroidWindow::GetHardwareWindow() != NULL)
 	{
-		FAndroidWindow::ReleaseWindowRef((ANativeWindow*)FPlatformMisc::GetHardwareWindow());
+		FAndroidWindow::ReleaseWindowRef((ANativeWindow*)FAndroidWindow::GetHardwareWindow());
 
 		FAndroidAppEntry::DestroyWindow();
-		FPlatformMisc::SetHardwareWindow(NULL);
+		FAndroidWindow::SetHardwareWindow(NULL);
 	}
 }
 

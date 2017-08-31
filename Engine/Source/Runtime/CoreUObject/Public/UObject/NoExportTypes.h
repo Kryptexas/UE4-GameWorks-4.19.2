@@ -15,6 +15,8 @@
 
 // Include the real definitions of the noexport classes below to allow the generated cpp file to compile.
 
+#include "PixelFormat.h"
+
 #include "Misc/Guid.h"
 #include "Misc/DateTime.h"
 #include "Misc/Timespan.h"
@@ -41,6 +43,8 @@
 #include "Math/RandomStream.h"
 #include "Math/RangeBound.h"
 #include "Math/Interval.h"
+
+#include "GenericPlatform/ICursor.h"
 
 #endif
 
@@ -84,6 +88,9 @@ namespace ELogTimes
 
 		/** Display log timestamps in seconds elapsed since GStartTime. */
 		SinceGStartTime UMETA(DisplayName = "Time since application start"),
+
+		/** Display log timestamps in local time. */
+		Local UMETA(DisplayName = "Local time"),
 	};
 }
 
@@ -110,7 +117,6 @@ enum EInterpCurveMode
 	CIM_CurveUser UMETA(DisplayName="Curve User"),
 	CIM_CurveBreak UMETA(DisplayName="Curve Break"),
 	CIM_CurveAutoClamped UMETA(DisplayName="Curve Auto Clamped"),
-	CIM_MAX,
 };
 
 // @warning:	When you update this, you must add an entry to GPixelFormats(see RenderUtils.cpp)

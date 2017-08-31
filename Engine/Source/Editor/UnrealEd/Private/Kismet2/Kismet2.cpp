@@ -1148,7 +1148,7 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 				// For components, make sure we use the instance that's owned by the Blueprint CDO and not the native parent CDO's instance.
 				if (UActorComponent** ComponentTemplatePtr = FindComponentTemplateByNameInActorCDO(SuperObjValue->GetFName()))
 				{
-					SuperObjValue = Cast<UObject>(*ComponentTemplatePtr);
+					SuperObjValue = *ComponentTemplatePtr;
 				}
 			}
 			
@@ -1712,7 +1712,7 @@ AActor* FKismetEditorUtilities::CreateBlueprintInstanceFromSelection(UBlueprint*
 
 	for(auto It(SelectedActors.CreateIterator());It;++It)
 	{
-		if (AActor* Actor = Cast<AActor>(*It))
+		if (AActor* Actor = *It)
 		{
 			// Remove from active selection in editor
 			GEditor->SelectActor(Actor, /*bSelected=*/ false, /*bNotify=*/ false);
@@ -2148,7 +2148,8 @@ bool FKismetEditorUtilities::CanBlueprintImplementInterface(UBlueprint const* Bl
 			// loop over all the prohibited interfaces
 			for (int32 ExclusionIndex = 0; ExclusionIndex < ProhibitedInterfaceNames.Num(); ++ExclusionIndex)
 			{
-				FString const& Exclusion = ProhibitedInterfaceNames[ExclusionIndex].Trim();
+				ProhibitedInterfaceNames[ExclusionIndex].TrimStartInline();
+				FString const& Exclusion = ProhibitedInterfaceNames[ExclusionIndex];
 				// if this interface matches one of the prohibited ones
 				if (InterfaceName == Exclusion) 
 				{

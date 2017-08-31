@@ -1027,7 +1027,7 @@ namespace PropertyEditorHelpers
 			Property->GetMetaData(ValidEnumValuesName).ParseIntoArray(ValidEnumValuesAsString, TEXT(","));
 			for(auto& Value : ValidEnumValuesAsString)
 			{
-				Value.Trim();
+				Value.TrimStartInline();
 				ValidEnumValues.Add(*InEnum->GenerateFullEnumName(*Value));
 			}
 		}

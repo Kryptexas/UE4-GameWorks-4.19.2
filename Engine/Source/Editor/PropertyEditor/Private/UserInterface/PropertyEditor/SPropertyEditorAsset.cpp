@@ -129,8 +129,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			{
 				FString& ClassName = *It;
 				// User can potentially list class names with leading or trailing whitespace
-				ClassName.Trim();
-				ClassName.TrimTrailing();
+				ClassName.TrimStartAndEndInline();
 
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
 

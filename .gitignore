@@ -35,6 +35,9 @@
 !*.exp
 !*.manifest
 
+# Re-ignore vs host manifest
+*.vshost.exe.manifest
+
 # Java source files
 !*.java
 !*.java.template
@@ -162,3 +165,5 @@ Saved/
 # Explcitly ignore Mac DS_Store files, regardless of where they are
 .DS_Store
 
+# Ignore VS / VS Code settings directory
+.vs

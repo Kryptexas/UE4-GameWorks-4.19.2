@@ -416,7 +416,7 @@ void FPrimitiveStatsPage::Generate( TArray< TWeakObjectPtr<UObject> >& OutObject
 		{
 			for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
 			{
-				AActor* Owner = Cast<AActor>((*It)->GetOwner());
+				AActor* Owner = (*It)->GetOwner();
 
 				if (Owner != nullptr && !Owner->HasAnyFlags(RF_ClassDefaultObject) && Owner->IsInLevel(GWorld->GetCurrentLevel()))
 				{
@@ -456,7 +456,7 @@ void FPrimitiveStatsPage::Generate( TArray< TWeakObjectPtr<UObject> >& OutObject
 
 				for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
 				{
-					AActor* Owner = Cast<AActor>((*It)->GetOwner());
+					AActor* Owner = (*It)->GetOwner();
 
 					if (Owner != nullptr && !Owner->HasAnyFlags(RF_ClassDefaultObject))
 					{
@@ -484,7 +484,7 @@ void FPrimitiveStatsPage::Generate( TArray< TWeakObjectPtr<UObject> >& OutObject
 
 			for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
 			{
-				AActor* Owner = Cast<AActor>((*It)->GetOwner());
+				AActor* Owner = (*It)->GetOwner();
 				if (Owner != nullptr && !Owner->HasAnyFlags(RF_ClassDefaultObject) && SelectedActors.Contains(Owner))
 				{
 					UPrimitiveStats* StatsEntry = Generator.Add(*It, (EPrimitiveObjectSets)ObjectSetIndex);

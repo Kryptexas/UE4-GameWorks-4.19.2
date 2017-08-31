@@ -11,6 +11,7 @@ public class SkeletonEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"ApplicationCore",
                 "InputCore",
 				"Slate",
 				"SlateCore",

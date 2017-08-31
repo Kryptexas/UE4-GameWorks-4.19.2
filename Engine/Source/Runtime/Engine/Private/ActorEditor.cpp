@@ -680,8 +680,7 @@ void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMak
 {
 	// Clean up the incoming string a bit
 	FString NewActorLabel = NewActorLabelDirty;
-	NewActorLabel.Trim();
-	NewActorLabel.TrimTrailing();
+	NewActorLabel.TrimStartAndEndInline();
 
 
 	// First, update the actor label

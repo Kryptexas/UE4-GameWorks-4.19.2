@@ -683,7 +683,7 @@ void APlanarReflection::EditorApplyScale(const FVector& DeltaScale, const FVecto
 {
 	Super::EditorApplyScale(FVector(DeltaScale.X, DeltaScale.Y, 0), PivotLocation, bAltDown, bShiftDown, bCtrlDown);
 
-	UPlanarReflectionComponent* ReflectionComponent = Cast<UPlanarReflectionComponent>(GetPlanarReflectionComponent());
+	UPlanarReflectionComponent* ReflectionComponent = GetPlanarReflectionComponent();
 	check(ReflectionComponent);
 	const FVector ModifiedScale = FVector(0, 0, DeltaScale.Z) * ( AActor::bUsePercentageBasedScaling ? 500.0f : 50.0f );
 	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeoutStart, ModifiedScale);

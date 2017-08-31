@@ -1126,7 +1126,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		}
 
 #if PLATFORM_WINDOWS
-		if (!FPlatformProperties::RequiresCookedData())
+		if (!FPlatformProperties::RequiresCookedData() && 
+			// We can't check the post tag if the file is an EDL cooked package
+			!((Summary.PackageFlags & PKG_FilterEditorOnly) && Summary.PreloadDependencyCount > 0 && Summary.PreloadDependencyOffset > 0))
 		{
 			// check if this package version stored the 4-byte magic post tag
 			// get the offset of the post tag
@@ -1620,7 +1622,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeDependsMap()
 		*this << Depends;
 		DependsMapIndex++;
 	}
-	
+
 	// Return whether we finished this step and it's safe to start with the next.
 	return ((DependsMapIndex == Summary.ExportCount) && !IsTimeLimitExceeded( TEXT("serializing depends map") )) ? LINKER_Loaded : LINKER_TimedOut;
 }
@@ -1828,10 +1830,10 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 		// Add this linker to the object manager's linker array.
 		FLinkerManager::Get().AddLoader(this);
 
-		// check if the package source matches the package filename's CRC (if it doens't match, a user saved this package)
+		// check if the package source matches the package filename's CRC (if it doesn't match, a user saved this package)
 		if (Summary.PackageSource != FCrc::StrCrc_DEPRECATED(*FPaths::GetBaseFilename(Filename).ToUpper()))
 		{
-//			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
+//			UE_LOG(LogLinker, Log, TEXT("Found a user created package (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
 		if (GEventDrivenLoaderEnabled && AsyncRoot)

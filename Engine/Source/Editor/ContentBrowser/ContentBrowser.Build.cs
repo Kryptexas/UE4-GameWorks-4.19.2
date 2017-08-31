@@ -27,6 +27,7 @@ public class ContentBrowser : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
                 "InputCore",
 				"Engine",
 				"Slate",

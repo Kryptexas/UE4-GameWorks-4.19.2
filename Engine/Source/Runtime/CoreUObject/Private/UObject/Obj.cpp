@@ -2931,7 +2931,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 {
 	TArray<const TCHAR*> Results;
 
-	const TCHAR* PropertyFlags[] =
+	static const TCHAR* PropertyFlags[] =
 	{
 		TEXT("CPF_Edit"),
 		TEXT("CPF_ConstParm"),
@@ -2983,6 +2983,12 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("CPF_NonPIEDuplicateTransient"),
 		TEXT("CPF_ExposeOnSpawn"),
 		TEXT("CPF_PersistentInstance"),
+		TEXT("CPF_UObjectWrapper"),
+		TEXT("CPF_HasGetValueTypeHash"),
+		TEXT("CPF_NativeAccessSpecifierPublic"),
+		TEXT("CPF_NativeAccessSpecifierProtected"),
+		TEXT("CPF_NativeAccessSpecifierPrivate"),
+		TEXT("CPF_SkipSerialization"),
 	};
 
 	for (const TCHAR* FlagName : PropertyFlags)
@@ -3127,19 +3133,19 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					if (bResult)
 					{
 						FString ExtraInfo;
-						if (UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(It->GetClass()))
+						if (UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(*It))
 						{
 							ExtraInfo = *StructProperty->Struct->GetName();
 						}
-						else if (UClassProperty* ClassProperty = dynamic_cast<UClassProperty*>(It->GetClass()))
+						else if (UClassProperty* ClassProperty = dynamic_cast<UClassProperty*>(*It))
 						{
-							ExtraInfo = FString::Printf(TEXT("class<%s>"), *ClassProperty->MetaClass->GetName());
+							ExtraInfo = FString::Printf(TEXT("SubclassOf<%s>"), *ClassProperty->MetaClass->GetName());
 						}
-						else if (USoftClassProperty* SoftClassProperty = dynamic_cast<USoftClassProperty*>(It->GetClass()))
+						else if (USoftClassProperty* SoftClassProperty = dynamic_cast<USoftClassProperty*>(*It))
 						{
-							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *SoftClassProperty->MetaClass->GetName());
+							ExtraInfo = FString::Printf(TEXT("SoftClassPtr<%s>"), *SoftClassProperty->MetaClass->GetName());
 						}
-						else if (UObjectPropertyBase* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
+						else if (UObjectPropertyBase* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(*It))
 						{
 							ExtraInfo = *ObjectPropertyBase->PropertyClass->GetName();
 						}

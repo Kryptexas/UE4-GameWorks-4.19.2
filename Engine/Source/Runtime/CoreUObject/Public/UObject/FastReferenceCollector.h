@@ -17,13 +17,6 @@ struct FStackEntry;
 	FastReferenceCollector.h: Unreal realtime garbage collection helpers
 =============================================================================*/
 
-/** Struct to hold the objects to serialize array and the list of weak references. This is allocated by ArrayPool */
-struct FGCArrayStruct
-{
-	TArray<UObject*> ObjectsToSerialize;
-	TArray<UObject**> WeakReferences;
-};
-
 /**
  * Pool for reducing GC allocations
  */

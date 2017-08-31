@@ -12,6 +12,7 @@ public class SlateViewer : ModuleRules
 			new string[] {
 				"AppFramework",
 				"Core",
+				"ApplicationCore",
 				"Projects",
 				"Slate",
 				"SlateCore",

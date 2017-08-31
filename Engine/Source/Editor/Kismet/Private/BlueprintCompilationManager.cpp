@@ -237,7 +237,7 @@ struct FCompilerData
 		check(InBP);
 		BP = InBP;
 		JobType = InJobType;
-		UPackage* Package = Cast<UPackage>(BP->GetOutermost());
+		UPackage* Package = BP->GetOutermost();
 		bPackageWasDirty = Package ? Package->IsDirty() : false;
 
 		ActiveResultsLog = InResultsLogOverride;
@@ -856,7 +856,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				BP->bIsRegeneratingOnLoad = false;
 			}
 
-			if(UPackage* Package = Cast<UPackage>(BP->GetOutermost()))
+			if(UPackage* Package = BP->GetOutermost())
 			{
 				Package->SetDirtyFlag(CompilerData.bPackageWasDirty);
 			}

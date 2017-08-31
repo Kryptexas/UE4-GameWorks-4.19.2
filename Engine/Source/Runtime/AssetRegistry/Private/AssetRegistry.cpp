@@ -197,8 +197,7 @@ void UAssetRegistryImpl::InitializeSerializationOptions(FAssetRegistrySerializat
 	for (const FString& FilterlistItem : FilterlistItems)
 	{
 		FString TrimmedFilterlistItem = FilterlistItem;
-		TrimmedFilterlistItem.Trim();
-		TrimmedFilterlistItem.TrimTrailing();
+		TrimmedFilterlistItem.TrimStartAndEndInline();
 		if (TrimmedFilterlistItem.Left(1) == TEXT("("))
 		{
 			TrimmedFilterlistItem = TrimmedFilterlistItem.RightChop(1);
@@ -219,10 +218,8 @@ void UAssetRegistryImpl::InitializeSerializationOptions(FAssetRegistrySerializat
 			FString ValueString;
 			if (Token.Split(TEXT("="), &KeyString, &ValueString))
 			{
-				KeyString.Trim();
-				KeyString.TrimTrailing();
-				ValueString.Trim();
-				ValueString.TrimTrailing();
+				KeyString.TrimStartAndEndInline();
+				ValueString.TrimStartAndEndInline();
 				if (KeyString == TEXT("Class"))
 				{
 					ClassName = ValueString;

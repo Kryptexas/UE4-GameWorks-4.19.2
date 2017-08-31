@@ -269,7 +269,8 @@ FString FEditorCategoryUtils::GetCategoryDisplayString(const FString& Unsanitize
 				if (KeyLen > 0)
 				{
 					FString Key(KeyLen, *DisplayString + KeyIndex+1);
-					ReplacementStr = FEditorCategoryUtilsImpl::GetCategory(*Key.Trim()).ToString();
+					Key.TrimStartInline();
+					ReplacementStr = FEditorCategoryUtilsImpl::GetCategory(*Key).ToString();
 				}
 				DisplayString.ReplaceInline(*ToReplaceStr, *ReplacementStr);
 			}

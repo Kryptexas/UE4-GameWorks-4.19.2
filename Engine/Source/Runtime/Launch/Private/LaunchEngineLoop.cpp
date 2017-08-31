@@ -43,7 +43,8 @@
 #include "Misc/CoreDelegates.h"
 #include "Modules/ModuleManager.h"
 #include "Runtime/Launch/Resources/Version.h"
-#include "VersionManifest.h"
+#include "BuildVersion.h"
+#include "ModuleManifest.h"
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
 
@@ -386,7 +387,7 @@ bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProject
 
 	// trim any whitespace at edges of string - this can happen if the token was quoted with leading or trailing whitespace
 	// VC++ tends to do this in its "external tools" config
-	FirstCommandLineToken = FirstCommandLineToken.Trim();
+	FirstCommandLineToken.TrimStartInline();
 
 	//
 	OutProjectFilePath = TEXT("");
@@ -978,7 +979,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Initialize log console here to avoid statics initialization issues when launched from the command line.
-	GScopedLogConsole = TUniquePtr<FOutputDeviceConsole>(FPlatformOutputDevices::GetLogConsole());
+	GScopedLogConsole = TUniquePtr<FOutputDeviceConsole>(FPlatformApplicationMisc::CreateConsoleOutputDevice());
 
 	// Always enable the backlog so we get all messages, we will disable and clear it in the game
 	// as soon as we determine whether GIsEditor == false
@@ -1123,7 +1124,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// trim any whitespace at edges of string - this can happen if the token was quoted with leading or trailing whitespace
 	// VC++ tends to do this in its "external tools" config
-	Token = Token.Trim();
+	Token.TrimStartAndEndInline();
 
 	// Path returned by FPaths::GetProjectFilePath() is normalized, so may have symlinks and ~ resolved and may differ from the original path to .uproject passed in the command line
 	FString NormalizedToken = Token;
@@ -1144,7 +1145,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FCommandLine::Set(ParsedCmdLine);
 
 		Token = FParse::Token( ParsedCmdLine, 0);
-		Token = Token.Trim();
+		Token.TrimStartInline();
 
 		// if the next token is a project file, then we skip it (which can happen on some platforms that combine
 		// commandlines... this handles extra .uprojects, but if you run with MyGame MyGame, we can't tell if
@@ -1152,7 +1153,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		while (FPaths::GetExtension(Token) == FProjectDescriptor::GetExtension())
 		{
 			Token = FParse::Token(ParsedCmdLine, 0);
-			Token = Token.Trim();
+			Token.TrimStartInline();
 		}
 
 		if (bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
@@ -1190,7 +1191,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		{
 			// Move the token to the end of the list...
 			FString RemainingCommandline = ParsedCmdLine;
-			RemainingCommandline = RemainingCommandline.Trim();
+			RemainingCommandline.TrimStartInline();
 			RemainingCommandline += FString::Printf(TEXT(" %s"), *Token);
 			FCommandLine::Set(*RemainingCommandline);
 		}
@@ -1320,16 +1321,28 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Set up the module list and version information, if it's not compiled-in
-#if !IS_MONOLITHIC && BUILT_FROM_CHANGELIST == 0
-	static FVersionedModuleEnumerator ModuleEnumerator;
-	if(ModuleEnumerator.RegisterWithModuleManager())
+#if BUILT_FROM_CHANGELIST == 0
+	static FBuildVersion Version;
+	if(FBuildVersion::TryRead(FBuildVersion::GetFileNameForCurrentExecutable(), Version))
 	{
-		const FVersionManifest& Manifest = ModuleEnumerator.GetInitialManifest();
-		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist, Manifest.CompatibleChangelist))
+		UE_LOG(LogInit, Log, TEXT("Read version file with build ID '%s'"), *Version.BuildId);
+		if(Version.Changelist != 0)
 		{
-			UE_LOG(LogInit, Fatal, TEXT("Couldn't update engine changelist to %d."), Manifest.Changelist);
+			int32 EffectiveCompatibleChangelist = (Version.CompatibleChangelist != 0)? Version.CompatibleChangelist : Version.Changelist;
+			UE_LOG(LogInit, Log, TEXT("Overriding engine version to CL %d, compatible CL %d"), Version.Changelist, EffectiveCompatibleChangelist);
+			FEngineVersion::OverrideCurrentVersionChangelist(Version.Changelist, EffectiveCompatibleChangelist);
 		}
-		UE_LOG(LogInit, Log, TEXT("Using version manifest at CL %d with build ID '%s'"), Manifest.Changelist, *Manifest.BuildId);
+
+#if !IS_MONOLITHIC
+		if(Version.BuildId.Len() > 0)
+		{
+			static FModuleEnumerator ModuleEnumerator(Version.BuildId);
+			if(ModuleEnumerator.RegisterWithModuleManager())
+			{
+				UE_LOG(LogInit, Log, TEXT("Registered custom module enumerator with build ID '%s'"), *Version.BuildId);
+			}
+		}
+#endif
 	}
 #endif
 
@@ -1922,7 +1935,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 	// do any post appInit processing, before the render thread is started.
-	FPlatformMisc::PlatformPostInit();
+	FPlatformApplicationMisc::PostInit();
 	SlowTask.EnterProgressFrame(5);
 
 #if !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
@@ -2337,7 +2350,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if USE_LOCALIZED_PACKAGE_CACHE
 	FPackageLocalizationManager::Get().InitializeFromDefaultCache();
 #endif	// USE_LOCALIZED_PACKAGE_CACHE
-	FPlatformMisc::PlatformPostInit();
+	FPlatformApplicationMisc::PostInit();
 #endif // WITH_ENGINE
 
 	//run automation smoke tests now that everything is setup to run
@@ -2371,7 +2384,7 @@ void FEngineLoop::LoadPreInitModules()
 
 	FModuleManager::Get().LoadModule(TEXT("AnimGraphRuntime"));
 
-	FPlatformMisc::LoadPreInitModules();
+	FPlatformApplicationMisc::LoadPreInitModules();
 
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer() )
@@ -2424,7 +2437,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 	}
 
 	SlowTask.EnterProgressFrame(10);
-	FPlatformMisc::LoadStartupModules();
+	FPlatformApplicationMisc::LoadStartupModules();
 
 	// initialize messaging
 	SlowTask.EnterProgressFrame(10);
@@ -2940,7 +2953,7 @@ bool FEngineLoop::ShouldUseIdleMode() const
 	if (FApp::IsGame()
 		&& FPlatformProperties::SupportsWindowedMode()
 		&& CVarIdleWhenNotForeground->GetValueOnGameThread()
-		&& !FPlatformProcess::IsThisApplicationForeground())
+		&& !FPlatformApplicationMisc::IsThisApplicationForeground())
 	{
 		bIdleMode = true;
 
@@ -3492,8 +3505,9 @@ static TAutoConsoleVariable<int32> CVarLogTimestamp(
 	1,
 	TEXT("Defines if time is included in each line in the log file and in what form. Layout: [time][frame mod 1000]\n")
 	TEXT("  0 = Do not display log timestamps\n")
-	TEXT("  1 = Log time stamps in UTC and Frametime (default) e.g. [2015.11.25-21.28.50:803][376]\n")
-	TEXT("  2 = Log timestamps in seconds elapsed since GStartTime e.g. [0130.29][420]"),
+	TEXT("  1 = Log time stamps in UTC and frame time (default) e.g. [2015.11.25-21.28.50:803][376]\n")
+	TEXT("  2 = Log timestamps in seconds elapsed since GStartTime e.g. [0130.29][420]")
+	TEXT("  3 = Log timestamps in local time and frame time e.g. [2017.08.04-17.59.50:803][420]"),
 	ECVF_Default);
 
 
@@ -3522,6 +3536,7 @@ static void CVarLogSinkFunction()
 			case 0: GPrintLogTimes = ELogTimes::None; break;
 			case 1: GPrintLogTimes = ELogTimes::UTC; break;
 			case 2: GPrintLogTimes = ELogTimes::SinceGStartTime; break;
+			case 3: GPrintLogTimes = ELogTimes::Local; break;
 		}
 	}
 
@@ -3542,28 +3557,48 @@ static void CheckForPrintTimesOverride()
 	FString LogTimes;
 	if (GConfig->GetString( TEXT( "LogFiles" ), TEXT( "LogTimes" ), LogTimes, GEngineIni ))
 	{
-		if (LogTimes == TEXT( "SinceStart" ))
+		if (LogTimes == TEXT( "None" ))
 		{
-			CVarLogTimestamp->Set(2, ECVF_SetBySystemSettingsIni);
+			CVarLogTimestamp->Set((int)ELogTimes::None, ECVF_SetBySystemSettingsIni);
+		}
+		else if (LogTimes == TEXT( "UTC" ))
+		{
+			CVarLogTimestamp->Set((int)ELogTimes::UTC, ECVF_SetBySystemSettingsIni);
+		}
+		else if (LogTimes == TEXT( "SinceStart" ))
+		{
+			CVarLogTimestamp->Set((int)ELogTimes::SinceGStartTime, ECVF_SetBySystemSettingsIni);
+		}
+		else if (LogTimes == TEXT( "Local" ))
+		{
+			CVarLogTimestamp->Set((int)ELogTimes::Local, ECVF_SetBySystemSettingsIni);
 		}
 		// Assume this is a bool for backward compatibility
 		else if (FCString::ToBool( *LogTimes ))
 		{
-			CVarLogTimestamp->Set(1, ECVF_SetBySystemSettingsIni);
+			CVarLogTimestamp->Set((int)ELogTimes::UTC, ECVF_SetBySystemSettingsIni);
 		}
 	}
 
 	if (FParse::Param( FCommandLine::Get(), TEXT( "LOGTIMES" ) ))
 	{
-		CVarLogTimestamp->Set(1, ECVF_SetByCommandline);
+		CVarLogTimestamp->Set((int)ELogTimes::UTC, ECVF_SetByCommandline);
+	}
+	else if (FParse::Param( FCommandLine::Get(), TEXT( "UTCLOGTIMES" ) ))
+	{
+		CVarLogTimestamp->Set((int)ELogTimes::UTC, ECVF_SetByCommandline);
 	}
 	else if (FParse::Param( FCommandLine::Get(), TEXT( "NOLOGTIMES" ) ))
 	{
-		CVarLogTimestamp->Set(0, ECVF_SetByCommandline);
+		CVarLogTimestamp->Set((int)ELogTimes::None, ECVF_SetByCommandline);
 	}
 	else if (FParse::Param( FCommandLine::Get(), TEXT( "LOGTIMESINCESTART" ) ))
 	{
-		CVarLogTimestamp->Set(2, ECVF_SetByCommandline);
+		CVarLogTimestamp->Set((int)ELogTimes::SinceGStartTime, ECVF_SetByCommandline);
+	}
+	else if (FParse::Param( FCommandLine::Get(), TEXT( "LOCALLOGTIMES" ) ))
+	{
+		CVarLogTimestamp->Set((int)ELogTimes::Local, ECVF_SetByCommandline);
 	}
 }
 
@@ -3574,8 +3609,8 @@ static void CheckForPrintTimesOverride()
 bool FEngineLoop::AppInit( )
 {
 	// Output devices.
-	GError = FPlatformOutputDevices::GetError();
-	GWarn = FPlatformOutputDevices::GetWarn();
+	GError = FPlatformApplicationMisc::GetErrorOutputDevice();
+	GWarn = FPlatformApplicationMisc::GetFeedbackContext();
 
 	BeginInitTextLocalization();
 
@@ -3591,7 +3626,7 @@ bool FEngineLoop::AppInit( )
 
 			if (FFileHelper::LoadFileToString(FileCmds, *CmdLineFile))
 			{
-				FileCmds = FString(TEXT(" ")) + FileCmds.Trim().TrimTrailing();
+				FileCmds = FString(TEXT(" ")) + FileCmds.TrimStartAndEnd();
 
 				if (FileCmds.Len() > 1)
 				{
@@ -3621,7 +3656,7 @@ bool FEngineLoop::AppInit( )
 	// Manually nullptr terminate just in case. The nullptr string is returned above in the error case so
 	// we don't have to worry about that.
 	CmdLineEnv[ARRAY_COUNT(CmdLineEnv)-1] = 0;
-	FString Env = FString(CmdLineEnv).Trim();
+	FString Env = FString(CmdLineEnv).TrimStart();
 
 	if (Env.Len())
 	{
@@ -3638,6 +3673,7 @@ bool FEngineLoop::AppInit( )
 
 	// Platform specific pre-init.
 	FPlatformMisc::PlatformPreInit();
+	FPlatformApplicationMisc::PreInit();
 
 	// Keep track of start time.
 	GSystemStartTime = FDateTime::Now().ToString();

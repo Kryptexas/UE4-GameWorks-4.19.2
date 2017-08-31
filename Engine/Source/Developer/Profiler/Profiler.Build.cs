@@ -18,6 +18,7 @@ public class Profiler : ModuleRules
 		(
 			new string[] {
 				"Core",
+				"ApplicationCore",
                 "InputCore",
 				"RHI",
 				"RenderCore",

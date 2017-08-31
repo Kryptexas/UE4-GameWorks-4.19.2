@@ -15,6 +15,7 @@ public class WebBrowser : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"RHI",
 				"InputCore",
 				"Slate",

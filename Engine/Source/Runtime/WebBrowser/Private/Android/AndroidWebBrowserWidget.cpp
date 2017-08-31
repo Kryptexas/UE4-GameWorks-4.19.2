@@ -68,7 +68,7 @@ int32 SAndroidWebBrowserWidget::OnPaint(const FPaintArgs& Args, const FGeometry&
 	float UIScale;
 	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 	int32_t ScreenWidth, ScreenHeight;
-	FAndroidWindow::CalculateSurfaceSize(FPlatformMisc::GetHardwareWindow(), ScreenWidth, ScreenHeight);
+	FAndroidWindow::CalculateSurfaceSize(FAndroidWindow::GetHardwareWindow(), ScreenWidth, ScreenHeight);
 	if (ScreenWidth > ScreenHeight)
 	{
 		UIScale = (float)ScreenHeight / (ScreenRect.Bottom - ScreenRect.Top);

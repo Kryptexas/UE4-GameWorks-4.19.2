@@ -371,8 +371,8 @@ bool FPortableObjectHeader::FromLocPOEntry( const TSharedRef<const FPortableObje
 		if( PotentialHeaderEntry.FindChar( TCHAR(':'), SplitIndex ) )
 		{
 			// Looks like a header entry so we add it
-			const FString& Key = PotentialHeaderEntry.LeftChop( PotentialHeaderEntry.Len() - SplitIndex ).Trim().TrimTrailing();
-			FString Value = PotentialHeaderEntry.RightChop( SplitIndex+1 ).Trim().TrimTrailing();
+			const FString& Key = PotentialHeaderEntry.LeftChop( PotentialHeaderEntry.Len() - SplitIndex ).TrimStartAndEnd();
+			FString Value = PotentialHeaderEntry.RightChop( SplitIndex+1 ).TrimStartAndEnd();
 
 			HeaderEntries.Emplace( Key, MoveTemp(Value) );
 		}
@@ -561,7 +561,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 				bSuccess = false;
 				break;
 			}
-			for( uint32 NextLineIdx = LineIdx + 1; NextLineIdx < NumFileLines && LinesToProcess[NextLineIdx].Trim().TrimTrailing().StartsWith(TEXT("\"")); ++NextLineIdx)
+			for( uint32 NextLineIdx = LineIdx + 1; NextLineIdx < NumFileLines && LinesToProcess[NextLineIdx].TrimStartAndEnd().StartsWith(TEXT("\"")); ++NextLineIdx)
 			{
 				FString Tmp;
 				if (FindDelimitedString(Line, TEXT("\""), TEXT("\""), Tmp))
@@ -574,7 +574,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgCtxt += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -601,7 +602,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgId += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -628,7 +630,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgIdPlural += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -665,7 +668,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgStr += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -699,7 +703,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgStr += NextLine.Mid( 1, NextLine.Len()-2 );

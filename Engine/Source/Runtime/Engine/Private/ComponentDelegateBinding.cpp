@@ -16,7 +16,7 @@ FMulticastScriptDelegate* UComponentDelegateBinding::FindComponentTargetDelegate
 	if(ObjProp != nullptr)
 	{
 		// ..see if there is actually a component assigned
-		UObject* Component = Cast<UObject>(ObjProp->GetObjectPropertyValue_InContainer(InInstance));
+		UObject* Component = ObjProp->GetObjectPropertyValue_InContainer(InInstance);
 		if(Component != nullptr)
 		{
 			// If there is, find and return the delegate property on it

@@ -136,9 +136,10 @@
 		Engine/Build/Build.version
 		Engine/Build/Target.cs.template
 	</Property>
-	<!-- Optional API docs -->
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm" If="Exists('Engine/Documentation/CHM/API.chm')"/>
-	<!-- Don't add VR template for Mac and Linux -->
+  <!-- Optional API docs -->
+  <Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Builds/CodeAPI-HTML.tgz" If="Exists('Engine/Documentation/Builds/CodeAPI-HTML.tgz')"/>
+  <Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Builds/BlueprintAPI-HTML.tgz" If="Exists('Engine/Documentation/Builds/BlueprintAPI-HTML.tgz')"/>
+  <!-- Don't add VR template for Mac and Linux -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..." If="'$(HostPlatform)' != 'Mac' and '$(HostPlatform)' != 'Linux'"/>
 		<!-- Define Editor Exceptions -->
 	<Property Name="CopyEditorExceptions">

@@ -1183,7 +1183,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		}
 		else
 		{
-			FString Param2 = FString(It).Trim().TrimTrailing();
+			FString Param2 = FString(It).TrimStartAndEnd();
 
 			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
 

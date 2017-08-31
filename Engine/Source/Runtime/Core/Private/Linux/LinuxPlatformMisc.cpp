@@ -18,10 +18,7 @@
 #include "Logging/LogMacros.h"
 #include "Misc/Parse.h"
 #include "Misc/CommandLine.h"
-#include "GenericPlatform/GenericApplication.h"
 #include "Misc/App.h"
-#include "Linux/LinuxApplication.h"
-#include "Linux/LinuxPlatformApplicationMisc.h"
 #include "Linux/LinuxPlatformCrashContext.h"
 
 #if PLATFORM_HAS_CPUID
@@ -255,161 +252,18 @@ const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 B
 	return OutBuffer;
 }
 
+CORE_API TFunction<EAppReturnType::Type(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)> MessageBoxExtCallback;
+
 EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
-	int NumberOfButtons = 0;
-
-	// if multimedia cannot be initialized for messagebox, just fall back to default implementation
-	if (!FPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
+	if(MessageBoxExtCallback)
+	{
+		return MessageBoxExtCallback(MsgType, Text, Caption);
+	}
+	else
 	{
 		return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 	}
-
-#if DO_CHECK
-	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
-	check(InitializedSubsystems & SDL_INIT_VIDEO);
-#endif // DO_CHECK
-
-	SDL_MessageBoxButtonData *Buttons = nullptr;
-
-	switch (MsgType)
-	{
-		case EAppMsgType::Ok:
-			NumberOfButtons = 1;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
-			Buttons[0].text = "Ok";
-			Buttons[0].buttonid = EAppReturnType::Ok;
-			break;
-
-		case EAppMsgType::YesNo:
-			NumberOfButtons = 2;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			break;
-
-		case EAppMsgType::OkCancel:
-			NumberOfButtons = 2;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Ok";
-			Buttons[0].buttonid = EAppReturnType::Ok;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "Cancel";
-			Buttons[1].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::YesNoCancel:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Cancel";
-			Buttons[2].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::CancelRetryContinue:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Continue";
-			Buttons[0].buttonid = EAppReturnType::Continue;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "Retry";
-			Buttons[1].buttonid = EAppReturnType::Retry;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Cancel";
-			Buttons[2].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::YesNoYesAllNoAll:
-			NumberOfButtons = 4;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[3].text = "No to all";
-			Buttons[3].buttonid = EAppReturnType::NoAll;
-			break;
-
-		case EAppMsgType::YesNoYesAllNoAllCancel:
-			NumberOfButtons = 5;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[3].text = "No to all";
-			Buttons[3].buttonid = EAppReturnType::NoAll;
-			Buttons[4].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[4].text = "Cancel";
-			Buttons[4].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::YesNoYesAll:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			break;
-	}
-
-	FTCHARToUTF8 CaptionUTF8(Caption);
-	FTCHARToUTF8 TextUTF8(Text);
-	SDL_MessageBoxData MessageBoxData = 
-	{
-		SDL_MESSAGEBOX_INFORMATION,
-		NULL, // No parent window
-		CaptionUTF8.Get(),
-		TextUTF8.Get(),
-		NumberOfButtons,
-		Buttons,
-		NULL // Default color scheme
-	};
-
-	int ButtonPressed = -1;
-
-	FSlowHeartBeatScope SuspendHeartBeat;
-	if (SDL_ShowMessageBox(&MessageBoxData, &ButtonPressed) == -1) 
-	{
-		UE_LOG(LogInit, Fatal, TEXT("Error Presenting MessageBox: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
-		// unreachable
-		return EAppReturnType::Cancel;
-	}
-
-	delete[] Buttons;
-
-	return ButtonPressed == -1 ? EAppReturnType::Cancel : static_cast<EAppReturnType::Type>(ButtonPressed);
 }
 
 int32 FLinuxPlatformMisc::NumberOfCores()
@@ -540,29 +394,6 @@ int32 FLinuxPlatformMisc::NumberOfCoresIncludingHyperthreads()
 	}
 
 	return NumCoreIds;
-}
-
-void FLinuxPlatformMisc::LoadPreInitModules()
-{
-#if WITH_EDITOR
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-#endif // WITH_EDITOR
-}
-
-void FLinuxPlatformMisc::LoadStartupModules()
-{
-#if !IS_PROGRAM && !UE_SERVER
-	FModuleManager::Get().LoadModule(TEXT("ALAudio"));	// added in Launch.Build.cs for non-server targets
-	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
-#endif // !IS_PROGRAM && !UE_SERVER
-
-#if defined(WITH_STEAMCONTROLLER) && WITH_STEAMCONTROLLER
-	FModuleManager::Get().LoadModule(TEXT("SteamController"));
-#endif // WITH_STEAMCONTROLLER
-
-#if WITH_EDITOR
-	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
-#endif	//WITH_EDITOR
 }
 
 const TCHAR* FLinuxPlatformMisc::GetNullRHIShaderFormat()
@@ -741,24 +572,6 @@ bool FLinuxPlatformMisc::IsDebuggerPresent()
 }
 #endif // !UE_BUILD_SHIPPING
 
-#if !UE_BUILD_SHIPPING
-void FLinuxPlatformMisc::UngrabAllInput()
-{
-	if (GInitializedSDL)
-	{
-		SDL_Window * GrabbedWindow = SDL_GetGrabbedWindow();
-		if (GrabbedWindow)
-		{
-			SDL_SetWindowGrab(GrabbedWindow, SDL_FALSE);
-			SDL_SetKeyboardGrab(GrabbedWindow, SDL_FALSE);
-		}
-
-		SDL_CaptureMouse(SDL_FALSE);
-	}
-}
-
-#endif // !UE_BUILD_SHIPPING
-
 bool FLinuxPlatformMisc::HasBeenStartedRemotely()
 {
 	static bool bHaveAnswer = false;
@@ -920,11 +733,16 @@ bool FLinuxPlatformMisc::IsRunningOnBattery()
 }
 
 #if !UE_BUILD_SHIPPING
+CORE_API TFunction<void()> UngrabAllInputCallback;
+
 void FLinuxPlatformMisc::DebugBreak()
 {
 	if( IsDebuggerPresent() )
 	{
-		UngrabAllInput();
+		if(UngrabAllInputCallback)
+		{
+			UngrabAllInputCallback();
+		}
 #if PLATFORM_CPU_X86_FAMILY
 		__asm__ volatile("int $0x03");
 #else

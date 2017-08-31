@@ -149,7 +149,7 @@ FName URig::GetParentNode(FName& NodeName) const
 
 bool URig::AddRigConstraint(FName NodeName, EControlConstraint::Type ConstraintType, EConstraintTransform::Type	TransformType, FName ParentSpace, float Weight /*= 1.f*/)
 {
-	if (ConstraintType == EControlConstraint::Type::Max)
+	if (ConstraintType == EControlConstraint::Type::MAX)
 	{
 		// invalid type
 		return false;
@@ -170,35 +170,29 @@ bool URig::AddRigConstraint(FName NodeName, EControlConstraint::Type ConstraintT
 		FTransformBase NewTransformBase;
 		NewTransformBase.Node = NodeName;
 
-		if (ConstraintType < EControlConstraint::Max)
-		{
-			FRigTransformConstraint NewTransformConstraint;
-			NewTransformConstraint.TranformType = TransformType;
-			NewTransformConstraint.ParentSpace = ParentSpace;
-			NewTransformConstraint.Weight = Weight;
+		FRigTransformConstraint NewTransformConstraint;
+		NewTransformConstraint.TranformType = TransformType;
+		NewTransformConstraint.ParentSpace = ParentSpace;
+		NewTransformConstraint.Weight = Weight;
 
-			NewTransformBase.Constraints[ConstraintType].TransformConstraints.Add(NewTransformConstraint);
+		NewTransformBase.Constraints[ConstraintType].TransformConstraints.Add(NewTransformConstraint);
 
-			TransformBases.Add(NewTransformBase);
-		}
+		TransformBases.Add(NewTransformBase);
 	}
 	else
 	{
 		// it exists already, need to make sure we don't have different constraint types
 		FTransformBase & TransformBase = TransformBases[Index];
 
-		if (ConstraintType < EControlConstraint::Max)
-		{
-			FTransformBaseConstraint & ControlConstraint = TransformBase.Constraints[ConstraintType];
+		FTransformBaseConstraint & ControlConstraint = TransformBase.Constraints[ConstraintType];
 
-			FRigTransformConstraint NewTransformConstraint;
-			NewTransformConstraint.TranformType = TransformType;
-			NewTransformConstraint.ParentSpace = ParentSpace;
-			NewTransformConstraint.Weight = Weight;
+		FRigTransformConstraint NewTransformConstraint;
+		NewTransformConstraint.TranformType = TransformType;
+		NewTransformConstraint.ParentSpace = ParentSpace;
+		NewTransformConstraint.Weight = Weight;
 
-			// add new transform constraint
-			ControlConstraint.TransformConstraints.Add(NewTransformConstraint);
-		}
+		// add new transform constraint
+		ControlConstraint.TransformConstraints.Add(NewTransformConstraint);
 	}
 
 	return true;

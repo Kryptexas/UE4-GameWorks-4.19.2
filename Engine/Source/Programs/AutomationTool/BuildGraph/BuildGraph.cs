@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Collections;
 using System.IO;
 using System.Xml;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {
@@ -115,8 +116,8 @@ namespace AutomationTool
 
 			// Set up the standard properties which build scripts might need
 			Dictionary<string, string> DefaultProperties = new Dictionary<string,string>(StringComparer.InvariantCultureIgnoreCase);
-			DefaultProperties["Branch"] = P4Enabled ? P4Env.BuildRootP4 : "Unknown";
-			DefaultProperties["EscapedBranch"] = P4Enabled ? P4Env.BuildRootEscaped : "Unknown";
+			DefaultProperties["Branch"] = P4Enabled ? P4Env.Branch : "Unknown";
+			DefaultProperties["EscapedBranch"] = P4Enabled ? CommandUtils.EscapePath(P4Env.Branch) : "Unknown";
 			DefaultProperties["Change"] = P4Enabled ? P4Env.Changelist.ToString() : "0";
 			DefaultProperties["CodeChange"] = P4Enabled ? P4Env.CodeChangelist.ToString() : "0";
 			DefaultProperties["RootDir"] = CommandUtils.RootDirectory.FullName;
@@ -127,7 +128,7 @@ namespace AutomationTool
 
 			// Attempt to read existing Build Version information
 			BuildVersion Version;
-			if (BuildVersion.TryRead(FileReference.Combine(CommandUtils.RootDirectory, "Engine", "Build", "Build.version").FullName, out Version))
+			if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 			{
 				DefaultProperties["EngineMajorVersion"] = Version.MajorVersion.ToString();
 				DefaultProperties["EngineMinorVersion"] = Version.MinorVersion.ToString();
@@ -839,7 +840,7 @@ namespace AutomationTool
 
 			// Parse the engine version
 			BuildVersion Version;
-			if(!BuildVersion.TryRead(out Version))
+			if(!BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 			{
 				throw new AutomationException("Couldn't read Build.version");
 			}

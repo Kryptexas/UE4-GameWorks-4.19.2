@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace Win.Automation

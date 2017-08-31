@@ -87,6 +87,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Interfaces/IPluginManager.h"
 #include "PackageReload.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 // needed for the RemotePropagator
 #include "AudioDevice.h"
@@ -1399,7 +1400,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Find out if the editor has focus. Audio should only play if the editor has focus.
-	const bool bHasFocus = FPlatformProcess::IsThisApplicationForeground();
+	const bool bHasFocus = FPlatformApplicationMisc::IsThisApplicationForeground();
 
 	if (bHasFocus || GetDefault<ULevelEditorMiscSettings>()->bAllowBackgroundAudio)
 	{
@@ -5917,7 +5918,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 {
 	bool bShouldThrottle = false;
 
-	bool bIsForeground = FPlatformProcess::IsThisApplicationForeground();
+	bool bIsForeground = FPlatformApplicationMisc::IsThisApplicationForeground();
 
 	if( !bIsForeground )
 	{

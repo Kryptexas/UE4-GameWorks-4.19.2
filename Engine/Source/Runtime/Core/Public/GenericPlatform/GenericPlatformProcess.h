@@ -406,9 +406,6 @@ struct CORE_API FGenericPlatformProcess
 	/** Outputs the virtual memory usage, of the process with the specified PID */
 	static bool GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage);
 
-	/** Returns true if the specified application has a visible window, and that window is active/has focus/is selected */
-	static bool IsThisApplicationForeground();	
-
 	/**
 	 * Executes a process, returning the return code, stdout, and stderr. This
 	 * call blocks until the process has returned.

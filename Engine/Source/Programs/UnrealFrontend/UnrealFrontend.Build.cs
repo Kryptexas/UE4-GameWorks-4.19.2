@@ -20,6 +20,7 @@ public class UnrealFrontend : ModuleRules
 			new string[] {
 				"AutomationController",
 				"Core",
+				"ApplicationCore",
 				"CoreUObject",
 				"DeviceManager",
 				"LauncherServices",

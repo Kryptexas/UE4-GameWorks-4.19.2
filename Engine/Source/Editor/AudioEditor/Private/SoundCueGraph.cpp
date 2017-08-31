@@ -24,7 +24,7 @@ public:
 	{
 		USoundCueGraph* SoundCueGraph = CastChecked<USoundCueGraph>(FBlueprintEditorUtils::CreateNewGraph(InSoundCue, NAME_None, USoundCueGraph::StaticClass(), USoundCueGraphSchema::StaticClass()));
 
-		return Cast<UEdGraph>(SoundCueGraph);
+		return SoundCueGraph;
 	}
 
 	void SetupSoundNode(UEdGraph* SoundCueGraph, USoundNode* InSoundNode, bool bSelectNewNode) override

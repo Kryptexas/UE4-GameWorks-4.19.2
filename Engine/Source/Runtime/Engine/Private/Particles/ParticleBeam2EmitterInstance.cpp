@@ -575,8 +575,7 @@ void FParticleBeam2EmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning
  */
 void FParticleBeam2EmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
-	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(InCurrentLODLevel->TypeDataModule);
-	if (TypeData)
+	if (InCurrentLODLevel->TypeDataModule)
 	{
 		// The order of the update here is VERY important
 		if (BeamModule_Source && BeamModule_Source->bEnabled)

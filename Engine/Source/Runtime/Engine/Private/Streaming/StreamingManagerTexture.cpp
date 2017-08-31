@@ -114,7 +114,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 	TextureInstanceAsyncWork = new TextureInstanceTask::FDoWorkAsyncTask();
 	DynamicComponentManager.RegisterTasks(TextureInstanceAsyncWork->GetTask());
 
-	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FStreamingManagerTexture::OnPreGarbageCollect);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FStreamingManagerTexture::OnPreGarbageCollect);
 }
 
 FStreamingManagerTexture::~FStreamingManagerTexture()
@@ -124,7 +124,7 @@ FStreamingManagerTexture::~FStreamingManagerTexture()
 
 	TextureInstanceAsyncWork->EnsureCompletion();
 	
-	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().RemoveAll(this);
 
 	// Clear the stats
 	DisplayedStats.Reset();

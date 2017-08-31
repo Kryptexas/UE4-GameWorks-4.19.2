@@ -7,6 +7,7 @@ using System.Text;
 using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 /// <summary>
 /// Copies all UAT and UBT build products to a directory

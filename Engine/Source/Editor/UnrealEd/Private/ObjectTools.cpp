@@ -3721,7 +3721,7 @@ namespace ThumbnailTools
 				InObject, ImageWidth, ImageHeight, TextureFlushMode, NULL,
 				&NewThumbnail );		// Out
 
-			UPackage* MyOutermostPackage = CastChecked< UPackage >( InObject->GetOutermost() );
+			UPackage* MyOutermostPackage = InObject->GetOutermost();
 			return CacheThumbnail( InObject->GetFullName(), &NewThumbnail, MyOutermostPackage );
 		}
 
@@ -3883,7 +3883,7 @@ namespace ThumbnailTools
 	/** Returns the thumbnail for the specified object or NULL if one doesn't exist yet */
 	FObjectThumbnail* GetThumbnailForObject( UObject* InObject )
 	{
-		UPackage* ObjectPackage = CastChecked< UPackage >( InObject->GetOutermost() );
+		UPackage* ObjectPackage = InObject->GetOutermost();
 		return FindCachedThumbnailInPackage( ObjectPackage, FName( *InObject->GetFullName() ) );
 	}
 

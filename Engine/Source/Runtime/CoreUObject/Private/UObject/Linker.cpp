@@ -57,14 +57,11 @@ FCompressedChunk::FCompressedChunk()
 ,	CompressedOffset(0)
 ,	CompressedSize(0)
 {
-	checkf(0, TEXT("Package level compression cannot be used with the async io scheme."));
 }
 
 /** I/O function */
 FArchive& operator<<(FArchive& Ar,FCompressedChunk& Chunk)
 {
-	checkf(0, TEXT("Package level compression cannot be used with the async io scheme."));
-
 	Ar << Chunk.UncompressedOffset;
 	Ar << Chunk.UncompressedSize;
 	Ar << Chunk.CompressedOffset;

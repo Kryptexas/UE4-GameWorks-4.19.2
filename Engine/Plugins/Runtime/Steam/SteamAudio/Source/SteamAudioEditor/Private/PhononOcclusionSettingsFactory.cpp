@@ -43,7 +43,7 @@ UPhononOcclusionSettingsFactory::UPhononOcclusionSettingsFactory(const FObjectIn
 UObject* UPhononOcclusionSettingsFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context,
 	FFeedbackContext* Warn)
 {
-	return Cast<UObject>(NewObject<UPhononOcclusionSourceSettings>(InParent, InName, Flags));
+	return NewObject<UPhononOcclusionSourceSettings>(InParent, InName, Flags);
 }
 
 uint32 UPhononOcclusionSettingsFactory::GetMenuCategories() const

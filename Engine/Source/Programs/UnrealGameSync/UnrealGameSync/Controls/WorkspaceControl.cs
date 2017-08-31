@@ -1932,6 +1932,45 @@ namespace UnrealGameSync
 					BuildListContextMenu_ShowServerTimes.Visible = bIsTimeColumn;
 					BuildListContextMenu_ShowServerTimes.Checked = !Settings.bShowLocalTimes;
 
+					int CustomToolStart = BuildListContextMenu.Items.IndexOf(BuildListContextMenu_CustomTool_Start) + 1;
+					int CustomToolEnd = BuildListContextMenu.Items.IndexOf(BuildListContextMenu_CustomTool_End);
+					while(CustomToolEnd > CustomToolStart)
+					{
+						BuildListContextMenu.Items.RemoveAt(CustomToolEnd - 1);
+						CustomToolEnd--;
+					}
+
+					ConfigFile ProjectConfigFile = Workspace.ProjectConfigFile;
+					if(ProjectConfigFile != null)
+					{
+						Dictionary<string, string> Variables = GetWorkspaceVariables();
+						Variables.Add("Change", String.Format("{0}", ContextMenuChange.Number));
+
+						string[] ChangeContextMenuEntries = ProjectConfigFile.GetValues("Options.ContextMenu", new string[0]);
+						foreach(string ChangeContextMenuEntry in ChangeContextMenuEntries)
+						{
+							ConfigObject Object = new ConfigObject(ChangeContextMenuEntry);
+
+							string Label = Object.GetValue("Label");
+							string Execute = Object.GetValue("Execute");
+							string Arguments = Object.GetValue("Arguments");
+
+							if(Label != null && Execute != null)
+							{
+								Label = Utility.ExpandVariables(Label, Variables);
+								Execute = Utility.ExpandVariables(Execute, Variables);
+								Arguments = Utility.ExpandVariables(Arguments ?? "", Variables);
+
+								ToolStripMenuItem Item = new ToolStripMenuItem(Label, null, new EventHandler((o, a) => Process.Start(Execute, Arguments)));
+	
+								BuildListContextMenu.Items.Insert(CustomToolEnd, Item);
+								CustomToolEnd++;
+							}
+						}
+					}
+
+					BuildListContextMenu_CustomTool_End.Visible = (CustomToolEnd > CustomToolStart);
+
 					BuildListContextMenu.Show(BuildList, Args.Location);
 				}
 			}
@@ -2613,6 +2652,8 @@ namespace UnrealGameSync
 			BuildConfig EditorBuildConfig = GetEditorBuildConfig();
 
 			Dictionary<string, string> Variables = new Dictionary<string,string>();
+			Variables.Add("Stream", StreamName);
+			Variables.Add("ClientName", ClientName);
 			Variables.Add("BranchDir", BranchDirectoryName);
 			Variables.Add("ProjectDir", Path.GetDirectoryName(SelectedFileName));
 			Variables.Add("ProjectFile", SelectedFileName);

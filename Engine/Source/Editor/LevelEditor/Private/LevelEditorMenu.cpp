@@ -327,10 +327,8 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 			{
 				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseDocumentation );
 
-				if(IDocumentation::Get()->CanOpenAPIHome())
-				{
-					MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseAPIReference );
-				}
+				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseAPIReference );
+
 				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseCVars );
 
 				MenuBuilder.AddMenuSeparator();

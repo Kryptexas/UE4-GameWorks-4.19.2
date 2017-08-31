@@ -1,13 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidJava.h"
-#include "AndroidApplication.h"
+#include "AndroidJavaEnv.h"
 
 FJavaClassObject::FJavaClassObject(FName ClassName, const char* CtorSig, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 
-	Class = FAndroidApplication::FindJavaClass(ClassName.GetPlainANSIString());
+	Class = AndroidJavaEnv::FindJavaClass(ClassName.GetPlainANSIString());
 	check(Class);
 	jmethodID Constructor = JEnv->GetMethodID(Class, "<init>", CtorSig);
 	check(Constructor);
@@ -25,13 +25,13 @@ FJavaClassObject::FJavaClassObject(FName ClassName, const char* CtorSig, ...)
 
 FJavaClassObject::~FJavaClassObject()
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	JEnv->DeleteGlobalRef(Object);
 }
 
 FJavaClassMethod FJavaClassObject::GetClassMethod(const char* MethodName, const char* FuncSig)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	FJavaClassMethod Method;
 	Method.Method = JEnv->GetMethodID(Class, MethodName, FuncSig);
 	Method.Name = MethodName;
@@ -44,7 +44,7 @@ FJavaClassMethod FJavaClassObject::GetClassMethod(const char* MethodName, const 
 template<>
 void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	va_list Params;
 	va_start(Params, Method);
 	JEnv->CallVoidMethodV(Object, Method.Method, Params);
@@ -55,7 +55,7 @@ void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...)
 template<>
 bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	va_list Params;
 	va_start(Params, Method);
 	bool RetVal = JEnv->CallBooleanMethodV(Object, Method.Method, Params);
@@ -67,7 +67,7 @@ bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...)
 template<>
 int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	va_list Params;
 	va_start(Params, Method);
 	int RetVal = JEnv->CallIntMethodV(Object, Method.Method, Params);
@@ -79,7 +79,7 @@ int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...)
 template<>
 jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	va_list Params;
 	va_start(Params, Method);
 	jobject val = JEnv->CallObjectMethodV(Object, Method.Method, Params);
@@ -93,7 +93,7 @@ jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...)
 template<>
 jobjectArray FJavaClassObject::CallMethod<jobjectArray>(FJavaClassMethod Method, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	va_list Params;
 	va_start(Params, Method);
 	jobject val = JEnv->CallObjectMethodV(Object, Method.Method, Params);
@@ -107,7 +107,7 @@ jobjectArray FJavaClassObject::CallMethod<jobjectArray>(FJavaClassMethod Method,
 template<>
 int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	va_list Params;
 	va_start(Params, Method);
 	int64 RetVal = JEnv->CallLongMethodV(Object, Method.Method, Params);
@@ -119,7 +119,7 @@ int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...)
 template<>
 FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	va_list Params;
 	va_start(Params, Method);
 	jstring RetVal = static_cast<jstring>(
@@ -134,7 +134,7 @@ FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...)
 
 jstring FJavaClassObject::GetJString(const FString& String)
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	jstring local = JEnv->NewStringUTF(TCHAR_TO_UTF8(*String));
 	jstring result = (jstring)JEnv->NewGlobalRef(local);
 	JEnv->DeleteLocalRef(local);
@@ -143,7 +143,7 @@ jstring FJavaClassObject::GetJString(const FString& String)
 
 void FJavaClassObject::VerifyException()
 {
-	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv*	JEnv = AndroidJavaEnv::GetJavaEnv();
 	if (JEnv->ExceptionCheck())
 	{
 		JEnv->ExceptionDescribe();

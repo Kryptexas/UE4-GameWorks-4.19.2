@@ -273,7 +273,7 @@ void FVulkanDescriptorSetWriter::SetupDescriptorWrites(const FNEWVulkanShaderDes
 		case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
 			break;
 		default:
-			checkf(0, TEXT("Unsupported descriptor type %d"), Info.DescriptorTypes[Index]);
+			checkf(0, TEXT("Unsupported descriptor type %d"), (int32)Info.DescriptorTypes[Index]);
 			break;
 		}
 		++InWriteDescriptors;

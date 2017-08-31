@@ -1664,7 +1664,7 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 
 		for (int i=0; i<UnitTestClassDefaults.Num(); i++)
 		{
-			UUnitTest* CurDefault = Cast<UUnitTest>(UnitTestClassDefaults[i]);
+			UUnitTest* CurDefault = UnitTestClassDefaults[i];
 
 			if (CurDefault->GetUnitTestName() == UnitTestName)
 			{

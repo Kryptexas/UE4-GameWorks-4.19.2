@@ -1354,7 +1354,7 @@ FShaderPipeline::FShaderPipeline(const FShaderPipelineType* InPipelineType, cons
 				GeometryShader = Shader;
 				break;
 			default:
-				checkf(0, TEXT("Invalid stage %u found!"), Shader->GetType()->GetFrequency());
+				checkf(0, TEXT("Invalid stage %u found!"), (uint32)Shader->GetType()->GetFrequency());
 				break;
 			}
 		}
@@ -1399,7 +1399,7 @@ FShaderPipeline::FShaderPipeline(const FShaderPipelineType* InPipelineType, cons
 				GeometryShader = Shader;
 				break;
 			default:
-				checkf(0, TEXT("Invalid stage %u found!"), Shader->GetType()->GetFrequency());
+				checkf(0, TEXT("Invalid stage %u found!"), (uint32)Shader->GetType()->GetFrequency());
 				break;
 			}
 		}

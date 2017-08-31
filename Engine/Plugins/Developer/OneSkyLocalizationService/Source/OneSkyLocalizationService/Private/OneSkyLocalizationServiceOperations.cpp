@@ -984,7 +984,7 @@ bool FOneSkyUploadFileWorker::Execute(class FOneSkyLocalizationServiceCommand& I
 	HttpRequest->SetVerb(TEXT("POST"));
 
 	FString FileContents;
-	if (FFileHelper::LoadFileToString(FileContents, *InFilePathAndName, FFileHelper::EEncodingOptions::ForceUnicode))
+	if (FFileHelper::LoadFileToString(FileContents, *InFilePathAndName))
 	{
 		// Format the file the way OneSky wants it (in a form, with the file contents being a field called "file")
 		FString PrefixBoundry = "\r\n--" + Boundary + "\r\n";

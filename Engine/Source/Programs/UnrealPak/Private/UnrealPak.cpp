@@ -398,7 +398,7 @@ void ProcessOrderFile(int32 ArgC, TCHAR* ArgV[], TMap<FString, uint64>& OrderMap
 				{
 					FString ReadNum = Lines[EntryIndex].RightChop(OpenOrderNumber+1);
 					Lines[EntryIndex] = Lines[EntryIndex].Left(OpenOrderNumber+1);
-					ReadNum.Trim();
+					ReadNum.TrimStartInline();
 					if (ReadNum.IsNumeric())
 					{
 						OpenOrderNumber = FCString::Atoi(*ReadNum);
@@ -521,7 +521,8 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 			TArray<FString> Switches;
 			if (bParseLines)
 			{
-				CommandLineParseHelper(*Lines[EntryIndex].Trim(), SourceAndDest, Switches);
+				Lines[EntryIndex].TrimStartInline();
+				CommandLineParseHelper(*Lines[EntryIndex], SourceAndDest, Switches);
 			}
 			else
 			{

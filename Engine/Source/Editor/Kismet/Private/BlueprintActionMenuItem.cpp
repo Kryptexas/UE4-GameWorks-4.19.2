@@ -216,7 +216,7 @@ FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* 
 	// we may fill out the UiSpec's DocLink with whitespace (so we can tell the
 	// difference between an empty DocLink and one that still needs to be filled 
 	// out), but this could cause troubles later with FDocumentation::GetPage()
-	DocExcerptRef.DocLink.Trim();
+	DocExcerptRef.DocLink.TrimStartInline();
 }
 
 //------------------------------------------------------------------------------
@@ -354,7 +354,7 @@ void FBlueprintActionMenuItem::AppendBindings(const FBlueprintActionContext& Con
 	// we may fill out the UiSpec's DocLink with whitespace (so we can tell the
 	// difference between an empty DocLink and one that still needs to be filled 
 	// out), but this could cause troubles later with FDocumentation::GetPage()
-	DocExcerptRef.DocLink.Trim();
+	DocExcerptRef.DocLink.TrimStartInline();
 }
 
 //------------------------------------------------------------------------------

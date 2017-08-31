@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GarbageCollection.h: Unreal realtime garbage collection helpers
@@ -16,6 +16,9 @@
 
 #define	ENABLE_GC_DEBUG_OUTPUT					1
 #define PERF_DETAILED_PER_CLASS_GC_STATS				(LOOKING_FOR_PERF_ISSUES || 0) 
+
+/** UObject pointer checks are disabled by default in shipping and test builds as they add roughly 20% overhead to GC times */
+#define ENABLE_GC_OBJECT_CHECKS (!(UE_BUILD_TEST || UE_BUILD_SHIPPING) || 0)
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogGarbage, Warning, All);
 DECLARE_STATS_GROUP(TEXT("Garbage Collection"), STATGROUP_GC, STATCAT_Advanced);
@@ -148,7 +151,7 @@ struct FGCSkipInfo
 	};
 };
 
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+#if ENABLE_GC_OBJECT_CHECKS
 /**
  * Stores debug info about the token.
  */
@@ -208,7 +211,7 @@ private:
 	/* Token map. */
 	TArray<FTokenInfo> TokenMap;
 };
-#endif
+#endif // ENABLE_GC_OBJECT_CHECKS
 
 /**
  * Reference token stream class. Used for creating and parsing stream of object references.
@@ -446,4 +449,67 @@ class COREUOBJECT_API FGCScopeGuard
 public:
 	FGCScopeGuard();
 	~FGCScopeGuard();
+};
+
+template <bool bParallel> class FGCReferenceProcessor;
+
+/** Struct to hold the objects to serialize array and the list of weak references. This is allocated by ArrayPool */
+struct FGCArrayStruct
+{
+	TArray<UObject*> ObjectsToSerialize;
+	TArray<UObject**> WeakReferences;
+};
+
+/**
+* Specialized FReferenceCollector that uses FGCReferenceProcessor to mark objects as reachable.
+*/
+template <bool bParallel>
+class FGCCollector : public FReferenceCollector
+{
+	FGCReferenceProcessor<bParallel>& ReferenceProcessor;
+	FGCArrayStruct& ObjectArrayStruct;
+	bool bAllowEliminatingReferences;
+
+public:
+
+	FGCCollector(FGCReferenceProcessor<bParallel>& InProcessor, FGCArrayStruct& InObjectArrayStruct);
+
+	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override;
+
+	virtual void HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override;
+
+	virtual bool IsIgnoringArchetypeRef() const override
+	{
+		return false;
+	}
+	virtual bool IsIgnoringTransient() const override
+	{
+		return false;
+	}
+	virtual void AllowEliminatingReferences(bool bAllow) override
+	{
+		bAllowEliminatingReferences = bAllow;
+	}
+	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) override
+	{
+		// Track this references for later destruction if necessary. These should be relatively rare
+		ObjectArrayStruct.WeakReferences.Add(WeakReference);
+		return true;
+	}
+private:
+
+	FORCEINLINE void InternalHandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty);
+};
+
+/**
+ * FGarbageCollectionTracer
+ * Interface to allow external systems to trace additional object references, used for bridging GCs
+ */
+class FGarbageCollectionTracer
+{
+public:
+	virtual ~FGarbageCollectionTracer() {}
+
+	virtual void PerformReachabilityAnalysisOnObjects(FGCArrayStruct* ArrayStruct, TArray<UObject*>& ObjectsToSerialize, EObjectFlags KeepFlags, bool bForceSingleThreaded) = 0;
+
 };

@@ -205,4 +205,4 @@ namespace BuildPatchServices
 	 * @return A string value for the EBuildPatchInstallError enum.
 	 */
 	const FString& EnumToString(const EBuildPatchInstallError& ErrorType);
-}
+};

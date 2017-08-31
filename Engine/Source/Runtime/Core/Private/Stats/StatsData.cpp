@@ -1811,7 +1811,7 @@ void FStatsUtils::GetNameAndGroup(FStatMessage const& Item, FString& OutName, FS
 	const FName Group = Item.NameAndInfo.GetGroupName();
 	const FName Category = Item.NameAndInfo.GetGroupCategory();
 	OutName = Item.NameAndInfo.GetDescription();
-	OutName.Trim();
+	OutName.TrimStartInline();
 
 	if (OutName != ShortName)
 	{

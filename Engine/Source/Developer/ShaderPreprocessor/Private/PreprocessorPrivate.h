@@ -80,7 +80,7 @@ static bool ParseMcppErrors(TArray<FShaderCompilerError>& OutErrors, TArray<FStr
 						Message += FString(TEXT("\n")) + Lines[LineIndex];
 					}
 					--LineIndex;
-					Message = Message.Trim().TrimTrailing();
+					Message.TrimStartAndEndInline();
 
 					// Ignore the warning about files that don't end with a newline.
 					switch (FilterMcppError(Message))

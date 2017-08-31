@@ -420,6 +420,11 @@ public:
 	{
 	}
 
+	UObject* GetClusterRoot()
+	{
+		return static_cast<UObject*>(GUObjectArray.IndexToObject(Cluster.RootIndex)->Object);
+	}
+
 	/**
 	 * Adds an object to cluster (if possible)
 	 *
@@ -432,7 +437,8 @@ public:
 	void AddObjectToCluster(int32 ObjectIndex, FUObjectItem* ObjectItem, UObject* Obj, TArray<UObject*>& ObjectsToSerialize, bool bOuterAndClass)
 	{
 		// If we haven't finished loading, we can't be sure we know all the references
-		check(!Obj->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad));
+		checkf(!Obj->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("%s hasn't been loaded but is being added to cluster %s"), 
+			*Obj->GetFullName(), *GetClusterRoot()->GetFullName());
 		check(ObjectItem->GetOwnerIndex() == 0 || ObjectItem->GetOwnerIndex() == ClusterRootIndex || ObjectIndex == ClusterRootIndex || GUObjectArray.IsDisregardForGC(Obj));
 		check(Obj->CanBeInCluster());
 		if (ObjectIndex != ClusterRootIndex && ObjectItem->GetOwnerIndex() == 0 && !GUObjectArray.IsDisregardForGC(Obj))
@@ -515,7 +521,8 @@ public:
 		if (Object)
 		{
 			// If we haven't finished loading, we can't be sure we know all the references
-			check(!Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad));
+			checkf(!Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("%s hasn't been loaded but is being added to cluster %s"),
+				*Object->GetFullName(), *GetClusterRoot()->GetFullName());
 
 			FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(Object);
 
@@ -563,7 +570,9 @@ public:
 					}
 					else
 					{
-						checkf(!Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("%s is being added to cluster but hasn't finished loading yet"), *Object->GetFullName());
+						checkf(!Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("%s hasn't been loaded but is being added to cluster %s"),
+							*Object->GetFullName(), *GetClusterRoot()->GetFullName());
+
 						Cluster.MutableObjects.AddUnique(GUObjectArray.ObjectToIndex(Object));
 					}
 				}

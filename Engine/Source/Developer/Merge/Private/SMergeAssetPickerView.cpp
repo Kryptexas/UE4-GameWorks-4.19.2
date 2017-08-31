@@ -357,7 +357,7 @@ TSharedRef<SWidget> SMergeAssetPickerPanel::MakeRevisionPickerMenu()
 	}
 	else if (!IsTempAssetSelected())
 	{
-		return SNew(SBlueprintRevisionMenu, Cast<UBlueprint>(SelectedAsset))
+		return SNew(SBlueprintRevisionMenu, SelectedAsset)
 			.bIncludeLocalRevision(true)
 			.OnRevisionSelected(this, &SMergeAssetPickerPanel::OnRevisionSelected);
 	}

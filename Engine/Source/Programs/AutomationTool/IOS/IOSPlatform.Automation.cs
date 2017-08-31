@@ -9,9 +9,10 @@ using UnrealBuildTool;
 using System.Text.RegularExpressions;
 using Ionic.Zip;
 using Ionic.Zlib;
-using System.Security.Principal; 
+using System.Security.Principal;
 using System.Threading;
 using System.Diagnostics;
+using Tools.DotNETCommon;
 //using Manzana;
 
 static class IOSEnvVarNames

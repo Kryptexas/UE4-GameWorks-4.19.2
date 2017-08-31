@@ -2669,7 +2669,7 @@ TSubclassOf<UObject> SAnimNotifyTrack::GetBlueprintClassFromPath(FString Bluepri
 	if (!BlueprintPath.IsEmpty())
 	{
 		UBlueprint* BlueprintLibPtr = LoadObject<UBlueprint>(NULL, *BlueprintPath, NULL, 0, NULL);
-		BlueprintClass = Cast<UClass>(BlueprintLibPtr->GeneratedClass);
+		BlueprintClass = BlueprintLibPtr->GeneratedClass;
 	}
 	return BlueprintClass;
 }

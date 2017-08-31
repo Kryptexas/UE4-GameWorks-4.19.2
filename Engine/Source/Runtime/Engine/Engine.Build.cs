@@ -60,6 +60,7 @@ public class Engine : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Json",
 				"SlateCore",
 				"Slate",

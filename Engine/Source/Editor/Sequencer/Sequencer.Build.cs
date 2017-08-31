@@ -17,6 +17,7 @@ public class Sequencer : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"AppFramework", 
+				"ApplicationCore",
                 "CinematicCamera",
 				"Core", 
 				"CoreUObject", 

@@ -105,7 +105,7 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 	}
 	
 	//Compile the material instance if we have one.
-	UMaterialInterface* MaterialInterface = MaterialInstance ? Cast<UMaterialInterface>(MaterialInstance) : Cast<UMaterialInterface>(Material);
+	UMaterialInterface* MaterialInterface = MaterialInstance ? static_cast<UMaterialInterface*>(MaterialInstance) : Material;
 
 	int32 Ret = INDEX_NONE;
 
@@ -2727,8 +2727,19 @@ void UMaterial::PostLoad()
 
 	Super::PostLoad();
 
-	// Resources can be processed / registered now that we're back on the main thread
-	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, MaterialResources);
+	if (FApp::CanEverRender())
+	{
+		// Resources can be processed / registered now that we're back on the main thread
+		ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, MaterialResources);
+	}
+	else
+	{
+		// Discard all loaded material resources
+		for (FMaterialResource& Resource : LoadedMaterialResources)
+		{
+			Resource.DiscardShaderMap();
+		}		
+	}
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 

@@ -223,7 +223,7 @@ USceneComponent* FComponentReference::GetComponent(AActor* OwningActor) const
 			}
 			else
 			{
-				Result = Cast<USceneComponent>(SearchActor->GetRootComponent());
+				Result = SearchActor->GetRootComponent();
 			}
 		}
 	}

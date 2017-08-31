@@ -26,11 +26,11 @@ bool FOverlaysImporter::OpenFile(const FString& FilePath)
 		FFileHelper::LoadFileToString(FileContents, *Filename);
 
 		// Trim off leading whitespace
-		FileContents.Trim();
+		FileContents.TrimStartInline();
 
 		// SubRip Subtitle files should begin with the line "1". If it doesn't, it's invalid or not a SubRip file
 		int32 IndexOfNewLine = INDEX_NONE; // There should also be at least two lines in the file.
-		FString FirstLine = FileContents.Left(FileContents.FindChar(TEXT('\n'), IndexOfNewLine)).Trim().TrimTrailing();
+		FString FirstLine = FileContents.Left(FileContents.FindChar(TEXT('\n'), IndexOfNewLine)).TrimStartAndEnd();
 
 		bValidFile = IndexOfNewLine != INDEX_NONE && FirstLine == TEXT("1");
 
@@ -93,7 +93,8 @@ bool FOverlaysImporter::ParseSubRipSubtitles(TArray<FOverlayItem>& OutSubtitles)
 	{
 		// Subtitle blocks are numbered sequentially, starting from 1.
 		FString ExpectedSubtitleIndex = FString::FromInt(OutSubtitles.Num() + 1);
-		FString TrimmedIndexLine = Lines[LineIndex++].Trim().TrimTrailing();
+		Lines[LineIndex].TrimStartAndEndInline();
+		FString TrimmedIndexLine = Lines[LineIndex++];
 
 		if (ExpectedSubtitleIndex != TrimmedIndexLine)
 		{
@@ -122,8 +123,14 @@ bool FOverlaysImporter::ParseSubRipSubtitles(TArray<FOverlayItem>& OutSubtitles)
 		}
 
 		// Until we reach an empty line (or the end of the file), whatever text we find will be used for the actual subtitle.
-		while (LineIndex < Lines.Num() && !Lines[LineIndex].Trim().IsEmpty())
+		while (LineIndex < Lines.Num())
 		{
+			Lines[LineIndex].TrimStartInline();
+			if(Lines[LineIndex].IsEmpty())
+			{
+				break;
+			}
+
 			if (!CurrentSubtitle.Text.IsEmpty())
 			{
 				CurrentSubtitle.Text.Append(TEXT("\n"));
@@ -136,8 +143,13 @@ bool FOverlaysImporter::ParseSubRipSubtitles(TArray<FOverlayItem>& OutSubtitles)
 		OutSubtitles.Add(CurrentSubtitle);
 
 		// Advance to the next subtitle block, skipping any blank lines along the way
-		while (LineIndex < Lines.Num() && Lines[LineIndex].Trim().IsEmpty())
+		while (LineIndex < Lines.Num())
 		{
+			Lines[LineIndex].TrimStartInline();
+			if(!Lines[LineIndex].IsEmpty())
+			{
+				break;
+			}
 			++LineIndex;
 		}
 	}

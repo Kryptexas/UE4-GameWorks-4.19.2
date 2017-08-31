@@ -45,7 +45,8 @@ public:
 		while (FPlatformProcess::IsProcRunning(ProcessHandle) && !Stopping)
 		{
 			FString CurData = lastPartialLine + FPlatformProcess::ReadPipe(ReadPipe);
-			if (CurData.Trim().Len() > 0)
+			CurData.TrimStartInline();
+			if (CurData.Len() > 0)
 			{
 				// separate out each line
 				TArray<FString> LogLines;

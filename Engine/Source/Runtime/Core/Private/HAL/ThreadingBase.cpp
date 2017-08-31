@@ -369,7 +369,7 @@ FRunnableThread* FRunnableThread::Create(
 void FRunnableThread::SetTls()
 {
 	// Make sure it's called from the owning thread.
-	//check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
+	check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
 	check( FPlatformTLS::IsValidTlsSlot(RunnableTlsSlot) );
 	FPlatformTLS::SetTlsValue( RunnableTlsSlot, this );
 }

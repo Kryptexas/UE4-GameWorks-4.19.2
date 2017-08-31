@@ -299,7 +299,7 @@ public:
 				|| ([SelectedDevice.name rangeOfString : @"Intel" options : NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
 				NameComponents.Empty();
-				bool bMatchesName = FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
+				bool bMatchesName = FString(GPU.GPUName).TrimStartAndEnd().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
 				for (FString& Component : NameComponents)
 				{
 					bMatchesName &= FString(SelectedDevice.name).Contains(Component);

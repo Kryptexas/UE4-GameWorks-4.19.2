@@ -97,7 +97,7 @@ void FTargetDeviceService::AddTargetDevice(TSharedPtr<ITargetDevice, ESPMode::Th
 		FString Left;
 		FString Right;
 		bool bSplit = Full.Split(VariableSplit, &Left, &Right);
-		DevicePlatformDisplayName = bSplit ? Left.Trim() : Full;
+		DevicePlatformDisplayName = bSplit ? Left.TrimStart() : Full;
 	}
 
 	// double add, which due to the async nature of some device discovery can't be easily avoided.

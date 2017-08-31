@@ -332,7 +332,7 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		const UClass* GeneratedClass = SpawnBlueprint->GeneratedClass;
 		bool bInvalidBase = GeneratedClass && !GeneratedClass->IsChildOf(AActor::StaticClass());
 
-		const UClass* SkeletonGeneratedClass = Cast<UClass>(SpawnBlueprint->SkeletonGeneratedClass);
+		const UClass* SkeletonGeneratedClass = SpawnBlueprint->SkeletonGeneratedClass;
 		bInvalidBase |= SkeletonGeneratedClass && !SkeletonGeneratedClass->IsChildOf(AActor::StaticClass());
 
 		if(bInvalidBase)

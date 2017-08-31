@@ -144,7 +144,7 @@ void UAnimGraphNode_StateMachineBase::PostPasteNode()
 	Super::PostPasteNode();
 
 	// Add the new graph as a child of our parent graph
-	UEdGraph* ParentGraph = CastChecked<UEdGraph>(GetGraph());
+	UEdGraph* ParentGraph = GetGraph();
 
 	if(ParentGraph->SubGraphs.Find(EditorStateMachineGraph) == INDEX_NONE)
 	{

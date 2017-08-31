@@ -1,8 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidMisc.h"
-#include "AndroidInputInterface.h"
-#include "AndroidApplication.h"
+#include "AndroidJavaEnv.h"
 #include "HAL/PlatformStackWalk.h"
 #include "Misc/FileHelper.h"
 #include "Misc/App.h"
@@ -30,9 +29,6 @@
 #include "Function.h"
 #include "AndroidStats.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
-
-void* FAndroidMisc::NativeWindow = NULL;
 #if STATS
 int32 FAndroidMisc::TraceMarkerFileDescriptor = -1;
 #endif
@@ -63,14 +59,6 @@ void FAndroidMisc::RequestExit( bool Force )
 		GIsRequestingExit = 1;
 	}
 }
-
-extern void AndroidThunkCpp_Minimize();
-
-void FAndroidMisc::RequestMinimize()
-{
-	AndroidThunkCpp_Minimize();
-}
-
 
 void FAndroidMisc::LowLevelOutputDebugString(const TCHAR *Message)
 {
@@ -116,15 +104,13 @@ void FAndroidMisc::LocalPrint(const TCHAR *Message)
 #endif
 }
 
-void FAndroidMisc::LoadPreInitModules()
-{
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-	FModuleManager::Get().LoadModule(TEXT("AndroidAudio"));
-	FModuleManager::Get().LoadModule(TEXT("AudioMixerAndroid"));
-}
-
 // Test for device vulkan support.
 static void EstablishVulkanDeviceSupport();
+
+namespace FAndroidAppEntry
+{
+	extern void PlatformInit();
+}
 
 void FAndroidMisc::PlatformPreInit()
 {
@@ -184,7 +170,7 @@ void FAndroidMisc::PlatformInit()
 	// Display memory info
 
 	// Register natives to receive Volume, Battery, Headphones events
-	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
 	if (nullptr != JEnv)
 	{
 		struct
@@ -202,15 +188,15 @@ void FAndroidMisc::PlatformInit()
 
 		for (int i = 0; i < count; i++)
 		{
-			gMethods[i].Clazz = FAndroidApplication::FindJavaClass(gMethods[i].ClazzName);
+			gMethods[i].Clazz = AndroidJavaEnv::FindJavaClass(gMethods[i].ClazzName);
 			if (gMethods[i].Clazz == nullptr)
 			{
-				UE_LOG(LogEngine, Warning, TEXT("Can't find class for %s"), gMethods[i].ClazzName);
+				UE_LOG(LogAndroid, Warning, TEXT("Can't find class for %s"), gMethods[i].ClazzName);
 				continue;
 			}
 			if (JNI_OK != JEnv->RegisterNatives(gMethods[i].Clazz, &gMethods[i].Jnim, 1))
 			{
-				UE_LOG(LogEngine, Warning, TEXT("RegisterNatives failed for %s on %s"), gMethods[i].ClazzName, gMethods[i].Jnim.name);
+				UE_LOG(LogAndroid, Warning, TEXT("RegisterNatives failed for %s on %s"), gMethods[i].ClazzName, gMethods[i].Jnim.name);
 			}
 			extern struct android_app* GNativeAndroidApp;
 			jmethodID methodId = JEnv->GetStaticMethodID(gMethods[i].Clazz, "startReceiver", "(Landroid/app/Activity;)V");
@@ -220,7 +206,7 @@ void FAndroidMisc::PlatformInit()
 			}
 			else
 			{
-				UE_LOG(LogEngine, Warning, TEXT("Can't find method startReceiver of class %s"), gMethods[i].ClazzName);
+				UE_LOG(LogAndroid, Warning, TEXT("Can't find method startReceiver of class %s"), gMethods[i].ClazzName);
 			}
 		}
 	}
@@ -234,16 +220,12 @@ void FAndroidMisc::PlatformInit()
 	TraceMarkerFileDescriptor = open("/sys/kernel/debug/tracing/trace_marker", O_WRONLY);
 	if (TraceMarkerFileDescriptor == -1)
 	{
-		UE_LOG(LogEngine, Warning, TEXT("Trace Marker failed to open; trace support disabled"));
+		UE_LOG(LogAndroid, Warning, TEXT("Trace Marker failed to open; trace support disabled"));
 	}
 #endif
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
-
-void FAndroidMisc::PlatformPostInit()
-{
-}
 
 void FAndroidMisc::PlatformTearDown()
 {
@@ -268,17 +250,6 @@ void FAndroidMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Resu
 {
 	*Result = 0;
 	// @todo Android : get environment variable.
-}
-
-void FAndroidMisc::SetHardwareWindow(void* InWindow)
-{
-	NativeWindow = InWindow; //using raw native window handle for now. Could be changed to use AndroidWindow later if needed
-}
-
-
-void* FAndroidMisc::GetHardwareWindow()
-{
-	return NativeWindow;
 }
 
 const TCHAR* FAndroidMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
@@ -392,112 +363,6 @@ bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	}
 
 	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
-}
-
-struct FScreenDensity
-{
-	FString Model;
-	bool IsRegex;
-	int32 Density;
-	
-	FScreenDensity()
-		: Model()
-		, IsRegex(false)
-		, Density(0)
-	{
-	}
-
-	bool InitFromString(const FString& InSourceString)
-	{
-		Model = TEXT("");
-		Density = 0;
-		IsRegex = false;
-
-		// The initialization is only successful if the Model and Density values can all be parsed from the string
-		const bool bSuccessful = FParse::Value(*InSourceString, TEXT("Model="), Model) && FParse::Value(*InSourceString, TEXT("Density="), Density);
-
-		// Regex= is optional, it lets us know if this model requires regular expression matching, which is much more expensive.
-		FParse::Bool(*InSourceString, TEXT("IsRegex="), IsRegex);
-
-		return bSuccessful;
-	}
-
-	bool IsMatch(const FString& InDeviceModel) const
-	{
-		if ( IsRegex )
-		{
-			const FRegexPattern RegexPattern(Model);
-			FRegexMatcher RegexMatcher(RegexPattern, InDeviceModel);
-
-			return RegexMatcher.FindNext();
-		}
-		else
-		{
-			return Model == InDeviceModel;
-		}
-	}
-};
-
-float FAndroidMisc::GetWindowUpscaleFactor()
-{
-	// Determine the difference between the native resolution of the device, and the size of our window,
-	// and return that scalar.
-
-	int32_t SurfaceWidth, SurfaceHeight;
-	FAndroidWindow::CalculateSurfaceSize(FPlatformMisc::GetHardwareWindow(), SurfaceWidth, SurfaceHeight);
-
-	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
-
-	const float CalculatedScaleFactor = FVector2D(ScreenRect.Right - ScreenRect.Left, ScreenRect.Bottom - ScreenRect.Top).Size() / FVector2D(SurfaceWidth, SurfaceHeight).Size();
-
-	return CalculatedScaleFactor;
-}
-
-extern FString AndroidThunkCpp_GetMetaDataString(const FString& Key);
-
-EScreenPhysicalAccuracy FAndroidMisc::ComputePhysicalScreenDensity(int32& OutScreenDensity)
-{
-	FString MyDeviceModel = GetDeviceModel();
-
-	TArray<FString> DeviceStrings;
-	GConfig->GetArray(TEXT("DeviceScreenDensity"), TEXT("Devices"), DeviceStrings, GEngineIni);
-
-	TArray<FScreenDensity> Devices;
-	for ( const FString& DeviceString : DeviceStrings )
-	{
-		FScreenDensity DensityEntry;
-		if ( DensityEntry.InitFromString(DeviceString) )
-		{
-			Devices.Add(DensityEntry);
-		}
-	}
-
-	for ( const FScreenDensity& Device : Devices )
-	{
-		if ( Device.IsMatch(MyDeviceModel) )
-		{
-			OutScreenDensity = Device.Density * GetWindowUpscaleFactor();
-			return EScreenPhysicalAccuracy::Truth;
-		}
-	}
-
-	FString DPIStrings = AndroidThunkCpp_GetMetaDataString(TEXT("ue4.displaymetrics.dpi"));
-	TArray<FString> DPIValues;
-	DPIStrings.ParseIntoArray(DPIValues, TEXT(","));
-
-	float xdpi, ydpi;
-	LexicalConversion::FromString(xdpi, *DPIValues[0]);
-	LexicalConversion::FromString(ydpi, *DPIValues[1]);
-
-	OutScreenDensity = ( xdpi + ydpi ) / 2.0f;
-
-	if ( OutScreenDensity <= 0 || OutScreenDensity > 2000 )
-	{
-		return EScreenPhysicalAccuracy::Unknown;
-	}
-
-	OutScreenDensity *= GetWindowUpscaleFactor();
-	return EScreenPhysicalAccuracy::Approximation;
 }
 
 bool FAndroidMisc::AllowRenderThread()
@@ -705,7 +570,7 @@ void DefaultCrashHandler(const FAndroidCrashContext& Context)
 
 		// Walk the stack and dump it to the allocated memory.
 		FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, Context.Context);
-		UE_LOG(LogEngine, Error, TEXT("\n%s\n"), ANSI_TO_TCHAR(StackTrace));
+		UE_LOG(LogAndroid, Error, TEXT("\n%s\n"), ANSI_TO_TCHAR(StackTrace));
 
 		if (GLog)
 		{
@@ -898,7 +763,7 @@ void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMak
 	DeviceModel = InDeviceModel;
 	OSLanguage = InOSLanguage;
 
-	UE_LOG(LogEngine, Display, TEXT("Android Version Make Model Language: %s %s %s %s"), *AndroidVersion, *DeviceMake, *DeviceModel, *OSLanguage);
+	UE_LOG(LogAndroid, Display, TEXT("Android Version Make Model Language: %s %s %s %s"), *AndroidVersion, *DeviceMake, *DeviceModel, *OSLanguage);
 }
 
 const FString FAndroidMisc::GetAndroidVersion()
@@ -944,10 +809,10 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 	}
 	if (AndroidBuildVersion <= 0)
 	{
-		JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+		JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
 		if (nullptr != JEnv)
 		{
-			jclass Class = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
+			jclass Class = AndroidJavaEnv::FindJavaClass("com/epicgames/ue4/GameActivity");
 			if (nullptr != Class)
 			{
 				jfieldID Field = JEnv->GetStaticFieldID(Class, "ANDROID_BUILD_VERSION", "I");
@@ -1417,10 +1282,10 @@ bool FAndroidMisc::IsDebuggerPresent()
 {
 	bool Result = false;
 #if 0
-	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
 	if (nullptr != JEnv)
 	{
-		jclass Class = FAndroidApplication::FindJavaClass("android/os/Debug");
+		jclass Class = AndroidJavaEnv::FindJavaClass("android/os/Debug");
 		if (nullptr != Class)
 		{
 			// This segfaults for some reason. So this is all disabled for now.
@@ -1621,7 +1486,7 @@ bool FAndroidMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& Total
 	else
 	{
 		int ErrNo = errno;
-		UE_LOG(LogEngine, Warning, TEXT("Unable to statfs('%s'): errno=%d (%s)"), *GExternalFilePath, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
+		UE_LOG(LogAndroid, Warning, TEXT("Unable to statfs('%s'): errno=%d (%s)"), *GExternalFilePath, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
 	}
 	
 	return (Err == 0);

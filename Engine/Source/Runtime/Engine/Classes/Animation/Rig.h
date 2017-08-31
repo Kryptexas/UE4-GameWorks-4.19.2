@@ -72,8 +72,9 @@ namespace EControlConstraint
 		Orientation,
 		/** Translation constraint. */
 		Translation,
+
 		/** Max Number. */
-		Max
+		MAX
 	};
 }
 
@@ -130,7 +131,7 @@ struct FTransformBase
 	FName					Node;
 
 	UPROPERTY(EditAnywhere, Category="FTransformBase")
-	FTransformBaseConstraint	Constraints[EControlConstraint::Type::Max];
+	FTransformBaseConstraint	Constraints[EControlConstraint::Type::MAX];
 };
 
 DECLARE_DELEGATE_RetVal_OneParam(int32, FGetParentIndex, FName);

@@ -1105,7 +1105,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			// we need to use the whole remaining string as an argument, regardless of quotes, spaces etc.
 			if (PropertyParam == LastParameter && PropertyParam->IsA<UStrProperty>() && FCString::Strcmp(Str, TEXT("")) != 0)
 			{
-				ArgStr = FString(RemainingStr).Trim();
+				ArgStr = FString(RemainingStr).TrimStart();
 			}
 
 			const TCHAR* Result = It->ImportText(*ArgStr, It->ContainerPtrToValuePtr<uint8>(Parms), ExportFlags, NULL );

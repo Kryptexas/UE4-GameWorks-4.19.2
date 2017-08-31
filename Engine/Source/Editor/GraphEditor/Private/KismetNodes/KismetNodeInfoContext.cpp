@@ -94,7 +94,7 @@ FKismetNodeInfoContext::FKismetNodeInfoContext(UEdGraph* SourceGraph)
 				continue;
 			}
 
-			UEdGraphNode* OwningNode = Cast<UEdGraphNode>(WatchedPin->GetOuter());
+			UEdGraphNode* OwningNode = WatchedPin->GetOuter();
 			if (!ensure(OwningNode != NULL)) // shouldn't happen, but just in case a dead pin was added to the WatchedPins array
 			{
 				continue;

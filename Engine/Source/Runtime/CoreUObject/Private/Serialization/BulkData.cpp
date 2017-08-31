@@ -15,6 +15,7 @@
 #include "UObject/LinkerSave.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "UObject/DebugSerializationFlags.h"
+#include "Serialization/AsyncLoadingPrivate.h"
 
 /*-----------------------------------------------------------------------------
 	Constructors and operators
@@ -1372,15 +1373,37 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 #if WITH_EDITOR
 	checkf( AttachedAr, TEXT( "Attempted to load bulk data without an attached archive. Most likely the bulk data was loaded twice on console, which is not supported" ) );
 
+	FArchive* BulkDataArchive = nullptr;
+	if (Linker && Linker->GetFArchiveAsync2Loader() && Linker->GetFArchiveAsync2Loader()->IsCookedForEDLInEditor() &&
+		(BulkDataFlags & BULKDATA_PayloadInSeperateFile))
+	{
+		// The attached archive is a package cooked for EDL loaded in the editor so the actual bulk data sits in a separate ubulk file.
+		const FString BulkDataFilename = FPaths::ChangeExtension(Filename, TEXT(".ubulk"));
+		BulkDataArchive = IFileManager::Get().CreateFileReader(*BulkDataFilename, FILEREAD_Silent);
+	}
+
+	if (!BulkDataArchive)
+	{
+		BulkDataArchive = AttachedAr;
+	}
+
 	// Keep track of current position in file so we can restore it later.
-	int64 PushedPos = AttachedAr->Tell();
+	int64 PushedPos = BulkDataArchive->Tell();
 	// Seek to the beginning of the bulk data in the file.
-	AttachedAr->Seek( BulkDataOffsetInFile );
+	BulkDataArchive->Seek( BulkDataOffsetInFile );
 		
-	SerializeBulkData( *AttachedAr, Dest );
+	SerializeBulkData( *BulkDataArchive, Dest );
 
 	// Restore file pointer.
-	AttachedAr->Seek( PushedPos );
+	BulkDataArchive->Seek( PushedPos );
+	BulkDataArchive->FlushCache();
+
+	if (BulkDataArchive != AttachedAr)
+	{
+		delete BulkDataArchive;
+		BulkDataArchive = nullptr;
+	}
+
 #else
 	bool bWasLoadedSuccessfully = false;
 	if ((IsInGameThread() || IsInAsyncLoadingThread()) && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId() && ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) == 0))

@@ -59,7 +59,7 @@ TSharedRef<FOnlineStoreOffer> ConvertProductToStoreOffer(const FInAppPurchasePro
 	int32 CloseParenIdx = -1;
 	if (Title.FindLastChar(TEXT(')'), CloseParenIdx) && Title.FindLastChar(TEXT('('), OpenParenIdx) && (OpenParenIdx < CloseParenIdx))
 	{
-		Title = Title.Left(OpenParenIdx).TrimTrailing();
+		Title = Title.Left(OpenParenIdx).TrimEnd();
 	}
 
 	NewProductInfo->Title = FText::FromString(Title);

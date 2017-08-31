@@ -50,7 +50,7 @@ public:
 	void MarkUnconvertedBlueprintAsNecessary(TSoftObjectPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions) override;
 	virtual const TMultiMap<FName, TSoftClassPtr<UObject>>& GetFunctionsBoundToADelegate() override;
 
-	FFileHelper::EEncodingOptions::Type ForcedEncoding() const
+	FFileHelper::EEncodingOptions ForcedEncoding() const
 	{
 		return FFileHelper::EEncodingOptions::ForceUTF8;
 	}

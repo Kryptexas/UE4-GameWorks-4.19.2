@@ -71,7 +71,7 @@ uint32 FLauncherWorker::Run( )
 			{
 				for (int32 Index = 0; Index < count-1; ++Index)
 				{
-					StringArray[Index].TrimTrailing();
+					StringArray[Index].TrimEndInline();
 					OutputMessageReceived.Broadcast(StringArray[Index]);
 				}
 				Line = StringArray[count-1];
@@ -97,7 +97,7 @@ uint32 FLauncherWorker::Run( )
 				{
 					for (int32 Index = 0; Index < count-1; ++Index)
 					{
-						StringArray[Index].TrimTrailing();
+						StringArray[Index].TrimEndInline();
 						OutputMessageReceived.Broadcast(StringArray[Index]);
 					}
 					Line = StringArray[count-1];

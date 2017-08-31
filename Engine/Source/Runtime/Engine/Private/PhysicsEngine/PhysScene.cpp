@@ -464,7 +464,7 @@ FPhysScene::FPhysScene()
 		PhysXSceneIndex[PST_Async] = 0;
 	}
 	
-	PreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FPhysScene::WaitPhysScenes);
+	PreGarbageCollectDelegateHandle = FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FPhysScene::WaitPhysScenes);
 
 #if WITH_PHYSX
 	// Initialise PhysX scratch buffers (only if size > 0)
@@ -501,7 +501,7 @@ void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
 /** Exposes destruction of physics-engine scene outside Engine. */
 FPhysScene::~FPhysScene()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.Remove(PreGarbageCollectDelegateHandle);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().Remove(PreGarbageCollectDelegateHandle);
 	// Make sure no scenes are left simulating (no-ops if not simulating)
 	WaitPhysScenes();
 	// Loop through scene types to get all scenes

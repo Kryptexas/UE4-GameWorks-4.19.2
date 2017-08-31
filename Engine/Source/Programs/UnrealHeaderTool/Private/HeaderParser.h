@@ -522,7 +522,7 @@ protected:
 	 */
 	UDelegateFunction* CreateDelegateFunction(const FFuncInfo &FuncInfo) const;	
 
-	void CompileClassDeclaration(FClasses& AllClasses);
+	UClass* CompileClassDeclaration(FClasses& AllClasses);
 	UDelegateFunction* CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction = EDelegateSpecifierAction::DontParse);
 	void CompileFunctionDeclaration(FClasses& AllClasses);
 	void CompileVariableDeclaration (FClasses& AllClasses, UStruct* Struct);

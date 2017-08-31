@@ -10,6 +10,7 @@ public class AppFramework : ModuleRules
 			new string[] {
 				"Core",
                 "CoreUObject",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
 			}

@@ -113,14 +113,13 @@ class FLogSuppressionImplementation: public FLogSuppressionInterface, private FS
 		static FName NAME_BootGlobal(TEXT("BootGlobal"));
 		static FName NAME_Reset(TEXT("Reset"));
 		FString Cmds = CmdString;
-		Cmds = Cmds.Trim().TrimQuotes();
-		Cmds.Trim();
+		Cmds = Cmds.TrimStart().TrimQuotes().TrimStart();
 		TArray<FString> SubCmds;
 		Cmds.ParseIntoArray(SubCmds, TEXT(","), true);
 		for (int32 Index = 0; Index < SubCmds.Num(); Index++)
 		{
 			static FString LogString(TEXT("Log "));
-			FString Command = SubCmds[Index].Trim();
+			FString Command = SubCmds[Index].TrimStart();
 			if (Command.StartsWith(*LogString))
 			{
 				Command = Command.Right(Command.Len() - LogString.Len());
@@ -547,7 +546,7 @@ public:
 			else if (Cmd[0] != '.')
 			{
 				FString Rest(Cmd);
-				Rest = Rest.Trim();
+				Rest.TrimStartInline();
 				if (Rest.Len())
 				{
 					if (ProcessLogOnly(Rest, Ar))

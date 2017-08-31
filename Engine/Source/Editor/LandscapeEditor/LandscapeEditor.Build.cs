@@ -10,6 +10,7 @@ public class LandscapeEditor : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",

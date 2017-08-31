@@ -7,6 +7,7 @@ using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
 using System.Text.RegularExpressions;
+using Tools.DotNETCommon;
 
 public class TVOSPlatform : IOSPlatform
 {

@@ -14,6 +14,7 @@ public class TestPAL : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"Projects",
 				"DirectoryWatcher"
 			}

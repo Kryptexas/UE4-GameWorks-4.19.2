@@ -5,6 +5,7 @@
 #include "CocoaThread.h"
 #include "MacApplication.h"
 #include "Misc/ScopeLock.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 struct FMacMenuItemState
 {
@@ -74,7 +75,7 @@ static FCriticalSection GCachedMenuStateCS;
 
 - (void)menuWillOpen:(NSMenu*)Menu
 {
-	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+	FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 	
 	GameThreadCall(^{
 		FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::WindowActivate );
@@ -97,9 +98,9 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 	MainThreadCall(^{
 		FScopeLock Lock(&GCachedMenuStateCS);
 
-		if (!FPlatformMisc::UpdateCachedMacMenuState)
+		if (!FPlatformApplicationMisc::UpdateCachedMacMenuState)
 		{
-			FPlatformMisc::UpdateCachedMacMenuState = UpdateCachedState;
+			FPlatformApplicationMisc::UpdateCachedMacMenuState = UpdateCachedState;
 		}
 
 		int32 NumItems = [[NSApp mainMenu] numberOfItems];
@@ -154,7 +155,7 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 			delete SafeMultiBoxPtr;
 		}
 
-		FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+		FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 	}, NSDefaultRunLoopMode, false);
 }
 

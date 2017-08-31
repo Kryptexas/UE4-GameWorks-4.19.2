@@ -494,7 +494,7 @@ void ULevel::PreSave(const class ITargetPlatform* TargetPlatform)
 #if WITH_EDITOR
 	if( !IsTemplate() )
 	{
-		UPackage* Package = CastChecked<UPackage>(GetOutermost());
+		UPackage* Package = GetOutermost();
 
 		ValidateLightGUIDs();
 

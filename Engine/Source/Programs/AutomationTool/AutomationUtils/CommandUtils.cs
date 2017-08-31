@@ -101,7 +101,7 @@ namespace AutomationTool
 		/// <returns>Initialized and ready to use BuildEnvironment</returns>
 		static internal void InitCommandEnvironment()
 		{
-			CmdEnvironment = (Automation.IsBuildMachine && !GlobalCommandLine.ForceLocal) ? new CommandEnvironment() : new LocalCommandEnvironment();
+			CmdEnvironment = new CommandEnvironment();
 		}
 
 		#endregion
@@ -2336,7 +2336,7 @@ namespace AutomationTool
 		/// <param name="FileName">The file to read from</param>
 		/// <param name="Telemetry">On success, the read telemetry data</param>
 		/// <returns>True if a telemetry object was read</returns>
-		public static bool TryRead(string FileName, out TelemetryData Telemetry)
+		public static bool TryRead(FileReference FileName, out TelemetryData Telemetry)
 		{
 			// Try to read the raw json object
 			JsonObject RawObject;

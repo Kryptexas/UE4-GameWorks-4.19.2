@@ -832,7 +832,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 					LevelScriptReferenceString += TEXT("\n");
 				}
 
-				LevelScriptReferenceString.TrimTrailing();
+				LevelScriptReferenceString.TrimEndInline();
 
 				FString ActorReferenceString;
 
@@ -866,7 +866,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 					}
 				}
 
-				ActorReferenceString.TrimTrailing();
+				ActorReferenceString.TrimEndInline();
 
 				if (bReferencedByLevelScript && (bReferencedByActor || bReferencedBySoftReference))
 				{

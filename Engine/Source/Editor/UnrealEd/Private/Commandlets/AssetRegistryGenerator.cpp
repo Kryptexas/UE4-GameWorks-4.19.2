@@ -174,8 +174,6 @@ bool FAssetRegistryGenerator::GenerateStreamingInstallManifest()
 {
 	const FString Platform = TargetPlatform->PlatformName();
 
-	FString GameNameLower = FString(FApp::GetProjectName()).ToLower();
-
 	// empty out the current paklist directory
 	FString TmpPackagingDir = GetTempPackagingDirectoryForPlatform(Platform);
 

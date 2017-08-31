@@ -11,6 +11,7 @@ public class MoviePlayer : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 					"Engine",
+					"ApplicationCore",
 				}
 		);
 

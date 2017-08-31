@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-
+using Tools.DotNETCommon;
 
 public class HTML5Platform : Platform
 {

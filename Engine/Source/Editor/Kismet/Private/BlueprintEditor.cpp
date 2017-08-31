@@ -1922,7 +1922,7 @@ void FBlueprintEditor::PostRegenerateMenusAndToolbars()
 				.Visibility(this, &FBlueprintEditor::GetNativeParentClassButtonsVisibility)
 				.OnNavigate(this, &FBlueprintEditor::OnEditParentClassNativeCodeClicked)
 				.Text(this, &FBlueprintEditor::GetTextForNativeParentClassHeaderLink)
-				.ToolTipText(FText::Format(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE()))
+				.ToolTipText(FText::Format(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSelectedSourceCodeIDE()))
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()

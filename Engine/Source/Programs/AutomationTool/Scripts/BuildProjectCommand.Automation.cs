@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Linq;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 [Flags]
 public enum ProjectBuildTargets

@@ -1247,7 +1247,8 @@ void FThreadStats::CheckForCollectingStartupStats()
 		Cmds.ParseIntoArray(CmdsArray, TEXT( "," ), true);
 		for (int32 Index = 0; Index < CmdsArray.Num(); Index++)
 		{
-			FString StatCmd = FString("stat ") + CmdsArray[Index].Trim();
+			CmdsArray[Index].TrimStartInline();
+			FString StatCmd = FString("stat ") + CmdsArray[Index];
 			UE_LOG(LogStatGroupEnableManager, Log, TEXT("Sending Stat Command '%s'"), *StatCmd);
 			DirectStatsCommand(*StatCmd);
 		}

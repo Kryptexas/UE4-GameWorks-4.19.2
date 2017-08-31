@@ -18,6 +18,7 @@
 #include "Framework/Docking/SDockingTabStack.h"
 #include "Framework/Docking/SDockingTabWell.h"
 #include "LayoutExtender.h"
+#include "HAL/PlatformApplicationMisc.h"
 #if PLATFORM_MAC
 #include "../MultiBox/Mac/MacMenu.h"
 #endif
@@ -1081,7 +1082,7 @@ TSharedRef<SDockTab> FTabManager::InvokeTab( const FTabId& TabId )
 		ParentWindowPtr->SetTitle( NewTab->GetTabLabel() );
 	}
 #if PLATFORM_MAC
-	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+	FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 #endif
 	return NewTab;
 }

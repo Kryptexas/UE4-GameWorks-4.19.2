@@ -253,7 +253,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save player controllers into a map
-		PlayerController = CastChecked<APlayerController>(InWorld->SpawnActor<APlayerController>(PCClass, SpawnInfo));
+		PlayerController = InWorld->SpawnActor<APlayerController>(PCClass, SpawnInfo);
 		const int32 PlayerIndex = GEngine->GetGamePlayers(InWorld).Find(this);
 		PlayerController->NetPlayerIndex = PlayerIndex;
 	}

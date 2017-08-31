@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "HTML5PlatformMisc.h"
-#include "HTML5Application.h"
 #include "HTML5PlatformProcess.h"
 
 #include "HTML5JavaScriptFx.h"
@@ -87,7 +86,3 @@ void FHTML5Misc::SetCrashHandler(void(* CrashHandler)(const FGenericCrashContext
 	GHTML5CrashHandler = CrashHandler;
 }
 
-void FHTML5Misc::PlatformPostInit()
-{
-	FModuleManager::Get().LoadModule("MapPakDownloader");
-}

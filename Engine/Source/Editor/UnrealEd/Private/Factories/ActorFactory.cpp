@@ -558,7 +558,7 @@ void UActorFactoryDeferredDecal::PostCreateBlueprint( UObject* Asset, AActor* CD
 			UDecalComponent* DecalComponent = NULL;
 			for (int32 Idx = 0; Idx < DecalComponents.Num() && DecalComponent == NULL; Idx++)
 			{
-				DecalComponent = Cast<UDecalComponent>(DecalComponents[Idx]);
+				DecalComponent = DecalComponents[Idx];
 			}
 
 			check(DecalComponent);

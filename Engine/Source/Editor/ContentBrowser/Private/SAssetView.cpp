@@ -1516,7 +1516,8 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 		FPlatformApplicationMisc::ClipboardPaste(AssetPaths);
 
 		// Make sure the clipboard does not contain T3D
-		if (!ContainsT3D(AssetPaths.TrimTrailing()))
+		AssetPaths.TrimEndInline();
+		if (!ContainsT3D(AssetPaths))
 		{
 			AssetPaths.ParseIntoArrayLines(AssetPathsSplit);
 

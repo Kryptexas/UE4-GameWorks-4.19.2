@@ -18,6 +18,7 @@ public class AudioEditor : ModuleRules
             {
                 "Core",
                 "CoreUObject",
+				"ApplicationCore",
                 "InputCore",
                 "Engine",
                 "UnrealEd",

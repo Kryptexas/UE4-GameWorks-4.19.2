@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Diagnostics;
 using System.Xml.Schema;
 using System.Text.RegularExpressions;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {

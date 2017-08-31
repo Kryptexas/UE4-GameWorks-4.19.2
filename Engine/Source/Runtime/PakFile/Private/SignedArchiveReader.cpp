@@ -54,7 +54,12 @@ FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader, const TCHAR* Filename)
 	uint32 ChunkHashesCRC = ComputePakChunkHash(&ChunkHashes[0], ChunkHashes.Num() * sizeof(TPakChunkHash));
 	FDecryptedSignature DecryptedMasterSignature;
 	FEncryption::DecryptSignature(MasterSignature, DecryptedMasterSignature, DecryptionKey);
-	ensure(DecryptedMasterSignature.Data == ChunkHashesCRC);
+	if (!ensure(DecryptedMasterSignature.Data == ChunkHashesCRC))
+	{
+#if PAK_SIGNATURE_CHECK_FAILS_ARE_FATAL
+		FPlatformMisc::RequestExit(true);
+#endif
+	}
 
 	const bool bEnableMultithreading = FPlatformProcess::SupportsMultithreading();
 	if (bEnableMultithreading)

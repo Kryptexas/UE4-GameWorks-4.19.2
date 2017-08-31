@@ -6,6 +6,6 @@ public class RenderCore : ModuleRules
 {
 	public RenderCore(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "RHI" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "RHI", "ApplicationCore" });
 	}
 }

@@ -19,6 +19,7 @@ public class OSVRInput : ModuleRules
                 "OSVR",
                 "Core",
 				"CoreUObject",      // Provides Actors and Structs
+				"ApplicationCore",
 				"Engine",           // Used by Actor
 				"Slate",            // Used by InputDevice to fire bespoke FKey events
 				"InputCore",        // Provides LOCTEXT and other Input features

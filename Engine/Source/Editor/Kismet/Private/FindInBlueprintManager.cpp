@@ -1349,8 +1349,8 @@ FFindInBlueprintSearchManager::~FFindInBlueprintSearchManager()
 		AssetRegistryModule->Get().OnAssetRenamed().RemoveAll(this);
 	}
 	FKismetEditorUtilities::OnBlueprintUnloaded.RemoveAll(this);
-	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
-	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().RemoveAll(this);
+	FCoreUObjectDelegates::GetPostGarbageCollect().RemoveAll(this);
 	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 
 	if(FModuleManager::Get().IsModuleLoaded("HotReload"))
@@ -1383,8 +1383,8 @@ void FFindInBlueprintSearchManager::Initialize()
 
 	FKismetEditorUtilities::OnBlueprintUnloaded.AddRaw(this, &FFindInBlueprintSearchManager::OnBlueprintUnloaded);
 
-	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::PauseFindInBlueprintSearch);
-	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::UnpauseFindInBlueprintSearch);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FFindInBlueprintSearchManager::PauseFindInBlueprintSearch);
+	FCoreUObjectDelegates::GetPostGarbageCollect().AddRaw(this, &FFindInBlueprintSearchManager::UnpauseFindInBlueprintSearch);
 	FCoreUObjectDelegates::OnAssetLoaded.AddRaw(this, &FFindInBlueprintSearchManager::OnAssetLoaded);
 	
 	// Register to be notified of hot reloads

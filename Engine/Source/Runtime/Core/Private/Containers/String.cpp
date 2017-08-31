@@ -188,11 +188,17 @@ int32 FString::Find(const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDi
 	}
 }
 
-FString FString::ToUpper() const
+FString FString::ToUpper() const &
 {
-	FString New(**this);
+	FString New = *this;
 	New.ToUpperInline();
 	return New;
+}
+
+FString FString::ToUpper() &&
+{
+	this->ToUpperInline();
+	return MoveTemp(*this);
 }
 
 void FString::ToUpperInline()
@@ -206,11 +212,17 @@ void FString::ToUpperInline()
 }
 
 
-FString FString::ToLower() const
+FString FString::ToLower() const &
 {
-	FString New(**this);
+	FString New = *this;
 	New.ToLowerInline();
 	return New;
+}
+
+FString FString::ToLower() &&
+{
+	this->ToLowerInline();
+	return MoveTemp(*this);
 }
 
 void FString::ToLowerInline()
@@ -394,6 +406,74 @@ FString FString::TrimTrailing( void )
 	*this = Left( Pos + 1 );
 
 	return( *this );
+}
+
+void FString::TrimStartAndEndInline()
+{
+	TrimEndInline();
+	TrimStartInline();
+}
+
+FString FString::TrimStartAndEnd() const &
+{
+	FString Result(*this);
+	Result.TrimStartAndEndInline();
+	return Result;
+}
+
+FString FString::TrimStartAndEnd() &&
+{
+	FString Result(MoveTemp(*this));
+	Result.TrimStartAndEndInline();
+	return Result;
+}
+
+void FString::TrimStartInline()
+{
+	int32 Pos = 0;
+	while(Pos < Len() && FChar::IsWhitespace((*this)[Pos]))
+	{
+		Pos++;
+	}
+	RemoveAt(0, Pos);
+}
+
+FString FString::TrimStart() const &
+{
+	FString Result(*this);
+	Result.TrimStartInline();
+	return Result;
+}
+
+FString FString::TrimStart() &&
+{
+	FString Result(MoveTemp(*this));
+	Result.TrimStartInline();
+	return Result;
+}
+
+void FString::TrimEndInline()
+{
+	int32 End = Len();
+	while(End > 0 && FChar::IsWhitespace((*this)[End - 1]))
+	{
+		End--;
+	}
+	RemoveAt(End, Len() - End);
+}
+
+FString FString::TrimEnd() const &
+{
+	FString Result(*this);
+	Result.TrimEndInline();
+	return Result;
+}
+
+FString FString::TrimEnd() &&
+{
+	FString Result(MoveTemp(*this));
+	Result.TrimEndInline();
+	return Result;
 }
 
 FString FString::TrimQuotes( bool* bQuotesRemoved ) const

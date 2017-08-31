@@ -12,6 +12,7 @@ public class StandaloneRenderer : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"ImageWrapper",
 				"InputCore",
 				"SlateCore",

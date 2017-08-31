@@ -9,9 +9,6 @@
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "VarargsHelper.h"
-#include "MacApplication.h"
-#include "MacCursor.h"
-#include "CocoaMenu.h"
 #include "CocoaThread.h"
 #include "EngineVersion.h"
 #include "MacMallocZone.h"
@@ -28,6 +25,7 @@
 #include "Misc/FeedbackContext.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
+#include "Modules/ModuleManager.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -383,17 +381,11 @@ struct FMacApplicationInfo
 static FMacApplicationInfo GMacAppInfo;
 PLCrashReporter* FMacApplicationInfo::CrashReporter = nullptr;
 
-UpdateCachedMacMenuStateProc FMacPlatformMisc::UpdateCachedMacMenuState = nullptr;
-bool FMacPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
-id<NSObject> FMacPlatformMisc::CommandletActivity = nil;
-
 void FMacPlatformMisc::PlatformPreInit()
 {
 	FGenericPlatformMisc::PlatformPreInit();
 	
 	GMacAppInfo.Init();
-
-	FMacApplication::UpdateScreensArray();
 	
 	// No SIGPIPE crashes please - they are a pain to debug!
 	signal(SIGPIPE, SIG_IGN);
@@ -459,89 +451,8 @@ void FMacPlatformMisc::PlatformInit()
 #endif
 }
 
-void FMacPlatformMisc::PlatformPostInit()
-{
-	// Setup the app menu in menu bar
-	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
-	if (bIsBundledApp)
-	{
-		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(FApp::GetProjectName()).GetNSString();
-
-		SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
-		NSMenuItem* AboutItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@", AppName] action:ShowAboutSelector keyEquivalent:@""] autorelease];
-
-		NSMenuItem* PreferencesItem = GIsEditor ? [[[NSMenuItem alloc] initWithTitle:@"Preferences..." action:@selector(showPreferencesWindow:) keyEquivalent:@","] autorelease] : nil;
-
-		NSMenuItem* HideItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Hide %@", AppName] action:@selector(hide:) keyEquivalent:@"h"] autorelease];
-		NSMenuItem* HideOthersItem = [[[NSMenuItem alloc] initWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"] autorelease];
-		[HideOthersItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
-		NSMenuItem* ShowAllItem = [[[NSMenuItem alloc] initWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""] autorelease];
-
-		SEL RequestQuitSelector = [[NSApp delegate] respondsToSelector:@selector(requestQuit:)] ? @selector(requestQuit:) : @selector(terminate:);
-		NSMenuItem* QuitItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", AppName] action:RequestQuitSelector keyEquivalent:@"q"] autorelease];
-
-		NSMenuItem* ServicesItem = [[NSMenuItem new] autorelease];
-		FCocoaMenu* ServicesMenu = [[FCocoaMenu new] autorelease];
-		[ServicesItem setTitle:@"Services"];
-		[ServicesItem setSubmenu:ServicesMenu];
-		[NSApp setServicesMenu:ServicesMenu];
-
-		FCocoaMenu* AppMenu = [[FCocoaMenu new] autorelease];
-		[AppMenu addItem:AboutItem];
-		[AppMenu addItem:[NSMenuItem separatorItem]];
-		if (PreferencesItem)
-		{
-			[AppMenu addItem:PreferencesItem];
-			[AppMenu addItem:[NSMenuItem separatorItem]];
-		}
-		[AppMenu addItem:ServicesItem];
-		[AppMenu addItem:[NSMenuItem separatorItem]];
-		[AppMenu addItem:HideItem];
-		[AppMenu addItem:HideOthersItem];
-		[AppMenu addItem:ShowAllItem];
-		[AppMenu addItem:[NSMenuItem separatorItem]];
-		[AppMenu addItem:QuitItem];
-
-		FCocoaMenu* MenuBar = [[FCocoaMenu new] autorelease];
-		NSMenuItem* AppMenuItem = [[NSMenuItem new] autorelease];
-		[MenuBar addItem:AppMenuItem];
-		[NSApp setMainMenu:MenuBar];
-		[AppMenuItem setSubmenu:AppMenu];
-
-		if (FApp::IsGame())
-		{
-			NSMenu* ViewMenu = [[FCocoaMenu new] autorelease];
-			[ViewMenu setTitle:@"View"];
-			NSMenuItem* ViewMenuItem = [[NSMenuItem new] autorelease];
-			[ViewMenuItem setSubmenu:ViewMenu];
-			[[NSApp mainMenu] addItem:ViewMenuItem];
-
-			NSMenuItem* ToggleFullscreenItem = [[[NSMenuItem alloc] initWithTitle:@"Enter Full Screen" action:@selector(toggleFullScreen:) keyEquivalent:@"f"] autorelease];
-			[ToggleFullscreenItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSControlKeyMask];
-			[ViewMenu addItem:ToggleFullscreenItem];
-		}
-		
-		UpdateWindowMenu();
-	}
-
-	if (!MacApplication)
-	{
-		// No MacApplication means that app is a dedicated server, commandline tool or the editor running a commandlet. In these cases we don't want macOS to put our app into App Nap mode.
-		CommandletActivity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiated reason:IsRunningCommandlet() ? @"Running commandlet" : @"Running dedicated server"];
-		[CommandletActivity retain];
-	}
-}
-
 void FMacPlatformMisc::PlatformTearDown()
 {
-	if (CommandletActivity)
-	{
-		MainThreadCall(^{
-			[[NSProcessInfo processInfo] endActivity:CommandletActivity];
-			[CommandletActivity release];
-		}, NSDefaultRunLoopMode, false);
-		CommandletActivity = nil;
-	}
 	FApplePlatformSymbolication::EnableCoreSymbolication(false);
 	
 	if (GMacAppInfo.StdErrPipe)
@@ -554,39 +465,6 @@ void FMacPlatformMisc::PlatformTearDown()
 		
 		[GMacAppInfo.StdErrPipe release];
 	}
-}
-
-void FMacPlatformMisc::UpdateWindowMenu()
-{
-	NSMenu* WindowMenu = [NSApp windowsMenu];
-	if (!WindowMenu)
-	{
-		WindowMenu = [[FCocoaMenu new] autorelease];
-		[WindowMenu setTitle:@"Window"];
-		NSMenuItem* WindowMenuItem = [[NSMenuItem new] autorelease];
-		[WindowMenuItem setSubmenu:WindowMenu];
-		[[NSApp mainMenu] addItem:WindowMenuItem];
-		[NSApp setWindowsMenu:WindowMenu];
-	}
-
-	NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
-	NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(zoom:) keyEquivalent:@""] autorelease];
-	NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
-	NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
-
-	[WindowMenu addItem:MinimizeItem];
-	[WindowMenu addItem:ZoomItem];
-	[WindowMenu addItem:CloseItem];
-	[WindowMenu addItem:[NSMenuItem separatorItem]];
-	[WindowMenu addItem:BringAllToFrontItem];
-	[WindowMenu addItem:[NSMenuItem separatorItem]];
-}
-
-void FMacPlatformMisc::ActivateApplication()
-{
-	MainThreadCall(^{
-		[NSApp activateIgnoringOtherApps:YES];
-	}, NSDefaultRunLoopMode, false);
 }
 
 void FMacPlatformMisc::SetEnvironmentVar(const TCHAR* InVariableName, const TCHAR* Value)
@@ -663,23 +541,6 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 	return Result;
 }
 
-void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
-{
-	if( bFromMainLoop )
-	{
-		ProcessGameThreadEvents();
-
-		if (MacApplication && !MacApplication->IsProcessingDeferredEvents() && IsInGameThread())
-		{
-			if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate)
-			{
-				UpdateCachedMacMenuState();
-				bChachedMacMenuStateNeedsUpdate = false;
-			}
-		}
-	}
-}
-
 void FMacPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogMac, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );
@@ -699,181 +560,18 @@ void FMacPlatformMisc::RequestExit( bool Force )
 	}
 }
 
-void FMacPlatformMisc::RequestMinimize()
-{
-	[NSApp hide : nil];
-}
+CORE_API TFunction<EAppReturnType::Type(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)> MessageBoxExtCallback;
 
 EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
-	FSlowHeartBeatScope SuspendHeartBeat;
-
-	SCOPED_AUTORELEASE_POOL;
-
-	EAppReturnType::Type ReturnValue = MainThreadReturn(^{
-		EAppReturnType::Type RetValue = EAppReturnType::Cancel;
-		NSInteger Result;
-
-		NSAlert* AlertPanel = [NSAlert new];
-		[AlertPanel setInformativeText:FString(Text).GetNSString()];
-		[AlertPanel setMessageText:FString(Caption).GetNSString()];
-
-		switch (MsgType)
-		{
-			case EAppMsgType::Ok:
-				[AlertPanel addButtonWithTitle:@"OK"];
-				[AlertPanel runModal];
-				RetValue = EAppReturnType::Ok;
-				break;
-
-			case EAppMsgType::YesNo:
-				[AlertPanel addButtonWithTitle:@"Yes"];
-				[AlertPanel addButtonWithTitle:@"No"];
-				Result = [AlertPanel runModal];
-				if (Result == NSAlertFirstButtonReturn)
-				{
-					RetValue = EAppReturnType::Yes;
-				}
-				else if (Result == NSAlertSecondButtonReturn)
-				{
-					RetValue = EAppReturnType::No;
-				}
-				break;
-
-			case EAppMsgType::OkCancel:
-				[AlertPanel addButtonWithTitle:@"OK"];
-				[AlertPanel addButtonWithTitle:@"Cancel"];
-				Result = [AlertPanel runModal];
-				if (Result == NSAlertFirstButtonReturn)
-				{
-					RetValue = EAppReturnType::Ok;
-				}
-				else if (Result == NSAlertSecondButtonReturn)
-				{
-					RetValue = EAppReturnType::Cancel;
-				}
-				break;
-
-			case EAppMsgType::YesNoCancel:
-				[AlertPanel addButtonWithTitle:@"Yes"];
-				[AlertPanel addButtonWithTitle:@"No"];
-				[AlertPanel addButtonWithTitle:@"Cancel"];
-				Result = [AlertPanel runModal];
-				if (Result == NSAlertFirstButtonReturn)
-				{
-					RetValue = EAppReturnType::Yes;
-				}
-				else if (Result == NSAlertSecondButtonReturn)
-				{
-					RetValue = EAppReturnType::No;
-				}
-				else
-				{
-					RetValue = EAppReturnType::Cancel;
-				}
-				break;
-
-			case EAppMsgType::CancelRetryContinue:
-				[AlertPanel addButtonWithTitle:@"Continue"];
-				[AlertPanel addButtonWithTitle:@"Retry"];
-				[AlertPanel addButtonWithTitle:@"Cancel"];
-				Result = [AlertPanel runModal];
-				if (Result == NSAlertFirstButtonReturn)
-				{
-					RetValue = EAppReturnType::Continue;
-				}
-				else if (Result == NSAlertSecondButtonReturn)
-				{
-					RetValue = EAppReturnType::Retry;
-				}
-				else
-				{
-					RetValue = EAppReturnType::Cancel;
-				}
-				break;
-
-			case EAppMsgType::YesNoYesAllNoAll:
-				[AlertPanel addButtonWithTitle:@"Yes"];
-				[AlertPanel addButtonWithTitle:@"No"];
-				[AlertPanel addButtonWithTitle:@"Yes to all"];
-				[AlertPanel addButtonWithTitle:@"No to all"];
-				Result = [AlertPanel runModal];
-				if (Result == NSAlertFirstButtonReturn)
-				{
-					RetValue = EAppReturnType::Yes;
-				}
-				else if (Result == NSAlertSecondButtonReturn)
-				{
-					RetValue = EAppReturnType::No;
-				}
-				else if (Result == NSAlertThirdButtonReturn)
-				{
-					RetValue = EAppReturnType::YesAll;
-				}
-				else
-				{
-					RetValue = EAppReturnType::NoAll;
-				}
-				break;
-
-			case EAppMsgType::YesNoYesAllNoAllCancel:
-				[AlertPanel addButtonWithTitle:@"Yes"];
-				[AlertPanel addButtonWithTitle:@"No"];
-				[AlertPanel addButtonWithTitle:@"Yes to all"];
-				[AlertPanel addButtonWithTitle:@"No to all"];
-				[AlertPanel addButtonWithTitle:@"Cancel"];
-				Result = [AlertPanel runModal];
-				if (Result == NSAlertFirstButtonReturn)
-				{
-					RetValue = EAppReturnType::Yes;
-				}
-				else if (Result == NSAlertSecondButtonReturn)
-				{
-					RetValue = EAppReturnType::No;
-				}
-				else if (Result == NSAlertThirdButtonReturn)
-				{
-					RetValue = EAppReturnType::YesAll;
-				}
-				else if (Result == NSAlertThirdButtonReturn + 1)
-				{
-					RetValue = EAppReturnType::NoAll;
-				}
-				else
-				{
-					RetValue = EAppReturnType::Cancel;
-				}
-				break;
-
-			case EAppMsgType::YesNoYesAll:
-				[AlertPanel addButtonWithTitle:@"Yes"];
-				[AlertPanel addButtonWithTitle:@"No"];
-				[AlertPanel addButtonWithTitle:@"Yes to all"];
-				Result = [AlertPanel runModal];
-				if (Result == NSAlertFirstButtonReturn)
-				{
-					RetValue = EAppReturnType::Yes;
-				}
-				else if (Result == NSAlertSecondButtonReturn)
-				{
-					RetValue = EAppReturnType::No;
-				}
-				else
-				{
-					RetValue = EAppReturnType::YesAll;
-				}
-				break;
-
-			default:
-				break;
-		}
-
-		[AlertPanel release];
-
-		return RetValue;
-	});
-
-	return ReturnValue;
+	if(MessageBoxExtCallback)
+	{
+		return MessageBoxExtCallback(MsgType, Text, Caption);
+	}
+	else
+	{
+		return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
+	}
 }
 
 static bool HandleFirstInstall()
@@ -1282,7 +980,7 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 	for(FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 	{
 		NameComponents.Empty();
-		bool bMatchesName = FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
+		bool bMatchesName = FString(GPU.GPUName).TrimStart().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
 		for (FString& Component : NameComponents)
 		{
 			bMatchesName &= DeviceDescription.Contains(Component);
@@ -1481,14 +1179,6 @@ bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& T
 bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 {
 	return FPlatformMisc::IsDebuggerPresent() || isatty(STDOUT_FILENO) || isatty(STDERR_FILENO);
-}
-
-#include "ModuleManager.h"
-
-void FMacPlatformMisc::LoadPreInitModules()
-{
-	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
-	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
 }
 
 FString FMacPlatformMisc::GetCPUVendor()

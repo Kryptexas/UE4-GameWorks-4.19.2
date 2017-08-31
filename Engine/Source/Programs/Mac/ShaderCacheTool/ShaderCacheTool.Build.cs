@@ -13,6 +13,7 @@ public class ShaderCacheTool : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string []
 			{
 				"Core",
+				"ApplicationCore",
 				"Projects",
 				"ShaderCore",
 			});

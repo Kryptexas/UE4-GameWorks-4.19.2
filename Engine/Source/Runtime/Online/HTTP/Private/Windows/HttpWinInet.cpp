@@ -1080,8 +1080,8 @@ void FHttpResponseWinInet::ProcessResponseHeaders()
 			FString HeaderKey,HeaderValue;
 			if (HeaderLine.Split(TEXT(":"), &HeaderKey, &HeaderValue, ESearchCase::CaseSensitive))
 			{
-				HeaderKey = HeaderKey.Trim().TrimTrailing();
-				HeaderValue = HeaderValue.Trim().TrimTrailing();
+				HeaderKey.TrimStartAndEndInline();
+				HeaderValue.TrimStartAndEndInline();
 				if (!HeaderKey.IsEmpty() && !HeaderValue.IsEmpty())
 				{
 					FString* PreviousValue = ResponseHeaders.Find(HeaderKey);
@@ -1090,7 +1090,8 @@ void FHttpResponseWinInet::ProcessResponseHeaders()
 					{
 						NewValue = (*PreviousValue) + TEXT(", ");
 					}
-					NewValue += HeaderValue.Trim();
+					HeaderValue.TrimStartInline();
+					NewValue += HeaderValue;
 					ResponseHeaders.Add(HeaderKey, NewValue);
 				}
 			}

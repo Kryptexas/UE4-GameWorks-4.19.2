@@ -19,25 +19,20 @@ class TFunction;
  */
 struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 {
-	static void RequestMinimize();
 	static void RequestExit( bool Force );
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static void LocalPrint(const TCHAR *Message);
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static void PlatformTearDown();
 	static void PlatformHandleSplashScreen(bool ShowSplashScreen);
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
-	static void* GetHardwareWindow();
-	static void SetHardwareWindow(void* InWindow);
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static bool AllowRenderThread();
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool ShouldDisablePluginAtRuntime(const FString& PluginName);
 	static bool SupportsES30();
-	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& OutScreenDensity);
 
 public:
 
@@ -73,8 +68,6 @@ public:
 
 	static FCPUState& GetCPUState();
 	static int32 NumberOfCores();
-	static void LoadPreInitModules();
-	static void BeforeRenderThreadStarts();
 	static bool SupportsLocalCaching();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 	// NOTE: THIS FUNCTION IS DEFINED IN ANDROIDOPENGL.CPP
@@ -144,7 +137,6 @@ public:
 	static ReInitWindowCallbackType GetOnReInitWindowCallback();
 	static void SetOnReInitWindowCallback(ReInitWindowCallbackType InOnReInitWindowCallback);
 	static FString GetOSVersion();
-	static float GetWindowUpscaleFactor();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();
@@ -200,8 +192,6 @@ public:
 	*/
 	static void EndNamedEvent();
 #endif
-
-	static void* NativeWindow ; //raw platform Main window
 
 #if STATS
 	static int32 TraceMarkerFileDescriptor;

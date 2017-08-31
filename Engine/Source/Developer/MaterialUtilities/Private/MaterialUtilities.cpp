@@ -54,12 +54,12 @@ TArray<UTextureRenderTarget2D*> FMaterialUtilities::RenderTargetPool;
 
 void FMaterialUtilities::StartupModule()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FMaterialUtilities::OnPreGarbageCollect);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FMaterialUtilities::OnPreGarbageCollect);
 }
 
 void FMaterialUtilities::ShutdownModule()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().RemoveAll(this);
 	ClearRenderTargetPool();
 }
 

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 [Help(@"Builds/Cooks/Runs a project.
 
@@ -273,7 +274,7 @@ public class BuildCookRun : BuildCommand
 		RenameFile(CombinePaths(Dest, Sample + ".uproject"), CombinePaths(Dest, DestSample + ".uproject"));
 
 		var IniFile = CombinePaths(Dest, "Config", "DefaultEngine.ini");
-		var Ini = new VersionFileUpdater(IniFile);
+		var Ini = new VersionFileUpdater(new FileReference(IniFile));
 		Ini.ReplaceLine("GameName=", DestSample);
 		Ini.Commit();
 	}
@@ -299,7 +300,7 @@ public class BuildCookRun : BuildCommand
 		//RenameFile(CombinePaths(Dest, Sample + ".uproject"), CombinePaths(Dest, DestSample + ".uproject"));
 
 		var IniFile = CombinePaths(Dest, "Config", "DefaultEngine.ini");
-		var Ini = new VersionFileUpdater(IniFile);
+		var Ini = new VersionFileUpdater(new FileReference(IniFile));
 		Ini.ReplaceLine("GameName=", DestSample);
 		Ini.Commit();
 	}

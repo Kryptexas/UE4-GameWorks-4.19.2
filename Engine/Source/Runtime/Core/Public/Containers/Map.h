@@ -554,24 +554,27 @@ protected:
 	typedef TSet<ElementType, KeyFuncs, SetAllocator> ElementSetType;
 
 	/** The base of TMapBase iterators. */
-	template<bool bConst>
+	template<bool bConst, bool bRangedFor = false>
 	class TBaseIterator
 	{
 	public:
-		typedef typename TChooseClass<bConst,typename ElementSetType::TConstIterator,typename ElementSetType::TIterator>::Result PairItType;
+		typedef typename TChooseClass<
+			bConst,
+			typename TChooseClass<bRangedFor, typename ElementSetType::TRangedForConstIterator, typename ElementSetType::TConstIterator>::Result,
+			typename TChooseClass<bRangedFor, typename ElementSetType::TRangedForIterator,      typename ElementSetType::TIterator     >::Result
+		>::Result PairItType;
 	private:
 		typedef typename TChooseClass<bConst,const TMapBase,TMapBase>::Result MapType;
 		typedef typename TChooseClass<bConst,const KeyType,KeyType>::Result ItKeyType;
 		typedef typename TChooseClass<bConst,const ValueType,ValueType>::Result ItValueType;
 		typedef typename TChooseClass<bConst,const typename ElementSetType::ElementType, typename ElementSetType::ElementType>::Result PairType;
 
-	protected:
+	public:
 		FORCEINLINE TBaseIterator(const PairItType& InElementIt)
 			: PairIt(InElementIt)
 		{
 		}
 
-	public:
 		FORCEINLINE TBaseIterator& operator++()
 		{
 			++PairIt;
@@ -654,19 +657,10 @@ public:
 
 		/** Initialization constructor. */
 		FORCEINLINE TIterator(TMapBase& InMap, bool bInRequiresRehashOnRemoval = false)
-			: TBaseIterator<false>    (begin(InMap.Pairs))
+			: TBaseIterator<false>    (InMap.Pairs.CreateIterator())
 			, Map                     (InMap)
 			, bElementsHaveBeenRemoved(false)
 			, bRequiresRehashOnRemoval(bInRequiresRehashOnRemoval)
-		{
-		}
-
-		/** Initialization constructor. */
-		FORCEINLINE TIterator(TMapBase& InMap, const typename TBaseIterator<false>::PairItType& InPairIt)
-			: TBaseIterator<false>    (InPairIt)
-			, Map                     (InMap)
-			, bElementsHaveBeenRemoved(false)
-			, bRequiresRehashOnRemoval(false)
 		{
 		}
 
@@ -697,15 +691,13 @@ public:
 	{
 	public:
 		FORCEINLINE TConstIterator(const TMapBase& InMap)
-			: TBaseIterator<true>(begin(InMap.Pairs))
-		{
-		}
-
-		FORCEINLINE TConstIterator(const typename TBaseIterator<true>::PairItType& InPairIt)
-			: TBaseIterator<true>(InPairIt)
+			: TBaseIterator<true>(InMap.Pairs.CreateConstIterator())
 		{
 		}
 	};
+
+	using TRangedForIterator      = TBaseIterator<false, true>;
+	using TRangedForConstIterator = TBaseIterator<true, true>;
 
 	/** Iterates over values associated with a specified key in a const map. */
 	class TConstKeyIterator : public TBaseKeyIterator<true>
@@ -760,10 +752,10 @@ private:
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	FORCEINLINE friend TIterator      begin(      TMapBase& MapBase) { return TIterator     (MapBase, begin(MapBase.Pairs)); }
-	FORCEINLINE friend TConstIterator begin(const TMapBase& MapBase) { return TConstIterator(         begin(MapBase.Pairs)); }
-	FORCEINLINE friend TIterator      end  (      TMapBase& MapBase) { return TIterator     (MapBase, end  (MapBase.Pairs)); }
-	FORCEINLINE friend TConstIterator end  (const TMapBase& MapBase) { return TConstIterator(         end  (MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForIterator      begin(      TMapBase& MapBase) { return TRangedForIterator     (begin(MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForConstIterator begin(const TMapBase& MapBase) { return TRangedForConstIterator(begin(MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForIterator      end  (      TMapBase& MapBase) { return TRangedForIterator     (end  (MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForConstIterator end  (const TMapBase& MapBase) { return TRangedForConstIterator(end  (MapBase.Pairs)); }
 };
 
 

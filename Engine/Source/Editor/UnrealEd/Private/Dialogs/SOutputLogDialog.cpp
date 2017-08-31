@@ -183,7 +183,7 @@ FVector2D SOutputLogDialog::ComputeDesiredSize(float LayoutScaleMultiplier) cons
 
 void SOutputLogDialog::CopyMessageToClipboard( )
 {
-	FString FullMessage = FString::Printf(TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), *Header.ToString(), *Log.ToString(), *Footer.ToString()).Trim();
+	FString FullMessage = FString::Printf(TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), *Header.ToString(), *Log.ToString(), *Footer.ToString()).TrimStart();
 	FPlatformApplicationMisc::ClipboardCopy( *FullMessage );
 }
 

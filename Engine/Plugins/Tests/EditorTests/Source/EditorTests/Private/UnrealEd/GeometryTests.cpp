@@ -333,12 +333,12 @@ bool FBSPCubePlacement::RunTest(const FString& Parameters)
 
 		if (FoundBrush->BrushType == EBrushType::Brush_Add)
 		{
-			AdditiveBSP = Cast<ABrush>(FoundBrush);
+			AdditiveBSP = FoundBrush;
 			BrushCount++;
 		}
 		else if (FoundBrush->BrushType == EBrushType::Brush_Subtract)
 		{
-			SubtractiveBSP = Cast<ABrush>(FoundBrush);
+			SubtractiveBSP = FoundBrush;
 			BrushCount++;
 		}
 	}
@@ -387,7 +387,7 @@ bool FBSPCubePlacement::RunTest(const FString& Parameters)
 
 	//** TEARDOWN **//
 	// Set the default builder brush back to its original state.
-	World->GetDefaultBrush()->BrushBuilder = Cast<UBrushBuilder>(DefaultBuilderBrush);
+	World->GetDefaultBrush()->BrushBuilder = DefaultBuilderBrush;
 
 	return true;
 }

@@ -240,7 +240,8 @@ void FHTML5HttpRequest::ReceiveCallback(void *arg, void *buffer, uint32 size, vo
 					{
 						NewValue = (*PreviousValue) + TEXT(", ");
 					}
-					NewValue += HeaderValue.Trim();
+					HeaderValue.TrimStartInline();
+					NewValue += HeaderValue;
 					Response->Headers.Add(HeaderKey, NewValue);
 				}
 			}

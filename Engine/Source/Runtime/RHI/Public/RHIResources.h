@@ -15,7 +15,7 @@
 #include "HAL/ThreadSafeCounter.h"
 #include "RHIDefinitions.h"
 #include "Templates/RefCounting.h"
-#include "Runtime/Engine/Public/PixelFormat.h"
+#include "PixelFormat.h"
 #include "Containers/LockFreeList.h"
 #include "Misc/SecureHash.h"
 

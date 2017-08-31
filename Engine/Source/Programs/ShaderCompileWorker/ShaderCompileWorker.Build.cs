@@ -14,6 +14,7 @@ public class ShaderCompileWorker : ModuleRules
 				"ShaderCore",
 				"SandboxFile",
 				"TargetPlatform",
+				"ApplicationCore"
 			});
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)

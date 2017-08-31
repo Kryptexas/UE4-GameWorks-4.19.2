@@ -1057,6 +1057,9 @@ public:
 	/** Releases this material's shader map.  Must only be called on materials not exposed to the rendering thread! */
 	void ReleaseShaderMap();
 
+	/** Discards loaded shader maps if the application can't render */
+	void DiscardShaderMap();
+
 	// Material properties.
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
 	virtual EMaterialDomain GetMaterialDomain() const = 0; // See EMaterialDomain.

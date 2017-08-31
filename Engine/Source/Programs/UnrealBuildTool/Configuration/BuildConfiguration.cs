@@ -5,6 +5,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Xml;
 using System.Reflection;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {

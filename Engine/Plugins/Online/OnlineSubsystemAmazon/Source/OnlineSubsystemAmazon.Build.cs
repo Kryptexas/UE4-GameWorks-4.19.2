@@ -14,6 +14,7 @@ public class OnlineSubsystemAmazon : ModuleRules
 			new string[] {
 				"Core", 
                 "CoreUObject",
+				"ApplicationCore",
 				"HTTP",
 				"Json",
                 "OnlineSubsystem", 

@@ -364,7 +364,7 @@ bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFram
 	TArray<FShotData> ShotDataArray;
 	ParseFromEDL(InputString, InFrameRate, ShotDataArray);
 
-	UMovieSceneCinematicShotTrack* CinematicShotTrack = Cast<UMovieSceneCinematicShotTrack>(InMovieScene->FindMasterTrack<UMovieSceneCinematicShotTrack>());
+	UMovieSceneCinematicShotTrack* CinematicShotTrack = InMovieScene->FindMasterTrack<UMovieSceneCinematicShotTrack>();
 	if (!CinematicShotTrack)
 	{
 		CinematicShotTrack = InMovieScene->AddMasterTrack<UMovieSceneCinematicShotTrack>();
@@ -508,16 +508,17 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 	for (auto SaveFilename : SaveFilenames)
 	{
 		FString OutputString;
+		const FString SaveFilenameExtension = FPaths::GetExtension(SaveFilename);
 
-		if (FPaths::GetExtension(SaveFilename).ToUpper() == TEXT("EDL"))
+		if (SaveFilenameExtension == TEXT("EDL"))
 		{
 			FormatForEDL(OutputString, SequenceName, InFrameRate, ShotDataArray);
 		}
-		else if (FPaths::GetExtension(SaveFilename).ToUpper() == TEXT("RV"))
+		else if (SaveFilenameExtension == TEXT("RV"))
 		{
 			FormatForRV(OutputString, SequenceName, InFrameRate, ShotDataArray);
 		}
-		else if (FPaths::GetExtension(SaveFilename).ToUpper() == TEXT("BAT"))
+		else if (SaveFilenameExtension == TEXT("BAT"))
 		{
 			FormatForRVBat(OutputString, SequenceName, InFrameRate, ShotDataArray);
 		}

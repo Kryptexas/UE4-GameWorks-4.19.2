@@ -247,12 +247,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 
 	if(LightComponent->IESTexture)
 	{
-		UTextureLightProfile* IESTextureObject = Cast<UTextureLightProfile>(LightComponent->IESTexture);
-
-		if(IESTextureObject)
-		{
-			IESTexture = IESTextureObject;
-		}
+		IESTexture = LightComponent->IESTexture;
 	}
 
 	Color = FLinearColor(InLightComponent->LightColor) * LightBrightness;
@@ -389,17 +384,12 @@ float ULightComponent::ComputeLightBrightness() const
 
 	if(IESTexture)
 	{
-		UTextureLightProfile* IESTextureObject = Cast<UTextureLightProfile>(IESTexture);
-
-		if(IESTextureObject)
+		if(bUseIESBrightness)
 		{
-			if(bUseIESBrightness)
-			{
-				LightBrightness = IESTextureObject->Brightness * IESBrightnessScale;
-			}
-
-			LightBrightness *= IESTextureObject->TextureMultiplier;
+			LightBrightness = IESTexture->Brightness * IESBrightnessScale;
 		}
+
+		LightBrightness *= IESTexture->TextureMultiplier;
 	}
 
 	return LightBrightness;
@@ -447,14 +437,9 @@ void ULightComponent::PostLoad()
 	{
 		if(IESTexture)
 		{
-			UTextureLightProfile* IESTextureObject = Cast<UTextureLightProfile>(IESTexture);
-
-			if(IESTextureObject)
-			{
-				Intensity /= IESTextureObject->TextureMultiplier; // Previous version didn't apply IES texture multiplier, so cancel out
-				IESBrightnessScale = FMath::Pow(IESBrightnessScale, 2.2f); // Previous version applied 2.2 gamma to brightness scale
-				IESBrightnessScale /= IESTextureObject->TextureMultiplier; // Previous version didn't apply IES texture multiplier, so cancel out
-			}
+			Intensity /= IESTexture->TextureMultiplier; // Previous version didn't apply IES texture multiplier, so cancel out
+			IESBrightnessScale = FMath::Pow(IESBrightnessScale, 2.2f); // Previous version applied 2.2 gamma to brightness scale
+			IESBrightnessScale /= IESTexture->TextureMultiplier; // Previous version didn't apply IES texture multiplier, so cancel out
 		}
 	}
 }

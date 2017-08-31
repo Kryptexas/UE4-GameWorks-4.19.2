@@ -26,7 +26,7 @@ public:
 	void ReplaceKey(const FString& MatchPrefix, const FString& MatchSuffix, const FString& NewInfix);
 
 	// Finalizes the updater, and writes it back to the file, returning true if successful, and false if there were any errors
-	bool Finalize(const FString& TargetFilename, bool bShowNotifyOnFailure = true, FFileHelper::EEncodingOptions::Type EncodingOption = FFileHelper::EEncodingOptions::AutoDetect);
+	bool Finalize(const FString& TargetFilename, bool bShowNotifyOnFailure = true, FFileHelper::EEncodingOptions EncodingOption = FFileHelper::EEncodingOptions::AutoDetect);
 
 	// Returns the first error message
 	FText GetFirstErrorMessage() const { return FirstErrorMessage; }

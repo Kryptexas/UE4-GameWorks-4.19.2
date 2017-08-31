@@ -8,6 +8,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using System.ComponentModel;
 using System.Runtime.Serialization;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -286,12 +287,7 @@ namespace UnrealBuildTool
 		public UnrealTargetConfiguration Configuration;
 
 		/// <summary>
-		/// The unique ID for this build.
-		/// </summary>
-		public string BuildId;
-
-		/// <summary>
-		/// The changelist that this target was compiled with.
+		/// Version information for this target.
 		/// </summary>
 		public BuildVersion Version;
 
@@ -333,14 +329,12 @@ namespace UnrealBuildTool
 		/// <param name="InTargetName">The name of the target being compiled</param>
 		/// <param name="InPlatform">Platform for the target being compiled</param>
 		/// <param name="InConfiguration">Configuration of the target being compiled</param>
-		/// <param name="InBuildId">The current unique build id</param>
 		/// <param name="InVersion">Version information for the target</param>
-		public TargetReceipt(string InTargetName, UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, string InBuildId, BuildVersion InVersion)
+		public TargetReceipt(string InTargetName, UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, BuildVersion InVersion)
 		{
 			TargetName = InTargetName;
 			Platform = InPlatform;
 			Configuration = InConfiguration;
-			BuildId = InBuildId;
 			Version = InVersion;
 		}
 
@@ -481,13 +475,12 @@ namespace UnrealBuildTool
 		/// <param name="ProjectDir">Project directory for expanded variables</param>
 		public static TargetReceipt Read(FileReference Location, DirectoryReference EngineDir, DirectoryReference ProjectDir)
 		{
-			JsonObject RawObject = JsonObject.Read(Location.FullName);
+			JsonObject RawObject = JsonObject.Read(Location);
 
 			// Read the initial fields
 			string TargetName = RawObject.GetStringField("TargetName");
 			UnrealTargetPlatform Platform = RawObject.GetEnumField<UnrealTargetPlatform>("Platform");
 			UnrealTargetConfiguration Configuration = RawObject.GetEnumField<UnrealTargetConfiguration>("Configuration");
-			string BuildId = RawObject.GetStringField("BuildId");
 
 			// Try to read the build version
 			BuildVersion Version;
@@ -497,7 +490,7 @@ namespace UnrealBuildTool
 			}
 
 			// Create the receipt
-			TargetReceipt Receipt = new TargetReceipt(TargetName, Platform, Configuration, BuildId, Version);
+			TargetReceipt Receipt = new TargetReceipt(TargetName, Platform, Configuration, Version);
 
 			// Read the build products
 			JsonObject[] BuildProductObjects;
@@ -638,7 +631,6 @@ namespace UnrealBuildTool
 				Writer.WriteValue("TargetName", TargetName);
 				Writer.WriteValue("Platform", Platform.ToString());
 				Writer.WriteValue("Configuration", Configuration.ToString());
-				Writer.WriteValue("BuildId", BuildId);
 
 				Writer.WriteObjectStart("Version");
 				Version.WriteProperties(Writer);

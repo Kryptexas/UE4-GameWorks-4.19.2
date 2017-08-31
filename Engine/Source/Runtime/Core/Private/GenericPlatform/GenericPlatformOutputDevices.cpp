@@ -122,16 +122,3 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 	return Singleton.LogDevice.Get();
 }
 
-
-class FOutputDeviceError* FGenericPlatformOutputDevices::GetError()
-{
-	static FOutputDeviceAnsiError Singleton;
-	return &Singleton;
-}
-
-
-class FFeedbackContext* FGenericPlatformOutputDevices::GetWarn()
-{
-	static FFeedbackContextAnsi Singleton;
-	return &Singleton;
-}

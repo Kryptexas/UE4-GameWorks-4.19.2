@@ -3252,7 +3252,7 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	CurrentCookMode = DesiredCookMode;
 	CookFlags = InCookFlags;
 
-	FCoreUObjectDelegates::PreGarbageCollect.AddUObject(this, &UCookOnTheFlyServer::PreGarbageCollect);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddUObject(this, &UCookOnTheFlyServer::PreGarbageCollect);
 
 	if (IsCookByTheBookMode() && !IsCookingInEditor())
 	{

@@ -2064,7 +2064,7 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 				}
 
 				// Lookup this material from the list that was parsed out of the global ini file
-				Left = Left.Trim();
+				Left.TrimStartInline();
 				UMaterial* Material = BufferVisualizationData.GetMaterial(*Left);
 
 				if (Material == NULL && Left.Len() > 0)

@@ -328,7 +328,7 @@ void FPreviewSceneDescriptionCustomization::HandleAnimationModeChanged()
 		PreviewScene.Pin()->ShowReferencePose(true);
 		break;
 	case EPreviewAnimationMode::UseSpecificAnimation:
-		PreviewScene.Pin()->SetPreviewAnimationAsset(Cast<UAnimationAsset>(PersonaPreviewSceneDescription->Animation.LoadSynchronous()));
+		PreviewScene.Pin()->SetPreviewAnimationAsset(PersonaPreviewSceneDescription->Animation.LoadSynchronous());
 		break;
 	}
 }

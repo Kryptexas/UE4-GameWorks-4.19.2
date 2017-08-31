@@ -43,7 +43,7 @@ UPhononReverbSettingsFactory::UPhononReverbSettingsFactory(const FObjectInitiali
 UObject* UPhononReverbSettingsFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context,
 	FFeedbackContext* Warn)
 {
-	return Cast<UObject>(NewObject<UPhononReverbSourceSettings>(InParent, InName, Flags));
+	return NewObject<UPhononReverbSourceSettings>(InParent, InName, Flags);
 }
 
 uint32 UPhononReverbSettingsFactory::GetMenuCategories() const

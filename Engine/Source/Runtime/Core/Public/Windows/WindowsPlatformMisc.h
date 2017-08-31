@@ -12,7 +12,7 @@ struct FVector2D;
 class IPlatformChunkInstall;
 
 /** Helper struct used to get the string version of the Windows version. */
-struct FWindowsOSVersionHelper
+struct CORE_API FWindowsOSVersionHelper
 {
 	enum ErrorCodes
 	{
@@ -86,7 +86,6 @@ struct CORE_API FWindowsPlatformMisc
 	static void SetUTF8Output();
 	static void LocalPrint(const TCHAR *Message);
 	static void RequestExit(bool Force);
-	static void RequestMinimize();
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
 	static void CreateGuid(struct FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
@@ -95,8 +94,6 @@ struct CORE_API FWindowsPlatformMisc
 	static bool IsValidAbsolutePathFormat(const FString& Path);
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
-	static void LoadPreInitModules();
-	static void LoadStartupModules();
 
 	static FString GetDefaultLanguage();
 	static FString GetDefaultLocale();

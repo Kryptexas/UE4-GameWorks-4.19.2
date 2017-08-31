@@ -193,7 +193,8 @@ protected:
 			// add in the thread size, since it's allocated in a black box we can't track
 			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, nullptr, InStackSize));
 
-			Thread = CreateThread(NULL, InStackSize, _ThreadProc, this, STACK_SIZE_PARAM_IS_A_RESERVATION, (::DWORD *)&ThreadID);
+			// Create the thread as suspended, so we can ensure ThreadId is initialized and the thread manager knows about the thread before it runs.
+			Thread = CreateThread(NULL, InStackSize, _ThreadProc, this, STACK_SIZE_PARAM_IS_A_RESERVATION | CREATE_SUSPENDED, (::DWORD *)&ThreadID);
 		}
 
 		// If it fails, clear all the vars
@@ -204,6 +205,7 @@ protected:
 		else
 		{
 			FThreadManager::Get().AddThread(ThreadID, this);
+			ResumeThread(Thread);
 
 			// Let the thread start up, then set the name for debug purposes.
 			ThreadInitSyncEvent->Wait(INFINITE);

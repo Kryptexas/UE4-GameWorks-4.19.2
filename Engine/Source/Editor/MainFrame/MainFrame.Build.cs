@@ -18,6 +18,7 @@ public class MainFrame : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Engine",
 				"EngineSettings",
                 "InputCore",

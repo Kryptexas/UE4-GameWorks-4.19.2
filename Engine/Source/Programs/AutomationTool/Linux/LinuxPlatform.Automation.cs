@@ -8,7 +8,7 @@ using System.IO;
 using System.Diagnostics;
 using AutomationTool;
 using UnrealBuildTool;
-
+using Tools.DotNETCommon;
 
 public abstract class BaseLinuxPlatform : Platform
 {

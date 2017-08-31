@@ -15,51 +15,12 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Stores information about a project
 	/// </summary>
-	public class UProjectInfo
+	public static class UProjectInfo
 	{
-		/// <summary>
-		/// Name of the project
-		/// </summary>
-		public string GameName;
-
-		/// <summary>
-		/// Name of the .uproject file
-		/// </summary>
-		public string FileName;
-
-		/// <summary>
-		/// Full path to the project on disk
-		/// </summary>
-		public FileReference FilePath;
-
-		/// <summary>
-		/// Folder containing the project
-		/// </summary>
-		public DirectoryReference Folder;
-
-		/// <summary>
-		/// Whether the project has source code
-		/// </summary>
-		public bool bIsCodeProject;
-
-		UProjectInfo(FileReference InFilePath, bool bInIsCodeProject)
-		{
-			GameName = InFilePath.GetFileNameWithoutExtension();
-			FileName = InFilePath.GetFileName();
-			FilePath = InFilePath;
-			Folder = FilePath.Directory;
-			bIsCodeProject = bInIsCodeProject;
-		}
-
 		/// <summary>
 		/// Map of relative or complete project file names to the project info
 		/// </summary>
-		static Dictionary<FileReference, UProjectInfo> ProjectInfoDictionary = new Dictionary<FileReference, UProjectInfo>();
-
-		/// <summary>
-		/// Map of short project file names to the relative or complete project file name
-		/// </summary>
-		static Dictionary<string, FileReference> ShortProjectNameDictionary = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
+		static HashSet<FileReference> ProjectFiles = new HashSet<FileReference>();
 
 		/// <summary>
 		/// Map of target names to the relative or complete project file name
@@ -86,9 +47,9 @@ namespace UnrealBuildTool
 			foreach (string TargetFilename in Files)
 			{
 				bFoundTargetFiles = true;
-				foreach (KeyValuePair<FileReference, UProjectInfo> Entry in ProjectInfoDictionary)
+				foreach (FileReference ProjectFile in ProjectFiles)
 				{
-					FileInfo ProjectFileInfo = new FileInfo(Entry.Key.FullName);
+					FileInfo ProjectFileInfo = new FileInfo(ProjectFile.FullName);
 					string ProjectDir = ProjectFileInfo.DirectoryName.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 					if (TargetFilename.StartsWith(ProjectDir, StringComparison.InvariantCultureIgnoreCase))
 					{
@@ -97,7 +58,7 @@ namespace UnrealBuildTool
 						string TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetInfo.Name);
 						if (TargetToProjectDictionary.ContainsKey(TargetName) == false)
 						{
-							TargetToProjectDictionary.Add(TargetName, Entry.Key);
+							TargetToProjectDictionary.Add(TargetName, ProjectFile);
 						}
 					}
 				}
@@ -147,7 +108,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void AddProject(FileReference ProjectFile)
 		{
-			if (!ProjectInfoDictionary.ContainsKey(ProjectFile))
+			if (ProjectFiles.Add(ProjectFile))
 			{
 				DirectoryReference ProjectDirectory = ProjectFile.Directory;
 
@@ -155,18 +116,6 @@ namespace UnrealBuildTool
 				DirectoryReference SourceFolder = DirectoryReference.Combine(ProjectDirectory, "Source");
 				DirectoryReference IntermediateSourceFolder = DirectoryReference.Combine(ProjectDirectory, "Intermediate", "Source");
 				bool bIsCodeProject = DirectoryReference.Exists(SourceFolder) || DirectoryReference.Exists(IntermediateSourceFolder);
-
-				// Create the project, and check the name is unique
-				UProjectInfo NewProjectInfo = new UProjectInfo(ProjectFile, bIsCodeProject);
-				if (ShortProjectNameDictionary.ContainsKey(NewProjectInfo.GameName))
-				{
-					UProjectInfo FirstProject = ProjectInfoDictionary[ShortProjectNameDictionary[NewProjectInfo.GameName]];
-					throw new BuildException("There are multiple projects with name {0}\n\t* {1}\n\t* {2}\nThis is not currently supported.", NewProjectInfo.GameName, FirstProject.FilePath.FullName, NewProjectInfo.FilePath.FullName);
-				}
-
-				// Add it to the name -> project lookups
-				ProjectInfoDictionary.Add(ProjectFile, NewProjectInfo);
-				ShortProjectNameDictionary.Add(NewProjectInfo.GameName, ProjectFile);
 
 				// Find all Target.cs files if it's a code project
 				if (bIsCodeProject)
@@ -256,18 +205,9 @@ namespace UnrealBuildTool
 		{
 			Log.TraceInformation("Dumping project info...");
 			Log.TraceInformation("\tProjectInfo");
-			foreach (KeyValuePair<FileReference, UProjectInfo> InfoEntry in ProjectInfoDictionary)
+			foreach (FileReference InfoEntry in ProjectFiles)
 			{
-				Log.TraceInformation("\t\t" + InfoEntry.Key);
-				Log.TraceInformation("\t\t\tName          : " + InfoEntry.Value.FileName);
-				Log.TraceInformation("\t\t\tFile Folder   : " + InfoEntry.Value.Folder);
-				Log.TraceInformation("\t\t\tCode Project  : " + (InfoEntry.Value.bIsCodeProject ? "YES" : "NO"));
-			}
-			Log.TraceInformation("\tShortName to Project");
-			foreach (KeyValuePair<string, FileReference> ShortEntry in ShortProjectNameDictionary)
-			{
-				Log.TraceInformation("\t\tShort Name : " + ShortEntry.Key);
-				Log.TraceInformation("\t\tProject    : " + ShortEntry.Value);
+				Log.TraceInformation("\t\t" + InfoEntry);
 			}
 			Log.TraceInformation("\tTarget to Project");
 			foreach (KeyValuePair<string, FileReference> TargetEntry in TargetToProjectDictionary)
@@ -278,42 +218,12 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Filter the list of game projects
+		/// Returns a list of all the projects
 		/// </summary>
-		/// <param name="bOnlyCodeProjects">If true, only return code projects</param>
-		/// <param name="GameNameFilter">Game name to filter against. May be null.</param>
-		public static List<UProjectInfo> FilterGameProjects(bool bOnlyCodeProjects, string GameNameFilter)
+		/// <returns>List of projects</returns>
+		public static IEnumerable<FileReference> AllProjectFiles
 		{
-			List<UProjectInfo> Projects = new List<UProjectInfo>();
-			foreach (KeyValuePair<FileReference, UProjectInfo> Entry in ProjectInfoDictionary)
-			{
-				if (!bOnlyCodeProjects || Entry.Value.bIsCodeProject)
-				{
-					if (string.IsNullOrEmpty(GameNameFilter) || Entry.Value.GameName == GameNameFilter)
-					{
-						Projects.Add(Entry.Value);
-					}
-				}
-			}
-			return Projects;
-		}
-
-		/// <summary>
-		/// Check to see if a project name is a Game
-		/// </summary>
-		/// <param name="GameNameFilter"></param>
-		/// <returns>true if it is a game</returns>
-		public static bool IsGameProject(string GameNameFilter)
-		{
-			List<UProjectInfo> Projects = new List<UProjectInfo>();
-			foreach (KeyValuePair<FileReference, UProjectInfo> Entry in ProjectInfoDictionary)
-			{
-				if(Entry.Value.GameName == GameNameFilter)
-				{
-					return true;
-				}
-			}
-			return false;
+			get { return ProjectFiles; }
 		}
 
 		/// <summary>
@@ -325,85 +235,6 @@ namespace UnrealBuildTool
 		public static bool TryGetProjectForTarget(string InTargetName, out FileReference OutProjectFileName)
 		{
 			return TargetToProjectDictionary.TryGetValue(InTargetName, out OutProjectFileName);
-		}
-
-		/// <summary>
-		/// Get the project folder for the given project name
-		/// </summary>
-		/// <param name="InProjectName">Name of the project of interest</param>
-		/// <param name="OutProjectFileName">The project filename</param>
-		/// <returns>True if the target was found</returns>
-		public static bool TryGetProjectFileName(string InProjectName, out FileReference OutProjectFileName)
-		{
-			return ShortProjectNameDictionary.TryGetValue(InProjectName, out OutProjectFileName);
-		}
-
-		/// <summary>
-		/// Determine if a plugin is enabled for a given project
-		/// </summary>
-		/// <param name="Project">The project to check</param>
-		/// <param name="Plugin">Information about the plugin</param>
-		/// <param name="Platform">The target platform</param>
-		/// <param name="Target"></param>
-		/// <returns>True if the plugin should be enabled for this project</returns>
-		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType Target)
-		{
-			bool bEnabled = Plugin.EnabledByDefault;
-			if (Project != null && Project.Plugins != null)
-			{
-				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
-				{
-					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
-					{
-						bEnabled = PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(Target);
-					}
-				}
-			}
-			return bEnabled;
-		}
-
-        /// <summary>
-        /// Determine if a plugin is enabled for a given project
-        /// </summary>
-        /// <param name="Project">The project to check</param>
-        /// <param name="Plugin">Information about the plugin</param>
-        /// <param name="Platform">The target platform</param>
-        /// <param name="TargetType"></param>
-        /// <param name="bBuildDeveloperTools"></param>
-        /// <param name="bBuildEditor"></param>
-        /// <param name="bBuildRequiresCookedData"></param>
-        /// <returns>True if the plugin should be enabled for this project</returns>
-        public static bool IsPluginDescriptorRequiredForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor, bool bBuildRequiresCookedData)
-		{
-			// Check if it's referenced by name from the project descriptor. If it is, we'll need the plugin to be included with the project regardless of whether it has
-			// any platform-specific modules or content, just so the runtime can make the call.
-			if (Project != null && Project.Plugins != null)
-			{
-				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
-				{
-					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
-					{
-						return PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(TargetType);
-					}
-				}
-			}
-
-			// If the plugin contains content, it should be included for all platforms
-			if(Plugin.Descriptor.bCanContainContent)
-			{
-				return true;
-			}
-
-			// Check if the plugin has any modules for the given target
-			foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
-			{
-				if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor, bBuildRequiresCookedData))
-				{
-					return true;
-				}
-			}
-
-			return false;
 		}
 	}
 }

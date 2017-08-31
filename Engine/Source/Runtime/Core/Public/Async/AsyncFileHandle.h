@@ -96,12 +96,15 @@ public:
 	/** Cancel the request. This is a non-blocking async call and so does not ensure completion! **/
 	FORCEINLINE void Cancel()
 	{
-		bCanceled = true;
-		bDataIsReady = true;
-		FPlatformMisc::MemoryBarrier();
-		if (!PollCompletion())
+		if (!bCanceled)
 		{
-			return CancelImpl();
+			bCanceled = true;
+			bDataIsReady = true;
+			FPlatformMisc::MemoryBarrier();
+			if (!PollCompletion())
+			{
+				return CancelImpl();
+			}
 		}
 	}
 

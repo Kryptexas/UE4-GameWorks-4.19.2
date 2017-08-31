@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/MessageDialog.h"
@@ -1901,7 +1901,7 @@ class FExportReferenceSorter : public FArchiveUObject
 		{
 			FAddFlushInitalizedStaticCoreClasses() 
 			{
-				FCoreUObjectDelegates::PreGarbageCollect.AddStatic(FlushInitalizedStaticCoreClasses);
+				FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddStatic(FlushInitalizedStaticCoreClasses);
 			}
 			/** Wrapper function to handle default parameter when used as function pointer */
 			static void FlushInitalizedStaticCoreClasses()
@@ -3457,8 +3457,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		const FString BaseFilename = FPaths::GetBaseFilename(Filename);
 		// Make temp file. CreateTempFilename guarantees unique, non-existing filename.
 		// The temp file will be saved in the game save folder to not have to deal with potentially too long paths.
+		// Since the temp filename may include a 32 character GUID as well, limit the user prefix to 32 characters.
 		FString TempFilename;
-		TempFilename = FPaths::CreateTempFilename(*FPaths::ProjectSavedDir(), *BaseFilename);
+		TempFilename = FPaths::CreateTempFilename(*FPaths::ProjectSavedDir(), *BaseFilename.Left(32));
 
 		// Init.
 		FString CleanFilename = FPaths::GetCleanFilename(Filename);

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -1040,7 +1041,7 @@ namespace UnrealBuildTool
 
 			// If we've got a changelist set, set that we're making a formal build
 			BuildVersion Version;
-			if (BuildVersion.TryRead(out Version))
+			if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 			{
 				bFormalBuild = (Version.Changelist != 0 && Version.IsPromotedBuild != 0);
 			}
@@ -1295,21 +1296,6 @@ namespace UnrealBuildTool
 			}
 
 			return (OutConfigurations.Count > 0) ? true : false;
-		}
-
-		/// <summary>
-		/// Setup the binaries associated with this target.
-		/// </summary>
-		/// <param name="Target">The target information - such as platform and configuration</param>
-		/// <param name="OutBuildBinaryConfigurations">Output list of binaries to generated</param>
-		/// <param name="OutExtraModuleNames">Output list of extra modules that this target could utilize</param>
-		[ObsoleteOverride("SetupBinaries() is deprecated in the 4.16 release. From the constructor in your .target.cs file, use ExtraModuleNames.Add(\"Foo\") to add modules to your target, or set LaunchModuleName = \"Foo\" to override the name of the launch module for program targets.")]
-		public virtual void SetupBinaries(
-			TargetInfo Target,
-			ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-			ref List<string> OutExtraModuleNames
-			)
-		{
 		}
 
 		/// <summary>
@@ -2070,17 +2056,6 @@ namespace UnrealBuildTool
 		public string UEThirdPartyBinariesDirectory
 		{
 			get { return "../Binaries/ThirdParty/"; }
-		}
-
-		/// <summary>
-		/// Wrapper around TargetRules.SetupBinaries
-		/// </summary>
-		/// <param name="Target">The target information - such as platform and configuration</param>
-		/// <param name="OutBuildBinaryConfigurations">Output list of binaries to generated</param>
-		/// <param name="OutExtraModuleNames">Output list of extra modules that this target could utilize</param>
-		public void SetupBinaries(TargetInfo Target, ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations, ref List<string> OutExtraModuleNames)
-		{
-			Inner.SetupBinaries(Target, ref OutBuildBinaryConfigurations, ref OutExtraModuleNames);
 		}
 
 		/// <summary>

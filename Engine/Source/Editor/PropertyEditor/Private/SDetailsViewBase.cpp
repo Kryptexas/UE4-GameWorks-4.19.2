@@ -555,7 +555,7 @@ void SDetailsViewBase::OnShowAllChildrenIfCategoryMatchesClicked()
 void SDetailsViewBase::OnFilterTextChanged(const FText& InFilterText)
 {
 	FString InFilterString = InFilterText.ToString();
-	InFilterString.Trim().TrimTrailing();
+	InFilterString.TrimStartAndEndInline();
 
 	// Was the filter just cleared
 	bool bFilterCleared = InFilterString.Len() == 0 && CurrentFilter.FilterStrings.Num() > 0;
@@ -601,8 +601,7 @@ void SDetailsViewBase::FilterView(const FString& InFilterText)
 
 	FString ParseString = InFilterText;
 	// Remove whitespace from the front and back of the string
-	ParseString.Trim();
-	ParseString.TrimTrailing();
+	ParseString.TrimStartAndEndInline();
 	ParseString.ParseIntoArray(CurrentFilterStrings, TEXT(" "), true);
 
 	bHasActiveFilter = CurrentFilterStrings.Num() > 0;

@@ -526,7 +526,7 @@ public:
 	*/
 	FORCEINLINE void HandleTokenStreamObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, const int32 TokenIndex, bool bAllowReferenceElimination)
 	{
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+#if ENABLE_GC_OBJECT_CHECKS
 		if (Object)
 		{
 			if (
@@ -554,7 +554,7 @@ public:
 					*TokenDebugInfo, TokenIndex);
 			}
 		}
-#endif
+#endif // ENABLE_GC_OBJECT_CHECKS
 		HandleObjectReference(ObjectsToSerialize, ReferencingObject, Object, bAllowReferenceElimination);
 	}
 };
@@ -562,72 +562,44 @@ public:
 typedef FGCReferenceProcessor<true> FGCReferenceProcessorMultithreaded;
 typedef FGCReferenceProcessor<false> FGCReferenceProcessorSinglethreaded;
 
-/**
-* Specialized FReferenceCollector that uses FGCReferenceProcessor to mark objects as reachable.
-*/
 template <bool bParallel>
-class FGCCollector : public FReferenceCollector
-{
-	FGCReferenceProcessor<bParallel>& ReferenceProcessor;
-	FGCArrayStruct& ObjectArrayStruct;
-	bool bAllowEliminatingReferences;
-
-public:
-
-	FGCCollector(FGCReferenceProcessor<bParallel>& InProcessor, FGCArrayStruct& InObjectArrayStruct)
+FGCCollector<bParallel>::FGCCollector(FGCReferenceProcessor<bParallel>& InProcessor, FGCArrayStruct& InObjectArrayStruct)
 		: ReferenceProcessor(InProcessor)
 		, ObjectArrayStruct(InObjectArrayStruct)
 		, bAllowEliminatingReferences(true)
-	{
-	}
+{
+}
 
-	FORCEINLINE void InternalHandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
+template <bool bParallel>
+FORCEINLINE void FGCCollector<bParallel>::InternalHandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
+{
+#if ENABLE_GC_OBJECT_CHECKS
+	if (Object && !Object->IsValidLowLevelFast())
 	{
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-		if (Object && !Object->IsValidLowLevelFast())
-		{
-			UE_LOG(LogGarbage, Fatal, TEXT("Invalid object in GC: 0x%016llx, ReferencingObject: %s, ReferencingProperty: %s"), 
-				(int64)(PTRINT)Object, 
-				ReferencingObject ? *ReferencingObject->GetFullName() : TEXT("NULL"),
-				ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
-		}
-#endif
-		ReferenceProcessor.HandleObjectReference(ObjectArrayStruct.ObjectsToSerialize, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
+		UE_LOG(LogGarbage, Fatal, TEXT("Invalid object in GC: 0x%016llx, ReferencingObject: %s, ReferencingProperty: %s"), 
+			(int64)(PTRINT)Object, 
+			ReferencingObject ? *ReferencingObject->GetFullName() : TEXT("NULL"),
+			ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
 	}
+#endif // ENABLE_GC_OBJECT_CHECKS
+	ReferenceProcessor.HandleObjectReference(ObjectArrayStruct.ObjectsToSerialize, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
+}
 
-	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty) override
-	{
-		InternalHandleObjectReference(Object, ReferencingObject, ReferencingProperty);
-	}
-	virtual void HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
-	{
-		for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
-		{
-			UObject*& Object = InObjects[ObjectIndex];
-			InternalHandleObjectReference(Object, InReferencingObject, InReferencingProperty);
-		}
-	}
+template <bool bParallel>
+void FGCCollector<bParallel>::HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
+{
+	InternalHandleObjectReference(Object, ReferencingObject, ReferencingProperty);
+}
 
-	virtual bool IsIgnoringArchetypeRef() const override
+template <bool bParallel>
+void FGCCollector<bParallel>::HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty)
+{
+	for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
 	{
-		return false;
+		UObject*& Object = InObjects[ObjectIndex];
+		InternalHandleObjectReference(Object, InReferencingObject, InReferencingProperty);
 	}
-	virtual bool IsIgnoringTransient() const override
-	{
-		return false;
-	}
-	virtual void AllowEliminatingReferences( bool bAllow ) override
-	{
-		bAllowEliminatingReferences = bAllow;
-	}
-
-	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) override
-	{
-		// Track this references for later destruction if necessary. These should be relatively rare
-		ObjectArrayStruct.WeakReferences.Add(WeakReference);
-		return true;
-	}
-};
+}
 
 typedef FGCCollector<true> FGCCollectorMultithreaded;
 typedef FGCCollector<false> FGCCollectorSinglethreaded;
@@ -705,7 +677,7 @@ void FReferenceFinder::HandleObjectReference( UObject*& InObject, const UObject*
  * is used to deal with object references from types that aren't supported by the reflectable type system.
  * interface doesn't make sense to implement for.
  */
-class FRealtimeGC
+class FRealtimeGC : public FGarbageCollectionTracer
 {
 public:
 	/** Default constructor, initializing all members. */
@@ -831,7 +803,7 @@ public:
 	 * @param KeepFlags		Objects with these flags will be kept regardless of being referenced or not
 	 */
 	void PerformReachabilityAnalysis(EObjectFlags KeepFlags, bool bForceSingleThreaded = false)
-	{
+	{		
 		SCOPED_NAMED_EVENT(FRealtimeGC_PerformReachabilityAnalysis, FColor::Red);
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FRealtimeGC::PerformReachabilityAnalysis"), STAT_FArchiveRealtimeGC_PerformReachabilityAnalysis, STATGROUP_GC);
 
@@ -850,6 +822,21 @@ public:
 			ObjectsToSerialize.Add(FGCObject::GGCObjectReferencer);
 		}
 
+		PerformReachabilityAnalysisOnObjects(ArrayStruct, ObjectsToSerialize, KeepFlags, bForceSingleThreaded);
+        
+		// Allowing external systems to add object roots. This can't be done through AddReferencedObjects
+		// because it may require tracing objects (via FGarbageCollectionTracer) multiple times
+		FCoreUObjectDelegates::TraceExternalRootsForReachabilityAnalysis.Broadcast(*this, KeepFlags, bForceSingleThreaded);
+
+		FGCArrayPool::Get().ReturnToPool(ArrayStruct);
+
+#if UE_BUILD_DEBUG
+		FGCArrayPool::Get().CheckLeaks();
+#endif
+	}
+
+	virtual void PerformReachabilityAnalysisOnObjects(FGCArrayStruct* ArrayStruct, TArray<UObject*>& ObjectsToSerialize, EObjectFlags KeepFlags, bool bForceSingleThreaded) override
+	{
 		MarkObjectsAsUnreachable(ObjectsToSerialize, KeepFlags);
 
 		if (!bForceSingleThreaded)
@@ -864,11 +851,6 @@ public:
 			TFastReferenceCollector<false, FGCReferenceProcessorSinglethreaded, FGCCollectorSinglethreaded, FGCArrayPool> ReferenceCollector(ReferenceProcessor, FGCArrayPool::Get());
 			ReferenceCollector.CollectReferences(*ArrayStruct);
 		}
-		FGCArrayPool::Get().ReturnToPool(ArrayStruct);
-
-#if UE_BUILD_DEBUG
-		FGCArrayPool::Get().CheckLeaks();
-#endif
 	}
 };
 
@@ -1161,10 +1143,6 @@ bool IsIncrementalPurgePending()
 	return GObjIncrementalPurgeIsInProgress || GObjPurgeIsRequired;
 }
 
-/** Callback used by the editor to */
-typedef void (*EditorPostReachabilityAnalysisCallbackType)();
-COREUOBJECT_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilityAnalysisCallback = NULL;
-
 // Allow parallel GC to be overridden to single threaded via console command.
 #if !PLATFORM_MAC || !WITH_EDITORONLY_DATA
 	static int32 GAllowParallelGC = 1;
@@ -1319,7 +1297,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 
 	// Route callbacks so we can ensure that we are e.g. not in the middle of loading something by flushing
 	// the async loading, etc...
-	FCoreUObjectDelegates::PreGarbageCollect.Broadcast();
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().Broadcast();
 	GLastGCFrame = GFrameCounter;
 
 	{
@@ -1409,8 +1387,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 		{
 			const double StartTime = FPlatformTime::Seconds();
 			FRealtimeGC TagUsedRealtimeGC;
-			TagUsedRealtimeGC.PerformReachabilityAnalysis( KeepFlags, bForceSingleThreadedGC );
-			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000 );
+			TagUsedRealtimeGC.PerformReachabilityAnalysis(KeepFlags, bForceSingleThreadedGC);
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000);
 		}
 
 		// Reconstruct clusters if needed
@@ -1421,12 +1399,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 			UE_LOG(LogGarbage, Log, TEXT("%f ms for dissolving GC clusters"), (FPlatformTime::Seconds() - StartTime) * 1000);
 		}
 
-#if WITH_EDITOR
-		if (GIsEditor && EditorPostReachabilityAnalysisCallback)
-		{
-			EditorPostReachabilityAnalysisCallback();
-		}
-#endif // WITH_EDITOR
+		// Fire post-reachability analysis hooks
+		FCoreUObjectDelegates::PostReachabilityAnalysis.Broadcast();
 
 		{
 			DECLARE_SCOPE_CYCLE_COUNTER(TEXT("CollectGarbageInternal.UnhashUnreachable"), STAT_CollectGarbageInternal_UnhashUnreachable, STATGROUP_GC);
@@ -1517,7 +1491,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	FMemory::Trim();
 
 	// Route callbacks to verify GC assumptions
-	FCoreUObjectDelegates::PostGarbageCollect.Broadcast();
+	FCoreUObjectDelegates::GetPostGarbageCollect().Broadcast();
 
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT( "GarbageCollection - End" ) );
 }
@@ -1961,7 +1935,7 @@ void UClass::EmitObjectReference(int32 Offset, const FName& DebugName, EGCRefere
 	FGCReferenceInfo ObjectReference(Kind, Offset);
 	int32 TokenIndex = ReferenceTokenStream.EmitReferenceInfo(ObjectReference);
 
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+#if ENABLE_GC_OBJECT_CHECKS
 	DebugTokenMap.MapToken(DebugName, Offset, TokenIndex);
 #endif
 }
@@ -2046,7 +2020,7 @@ void UClass::AssembleReferenceTokenStream(bool bForce)
 		if (bForce)
 		{
 			ReferenceTokenStream.Empty();
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+#if ENABLE_GC_OBJECT_CHECKS
 			DebugTokenMap.Empty();
 #endif
 			ClassFlags &= ~CLASS_TokenStreamAssembled;
@@ -2271,7 +2245,7 @@ uint32 FGCReferenceTokenStream::EmitReturn()
 	return Tokens.Num();
 }
 
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+#if ENABLE_GC_OBJECT_CHECKS
 
 void FGCDebugReferenceTokenMap::MapToken(const FName& DebugName, int32 Offset, int32 TokenIndex)
 {
@@ -2320,4 +2294,4 @@ const FTokenInfo& FGCDebugReferenceTokenMap::GetTokenInfo(int32 TokenIndex) cons
 {
 	return TokenMap[TokenIndex];
 }
-#endif
+#endif // ENABLE_GC_OBJECT_CHECKS

@@ -523,7 +523,8 @@ void ANUTActor::UnitSeamlessTravel(FString Dest/*=TEXT(" ")*/)
 		bool bOldUseSeamlessTravel = GameMode->bUseSeamlessTravel;
 		GameMode->bUseSeamlessTravel = true;
 
-		if (Dest.TrimTrailing().IsEmpty())
+		Dest.TrimEndInline();
+		if (Dest.IsEmpty())
 		{
 			GetWorld()->ServerTravel(TEXT("?restart"));
 		}
@@ -547,7 +548,8 @@ void ANUTActor::UnitTravel(FString Dest/*=TEXT(" ")*/)
 		bool bOldUseSeamlessTravel = GameMode->bUseSeamlessTravel;
 		GameMode->bUseSeamlessTravel = false;
 
-		if (Dest.TrimTrailing().IsEmpty())
+		Dest.TrimEndInline();
+		if (Dest.IsEmpty())
 		{
 			GetWorld()->ServerTravel(TEXT("?restart"));
 		} 

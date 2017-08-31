@@ -389,8 +389,7 @@ TSharedRef< SWidget > FMainMenu::MakeMainTabMenu( const TSharedPtr<FTabManager>&
 				MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().NewProject );
 				MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().OpenProject );
 
-				const bool bUseShortIDEName = true;
-				FText ShortIDEName = FSourceCodeNavigation::GetSuggestedSourceCodeIDE(bUseShortIDEName);
+				FText ShortIDEName = FSourceCodeNavigation::GetSelectedSourceCodeIDE();
 
 				MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().AddCodeToProject,
 					NAME_None,

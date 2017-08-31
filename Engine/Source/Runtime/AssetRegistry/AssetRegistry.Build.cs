@@ -10,6 +10,7 @@ public class AssetRegistry : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Projects",
 			}
 			);

@@ -21,6 +21,7 @@ public class UnrealCEFSubProcess : ModuleRules
 			new string[]
 			{
 				"Core",
+				"ApplicationCore",
 				"Projects",
 				"CEF3Utils",
 			}

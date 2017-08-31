@@ -8,7 +8,6 @@
 #include "ApplePlatformRunnableThread.h"
 #include "Misc/App.h"
 #include "Misc/Paths.h"
-#include "MacApplication.h"
 #include "HAL/FileManager.h"
 #include <mach-o/dyld.h>
 #include <mach/thread_act.h>
@@ -715,12 +714,6 @@ FString FMacPlatformProcess::GetApplicationName( uint32 ProcessId )
 		Output = ANSI_TO_TCHAR(Buffer);
 	}
 	return Output;
-}
-
-bool FMacPlatformProcess::IsThisApplicationForeground()
-{
-	SCOPED_AUTORELEASE_POOL;
-	return [NSApp isActive] && MacApplication && MacApplication->IsWorkspaceSessionActive();
 }
 
 bool FMacPlatformProcess::IsSandboxedApplication()

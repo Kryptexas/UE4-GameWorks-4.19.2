@@ -70,7 +70,7 @@ FVMReflection::FVMReflection(FStructOnScope& InStruct, EVMRefWarning InWarnLevel
 {
 	WarnLevel = InWarnLevel;
 
-	UStruct* TargetStruct = (InStruct.IsValid() ? (UStruct*)Cast<UStruct>(InStruct.GetStruct()) : nullptr);
+	UStruct* TargetStruct = InStruct.IsValid() ? const_cast<UStruct*>(InStruct.GetStruct()) : nullptr;
 
 	if (TargetStruct != nullptr)
 	{

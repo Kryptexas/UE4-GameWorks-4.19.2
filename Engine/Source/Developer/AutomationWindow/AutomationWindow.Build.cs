@@ -17,6 +17,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
                     "DesktopPlatform",
                     "InputCore",
+					"ApplicationCore",
                     "Slate",
                     "SlateCore",
                     "EditorStyle",

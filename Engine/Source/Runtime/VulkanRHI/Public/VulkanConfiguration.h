@@ -59,7 +59,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 	case SF_Geometry:	return EDescriptorSetStage::Geometry;
 	case SF_Compute:	return EDescriptorSetStage::Compute;
 	default:
-		checkf(0, TEXT("Invalid shader Stage %d"), Stage);
+		checkf(0, TEXT("Invalid shader Stage %d"), (int)Stage);
 		break;
 	}
 

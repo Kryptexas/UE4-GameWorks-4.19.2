@@ -170,8 +170,7 @@ FAdvancedDisplayParameterHandler::FAdvancedDisplayParameterHandler(const TMap<FN
 			for(int32 NameIndex = 0; NameIndex < ParametersNames.Num();)
 			{
 				FString& ParameterName = ParametersNames[NameIndex];
-				ParameterName.Trim();
-				ParameterName.TrimTrailing();
+				ParameterName.TrimStartAndEndInline();
 				if(ParameterName.IsEmpty())
 				{
 					ParametersNames.RemoveAtSwap(NameIndex);

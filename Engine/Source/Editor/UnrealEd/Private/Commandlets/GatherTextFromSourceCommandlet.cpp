@@ -679,7 +679,7 @@ FString UGatherTextFromSourceCommandlet::StripCommentsFromToken(const FString& I
 		}
 	}
 
-	return StrippedToken.Trim().TrimTrailing();
+	return StrippedToken.TrimStartAndEnd();
 }
 
 bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const TArray<UGatherTextFromSourceCommandlet::FParsableDescriptor*>& Parsables, FSourceFileParseContext& ParseCtxt)
@@ -702,7 +702,8 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 	// Move through the text lines looking for the tokens that denote the items in the Parsables list
 	for (int32 LineIdx = 0; LineIdx < TextLines.Num(); LineIdx++)
 	{
-		const FString& Line = TextLines[LineIdx].TrimTrailing();
+		TextLines[LineIdx].TrimEndInline();
+		const FString& Line = TextLines[LineIdx];
 		if( Line.IsEmpty() )
 			continue;
 
@@ -1007,7 +1008,7 @@ void UGatherTextFromSourceCommandlet::FSourceFileParseContext::SetDefine(const F
 			}
 			else
 			{
-				FString RemainingText = InDefineCtx.RightChop(LocNamespaceString.Len()).Trim();
+				FString RemainingText = InDefineCtx.RightChop(LocNamespaceString.Len()).TrimStart();
 
 				bool RemoveStringError;
 				const FString DefineDesc = FString::Printf(TEXT("%s define %s(%d):%s"), *RemainingText, *Filename, LineNumber, *LineText);
@@ -1193,7 +1194,7 @@ void UGatherTextFromSourceCommandlet::FDefineDescriptor::TryParse(const FString&
 
 	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
-		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		FString RemainingText = Text.RightChop(GetToken().Len()).TrimStart();
 		RemainingText = StripCommentsFromToken(RemainingText, Context);
 
 		Context.SetDefine(RemainingText);
@@ -1208,7 +1209,7 @@ void UGatherTextFromSourceCommandlet::FUndefDescriptor::TryParse(const FString& 
 
 	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
-		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		FString RemainingText = Text.RightChop(GetToken().Len()).TrimStart();
 		RemainingText = StripCommentsFromToken(RemainingText, Context);
 
 		Context.RemoveDefine(RemainingText);
@@ -1223,13 +1224,13 @@ void UGatherTextFromSourceCommandlet::FIfDescriptor::TryParse(const FString& Tex
 
 	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
-		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		FString RemainingText = Text.RightChop(GetToken().Len()).TrimStart();
 		RemainingText = StripCommentsFromToken(RemainingText, Context);
 
 		// Handle "#if defined <defname>"
 		if (RemainingText.StartsWith(DefinedString, ESearchCase::CaseSensitive))
 		{
-			RemainingText = RemainingText.RightChop(DefinedString.Len()).Trim();
+			RemainingText = RemainingText.RightChop(DefinedString.Len()).TrimStart();
 		}
 
 		Context.PushMacroBlock(RemainingText);
@@ -1244,7 +1245,7 @@ void UGatherTextFromSourceCommandlet::FIfDefDescriptor::TryParse(const FString& 
 
 	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
-		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		FString RemainingText = Text.RightChop(GetToken().Len()).TrimStart();
 		RemainingText = StripCommentsFromToken(RemainingText, Context);
 
 		Context.PushMacroBlock(RemainingText);
@@ -1259,13 +1260,13 @@ void UGatherTextFromSourceCommandlet::FElIfDescriptor::TryParse(const FString& T
 
 	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
-		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		FString RemainingText = Text.RightChop(GetToken().Len()).TrimStart();
 		RemainingText = StripCommentsFromToken(RemainingText, Context);
 
 		// Handle "#elif defined <defname>"
 		if (RemainingText.StartsWith(DefinedString, ESearchCase::CaseSensitive))
 		{
-			RemainingText = RemainingText.RightChop(DefinedString.Len()).Trim();
+			RemainingText = RemainingText.RightChop(DefinedString.Len()).TrimStart();
 		}
 
 		Context.PopMacroBlock(); // Pop the current #if or #ifdef state
@@ -1306,7 +1307,7 @@ bool UGatherTextFromSourceCommandlet::FMacroDescriptor::ParseArgsFromMacro(const
 
 	bool Success = false;
 
-	FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+	FString RemainingText = Text.RightChop(GetToken().Len()).TrimStart();
 	int32 OpenBracketIdx = RemainingText.Find(TEXT("("));
 	if (0 > OpenBracketIdx)
 	{
@@ -1404,7 +1405,7 @@ bool UGatherTextFromSourceCommandlet::FMacroDescriptor::PrepareArgument(FString&
 	}
 	else
 	{
-		Argument = Argument.TrimTrailing().TrimQuotes(&OutHasQuotes);
+		Argument = Argument.TrimEnd().TrimQuotes(&OutHasQuotes);
 		Argument = UnescapeLiteralCharacterEscapeSequences(Argument);
 	}
 	return Error ? false : true;
@@ -1426,11 +1427,13 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 			}
 			else
 			{
-				FString Identifier = Arguments[0].Trim();
+				Arguments[0].TrimStartInline();
+				FString Identifier = Arguments[0];
 				const FString UICommandRootNamespace = TEXT("UICommands");
 				FString Namespace = Context.WithinNamespaceDefine && !Context.Namespace.IsEmpty() ? FString::Printf( TEXT("%s.%s"), *UICommandRootNamespace, *Context.Namespace) : UICommandRootNamespace;
 				FString SourceLocation = FSourceLocation(Context.Filename, Context.LineNumber).ToString();
-				FString SourceText = Arguments[1].Trim();
+				Arguments[1].TrimStartInline();
+				FString SourceText = Arguments[1];
 
 				if ( Identifier.IsEmpty() )
 				{
@@ -1454,7 +1457,8 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 						Context.AddManifestText( GetToken(), Namespace, SourceText, CommandContext );
 
 						// parse DefaultLangTooltipString argument - this arg will be in quotes without TEXT macro
-						FString TooltipSourceText = Arguments[2].Trim();
+						Arguments[2].TrimStartInline();
+						FString TooltipSourceText = Arguments[2];
 						MacroDesc = FString::Printf(TEXT("\"InDescription\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
 						if (PrepareArgument(TooltipSourceText, true, MacroDesc, HasQuotes))
 						{
@@ -1502,7 +1506,8 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 				for (int32 ArgIdx=0; ArgIdx<Arguments.Num(); ArgIdx++)
 				{
 					FMacroArg Arg = Arguments[ArgIdx];
-					FString ArgText = ArgArray[ArgIdx].Trim();
+					ArgArray[ArgIdx].TrimStartInline();
+					FString ArgText = ArgArray[ArgIdx];
 
 					bool HasQuotes;
 					FString MacroDesc = FString::Printf(TEXT("argument %d of %d in localization macro %s %s(%d):%s"), ArgIdx+1, Arguments.Num(), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
@@ -1568,8 +1573,10 @@ void UGatherTextFromSourceCommandlet::FStringTableMacroDescriptor::TryParse(cons
 			}
 			else
 			{
-				FString TableId = Arguments[0].Trim();
-				FString TableNamespace = Arguments[1].Trim();
+				Arguments[0].TrimStartInline();
+				FString TableId = Arguments[0];
+				Arguments[1].TrimStartInline();
+				FString TableNamespace = Arguments[1];
 
 				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
 				const FString TableNamespaceMacroDesc = FString::Printf(TEXT("\"Namespace\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
@@ -1609,9 +1616,12 @@ void UGatherTextFromSourceCommandlet::FStringTableFromFileMacroDescriptor::TryPa
 			}
 			else
 			{
-				FString TableId = Arguments[0].Trim();
-				FString TableNamespace = Arguments[1].Trim();
-				FString TableFilename = Arguments[2].Trim();
+				Arguments[0].TrimStartInline();
+				FString TableId = Arguments[0];
+				Arguments[1].TrimStartInline();
+				FString TableNamespace = Arguments[1];
+				Arguments[2].TrimStartInline();
+				FString TableFilename = Arguments[2];
 
 				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
 				const FString TableNamespaceMacroDesc = FString::Printf(TEXT("\"Namespace\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
@@ -1652,9 +1662,12 @@ void UGatherTextFromSourceCommandlet::FStringTableEntryMacroDescriptor::TryParse
 			}
 			else
 			{
-				FString TableId = Arguments[0].Trim();
-				FString Key = Arguments[1].Trim();
-				FString SourceString = Arguments[2].Trim();
+				Arguments[0].TrimStartInline();
+				FString TableId = Arguments[0];
+				Arguments[1].TrimStartInline();
+				FString Key = Arguments[1];
+				Arguments[2].TrimStartInline();
+				FString SourceString = Arguments[2];
 
 				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
 				const FString KeyMacroDesc = FString::Printf(TEXT("\"Key\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
@@ -1695,10 +1708,14 @@ void UGatherTextFromSourceCommandlet::FStringTableEntryMetaDataMacroDescriptor::
 			}
 			else
 			{
-				FString TableId = Arguments[0].Trim();
-				FString Key = Arguments[1].Trim();
-				FString MetaDataId = Arguments[2].Trim();
-				FString MetaData = Arguments[3].Trim();
+				Arguments[0].TrimStartInline();
+				FString TableId = Arguments[0];
+				Arguments[1].TrimStartInline();
+				FString Key = Arguments[1];
+				Arguments[2].TrimStartInline();
+				FString MetaDataId = Arguments[2];
+				Arguments[3].TrimStartInline();
+				FString MetaData = Arguments[3];
 
 				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
 				const FString KeyMacroDesc = FString::Printf(TEXT("\"Key\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);

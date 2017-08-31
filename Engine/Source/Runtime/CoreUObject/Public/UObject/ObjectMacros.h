@@ -246,54 +246,52 @@ enum EClassFlags
 	CLASS_NewerVersionExists  = 0x80000000u,
 
 	//@}
-
-
-	/** @name Flags to inherit from base class */
-	//@{
-	CLASS_Inherit           = CLASS_Transient | CLASS_DefaultConfig | CLASS_Config | CLASS_PerObjectConfig | CLASS_ConfigDoNotCheckDefaults | CLASS_NotPlaceable
-							| CLASS_Const | CLASS_HasInstancedReference | CLASS_Deprecated | CLASS_DefaultToInstanced | CLASS_GlobalUserConfig,
-
-	/** these flags will be cleared by the compiler when the class is parsed during script compilation */
-	CLASS_RecompilerClear   = CLASS_Inherit | CLASS_Abstract | CLASS_NoExport | CLASS_Native | CLASS_Intrinsic | CLASS_TokenStreamAssembled,
-
-	/** these flags will be cleared by the compiler when the class is parsed during script compilation */
-	CLASS_ShouldNeverBeLoaded   = CLASS_Native | CLASS_Intrinsic | CLASS_TokenStreamAssembled,
-
-	/** these flags will be inherited from the base class only for non-intrinsic classes */
-	CLASS_ScriptInherit		= CLASS_Inherit | CLASS_EditInlineNew | CLASS_CollapseCategories,
-	//@}
-
-	/** This is used as a mask for the flags put into generated code for "compiled in" classes. */
-	CLASS_SaveInCompiledInClasses = 
-		CLASS_Abstract | 
-		CLASS_DefaultConfig |
-		CLASS_GlobalUserConfig |
-		CLASS_Config |
-		CLASS_Transient |
-		CLASS_Native |
-		CLASS_NotPlaceable |
-		CLASS_PerObjectConfig |
-		CLASS_ConfigDoNotCheckDefaults |
-		CLASS_EditInlineNew |
-		CLASS_CollapseCategories |
-		CLASS_Interface |
-		CLASS_DefaultToInstanced |
-		CLASS_HasInstancedReference |
-		CLASS_Hidden |
-		CLASS_Deprecated |
-		CLASS_HideDropDown |
-		CLASS_Intrinsic |
-		CLASS_AdvancedDisplay |
-		CLASS_Const |
-		CLASS_MinimalAPI |
-		CLASS_RequiredAPI,
-
-	CLASS_AllFlags			= 0xFFFFFFFFu,
 };
 
 // Declare bitwise operators to allow EClassFlags to be combined but still retain type safety
 ENUM_CLASS_FLAGS(EClassFlags);
 
+/** @name Flags to inherit from base class */
+//@{
+#define CLASS_Inherit ((EClassFlags)(CLASS_Transient | CLASS_DefaultConfig | CLASS_Config | CLASS_PerObjectConfig | CLASS_ConfigDoNotCheckDefaults | CLASS_NotPlaceable \
+						| CLASS_Const | CLASS_HasInstancedReference | CLASS_Deprecated | CLASS_DefaultToInstanced | CLASS_GlobalUserConfig))
+
+/** these flags will be cleared by the compiler when the class is parsed during script compilation */
+#define CLASS_RecompilerClear ((EClassFlags)(CLASS_Inherit | CLASS_Abstract | CLASS_NoExport | CLASS_Native | CLASS_Intrinsic | CLASS_TokenStreamAssembled))
+
+/** these flags will be cleared by the compiler when the class is parsed during script compilation */
+#define CLASS_ShouldNeverBeLoaded ((EClassFlags)(CLASS_Native | CLASS_Intrinsic | CLASS_TokenStreamAssembled))
+
+/** these flags will be inherited from the base class only for non-intrinsic classes */
+#define CLASS_ScriptInherit ((EClassFlags)(CLASS_Inherit | CLASS_EditInlineNew | CLASS_CollapseCategories))
+//@}
+
+/** This is used as a mask for the flags put into generated code for "compiled in" classes. */
+#define CLASS_SaveInCompiledInClasses ((EClassFlags)(\
+	CLASS_Abstract | \
+	CLASS_DefaultConfig | \
+	CLASS_GlobalUserConfig | \
+	CLASS_Config | \
+	CLASS_Transient | \
+	CLASS_Native | \
+	CLASS_NotPlaceable | \
+	CLASS_PerObjectConfig | \
+	CLASS_ConfigDoNotCheckDefaults | \
+	CLASS_EditInlineNew | \
+	CLASS_CollapseCategories | \
+	CLASS_Interface | \
+	CLASS_DefaultToInstanced | \
+	CLASS_HasInstancedReference | \
+	CLASS_Hidden | \
+	CLASS_Deprecated | \
+	CLASS_HideDropDown | \
+	CLASS_Intrinsic | \
+	CLASS_AdvancedDisplay | \
+	CLASS_Const | \
+	CLASS_MinimalAPI | \
+	CLASS_RequiredAPI))
+
+#define CLASS_AllFlags ((EClassFlags)0xFFFFFFFFu)
 
 
 /**
@@ -581,15 +579,17 @@ struct COREUOBJECT_API FReferencerInformationList
 #define BODY_MACRO_COMBINE_INNER(A,B,C,D) A##B##C##D
 #define BODY_MACRO_COMBINE(A,B,C,D) BODY_MACRO_COMBINE_INNER(A,B,C,D)
 
-#define GENERATED_BODY_LEGACY(...) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_GENERATED_BODY_LEGACY)
-#define GENERATED_BODY(...) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_GENERATED_BODY)
+// Include a redundant semicolon at the end of the generated code block, so that intellisense parsers can start parsing
+// a new declaration if the line number/generated code is out of date.
+#define GENERATED_BODY_LEGACY(...) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_GENERATED_BODY_LEGACY);
+#define GENERATED_BODY(...) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_GENERATED_BODY);
 
 #define GENERATED_USTRUCT_BODY(...) GENERATED_BODY()
 #define GENERATED_UCLASS_BODY(...) GENERATED_BODY_LEGACY()
 #define GENERATED_UINTERFACE_BODY(...) GENERATED_BODY_LEGACY()
 #define GENERATED_IINTERFACE_BODY(...) GENERATED_BODY_LEGACY()
 
-#if UE_BUILD_DOCS
+#if UE_BUILD_DOCS || defined(__INTELLISENSE__ )
 #define UCLASS(...)
 #else
 #define UCLASS(...) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_PROLOG)

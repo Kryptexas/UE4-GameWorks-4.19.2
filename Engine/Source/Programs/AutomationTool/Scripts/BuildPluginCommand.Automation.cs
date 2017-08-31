@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 [Help("Builds a plugin, and packages it for distribution")]
 [Help("Plugin", "Specify the path to the descriptor file for the plugin that should be packaged")]
@@ -229,7 +230,7 @@ class BuildPlugin : BuildCommand
 		if(!bUnversioned)
 		{
 			BuildVersion Version;
-			if(BuildVersion.TryRead(out Version))
+			if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 			{
 				NewDescriptor.EngineVersion = String.Format("{0}.{1}.0", Version.MajorVersion, Version.MinorVersion);
 			}
@@ -270,7 +271,7 @@ class BuildPlugin : BuildCommand
 		if(!Command.ParseParam("NoTargetPlatforms"))
 		{
 			// Only interested in building for Platforms that support code projects
-			TargetPlatforms = PlatformExports.GetRegisteredPlatforms().Where(x => InstalledPlatformInfo.Current.IsValidPlatform(x, EProjectType.Code)).ToList();
+			TargetPlatforms = PlatformExports.GetRegisteredPlatforms().Where(x => InstalledPlatformInfo.IsValidPlatform(x, EProjectType.Code)).ToList();
 
 			// only build Mac on Mac
 			if (HostPlatform != UnrealTargetPlatform.Mac && TargetPlatforms.Contains(UnrealTargetPlatform.Mac))

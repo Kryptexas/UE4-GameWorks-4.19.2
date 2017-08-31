@@ -73,7 +73,7 @@ void SDeviceBrowserDeviceAdder::Construct(const FArguments& InArgs, const TShare
 		if (PlatformName.IsValid())
 		{
 			FString TextCheck = DeviceNameTextBox->GetText().ToString();
-			TextCheck.Trim();
+			TextCheck.TrimStartAndEndInline();
 
 			if (!TextCheck.IsEmpty())
 			{
@@ -88,7 +88,7 @@ void SDeviceBrowserDeviceAdder::Construct(const FArguments& InArgs, const TShare
 
 					// check user/password as well
 					TextCheck = UserNameTextBox->GetText().ToString();
-					TextCheck.Trim();
+					TextCheck.TrimStartAndEndInline();
 
 					if (!TextCheck.IsEmpty())
 					{
@@ -336,7 +336,7 @@ void SDeviceBrowserDeviceAdder::DetermineAddUnlistedButtonVisibility()
 	if (PlatformComboBox->GetSelectedItem().IsValid())
 	{
 		FString DeviceIdText = DeviceIdTextBox->GetText().ToString();
-		DeviceIdText.Trim();
+		DeviceIdText.TrimStartInline();
 
 		AddButton->SetEnabled(!DeviceIdText.IsEmpty());
 	}

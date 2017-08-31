@@ -8,6 +8,7 @@ public class RHI : ModuleRules
 	public RHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
+		PrivateDependencyModuleNames.Add("ApplicationCore");
 
 		if (Target.bCompileAgainstEngine)
 		{

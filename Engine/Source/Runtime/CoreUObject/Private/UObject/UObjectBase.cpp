@@ -726,6 +726,8 @@ void UClassReplaceHotReloadClasses()
  */
 static void UObjectLoadAllCompiledInDefaultProperties()
 {
+	static FName LongEnginePackageName(TEXT("/Script/Engine"));
+
 	TArray<UClass *(*)()>& DeferredCompiledInRegistration = GetDeferredCompiledInRegistration();
 
 	const bool bHaveRegistrants = DeferredCompiledInRegistration.Num() != 0;
@@ -733,6 +735,7 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 	{
 		TArray<UClass*> NewClasses;
 		TArray<UClass*> NewClassesInCoreUObject;
+		TArray<UClass*> NewClassesInEngine;
 		TArray<UClass* (*)()> PendingRegistrants = MoveTemp(DeferredCompiledInRegistration);
 		for (UClass* (*Registrant)() : PendingRegistrants)
 		{
@@ -740,6 +743,10 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 			if (Class->GetOutermost()->GetFName() == GLongCoreUObjectPackageName)
 			{
 				NewClassesInCoreUObject.Add(Class);
+			}
+			else if (Class->GetOutermost()->GetFName() == LongEnginePackageName)
+			{
+				NewClassesInEngine.Add(Class);
 			}
 			else
 			{
@@ -750,10 +757,15 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 		{
 			Class->GetDefaultObject();
 		}
+		for (UClass* Class : NewClassesInEngine) // we do these second because we want to bring the engine up before the game
+		{
+			Class->GetDefaultObject();
+		}
 		for (UClass* Class : NewClasses)
 		{
 			Class->GetDefaultObject();
 		}
+
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
 		if (ErrorsFC.GetNumErrors() || ErrorsFC.GetNumWarnings())
 		{
@@ -781,15 +793,15 @@ static void UObjectLoadAllCompiledInStructs()
 
 	// Load Enums first
 	TArray<FPendingEnumRegistrant> PendingEnumRegistrants = MoveTemp(GetDeferredCompiledInEnumRegistration());
-		
 	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
-		{
-			// Make sure the package exists in case it does not contain any UObjects
-			CreatePackage(nullptr, EnumRegistrant.PackageName);
-		}
+	{
+		// Make sure the package exists in case it does not contain any UObjects
+		CreatePackage(nullptr, EnumRegistrant.PackageName);
+	}
+
 	TArray<FPendingStructRegistrant> PendingStructRegistrants = MoveTemp(GetDeferredCompiledInStructRegistration());
 	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
-		{
+	{
 		// Make sure the package exists in case it does not contain any UObjects or UEnums
 		CreatePackage(nullptr, StructRegistrant.PackageName);
 	}
@@ -797,13 +809,13 @@ static void UObjectLoadAllCompiledInStructs()
 	// Load Structs
 
 	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
-		{
+	{
 		EnumRegistrant.RegisterFn();
-		}
+	}
 
 	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
-		{
-			StructRegistrant.RegisterFn();
+	{
+		StructRegistrant.RegisterFn();
 	}
 }
 

@@ -22,6 +22,7 @@ public class NiagaraEditor : ModuleRules
                 "RHI",
                 "Core", 
 				"CoreUObject", 
+				"ApplicationCore",
                 "InputCore",
 				"RenderCore",
 				"Slate", 

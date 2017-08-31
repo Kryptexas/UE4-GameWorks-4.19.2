@@ -198,7 +198,7 @@ namespace AutomationTool
 				Directory.SetCurrentDirectory(EngineSourceDirectory.FullName);
 
 				// Read the project descriptor, and find all the plugins available to this project
-				ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath.FullName);
+				ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath);
 				List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(CommandUtils.EngineDirectory, RawProjectPath, Project.AdditionalPluginDirectories);
 
 				// check the target platforms for any differences in build settings or additional plugins
@@ -214,7 +214,7 @@ namespace AutomationTool
 					// find if there are any plugins enabled or disabled which differ from the default
 					foreach(PluginInfo Plugin in AvailablePlugins)
 					{
-						bool bPluginEnabledForProject = UProjectInfo.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType, TargetType.Game);
+						bool bPluginEnabledForProject = Plugins.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType, TargetType.Game);
 						if ((bPluginEnabledForProject && !Plugin.EnabledByDefault) || (bPluginEnabledForProject && Plugin.Descriptor.bInstalled))
 						{
 							// NOTE: this code was only marking plugins that compiled for the platform to upgrade to code project, however
@@ -513,14 +513,11 @@ namespace AutomationTool
 				{
 					string TargetName = GetTargetName(TargetType);
 
-					FileReference ProjectFile;
-					UProjectInfo.TryGetProjectForTarget(TargetName, out ProjectFile);
-
-					var DummyTargetInfo = new TargetInfo(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "", ProjectFile);
+					TargetInfo DummyTargetInfo = new TargetInfo(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "", Properties.RawProjectPath);
 
 					// Create an instance of this type
 					CommandUtils.LogVerbose("Creating target rules object: {0}", TargetType.Name);
-					var Rules = Activator.CreateInstance(TargetType, DummyTargetInfo) as TargetRules;
+					TargetRules Rules = Activator.CreateInstance(TargetType, DummyTargetInfo) as TargetRules;
 					CommandUtils.LogVerbose("Adding target: {0} ({1})", TargetType.Name, Rules.Type);
 
 					SingleTargetProperties TargetData;
@@ -614,16 +611,16 @@ namespace AutomationTool
             public FileReference FilePath;
             public ProjectProperties Properties;
 
-            public BranchUProject(UnrealBuildTool.UProjectInfo InfoEntry)
+            public BranchUProject(FileReference ProjectFile)
             {
-                GameName = InfoEntry.GameName;
+                GameName = ProjectFile.GetFileNameWithoutExtension();
 
                 //not sure what the heck this path is relative to
-                FilePath = InfoEntry.FilePath;
+                FilePath = ProjectFile;
 
                 if (!CommandUtils.FileExists_NoExceptions(FilePath.FullName))
                 {
-                    throw new AutomationException("Could not resolve relative path corrctly {0} -> {1} which doesn't exist.", InfoEntry.FilePath, FilePath);
+                    throw new AutomationException("Could not resolve relative path corrctly {0} -> {1} which doesn't exist.", ProjectFile, FilePath);
                 }
 
                 Properties = ProjectUtils.GetProjectProperties(FilePath);
@@ -678,7 +675,7 @@ namespace AutomationTool
         {
             BaseEngineProject = new BranchUProject();
 
-            var AllProjects = UnrealBuildTool.UProjectInfo.FilterGameProjects(false, null);
+            var AllProjects = UnrealBuildTool.UProjectInfo.AllProjectFiles;
 			using(TelemetryStopwatch SortProjectsStopwatch = new TelemetryStopwatch("SortProjects"))
 			{
 				foreach (var InfoEntry in AllProjects)

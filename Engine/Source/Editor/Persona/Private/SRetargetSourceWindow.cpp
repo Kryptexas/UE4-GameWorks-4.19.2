@@ -272,7 +272,7 @@ TSharedRef<ITableRow> SRetargetSourceWindow::GenerateRetargetSourceRow(TSharedPt
 void SRetargetSourceWindow::OnRenameCommit( const FName& InOldName, const FString& InNewName )
 {
 	FString NewNameString = InNewName;
-	if (InOldName != FName(*NewNameString.Trim().TrimTrailing()))
+	if (InOldName != FName(*NewNameString.TrimStartAndEnd()))
 	{
 		FName NewName = *InNewName;
 		EditableSkeletonPtr.Pin()->RenameRetargetSource(InOldName, NewName);
@@ -287,7 +287,7 @@ bool SRetargetSourceWindow::OnVerifyRenameCommit( const FName& OldName, const FS
 	// if same reject
 	FString NewString = NewName;
 
-	if (OldName == FName(*NewString.Trim().TrimTrailing()))
+	if (OldName == FName(*NewString.TrimStartAndEnd()))
 	{
 		OutErrorMessage = FText::Format (LOCTEXT("RetargetSourceWindowNameSame", "{0} Nothing modified"), FText::FromString(OldName.ToString()) );
 		return false;

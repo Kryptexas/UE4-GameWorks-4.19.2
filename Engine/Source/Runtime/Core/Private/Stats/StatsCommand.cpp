@@ -374,7 +374,7 @@ static FString GetHumanReadableCallstack( const TArray<FStatNameAndInfo>& StatsS
 
 		const FString ShortName = NameAndInfo.GetShortName().GetPlainNameString();
 		FString Desc = NameAndInfo.GetDescription();
-		Desc.Trim();
+		Desc.TrimStartInline();
 
 		// For threads use the thread name, as the description contains encoded thread id.
 		const FName GroupName = NameAndInfo.GetGroupName();

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 [Help("Builds common tools used by the engine which are not part of typical editor or game builds. Useful when syncing source-only on GitHub.")]
 [Help("platforms=<X>+<Y>+...", "Specifies on or more platforms to build for (defaults to the current host platform)")]

@@ -1257,7 +1257,7 @@ bool FLaunchOnTest::RunTest(const FString& Parameters)
 	//Get the map name and device id from the parameters.
 	FString MapName = Parameters.Left(Parameters.Find(TEXT(" ")));
 	FString DeviceID = Parameters.RightChop(Parameters.Find(TEXT(" ")));
-	DeviceID.Trim();
+	DeviceID.TrimStartInline();
 
 	//Delete the Cooked, StagedBuilds, and Automation_TEMP folder if they exist.
 	FString CookedLocation = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Cooked"));

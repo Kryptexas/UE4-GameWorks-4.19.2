@@ -1764,6 +1764,8 @@ DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* 
 enum class EPackageReloadPhase : uint8;
 class FPackageReloadedEvent;
 
+class FGarbageCollectionTracer;
+
 /**
  * Global CoreUObject delegates
  */
@@ -1864,10 +1866,19 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	static FSimpleMulticastDelegate PostDemoPlay;
 
 	// Called before garbage collection
-	static FSimpleMulticastDelegate PreGarbageCollect;
+	static FSimpleMulticastDelegate& GetPreGarbageCollectDelegate();
+
+	// Delegate type for reachability analysis external roots callback. First parameter is FGarbageCollectionTracer to use for tracing, second is flags with which objects should be kept alive regardless, third is whether to force single threading
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FTraceExternalRootsForReachabilityAnalysisDelegate, FGarbageCollectionTracer&, EObjectFlags, bool);
+
+	// Called as last phase of reachability analysis. Allow external systems to add UObject roots *after* first reachability pass has been done
+	static FTraceExternalRootsForReachabilityAnalysisDelegate TraceExternalRootsForReachabilityAnalysis;
+
+	// Called after reachability analysis, before any purging
+	static FSimpleMulticastDelegate PostReachabilityAnalysis;
 
 	// Called after garbage collection
-	static FSimpleMulticastDelegate PostGarbageCollect;
+	static FSimpleMulticastDelegate& GetPostGarbageCollect();
 
 	// Called before ConditionalBeginDestroy phase of garbage collection
 	static FSimpleMulticastDelegate PreGarbageCollectConditionalBeginDestroy;

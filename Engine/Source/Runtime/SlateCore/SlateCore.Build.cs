@@ -11,6 +11,7 @@ public class SlateCore : ModuleRules
 				"Core",
 				"CoreUObject",
 				"InputCore",
+				"ApplicationCore",
 				"Json",
 			});
 

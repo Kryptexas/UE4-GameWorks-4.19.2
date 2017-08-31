@@ -25,6 +25,7 @@ public class AutomationDriver : ModuleRules
             new string[] {
                 "Core",
                 "CoreUObject",
+				"ApplicationCore",
                 "InputCore",
                 "Json",
                 "Slate",

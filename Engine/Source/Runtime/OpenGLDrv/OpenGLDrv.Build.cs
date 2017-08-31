@@ -12,6 +12,7 @@ public class OpenGLDrv : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Engine",
 				"RHI",
 				"RenderCore",
@@ -23,9 +24,9 @@ public class OpenGLDrv : ModuleRules
 		PrivateIncludePathModuleNames.Add("ImageWrapper");
 		DynamicallyLoadedModuleNames.Add("ImageWrapper");
 
-		if (Target.Platform != UnrealTargetPlatform.HTML5)
+        if (Target.Platform != UnrealTargetPlatform.HTML5)
 		{
-			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+		    AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -45,7 +46,7 @@ public class OpenGLDrv : ModuleRules
 				new string[]
 				{
 					"TaskGraph"
-				}
+                }
 			);
 		}
 

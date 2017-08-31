@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -151,6 +152,11 @@ namespace UnrealBuildTool
 		public string ModuleName;
 
 		/// <summary>
+		/// Path to the module rules file
+		/// </summary>
+		public FileReference ModuleRulesFile;
+
+		/// <summary>
 		/// Module base directory
 		/// </summary>
 		public DirectoryReference ModuleDirectory;
@@ -197,6 +203,7 @@ namespace UnrealBuildTool
 		public UHTModuleInfo(SerializationInfo Info, StreamingContext Context)
 		{
 			ModuleName = Info.GetString("mn");
+			ModuleRulesFile = (FileReference)Info.GetValue("mr", typeof(FileReference));
 			ModuleDirectory = (DirectoryReference)Info.GetValue("md", typeof(DirectoryReference));
 			ModuleType = Info.GetString("mt");
 			PublicUObjectClassesHeaders = (List<FileItem>)Info.GetValue("cl", typeof(List<FileItem>));
@@ -210,6 +217,7 @@ namespace UnrealBuildTool
 		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
 		{
 			Info.AddValue("mn", ModuleName);
+			Info.AddValue("mr", ModuleRulesFile);
 			Info.AddValue("md", ModuleDirectory);
 			Info.AddValue("mt", ModuleType);
 			Info.AddValue("cl", PublicUObjectClassesHeaders);
@@ -319,7 +327,7 @@ namespace UnrealBuildTool
 		/// Generates a UHTModuleInfo for a particular named module under a directory.
 		/// </summary>
 		/// <returns></returns>
-		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<FileReference> HeaderFilenames, string ModuleName, DirectoryReference ModuleDirectory, UHTModuleType ModuleType, EGeneratedCodeVersion GeneratedCodeVersion)
+		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<FileReference> HeaderFilenames, string ModuleName, FileReference ModuleRulesFile, DirectoryReference ModuleDirectory, UHTModuleType ModuleType, EGeneratedCodeVersion GeneratedCodeVersion)
 		{
 			DirectoryReference ClassesFolder = DirectoryReference.Combine(ModuleDirectory, "Classes");
 			DirectoryReference PublicFolder = DirectoryReference.Combine(ModuleDirectory, "Public");
@@ -354,6 +362,7 @@ namespace UnrealBuildTool
 			UHTModuleInfo Result = new UHTModuleInfo
 			{
 				ModuleName = ModuleName,
+				ModuleRulesFile = ModuleRulesFile,
 				ModuleDirectory = ModuleDirectory,
 				ModuleType = ModuleType.ToString(),
 				PublicUObjectClassesHeaders = AllClassesHeaders,
@@ -772,6 +781,14 @@ namespace UnrealBuildTool
 					return true;
 				}
 
+				// Has the .build.cs file changed since we last generated headers successfully?
+				FileInfo ModuleRulesFile = new FileInfo(Module.ModuleRulesFile.FullName);
+				if (!ModuleRulesFile.Exists || ModuleRulesFile.LastWriteTime > SavedTimestamp)
+				{
+					Log.TraceVerbose("UnrealHeaderTool needs to run because SavedTimestamp is older than the rules file ({0}) for module {1}", Module.ModuleRulesFile, Module.ModuleName);
+					return true;
+				}
+
 				// Iterate over our UObjects headers and figure out if any of them have changed
 				List<FileItem> AllUObjectHeaders = new List<FileItem>();
 				AllUObjectHeaders.AddRange(Module.PublicUObjectClassesHeaders);
@@ -910,7 +927,30 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Run an external exe (and capture the output), given the exe path and the commandline.
 		/// </summary>
-		public static int RunExternalExecutable(string ExePath, string Commandline)
+		public static int RunExternalDotNETExecutable(string ExePath, string Commandline)
+		{
+#if NET_CORE
+			ProcessStartInfo ExeInfo = new ProcessStartInfo("dotnet", ExePath + " " + Commandline);
+#else
+			ProcessStartInfo ExeInfo = new ProcessStartInfo(ExePath, Commandline);
+#endif
+			Log.TraceVerbose("RunExternalExecutable {0} {1}", ExePath, Commandline);
+			ExeInfo.UseShellExecute = false;
+			ExeInfo.RedirectStandardOutput = true;
+			using (Process GameProcess = Process.Start(ExeInfo))
+			{
+				GameProcess.BeginOutputReadLine();
+				GameProcess.OutputDataReceived += PrintProcessOutputAsync;
+				GameProcess.WaitForExit();
+
+				return GameProcess.ExitCode;
+			}
+		}
+
+		/// <summary>
+		/// Run an external native executable (and capture the output), given the executable path and the commandline.
+		/// </summary>
+		public static int RunExternalNativeExecutable(string ExePath, string Commandline)
 		{
 			ProcessStartInfo ExeInfo = new ProcessStartInfo(ExePath, Commandline);
 			Log.TraceVerbose("RunExternalExecutable {0} {1}", ExePath, Commandline);
@@ -1048,7 +1088,7 @@ namespace UnrealBuildTool
 							}
 						}						
 
-						if (RunExternalExecutable(UnrealBuildTool.GetUBTPath(), UBTArguments.ToString()) != 0)
+						if (RunExternalDotNETExecutable(UnrealBuildTool.GetUBTPath(), UBTArguments.ToString()) != 0)
 						{
 							return false;
 						}
@@ -1090,7 +1130,7 @@ namespace UnrealBuildTool
 
 					Stopwatch s = new Stopwatch();
 					s.Start();
-					UHTResult = (ECompilationResult)RunExternalExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
+					UHTResult = (ECompilationResult)RunExternalNativeExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
 					s.Stop();
 
 					if (UHTResult != ECompilationResult.Succeeded)

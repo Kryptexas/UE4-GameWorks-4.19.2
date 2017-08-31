@@ -159,7 +159,7 @@ void FLevelEditorActionCallbacks::BrowseDocumentation()
 
 void FLevelEditorActionCallbacks::BrowseAPIReference()
 {
-	IDocumentation::Get()->OpenAPIHome();
+	IDocumentation::Get()->OpenAPIHome(FDocumentationSourceInfo(TEXT("help_menu")));
 }
 
 void FLevelEditorActionCallbacks::BrowseCVars()
@@ -479,7 +479,7 @@ void FLevelEditorActionCallbacks::AttachToActor(AActor* ParentActorPtr)
 	// Instead, we currently only display the sockets on the root component
 	if (ParentActorPtr != NULL)
 	{
-		if (USceneComponent* RootComponent = Cast<USceneComponent>(ParentActorPtr->GetRootComponent()))
+		if (USceneComponent* RootComponent = ParentActorPtr->GetRootComponent())
 		{
 			if (RootComponent->HasAnySockets())
 			{

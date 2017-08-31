@@ -2228,7 +2228,7 @@ void UListMaterialsUsedWithMeshEmittersCommandlet::ProcessParticleSystem( UParti
 {
 	for (int32 EmitterIndex = 0; EmitterIndex < ParticleSystem->Emitters.Num(); EmitterIndex++)
 	{
-		UParticleEmitter *Emitter = Cast<UParticleEmitter>(ParticleSystem->Emitters[EmitterIndex]);
+		UParticleEmitter *Emitter = ParticleSystem->Emitters[EmitterIndex];
 		if (Emitter && Emitter->LODLevels.Num() > 0)
 		{
 			UParticleLODLevel* LODLevel = Emitter->LODLevels[0];

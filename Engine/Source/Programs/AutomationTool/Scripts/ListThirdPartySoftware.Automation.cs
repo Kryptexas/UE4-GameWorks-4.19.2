@@ -7,6 +7,7 @@ using AutomationTool;
 using UnrealBuildTool;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Tools.DotNETCommon;
 
 [Help("Lists TPS files associated with any source used to build a specified target(s). Grabs TPS files associated with source modules, content, and engine shaders.")]
 [Help("Target", "one or more Project|Config|Platform values describing all the targets to get associated TPS files for.")]
@@ -91,7 +92,7 @@ class ListThirdPartySoftware : BuildCommand
 			throw new AutomationException("Failed to run UBT");
 		}
 
-		JsonObject Object = JsonObject.Read(OutputFile.FullName);
+		JsonObject Object = JsonObject.Read(OutputFile);
 
 		// local function that takes a RuntimeDependency path and resolves it (replacing Env vars that we support)
 		Func<string, DirectoryReference> ResolveRuntimeDependencyFolder = (string DependencyPath) =>

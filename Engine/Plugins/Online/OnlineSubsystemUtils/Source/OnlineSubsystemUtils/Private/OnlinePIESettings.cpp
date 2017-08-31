@@ -122,7 +122,7 @@ void UOnlinePIESettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 				for (FPIELoginSettingsInternal& Login : Logins)
 				{
 					// Remove any whitespace from login input
-					Login.Id = Login.Id.Trim().TrimTrailing();
+					Login.Id.TrimStartAndEndInline();
 				}
 			}
 			else if (SubPropName == GET_MEMBER_NAME_CHECKED(FPIELoginSettingsInternal, Token))
@@ -130,7 +130,7 @@ void UOnlinePIESettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 				for (FPIELoginSettingsInternal& Login : Logins)
 				{
 					// Remove any whitespace from login input
-					Login.Token = Login.Token.Trim().TrimTrailing();
+					Login.Token.TrimStartAndEndInline();
 					// Encrypt the password
 					Login.Encrypt();
 				}
@@ -140,7 +140,7 @@ void UOnlinePIESettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 				for (FPIELoginSettingsInternal& Login : Logins)
 				{
 					// Remove any whitespace from login input
-					Login.Type = Login.Type.Trim().TrimTrailing();
+					Login.Type.TrimStartAndEndInline();
 				}
 			}
 

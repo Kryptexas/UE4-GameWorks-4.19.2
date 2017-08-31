@@ -782,9 +782,9 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 						if (PreviousTranslation != TranslationUnit->Translation)
 						{
 							FString PreviousTranslationTrimmed = PreviousTranslation;
-							PreviousTranslationTrimmed.Trim().TrimTrailing();
+							PreviousTranslationTrimmed.TrimStartAndEndInline();
 							FString CurrentTranslationTrimmed = TranslationUnit->Translation;
-							CurrentTranslationTrimmed.Trim().TrimTrailing();
+							CurrentTranslationTrimmed.TrimStartAndEndInline();
 							// Ignore changes to only whitespace at beginning and/or end of string on import
 							if (PreviousTranslationTrimmed == CurrentTranslationTrimmed)
 							{

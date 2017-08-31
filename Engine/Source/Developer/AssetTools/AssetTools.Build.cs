@@ -20,6 +20,7 @@ public class AssetTools : ModuleRules
                 "CurveAssetEditor",
 				"Engine",
                 "InputCore",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",

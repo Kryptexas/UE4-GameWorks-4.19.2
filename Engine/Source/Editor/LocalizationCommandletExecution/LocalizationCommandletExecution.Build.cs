@@ -17,6 +17,7 @@ public class LocalizationCommandletExecution : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
 				"InputCore",

@@ -799,8 +799,8 @@ RETRY_SETUPANDVALIDATE:
 				else
 				{
 					// convenience for setup.bat writers.  Trim any accidental whitespace from var names/values.
-					EnvVarNames.Add(Left.Trim().TrimTrailing());
-					EnvVarValues.Add(Right.Trim().TrimTrailing());
+					EnvVarNames.Add(Left.TrimStartAndEnd());
+					EnvVarValues.Add(Right.TrimStartAndEnd());
 				}
 			}
 

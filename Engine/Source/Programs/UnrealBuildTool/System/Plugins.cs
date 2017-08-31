@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -214,6 +215,41 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Enumerates all the plugin files available to the given project
+		/// </summary>
+		/// <param name="ProjectFile">Path to the project file</param>
+		/// <returns>List of project files</returns>
+		public static IEnumerable<FileReference> EnumeratePlugins(FileReference ProjectFile)
+		{
+			DirectoryReference EnginePluginsDir = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Plugins");
+			foreach(FileReference PluginFile in EnumeratePlugins(EnginePluginsDir))
+			{
+				yield return PluginFile;
+			}
+
+			DirectoryReference EnterprisePluginsDir = DirectoryReference.Combine(UnrealBuildTool.EnterpriseDirectory, "Plugins");
+			foreach(FileReference PluginFile in EnumeratePlugins(EnterprisePluginsDir))
+			{
+				yield return PluginFile;
+			}
+
+			if(ProjectFile != null)
+			{
+				DirectoryReference ProjectPluginsDir = DirectoryReference.Combine(ProjectFile.Directory, "Plugins");
+				foreach(FileReference PluginFile in EnumeratePlugins(ProjectPluginsDir))
+				{
+					yield return PluginFile;
+				}
+
+				DirectoryReference ProjectModsDir = DirectoryReference.Combine(ProjectFile.Directory, "Mods");
+				foreach(FileReference PluginFile in EnumeratePlugins(ProjectModsDir))
+				{
+					yield return PluginFile;
+				}
+			}
+		}
+
+		/// <summary>
 		/// Read all the plugin descriptors under the given engine directory
 		/// </summary>
 		/// <param name="EngineDirectory">The parent directory to look in.</param>
@@ -318,6 +354,31 @@ namespace UnrealBuildTool
 					EnumeratePluginsInternal(ChildDirectory, FileNames);
 				}
 			}
+		}
+
+
+		/// <summary>
+		/// Determine if a plugin is enabled for a given project
+		/// </summary>
+		/// <param name="Project">The project to check</param>
+		/// <param name="Plugin">Information about the plugin</param>
+		/// <param name="Platform">The target platform</param>
+		/// <param name="Target"></param>
+		/// <returns>True if the plugin should be enabled for this project</returns>
+		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType Target)
+		{
+			bool bEnabled = Plugin.EnabledByDefault;
+			if (Project != null && Project.Plugins != null)
+			{
+				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
+				{
+					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
+					{
+						bEnabled = PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(Target);
+					}
+				}
+			}
+			return bEnabled;
 		}
 	}
 }

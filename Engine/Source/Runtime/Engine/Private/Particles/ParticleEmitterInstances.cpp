@@ -941,10 +941,9 @@ void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLe
 void FParticleEmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 	// Handle the TypeData module
-	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(InCurrentLODLevel->TypeDataModule);
-	if (TypeData)
+	if (InCurrentLODLevel->TypeDataModule)
 	{
-		TypeData->Update(this, TypeDataOffset, DeltaTime);
+		InCurrentLODLevel->TypeDataModule->Update(this, TypeDataOffset, DeltaTime);
 	}
 }
 

@@ -1509,6 +1509,13 @@ FSourceCodeNavigation::FOnSymbolQueryFinished& FSourceCodeNavigation::AccessOnSy
 	return FSourceCodeNavigationImpl::Get().OnSymbolQueryFinished;
 }
 
+/** Returns the name of the selected IDE */
+FText FSourceCodeNavigation::GetSelectedSourceCodeIDE()
+{
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	return SourceCodeAccessModule.GetAccessor().GetNameText();
+}
+
 FText FSourceCodeNavigation::GetSuggestedSourceCodeIDE(bool bShortIDEName)
 {
 #if PLATFORM_WINDOWS

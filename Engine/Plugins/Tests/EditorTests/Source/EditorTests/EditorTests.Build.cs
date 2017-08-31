@@ -36,6 +36,7 @@ public class EditorTests : ModuleRules
 			new string[]
 			{
 				"Projects",
+				"ApplicationCore",
 				"InputCore",
 				"LevelEditor",
 				"CoreUObject",

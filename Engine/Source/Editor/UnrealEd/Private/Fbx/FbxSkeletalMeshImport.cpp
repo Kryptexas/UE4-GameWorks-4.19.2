@@ -2176,7 +2176,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 			{
 				TArray<FName> ImportMaterialOriginalNameDataLOD;
 				ImportMeshLodData.AddZeroed();
-				USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewMesh);
+				USkeletalMesh* BaseSkeletalMesh = NewMesh;
 				
 				UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
 				ImportSkeletalMeshArgs.InParent = NewMesh->GetOutermost();

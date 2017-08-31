@@ -8,6 +8,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "GameFramework/PlayerInput.h"
 #include "Editor.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "EngineGlobals.h"
 #include "LevelEditor.h"
@@ -41,7 +42,7 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 		&& GEngine != nullptr 
 		&& GEngine->HMDDevice.IsValid()
 		&& (GEditor->PlayWorld == nullptr || (CurrentVREditorMode != nullptr && CurrentVREditorMode->GetStartedPlayFromVREditor()))
-		&& FPlatformProcess::IsThisApplicationForeground())
+		&& FPlatformApplicationMisc::IsThisApplicationForeground())
 	{
 		const EHMDWornState::Type LatestHMDWornState = GEngine->HMDDevice->GetHMDWornState();
 		if (HMDWornState != LatestHMDWornState)

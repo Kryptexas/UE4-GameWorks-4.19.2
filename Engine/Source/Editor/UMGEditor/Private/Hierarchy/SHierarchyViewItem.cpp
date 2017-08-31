@@ -135,7 +135,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 
 	if ( TargetTemplate && ( DropZone == EItemDropZone::AboveItem || DropZone == EItemDropZone::BelowItem ) )
 	{
-		if ( UPanelWidget* TargetParentTemplate = Cast<UPanelWidget>(TargetTemplate->GetParent()) )
+		if ( UPanelWidget* TargetParentTemplate = TargetTemplate->GetParent() )
 		{
 			int32 InsertIndex = TargetParentTemplate->GetChildIndex(TargetTemplate);
 			InsertIndex += ( DropZone == EItemDropZone::AboveItem ) ? 0 : 1;

@@ -226,6 +226,10 @@
     <None Include="Resources\GreyCheck.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj">
+      <Project>{5d7d66e8-8c76-4af9-b3ec-2ef03421d730}</Project>
+      <Name>DotNETUtilities</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DeploymentInterface\DeploymentInterface.csproj">
       <Project>{B7C89A17-1CB7-42D7-B879-43297538C193}</Project>
       <Name>DeploymentInterface</Name>

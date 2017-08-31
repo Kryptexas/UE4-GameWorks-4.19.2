@@ -10,6 +10,7 @@ using System.Security.AccessControl;
 using System.Xml;
 using System.Text;
 using System.Text.RegularExpressions;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {

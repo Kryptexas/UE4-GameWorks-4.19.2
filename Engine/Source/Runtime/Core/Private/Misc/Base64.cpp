@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/Base64.h"
 #include "Containers/StringConv.h"
@@ -245,4 +245,25 @@ bool FBase64::Decode(const ANSICHAR* Source, uint32 Length, uint8* Dest, uint32&
 		Dest += 3;
 	}
 	return true;
+}
+
+uint32 FBase64::GetDecodedDataSize(const FString& Source)
+{
+	uint32 SourceLength = Source.Len();
+
+	if (SourceLength == 0)
+	{
+		return 0;
+	}
+	else
+	{
+		check(SourceLength % 4 == 0);
+		uint32 NumBytes = (SourceLength / 4) * 3;
+		uint32 Padding = 0;
+		uint8 TmpDestination[4];
+		TCHAR TmpSource[5] = { Source[SourceLength - 4], Source[SourceLength - 3] , Source[SourceLength - 2] , Source[SourceLength - 1], 0 };
+		Decode(TCHAR_TO_ANSI(TmpSource), 4, TmpDestination, Padding);
+		NumBytes -= Padding;
+		return NumBytes;
+	}
 }

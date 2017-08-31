@@ -111,15 +111,18 @@ unshift @::gMatchers, (
         pattern =>          q{([^(]+)\([\d,]+\) ?: warning[ :]},
         action =>           q{incValue("warnings"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "warning", backIf("[^ ]+\.cpp\$"), forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)")) },
     },
+	# Two forms for Clang diagnostics - MSVC formatted (eg. Android) and normal (eg. Mac):
+	#   filename:123:4: error:
+	#   filename(123,4) : error: 
     {
         id =>               "clangError",
-        pattern =>          q{([^:]+):[\d:]+ error:},
+        pattern =>          q{(([a-zA-Z]:)?[^:]+)(?::[\d:,]+:|\([\d:,]+\))\s*:\s*error\s*:},
         action =>           q{incValue("errors"); diagnostic($1, "error", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
     },
     {
         id =>               "clangWarning",
-        pattern =>          q{([^:]+):[\d:]+ warning:},
-        action =>           q{incValue("warnings"); diagnostic($1, "warning", backWhile(": In function"), 0)},
+        pattern =>          q{(([a-zA-Z]:)?[^:]+)(?::[\d:,]+:|\([\d:,]+\))\s*:\s*warning\s*:},
+        action =>           q{incValue("warnings"); diagnostic($1, "warning", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
     },
     {
         id =>               "genericDoctoolError",
@@ -136,6 +139,11 @@ unshift @::gMatchers, (
         pattern =>          q{\*\*\*\* Changes since last succeeded},
 		action =>           q{$::gCurrentLine += forwardTo('^\\\*', 1);}
     },
+	{
+		id =>				"clangThreadSanitizerWarning",
+		pattern =>			q{^(\s*)WARNING: ThreadSanitizer:},
+        action =>           q{incValue("warnings"); my $prefix = $1; diagnostic("TSan", "warning", 0, forwardWhile("^([ ]*|$prefix  .*|${prefix}SUMMARY:.*)\$"))}
+	},
 	{
 		id =>               "editorLogChannelError",
 		pattern =>          q{^([a-zA-Z_][a-zA-Z0-9_]*):Error: },

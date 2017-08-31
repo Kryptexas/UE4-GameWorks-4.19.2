@@ -348,7 +348,7 @@ public:
 	 *
 	 * @return Project file path.
 	 */
-	static const FString& GetProjectFilePath();
+	static FString GetProjectFilePath();
 
 	/**
 	 * Sets the path to the project file.

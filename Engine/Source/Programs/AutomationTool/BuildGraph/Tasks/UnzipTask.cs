@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace BuildGraph.Tasks
@@ -60,7 +61,7 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
-		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
+		/// <param name="TagNameToFileSet">Mapping from tag names \to the set of files they include</param>
 		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			DirectoryReference ToDir = ResolveDirectory(Parameters.ToDir);

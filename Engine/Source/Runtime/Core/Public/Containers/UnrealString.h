@@ -1341,13 +1341,25 @@ public:
 	}
 
 	/** @return a new string with the characters of this converted to uppercase */
-	FString ToUpper() const;
+	FString ToUpper() const &;
+
+	/**
+	 * Converts all characters in this rvalue string to uppercase and moves it into the returned string.
+	 * @return a new string with the characters of this converted to uppercase
+	 */
+	FString ToUpper() &&;
 
 	/** Converts all characters in this string to uppercase */
 	void ToUpperInline();
 
 	/** @return a new string with the characters of this converted to lowercase */
-	FString ToLower() const;
+	FString ToLower() const &;
+
+	/**
+	 * Converts all characters in this rvalue string to lowercase and moves it into the returned string.
+	 * @return a new string with the characters of this converted to lowercase
+	 */
+	FString ToLower() &&;
 
 	/** Converts all characters in this string to lowercase */
 	void ToLowerInline();
@@ -1456,12 +1468,65 @@ public:
 	/**
 	 * Removes whitespace characters from the front of this string.
 	 */
+	DEPRECATED(4.18, "FString::Trim() has been split into separate functions for copy and mutate semantics. Call FString::TrimStart() to return a copy of the string with whitespace trimmed from the start, or FString::TrimStartInline() to modify an FString object in-place.")
 	FString Trim();
 
 	/**
 	 * Removes trailing whitespace characters
 	 */
-	FString TrimTrailing( void );
+	DEPRECATED(4.18, "FString::TrimTrailing() has been split into separate functions for copy and mutate semantics. Call FString::TrimEnd() to return a copy of the string with whitespace trimmed from the start, or FString::TrimEndInline() to modify an FString object in-place.")
+	FString TrimTrailing();
+
+	/**
+	 * Removes whitespace characters from the start and end of this string. Modifies the string in-place.
+	 */
+	void TrimStartAndEndInline();
+
+	/**
+	 * Removes whitespace characters from the start and end of this string.
+	 * @note Unlike Trim() this function returns a copy, and does not mutate the string.
+	 */
+	FString TrimStartAndEnd() const &;
+
+	/**
+	 * Removes whitespace characters from the start and end of this string.
+	 * @note Unlike Trim() this function returns a copy, and does not mutate the string.
+	 */
+	FString TrimStartAndEnd() &&;
+
+	/**
+	 * Removes whitespace characters from the start of this string. Modifies the string in-place.
+	 */
+	void TrimStartInline();
+
+	/**
+	 * Removes whitespace characters from the start of this string.
+	 * @note Unlike Trim() this function returns a copy, and does not mutate the string.
+	 */
+	FString TrimStart() const &;
+
+	/**
+	 * Removes whitespace characters from the start of this string.
+	 * @note Unlike Trim() this function returns a copy, and does not mutate the string.
+	 */
+	FString TrimStart() &&;
+
+	/**
+	 * Removes whitespace characters from the end of this string. Modifies the string in-place.
+	 */
+	void TrimEndInline();
+
+	/**
+	 * Removes whitespace characters from the end of this string.
+	 * @note Unlike TrimTrailing() this function returns a copy, and does not mutate the string.
+	 */
+	FString TrimEnd() const &;
+
+	/**
+	 * Removes whitespace characters from the end of this string.
+	 * @note Unlike TrimTrailing() this function returns a copy, and does not mutate the string.
+	 */
+	FString TrimEnd() &&;
 
 	/** 
 	 * Trims the inner array after the null terminator.

@@ -174,7 +174,7 @@ VkImage FVulkanSurface::CreateImage(
 {
 	const VkPhysicalDeviceProperties& DeviceProperties = InDevice.GetDeviceProperties();
 
-	checkf(GPixelFormats[InFormat].Supported, TEXT("Format %d"), InFormat);
+	checkf(GPixelFormats[InFormat].Supported, TEXT("Format %d"), (int32)InFormat);
 
 	VkImageCreateInfo TmpCreateInfo;
 	VkImageCreateInfo* ImageCreateInfoPtr = OutInfo ? OutInfo : &TmpCreateInfo;
@@ -206,13 +206,13 @@ VkImage FVulkanSurface::CreateImage(
 		ImageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
 		break;
 	default:
-		checkf(false, TEXT("Unhandled image type %d"), ResourceType);
+		checkf(false, TEXT("Unhandled image type %d"), (int32)ResourceType);
 		break;
 	}
 
 	ImageCreateInfo.format = UEToVkFormat(InFormat, false);
 
-	checkf(ImageCreateInfo.format != VK_FORMAT_UNDEFINED, TEXT("Pixel Format %d not defined!"), InFormat);
+	checkf(ImageCreateInfo.format != VK_FORMAT_UNDEFINED, TEXT("Pixel Format %d not defined!"), (int32)InFormat);
 	if (OutStorageFormat)
 	{
 		*OutStorageFormat = ImageCreateInfo.format;
@@ -1500,7 +1500,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	{
 		Surface.StorageFormat = UEToVkFormat(InFormat, false);
 		Surface.ViewFormat = UEToVkFormat(InFormat, (UEFlags & TexCreate_SRGB) == TexCreate_SRGB);
-		checkf(Surface.StorageFormat != VK_FORMAT_UNDEFINED, TEXT("Pixel Format %d not defined!"), InFormat);
+		checkf(Surface.StorageFormat != VK_FORMAT_UNDEFINED, TEXT("Pixel Format %d not defined!"), (int32)InFormat);
 	}
 
 	if (ResourceType != VK_IMAGE_VIEW_TYPE_MAX_ENUM)

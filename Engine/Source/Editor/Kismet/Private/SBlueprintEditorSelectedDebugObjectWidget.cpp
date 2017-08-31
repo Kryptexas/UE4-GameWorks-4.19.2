@@ -380,7 +380,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 	UWorld* PreviewWorld = BlueprintEditor.Pin()->GetPreviewScene()->GetWorld();
 
 	const bool bModifiedIterator = CVarUseFastDebugObjectDiscovery.GetValueOnGameThread() == 1;
-	UClass* BlueprintClass = Cast<UClass>(GetBlueprintObj()->GeneratedClass);
+	UClass* BlueprintClass = GetBlueprintObj()->GeneratedClass;
 
 	if (bModifiedIterator && BlueprintClass)
 	{

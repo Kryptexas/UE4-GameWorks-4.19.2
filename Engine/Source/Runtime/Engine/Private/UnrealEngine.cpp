@@ -131,6 +131,7 @@
 #include "Components/TextRenderComponent.h"
 #include "Classes/Sound/AudioSettings.h"
 
+
 #if WITH_EDITOR
 #include "Settings/LevelEditorPlaySettings.h"
 #endif
@@ -205,6 +206,8 @@
 	#include "GenericPlatformCrashContext.h"
 	#include "EngineBuildSettings.h"
 #endif
+
+#include "FileManagerGeneric.h"
 
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
@@ -416,6 +419,73 @@ void ScalabilityCVarsSinkCallback()
 
 static bool GHDROutputEnabled = false;
 
+bool ParseResolution(const TCHAR* InResolution, uint32& OutX, uint32& OutY, int32& OutWindowMode)
+{
+	if(*InResolution)
+	{
+		FString CmdString(InResolution);
+		CmdString = CmdString.TrimStartAndEnd().ToLower();
+
+		//Retrieve the X dimensional value
+		const uint32 X = FMath::Max(FCString::Atof(*CmdString), 0.0f);
+
+		// Determine whether the user has entered a resolution and extract the Y dimension.
+		FString YString;
+
+		// Find separator between values (Example of expected format: 1280x768)
+		const TCHAR* YValue = NULL;
+		if(FCString::Strchr(*CmdString,'x'))
+		{
+			YValue = const_cast<TCHAR*> (FCString::Strchr(*CmdString,'x')+1);
+			YString = YValue;
+			// Remove any whitespace from the end of the string
+			YString = YString.TrimStartAndEnd();
+		}
+
+		// If the Y dimensional value exists then setup to use the specified resolution.
+		uint32 Y = 0;
+		if ( YValue && YString.Len() > 0 )
+		{
+			// See if there is a fullscreen flag on the end
+			FString FullScreenChar = YString.Mid(YString.Len() - 1);
+			FString WindowFullScreenChars = YString.Mid(YString.Len() - 2);
+			int32 WindowMode = OutWindowMode;
+			if (!FullScreenChar.IsNumeric())
+			{
+				int StringTripLen = 0;
+
+				if (WindowFullScreenChars == TEXT("wf"))
+				{
+					WindowMode = EWindowMode::WindowedFullscreen;
+					StringTripLen = 2;
+				}
+				else if (FullScreenChar == TEXT("f"))
+				{
+					WindowMode = EWindowMode::Fullscreen;
+					StringTripLen = 1;
+				}
+				else if (FullScreenChar == TEXT("w"))
+				{
+					WindowMode = EWindowMode::Windowed;
+					StringTripLen = 1;
+				}
+
+				YString = YString.Left(YString.Len() - StringTripLen).TrimStartAndEnd();
+			}
+
+			if (YString.IsNumeric())
+			{
+				Y = FMath::Max(FCString::Atof(YValue), 0.0f);
+				OutX = X;
+				OutY = Y;
+				OutWindowMode = WindowMode;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 void SystemResolutionSinkCallback()
 {
 	auto ResString = CVarSystemResolution->GetString();
@@ -426,7 +496,7 @@ void SystemResolutionSinkCallback()
 	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 	bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
 	
-	if (FParse::Resolution(*ResString, ResX, ResY, WindowModeInt))
+	if (ParseResolution(*ResString, ResX, ResY, WindowModeInt))
 	{
 		EWindowMode::Type WindowMode = EWindowMode::ConvertIntToWindowMode(WindowModeInt);
 
@@ -1077,7 +1147,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Add to root.
 	AddToRoot();
 
-	FCoreUObjectDelegates::PreGarbageCollect.AddStatic(UEngine::PreGarbageCollect);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddStatic(UEngine::PreGarbageCollect);
 
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();
@@ -4061,7 +4131,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// Increase usage count for all referenced textures
 		for( int32 TextureIndex=0; TextureIndex<StreamingTextures.Num(); TextureIndex++ )
 		{
-			UTexture2D* Texture = Cast<UTexture2D>(StreamingTextures[TextureIndex].Texture);
+			UTexture2D* Texture = StreamingTextures[TextureIndex].Texture;
 			if( Texture )
 			{
 				// Initializes UsageCount to 0 if texture is not found.
@@ -12955,6 +13025,316 @@ static FAutoConsoleCommand SetupThreadAffinityCmd(
 	TEXT("Sets the thread affinity. A single arg of default resets the thread affinity, otherwise pairs of args [GT|RT|RHI|Task] [Hex affinity] sets the affinity."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&SetupThreadAffinity)
 	);
+
+#if !UE_BUILD_SHIPPING
+
+static void PakFileTest(const TArray<FString>& Args)
+{
+	FString PakFilename = TEXT("D:\\work\\Dev-Core\\Samples\\Games\\ShooterGame\\Saved\\StagedBuilds\\WindowsNoEditor\\ShooterGame\\Content\\Paks\\test.pak");
+	if (Args.Num() < 1)
+	{
+		UE_LOG(LogConsoleResponse, Error, TEXT("Usage: PakFileTest path-to-pak-file"));
+	}
+	else
+	{
+		PakFilename = Args[0];
+	}
+	if (!PakFilename.IsEmpty())
+	{
+		const FString MountPoint = FPaths::ProjectSavedDir() / TEXT("PakFileTest");
+		FFileManagerGeneric::Get().DeleteDirectory(*MountPoint, false, true);
+
+		FString MountCmd = FString::Printf(TEXT("mount %s %s"), *PakFilename, *MountPoint);
+		GEngine->Exec(nullptr, *MountCmd);
+
+		static TArray<FString> FileNames;
+		check(!FileNames.Num()); // don't run this twice!
+		IFileManager::Get().FindFilesRecursive(FileNames, *MountPoint, TEXT("*.*"), true, false);
+		check(FileNames.Num());
+
+
+		static FString ReloadTestFile;
+		static int64 ReloadTestSize = -1;
+		static uint32 ReloadTestCRC = 0;
+		static FCriticalSection ReloadLock;
+		static FThreadSafeCounter Processed;
+
+
+		static TFunction<void()> Broadcast =
+			[
+			]
+		()
+		{
+			FRandomStream RNG(FPlatformTime::Cycles());
+			{
+				int32 NumProc = Processed.Increment();
+				if (NumProc % 1000 == 1 || NumProc == 11 || NumProc == 101 || NumProc == 501)
+				{
+					UE_LOG(LogTemp, Display, TEXT("Processed %d files (Thread  %x)"), NumProc - 1, FPlatformTLS::GetCurrentThreadId());
+				}
+
+				bool bMyReload = false;
+				FString TestFile;
+				int64 TestSize = 0;
+				uint32 TestCRC = 0;
+				if (RNG.GetFraction() > .75f)
+				{
+					FScopeLock Lock(&ReloadLock);
+					if (ReloadTestSize != -1)
+					{
+						TestSize = ReloadTestSize;
+						TestCRC = ReloadTestCRC;
+						TestFile = ReloadTestFile;
+
+						ReloadTestFile.Empty();
+						ReloadTestSize = -1;
+						ReloadTestCRC = 0;
+
+						bMyReload = true;
+					}
+				}
+				if (TestFile.IsEmpty())
+				{
+					TestFile = FileNames[RNG.RandRange(0, FileNames.Num() - 1)];
+				}
+
+				IAsyncReadFileHandle* IORequestHandle = FPlatformFileManager::Get().GetPlatformFile().OpenAsyncRead(*TestFile);
+				check(IORequestHandle);
+				IAsyncReadRequest* SizeReq = IORequestHandle->SizeRequest();
+				if (!SizeReq->PollCompletion()) // this should already be done with pak files
+				{
+					//check(0);
+					UE_LOG(LogTemp, Display, TEXT("Had to wait for size!!! =  %s"), *TestFile);
+					SizeReq->WaitCompletion();
+				}
+				if (bMyReload)
+				{
+					check(TestSize == SizeReq->GetSizeResults());
+				}
+				TestSize = SizeReq->GetSizeResults();
+				SizeReq->WaitCompletion();
+				delete SizeReq;
+
+				check(TestSize >= 0);
+
+				uint32 NewCRC = 0;
+				bool bAbortAfterCancel = RNG.GetFraction() > .95f;
+				if (TestSize > 0)
+				{
+					uint8* Memory = (uint8*)FMemory::Malloc(TestSize);
+
+					TArray<int64> SpanOffsets;
+					TArray<int64> SpanSizes;
+
+					int64 CurrentOffset = 0;
+					while (CurrentOffset < TestSize)
+					{
+						SpanOffsets.Add(CurrentOffset);
+						int64 Span = int64(RNG.RandRange(int32(FMath::Min<int64>(8192, TestSize - CurrentOffset)), TestSize - CurrentOffset));
+						SpanSizes.Add(Span);
+						CurrentOffset += Span;
+						check(CurrentOffset <= TestSize);
+					}
+					TArray<IAsyncReadRequest*> PrecacheReqs;
+					if (RNG.GetFraction() > .75f)
+					{
+						for (int32 i = 0; i < SpanOffsets.Num() / 5; i++)
+						{
+							int32 Index = RNG.RandRange(0, SpanOffsets.Num() - 1);
+							CurrentOffset = SpanOffsets[Index];
+							int64 Span = SpanSizes[Index];
+
+							PrecacheReqs.Add(IORequestHandle->ReadRequest(CurrentOffset, Span, AIOP_Precache));
+						}
+					}
+					while (SpanOffsets.Num())
+					{
+						int32 Index = RNG.RandRange(0, SpanOffsets.Num() - 1);
+						CurrentOffset = SpanOffsets[Index];
+						int64 Span = SpanSizes[Index];
+
+						bool CallbackCalled = false;
+
+						FAsyncFileCallBack AsyncFileCallBack =
+							[&CallbackCalled](bool bWasCancelled, IAsyncReadRequest* Req)
+						{
+							CallbackCalled = true;
+						};
+
+						bool bUserMem = !!RNG.RandRange(0, 1);
+						EAsyncIOPriority Pri = EAsyncIOPriority(RNG.RandRange(AIOP_Low, AIOP_CriticalPath));
+						IAsyncReadRequest* ReadReq = IORequestHandle->ReadRequest(CurrentOffset, Span, Pri, &AsyncFileCallBack, bUserMem ? Memory + CurrentOffset : nullptr);
+
+						bool bCancel = RNG.RandRange(0, 5) == 0;
+
+						if (bCancel)
+						{
+							float s = float(RNG.RandRange(0, 5)) / 1000.0f;
+							if (s >= .001f)
+							{
+								FPlatformProcess::Sleep(s);
+							}
+							ReadReq->Cancel();
+						}
+
+						switch (RNG.RandRange(0, 4))
+						{
+						default:
+							ReadReq->WaitCompletion();
+							break;
+						case 1:
+							while (!ReadReq->PollCompletion())
+							{
+								FPlatformProcess::SleepNoStats(0.016f);
+							}
+							break;
+						case 2:
+							while (!ReadReq->PollCompletion())
+							{
+								FPlatformProcess::SleepNoStats(0);
+							}
+							break;
+						case 3:
+							while (!ReadReq->WaitCompletion(.016f))
+							{
+							}
+							break;
+						case 4:
+							// can't wait for the callback after we have canceled
+							if (bCancel)
+							{
+								ReadReq->WaitCompletion();
+							}
+							else
+							{
+								while (!CallbackCalled)
+								{
+									FPlatformProcess::SleepNoStats(0);
+								}
+							}
+							break;
+						}
+
+						if (!bUserMem)
+						{
+							uint8 *Mem = ReadReq->GetReadResults();
+							check(Mem || bCancel);
+							if (Mem)
+							{
+								FMemory::Memcpy(Memory + CurrentOffset, Mem, Span);
+								bCancel = false; // we should have the memory anyway
+								FMemory::Free(Mem);
+								DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, Span);
+							}
+						}
+						ReadReq->WaitCompletion();
+						delete ReadReq;
+						if (!bCancel)
+						{
+							SpanOffsets.RemoveAtSwap(Index);
+							SpanSizes.RemoveAtSwap(Index);
+						}
+						else if (bAbortAfterCancel)
+						{
+							break;
+						}
+					}
+
+					if (!bAbortAfterCancel)
+					{
+						NewCRC = FCrc::MemCrc32(Memory, TestSize, 0x56);
+					}
+
+					FMemory::Free(Memory);
+
+					for (IAsyncReadRequest* Req : PrecacheReqs)
+					{
+						Req->Cancel();
+						Req->WaitCompletion();
+						delete Req;
+					}
+
+				}
+
+				if (!bAbortAfterCancel)
+				{
+					if (bMyReload)
+					{
+						//UE_LOG(LogTemp, Display, TEXT("Reload pass CRC = %x    %s"), NewCRC, *TestFile);
+						check(NewCRC == TestCRC);
+					}
+					else
+					{
+						//UE_LOG(LogTemp, Display, TEXT("CRC = %x    %s"), NewCRC, *TestFile);
+					}
+					if (RNG.GetFraction() > .75f)
+					{
+						FScopeLock Lock(&ReloadLock);
+						if (ReloadTestSize == -1)
+						{
+							ReloadTestSize = TestSize;
+							ReloadTestCRC = NewCRC;
+							ReloadTestFile = TestFile;
+						}
+					}
+				}
+
+				delete IORequestHandle;
+			}
+			if (!GIsRequestingExit)
+			{
+				switch (RNG.RandRange(0, 2))
+				{
+				case 1:
+					if (ENamedThreads::bHasBackgroundThreads)
+					{
+						FFunctionGraphTask::CreateAndDispatchWhenReady(Broadcast, TStatId(), NULL, ENamedThreads::AnyBackgroundThreadNormalTask);
+						return;
+					}
+					break;
+				case 2:
+					if (ENamedThreads::bHasHighPriorityThreads)
+					{
+						FFunctionGraphTask::CreateAndDispatchWhenReady(Broadcast, TStatId(), NULL, ENamedThreads::AnyHiPriThreadNormalTask);
+						return;
+					}
+					break;
+				}
+
+				FFunctionGraphTask::CreateAndDispatchWhenReady(Broadcast, TStatId(), NULL, ENamedThreads::AnyThread);
+			}
+		};
+
+		int32 NumThreads = 1; // careful, it is easy to deadlock, one should not wait in task graph tasks!
+		check(NumThreads > 0);
+		for (int32 i = 0; i < NumThreads; i++)
+		{
+			FFunctionGraphTask::CreateAndDispatchWhenReady(Broadcast, TStatId(), NULL, ENamedThreads::AnyThread);
+		}
+		if (ENamedThreads::bHasBackgroundThreads)
+		{
+			for (int32 i = 0; i < NumThreads; i++)
+			{
+				FFunctionGraphTask::CreateAndDispatchWhenReady(Broadcast, TStatId(), NULL, ENamedThreads::AnyBackgroundThreadNormalTask);
+			}
+		}
+		if (ENamedThreads::bHasHighPriorityThreads)
+		{
+			for (int32 i = 0; i < NumThreads; i++)
+			{
+				FFunctionGraphTask::CreateAndDispatchWhenReady(Broadcast, TStatId(), NULL, ENamedThreads::AnyHiPriThreadNormalTask);
+			}
+		}
+	}
+}
+
+static FAutoConsoleCommand PakFileTestCmd(
+	TEXT("PakFileTest"),
+	TEXT("Tests the low level filesystem by mounting a pak file and doing multithreaded loads on it forever. Arg should be a full path to a pak file."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&PakFileTest)
+);
+
+#endif
 
 // REVERB
 #if !UE_BUILD_SHIPPING

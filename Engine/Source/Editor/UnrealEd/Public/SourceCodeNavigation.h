@@ -154,6 +154,9 @@ public:
 	/** Returns the name of the suggested IDE, based on platform */
 	UNREALED_API static FText GetSuggestedSourceCodeIDE(bool bShortIDEName = false);
 
+	/** Returns the name of the selected IDE */
+	UNREALED_API static FText GetSelectedSourceCodeIDE();
+
 	/** Returns the url to the location where the suggested IDE can be downloaded */
 	UNREALED_API static FString GetSuggestedSourceCodeIDEDownloadURL();
 

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -271,7 +272,7 @@ namespace UnrealBuildTool
 		/// <returns>New plugin descriptor</returns>
 		public static PluginDescriptor FromFile(FileReference FileName)
 		{
-			JsonObject RawObject = JsonObject.Read(FileName.FullName);
+			JsonObject RawObject = JsonObject.Read(FileName);
 			try
 			{
 				return new PluginDescriptor(RawObject);

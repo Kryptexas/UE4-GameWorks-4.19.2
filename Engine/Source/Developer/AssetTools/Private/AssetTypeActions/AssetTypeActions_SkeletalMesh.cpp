@@ -572,7 +572,7 @@ void FAssetTypeActions_SkeletalMesh::GetLODMenu(class FMenuBuilder& MenuBuilder,
 
 		MenuBuilder.AddMenuEntry(	Description, 
 									ToolTip, FSlateIcon(),
-									FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD, Cast<UObject>(SkeletalMesh), LOD) )) ;
+									FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD, static_cast<UObject*>(SkeletalMesh), LOD) )) ;
 	}
 }
 

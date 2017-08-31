@@ -2129,9 +2129,7 @@ void UParticleModuleSubUV::Spawn(FParticleEmitterInstance* Owner, int32 Offset, 
 		return;
 	}
 
-	UParticleModuleTypeDataBase* TypeDataBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-	bool bSpawn = (TypeDataBase == NULL) ? true : TypeDataBase->SupportsSubUV();
-	if (bSpawn == true)
+	if (!LODLevel->TypeDataModule || LODLevel->TypeDataModule->SupportsSubUV())
 	{
 		SPAWN_INIT;
 		{
@@ -2169,9 +2167,7 @@ void UParticleModuleSubUV::Update(FParticleEmitterInstance* Owner, int32 Offset,
 		}
 	}
 
-	UParticleModuleTypeDataBase* TypeDataBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-	bool bUpdate = (TypeDataBase == NULL) ? true : TypeDataBase->SupportsSubUV();
-	if (bUpdate == true)
+	if (!LODLevel->TypeDataModule || LODLevel->TypeDataModule->SupportsSubUV())
 	{
 		BEGIN_UPDATE_LOOP;
 			if (Particle.RelativeTime > 1.0f)
@@ -2336,9 +2332,7 @@ void UParticleModuleSubUVMovie::Spawn(FParticleEmitterInstance* Owner, int32 Off
 		return UParticleModuleSubUV::Spawn(Owner, Offset, SpawnTime, ParticleBase);
 	}
 
-	UParticleModuleTypeDataBase* TypeDataBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-	bool bSpawn = (TypeDataBase == NULL) ? true : TypeDataBase->SupportsSubUV();
-	if (bSpawn == true)
+	if (!LODLevel->TypeDataModule || LODLevel->TypeDataModule->SupportsSubUV())
 	{
 		USubUVAnimation* RESTRICT SubUVAnimation = Owner->SpriteTemplate->SubUVAnimation;
 

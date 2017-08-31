@@ -477,7 +477,7 @@ bool FPaths::IsProjectFilePathSet()
 	return !GameProjectFilePath.IsEmpty();
 }
 
-const FString& FPaths::GetProjectFilePath()
+FString FPaths::GetProjectFilePath()
 {
 	FScopeLock Lock(GameProjectFilePathLock());
 	return GameProjectFilePath;

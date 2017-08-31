@@ -328,7 +328,7 @@ bool UAlembicImportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilena
 	
 	if (ImportData)
 	{
-		if (FPaths::GetExtension(ImportData->GetFirstFilename()).ToLower() == "abc" || ( Obj->GetClass() == UAnimSequence::StaticClass() && ImportData->GetFirstFilename().IsEmpty()))
+		if (FPaths::GetExtension(ImportData->GetFirstFilename()) == TEXT("abc") || ( Obj->GetClass() == UAnimSequence::StaticClass() && ImportData->GetFirstFilename().IsEmpty()))
 		{
 			ImportData->ExtractFilenames(OutFilenames);
 			return true;

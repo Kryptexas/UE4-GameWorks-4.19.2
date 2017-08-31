@@ -360,7 +360,7 @@ ALODActor* FHierarchicalLODUtilities::GetParentLODActor(const AActor* InActor)
 void FHierarchicalLODUtilities::DestroyCluster(ALODActor* InActor)
 {
 	// Find if it has a parent ALODActor
-	AActor* Actor = CastChecked<AActor>(InActor);
+	AActor* Actor = InActor;
 	UWorld* World = Actor->GetWorld();
 	ALODActor* ParentLOD = GetParentLODActor(InActor);
 

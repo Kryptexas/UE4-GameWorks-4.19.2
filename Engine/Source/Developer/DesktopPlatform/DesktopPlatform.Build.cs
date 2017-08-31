@@ -11,6 +11,7 @@ public class DesktopPlatform : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"Json",
 			}
 		);

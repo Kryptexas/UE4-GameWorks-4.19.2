@@ -7,6 +7,7 @@ using System.Xml;
 using System.Diagnostics;
 using System.Web.Script.Serialization;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {
@@ -468,7 +469,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null, bool? IsPromotedOverride = null, bool bSkipHeader = false)
+		public List<FileReference> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null, bool? IsPromotedOverride = null, bool bSkipHeader = false)
 		{
 			bool bIsLicenseeVersion = ParseParam("Licensee");
 			bool bIsPromotedBuild = IsPromotedOverride.HasValue? IsPromotedOverride.Value : (ParseParamInt("Promoted", 1) != 0);
@@ -487,19 +488,19 @@ namespace AutomationTool
 			string Branch = OwnerCommand.ParseParamValue("Branch");
 			if (String.IsNullOrEmpty(Branch))
 			{
-				Branch = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "";
+				Branch = CommandUtils.P4Enabled ? CommandUtils.EscapePath(CommandUtils.P4Env.Branch) : "";
 			}
 
 			return StaticUpdateVersionFiles(ChangelistNumber, CompatibleChangelistNumber, Branch, Build, bIsLicenseeVersion, bIsPromotedBuild, bDoUpdateVersionFiles, bSkipHeader);
 		}
 
-		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, int CompatibleChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bIsPromotedBuild, bool bDoUpdateVersionFiles, bool bSkipHeader)
+		public static List<FileReference> StaticUpdateVersionFiles(int ChangelistNumber, int CompatibleChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bIsPromotedBuild, bool bDoUpdateVersionFiles, bool bSkipHeader)
 		{
 			string ChangelistString = (ChangelistNumber != 0 && bDoUpdateVersionFiles)? ChangelistNumber.ToString() : String.Empty;
 
-			var Result = new List<String>();
+			var Result = new List<FileReference>();
 			{
-				string VerFile = BuildVersion.GetDefaultFileName();
+				FileReference VerFile = BuildVersion.GetDefaultFileName();
 				if (bDoUpdateVersionFiles)
 				{
 					CommandUtils.LogLog("Updating {0} with:", VerFile);
@@ -524,7 +525,7 @@ namespace AutomationTool
 					Version.IsPromotedBuild = bIsPromotedBuild? 1 : 0;
 					Version.BranchName = Branch;
 
-					VersionFileUpdater.MakeFileWriteable(VerFile);
+					VersionFileUpdater.MakeFileWriteable(VerFile.FullName);
 
 					Version.Write(VerFile);
 				}
@@ -535,9 +536,9 @@ namespace AutomationTool
 				Result.Add(VerFile);
 			}
 
-            string EngineVersionFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Launch", "Resources", "Version.h");
+            FileReference EngineVersionFile = FileReference.Combine(CommandUtils.EngineDirectory, "Source", "Runtime", "Launch", "Resources", "Version.h");
             {
-                string VerFile = EngineVersionFile;
+                FileReference VerFile = EngineVersionFile;
 				if (bDoUpdateVersionFiles && !bSkipHeader)
 				{
 					CommandUtils.LogLog("Updating {0} with:", VerFile);
@@ -579,12 +580,12 @@ namespace AutomationTool
 
             {
                 // Use Version.h data to update MetaData.cs so the assemblies match the engine version.
-                string VerFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source", "Programs", "DotNETCommon", "MetaData.cs");
+                FileReference VerFile = FileReference.Combine(CommandUtils.EngineDirectory, "Source", "Programs", "DotNETCommon", "MetaData.cs");
 
 				if (bDoUpdateVersionFiles)
                 {
                     // Get the MAJOR/MINOR/PATCH from the Engine Version file, as it is authoritative. The rest we get from the P4Env.
-                    string NewInformationalVersion = FEngineVersionSupport.FromVersionFile(EngineVersionFile, ChangelistNumber).ToString();
+                    string NewInformationalVersion = FEngineVersionSupport.FromVersionFile(EngineVersionFile.FullName, ChangelistNumber).ToString();
 
                     CommandUtils.LogLog("Updating {0} with AssemblyInformationalVersion: {1}", VerFile, NewInformationalVersion);
 
@@ -624,7 +625,7 @@ namespace AutomationTool
 				}
 			}
 
-			string VerFile = CommandUtils.CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
+			FileReference VerFile = FileReference.Combine(CommandUtils.EngineDirectory, "Source", "Runtime", "PakFile", "Private", "PublicKey.inl");
 
 			CommandUtils.LogVerbose("Updating {0} with:", VerFile);
 			CommandUtils.LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);

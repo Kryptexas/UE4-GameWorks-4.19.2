@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -178,7 +179,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="FileName">The filename to read</param>
 		/// <returns>New plugin descriptor</returns>
-		public static ProjectDescriptor FromFile(string FileName)
+		public static ProjectDescriptor FromFile(FileReference FileName)
 		{
 			JsonObject RawObject = JsonObject.Read(FileName);
 			try

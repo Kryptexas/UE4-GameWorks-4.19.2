@@ -209,7 +209,7 @@ static bool HasLicense()
 	FString LicenseString = LicenseHash.ToString().ToLower();
 	for (FString &line : lines)
 	{
-		if (line.TrimTrailing().Trim().Equals(LicenseString))
+		if (line.TrimStartAndEnd().Equals(LicenseString))
 		{
 			return true;
 		}

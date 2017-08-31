@@ -1839,11 +1839,7 @@ FParticleEmitterInstance* UParticleSpriteEmitter::CreateInstance(UParticleSystem
 	if (LODLevel->TypeDataModule)
 	{
 		//@todo. This will NOT work for trails/beams!
-		UParticleModuleTypeDataBase* TypeData = CastChecked<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-		if (TypeData)
-		{
-			Instance = TypeData->CreateInstance(this, InComponent);
-		}
+		Instance = LODLevel->TypeDataModule->CreateInstance(this, InComponent);
 	}
 	else
 	{

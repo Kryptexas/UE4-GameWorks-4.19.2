@@ -22,6 +22,7 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Analytics",
+					"ApplicationCore",
 					// ... add private dependencies that you statically link with here ...
 				}
 			);

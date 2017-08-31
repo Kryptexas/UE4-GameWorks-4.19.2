@@ -465,7 +465,7 @@ UPackage* UUnrealEdEngine::GeneratePackageThumbnailsIfRequired( const TCHAR* Str
 					// thumbnail so the Content Browser can check for non-existent assets in the background
 					if( bNeedEmptyThumbnail )
 					{
-						UPackage* MyOutermostPackage = CastChecked< UPackage >( CurObject->GetOutermost() );
+						UPackage* MyOutermostPackage = CurObject->GetOutermost();
 						ThumbnailTools::CacheEmptyThumbnail( CurObject->GetFullName(), MyOutermostPackage );
 					}
 				}

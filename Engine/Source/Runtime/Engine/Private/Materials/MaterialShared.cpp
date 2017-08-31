@@ -735,7 +735,7 @@ void FMaterial::SerializeInlineShaderMap(FArchive& Ar)
 				}
 				else
 				{
-					LoadedShaderMap->DiscardSerializedShaders();
+					GameThreadShaderMap = LoadedShaderMap;
 				}
 			}
 		}
@@ -794,6 +794,16 @@ void FMaterial::ReleaseShaderMap()
 		{
 			Material->SetRenderingThreadShaderMap(nullptr);
 		});
+	}
+}
+
+void FMaterial::DiscardShaderMap()
+{
+	check(RenderingThreadShaderMap == nullptr);
+	if (GameThreadShaderMap)
+	{
+		GameThreadShaderMap->DiscardSerializedShaders();
+		GameThreadShaderMap = nullptr;
 	}
 }
 
