@@ -183,6 +183,21 @@ bool FTimespan::Parse(const FString& TimespanString, FTimespan& OutTimespan)
 }
 
 
+/* FTimespan friend functions
+ *****************************************************************************/
+
+FArchive& operator<<(FArchive& Ar, FTimespan& Timespan)
+{
+	return Ar << Timespan.Ticks;
+}
+
+
+uint32 GetTypeHash(const FTimespan& Timespan)
+{
+	return GetTypeHash(Timespan.Ticks);
+}
+
+
 /* FTimespan implementation
  *****************************************************************************/
 
