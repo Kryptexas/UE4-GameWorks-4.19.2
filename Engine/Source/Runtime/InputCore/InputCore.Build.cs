@@ -8,7 +8,7 @@ public class InputCore : ModuleRules
 	{
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject" });
 
-		if(Target.Platform == UnrealTargetPlatform.IOS)
+		if(Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
 		{
 			PrivateIncludePathModuleNames.Add("ApplicationCore");
 		}

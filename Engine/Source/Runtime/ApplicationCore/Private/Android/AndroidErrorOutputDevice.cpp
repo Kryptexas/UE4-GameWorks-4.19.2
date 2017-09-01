@@ -3,6 +3,7 @@
 #include "AndroidErrorOutputDevice.h"
 #include "OutputDeviceHelper.h"
 #include "HAL/PlatformMisc.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 FAndroidErrorOutputDevice::FAndroidErrorOutputDevice()
 {

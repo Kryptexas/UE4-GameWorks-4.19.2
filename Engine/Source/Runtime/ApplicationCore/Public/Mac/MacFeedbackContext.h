@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Misc/FeedbackContext.h"
 #include "Misc/OutputDeviceConsole.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Mac/OutputDeviceRedirector.h"
 
 /**
  * Feedback context implementation for Mac.

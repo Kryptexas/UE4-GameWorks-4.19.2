@@ -4,6 +4,7 @@
 #include "IOSAppDelegate.h"
 #include "Modules/ModuleManager.h"
 #include "IOS/IOSAsyncTask.h"
+#include "IOS/IOSAppDelegate.h"
 
 #import <iAd/ADBannerView.h>
 

@@ -14,6 +14,7 @@
 #include "Misc/OutputDeviceRedirector.h"
 #include "HAL/ThreadHeartBeat.h"
 #include "Mac/CocoaMenu.h"
+#include "Mac/CocoaThread.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>

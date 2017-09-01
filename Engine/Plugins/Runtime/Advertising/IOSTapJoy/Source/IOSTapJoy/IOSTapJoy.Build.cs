@@ -30,6 +30,7 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Advertising",
+					"ApplicationCore",
 					// ... add private dependencies that you statically link with here ...
 				}
 				);

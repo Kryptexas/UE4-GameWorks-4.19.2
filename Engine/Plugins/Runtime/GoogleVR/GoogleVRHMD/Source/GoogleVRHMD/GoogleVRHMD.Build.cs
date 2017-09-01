@@ -66,7 +66,7 @@ namespace UnrealBuildTool.Rules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.IOS)
 			{
-				PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR" });
+				PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR", "ApplicationCore" });
 
 				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("IOSPlugin", Path.Combine(PluginPath, "GoogleVRHMD_APL.xml")));
