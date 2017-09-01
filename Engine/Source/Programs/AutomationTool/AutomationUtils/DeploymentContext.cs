@@ -503,7 +503,8 @@ public class DeploymentContext //: ProjectParams
 		}
         else if (InputFile.HasExtension(".uplugin"))
         {
-            if (InputFile.IsUnderDirectory(EngineRoot))
+			DirectoryReference EnterpriseRoot = DirectoryReference.Combine(EngineRoot, "..", "Enterprise"); // Enterprise plugins aren't under the project additional plugin directories, so they shouldn't be remapped
+            if (InputFile.IsUnderDirectory(EngineRoot) || InputFile.IsUnderDirectory(EnterpriseRoot))
 			{
 				OutputFile = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
 			}

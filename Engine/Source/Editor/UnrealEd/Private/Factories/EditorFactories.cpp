@@ -3880,7 +3880,10 @@ UObject* UTextureFactory::FactoryCreateBinary
 
 void UTextureFactory::ApplyAutoImportSettings(UTexture* Texture)
 {
-	FJsonObjectConverter::JsonObjectToUStruct(AutomatedImportSettings.ToSharedRef(), Texture->GetClass(), Texture, 0, CPF_InstancedReference);
+	if ( AutomatedImportSettings.IsValid() )
+	{
+		FJsonObjectConverter::JsonObjectToUStruct(AutomatedImportSettings.ToSharedRef(), Texture->GetClass(), Texture, 0, CPF_InstancedReference);
+	}
 }
 
 bool UTextureFactory::IsImportResolutionValid(int32 Width, int32 Height, bool bAllowNonPowerOfTwo, FFeedbackContext* Warn)

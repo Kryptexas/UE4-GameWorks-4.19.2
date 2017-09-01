@@ -7,6 +7,8 @@
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
 #include "Misc/App.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Widgets/SOverlay.h"
 #include "Layout/WidgetPath.h"
 #include "SlateOptMacros.h"
@@ -24,6 +26,7 @@
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Interfaces/IPluginManager.h"
+#include "Interfaces/IProjectManager.h"
 #include "ProjectDescriptor.h"
 #include "GameProjectGenerationLog.h"
 #include "GameProjectGenerationModule.h"
@@ -1447,6 +1450,19 @@ bool SNewProjectWizard::CreateProject( const FString& ProjectFile )
 	FProjectInformation ProjectInfo(ProjectFile, SelectedTemplate->bGenerateCode, bCopyStarterContent, SelectedTemplate->ProjectFile);
 	ProjectInfo.TargetedHardware = SelectedHardwareClassTarget;
 	ProjectInfo.DefaultGraphicsPerformance = SelectedGraphicsPreset;
+
+	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+	if (CurrentProject != nullptr)
+	{
+		ProjectInfo.bIsEnterpriseProject = CurrentProject->bIsEnterpriseProject;
+	}
+	else
+	{
+		// Set the default value for the enterprise flag from the command line for now.
+		// This should be temporary until we implement a more generic approach.
+		ProjectInfo.bIsEnterpriseProject = FParse::Param(FCommandLine::Get(), TEXT("enterprise"));
+	}
+
 	if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason, FailLog))
 	{
 		SOutputLogDialog::Open(LOCTEXT("CreateProject", "Create Project"), FailReason, FailLog, FText::GetEmpty());

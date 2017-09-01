@@ -9,9 +9,12 @@
 #include "Containers/Algo/Copy.h"
 #include "Containers/Algo/Heapify.h"
 #include "Containers/Algo/HeapSort.h"
+#include "Containers/Algo/IntroSort.h"
 #include "Containers/Algo/IsHeap.h"
 #include "Containers/Algo/IsSorted.h"
+#include "Containers/Algo/Sort.h"
 #include "Containers/Algo/Transform.h"
+#include "Templates/Greater.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAlgosTest, "System.Core.Misc.Algos", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
@@ -299,6 +302,50 @@ bool FAlgosTest::RunTest(const FString& Parameters)
 		check(Algo::IsHeap(TestArray));
 
 		check(Algo::IsSorted(TestArray));
+	}
+
+	// intro sort
+	{
+		TArray<int> TestArray = TestData2;
+		Algo::IntroSort(TestArray);
+
+		check(Algo::IsSorted(TestArray));
+	}
+
+	// sort
+	{
+		// regular Sort
+		TArray<int> TestArray = TestData2;
+		Algo::Sort(TestArray);
+
+		check(Algo::IsSorted(TestArray));
+
+		// Sort with predicate
+		TestArray = TestData2;
+
+		TGreater<> Predicate;
+		Algo::Sort(TestArray, Predicate);
+
+		check(Algo::IsSorted(TestArray, Predicate));
+
+		// SortBy
+		TestArray = TestData2;
+
+		auto Projection = [](int Val) -> int
+		{
+			return Val % 1000; // will sort using the last 3 digits only
+		};
+
+		Algo::SortBy(TestArray, Projection);
+
+		check(Algo::IsSortedBy(TestArray, Projection));
+
+		// SortBy with predicate
+		TestArray = TestData2;
+
+		Algo::SortBy(TestArray, Projection, Predicate);
+
+		check(Algo::IsSortedBy(TestArray, Projection, Predicate));
 	}
 
 	return true;

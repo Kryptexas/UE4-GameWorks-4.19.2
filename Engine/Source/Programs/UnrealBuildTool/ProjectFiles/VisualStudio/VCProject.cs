@@ -1299,6 +1299,10 @@ namespace UnrealBuildTool
 								DebugOptions += UProjectPath;
 								DebugOptions += " -skipcompile";
 							}
+							else if (TargetRulesObject.Type == TargetType.Editor && ProjectName == ProjectFileGenerator.EnterpriseProjectFileNameBase)
+							{
+								DebugOptions += " -enterprise";
+							}
 							else if (TargetRulesObject.Type == TargetType.Editor && ProjectName != "UE4")
 							{
 								DebugOptions += ProjectName;

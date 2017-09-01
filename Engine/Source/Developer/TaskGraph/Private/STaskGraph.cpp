@@ -10,6 +10,10 @@
 #include "SProfileVisualizer.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "TaskGraphStyle.h"
+#if WITH_EDITOR
+#include "WorkspaceMenuStructure.h"
+#include "WorkspaceMenuStructureModule.h"
+#endif //#if WITH_EDITOR
 
 /**
  * Creates Visualizer using Visualizer profile data format
@@ -17,22 +21,31 @@
  * @param ProfileData Visualizer data
  * @return Visualizer window
  */
-void MakeTaskGraphVisualizerWindow( TSharedPtr< FVisualizerEvent > ProfileData, const FText& WindowTitle, const FText& ProfilerType, const FText& HeaderMessageText = FText::GetEmpty(), const FLinearColor& HeaderMessageTextColor = FLinearColor::White )
+
+FName TaskGraphTabId("VisualizerSpawnPoint");
+TSharedRef<SDockTab> MakeTaskGraphVisualizerWindow( TSharedPtr< FVisualizerEvent > ProfileData, const FText& WindowTitle, const FText& ProfilerType, const FText& HeaderMessageText = FText::GetEmpty(), const FLinearColor& HeaderMessageTextColor = FLinearColor::White, const bool InsertTab = true )
 {
-	FGlobalTabmanager::Get()->InsertNewDocumentTab
+	TSharedRef<SDockTab> TaskGraphVizualizer = SNew(SDockTab)
+												.Label(WindowTitle)
+												.TabRole(ETabRole::NomadTab)
+												[
+													SNew(SProfileVisualizer)
+													.ProfileData(ProfileData)
+													.ProfilerType(ProfilerType)
+													.HeaderMessageText(HeaderMessageText)
+													.HeaderMessageTextColor(HeaderMessageTextColor)
+												];
+
+	if (InsertTab)
+	{
+		FGlobalTabmanager::Get()->InsertNewDocumentTab
 		(
-			"VisualizerSpawnPoint", FTabManager::ESearchPreference::RequireClosedTab,
-			SNew( SDockTab )
-			.Label( WindowTitle )
-			.TabRole( ETabRole::DocumentTab )
-			[
-				SNew( SProfileVisualizer )
-				.ProfileData( ProfileData )
-				.ProfilerType( ProfilerType )
-				.HeaderMessageText( HeaderMessageText )
-				.HeaderMessageTextColor( HeaderMessageTextColor )
-			]
+			TaskGraphTabId, FTabManager::ESearchPreference::RequireClosedTab,
+			TaskGraphVizualizer
 		);
+	}
+
+	return TaskGraphVizualizer;
 }
 
 /** Helper class that counts down when to unpause and stop movie. */
@@ -135,23 +148,6 @@ void DisplayProfileVisualizer(TSharedPtr< FVisualizerEvent > InProfileData, cons
 {
 	check( IsInGameThread() );
 
-	if ( !GHasRegisteredVisualizerLayout )
-	{
-		TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "Visualizer_Layout" )
-		->AddArea
-		(
-			FTabManager::NewArea(720, 768)
-			->Split
-			(
-				FTabManager::NewStack()
-				->AddTab("VisualizerSpawnPoint", ETabState::ClosedTab)
-			)
-		);
-
-		FGlobalTabmanager::Get()->RestoreFrom( Layout, TSharedPtr<SWindow>() );
-		GHasRegisteredVisualizerLayout = true;
-	}
-
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("ProfilerType"), FText::FromString( InProfilerType ) );
 
@@ -171,9 +167,21 @@ public:
 	virtual void StartupModule() override
 	{
 		::InitProfileVisualizer();
+
+#if WITH_EDITOR
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TaskGraphTabId, FOnSpawnTab::CreateRaw(this, &FProfileVisualizerModule::SpawnProfileVizualizerTab))
+			.SetDisplayName(NSLOCTEXT("ProfileVisualizerModule", "TabTitle", "Profile Data Visualizer"))
+			.SetTooltipText(NSLOCTEXT("ProfileVisualizerModule", "TooltipText", "Open the Profile Data Visualizer tab."))
+			.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsDebugCategory())
+			;
+#endif
+			
 	}
 	virtual void ShutdownModule() override
 	{
+#if WITH_EDITOR
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TaskGraphTabId);
+#endif		
 		::ShutdownProfileVisualizer();
 	}
 	virtual void DisplayProfileVisualizer(TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType, const FText& HeaderMessageText, const FLinearColor& HeaderMessageTextColor) override
@@ -182,5 +190,13 @@ public:
 		::DisplayProfileVisualizer( InProfileData, InProfilerType, HeaderMessageText, HeaderMessageTextColor );
 #endif // WITH_EDITOR
 	}
+
+	TSharedRef<SDockTab> SpawnProfileVizualizerTab(const FSpawnTabArgs& Args)
+	{
+		TSharedPtr< FVisualizerEvent > InProfileData(new FVisualizerEvent(0., 0., 0., 0, "Dummy"));
+		
+		return MakeTaskGraphVisualizerWindow(InProfileData, FText::GetEmpty(), FText::GetEmpty(), FText::GetEmpty(), FLinearColor::White, false);
+	}
+
 };
 IMPLEMENT_MODULE(FProfileVisualizerModule, TaskGraph);

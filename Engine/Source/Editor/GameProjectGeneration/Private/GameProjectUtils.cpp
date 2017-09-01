@@ -1248,6 +1248,8 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 			Descriptor.Modules.Add(FModuleDescriptor(*StartupModuleNames[Idx]));
 		}
 
+		Descriptor.bIsEnterpriseProject = InProjectInfo.bIsEnterpriseProject;
+
 		// Try to save it
 		FText LocalFailReason;
 		if(!Descriptor.Save(InProjectInfo.ProjectFilename, LocalFailReason))
@@ -1626,6 +1628,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		// Update it to current
 		Project.EngineAssociation.Empty();
 		Project.EpicSampleNameHash = 0;
+
+		Project.bIsEnterpriseProject = InProjectInfo.bIsEnterpriseProject; // Force the enterprise flag to the value that was requested in the ProjectInfo.
 
 		// Fix up module names
 		const FString BaseSourceName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);

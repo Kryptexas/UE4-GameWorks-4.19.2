@@ -101,5 +101,11 @@ private:
 	 
 	/** Optional header message text color */
 	FLinearColor HeaderMessageTextColor;
+
+	/** We just clicked the save button */
+	FReply OnSaveClicked();
+
+	/** We just clicked the load button */
+	FReply OnLoadClicked();
 };
 

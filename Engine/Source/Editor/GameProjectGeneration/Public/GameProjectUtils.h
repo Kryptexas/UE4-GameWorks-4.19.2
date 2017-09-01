@@ -19,6 +19,7 @@ struct FProjectInformation
 		, TemplateFile(MoveTemp(InTemplateFile))
 		, bShouldGenerateCode(bInGenerateCode)
 		, bCopyStarterContent(bInCopyStarterContent)
+		, bIsEnterpriseProject(false)
 		, TargetedHardware(EHardwareClass::Desktop)
 		, DefaultGraphicsPerformance(EGraphicsPreset::Maximum)
 	{
@@ -29,6 +30,7 @@ struct FProjectInformation
 
 	bool bShouldGenerateCode;
 	bool bCopyStarterContent;
+	bool bIsEnterpriseProject;
 
 	EHardwareClass::Type TargetedHardware;
 	EGraphicsPreset::Type DefaultGraphicsPerformance;
