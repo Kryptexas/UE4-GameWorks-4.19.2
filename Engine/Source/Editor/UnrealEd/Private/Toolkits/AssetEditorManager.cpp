@@ -168,6 +168,16 @@ void FAssetEditorManager::CloseAllEditorsForAsset(UObject* Asset)
 	}
 }
 
+void FAssetEditorManager::RemoveAssetFromAllEditors(UObject* Asset)
+{
+	TArray<IAssetEditorInstance*> EditorInstances = FindEditorsForAsset(Asset);
+
+	for (auto EditorIter : EditorInstances)
+	{
+		EditorIter->RemoveEditingAsset(Asset);
+	}
+}
+
 
 void FAssetEditorManager::CloseOtherEditors( UObject* Asset, IAssetEditorInstance* OnlyEditor)
 {

@@ -10,6 +10,8 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SDetailsViewBase.h"
 #include "SDetailTableRowBase.h"
+#include "DecoratedDragDropOp.h"
+#include "ScopedTransaction.h"
 
 class IDetailKeyframeHandler;
 struct FDetailLayoutCustomization;
@@ -32,6 +34,32 @@ private:
 	TAttribute< TOptional<float> > MinWidth;
 	TAttribute< TOptional<float> > MaxWidth;
 };
+
+class SArrayRowHandle : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SArrayRowHandle)
+	{}
+	SLATE_DEFAULT_SLOT(FArguments, Content)
+	SLATE_ARGUMENT(class SDetailSingleItemRow*, ParentRow)
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs);
+
+	FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		return FReply::Handled().DetectDrag(SharedThis(this), EKeys::LeftMouseButton);
+	};
+
+
+	FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	TSharedPtr<class FArrayRowDragDropOp> CreateDragDropOperation(class SDetailSingleItemRow* InRow);
+
+private:
+	class SDetailSingleItemRow* ParentRow;
+};
+
+
 
 /**
  * A widget for details that span the entire tree row and have no columns                                                              
@@ -68,10 +96,55 @@ private:
 	const FSlateBrush* GetFavoriteButtonBrush() const;
 	FReply OnFavoriteToggle();
 	void AllowShowFavorite();
+
+// For array drag drop:
+	FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		return FReply::Handled().EndDragDrop();
+	};
+	void OnArrayDragEnter(const FDragDropEvent& DragDropEvent);
+	void OnArrayDragLeave(const FDragDropEvent& DragDropEvent);
+	FReply OnArrayDrop(const FDragDropEvent& DragDropEvent);
+
 private:
 	TWeakPtr<IDetailKeyframeHandler> KeyframeHandler;
 	/** Customization for this widget */
 	FDetailLayoutCustomization* Customization;
 	FDetailColumnSizeData ColumnSizeData;
 	bool bAllowFavoriteSystem;
+	bool bIsHoveredDragTarget;
+	TSharedPtr<FPropertyNode> SwappablePropertyNode;
+};
+
+class FArrayRowDragDropOp : public FDecoratedDragDropOp
+{
+public:
+	FArrayRowDragDropOp(class SDetailSingleItemRow* InRow)
+	{
+		Row = InRow;
+		DecoratorWidget = SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(NSLOCTEXT("ArrayDragDrop", "PlaceRowHere", "Place Row Here"))
+				]
+			];
+
+		Construct();
+	};
+
+	TSharedPtr<SWidget> DecoratorWidget;
+
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
+	{
+		return DecoratorWidget;
+	}
+
+	class SDetailSingleItemRow* Row;
 };

@@ -191,6 +191,9 @@ bool FEditorSettingsKeybindingsTest::RunTest(const FString& Parameters)
 {
 	UE_LOG(LogEditorSettingsTests, Display, TEXT("Exporting Current keybindings and editor settings"));
 
+	// Ensure layers module is loaded
+	FModuleManager::Get().LoadModule("Layers");
+
 	//Export the original keybindings
 	const FString TargetOriginalKeybindFile = FString::Printf(TEXT("%s/BuildPromotion/OriginalKeybindings-%d.ini"), *FPaths::AutomationDir(), FEngineVersion::Current().GetChangelist());
 	EditorSettingsTestUtils::ExportKeybindings(TargetOriginalKeybindFile);

@@ -1686,9 +1686,8 @@ void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
 	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI) && ViewportWidget.IsValid())
 	{
 		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
-		FWidgetPath WidgetPath;
 
-		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath);
+		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
 
 		// If the window is not valid then we are likely in a loading movie and the viewport is not attached to the window.  
 		// We'll have to wait until safe

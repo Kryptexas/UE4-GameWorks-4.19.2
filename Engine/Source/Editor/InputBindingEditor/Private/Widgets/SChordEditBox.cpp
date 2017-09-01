@@ -20,7 +20,7 @@
 /* SChordEditBox interface
  *****************************************************************************/
 
-void SChordEditBox::Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand )
+void SChordEditBox::Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand, EMultipleKeyBindingIndex InChordIndex)
 {
 	BorderImageNormal = FEditorStyle::GetBrush( "EditableTextBox.Background.Normal" );
 	BorderImageHovered = FEditorStyle::GetBrush( "EditableTextBox.Background.Hovered" );
@@ -49,7 +49,7 @@ void SChordEditBox::Construct( const FArguments& InArgs, TSharedPtr<FUICommandIn
 					.FillWidth(1)
 					.VAlign(VAlign_Center)
 					[
-						SAssignNew( ChordEditor, SChordEditor, InputCommand )
+						SAssignNew( ChordEditor, SChordEditor, InputCommand, InChordIndex )
 						.OnEditBoxLostFocus( this, &SChordEditBox::OnChordEditorLostFocus )
 						.OnChordChanged( this, &SChordEditBox::OnChordChanged )
 						.OnEditingStarted( this, &SChordEditBox::OnChordEditingStarted )

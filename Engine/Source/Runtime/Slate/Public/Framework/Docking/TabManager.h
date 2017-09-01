@@ -409,7 +409,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 				TSharedRef<FArea> SetWindow( FVector2D InPosition, bool IsMaximized )
 				{
 					WindowPlacement = Placement_Specified;
-					WindowPosition = InPosition;
+					UnscaledWindowPosition = InPosition;
 					bIsMaximized = IsMaximized;
 					return SharedThis(this);
 				}
@@ -426,15 +426,15 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 			protected:
 				FArea( const float InWidth, const float InHeight )
 				: WindowPlacement(Placement_Automatic)
-				, WindowPosition(FVector2D(0,0))
-				, WindowSize(InWidth, InHeight)
+				, UnscaledWindowPosition(FVector2D(0,0))
+				, UnscaledWindowSize(InWidth, InHeight)
 				, bIsMaximized( false )
 				{
 				}
 
 				EWindowPlacement WindowPlacement;
-				FVector2D WindowPosition;
-				FVector2D WindowSize;
+				FVector2D UnscaledWindowPosition;
+				FVector2D UnscaledWindowSize;
 				bool bIsMaximized;
 		};
 

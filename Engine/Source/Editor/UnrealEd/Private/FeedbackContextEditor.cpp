@@ -462,6 +462,11 @@ void FFeedbackContextEditor::FinalizeSlowTask()
 
 void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, FText DisplayMessage )
 {
+	if (!(FPlatformSplash::IsShown() || BuildProgressWidget.IsValid() || SlowTaskWindow.IsValid()))
+	{
+		return;
+	}
+
 	// Clean up deferred cleanup objects from rendering thread every once in a while.
 	static double LastTimePendingCleanupObjectsWhereDeleted;
 	if( FPlatformTime::Seconds() - LastTimePendingCleanupObjectsWhereDeleted > 1 )
@@ -473,11 +478,17 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 		// It is now safe to delete the pending clean objects.
 		delete PendingCleanupObjects;
 		// Keep track of time this operation was performed so we don't do it too often.
-		LastTimePendingCleanupObjectsWhereDeleted = FPlatformTime::Seconds();		
+		LastTimePendingCleanupObjectsWhereDeleted = FPlatformTime::Seconds();
 	}
 
-	if (FSlateApplication::Get().CanDisplayWindows())
+	if (BuildProgressWidget.IsValid() || SlowTaskWindow.IsValid())
 	{
+		// CanDisplayWindows can be slow when called repeatedly, so we only call it if a window is open
+		if (!FSlateApplication::Get().CanDisplayWindows())
+		{
+			return;
+		}
+
 		if (BuildProgressWidget.IsValid())
 		{
 			if (!DisplayMessage.IsEmpty())
@@ -493,7 +504,7 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 			TickSlate(SlowTaskWindow.Pin());
 		}
 	}
-	else
+	else if (FPlatformSplash::IsShown())
 	{
 		// Always show the top-most message
 		for (auto& Scope : *ScopeStack)
@@ -505,10 +516,7 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 				break;
 			}
 		}
-	}
 
-	if (FPlatformSplash::IsShown())
-	{
 		if (!DisplayMessage.IsEmpty())
 		{
 			const int32 DotCount = 4;

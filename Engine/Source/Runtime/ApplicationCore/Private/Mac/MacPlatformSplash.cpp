@@ -7,6 +7,7 @@
 #include "EngineBuildSettings.h"
 #include "CocoaThread.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "ScopeLock.h"
 
 /**
  * Simple window class that overrides a couple of functions, so the splash window can be moved to front even if it's borderless

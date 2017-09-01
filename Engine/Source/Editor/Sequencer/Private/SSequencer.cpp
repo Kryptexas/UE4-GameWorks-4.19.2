@@ -1118,6 +1118,11 @@ TSharedRef<SWidget> SSequencer::MakePlaybackMenu()
 
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().TogglePlaybackRangeLocked );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleForceFixedFrameIntervalPlayback );
+
+		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
+		{
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleRerunConstructionScripts );
+		}
 	}
 	MenuBuilder.EndSection();
 
@@ -2297,7 +2302,7 @@ void SSequencer::OnSequenceInstanceActivated( FMovieSceneSequenceIDRef ActiveIns
 	if ( Sequencer.IsValid() )
 	{
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		if ( MovieScene->GetForceFixedFrameIntervalPlayback() && MovieScene->GetFixedFrameInterval() == 0 )
+		if ( MovieScene->GetFixedFrameInterval() == 0 )
 		{
 			MovieScene->Modify();
 			MovieScene->SetFixedFrameInterval(Settings->GetTimeSnapInterval());

@@ -1493,7 +1493,7 @@ private:
 	template<typename ExpressionType>
 	ExpressionType* FindExpressionByGUIDRecursive(const FGuid &InGUID, const TArray<UMaterialExpression*>& InMaterialExpression)
 	{
-		for (int32 ExpressionIndex = 0; ExpressionIndex < InMaterialExpression.Num(); ++ExpressionIndex)
+		for (int32 ExpressionIndex = 0; ExpressionIndex < InMaterialExpression.Num(); ExpressionIndex++)
 		{
 			UMaterialExpression* ExpressionPtr = InMaterialExpression[ExpressionIndex];
 			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(ExpressionPtr);

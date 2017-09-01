@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -34,7 +34,7 @@
 double
 SDL_atan(double x)
 {
-#ifdef HAVE_ATAN
+#if defined(HAVE_ATAN)
     return atan(x);
 #else
     return SDL_uclibc_atan(x);
@@ -90,7 +90,7 @@ SDL_asin(double val)
 double
 SDL_ceil(double x)
 {
-#ifdef HAVE_CEIL
+#if defined(HAVE_CEIL)
     return ceil(x);
 #else
     double integer = SDL_floor(x);
@@ -127,7 +127,7 @@ SDL_cos(double x)
 float
 SDL_cosf(float x)
 {
-#ifdef HAVE_COSF
+#if defined(HAVE_COSF)
     return cosf(x);
 #else
     return (float)SDL_cos((double)x);
@@ -199,7 +199,7 @@ SDL_sin(double x)
 float 
 SDL_sinf(float x)
 {
-#ifdef HAVE_SINF
+#if defined(HAVE_SINF)
     return sinf(x);
 #else
     return (float)SDL_sin((double)x);
@@ -248,14 +248,14 @@ SDL_tanf(float x)
 
 int SDL_abs(int x)
 {
-#ifdef HAVE_ABS
+#if defined(HAVE_ABS)
     return abs(x);
 #else
     return ((x) < 0 ? -(x) : (x));
 #endif
 }
 
-#ifdef HAVE_CTYPE_H
+#if defined(HAVE_CTYPE_H)
 int SDL_isdigit(int x) { return isdigit(x); }
 int SDL_isspace(int x) { return isspace(x); }
 int SDL_toupper(int x) { return toupper(x); }
@@ -279,7 +279,7 @@ __declspec(selectany) int _fltused = 1;
 #endif
 
 /* The optimizer on Visual Studio 2005 and later generates memcpy() calls */
-#if (_MSC_VER >= 1400) && defined(_WIN64) && !defined(_DEBUG)
+#if (_MSC_VER >= 1400) && defined(_WIN64) && !defined(_DEBUG) && !(_MSC_VER >= 1900 && defined(_MT))
 #include <intrin.h>
 
 #pragma function(memcpy)
@@ -375,35 +375,35 @@ _ftol2_sse()
     _ftol();
 }
 
-/* 64-bit math operators for 32-bit systems */
-void
-__declspec(naked)
-_allmul()
-{
-    /* *INDENT-OFF* */
-    __asm {
-        mov         eax, dword ptr[esp+8]
-        mov         ecx, dword ptr[esp+10h]
-        or          ecx, eax
-        mov         ecx, dword ptr[esp+0Ch]
-        jne         hard
-        mov         eax, dword ptr[esp+4]
-        mul         ecx
-        ret         10h
-hard:
-        push        ebx
-        mul         ecx
-        mov         ebx, eax
-        mov         eax, dword ptr[esp+8]
-        mul         dword ptr[esp+14h]
-        add         ebx, eax
-        mov         eax, dword ptr[esp+8]
-        mul         ecx
-        add         edx, ebx
-        pop         ebx
-        ret         10h
-    }
-    /* *INDENT-ON* */
+/* 64-bit math operators for 32-bit systems */
+void
+__declspec(naked)
+_allmul()
+{
+    /* *INDENT-OFF* */
+    __asm {
+        mov         eax, dword ptr[esp+8]
+        mov         ecx, dword ptr[esp+10h]
+        or          ecx, eax
+        mov         ecx, dword ptr[esp+0Ch]
+        jne         hard
+        mov         eax, dword ptr[esp+4]
+        mul         ecx
+        ret         10h
+hard:
+        push        ebx
+        mul         ecx
+        mov         ebx, eax
+        mov         eax, dword ptr[esp+8]
+        mul         dword ptr[esp+14h]
+        add         ebx, eax
+        mov         eax, dword ptr[esp+8]
+        mul         ecx
+        add         edx, ebx
+        pop         ebx
+        ret         10h
+    }
+    /* *INDENT-ON* */
 }
 
 void
@@ -914,8 +914,8 @@ _allshr()
 {
     /* *INDENT-OFF* */
     __asm {
-        cmp         cl,40h
-        jae         RETZERO
+        cmp         cl,3Fh
+        jae         RETSIGN
         cmp         cl,20h
         jae         MORE32
         shrd        eax,edx,cl
@@ -923,13 +923,13 @@ _allshr()
         ret
 MORE32:
         mov         eax,edx
-        xor         edx,edx
+        sar         edx,1Fh
         and         cl,1Fh
         sar         eax,cl
         ret
-RETZERO:
-        xor         eax,eax
-        xor         edx,edx
+RETSIGN:
+        sar         edx,1Fh
+        mov         eax,edx
         ret
     }
     /* *INDENT-ON* */

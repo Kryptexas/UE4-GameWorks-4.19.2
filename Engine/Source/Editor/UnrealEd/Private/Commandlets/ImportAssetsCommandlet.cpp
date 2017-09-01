@@ -29,8 +29,8 @@ static void PrintUsage()
 	UE_LOG(LogAutomatedImport, Display, TEXT("-source=\"path\""));
 	UE_LOG(LogAutomatedImport, Display, TEXT("\tThe source file to import.  This must be specified when importing a single asset\n[IGNORED when using -importparams]"));
 
-	UE_LOG(LogAutomatedImport, Display, TEXT("-dest=\"path/optional_asset_name\""));
-	UE_LOG(LogAutomatedImport, Display, TEXT("\tThe destination path in the project's content directory to import to with an optional asset name.\nIf the asset name is not specified the name of the source file will be used as the asset name.\nThis must be specified when importing a single asset.\n[IGNORED when using -importparams]"));
+	UE_LOG(LogAutomatedImport, Display, TEXT("-dest=\"path\""));
+	UE_LOG(LogAutomatedImport, Display, TEXT("\tThe destination path in the project's content directory to import to.\nThis must be specified when importing a single asset\n[IGNORED when using -importparams]"));
 
 	UE_LOG(LogAutomatedImport, Display, TEXT("-factory={factory class name}"));
 	UE_LOG(LogAutomatedImport, Display, TEXT("\tForces the asset to be opened with a specific UFactory class type.  If not specified import type will be auto detected.\n[IGNORED when using -importparams]"));

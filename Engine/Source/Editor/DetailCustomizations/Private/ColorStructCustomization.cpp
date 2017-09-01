@@ -191,7 +191,7 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 		{
 			FColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(Color.ReinterpretAsLinear());
+			SavedPreColorPickerColors.Add(FLinearColor(Color));
 		}
 	}
 
@@ -245,7 +245,7 @@ TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker(TWea
 		{
 			FColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(Color.ReinterpretAsLinear());
+			SavedPreColorPickerColors.Add(FLinearColor(Color));
 		}
 	}
 
@@ -278,8 +278,7 @@ void FColorStructCustomization::OnSetColorFromColorPicker(FLinearColor NewColor)
 	}
 	else
 	{
-		// Handled by the color picker
-		const bool bSRGB = false;
+		const bool bSRGB = true;
 		FColor NewFColor = NewColor.ToFColor(bSRGB);
 		ColorString = NewFColor.ToString();
 	}
@@ -301,7 +300,7 @@ void FColorStructCustomization::OnColorPickerCancelled(FLinearColor OriginalColo
 		}
 		else
 		{
-			const bool bSRGB = false;
+			const bool bSRGB = true;
 			FColor Color = SavedPreColorPickerColors[ColorIndex].ToFColor(bSRGB);
 			PerObjectColors.Add(Color.ToString());
 		}

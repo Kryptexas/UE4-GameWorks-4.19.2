@@ -31,24 +31,23 @@ void SAutomationExportMenu::Construct( const FArguments& InArgs, const TSharedRe
 
 	// Build the UI
 	ChildSlot
+	[
+		SAssignNew( ExportMenuComboButton, SComboButton )
+		.IsEnabled( this, &SAutomationExportMenu::AreReportsGenerated )
+		.ToolTipText( this, &SAutomationExportMenu::GetExportComboButtonTooltip )
+		.OnComboBoxOpened( this, &SAutomationExportMenu::HandleMenuOpen )
+		.ButtonContent()
 		[
-			SAssignNew( ExportMenuComboButton, SComboButton )
-			.IsEnabled( this, &SAutomationExportMenu::AreReportsGenerated )
-			.ToolTipText( this, &SAutomationExportMenu::GetExportComboButtonTooltip )
-			.OnComboBoxOpened( this, &SAutomationExportMenu::HandleMenuOpen )
-			.ButtonContent()
-			[
-				SNew( STextBlock )
-				.Text( LOCTEXT("ExportButtonText", "Export") )
-			]
-			.ContentPadding( FMargin( 6.f, 2.f ) )
-				.MenuContent()
-				[
-					// Holder box for menu items
-					SAssignNew( MenuHolderBox, SVerticalBox )
-				]
-		];
-
+			SNew( STextBlock )
+			.Text( LOCTEXT("ExportButtonText", "Export") )
+		]
+		.ContentPadding( FMargin( 6.f, 2.f ) )
+		.MenuContent()
+		[
+			// Holder box for menu items
+			SAssignNew( MenuHolderBox, SVerticalBox )
+		]
+	];
 }
 
 

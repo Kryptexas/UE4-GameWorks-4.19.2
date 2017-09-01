@@ -1023,6 +1023,14 @@ public:
 		return true;
 	}
 
+	/**
+	 * Allows the OS to enable high DPI mode 
+	 */
+	static void SetHighDPIMode()
+	{
+
+	}
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */

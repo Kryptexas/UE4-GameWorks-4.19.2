@@ -125,6 +125,7 @@ public:
 		, _AutoCenter( EAutoCenter::PreferredWorkArea )
 		, _ScreenPosition( FVector2D::ZeroVector )
 		, _ClientSize( FVector2D::ZeroVector )
+		, _AdjustInitialSizeAndPositionForDPIScale(true)
 		, _SupportsTransparency( EWindowTransparency::None )
 		, _InitialOpacity( 1.0f )
 		, _IsInitiallyMaximized( false )
@@ -143,6 +144,7 @@ public:
 		, _SaneWindowPlacement( true )
 		, _LayoutBorder(FMargin(5, 5, 5, 5))
 		, _UserResizeBorder(FMargin(5, 5, 5, 5))
+
 	{
 	}
 
@@ -167,6 +169,9 @@ public:
 
 		/** What the initial size of the window should be. */
 		SLATE_ARGUMENT( FVector2D, ClientSize )
+
+		/** If the initial ClientSize and ScreenPosition arguments should be automatically adjusted to account for DPI scale */
+		SLATE_ARGUMENT( bool, AdjustInitialSizeAndPositionForDPIScale )
 
 		/** Should this window support transparency */
 		SLATE_ARGUMENT( FWindowTransparency, SupportsTransparency )
@@ -428,6 +433,9 @@ public:
 
 	TSharedPtr<FGenericWindow> GetNativeWindow();
 	TSharedPtr<const FGenericWindow> GetNativeWindow() const ;
+
+	/** Returns the DPI scale factor of the native window */
+	float GetDPIScaleFactor() const;
 
 	/** 
 	 * Returns whether or not this window is a descendant of the specfied parent window

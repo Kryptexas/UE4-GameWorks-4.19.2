@@ -648,6 +648,9 @@ void FPersonaModule::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequ
 
 			// make sure to use SkeletalMesh, when export inside of Persona
 			const int32 NumberOfAnimations = AnimSequences.Num();
+			bool ExportBatch = (NumberOfAnimations > 1);
+			bool ExportAll = false;
+			bool ExportCancel = false;
 			for (int32 i = 0; i < NumberOfAnimations; ++i)
 			{
 				GWarn->UpdateProgress(i, NumberOfAnimations);
@@ -656,7 +659,12 @@ void FPersonaModule::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequ
 
 				FString FileName = FString::Printf(TEXT("%s/%s"), *DestinationFolder, *AnimFileNames[i]);
 
-				FbxAnimUtils::ExportAnimFbx(*FileName, AnimSequence, SkeletalMesh, bSaveSkeletalMesh);
+				FbxAnimUtils::ExportAnimFbx(*FileName, AnimSequence, SkeletalMesh, bSaveSkeletalMesh, ExportBatch, ExportAll, ExportCancel);
+				if (ExportBatch && ExportCancel)
+				{
+					//The user cancel the batch export
+					break;
+				}
 			}
 
 			GWarn->EndSlowTask();

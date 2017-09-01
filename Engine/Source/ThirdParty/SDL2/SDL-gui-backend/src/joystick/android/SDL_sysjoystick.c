@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -167,7 +167,7 @@ keycode_to_SDL(int keycode)
             
         default:
             return -1;
-            break;
+            /* break; -Wunreachable-code-break */
     }
     
     /* This is here in case future generations, probably with six fingers per hand, 
@@ -187,8 +187,8 @@ Android_OnPadDown(int device_id, int keycode)
         item = JoystickByDeviceId(device_id);
         if (item && item->joystick) {
             SDL_PrivateJoystickButton(item->joystick, button , SDL_PRESSED);
-            return 0;
         }
+        return 0;
     }
     
     return -1;
@@ -203,8 +203,8 @@ Android_OnPadUp(int device_id, int keycode)
         item = JoystickByDeviceId(device_id);
         if (item && item->joystick) {
             SDL_PrivateJoystickButton(item->joystick, button, SDL_RELEASED);
-            return 0;
         }
+        return 0;
     }
     
     return -1;
@@ -352,11 +352,9 @@ Android_RemoveJoystick(int device_id)
 int
 SDL_SYS_JoystickInit(void)
 {
-    const char *hint;
     SDL_SYS_JoystickDetect();
     
-    hint = SDL_GetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK);
-    if (!hint || SDL_atoi(hint)) {
+    if (SDL_GetHintBoolean(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, SDL_TRUE)) {
         /* Default behavior, accelerometer as joystick */
         Android_AddJoystick(ANDROID_ACCELEROMETER_DEVICE_ID, ANDROID_ACCELEROMETER_NAME, SDL_TRUE, 0, 3, 0, 0);
     }
@@ -365,12 +363,14 @@ SDL_SYS_JoystickInit(void)
 
 }
 
-int SDL_SYS_NumJoysticks()
+int
+SDL_SYS_NumJoysticks(void)
 {
     return numjoysticks;
 }
 
-void SDL_SYS_JoystickDetect()
+void
+SDL_SYS_JoystickDetect(void)
 {
     /* Support for device connect/disconnect is API >= 16 only,
      * so we poll every three seconds

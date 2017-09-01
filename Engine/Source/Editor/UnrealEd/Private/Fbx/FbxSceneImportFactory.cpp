@@ -2295,6 +2295,13 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, TArray<void*
 		Pkg->ConditionalBeginDestroy();
 	}
 
+	// Destroy Fbx mesh to save memory.
+	for (int32 Index = 0; Index < Nodes.Num(); Index++)
+	{
+		FbxMesh* Mesh = Nodes[Index]->GetMesh();
+		Mesh->Destroy(true);
+	}
+
 	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
 	return NewObject;
 }

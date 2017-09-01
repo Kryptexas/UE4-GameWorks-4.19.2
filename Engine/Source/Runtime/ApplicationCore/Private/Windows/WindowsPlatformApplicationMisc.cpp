@@ -216,7 +216,7 @@ bool FWindowsPlatformApplicationMisc::GetWindowTitleMatchingText(const TCHAR* Ti
 
 float FWindowsPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("enablehighdpi")))
+	if (GIsEditor && !FParse::Param(FCommandLine::Get(), TEXT("nohighdpi")))
 	{
 		if (GetDpiForMonitor)
 		{

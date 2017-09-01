@@ -282,7 +282,7 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 			{
 				struct Local
 				{
-					static void BuildOptimizationMenu( FMenuBuilder& Menu, TSharedPtr< SViewportToolBar > ParentToolBar )
+					static void BuildOptimizationMenu( FMenuBuilder& Menu, TWeakPtr< SViewportToolBar > ParentToolBar )
 					{
 						const FEditorViewportCommands& BaseViewportCommands = FEditorViewportCommands::Get();
 						Menu.AddMenuEntry( BaseViewportCommands.LightComplexityMode, NAME_None, LOCTEXT("LightComplexityViewModeDisplayName", "Light Complexity") );
@@ -302,20 +302,20 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 						Menu.AddMenuEntry( BaseViewportCommands.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
 
 						Menu.BeginSection("TextureStreaming", LOCTEXT("TextureStreamingHeader", "Texture Streaming Accuracy") );
-						if ( AllowDebugViewShaderMode(DVSM_PrimitiveDistanceAccuracy) && (!ParentToolBar.IsValid() || ParentToolBar->IsViewModeSupported(VMI_PrimitiveDistanceAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_PrimitiveDistanceAccuracy) && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_PrimitiveDistanceAccuracy)) )
 						{
 							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccPrimitiveDistanceMode, NAME_None, LOCTEXT("TexStreamAccPrimitiveDistanceViewModeDisplayName", "Primitive Distance") );
 						}
-						if ( AllowDebugViewShaderMode(DVSM_MeshUVDensityAccuracy) && (!ParentToolBar.IsValid() || ParentToolBar->IsViewModeSupported(VMI_MeshUVDensityAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_MeshUVDensityAccuracy) && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_MeshUVDensityAccuracy)) )
 						{
 							Menu.AddMenuEntry(BaseViewportCommands.TexStreamAccMeshUVDensityMode, NAME_None, LOCTEXT("TexStreamAccMeshUVDensityViewModeDisplayName", "Mesh UV Densities"));
 						}
 						// TexCoordScale accuracy viewmode requires shaders that are only built in the TextureStreamingBuild, which requires the new metrics to be enabled.
-						if ( AllowDebugViewShaderMode(DVSM_MaterialTextureScaleAccuracy) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0 && (!ParentToolBar.IsValid() || ParentToolBar->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_MaterialTextureScaleAccuracy) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0 && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
 						{
 							Menu.AddMenuEntry(BaseViewportCommands.TexStreamAccMaterialTextureScaleMode, NAME_None, LOCTEXT("TexStreamAccMaterialTextureScaleViewModeDisplayName", "Material Texture Scales"));
 						}
-						if ( AllowDebugViewShaderMode(DVSM_RequiredTextureResolution) && (!ParentToolBar.IsValid() || ParentToolBar->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_RequiredTextureResolution) && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
 						{
 							Menu.AddMenuEntry(BaseViewportCommands.RequiredTextureResolutionMode, NAME_None, LOCTEXT("RequiredTextureResolutionModeDisplayName", "Required Texture Resolution"));
 						}
@@ -323,7 +323,7 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 					}
 				};
 
-				ViewMenuBuilder.AddSubMenu( LOCTEXT("OptimizationSubMenu", "Optimization Viewmodes"), LOCTEXT("Optimization_ToolTip", "Select optimization visualizer"), FNewMenuDelegate::CreateStatic( &Local::BuildOptimizationMenu, ParentToolBar.Pin() ) );
+				ViewMenuBuilder.AddSubMenu( LOCTEXT("OptimizationSubMenu", "Optimization Viewmodes"), LOCTEXT("Optimization_ToolTip", "Select optimization visualizer"), FNewMenuDelegate::CreateStatic( &Local::BuildOptimizationMenu, ParentToolBar ) );
 			}
 
 			ViewMenuBuilder.EndSection();

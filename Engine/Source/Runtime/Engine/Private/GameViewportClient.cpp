@@ -182,6 +182,14 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 		FCoreDelegates::StatEnabled.AddUObject(this, &UGameViewportClient::HandleViewportStatEnabled);
 		FCoreDelegates::StatDisabled.AddUObject(this, &UGameViewportClient::HandleViewportStatDisabled);
 		FCoreDelegates::StatDisableAll.AddUObject(this, &UGameViewportClient::HandleViewportStatDisableAll);
+
+#if WITH_EDITOR
+		if (GIsEditor)
+		{
+			FSlateApplication::Get().OnWindowDPIScaleChanged().AddUObject(this, &UGameViewportClient::HandleWindowDPIScaleChanged);
+		}
+#endif
+
 	}
 }
 
@@ -212,6 +220,14 @@ UGameViewportClient::~UGameViewportClient()
 	FCoreDelegates::StatEnabled.RemoveAll(this);
 	FCoreDelegates::StatDisabled.RemoveAll(this);
 	FCoreDelegates::StatDisableAll.RemoveAll(this);
+
+#if WITH_EDITOR
+	if (GIsEditor && FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().OnWindowDPIScaleChanged().RemoveAll(this);
+	}
+#endif
+
 	if (StatHitchesData)
 	{
 		delete StatHitchesData;
@@ -617,6 +633,20 @@ void UGameViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEdit
 			}
 		}
 	}
+}
+
+float UGameViewportClient::GetViewportClientWindowDPIScale() const
+{
+	TSharedPtr<SWindow> PinnedWindow = Window.Pin();
+
+	float DPIScale = 1.0f;
+
+	if(PinnedWindow.IsValid() && PinnedWindow->GetNativeWindow().IsValid())
+	{
+		DPIScale = PinnedWindow->GetNativeWindow()->GetDPIScaleFactor();
+	}
+
+	return DPIScale;
 }
 
 void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
@@ -3283,6 +3313,16 @@ void UGameViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport
 	{
 		SetStatEnabled(NULL, false, true);
 	}
+}
+
+void UGameViewportClient::HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow)
+{
+#if WITH_EDITOR
+	if (InWindow == Window)
+	{
+		RequestUpdateEditorScreenPercentage();
+	}
+#endif
 }
 
 bool UGameViewportClient::SetHardwareCursor(EMouseCursor::Type CursorShape, FName GameContentPath, FVector2D HotSpot)

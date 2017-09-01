@@ -27,29 +27,45 @@
  * Check the render data for the provided mesh and return true if the mesh
  * contains degenerate tangent bases.
  */
-static bool HasBadTangents(UStaticMesh* Mesh)
+static bool HasBadNTB(UStaticMesh* Mesh, bool &bZeroNormals, bool &bZeroTangents, bool &bZeroBinormals)
 {
-	bool bHasBadTangents = false;
+	bZeroTangents = false;
+	bZeroNormals = false;
+	bZeroBinormals = false;
+	bool bBadTangents = false;
 	if (Mesh && Mesh->RenderData)
 	{
 		int32 NumLODs = Mesh->GetNumLODs();
-		for (int32 LODIndex = 0; !bHasBadTangents && LODIndex < NumLODs; ++LODIndex)
+		for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 		{
 			FStaticMeshLODResources& LOD = Mesh->RenderData->LODResources[LODIndex];
 			int32 NumVerts = LOD.VertexBuffer.GetNumVertices();
-			for (int32 VertIndex = 0; !bHasBadTangents && VertIndex < NumVerts; ++VertIndex)
+			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 			{
 				const FVector TangentX = LOD.VertexBuffer.VertexTangentX(VertIndex);
+				const FVector TangentY = LOD.VertexBuffer.VertexTangentY(VertIndex);
 				const FVector TangentZ = LOD.VertexBuffer.VertexTangentZ(VertIndex);
 				
-				if ((TangentX - TangentZ).GetAbs().IsNearlyZero(1.0f / 255.0f))
+				if (TangentX.IsNearlyZero(KINDA_SMALL_NUMBER))
 				{
-					bHasBadTangents = true;
+					bZeroTangents = true;
+				}
+				if (TangentY.IsNearlyZero(KINDA_SMALL_NUMBER))
+				{
+					bZeroBinormals = true;
+				}
+				if (TangentZ.IsNearlyZero(KINDA_SMALL_NUMBER))
+				{
+					bZeroNormals = true;
+				}
+				if ((TangentX - TangentZ).IsNearlyZero(1.0f / 255.0f))
+				{
+					bBadTangents = true;
 				}
 			}
 		}
 	}
-	return bHasBadTangents;
+	return bBadTangents;
 }
 #endif // #if WITH_EDITOR
 
@@ -130,19 +146,60 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 	if (bHasRenderDataChanged)
 	{
 		// Warn the user if the new mesh has degenerate tangent bases.
-		if (HasBadTangents(this))
+		bool bZeroNormals, bZeroTangents, bZeroBinormals;
+		if (HasBadNTB(this, bZeroNormals, bZeroTangents, bZeroBinormals))
 		{
 			bool bIsUsingMikktSpace = SourceModels[0].BuildSettings.bUseMikkTSpace && (SourceModels[0].BuildSettings.bRecomputeTangents || SourceModels[0].BuildSettings.bRecomputeNormals);
 			// Only suggest Recompute Tangents if the import hasn't already tried it
 			FFormatNamedArguments Arguments;
-			Arguments.Add( TEXT("Meshname"), FText::FromString(GetName()) );
-			Arguments.Add( TEXT("Options"), SourceModels[0].BuildSettings.bRecomputeTangents ? FText::GetEmpty() : LOCTEXT("MeshRecomputeTangents", "Consider enabling Recompute Tangents in the mesh's Build Settings.") );
-			Arguments.Add( TEXT("MikkTSpace"), bIsUsingMikktSpace ? LOCTEXT("MeshUseMikkTSpace", "MikkTSpace relies on tangent bases and may result in mesh corruption, consider disabling this option.") : FText::GetEmpty() );
-			const FText WarningMsg = FText::Format( LOCTEXT("MeshHasDegenerateTangents", "{Meshname} has degenerate tangent bases which will result in incorrect shading. {Options} {MikkTSpace}"), Arguments );
-			UE_LOG(LogStaticMesh,Warning,TEXT("%s"),*WarningMsg.ToString());
+			Arguments.Add(TEXT("Meshname"), FText::FromString(GetName()));
+			Arguments.Add(TEXT("Options"), SourceModels[0].BuildSettings.bRecomputeTangents ? FText::GetEmpty() : LOCTEXT("MeshRecomputeTangents", "Consider enabling Recompute Tangents in the mesh's Build Settings."));
+			Arguments.Add(TEXT("MikkTSpace"), bIsUsingMikktSpace ? LOCTEXT("MeshUseMikkTSpace", "MikkTSpace relies on tangent bases and may result in mesh corruption, consider disabling this option.") : FText::GetEmpty());
+			const FText WarningMsg = FText::Format(LOCTEXT("MeshHasDegenerateTangents", "{Meshname} has degenerate tangent bases which will result in incorrect shading. {Options} {MikkTSpace}"), Arguments);
+			UE_LOG(LogStaticMesh, Warning, TEXT("%s"), *WarningMsg.ToString());
 			if (!bSilent && OutErrors)
 			{
-				OutErrors->Add( WarningMsg );
+				OutErrors->Add(WarningMsg);
+			}
+		}
+		
+		FText ToleranceArgument = FText::FromString(TEXT("1E-4"));
+		if (bZeroNormals)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Meshname"), FText::FromString(GetName()));
+			Arguments.Add(TEXT("Tolerance"), ToleranceArgument);
+			const FText WarningMsg = FText::Format(LOCTEXT("MeshHasSomeZeroNormals", "{Meshname} has some nearly zero normals which can create some issues. (Tolerance of {Tolerance})"), Arguments);
+			UE_LOG(LogStaticMesh, Warning, TEXT("%s"), *WarningMsg.ToString());
+			if (!bSilent && OutErrors)
+			{
+				OutErrors->Add(WarningMsg);
+			}
+		}
+
+		if (bZeroTangents)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Meshname"), FText::FromString(GetName()));
+			Arguments.Add(TEXT("Tolerance"), ToleranceArgument);
+			const FText WarningMsg = FText::Format(LOCTEXT("MeshHasSomeZeroTangents", "{Meshname} has some nearly zero tangents which can create some issues. (Tolerance of {Tolerance})"), Arguments);
+			UE_LOG(LogStaticMesh, Warning, TEXT("%s"), *WarningMsg.ToString());
+			if (!bSilent && OutErrors)
+			{
+				OutErrors->Add(WarningMsg);
+			}
+		}
+
+		if (bZeroBinormals)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Meshname"), FText::FromString(GetName()));
+			Arguments.Add(TEXT("Tolerance"), ToleranceArgument);
+			const FText WarningMsg = FText::Format(LOCTEXT("MeshHasSomeZeroBiNormals", "{Meshname} has some nearly zero bi-normals which can create some issues. (Tolerance of {Tolerance})"), Arguments);
+			UE_LOG(LogStaticMesh, Warning, TEXT("%s"), *WarningMsg.ToString());
+			if (!bSilent && OutErrors)
+			{
+				OutErrors->Add(WarningMsg);
 			}
 		}
 

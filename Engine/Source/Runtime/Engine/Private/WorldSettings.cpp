@@ -293,6 +293,8 @@ void AWorldSettings::PostLoad()
 		Entry.ProxySetting.PostLoadDeprecated();
 		Entry.MergeSetting.LODSelectionType = EMeshLODSelectionType::CalculateLOD;
 	}
+
+	SetIsTemporarilyHiddenInEditor(true);
 #endif// WITH_EDITOR
 }
 

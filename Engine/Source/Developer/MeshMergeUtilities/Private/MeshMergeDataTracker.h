@@ -107,6 +107,11 @@ public:
 	const FSectionInfo& GetSection(int32 SectionIndex) const;
 	/** Clears out unique section to be replaced with the baked material one */
 	void AddBakedMaterialSection(const FSectionInfo& SectionInfo);
+	
+	/** Add a material slot name for a unique material instance. */
+	void AddMaterialSlotName(UMaterialInterface *MaterialInterface, FName MaterialSlotName);
+	/** Get the material slot name from a unique material instance. */
+	FName GetMaterialSlotName(UMaterialInterface *MaterialInterface) const;
 
 	/** Adds a LOD index which will be part of the final merged mesh */
 	void AddLODIndex(int32 LODIndex);
@@ -133,6 +138,9 @@ protected:
 
 	// Whether a key requires unique UVs 
 	TArray<FMeshLODKey> RequiresUniqueUVs;
+
+	//Use this map to recycle the material slot name
+	TMap<UMaterialInterface *, FName> MaterialInterfaceToMaterialSlotName;
 	
 	/** Flags for UV and vertex color usage */
 	bool bWithVertexColors[MAX_STATIC_MESH_LODS];

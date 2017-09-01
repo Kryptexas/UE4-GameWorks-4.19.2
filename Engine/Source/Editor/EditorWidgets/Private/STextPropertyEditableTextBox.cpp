@@ -725,7 +725,8 @@ void STextPropertyEditableTextBox::Tick(const FGeometry& AllottedGeometry, const
 
 bool STextPropertyEditableTextBox::CanEdit() const
 {
-	return !EditableTextProperty->IsReadOnly();
+	const bool bIsReadOnly = FTextLocalizationManager::Get().IsLocalizationLocked() || EditableTextProperty->IsReadOnly();
+	return !bIsReadOnly;
 }
 
 bool STextPropertyEditableTextBox::IsCultureInvariantFlagEnabled() const
@@ -735,7 +736,7 @@ bool STextPropertyEditableTextBox::IsCultureInvariantFlagEnabled() const
 
 bool STextPropertyEditableTextBox::IsSourceTextReadOnly() const
 {
-	if (EditableTextProperty->IsReadOnly())
+	if (!CanEdit())
 	{
 		return true;
 	}
@@ -756,7 +757,7 @@ bool STextPropertyEditableTextBox::IsSourceTextReadOnly() const
 
 bool STextPropertyEditableTextBox::IsIdentityReadOnly() const
 {
-	if (EditableTextProperty->IsReadOnly())
+	if (!CanEdit())
 	{
 		return true;
 	}
@@ -819,7 +820,15 @@ FText STextPropertyEditableTextBox::GetToolTipText() const
 		}
 	}
 	
-	const FText BaseToolTipText = EditableTextProperty->GetToolTipText();
+	FText BaseToolTipText = EditableTextProperty->GetToolTipText();
+	if (FTextLocalizationManager::Get().IsLocalizationLocked())
+	{
+		const FText LockdownToolTip = FTextLocalizationManager::Get().IsGameLocalizationPreviewEnabled() 
+			? LOCTEXT("LockdownToolTip_Preview", "Localization is locked down due to the active game localization preview")
+			: LOCTEXT("LockdownToolTip_Other", "Localization is locked down");
+		BaseToolTipText = BaseToolTipText.IsEmptyOrWhitespace() ? LockdownToolTip : FText::Format(LOCTEXT("ToolTipLockdownFmt", "!!! {0} !!!\n\n{1}"), LockdownToolTip, BaseToolTipText);
+	}
+
 	if (LocalizedTextToolTip.IsEmptyOrWhitespace())
 	{
 		return BaseToolTipText;

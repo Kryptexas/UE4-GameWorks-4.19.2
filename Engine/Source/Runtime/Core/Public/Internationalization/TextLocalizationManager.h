@@ -84,6 +84,11 @@ private:
 	TMap<FTextDisplayStringRef, uint16> LocalTextRevisions;
 	uint16 TextRevisionCounter;
 
+#if WITH_EDITOR
+	bool bIsGameLocalizationPreviewEnabled;
+	bool bIsLocalizationLocked;
+#endif
+
 private:
 	FTextLocalizationManager() 
 		: bIsInitialized(false)
@@ -146,6 +151,46 @@ public:
 	/**	Returns the current text revision number. This value can be cached when caching information from the text localization manager.
 	 *	If the revision does not match, cached information may be invalid and should be recached. */
 	uint16 GetTextRevision() const { return TextRevisionCounter; }
+
+#if WITH_EDITOR
+	/**
+	 * Enable the game localization preview using the current "preview language" setting, or the native culture if no "preview language" is set.
+	 * @note This is the same as calling EnableGameLocalizationPreview with the current "preview language" setting.
+	 */
+	void EnableGameLocalizationPreview();
+
+	/**
+	 * Enable the game localization preview using the given language, or the native language if the culture name is empty.
+	 * @note This will also lockdown localization editing if the given language is a non-native game language (to avoid accidentally baking out translations as source data in assets).
+	 */
+	void EnableGameLocalizationPreview(const FString& CultureName);
+
+	/**
+	 * Disable the game localization preview.
+	 * @note This is the same as calling EnableGameLocalizationPreview with the native game language (or an empty string).
+	 */
+	void DisableGameLocalizationPreview();
+
+	/**
+	 * Is the game localization preview enabled for a non-native language?
+	 */
+	bool IsGameLocalizationPreviewEnabled() const;
+
+	/**
+	 * Configure the "preview language" setting used for the game localization preview.
+	 */
+	void ConfigureGameLocalizationPreviewLanguage(const FString& CultureName);
+
+	/**
+	 * Get the configured "preview language" setting used for the game localization preview (if any).
+	 */
+	FString GetConfiguredGameLocalizationPreviewLanguage() const;
+
+	/**
+	 * Is the localization of this game currently locked? (ie, can it be edited in the UI?).
+	 */
+	bool IsLocalizationLocked() const;
+#endif
 
 	/** Event type for immediately reacting to changes in display strings for text. */
 	DECLARE_EVENT(FTextLocalizationManager, FTextRevisionChangedEvent)

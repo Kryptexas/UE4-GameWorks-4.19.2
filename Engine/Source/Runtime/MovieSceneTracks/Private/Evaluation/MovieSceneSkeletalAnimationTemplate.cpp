@@ -10,10 +10,7 @@
 #include "Runtime/AnimGraphRuntime/Public/AnimSequencerInstance.h"
 #include "MovieSceneEvaluation.h"
 #include "IMovieScenePlayer.h"
-
-
-TMovieSceneAnimTypeIDContainer<FName> MontageSlotAnimationIDs;
-TMovieSceneAnimTypeIDContainer<uint32> SectionIdAnimationIDs;
+#include "ObjectKey.h"
 
 bool ShouldUsePreviewPlayback(IMovieScenePlayer& Player, UObject& RuntimeObject)
 {
@@ -104,12 +101,13 @@ struct FPreAnimatedAnimationTokenProducer : IMovieScenePreAnimatedTokenProducer
 
 struct FMinimalAnimParameters
 {
-	FMinimalAnimParameters(UAnimSequenceBase* InAnimation, float InEvalTime, float InBlendWeight, const FMovieSceneEvaluationScope& InScope, FName InSlotName)
+	FMinimalAnimParameters(UAnimSequenceBase* InAnimation, float InEvalTime, float InBlendWeight, const FMovieSceneEvaluationScope& InScope, FName InSlotName, FObjectKey InSection)
 		: Animation(InAnimation)
 		, EvalTime(InEvalTime)
 		, BlendWeight(InBlendWeight)
 		, EvaluationScope(InScope)
 		, SlotName(InSlotName)
+		, Section(InSection)
 	{}
 	
 	UAnimSequenceBase* Animation;
@@ -117,6 +115,7 @@ struct FMinimalAnimParameters
 	float BlendWeight;
 	FMovieSceneEvaluationScope EvaluationScope;
 	FName SlotName;
+	FObjectKey Section;
 };
 
 namespace MovieScene
@@ -190,13 +189,13 @@ namespace MovieScene
 				if (bPreviewPlayback)
 				{
 					PreviewSetAnimPosition(PersistentData, Player, SkeletalMeshComponent,
-						AnimParams.SlotName, AnimParams.EvaluationScope.Key, AnimParams.Animation, AnimParams.EvalTime, AnimParams.BlendWeight,
+						AnimParams.SlotName, AnimParams.Section, AnimParams.Animation, AnimParams.EvalTime, AnimParams.BlendWeight,
 						bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing, bResetDynamics);
 				}
 				else
 				{
 					SetAnimPosition(PersistentData, Player, SkeletalMeshComponent,
-						AnimParams.SlotName, AnimParams.EvaluationScope.Key, AnimParams.Animation, AnimParams.EvalTime, AnimParams.BlendWeight,
+						AnimParams.SlotName, AnimParams.Section, AnimParams.Animation, AnimParams.EvalTime, AnimParams.BlendWeight,
 						bLooping, bFireNotifies);
 				}
 			}
@@ -221,7 +220,7 @@ namespace MovieScene
 			return nullptr;
 		}
 
-		void SetAnimPosition(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player, USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, const FMovieSceneEvaluationKey& SectionKey, UAnimSequenceBase* InAnimSequence, float InPosition, float Weight, bool bLooping, bool bFireNotifies)
+		void SetAnimPosition(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player, USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, FObjectKey Section, UAnimSequenceBase* InAnimSequence, float InPosition, float Weight, bool bLooping, bool bFireNotifies)
 		{
 			if (!CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 			{
@@ -231,13 +230,12 @@ namespace MovieScene
 			UAnimSequencerInstance* SequencerInst = Cast<UAnimSequencerInstance>(SkeletalMeshComponent->GetAnimInstance());
 			if (SequencerInst)
 			{
-				uint32 SectionId = GetTypeHash(SectionKey);
-				FMovieSceneAnimTypeID AnimTypeID = SectionIdAnimationIDs.GetAnimTypeID(SectionId);
+				FMovieSceneAnimTypeID AnimTypeID = SectionToAnimationIDs.GetAnimTypeID(Section);
 
 				Player.SavePreAnimatedState(*SequencerInst, AnimTypeID, FStatelessPreAnimatedTokenProducer(&ResetAnimSequencerInstance));
 
 				// Set position and weight
-				SequencerInst->UpdateAnimTrack(InAnimSequence, SectionId, InPosition, Weight, bFireNotifies);
+				SequencerInst->UpdateAnimTrack(InAnimSequence, GetTypeHash(AnimTypeID), InPosition, Weight, bFireNotifies);
 			}
 			else
 			{
@@ -255,7 +253,7 @@ namespace MovieScene
 			}
 		}
 
-		void PreviewSetAnimPosition(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player, USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, const FMovieSceneEvaluationKey& SectionKey, UAnimSequenceBase* InAnimSequence, float InPosition, float Weight, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying, bool bResetDynamics)
+		void PreviewSetAnimPosition(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player, USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, FObjectKey Section, UAnimSequenceBase* InAnimSequence, float InPosition, float Weight, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying, bool bResetDynamics)
 		{
 			if (!CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 			{
@@ -265,13 +263,12 @@ namespace MovieScene
 			UAnimSequencerInstance* SequencerInst = Cast<UAnimSequencerInstance>(SkeletalMeshComponent->GetAnimInstance());
 			if (SequencerInst)
 			{
-				uint32 SectionId = GetTypeHash(SectionKey);
 				// Unique anim type ID per slot
-				FMovieSceneAnimTypeID AnimTypeID = SectionIdAnimationIDs.GetAnimTypeID(SectionId);
+				FMovieSceneAnimTypeID AnimTypeID = SectionToAnimationIDs.GetAnimTypeID(Section);
 				Player.SavePreAnimatedState(*SequencerInst, AnimTypeID, FStatelessPreAnimatedTokenProducer(&ResetAnimSequencerInstance));
 
 				// Set position and weight
-				SequencerInst->UpdateAnimTrack(InAnimSequence, SectionId, InPosition, Weight, bFireNotifies);
+				SequencerInst->UpdateAnimTrack(InAnimSequence, GetTypeHash(AnimTypeID), InPosition, Weight, bFireNotifies);
 			}
 			else
 			{
@@ -306,6 +303,10 @@ namespace MovieScene
 				}
 			}
 		}
+
+
+		TMovieSceneAnimTypeIDContainer<FName> MontageSlotAnimationIDs;
+		TMovieSceneAnimTypeIDContainer<FObjectKey> SectionToAnimationIDs;
 	};
 
 }	// namespace MovieScene
@@ -342,7 +343,7 @@ void FMovieSceneSkeletalAnimationSectionTemplate::Evaluate(const FMovieSceneEval
 
 		// Add the blendable to the accumulator
 		FMinimalAnimParameters AnimParams(
-			Params.Animation, EvalTime, Weight, ExecutionTokens.GetCurrentScope(), Params.SlotName
+			Params.Animation, EvalTime, Weight, ExecutionTokens.GetCurrentScope(), Params.SlotName, GetSourceSection()
 			);
 		ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<MovieScene::FBlendedAnimation>(AnimParams, BlendType.Get(), 1.f));
 	}

@@ -27,6 +27,7 @@
 #include "SlateMaterialBrush.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "AdvancedPreviewScene.h"
+#include "AssetViewerSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
@@ -38,6 +39,7 @@ public:
 	FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FAdvancedPreviewScene& InPreviewScene, const TSharedRef<SMaterialEditor3DPreviewViewport>& InMaterialEditorViewport);
 
 	// FEditorViewportClient interface
+	virtual bool InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false) override;
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
@@ -57,6 +59,9 @@ private:
 
 	/** Pointer back to the material editor tool that owns us */
 	TWeakPtr<IMaterialEditor> MaterialEditorPtr;
+
+	/** Preview Scene - uses advanced preview settings */
+	class FAdvancedPreviewScene* AdvancedPreviewScene;
 };
 
 FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FAdvancedPreviewScene& InPreviewScene, const TSharedRef<SMaterialEditor3DPreviewViewport>& InMaterialEditorViewport)
@@ -84,6 +89,9 @@ FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialE
 
 	// Don't want to display the widget in this viewport
 	Widget->SetDefaultVisibility(false);
+
+	AdvancedPreviewScene = &InPreviewScene;
+
 }
 
 
@@ -110,6 +118,18 @@ bool FMaterialEditorViewportClient::ShouldOrbitCamera() const
 {
 	// Should always orbit around the preview object to keep it in view.
 	return true;
+}
+
+bool FMaterialEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
+{
+	bool bHandled = FEditorViewportClient::InputKey(InViewport, ControllerId, Key, Event, AmountDepressed, false);
+
+	// Handle viewport screenshot.
+	bHandled |= InputTakeScreenshot(InViewport, Key, Event);
+
+	bHandled |= AdvancedPreviewScene->HandleInputKey(InViewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
+
+	return bHandled;
 }
 
 FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
@@ -186,6 +206,7 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 {
 	MaterialEditorPtr = InArgs._MaterialEditor;
 	AdvancedPreviewScene = MakeShareable(new FAdvancedPreviewScene(FPreviewScene::ConstructionValues()));
+
 	bShowGrid = false;
 	bShowBackground = false;
 	PreviewPrimType = TPT_None;
@@ -206,6 +227,7 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 
 SMaterialEditor3DPreviewViewport::~SMaterialEditor3DPreviewViewport()
 {
+	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().RemoveAll(this);
 	if (PreviewMeshComponent != nullptr)
 	{
 		PreviewMeshComponent->OverrideMaterials.Empty();
@@ -231,6 +253,18 @@ void SMaterialEditor3DPreviewViewport::RefreshViewport()
 		PreviewMeshComponent->MarkRenderStateDirty();
 	}
 	SceneViewport->InvalidateDisplay();
+
+	if (EditorViewportClient.IsValid())
+	{
+		UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+		const int32 ProfileIndex = AdvancedPreviewScene->GetCurrentProfileIndex();
+		if (Settings->Profiles.IsValidIndex(ProfileIndex) &&
+			Settings->Profiles[ProfileIndex].bRotateLightingRig
+			&& !EditorViewportClient->IsRealtime())
+		{
+			EditorViewportClient->SetRealtime(true);
+		}
+	}
 }
 
 bool SMaterialEditor3DPreviewViewport::SetPreviewAsset(UObject* InAsset)
@@ -272,8 +306,6 @@ bool SMaterialEditor3DPreviewViewport::SetPreviewAsset(UObject* InAsset)
 		}
 		else if (StaticMesh == GUnrealEd->GetThumbnailManager()->EditorPlane)
 		{
-			// Need to rotate the plane so that it faces the camera
-			Transform.SetRotation(FQuat(FRotator(0, 90, 0)));
 			PreviewPrimType = TPT_Plane;
 		}
 		else
@@ -526,6 +558,22 @@ bool SMaterialEditor3DPreviewViewport::IsTogglePreviewBackgroundChecked() const
 	return bShowBackground;
 }
 
+
+void SMaterialEditor3DPreviewViewport::OnAssetViewerSettingsChanged(const FName& InPropertyName)
+{
+	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bRotateLightingRig) || InPropertyName == NAME_None)
+	{
+		UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+		const int32 ProfileIndex = AdvancedPreviewScene->GetCurrentProfileIndex();
+		if (Settings->Profiles.IsValidIndex(ProfileIndex) &&
+			Settings->Profiles[ProfileIndex].bRotateLightingRig
+			&& !EditorViewportClient->IsRealtime())
+		{
+			EditorViewportClient->SetRealtime(true);
+		}
+	}
+}
+
 TSharedRef<class SEditorViewport> SMaterialEditor3DPreviewViewport::GetViewportWidget()
 {
 	return SharedThis(this);
@@ -544,13 +592,16 @@ void SMaterialEditor3DPreviewViewport::OnFloatingButtonClicked()
 TSharedRef<FEditorViewportClient> SMaterialEditor3DPreviewViewport::MakeEditorViewportClient() 
 {
 	EditorViewportClient = MakeShareable( new FMaterialEditorViewportClient(MaterialEditorPtr, *AdvancedPreviewScene.Get(), SharedThis(this)) );
-	
+	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &SMaterialEditor3DPreviewViewport::OnAssetViewerSettingsChanged);
 	EditorViewportClient->SetViewLocation( FVector::ZeroVector );
-	EditorViewportClient->SetViewRotation( FRotator::ZeroRotator );
+	EditorViewportClient->SetViewRotation( FRotator(0.0f, -90.0f, 0.0f) );
 	EditorViewportClient->SetViewLocationForOrbiting( FVector::ZeroVector );
 	EditorViewportClient->bSetListenerPosition = false;
-
-	EditorViewportClient->SetRealtime( true );
+	EditorViewportClient->EngineShowFlags.EnableAdvancedFeatures();
+	EditorViewportClient->EngineShowFlags.SetLighting(true);
+	EditorViewportClient->EngineShowFlags.SetIndirectLightingCache(true);
+	EditorViewportClient->EngineShowFlags.SetPostProcessing(true);
+	EditorViewportClient->Invalidate();
 	EditorViewportClient->VisibilityDelegate.BindSP( this, &SMaterialEditor3DPreviewViewport::IsVisible );
 
 	return EditorViewportClient.ToSharedRef();

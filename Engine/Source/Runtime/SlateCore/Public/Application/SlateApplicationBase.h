@@ -525,6 +525,9 @@ protected:
 	/** multicast delegate to broadcast when a global invalidate is requested */
 	FOnGlobalInvalidate OnGlobalInvalidateEvent;
 
+	/** Critical section for active timer registration as it can be called from the movie thread and the game thread */
+	FCriticalSection ActiveTimerCS;
+
 	// Gets set when Slate goes to sleep and cleared when active.
 	bool bIsSlateAsleep;
 

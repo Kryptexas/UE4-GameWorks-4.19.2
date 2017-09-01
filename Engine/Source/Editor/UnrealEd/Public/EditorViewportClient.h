@@ -717,10 +717,6 @@ public:
 
 	/** Sets whether or not this viewport is allowed to be possessed by cinematic/scrubbing tools */
 	void SetAllowCinematicPreview( bool bInAllowCinematicPreview ) { bAllowCinematicPreview = bInAllowCinematicPreview; }
-protected:
-
-	/** true if this window is allowed to be possessed by cinematic tools for previewing sequences in real-time */
-	bool bAllowCinematicPreview;
 
 public:
 	/** True if the window is maximized or floating */
@@ -971,6 +967,9 @@ public:
 
 protected:
 
+	/** true if this window is allowed to be possessed by cinematic tools for previewing sequences in real-time */
+	bool bAllowCinematicPreview;
+
 	/** Camera speed setting */
 	int32 CameraSpeedSetting;
 
@@ -1065,6 +1064,10 @@ protected:
 
 	/** Invalidates this and other linked viewports (anything viewing the same scene) */
 	virtual void RedrawAllViewportsIntoThisScene();
+
+
+	/** FCommonViewportClient interface */
+	virtual float GetViewportClientWindowDPIScale() const override;
 
 	/**
 	 * Used to store the required cursor visibility states and override cursor appearance
@@ -1261,6 +1264,9 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
+	/** Delegate handler for when a window DPI changes and we might need to adjust the scenes resolution */
+	void HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow);
 
 	/** Handle the camera about to be moved or stopped **/
 	virtual void BeginCameraMovement(bool bHasMovement) {}

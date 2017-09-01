@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -33,8 +33,10 @@
 #define MIR_GL_DeleteContext   SDL_EGL_DeleteContext
 #define MIR_GL_GetSwapInterval SDL_EGL_GetSwapInterval
 #define MIR_GL_SetSwapInterval SDL_EGL_SetSwapInterval
+#define MIR_GL_UnloadLibrary   SDL_EGL_UnloadLibrary
+#define MIR_GL_GetProcAddress  SDL_EGL_GetProcAddress
 
-extern void
+extern int
 MIR_GL_SwapWindow(_THIS, SDL_Window* window);
 
 extern int
@@ -48,9 +50,6 @@ MIR_GL_LoadLibrary(_THIS, const char* path);
 
 extern void
 MIR_GL_UnloadLibrary(_THIS);
-
-extern void*
-MIR_GL_GetProcAddress(_THIS, const char* proc);
 
 #endif /* _SDL_miropengl_h */
 

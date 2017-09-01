@@ -190,8 +190,9 @@ public:
 	 * Add actors as possessable objects to sequencer.
 	 * 
 	 * @param InActors The actors to add to sequencer.
+	 * @return The posssessable guids for the newly added actors.
 	 */
-	virtual void AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors) = 0;
+	virtual TArray<FGuid> AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors) = 0;
 
 	/**
 	 * Adds a movie scene as a section inside the current movie scene

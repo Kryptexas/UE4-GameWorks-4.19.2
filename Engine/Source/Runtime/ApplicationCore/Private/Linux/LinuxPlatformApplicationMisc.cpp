@@ -15,6 +15,39 @@ bool GInitializedSDL = false;
 namespace
 {
 	uint32 GWindowStyleSDL = SDL_WINDOW_OPENGL;
+
+	FString GetHeadlessMessageBoxMessage(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption, EAppReturnType::Type& Answer)
+	{
+		FString MessageSuffix;
+		switch (MsgType)
+		{
+		case EAppMsgType::YesNo:
+		case EAppMsgType::YesNoYesAllNoAll:
+		case EAppMsgType::YesNoYesAll:
+			Answer = EAppReturnType::No;
+			MessageSuffix = FString(TEXT("No is implied."));
+			break;
+
+		case EAppMsgType::OkCancel:
+		case EAppMsgType::YesNoCancel:
+		case EAppMsgType::CancelRetryContinue:
+		case EAppMsgType::YesNoYesAllNoAllCancel:
+			Answer = EAppReturnType::Cancel;
+			MessageSuffix = FString(TEXT("Cancel is implied."));
+			break;
+		}
+
+		FString Message = UTF8_TO_TCHAR(SDL_GetError());
+		if (Message != FString(TEXT("No message system available")))
+		{
+			Message = FString::Printf(TEXT("MessageBox: %s: %s: %s: %s"), Caption, Text, *Message, *MessageSuffix);
+		}
+		else
+		{
+			Message = FString::Printf(TEXT("MessageBox: %s: %s: %s"), Caption, Text, *MessageSuffix);
+		}
+		return Message;
+	}
 }
 
 extern CORE_API TFunction<void()> UngrabAllInputCallback;
@@ -27,7 +60,10 @@ EAppReturnType::Type MessageBoxExtImpl(EAppMsgType::Type MsgType, const TCHAR* T
 	// if multimedia cannot be initialized for messagebox, just fall back to default implementation
 	if (!FPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
+		EAppReturnType::Type Answer = EAppReturnType::Type::Cancel;
+		FString Message = GetHeadlessMessageBoxMessage(MsgType, Caption, Text, Answer);
+		UE_LOG(LogLinux, Warning, TEXT("%s"), *Message);
+		return Answer;
 	}
 
 #if DO_CHECK
@@ -39,119 +75,119 @@ EAppReturnType::Type MessageBoxExtImpl(EAppMsgType::Type MsgType, const TCHAR* T
 
 	switch (MsgType)
 	{
-		case EAppMsgType::Ok:
-			NumberOfButtons = 1;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
-			Buttons[0].text = "Ok";
-			Buttons[0].buttonid = EAppReturnType::Ok;
-			break;
+	case EAppMsgType::Ok:
+		NumberOfButtons = 1;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
+		Buttons[0].text = "Ok";
+		Buttons[0].buttonid = EAppReturnType::Ok;
+		break;
 
-		case EAppMsgType::YesNo:
-			NumberOfButtons = 2;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			break;
+	case EAppMsgType::YesNo:
+		NumberOfButtons = 2;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[0].text = "Yes";
+		Buttons[0].buttonid = EAppReturnType::Yes;
+		Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[1].text = "No";
+		Buttons[1].buttonid = EAppReturnType::No;
+		break;
 
-		case EAppMsgType::OkCancel:
-			NumberOfButtons = 2;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Ok";
-			Buttons[0].buttonid = EAppReturnType::Ok;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "Cancel";
-			Buttons[1].buttonid = EAppReturnType::Cancel;
-			break;
+	case EAppMsgType::OkCancel:
+		NumberOfButtons = 2;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[0].text = "Ok";
+		Buttons[0].buttonid = EAppReturnType::Ok;
+		Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[1].text = "Cancel";
+		Buttons[1].buttonid = EAppReturnType::Cancel;
+		break;
 
-		case EAppMsgType::YesNoCancel:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Cancel";
-			Buttons[2].buttonid = EAppReturnType::Cancel;
-			break;
+	case EAppMsgType::YesNoCancel:
+		NumberOfButtons = 3;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[0].text = "Yes";
+		Buttons[0].buttonid = EAppReturnType::Yes;
+		Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[1].text = "No";
+		Buttons[1].buttonid = EAppReturnType::No;
+		Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[2].text = "Cancel";
+		Buttons[2].buttonid = EAppReturnType::Cancel;
+		break;
 
-		case EAppMsgType::CancelRetryContinue:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Continue";
-			Buttons[0].buttonid = EAppReturnType::Continue;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "Retry";
-			Buttons[1].buttonid = EAppReturnType::Retry;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Cancel";
-			Buttons[2].buttonid = EAppReturnType::Cancel;
-			break;
+	case EAppMsgType::CancelRetryContinue:
+		NumberOfButtons = 3;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[0].text = "Continue";
+		Buttons[0].buttonid = EAppReturnType::Continue;
+		Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[1].text = "Retry";
+		Buttons[1].buttonid = EAppReturnType::Retry;
+		Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[2].text = "Cancel";
+		Buttons[2].buttonid = EAppReturnType::Cancel;
+		break;
 
-		case EAppMsgType::YesNoYesAllNoAll:
-			NumberOfButtons = 4;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[3].text = "No to all";
-			Buttons[3].buttonid = EAppReturnType::NoAll;
-			break;
+	case EAppMsgType::YesNoYesAllNoAll:
+		NumberOfButtons = 4;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[0].text = "Yes";
+		Buttons[0].buttonid = EAppReturnType::Yes;
+		Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[1].text = "No";
+		Buttons[1].buttonid = EAppReturnType::No;
+		Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[2].text = "Yes to all";
+		Buttons[2].buttonid = EAppReturnType::YesAll;
+		Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[3].text = "No to all";
+		Buttons[3].buttonid = EAppReturnType::NoAll;
+		break;
 
-		case EAppMsgType::YesNoYesAllNoAllCancel:
-			NumberOfButtons = 5;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[3].text = "No to all";
-			Buttons[3].buttonid = EAppReturnType::NoAll;
-			Buttons[4].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[4].text = "Cancel";
-			Buttons[4].buttonid = EAppReturnType::Cancel;
-			break;
+	case EAppMsgType::YesNoYesAllNoAllCancel:
+		NumberOfButtons = 5;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[0].text = "Yes";
+		Buttons[0].buttonid = EAppReturnType::Yes;
+		Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[1].text = "No";
+		Buttons[1].buttonid = EAppReturnType::No;
+		Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[2].text = "Yes to all";
+		Buttons[2].buttonid = EAppReturnType::YesAll;
+		Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[3].text = "No to all";
+		Buttons[3].buttonid = EAppReturnType::NoAll;
+		Buttons[4].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[4].text = "Cancel";
+		Buttons[4].buttonid = EAppReturnType::Cancel;
+		break;
 
-		case EAppMsgType::YesNoYesAll:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			break;
+	case EAppMsgType::YesNoYesAll:
+		NumberOfButtons = 3;
+		Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
+		Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[0].text = "Yes";
+		Buttons[0].buttonid = EAppReturnType::Yes;
+		Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[1].text = "No";
+		Buttons[1].buttonid = EAppReturnType::No;
+		Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+		Buttons[2].text = "Yes to all";
+		Buttons[2].buttonid = EAppReturnType::YesAll;
+		break;
 	}
 
 	FTCHARToUTF8 CaptionUTF8(Caption);
 	FTCHARToUTF8 TextUTF8(Text);
-	SDL_MessageBoxData MessageBoxData = 
+	SDL_MessageBoxData MessageBoxData =
 	{
 		SDL_MESSAGEBOX_INFORMATION,
 		NULL, // No parent window
@@ -163,18 +199,22 @@ EAppReturnType::Type MessageBoxExtImpl(EAppMsgType::Type MsgType, const TCHAR* T
 	};
 
 	int ButtonPressed = -1;
+	EAppReturnType::Type Answer = EAppReturnType::Type::Cancel;
 
 	FSlowHeartBeatScope SuspendHeartBeat;
-	if (SDL_ShowMessageBox(&MessageBoxData, &ButtonPressed) == -1) 
+	if (SDL_ShowMessageBox(&MessageBoxData, &ButtonPressed) == -1)
 	{
-		UE_LOG(LogInit, Fatal, TEXT("Error Presenting MessageBox: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
-		// unreachable
-		return EAppReturnType::Cancel;
+		FString Message = GetHeadlessMessageBoxMessage(MsgType, Caption, Text, Answer);
+		UE_LOG(LogLinux, Warning, TEXT("%s"), *Message);
+	}
+	else
+	{
+		Answer = ButtonPressed == -1 ? EAppReturnType::Cancel : static_cast<EAppReturnType::Type>(ButtonPressed);
 	}
 
 	delete[] Buttons;
 
-	return ButtonPressed == -1 ? EAppReturnType::Cancel : static_cast<EAppReturnType::Type>(ButtonPressed);
+	return Answer;
 }
 
 #if !UE_BUILD_SHIPPING
@@ -222,6 +262,19 @@ bool FLinuxPlatformApplicationMisc::InitSDL()
 	{
 		UE_LOG(LogInit, Log, TEXT("Initializing SDL."));
 
+		SDL_SetHint("SDL_VIDEO_X11_REQUIRE_XRANDR", "1");  // workaround for misbuilt SDL libraries on X11.
+		// we don't use SDL for audio
+		if (SDL_Init((SDL_INIT_EVERYTHING ^ SDL_INIT_AUDIO) | SDL_INIT_NOPARACHUTE) != 0)
+		{
+			FString ErrorMessage = UTF8_TO_TCHAR(SDL_GetError());
+			if(ErrorMessage != FString(TEXT("No message system available")))
+			{
+				// do not fail at this point, allow caller handle failure
+				UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), *ErrorMessage);
+			}
+			return false;
+		}
+
 		if (FParse::Param(FCommandLine::Get(), TEXT("vulkan")))
 		{
 			GWindowStyleSDL = SDL_WINDOW_VULKAN;
@@ -231,17 +284,6 @@ bool FLinuxPlatformApplicationMisc::InitSDL()
 		{
 			GWindowStyleSDL = SDL_WINDOW_OPENGL;
 			UE_LOG(LogInit, Log, TEXT("Using SDL_WINDOW_OPENGL"));
-		}
-
-		SDL_SetHint("SDL_VIDEO_X11_REQUIRE_XRANDR", "1");  // workaround for misbuilt SDL libraries on X11.
-		// we don't use SDL for audio
-		if (SDL_Init((SDL_INIT_EVERYTHING ^ SDL_INIT_AUDIO) | SDL_INIT_NOPARACHUTE) != 0)
-		{
-			const char * SDLError = SDL_GetError();
-
-			// do not fail at this point, allow caller handle failure
-			UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), UTF8_TO_TCHAR(SDLError));
-			return false;
 		}
 
 		// print out version information
@@ -389,6 +431,41 @@ bool FLinuxPlatformApplicationMisc::ControlScreensaver(EScreenSaverAction Action
 	return true;
 }
 
+float FLinuxPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
+{
+	if (!FParse::Param(FCommandLine::Get(), TEXT("nohighdpi")))
+	{
+		FDisplayMetrics DisplayMetrics;
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		// find the monitor
+		int32 XInt = static_cast<int32>(X);
+		int32 YInt = static_cast<int32>(Y);
+		for(int Idx = 0, NumMonitors = DisplayMetrics.MonitorInfo.Num(); Idx < NumMonitors; ++Idx)
+		{
+			const FMonitorInfo & MonitorInfo = DisplayMetrics.MonitorInfo[Idx];
+
+			if (MonitorInfo.DisplayRect.Left <= XInt && MonitorInfo.DisplayRect.Right > XInt &&
+				MonitorInfo.DisplayRect.Top <= YInt && MonitorInfo.DisplayRect.Bottom > YInt)
+			{
+				float HorzDPI = 1.0f, VertDPI = 1.0f;
+				if (SDL_GetDisplayDPI(Idx, nullptr, &HorzDPI, &VertDPI) == 0)
+				{
+					float Scale = (HorzDPI + VertDPI) / 192.0f;	// average between two scales (divided by 96.0f)
+					UE_LOG(LogLinux, Log, TEXT("Scale at X=%f, Y=%f: %f (monitor=#%d, HDPI=%f (horz scale: %f), VDPI=%f (vert scale: %f))"), X, Y, Scale, Idx, HorzDPI, HorzDPI / 96.0f, VertDPI, VertDPI / 96.0f);
+					return Scale;
+				}
+				else
+				{
+					// this can also happen for headless, so don't use Warning here
+					UE_LOG(LogLinux, Log, TEXT("Could not get DPI information for monitor #%d, assuming 1.0f"), Idx);
+					break;	// should fall-through to 1.0f
+				}
+			}
+		}
+	}
+	return 1.0f;
+}
+
 void FLinuxPlatformApplicationMisc::ClipboardCopy(const TCHAR* Str)
 {
 	if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
@@ -414,4 +491,3 @@ void FLinuxPlatformApplicationMisc::ClipboardPaste(class FString& Result)
 	}
 	SDL_free(ClipContent);
 }
-

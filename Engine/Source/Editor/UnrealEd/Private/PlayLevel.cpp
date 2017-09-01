@@ -540,7 +540,7 @@ void UEditorEngine::EndPlayMap()
 	}
 
 	// no longer queued
-	bIsPlayWorldQueued = false;
+	CancelRequestPlaySession();
 	bIsSimulateInEditorQueued = false;
 	bRequestEndPlayMapQueued = false;
 	bUseVRPreviewForPlayWorld = false;
@@ -868,12 +868,13 @@ void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class IL
 	bPlayUsingLauncher = false;
 }
 
-void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview , const FString& MobilePreviewTargetDevice)
+void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview , const FString& MobilePreviewTargetDevice, FString AdditionalLaunchParameters)
 {
 	bPlayOnLocalPcSession = true;
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = MobilePreview;
 	bPlayUsingVulkanPreview = VulkanPreview;
+	RequestedAdditionalStandaloneLaunchOptions = AdditionalLaunchParameters;
 	PlayUsingMobilePreviewTargetDevice = MobilePreviewTargetDevice;
 
 	if (StartLocation != NULL)
@@ -912,6 +913,7 @@ void UEditorEngine::CancelRequestPlaySession()
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = false;
 	bPlayUsingVulkanPreview = false;
+	RequestedAdditionalStandaloneLaunchOptions = FString();
 	PlayUsingMobilePreviewTargetDevice.Reset();
 }
 
@@ -1257,6 +1259,9 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
 		}
 	}
+
+	// note that we no longer have a queued request
+	CancelRequestPlaySession();
 }
 
 void UEditorEngine::EndPlayOnLocalPc( )
@@ -1326,6 +1331,13 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 		AdditionalParameters += TEXT(" -debug");
 	}
 
+	const FString PreviewGameLanguage = FTextLocalizationManager::Get().GetConfiguredGameLocalizationPreviewLanguage();
+	if (!PreviewGameLanguage.IsEmpty())
+	{
+		AdditionalParameters += TEXT(" -culture=");
+		AdditionalParameters += PreviewGameLanguage;
+	}
+
 	// apply additional settings
 	if (bPlayUsingMobilePreview)
 	{
@@ -1382,6 +1394,14 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 		AdditionalParameters += TEXT(" -windowed");		
 	}
 
+	if (RequestedAdditionalStandaloneLaunchOptions.Len() > 0)
+	{
+		AdditionalParameters += TEXT(" ");
+		AdditionalParameters += RequestedAdditionalStandaloneLaunchOptions;
+		//clear it now it's been used
+		RequestedAdditionalStandaloneLaunchOptions = FString();
+	}
+
 	FIntPoint WinSize(0, 0);
 	GetWindowSizeForInstanceType(WinSize, PlayInSettings);
 
@@ -1430,12 +1450,15 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 	FPlayOnPCInfo *NewSession = new (PlayOnLocalPCSessions) FPlayOnPCInfo();
 
-	NewSession->ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, NULL, 0, NULL, NULL);
+	uint32 ProcessID = 0;
+	NewSession->ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, &ProcessID, 0, NULL, NULL);
 
 	if (!NewSession->ProcessHandle.IsValid())
 	{
 		UE_LOG(LogPlayLevel, Error, TEXT("Failed to run a copy of the game on this PC."));
 	}
+
+	FEditorDelegates::BeginStandaloneLocalPlay.Broadcast(ProcessID);
 }
 
 static void HandleOutputReceived(const FString& InMessage)

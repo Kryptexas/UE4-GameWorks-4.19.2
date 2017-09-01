@@ -413,8 +413,9 @@ private:
 
 		void CacheWindow();
 
-		FORCEINLINE void AbortComposition()
+		FORCEINLINE void KillContext()
 		{
+			OwnerLayout = nullptr;
 			bIsComposing = false;
 		}
 
@@ -534,6 +535,9 @@ private:
 
 	/** Virtual keyboard handler for this text layout */
 	TSharedPtr<FVirtualKeyboardEntry> VirtualKeyboardEntry;
+
+	/** True if the IME context for this text layout has been registered with the input method manager */
+	bool bHasRegisteredTextInputMethodContext;
 
 	/** IME context for this text layout */
 	TSharedPtr<FTextInputMethodContext> TextInputMethodContext;

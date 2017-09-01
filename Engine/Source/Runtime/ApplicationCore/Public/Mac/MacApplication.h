@@ -215,6 +215,7 @@ public:
 
 	void OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking = false);
 
+	void OnWindowChangedScreen(TSharedRef<FMacWindow> Window);
 public:
 
 	static void UpdateScreensArray();

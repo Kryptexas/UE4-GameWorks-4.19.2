@@ -5,10 +5,12 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Engine/DeveloperSettings.h"
 #include "EditorPerformanceSettings.generated.h"
 
-UCLASS(minimalapi,config=EditorSettings)
-class UEditorPerformanceSettings : public UObject
+
+UCLASS(minimalapi, config=EditorSettings, meta=(DisplayName = "Performance", ToolTip="Settings to tweak the performance of the editor"))
+class UEditorPerformanceSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
 	
@@ -24,5 +26,17 @@ class UEditorPerformanceSettings : public UObject
 	UPROPERTY(EditAnywhere, config, Category=EditorPerformance)
 	uint32 bMonitorEditorPerformance:1;
 
+	/** 
+	 * By default the editor will adjust scene scaling (quality) for high DPI in order to ensure consistent performance with very large render targets.
+	 * Enabling this will disable automatic adjusting and use the screen percentage specified here
+	 * Values less than 100 will result in a lower quality view but with increased performance.  100 indicates no adjustments will be made
+	 */
+	UPROPERTY(EditAnywhere, config, Category=EditorPerformance, meta=(DisplayName="Disable DPI Based Editor Viewport Scaling", ConsoleVariable="Editor.OverrideDPIBasedEditorViewportScaling"))
+	bool bOverrideDPIBasedEditorViewportScaling;
+
+public:
+	/** UObject interface */
+	virtual void PostInitProperties() override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 };
 

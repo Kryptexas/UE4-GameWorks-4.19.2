@@ -122,7 +122,19 @@ void FInputBindingEditorPanel::UpdateUI()
 			.MinDesiredWidth(200)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SChordEditBox, CommandInfo)
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(1.0f, 0.0f, 9.0f, 0.0f)
+				[
+					SNew(SChordEditBox, CommandInfo, EMultipleKeyBindingIndex::Primary)
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SChordEditBox, CommandInfo, EMultipleKeyBindingIndex::Secondary)
+				]
 			];
 		}
 	}

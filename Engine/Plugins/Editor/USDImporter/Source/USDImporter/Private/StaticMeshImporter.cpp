@@ -23,17 +23,19 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 	const bool bFlip = FinalTransform.GetDeterminant() > 0.0f;
 
-	int LODIndex = 0;
-	const FUsdGeomData* GeomDataPtr = PrimToImport.GetGeomData(LODIndex, UnrealUSDWrapper::GetDefaultTimeCode());
+	int32 NumLODs = FMath::Max(Prim->GetNumLODs(), 1);
 
-	UStaticMesh* ImportedMesh = nullptr;
-	if (GeomDataPtr)
+	UStaticMesh* ImportedMesh = USDUtils::FindOrCreateObject<UStaticMesh>(ImportContext.Parent, ImportContext.ObjectName, ImportContext.ImportObjectFlags);
+	check(ImportedMesh);
+
+	ImportedMesh->StaticMaterials.Empty();
+
+	for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 	{
-		if(IsTriangleMesh(GeomDataPtr))
-		{
-			ImportedMesh = USDUtils::FindOrCreateObject<UStaticMesh>(ImportContext.Parent, ImportContext.ObjectName, ImportContext.ObjectFlags);
-			check(ImportedMesh);
+		const FUsdGeomData* GeomDataPtr = PrimToImport.GetGeomData(LODIndex, UnrealUSDWrapper::GetDefaultTimeCode());
 
+		if (GeomDataPtr && IsTriangleMesh(GeomDataPtr))
+		{
 			const FUsdGeomData& GeomData = *GeomDataPtr;
 			FRawMesh RawTriangles;
 
@@ -48,7 +50,7 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 					}
 				}
 
-			
+
 
 				// Positions
 				{
@@ -67,7 +69,7 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 					FMemory::Memcpy(&RawTriangles.WedgeIndices[0], &GeomData.FaceIndices[0], sizeof(int32)*RawTriangles.WedgeIndices.Num());
 				}
 
-				int32 NumFaces = RawTriangles.WedgeIndices.Num() / 3;
+				const int32 NumFaces = RawTriangles.WedgeIndices.Num() / 3;
 
 
 				// Material Indices 
@@ -90,7 +92,9 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 					{
 						// Have to at least have one UV set
 						ImportContext.AddErrorMessage(EMessageSeverity::Warning,
-							FText::Format(LOCTEXT("StaticMeshesHaveNoUVS", "{0} has no UVs.  At least one valid UV set should exist on a static mesh. This mesh will likely have rendering issues"), FText::FromString(ImportContext.ObjectName)));
+							FText::Format(LOCTEXT("StaticMeshesHaveNoUVS", "{0} (LOD {1}) has no UVs.  At least one valid UV set should exist on a static mesh. This mesh will likely have rendering issues"),
+								FText::FromString(ImportContext.ObjectName), 
+								FText::AsNumber(LODIndex)));
 
 						RawTriangles.WedgeTexCoords[0].AddZeroed(RawTriangles.WedgeIndices.Num());
 					}
@@ -98,14 +102,20 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 					for (int32 FaceIdx = 0; FaceIdx < NumFaces; ++FaceIdx)
 					{
 						// Assume triangles for now
-						for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+						for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
 						{
-							int32 WedgeIndex = FaceIdx * 3 + CornerIndex;
+							const int32 WedgeIndex = FaceIdx * 3 + CornerIndex;
 
 							// Normals
 							if (GeomData.Normals.size() > 0)
 							{
-								FUsdVectorData Normal = GeomData.Normals[WedgeIndex];
+								// Note about this mapping:  Normals are not primvars in USD files.  If the normals do not have a 1:1 mapping with indices we assume they are face varying
+								// todo: fix this in the usd wrapper not here so it is consisent with UVs 
+								const int32 NormalIndex = GeomData.Normals.size() != RawTriangles.WedgeIndices.Num() ? RawTriangles.WedgeIndices[WedgeIndex] : WedgeIndex;
+
+								check(NormalIndex < GeomData.Normals.size());
+
+								const FUsdVectorData& Normal = GeomData.Normals[NormalIndex];
 								//FVector TransformedNormal = ConversionMatrixIT.TransformVector(PrimToWorldIT.TransformVector(FVector(Normal.X, Normal.Y, Normal.Z)));
 								FVector TransformedNormal = FinalTransformIT.TransformVector(FVector(Normal.X, Normal.Y, Normal.Z));
 
@@ -123,11 +133,11 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 									EUsdInterpolationMethod UVInterpMethod = GeomData.UVs[UVIndex].UVInterpMethod;
 
 									// Get the index into the point array for this wedge
-									int32 PointIndex = UVInterpMethod == EUsdInterpolationMethod::FaceVarying ? WedgeIndex : RawTriangles.WedgeIndices[WedgeIndex];
+									const int32 PointIndex = UVInterpMethod == EUsdInterpolationMethod::FaceVarying ? WedgeIndex : RawTriangles.WedgeIndices[WedgeIndex];
 
 									// In this mode there is a single vertex per vertex so 
 									// the point index should match up
-									FUsdVector2Data UV = GeomData.UVs[UVIndex].Coords[PointIndex];
+									const FUsdVector2Data& UV = GeomData.UVs[UVIndex].Coords[PointIndex];
 
 									// Flip V for Unreal uv's which match directx
 									TexCoords[WedgeIndex] = FVector2D(UV.X, -UV.Y);
@@ -144,8 +154,8 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 					// Flip anything that is indexed
 					for (int32 FaceIdx = 0; FaceIdx < NumFaces; ++FaceIdx)
 					{
-						int32 I0 = FaceIdx * 3 + 0;
-						int32 I2 = FaceIdx * 3 + 2;
+						const int32 I0 = FaceIdx * 3 + 0;
+						const int32 I2 = FaceIdx * 3 + 2;
 						Swap(RawTriangles.WedgeIndices[I0], RawTriangles.WedgeIndices[I2]);
 
 						if (RawTriangles.WedgeTangentZ.Num())
@@ -165,7 +175,6 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 				}
 			}
 
-			// @todo LOD support
 			if (!ImportedMesh->SourceModels.IsValidIndex(LODIndex))
 			{
 				// Add one LOD 
@@ -178,15 +187,17 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 			SrcModel.RawMeshBulkData->SaveRawMesh(RawTriangles);
 
-			SrcModel.BuildSettings.bRecomputeNormals = true;
+			// Recompute normals if we didnt import any
+			SrcModel.BuildSettings.bRecomputeNormals = RawTriangles.WedgeTangentZ.Num() == 0;
+
+			// Always recompute tangents as USD files do not contain tangent information
 			SrcModel.BuildSettings.bRecomputeTangents = true;
+
 			// Use mikktSpace if we have normals
 			SrcModel.BuildSettings.bUseMikkTSpace = RawTriangles.WedgeTangentZ.Num() != 0;
 			SrcModel.BuildSettings.bGenerateLightmapUVs = true;
 			SrcModel.BuildSettings.bBuildAdjacencyBuffer = false;
 			SrcModel.BuildSettings.bBuildReversedIndexBuffer = false;
-
-			ImportedMesh->StaticMaterials.Empty();
 
 			// There must always be one material
 			int32 NumMaterials = FMath::Max<int32>(1, GeomData.MaterialNames.size());
@@ -198,7 +209,7 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 			{
 				UMaterialInterface* ExistingMaterial = nullptr;
 
-				if(GeomData.MaterialNames.size() > MaterialIdx)
+				if (GeomData.MaterialNames.size() > MaterialIdx)
 				{
 					FString MaterialName = USDToUnreal::ConvertString(GeomData.MaterialNames[MaterialIdx]);
 
@@ -215,24 +226,29 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 					}
 				}
 
-				ImportedMesh->StaticMaterials.Add(ExistingMaterial ? ExistingMaterial : UMaterial::GetDefaultMaterial(MD_Surface));
-				ImportedMesh->SectionInfoMap.Set(LODIndex, MaterialIdx, FMeshSectionInfo(MaterialIdx));
+				int32 FinalIndex = ImportedMesh->StaticMaterials.AddUnique(ExistingMaterial ? ExistingMaterial : UMaterial::GetDefaultMaterial(MD_Surface));
+				ImportedMesh->SectionInfoMap.Set(LODIndex, FinalIndex, FMeshSectionInfo(FinalIndex));
 			}
-
-
-			ImportedMesh->ImportVersion = EImportStaticMeshVersion::BeforeImportStaticMeshVersionWasAdded;
-
-			ImportedMesh->CreateBodySetup();
-
-			ImportedMesh->SetLightingGuid();
-
-			ImportedMesh->PostEditChange();
 		}
 		else
 		{
 			ImportContext.AddErrorMessage(EMessageSeverity::Error, 
 				FText::Format(LOCTEXT("StaticMeshesMustBeTriangulated", "{0} is not a triangle mesh. Static meshes must be triangulated to import"), FText::FromString(ImportContext.ObjectName)));
+
+			ImportedMesh->ClearFlags(RF_Standalone);
+			ImportedMesh = nullptr;
 		}
+	}
+
+	if(ImportedMesh)
+	{
+		ImportedMesh->ImportVersion = EImportStaticMeshVersion::BeforeImportStaticMeshVersionWasAdded;
+
+		ImportedMesh->CreateBodySetup();
+
+		ImportedMesh->SetLightingGuid();
+
+		ImportedMesh->PostEditChange();
 	}
 
 	return ImportedMesh;

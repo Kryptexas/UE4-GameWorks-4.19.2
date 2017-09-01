@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -31,8 +31,10 @@ typedef struct
 {
     SDL_Window *window;
     HWND hwnd;
+    HWND parent;
     HDC hdc;
     HDC mdc;
+    HINSTANCE hinstance;
     HBITMAP hbm;
     WNDPROC wndproc;
     SDL_bool created;
@@ -41,7 +43,7 @@ typedef struct
     SDL_bool expected_resize;
     SDL_bool in_border_change;
     SDL_bool in_title_click;
-    SDL_bool focus_click_pending;
+    Uint8 focus_click_pending;
     SDL_bool windowed_mode_was_maximized;
     SDL_bool in_window_deactivation;
     struct SDL_VideoData *videodata;
@@ -64,6 +66,7 @@ extern void WIN_MaximizeWindow(_THIS, SDL_Window * window);
 extern void WIN_MinimizeWindow(_THIS, SDL_Window * window);
 extern void WIN_RestoreWindow(_THIS, SDL_Window * window);
 extern void WIN_SetWindowBordered(_THIS, SDL_Window * window, SDL_bool bordered);
+extern void WIN_SetWindowResizable(_THIS, SDL_Window * window, SDL_bool resizable);
 extern void WIN_SetWindowFullscreen(_THIS, SDL_Window * window, SDL_VideoDisplay * display, SDL_bool fullscreen);
 extern int WIN_SetWindowGammaRamp(_THIS, SDL_Window * window, const Uint16 * ramp);
 extern int WIN_GetWindowGammaRamp(_THIS, SDL_Window * window, Uint16 * ramp);

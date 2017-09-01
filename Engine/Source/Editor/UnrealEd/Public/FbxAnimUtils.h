@@ -12,7 +12,7 @@ class USkeletalMesh;
 namespace FbxAnimUtils
 {
 	//Function to export fbx animation
-	UNREALED_API void ExportAnimFbx( const FString& ExportFilename, UAnimSequence* AnimSequence, USkeletalMesh* Mesh, bool bSaveSkeletalMesh );
+	UNREALED_API void ExportAnimFbx( const FString& ExportFilename, UAnimSequence* AnimSequence, USkeletalMesh* Mesh, bool bSaveSkeletalMesh, bool BatchMode, bool &OutExportAll, bool &OutCancelExport);
 
 	/** 
 	 * Import curves from a named node into the supplied curve table.

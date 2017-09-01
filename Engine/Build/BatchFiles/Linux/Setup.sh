@@ -25,13 +25,14 @@ AddGDBPrettyPrinters()
 			echo "found necessary entries in ~/.gdbinit file, not changing it."
 		else
 			echo -e "cannot modify .gdbinit. Please add the below lines manually:\n\n"
+			echo -e "python"
 			echo -e "\timport sys"
 			echo -e "\tsys.path.append('$HOME/.config/Epic/GDBPrinters/')"
 			echo -e "\tfrom UE4Printers import register_ue4_printers"
 			echo -e "\tregister_ue4_printers(None)"
 			echo -e "\tprint(\"Registered pretty printers for UE4 classes\")"
 			echo -e "\tend"
-			echo -e"\n\n"
+			echo -e "\n\n"
 		fi
 	fi
 }

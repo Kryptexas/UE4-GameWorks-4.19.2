@@ -26,6 +26,7 @@
 #include "EdGraph/EdGraphSchema.h"
 #include "ISourceControlModule.h"
 #include "Editor.h"
+#include "Misc/FileHelper.h"
 #include "FileHelpers.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node_FunctionEntry.h"
@@ -1199,7 +1200,7 @@ public:
 				FinalPackageFilename += bIsWorldAsset ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
 			}
 			FText ErrorMessage;
-			bool bValidFilename = FEditorFileUtils::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage );
+			bool bValidFilename = FFileHelper::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage );
 			if ( bValidFilename )
 			{
 				bValidFilename = bIsWorldAsset ? FEditorFileUtils::IsValidMapFilename( FinalPackageFilename, ErrorMessage ) : FPackageName::IsValidLongPackageName( FinalPackageFilename, false, &ErrorMessage );

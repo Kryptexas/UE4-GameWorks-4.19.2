@@ -169,7 +169,8 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 
 	void ApplyLevelVisibility(IMovieScenePlayer& Player)
 	{
-		UWorld* World = Player.GetPlaybackContext()->GetWorld();
+		UObject* Context = Player.GetPlaybackContext();
+		UWorld* World = Context ? Context->GetWorld() : nullptr;
 		if (!World)
 		{
 			return;

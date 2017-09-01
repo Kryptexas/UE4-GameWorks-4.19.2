@@ -42,6 +42,16 @@ private:
 	static bool IsGridSizeChecked(int32 InGridSnapSize);
 	// End Grid Snapping
 
+	// Begin Localization Preview
+	ECheckBoxState IsLocalizationPreviewChecked() const;
+	void HandleToggleLocalizationPreview(ECheckBoxState InState);
+	FText GetLocalizationPreviewLabel() const;
+	TSharedRef<SWidget> FillLocalizationPreviewMenu();
+	static void SetLocalizationPreviewLanguage(FString InCulture);
+	static bool IsLocalizationPreviewLanguageChecked(FString InCulture);
+	static void OpenRegionAndLanguageSettings();
+	// End Localization Preview
+
 	/** Command list */
 	TSharedPtr<FUICommandList> CommandList;
 };

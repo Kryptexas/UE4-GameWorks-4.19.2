@@ -408,7 +408,7 @@ FLinearColor FMacPlatformApplicationMisc::GetScreenPixelColor(const FVector2D& I
 
 float FMacPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if (MacApplication && MacApplication->IsHighDPIModeEnabled())
+	if (GIsEditor && MacApplication && MacApplication->IsHighDPIModeEnabled())
 	{
 		TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
 		return Screen->Screen.backingScaleFactor;

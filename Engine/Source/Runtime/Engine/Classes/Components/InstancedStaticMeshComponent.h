@@ -260,7 +260,7 @@ public:
 	//~ End UObject Interface
 
 	/** Applies the cached component instance data to a newly blueprint constructed component. */
-	void ApplyComponentInstanceData(class FInstancedStaticMeshComponentInstanceData* ComponentInstanceData);
+	virtual void ApplyComponentInstanceData(class FInstancedStaticMeshComponentInstanceData* ComponentInstanceData);
 
 	/** Check to see if an instance is selected. */
 	bool IsInstanceSelected(int32 InInstanceIndex) const;
@@ -272,7 +272,7 @@ public:
 	void ClearInstanceSelection();
 
 	/** Initialize the Per Instance Render Data */
-	void InitPerInstanceRenderData(bool InitializeFromCurrentData, FStaticMeshInstanceData* InSharedInstanceBufferData = nullptr);
+	void InitPerInstanceRenderData(bool InitializeFromCurrentData, bool InRequireCPUAccess = false, FStaticMeshInstanceData* InSharedInstanceBufferData = nullptr);
 
 	/** Transfers ownership of instance render data to a render thread. Instance render data will be released in scene proxy destructor or on render thread task. */
 	void ReleasePerInstanceRenderData();

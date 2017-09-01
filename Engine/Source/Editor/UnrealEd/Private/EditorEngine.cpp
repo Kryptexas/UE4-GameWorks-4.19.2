@@ -848,6 +848,16 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	AssetRegistryModule.Get().OnInMemoryAssetCreated().AddUObject(this, &UEditorEngine::OnAssetCreated);
 	
+	FEditorDelegates::BeginPIE.AddLambda([](bool)
+	{
+		FTextLocalizationManager::Get().EnableGameLocalizationPreview();
+	});
+
+	FEditorDelegates::EndPIE.AddLambda([](bool)
+	{
+		FTextLocalizationManager::Get().DisableGameLocalizationPreview();
+	});
+
 	// Initialize vanilla status before other systems that consume its status are started inside InitEditor()
 	UpdateIsVanillaProduct();
 	FSourceCodeNavigation::AccessOnNewModuleAdded().AddLambda([this](FName InModuleName)
@@ -5262,7 +5272,7 @@ void UEditorEngine::ConvertLightActors( UClass* ConvertToClass )
 
 			// Select the new actor
 			GEditor->SelectActor( ActorToConvert, false, true );
-			GEditor->SelectActor( NewActor, true, true );
+	
 
 			NewActor->InvalidateLightingCache();
 			NewActor->PostEditChange();
@@ -5273,11 +5283,17 @@ void UEditorEngine::ConvertLightActors( UClass* ConvertToClass )
 			// We have converted another light.
 			++NumLightsConverted;
 
-			UE_LOG(LogEditor, Log, TEXT("Converted: %s to %s"), *ActorToConvert->GetActorLabel(), *NewActor->GetActorLabel() );
+			UE_LOG(LogEditor, Log, TEXT("Converted: %s to %s"), *ActorToConvert->GetName(), *NewActor->GetName() );
 
 			// Destroy the old actor.
 			GEditor->Layers->DisassociateActorFromLayers( ActorToConvert );
 			World->EditorDestroyActor( ActorToConvert, true );
+
+			if (NewActor->IsPendingKillOrUnreachable())
+			{
+				UE_LOG(LogEditor, Log, TEXT("Newly converted actor ('%s') is pending kill"), *NewActor->GetName());
+			}
+			GEditor->SelectActor(NewActor, true, true);
 		}
 
 		GEditor->GetSelectedActors()->EndBatchSelectOperation();
@@ -5694,6 +5710,7 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				{
 					ConvertActorsFromClass(ClassToReplace, ConvertToClass);
 				}
+
 				if (ActorToConvert->IsPendingKill())
 				{
 					// Converted by one of the above

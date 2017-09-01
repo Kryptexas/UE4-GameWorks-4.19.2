@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -38,6 +38,7 @@
 #include "SDL_cocoavideo.h"
 #include "SDL_cocoashape.h"
 #include "SDL_cocoamouse.h"
+#include "SDL_cocoamousetap.h"
 #include "SDL_cocoaopengl.h"
 #include "SDL_assert.h"
 
@@ -82,7 +83,7 @@
 {
     [super sendEvent:event];
 
-    if ([event type] != NSLeftMouseUp) {
+    if ([event type] != NSEventTypeLeftMouseUp) {
         return;
     }
 
@@ -211,8 +212,7 @@ ScheduleContextUpdates(SDL_WindowData *data)
 static int
 GetHintCtrlClickEmulateRightClick()
 {
-	const char *hint = SDL_GetHint( SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK );
-	return hint != NULL && *hint != '0';
+	return SDL_GetHintBoolean(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, SDL_FALSE);
 }
 
 static NSUInteger
@@ -221,15 +221,15 @@ GetWindowStyle(SDL_Window * window)
     NSUInteger style = 0;
 
     if (window->flags & SDL_WINDOW_FULLSCREEN) {
-        style = NSBorderlessWindowMask;
+        style = NSWindowStyleMaskBorderless;
     } else {
         if (window->flags & SDL_WINDOW_BORDERLESS) {
-            style = NSBorderlessWindowMask;
+            style = NSWindowStyleMaskBorderless;
         } else {
-            style = (NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask);
+            style = (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable);
         }
         if (window->flags & SDL_WINDOW_RESIZABLE) {
-            style |= NSResizableWindowMask;
+            style |= NSWindowStyleMaskResizable;
         }
     }
     return style;
@@ -595,8 +595,8 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
         [NSMenu setMenuBarVisible:NO];
     }
 
-    const unsigned int newflags = [NSEvent modifierFlags] & NSAlphaShiftKeyMask;
-    _data->videodata->modifierFlags = (_data->videodata->modifierFlags & ~NSAlphaShiftKeyMask) | newflags;
+    const unsigned int newflags = [NSEvent modifierFlags] & NSEventModifierFlagCapsLock;
+    _data->videodata->modifierFlags = (_data->videodata->modifierFlags & ~NSEventModifierFlagCapsLock) | newflags;
     SDL_ToggleModState(KMOD_CAPS, newflags != 0);
 }
 
@@ -642,7 +642,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
 {
     SDL_Window *window = _data->window;
 
-    SetWindowStyle(window, (NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSResizableWindowMask));
+    SetWindowStyle(window, (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable));
 
     isFullscreenSpace = YES;
     inFullscreenTransition = YES;
@@ -667,6 +667,8 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
 - (void)windowDidEnterFullScreen:(NSNotification *)aNotification
 {
     SDL_Window *window = _data->window;
+    SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
+    NSWindow *nswindow = data->nswindow;
 
     inFullscreenTransition = NO;
 
@@ -674,6 +676,11 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
         pendingWindowOperation = PENDING_OPERATION_NONE;
         [self setFullscreenSpace:NO];
     } else {
+        /* Unset the resizable flag. 
+           This is a workaround for https://bugzilla.libsdl.org/show_bug.cgi?id=3697
+         */
+        SetWindowStyle(window, [nswindow styleMask] & (~NSWindowStyleMaskResizable));
+
         if ((window->flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
             [NSMenu setMenuBarVisible:NO];
         }
@@ -695,7 +702,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
     /* As of OS X 10.11, the window seems to need to be resizable when exiting
        a Space, in order for it to resize back to its windowed-mode size.
      */
-    SetWindowStyle(window, GetWindowStyle(window) | NSResizableWindowMask);
+    SetWindowStyle(window, GetWindowStyle(window) | NSWindowStyleMaskResizable);
 
     isFullscreenSpace = NO;
     inFullscreenTransition = YES;
@@ -709,7 +716,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
         return;
     }
 
-    SetWindowStyle(window, (NSTitledWindowMask|NSClosableWindowMask|NSMiniaturizableWindowMask|NSResizableWindowMask));
+    SetWindowStyle(window, (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable));
     
     isFullscreenSpace = YES;
     inFullscreenTransition = NO;
@@ -840,7 +847,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
 
     switch ([theEvent buttonNumber]) {
     case 0:
-        if (([theEvent modifierFlags] & NSControlKeyMask) &&
+        if (([theEvent modifierFlags] & NSEventModifierFlagControl) &&
 		    GetHintCtrlClickEmulateRightClick()) {
             wasCtrlLeft = YES;
             button = SDL_BUTTON_RIGHT;
@@ -1118,8 +1125,11 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
 
 - (BOOL)acceptsFirstMouse:(NSEvent *)theEvent
 {
-    const char *hint = SDL_GetHint(SDL_HINT_MAC_MOUSE_FOCUS_CLICKTHROUGH);
-    return hint && *hint != '0';
+    if (SDL_GetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH)) {
+        return SDL_GetHintBoolean(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_FALSE);
+    } else {
+        return SDL_GetHintBoolean("SDL_MAC_MOUSE_FOCUS_CLICKTHROUGH", SDL_FALSE);
+    }
 }
 @end
 
@@ -1166,12 +1176,12 @@ SetupWindowData(_THIS, SDL_Window * window, NSWindow *nswindow, SDL_bool created
     {
         unsigned long style = [nswindow styleMask];
 
-        if (style == NSBorderlessWindowMask) {
+        if (style == NSWindowStyleMaskBorderless) {
             window->flags |= SDL_WINDOW_BORDERLESS;
         } else {
             window->flags &= ~SDL_WINDOW_BORDERLESS;
         }
-        if (style & NSResizableWindowMask) {
+        if (style & NSWindowStyleMaskResizable) {
             window->flags |= SDL_WINDOW_RESIZABLE;
         } else {
             window->flags &= ~SDL_WINDOW_RESIZABLE;
@@ -1488,6 +1498,20 @@ Cocoa_SetWindowBordered(_THIS, SDL_Window * window, SDL_bool bordered)
     }
 }}
 
+void
+Cocoa_SetWindowResizable(_THIS, SDL_Window * window, SDL_bool resizable)
+{ @autoreleasepool
+{
+    /* Don't set this if we're in a space!
+     * The window will get permanently stuck if resizable is false.
+     * -flibit
+     */
+    SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
+    Cocoa_WindowListener *listener = data->listener;
+    if (![listener isInFullscreenSpace]) {
+        SetWindowStyle(window, GetWindowStyle(window));
+    }
+}}
 
 void
 Cocoa_SetWindowFullscreen(_THIS, SDL_Window * window, SDL_VideoDisplay * display, SDL_bool fullscreen)
@@ -1518,7 +1542,7 @@ Cocoa_SetWindowFullscreen(_THIS, SDL_Window * window, SDL_VideoDisplay * display
             rect.origin.y += (screenRect.size.height - rect.size.height);
         }
 
-        [nswindow setStyleMask:NSBorderlessWindowMask];
+        [nswindow setStyleMask:NSWindowStyleMaskBorderless];
     } else {
         rect.origin.x = window->windowed.x;
         rect.origin.y = window->windowed.y;
@@ -1618,8 +1642,13 @@ Cocoa_GetWindowGammaRamp(_THIS, SDL_Window * window, Uint16 * ramp)
 void
 Cocoa_SetWindowGrab(_THIS, SDL_Window * window, SDL_bool grabbed)
 {
-    /* Move the cursor to the nearest point in the window */
+    SDL_Mouse *mouse = SDL_GetMouse();
     SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
+
+    /* Enable or disable the event tap as necessary */
+    Cocoa_EnableMouseEventTap(mouse->driverdata, grabbed);
+
+    /* Move the cursor to the nearest point in the window */
     if (grabbed && data && ![data->listener isMoving]) {
         int x, y;
         CGPoint cgpoint;
@@ -1684,7 +1713,7 @@ Cocoa_GetWindowWMInfo(_THIS, SDL_Window * window, SDL_SysWMinfo * info)
         info->info.cocoa.window = nswindow;
         return SDL_TRUE;
     } else {
-        SDL_SetError("Application not compiled with SDL %d.%d\n",
+        SDL_SetError("Application not compiled with SDL %d.%d",
                      SDL_MAJOR_VERSION, SDL_MINOR_VERSION);
         return SDL_FALSE;
     }

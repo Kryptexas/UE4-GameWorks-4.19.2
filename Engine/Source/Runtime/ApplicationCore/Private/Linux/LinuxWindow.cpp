@@ -52,6 +52,7 @@ FLinuxWindow::FLinuxWindow()
 	, LeftBorderWidth(0)
 	, TopBorderHeight(0)
 	, bValidNativePropertiesCache(false)
+	, DPIScaleFactor(1.0f)
 {
 	PreFullscreenWindowRect.left = PreFullscreenWindowRect.top = PreFullscreenWindowRect.right = PreFullscreenWindowRect.bottom = 0;
 }
@@ -92,6 +93,11 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 
 	const float WidthInitial = Definition->WidthDesiredOnScreen;
 	const float HeightInitial = Definition->HeightDesiredOnScreen;
+
+	// calculate the DPI at the centerpoint
+	float XCenter = XInitialRect + WidthInitial / 2.0f;
+	float YCenter = YInitialRect + HeightInitial / 2.0f;
+	DPIScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(XCenter, YCenter);
 
 	int32 X = FMath::TruncToInt( XInitialRect + 0.5f );
 	int32 Y = FMath::TruncToInt( YInitialRect + 0.5f );
@@ -195,9 +201,9 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	// Is modal dialog window?
 	else if (InParent.IsValid() && !Definition->HasOSWindowBorder &&
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
-		Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
-		Definition->IsModalWindow && Definition->IsRegularWindow &&
-		bShouldActivate && !Definition->SizeWillChangeOften)
+		Definition->AppearsInTaskbar && Definition->IsModalWindow &&
+		Definition->IsRegularWindow && bShouldActivate &&
+		!Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_DIALOG;
 		bIsDialogWindow = true;

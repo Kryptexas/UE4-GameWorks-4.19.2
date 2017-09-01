@@ -554,7 +554,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.AutoWidth()
 						[
 							SNew( SComboButton )
-							.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
+							.ComboButtonStyle( FEditorStyle::Get(), "GenericFilters.ComboButtonStyle" )
 							.ForegroundColor(FLinearColor::White)
 							.ContentPadding(0)
 							.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
@@ -571,7 +571,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								.AutoWidth()
 								[
 									SNew(STextBlock)
-									.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+									.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
 									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
 									.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
 								]
@@ -581,7 +581,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								.Padding(2,0,0,0)
 								[
 									SNew(STextBlock)
-									.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+									.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
 									.Text(LOCTEXT("Filters", "Filters"))
 								]
 							]
@@ -617,7 +617,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.Visibility( ( Config != nullptr ? Config->bCanShowAssetSearch : true ) ? EVisibility::Visible : EVisibility::Collapsed )
 							[
 								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+								.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
 								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
 								.Text(FEditorFontGlyphs::Floppy_O)
 							]
@@ -716,7 +716,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	else
 	{
 		// in case we do not have a config, see what the global default settings are for the Sources Panel
-		if (!bSourcesViewExpanded && GetDefault<UEditorSettings>()->bOpenSourcesPanelByDefault)
+		if (!bSourcesViewExpanded && GetDefault<UContentBrowserSettings>()->bOpenSourcesPanelByDefault)
 		{
 			SourcesViewExpandClicked();
 		}

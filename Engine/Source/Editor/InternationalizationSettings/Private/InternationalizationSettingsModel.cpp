@@ -27,14 +27,13 @@ void UInternationalizationSettingsModel::ResetToDefault()
 	GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni);
 	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEditorSettingsIni );
 
-	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameLanguage"), TEXT(""), GEditorSettingsIni );
-	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), TEXT(""), GEditorSettingsIni );
-
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), true, GEditorSettingsIni );
 
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), false, GEditorSettingsIni );
 
 	GConfig->Flush(false, GEditorSettingsIni);
+
+	FTextLocalizationManager::Get().ConfigureGameLocalizationPreviewLanguage(FString());
 }
 
 bool UInternationalizationSettingsModel::GetEditorLanguage(FString& OutEditorLanguage) const
@@ -67,17 +66,15 @@ void UInternationalizationSettingsModel::SetEditorLocale(const FString& InEditor
 	GConfig->Flush(false, GEditorSettingsIni);
 }
 
-bool UInternationalizationSettingsModel::GetNativeGameLanguage(FString& OutNativeGameLanguage) const
+bool UInternationalizationSettingsModel::GetPreviewGameLanguage(FString& OutPreviewGameLanguage) const
 {
-	return GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameLanguage"), OutNativeGameLanguage, GEditorSettingsIni)
-		|| GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameCulture"), OutNativeGameLanguage, GEditorSettingsIni);
+	OutPreviewGameLanguage = FTextLocalizationManager::Get().GetConfiguredGameLocalizationPreviewLanguage();
+	return true;
 }
 
-void UInternationalizationSettingsModel::SetNativeGameLanguage(const FString& InNativeGameLanguage)
+void UInternationalizationSettingsModel::SetPreviewGameLanguage(const FString& InPreviewGameLanguage)
 {
-	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameLanguage"), *InNativeGameLanguage, GEditorSettingsIni );
-	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), TEXT(""), GEditorSettingsIni ); // Clear legacy setting
-	GConfig->Flush(false, GEditorSettingsIni);
+	FTextLocalizationManager::Get().ConfigureGameLocalizationPreviewLanguage(InPreviewGameLanguage);
 }
 
 bool UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames() const

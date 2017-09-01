@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -78,8 +78,8 @@
 #else
 #  define SDL_XAUDIO2_HAS_SDK 1
 #endif
-#endif
 #endif /* 0 */
+#endif /* __GNUC__ */
 
 #ifdef SDL_XAUDIO2_HAS_SDK
 
@@ -232,27 +232,13 @@ XAUDIO2_WaitDevice(_THIS)
 }
 
 static void
-XAUDIO2_WaitDone(_THIS)
+XAUDIO2_PrepareToClose(_THIS)
 {
     IXAudio2SourceVoice *source = this->hidden->source;
-    XAUDIO2_VOICE_STATE state;
-    SDL_assert(!SDL_AtomicGet(&this->enabled));  /* flag that stops playing. */
-    IXAudio2SourceVoice_Discontinuity(source);
-#if SDL_XAUDIO2_WIN8
-    IXAudio2SourceVoice_GetState(source, &state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-#else
-    IXAudio2SourceVoice_GetState(source, &state);
-#endif
-    while (state.BuffersQueued > 0) {
-        SDL_SemWait(this->hidden->semaphore);
-#if SDL_XAUDIO2_WIN8
-        IXAudio2SourceVoice_GetState(source, &state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-#else
-        IXAudio2SourceVoice_GetState(source, &state);
-#endif
+    if (source) {
+        IXAudio2SourceVoice_Discontinuity(source);
     }
 }
-
 
 static void
 XAUDIO2_CloseDevice(_THIS)
@@ -467,6 +453,7 @@ XAUDIO2_Init(SDL_AudioDriverImpl * impl)
 #else
     /* XAudio2Create() is a macro that uses COM; we don't load the .dll */
     IXAudio2 *ixa2 = NULL;
+    HRESULT hr = S_FALSE;
 #if defined(__WIN32__)
     // TODO, WinRT: Investigate using CoInitializeEx here
     if (FAILED(WIN_CoInitialize())) {
@@ -475,11 +462,12 @@ XAUDIO2_Init(SDL_AudioDriverImpl * impl)
     }
 #endif
 
-    if (XAudio2Create(&ixa2, 0, XAUDIO2_DEFAULT_PROCESSOR) != S_OK) {
+    hr = XAudio2Create( &ixa2, 0, XAUDIO2_DEFAULT_PROCESSOR );
+    if ( hr != S_OK) {
 #if defined(__WIN32__)
         WIN_CoUninitialize();
 #endif
-        SDL_SetError("XAudio2: XAudio2Create() failed at initialization");
+        SDL_SetError("XAudio2: XAudio2Create() failed at initialization: 0x%.8x", hr );
         return 0;  /* not available. */
     }
     IXAudio2_Release(ixa2);
@@ -489,7 +477,7 @@ XAUDIO2_Init(SDL_AudioDriverImpl * impl)
     impl->OpenDevice = XAUDIO2_OpenDevice;
     impl->PlayDevice = XAUDIO2_PlayDevice;
     impl->WaitDevice = XAUDIO2_WaitDevice;
-    impl->WaitDone = XAUDIO2_WaitDone;
+    impl->PrepareToClose = XAUDIO2_PrepareToClose;
     impl->GetDeviceBuf = XAUDIO2_GetDeviceBuf;
     impl->CloseDevice = XAUDIO2_CloseDevice;
     impl->Deinitialize = XAUDIO2_Deinitialize;

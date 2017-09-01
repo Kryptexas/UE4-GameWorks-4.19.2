@@ -18,6 +18,8 @@ static TAutoConsoleVariable<int32> CVarSaveEXRCompressionQuality(
 	TEXT(" 1: default compression which can be slow (default)"),
 	ECVF_RenderThreadSafe);
 
+DEFINE_LOG_CATEGORY(LogHighResScreenshot);
+
 FHighResScreenshotConfig& GetHighResScreenshotConfig()
 {
 	static FHighResScreenshotConfig Instance;
@@ -218,8 +220,11 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 	static_assert(ARE_TYPES_EQUAL(TPixelType, FFloat16Color) || ARE_TYPES_EQUAL(TPixelType, FColor) || ARE_TYPES_EQUAL(TPixelType, FLinearColor), "Source format must be either FColor, FLinearColor or FFloat16Color");
 	const int32 x = BitmapSize.X;
 	const int32 y = BitmapSize.Y;
-	check(Bitmap.Num() == x * y);
 
+	bool bSuccess = false;
+
+	if(Bitmap.Num() == x * y)
+	{
 	const bool bIsWritingHDRImage = Traits::IsWritingHDRImage(bCaptureHDR);
 
 	IFileManager* FileManager = &IFileManager::Get();
@@ -259,7 +264,6 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 		*OutFilename = Filename;
 	}
 	
-	bool bSuccess = false;
 
 	if (ImageWriter != nullptr &&
 		ImageWriter->ImageWrapper.IsValid() &&
@@ -277,8 +281,8 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 		if (Ar != nullptr)
 		{
 			const TArray<uint8>& CompressedData = ImageWriter->ImageWrapper->GetCompressed((int32)LocalCompressionQuality);
-			int32 CompressedSize = CompressedData.Num();
-			Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
+				int32 CompressedSize = CompressedData.Num();
+				Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
 			delete Ar;
 
 			bSuccess = true;
@@ -286,6 +290,11 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 	}
 
 	ImageWriter->bInUse = false;
+	}
+	else
+	{
+		UE_LOG(LogHighResScreenshot, Error, TEXT("Error: Cannot save high res screenshot.  Image size (%d) does not match image data size (%d)"), x*y, Bitmap.Num())
+	}
 
 	return bSuccess;
 }

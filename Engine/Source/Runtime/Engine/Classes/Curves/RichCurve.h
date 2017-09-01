@@ -350,7 +350,7 @@ public:
 	float DefaultValue;
 
 	/** Sorted array of keys */
-	UPROPERTY(EditAnywhere, EditFixedSize, Category="Curve")
+	UPROPERTY(EditAnywhere, EditFixedSize, Category="Curve", meta=(EditFixedOrder))
 	TArray<FRichCurveKey> Keys;
 };
 

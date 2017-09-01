@@ -342,6 +342,11 @@ public:
 	void SwapChildren( TSharedPtr<FPropertyNode> FirstChildNode, TSharedPtr<FPropertyNode> SecondChildNode );
 
 	/**
+	* Moves the element at OriginalIndex to NewIndex
+	*/
+	void MoveElementTo(int32 OriginalIndex, int32 NewIndex);
+
+	/**
 	 * @return true if the property node is valid
 	 */
 	bool HasValidPropertyNode() const;
@@ -663,6 +668,8 @@ public:
 	virtual void SetOnNumElementsChanged( FSimpleDelegate& InOnNumElementsChanged ) override;
 	virtual TSharedPtr<IPropertyHandleArray> AsArray() override;
 	virtual TSharedRef<IPropertyHandle> GetElement( int32 Index ) const override;
+	virtual FPropertyAccess::Result MoveElementTo(int32 OriginalIndex, int32 NewIndex) override;
+
 private:
 	/**
 	 * @return Whether or not the array can be modified

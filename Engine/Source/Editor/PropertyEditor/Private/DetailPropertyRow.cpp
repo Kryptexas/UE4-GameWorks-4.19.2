@@ -173,7 +173,7 @@ TSharedPtr<FAssetThumbnailPool> FDetailPropertyRow::GetThumbnailPool() const
 TSharedPtr<IPropertyUtilities> FDetailPropertyRow::GetPropertyUtilities() const
 {
 	TSharedPtr<FDetailCategoryImpl> ParentCategoryPinned = ParentCategory.Pin();
-	if (ParentCategoryPinned.IsValid())
+	if (ParentCategoryPinned.IsValid() && ParentCategoryPinned->IsParentLayoutValid())
 	{
 		return ParentCategoryPinned->GetParentLayout().GetPropertyUtilities();
 	}

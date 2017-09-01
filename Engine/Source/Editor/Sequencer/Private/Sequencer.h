@@ -617,7 +617,7 @@ public:
 	virtual void NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChangeType ) override;
 	virtual void UpdateRuntimeInstances() override;
 	virtual void UpdatePlaybackRange() override;
-	virtual void AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors) override;
+	virtual TArray<FGuid> AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors) override;
 	virtual void AddSubSequence(UMovieSceneSequence* Sequence) override;
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
@@ -877,6 +877,12 @@ protected:
 
 	/** Update the locked subsequence range (displayed as playback range for subsequences), and root to local transform */
 	void UpdateSubSequenceData();
+
+	/** Rerun construction scripts on bound actors */
+	void RerunConstructionScripts();
+
+	/** Get actors that want to rerun construction scripts */
+	void GetConstructionScriptActors(UMovieScene*, FMovieSceneSequenceIDRef SequenceID, TSet<TWeakObjectPtr<AActor> >& BoundActors);
 
 	/** Check whether we're viewing the master sequence or not */
 	bool IsViewingMasterSequence() const { return ActiveTemplateIDs.Num() == 1; }

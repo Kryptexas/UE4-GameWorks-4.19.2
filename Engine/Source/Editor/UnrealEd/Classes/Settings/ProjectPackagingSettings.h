@@ -207,10 +207,6 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Localizations to Package"))
 	TArray<FString> CulturesToStage;
 
-	/** Culture to use if no matching culture is found. */
-	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Package default localization"))
-	FString DefaultCulture;
-
 	/**
 	 * Cook all things in the project content directory
 	 */

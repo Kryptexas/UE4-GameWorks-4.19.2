@@ -72,6 +72,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 		bool bIsUserSizable = true;
 		bool bSupportsMaximize = true;
 		bool bSupportsMinimize = true;
+		EAutoCenter CenterRules = EAutoCenter::None;
 		FText WindowTitle;
 		if ( ShouldShowProjectDialogAtStartup() )
 		{
@@ -83,17 +84,12 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 			// Do not maximize the window initially. Keep a small dialog feel.
 			DefaultWindowLocation.InitiallyMaximized = false;
 
-
-			FDisplayMetrics DisplayMetrics;
-			FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
-			const float DPIScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
-			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize() * DPIScaleFactor;
-			DefaultWindowLocation.ScreenPosition = DefaultWindowLocation.GetCenteredScreenPosition();
+			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize();
 
 			bIsUserSizable = true;
 			bSupportsMaximize = true;
 			bSupportsMinimize = true;
-
+			CenterRules = EAutoCenter::PreferredWorkArea;;
 			// When opening the project dialog, show "Project Browser" in the window title
 			WindowTitle = LOCTEXT("ProjectBrowserDialogTitle", "Unreal Project Browser");
 		}
@@ -110,7 +106,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 		}
 
 		TSharedRef<SWindow> RootWindow = SNew(SWindow)
-			.AutoCenter( EAutoCenter::None )
+			.AutoCenter(CenterRules)
 			.Title( WindowTitle )
 			.IsInitiallyMaximized( DefaultWindowLocation.InitiallyMaximized )
 			.ScreenPosition( DefaultWindowLocation.ScreenPosition )
@@ -138,12 +134,14 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 			FDisplayMetrics DisplayMetrics;
 			FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
 
+			const float DPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+
 			// Setup a position and size for the main frame window that's centered in the desktop work area
 			const float CenterScale = 0.65f;
 			const FVector2D DisplaySize(
 				DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left,
 				DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top );
-			const FVector2D WindowSize = CenterScale * DisplaySize;
+			const FVector2D WindowSize = (CenterScale * DisplaySize) / DPIScale;
 
 			TSharedRef<FTabManager::FLayout> LoadedLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni,
 				// We persist the positioning of the level editor and the content browser.

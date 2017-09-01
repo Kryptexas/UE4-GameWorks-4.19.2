@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -32,6 +32,40 @@
 #include "SDL_audio.h"
 #include "../SDL_audio_c.h"
 #include "SDL_winmm.h"
+
+/* MinGW32 mmsystem.h doesn't include these structures */
+#if defined(__MINGW32__) && defined(_MMSYSTEM_H)
+
+typedef struct tagWAVEINCAPS2W 
+{
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR szPname[MAXPNAMELEN];
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
+    GUID ManufacturerGuid;
+    GUID ProductGuid;
+    GUID NameGuid;
+} WAVEINCAPS2W,*PWAVEINCAPS2W,*NPWAVEINCAPS2W,*LPWAVEINCAPS2W;
+
+typedef struct tagWAVEOUTCAPS2W
+{
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR szPname[MAXPNAMELEN];
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
+    DWORD dwSupport;
+    GUID ManufacturerGuid;
+    GUID ProductGuid;
+    GUID NameGuid;
+} WAVEOUTCAPS2W,*PWAVEOUTCAPS2W,*NPWAVEOUTCAPS2W,*LPWAVEOUTCAPS2W;
+
+#endif /* defined(__MINGW32__) && defined(_MMSYSTEM_H) */
 
 #ifndef WAVE_FORMAT_IEEE_FLOAT
 #define WAVE_FORMAT_IEEE_FLOAT 0x0003
@@ -133,24 +167,6 @@ WINMM_PlayDevice(_THIS)
                  &this->hidden->wavebuf[this->hidden->next_buffer],
                  sizeof(this->hidden->wavebuf[0]));
     this->hidden->next_buffer = (this->hidden->next_buffer + 1) % NUM_BUFFERS;
-}
-
-static void
-WINMM_WaitDone(_THIS)
-{
-    int i, left;
-
-    do {
-        left = NUM_BUFFERS;
-        for (i = 0; i < NUM_BUFFERS; ++i) {
-            if (this->hidden->wavebuf[i].dwFlags & WHDR_DONE) {
-                --left;
-            }
-        }
-        if (left > 0) {
-            SDL_Delay(100);
-        }
-    } while (left > 0);
 }
 
 static int
@@ -422,7 +438,6 @@ WINMM_Init(SDL_AudioDriverImpl * impl)
     impl->OpenDevice = WINMM_OpenDevice;
     impl->PlayDevice = WINMM_PlayDevice;
     impl->WaitDevice = WINMM_WaitDevice;
-    impl->WaitDone = WINMM_WaitDone;
     impl->GetDeviceBuf = WINMM_GetDeviceBuf;
     impl->CaptureFromDevice = WINMM_CaptureFromDevice;
     impl->FlushCapture = WINMM_FlushCapture;

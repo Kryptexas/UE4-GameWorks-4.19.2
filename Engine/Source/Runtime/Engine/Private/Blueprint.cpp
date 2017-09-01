@@ -376,6 +376,7 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 #if WITH_EDITOR
 	, bRunConstructionScriptOnDrag(true)
+	, bRunConstructionScriptInSequencer(false)
 	, bGenerateConstClass(false)
 #endif
 #if WITH_EDITORONLY_DATA

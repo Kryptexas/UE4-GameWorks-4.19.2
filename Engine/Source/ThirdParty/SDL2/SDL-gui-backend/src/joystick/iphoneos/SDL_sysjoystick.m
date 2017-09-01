@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -127,13 +127,11 @@ SDL_SYS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *contr
     }
 #if TARGET_OS_TV
     else if (controller.microGamepad) {
-        const char *hint = SDL_GetHint(SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION);
-
         device->naxes = 2; /* treat the touch surface as two axes */
         device->nhats = 0; /* apparently the touch surface-as-dpad is buggy */
         device->nbuttons = 3; /* AX, pause button */
 
-        controller.microGamepad.allowsRotation = (hint != NULL && *hint != '0');
+        controller.microGamepad.allowsRotation = SDL_GetHintBoolean(SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION, SDL_FALSE);
     }
 #endif /* TARGET_OS_TV */
 
@@ -279,8 +277,7 @@ SDL_SYS_JoystickInit(void)
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
 
 #if !TARGET_OS_TV
-        const char *hint = SDL_GetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK);
-        if (!hint || SDL_atoi(hint)) {
+        if (SDL_GetHintBoolean(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, SDL_TRUE)) {
             /* Default behavior, accelerometer as joystick */
             SDL_SYS_AddJoystickDevice(nil, SDL_TRUE);
         }
@@ -329,12 +326,14 @@ SDL_SYS_JoystickInit(void)
     return numjoysticks;
 }
 
-int SDL_SYS_NumJoysticks()
+int
+SDL_SYS_NumJoysticks(void)
 {
     return numjoysticks;
 }
 
-void SDL_SYS_JoystickDetect()
+void
+SDL_SYS_JoystickDetect(void)
 {
 }
 
@@ -517,7 +516,7 @@ SDL_SYS_MFIJoystickUpdate(SDL_Joystick * joystick)
                  * initializes its values to 0. We only want to make sure the
                  * player index is up to date if the user actually moves an axis. */
                 if ((i != 2 && i != 5) || axes[i] != -32768) {
-                    updateplayerindex |= (joystick->axes[i] != axes[i]);
+                    updateplayerindex |= (joystick->axes[i].value != axes[i]);
                 }
                 SDL_PrivateJoystickAxis(joystick, i, axes[i]);
             }
@@ -554,7 +553,7 @@ SDL_SYS_MFIJoystickUpdate(SDL_Joystick * joystick)
             };
 
             for (i = 0; i < SDL_arraysize(axes); i++) {
-                updateplayerindex |= (joystick->axes[i] != axes[i]);
+                updateplayerindex |= (joystick->axes[i].value != axes[i]);
                 SDL_PrivateJoystickAxis(joystick, i, axes[i]);
             }
 

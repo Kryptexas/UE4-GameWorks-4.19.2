@@ -54,7 +54,7 @@ class FStaticMeshInstanceBuffer : public FVertexBuffer
 public:
 
 	/** Default constructor. */
-	FStaticMeshInstanceBuffer(ERHIFeatureLevel::Type InFeatureLevel, bool InIsDynamic);
+	FStaticMeshInstanceBuffer(ERHIFeatureLevel::Type InFeatureLevel, bool InIsDynamic, bool InRequireCPUAccess);
 
 	/** Destructor. */
 	~FStaticMeshInstanceBuffer();
@@ -83,7 +83,7 @@ public:
 	 * @param InComponent - The owning component; this need not have PerInstanceSMData, as we are taking a prebuilt instance buffer
 	 * @param Other - instance data, this call assumes the memory, so this will be empty after the call
 	 */
-	ENGINE_API void InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other);
+	ENGINE_API void InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other, bool InRequireCPUAccess);
 
 	/** Propagates instance selection state and hit proxy colors */
 	void SetPerInstanceEditorData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy>>& InHitProxies, int32 InUpdateInstanceStartingIndex, int32 InUpdateInstanceIndexCount);
@@ -144,6 +144,9 @@ private:
 
 	/** Is the vertex buffer considered dynamic */
 	bool IsDynamic;
+
+	/** Do we need specificy CPU access for instances */
+	bool RequireCPUAccess;
 
 	/** Is used to generate random value for each instance consistently between Update call */
 	FRandomStream RandomStream;
@@ -337,8 +340,8 @@ private:
 struct FPerInstanceRenderData
 {
 	// Should be always constructed on main thread
-	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeaureLevel, bool IsDynamicBuffer, bool InitializeBufferFromData)
-		: InstanceBuffer(InFeaureLevel, IsDynamicBuffer)
+	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeaureLevel, bool IsDynamicBuffer, bool InRequireCPUAccess, bool InitializeBufferFromData)
+		: InstanceBuffer(InFeaureLevel, IsDynamicBuffer, InRequireCPUAccess)
 	{
 		if (InitializeBufferFromData)
 		{
@@ -361,10 +364,10 @@ struct FPerInstanceRenderData
 		InitResource();
 	}
 
-	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other, ERHIFeatureLevel::Type InFeaureLevel, bool IsDynamicBuffer)
-		: InstanceBuffer(InFeaureLevel, IsDynamicBuffer)
+	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other, ERHIFeatureLevel::Type InFeaureLevel, bool IsDynamicBuffer, bool InRequireCPUAccess)
+		: InstanceBuffer(InFeaureLevel, IsDynamicBuffer, InRequireCPUAccess)
 	{
-		InstanceBuffer.InitFromPreallocatedData(InComponent, Other);
+		InstanceBuffer.InitFromPreallocatedData(InComponent, Other, InRequireCPUAccess);
 
 		InitResource();
 	}
@@ -380,9 +383,9 @@ struct FPerInstanceRenderData
 	 * @param InComponent - The owning component
 	 * @param InOther - The Instance data to copy into our instance buffer
 	 */
-	void UpdateFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& InOther)
+	void UpdateFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& InOther, bool InRequireCPUAccess)
 	{
-		InstanceBuffer.InitFromPreallocatedData(InComponent, InOther);
+		InstanceBuffer.InitFromPreallocatedData(InComponent, InOther, InRequireCPUAccess);
 	}
 
 	/** Will Initialize the resource if it contain instances */

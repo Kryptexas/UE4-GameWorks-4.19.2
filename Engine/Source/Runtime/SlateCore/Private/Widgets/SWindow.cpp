@@ -5,6 +5,7 @@
 #include "Application/SlateApplicationBase.h"
 #include "Layout/WidgetPath.h"
 #include "Input/HittestGrid.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 namespace SWindowDefs
 {
@@ -260,9 +261,6 @@ void SWindow::Construct(const FArguments& InArgs)
 	// If the window has no OS border, simulate it ourselves, enlarging window by the size that OS border would have.
 	FVector2D WindowSize = GetWindowSizeFromClientSize(InArgs._ClientSize);
 
-	// Get change in size resulting from the above call
-	const FVector2D DeltaSize = WindowSize - InArgs._ClientSize;
-
 	// calculate initial window position
 	FVector2D WindowPosition = InArgs._ScreenPosition;
 
@@ -334,6 +332,12 @@ void SWindow::Construct(const FArguments& InArgs)
 			break;
 		}
 
+		float RectDPIScale = 1.0f;
+		if (InArgs._AdjustInitialSizeAndPositionForDPIScale)
+		{
+			RectDPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(PrimaryDisplayRect.Left, PrimaryDisplayRect.Top);
+		}
+
 		if (InArgs._SaneWindowPlacement)
 		{
 			// Clamp window size to be no greater than the work area size
@@ -344,11 +348,32 @@ void SWindow::Construct(const FArguments& InArgs)
 		// Setup a position and size for the main frame window that's centered in the desktop work area
 		const FVector2D DisplayTopLeft( AutoCenterRect.Left, AutoCenterRect.Top );
 		const FVector2D DisplaySize( AutoCenterRect.Right - AutoCenterRect.Left, AutoCenterRect.Bottom - AutoCenterRect.Top );
-		WindowPosition = DisplayTopLeft + ( DisplaySize - WindowSize ) * 0.5f;
+		WindowPosition = DisplayTopLeft + ( DisplaySize - (WindowSize * RectDPIScale)) * 0.5f;
 
 		// Don't allow the window to center to outside of the work area
 		WindowPosition.X = FMath::Max(WindowPosition.X, AutoCenterRect.Left);
 		WindowPosition.Y = FMath::Max(WindowPosition.Y, AutoCenterRect.Top);
+	}
+
+	FVector2D DeltaSize;
+	if(InArgs._AdjustInitialSizeAndPositionForDPIScale)
+	{
+		const float DPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(WindowPosition.X, WindowPosition.Y);
+
+		// Auto centering code will have taken care of the adjustment earlier
+		if (AutoCenterRule == EAutoCenter::None)
+		{
+			WindowPosition *= DPIScale;
+		}
+
+		WindowSize *= DPIScale;
+
+		// Get change in size resulting from the above call
+		DeltaSize = WindowSize - InArgs._ClientSize*DPIScale;
+	}
+	else
+	{
+		DeltaSize = WindowSize - InArgs._ClientSize;
 	}
 
 #if PLATFORM_HTML5 
@@ -400,6 +425,7 @@ TSharedRef<SWindow> SWindow::MakeToolTipWindow()
 		.Type( EWindowType::ToolTip )
 		.IsPopupWindow( true )
 		.IsTopmostWindow(true)
+		.AdjustInitialSizeAndPositionForDPIScale(false)
 		.SizingRule(ESizingRule::Autosized)
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
@@ -1051,6 +1077,16 @@ TSharedPtr<const FGenericWindow> SWindow::GetNativeWindow() const
 {
 	return NativeWindow;
 } 
+
+float SWindow::GetDPIScaleFactor() const
+{
+	if (NativeWindow.IsValid())
+	{
+		return NativeWindow->GetDPIScaleFactor();
+	}
+
+	return 1.0f;
+}
 
 bool SWindow::IsDescendantOf( const TSharedPtr<SWindow>& ParentWindow ) const
 {

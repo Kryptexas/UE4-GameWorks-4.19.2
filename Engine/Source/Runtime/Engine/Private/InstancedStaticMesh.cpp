@@ -44,11 +44,12 @@ void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Col
 	Collector.AddReferencedObject(Component);
 }
 
-FStaticMeshInstanceBuffer::FStaticMeshInstanceBuffer(ERHIFeatureLevel::Type InFeatureLevel, bool InIsDynamic)
+FStaticMeshInstanceBuffer::FStaticMeshInstanceBuffer(ERHIFeatureLevel::Type InFeatureLevel, bool InIsDynamic, bool InRequireCPUAccess)
 	: InstanceData(NULL)
 	, Stride(0)
 	, NumInstances(0)
 	, IsDynamic(InIsDynamic)
+	, RequireCPUAccess(InRequireCPUAccess)
 {
 	SetFeatureLevel(InFeatureLevel);
 }
@@ -78,7 +79,8 @@ void FStaticMeshInstanceBuffer::SetupCPUAccess(UInstancedStaticMeshComponent* In
 		// Distance field algorithms need access to instance data on the CPU
 		&& (CVar->GetValueOnGameThread() != 0 || (InComponent->GetStaticMesh() && InComponent->GetStaticMesh()->bGenerateMeshDistanceField))) 
 		// If the buffer is created dynamically it mean we want to be able to do partial data update, so data should be accessible CPU side (i.e not trashed after creation of RHI resource)
-		|| IsDynamic;
+		|| IsDynamic
+		|| RequireCPUAccess;
 
 	InstanceData->SetAllowCPUAccess(InstanceData->GetAllowCPUAccess() || bNeedsCPUAccess);
 }
@@ -185,7 +187,7 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	}
 }
 
-void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other)
+void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other, bool InRequireCPUAccess)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_InitFromPreallocatedData);
 
@@ -196,6 +198,7 @@ void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshCom
 	const uint32 NewNumInstances = Other.NumInstances();
 	AllocateData(Other);
 	NumInstances = NewNumInstances;
+	RequireCPUAccess = InRequireCPUAccess;
 	SetupCPUAccess(InComponent);
 }
 
@@ -1879,7 +1882,7 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 	}
 }
 
-void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFromCurrentData, FStaticMeshInstanceData* InSharedInstanceBufferData)
+void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFromCurrentData, bool RequireCPUAccess, FStaticMeshInstanceData* InSharedInstanceBufferData)
 {
 	while (InstancingRandomSeed == 0)
 	{
@@ -1906,12 +1909,12 @@ void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFro
 
 		if (InSharedInstanceBufferData != nullptr)
 		{
-			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, *InSharedInstanceBufferData, FeatureLevel, IsDynamic));
+			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, *InSharedInstanceBufferData, FeatureLevel, IsDynamic, RequireCPUAccess));
 			bPerInstanceRenderDataWasPrebuilt = true;
 		}
 		else
 		{
-			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic, InitializeFromCurrentData));
+			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic, RequireCPUAccess, InitializeFromCurrentData));
 		}
 	}
 }

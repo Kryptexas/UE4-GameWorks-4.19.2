@@ -95,6 +95,11 @@ struct FLinuxPlatformProperties
 		return false;
 	}
 
+	static FORCEINLINE bool SupportsTessellation()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsWindowedMode()
 	{
 		return !IS_DEDICATED_SERVER;

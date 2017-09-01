@@ -17,6 +17,7 @@ namespace EMovieScenePlayerStatus
 		Scrubbing,
 		Jumping,
 		Stepping,
+		Paused,
 		MAX
 	};
 }

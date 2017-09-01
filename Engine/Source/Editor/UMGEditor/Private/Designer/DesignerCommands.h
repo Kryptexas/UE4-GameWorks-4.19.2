@@ -41,6 +41,9 @@ public:
 	/** Toggle if we care about locking */
 	TSharedPtr< FUICommandInfo > ToggleRespectLocks;
 
+	/** Toggle the localization preview on/off */
+	TSharedPtr< FUICommandInfo > ToggleLocalizationPreview;
+
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;

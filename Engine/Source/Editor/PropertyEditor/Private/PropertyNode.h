@@ -504,6 +504,11 @@ public:
 	 */
 	void ResetToDefault(FNotifyHook* InNotifyHook);
 
+	/**
+	 * @return If this property node is associated with a property that can be reordered within an array
+	 */
+	bool IsReorderable();
+
 	/**Walks up the hierarchy and return true if any parent node is a favorite*/
 	bool IsChildOfFavorite(void) const;
 

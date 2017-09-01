@@ -1841,7 +1841,7 @@ void FUnrealEdMisc::OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo)
 		//@todo This shouldn't be using a localized value; GetInputText() [10/11/2013 justin.sargent]
 		TArray< FAnalyticsEventAttribute > ChordAttribs;
 		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Context"), ChordName));
-		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetActiveChord()->GetInputText().ToString()));
+		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetInputText().ToString()));
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.KeyboardShortcut"), ChordAttribs);
 	}
 }

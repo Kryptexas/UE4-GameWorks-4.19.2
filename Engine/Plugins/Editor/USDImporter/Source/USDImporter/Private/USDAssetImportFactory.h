@@ -13,7 +13,7 @@ struct FUSDAssetImportContext : public FUsdImportContext
 {
 	GENERATED_USTRUCT_BODY()
 
-	virtual void Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, class IUsdStage* InStage);
+	virtual void Init(UObject* InParent, const FString& InName, class IUsdStage* InStage);
 };
 
 UCLASS(transient)

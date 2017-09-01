@@ -73,7 +73,7 @@ void FGlobalEditorCommonCommands::OnPressedCtrlTab(TSharedPtr<FUICommandInfo> Tr
 		const FVector2D TabListSize(700.0f, 486.0f);
 
 		// Create the contents of the popup
-		TSharedRef<SWidget> ActualWidget = SNew(SGlobalTabSwitchingDialog, TabListSize, *TriggeringCommand->GetActiveChord());
+		TSharedRef<SWidget> ActualWidget = SNew(SGlobalTabSwitchingDialog, TabListSize, *TriggeringCommand->GetFirstValidChord());
 
 		OpenPopupMenu(ActualWidget, TabListSize);
 	}

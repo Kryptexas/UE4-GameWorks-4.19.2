@@ -1424,32 +1424,156 @@ void FSourceCodeNavigation::GatherFunctionsForActors( TArray< AActor* >& Actors,
 	}
 }
 
-bool FSourceCodeNavigation::NavigateToFunctionAsync( UFunction* InFunction )
+bool FSourceCodeNavigation::NavigateToFunctionAsync(UFunction* InFunction)
 {
-	bool bResult = false;
-
-	if( InFunction )
-	{
-		UClass* OwningClass = InFunction->GetOwnerClass();
-
-		if(  OwningClass->HasAllClassFlags( CLASS_Native ))
-		{
-			FString ModuleName;
-			// Find module name for class
-			if( FindClassModuleName( OwningClass, ModuleName ))
-			{
-				const FString SymbolName = FString::Printf( TEXT( "%s%s::%s" ), OwningClass->GetPrefixCPP(), *OwningClass->GetName(), *InFunction->GetName() );
-				NavigateToFunctionSourceAsync( SymbolName, ModuleName, false );
-				bResult = true;
-			}
-		}
-	}
-	return bResult;
+	return NavigateToFunction(InFunction);
 }
 
-bool FSourceCodeNavigation::NavigateToProperty( UProperty* InProperty )
+static TArray<ISourceCodeNavigationHandler*> SourceCodeNavigationHandlers;
+
+void FSourceCodeNavigation::AddNavigationHandler(ISourceCodeNavigationHandler* handler)
 {
-	bool bResult = false;
+	SourceCodeNavigationHandlers.Add(handler);
+}
+
+void FSourceCodeNavigation::RemoveNavigationHandler(ISourceCodeNavigationHandler* handler)
+{
+	SourceCodeNavigationHandlers.Remove(handler);
+}
+
+bool FSourceCodeNavigation::CanNavigateToClass(const UClass* InClass)
+{
+	if (!InClass)
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < SourceCodeNavigationHandlers.Num(); ++i)
+	{
+		ISourceCodeNavigationHandler* handler = SourceCodeNavigationHandlers[i];
+		if (handler->CanNavigateToClass(InClass))
+		{
+			return true;
+		}
+	}
+
+	return InClass->HasAllClassFlags(CLASS_Native) && FSourceCodeNavigation::IsCompilerAvailable();
+}
+
+bool FSourceCodeNavigation::NavigateToClass(const UClass* InClass)
+{
+	if (!InClass)
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < SourceCodeNavigationHandlers.Num(); ++i)
+	{
+		ISourceCodeNavigationHandler* handler = SourceCodeNavigationHandlers[i];
+		if (handler->NavigateToClass(InClass))
+		{
+			return true;
+		}
+	}
+
+	FString ClassHeaderPath;
+	if (FSourceCodeNavigation::FindClassHeaderPath(InClass, ClassHeaderPath) && IFileManager::Get().FileSize(*ClassHeaderPath) != INDEX_NONE)
+	{
+		FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);
+		FSourceCodeNavigation::OpenSourceFile(AbsoluteHeaderPath);
+		return true;
+	}
+	return false;
+}
+
+bool FSourceCodeNavigation::CanNavigateToFunction(const UFunction* InFunction)
+{
+	if (!InFunction)
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < SourceCodeNavigationHandlers.Num(); ++i)
+	{
+		ISourceCodeNavigationHandler* handler = SourceCodeNavigationHandlers[i];
+		if (handler->CanNavigateToFunction(InFunction))
+		{
+			return true;
+		}
+	}
+
+	UClass* OwningClass = InFunction->GetOwnerClass();
+
+	return OwningClass->HasAllClassFlags(CLASS_Native) && FSourceCodeNavigation::IsCompilerAvailable();
+}
+
+bool FSourceCodeNavigation::NavigateToFunction(const UFunction* InFunction)
+{
+	if (!InFunction)
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < SourceCodeNavigationHandlers.Num(); ++i)
+	{
+		ISourceCodeNavigationHandler* handler = SourceCodeNavigationHandlers[i];
+		if (handler->NavigateToFunction(InFunction))
+		{
+			return true;
+		}
+	}
+
+	UClass* OwningClass = InFunction->GetOwnerClass();
+
+	if(  OwningClass->HasAllClassFlags( CLASS_Native ))
+	{
+		FString ModuleName;
+		// Find module name for class
+		if( FindClassModuleName( OwningClass, ModuleName ))
+		{
+			const FString SymbolName = FString::Printf( TEXT( "%s%s::%s" ), OwningClass->GetPrefixCPP(), *OwningClass->GetName(), *InFunction->GetName() );
+			NavigateToFunctionSourceAsync( SymbolName, ModuleName, false );
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSourceCodeNavigation::CanNavigateToProperty(const UProperty* InProperty)
+{
+	if (!InProperty)
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < SourceCodeNavigationHandlers.Num(); ++i)
+	{
+		ISourceCodeNavigationHandler* handler = SourceCodeNavigationHandlers[i];
+		if (handler->CanNavigateToProperty(InProperty))
+		{
+			return true;
+		}
+	}
+
+	return InProperty->IsNative() && IsCompilerAvailable();
+}
+
+bool FSourceCodeNavigation::NavigateToProperty(const UProperty* InProperty)
+{
+	if (!InProperty)
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < SourceCodeNavigationHandlers.Num(); ++i)
+	{
+		ISourceCodeNavigationHandler* handler = SourceCodeNavigationHandlers[i];
+		if (handler->NavigateToProperty(InProperty))
+		{
+			return true;
+		}
+	}
 
 	if (InProperty && InProperty->IsNative())
 	{
@@ -1460,10 +1584,10 @@ bool FSourceCodeNavigation::NavigateToProperty( UProperty* InProperty )
 		if (bFileLocated)
 		{
 			const FString AbsoluteSourcePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SourceFilePath);
-			bResult = OpenSourceFile(AbsoluteSourcePath);
+			return OpenSourceFile( AbsoluteSourcePath );
 		}
 	}
-	return bResult;
+	return false;
 }
 
 bool FSourceCodeNavigation::FindClassModuleName( UClass* InClass, FString& ModuleName )

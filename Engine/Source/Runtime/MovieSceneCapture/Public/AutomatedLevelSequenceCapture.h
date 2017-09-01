@@ -117,6 +117,10 @@ private:
 	/** Restore frame settings from overridden shot frames */
 	bool RestoreFrameOverrides();
 
+	void DelayBeforeWarmupFinished();
+
+	void PauseFinished();
+
 	/** A level sequence asset to playback at runtime - used where the level sequence does not already exist in the world. */
 	UPROPERTY()
 	FSoftObjectPath LevelSequenceAsset;
@@ -135,11 +139,10 @@ private:
 		DelayBeforeWarmUp,
 		ReadyToWarmUp,
 		WarmingUp,
-		FinishedWarmUp
+		FinishedWarmUp,
+		Paused,
+		FinishedPause,
 	} CaptureState;
-
-	/** Time left to wait before capturing */
-	float RemainingDelaySeconds;
 
 	/** The number of warm up frames left before we actually start saving out images */
 	int32 RemainingWarmUpFrames;
@@ -151,6 +154,10 @@ private:
 	int32 ShotIndex;
 
 	FLevelSequencePlayerSnapshot CachedState;
+
+	TOptional<float> CachedPlayRate;
+
+	FTimerHandle DelayTimer;
 
 	struct FCinematicShotCache
 	{

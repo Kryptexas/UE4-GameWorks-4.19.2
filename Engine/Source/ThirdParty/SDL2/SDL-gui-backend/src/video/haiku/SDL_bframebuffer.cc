@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -35,7 +35,7 @@
 extern "C" {
 #endif
 
-int32 BE_UpdateOnce(SDL_Window *window);
+static int32 BE_UpdateOnce(SDL_Window *window);
 
 static SDL_INLINE SDL_BWin *_ToBeWin(SDL_Window *window) {
 	return ((SDL_BWin*)(window->driverdata));
@@ -76,7 +76,8 @@ int BE_CreateWindowFramebuffer(_THIS, SDL_Window * window,
 			true);	/* Contiguous memory required */
 			
 	if(bitmap->InitCheck() != B_OK) {
-		return SDL_SetError("Could not initialize back buffer!\n");
+		delete bitmap;
+		return SDL_SetError("Could not initialize back buffer!");
 	}
 
 
@@ -199,7 +200,7 @@ void BE_DestroyWindowFramebuffer(_THIS, SDL_Window * window) {
  * The specific issues have since become rare enough that they may have been
  * solved, but I doubt it- they were pretty sporadic before now.
  */
-int32 BE_UpdateOnce(SDL_Window *window) {
+static int32 BE_UpdateOnce(SDL_Window *window) {
 	SDL_BWin *bwin = _ToBeWin(window);
 	BScreen bscreen;
 	if(!bscreen.IsValid()) {
@@ -252,3 +253,5 @@ int32 BE_UpdateOnce(SDL_Window *window) {
 #endif
 
 #endif /* SDL_VIDEO_DRIVER_HAIKU */
+
+/* vi: set ts=4 sw=4 expandtab: */

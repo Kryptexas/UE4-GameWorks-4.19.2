@@ -12,6 +12,7 @@
 #include "Misc/FeedbackContext.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/App.h"
+#include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
@@ -1255,7 +1256,7 @@ bool ContentBrowserUtils::IsValidFolderName(const FString& FolderName, FText& Re
 		}
 	}
 	
-	return FEditorFileUtils::IsFilenameValidForSaving( FolderName, Reason );
+	return FFileHelper::IsFilenameValidForSaving( FolderName, Reason );
 }
 
 bool ContentBrowserUtils::DoesFolderExist(const FString& FolderPath)
@@ -1634,7 +1635,7 @@ bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, 
 	const FString ObjectName = FPackageName::ObjectPathToObjectName(ObjectPath);
 
 	// Make sure the name is not already a class or otherwise invalid for saving
-	if ( !FEditorFileUtils::IsFilenameValidForSaving(ObjectName, OutErrorMessage) )
+	if ( !FFileHelper::IsFilenameValidForSaving(ObjectName, OutErrorMessage) )
 	{
 		// Return false to indicate that the user should enter a new name
 		return false;

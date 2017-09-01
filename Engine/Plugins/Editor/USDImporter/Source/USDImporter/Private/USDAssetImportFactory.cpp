@@ -10,9 +10,9 @@
 #include "Paths.h"
 #include "JsonObjectConverter.h"
 
-void FUSDAssetImportContext::Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, class IUsdStage* InStage)
+void FUSDAssetImportContext::Init(UObject* InParent, const FString& InName, class IUsdStage* InStage)
 {
-	FUsdImportContext::Init(InParent, InName, InFlags, InStage);
+	FUsdImportContext::Init(InParent, InName, InStage);
 }
 
 
@@ -44,17 +44,18 @@ UObject* UUSDAssetImportFactory::FactoryCreateFile(UClass* InClass, UObject* InP
 		IUsdStage* Stage = USDImporter->ReadUSDFile(ImportContext, Filename);
 		if (Stage)
 		{
-			ImportContext.Init(InParent, InName.ToString(), Flags, Stage);
+			ImportContext.Init(InParent, InName.ToString(), Stage);
 			ImportContext.ImportOptions = ImportOptions;
 			ImportContext.bApplyWorldTransformToGeometry = ImportOptions->bApplyWorldTransformToGeometry;
 
 			TArray<FUsdPrimToImport> PrimsToImport;
-			USDImporter->FindPrimsToImport(ImportContext, PrimsToImport);
+
+			ImportContext.PrimResolver->FindPrimsToImport(ImportContext, PrimsToImport);
 
 			ImportedObject = USDImporter->ImportMeshes(ImportContext, PrimsToImport);
 
 			// Just return the first one imported
-			ImportedObject = ImportContext.PrimToAssetMap.Num() > 0 ? ImportContext.PrimToAssetMap.CreateConstIterator().Value() : nullptr;
+			ImportedObject = ImportContext.PathToImportAssetMap.Num() > 0 ? ImportContext.PathToImportAssetMap.CreateConstIterator().Value() : nullptr;
 		}
 
 		ImportContext.DisplayErrorMessages(IsAutomatedImport());

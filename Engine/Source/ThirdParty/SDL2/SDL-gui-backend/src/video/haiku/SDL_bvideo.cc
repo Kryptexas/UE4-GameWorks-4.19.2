@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -81,6 +81,7 @@ BE_CreateDevice(int devindex)
     device->MinimizeWindow = BE_MinimizeWindow;
     device->RestoreWindow = BE_RestoreWindow;
     device->SetWindowBordered = BE_SetWindowBordered;
+    device->SetWindowResizable = BE_SetWindowResizable;
     device->SetWindowFullscreen = BE_SetWindowFullscreen;
     device->SetWindowGammaRamp = BE_SetWindowGammaRamp;
     device->GetWindowGammaRamp = BE_GetWindowGammaRamp;
@@ -95,7 +96,7 @@ BE_CreateDevice(int devindex)
     device->shape_driver.SetWindowShape = NULL;
     device->shape_driver.ResizeWindowShape = NULL;
 
-
+#if SDL_VIDEO_OPENGL
     device->GL_LoadLibrary = BE_GL_LoadLibrary;
     device->GL_GetProcAddress = BE_GL_GetProcAddress;
     device->GL_UnloadLibrary = BE_GL_UnloadLibrary;
@@ -105,6 +106,7 @@ BE_CreateDevice(int devindex)
     device->GL_GetSwapInterval = BE_GL_GetSwapInterval;
     device->GL_SwapWindow = BE_GL_SwapWindow;
     device->GL_DeleteContext = BE_GL_DeleteContext;
+#endif
 
     device->StartTextInput = BE_StartTextInput;
     device->StopTextInput = BE_StopTextInput;
@@ -172,3 +174,5 @@ void BE_VideoQuit(_THIS)
 #endif
 
 #endif /* SDL_VIDEO_DRIVER_HAIKU */
+
+/* vi: set ts=4 sw=4 expandtab: */

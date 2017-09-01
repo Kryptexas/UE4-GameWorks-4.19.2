@@ -11,6 +11,7 @@
 #include "DetailPropertyRow.h"
 #include "DetailGroup.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Editor.h"
 
 
 void SConstrainedBox::Construct(const FArguments& InArgs)
@@ -154,6 +155,42 @@ FReply SDetailSingleItemRow::OnFavoriteToggle()
 	return FReply::Handled();
 }
 
+void SDetailSingleItemRow::OnArrayDragEnter(const FDragDropEvent& DragDropEvent)
+{
+	bIsHoveredDragTarget = true;
+}
+
+void SDetailSingleItemRow::OnArrayDragLeave(const FDragDropEvent& DragDropEvent)
+{
+	bIsHoveredDragTarget = false;
+}
+
+FReply SDetailSingleItemRow::OnArrayDrop(const FDragDropEvent& DragDropEvent)
+{
+	bIsHoveredDragTarget = false;
+	TSharedPtr<FArrayRowDragDropOp> ArrayDropOp = DragDropEvent.GetOperationAs< FArrayRowDragDropOp >();
+	TSharedPtr<FPropertyNode> SwappingPropertyNode = ArrayDropOp->Row->SwappablePropertyNode;
+	if (SwappingPropertyNode.IsValid() && SwappablePropertyNode.IsValid())
+	{
+		if (SwappingPropertyNode != SwappablePropertyNode)
+		{
+			int32 OriginalIndex = SwappingPropertyNode->GetArrayIndex();
+			int32 NewIndex = SwappablePropertyNode->GetArrayIndex();
+			if (NewIndex > OriginalIndex)
+			{
+				NewIndex += 1;
+			}
+			TSharedPtr<IPropertyHandle> SwappingHandle = PropertyEditorHelpers::GetPropertyHandle(SwappingPropertyNode.ToSharedRef(), OwnerTreeNode.Pin()->GetDetailsView()->GetNotifyHook(), OwnerTreeNode.Pin()->GetDetailsView()->GetPropertyUtilities());
+			TSharedPtr<IPropertyHandleArray> ParentHandle = SwappingHandle->GetParentHandle()->AsArray();
+			if (ParentHandle.IsValid())
+			{
+				ParentHandle->MoveElementTo(OriginalIndex, NewIndex);
+			}
+		}
+	}
+	return FReply::Handled();
+}
+
 const FSlateBrush* SDetailSingleItemRow::GetFavoriteButtonBrush() const
 {
 	if (Customization->GetPropertyNode().IsValid() && Customization->GetPropertyNode()->CanDisplayFavorite())
@@ -178,6 +215,10 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	EVerticalAlignment VerticalAlignment = VAlign_Fill;
 
 	TAttribute<bool> NameWidgetEnabled;
+
+	FOnTableRowDragEnter ArrayDragDelegate;
+	FOnTableRowDragLeave ArrayDragLeaveDelegate;
+	FOnTableRowDrop ArrayDropDelegate;
 
 	const bool bIsValidTreeNode = InOwnerTreeNode->GetParentCategory().IsValid() && InOwnerTreeNode->GetParentCategory()->IsParentLayoutValid();
 	if(bIsValidTreeNode)
@@ -219,6 +260,27 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 			TSharedRef<SHorizontalBox> InternalLeftColumnRowBox =
 				SNew(SHorizontalBox)
 				.Clipping(EWidgetClipping::OnDemand);
+
+
+			TSharedPtr<FPropertyNode> PropertyNode = Customization->GetPropertyNode();
+			if (PropertyNode.IsValid() && PropertyNode->IsReorderable())
+			{
+				TSharedRef<SWidget> Handle = PropertyEditorHelpers::MakePropertyReorderHandle(PropertyNode.ToSharedRef(), this);
+				Handle->SetEnabled(IsPropertyEditingEnabled);
+				InternalLeftColumnRowBox->AddSlot()
+					.Padding(0.0f, 0.0f)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						Handle
+					];
+				ArrayDragDelegate = FOnTableRowDragEnter::CreateSP(this, &SDetailSingleItemRow::OnArrayDragEnter);
+				ArrayDragLeaveDelegate = FOnTableRowDragLeave::CreateSP(this, &SDetailSingleItemRow::OnArrayDragLeave);
+				ArrayDropDelegate = FOnTableRowDrop::CreateSP(this, &SDetailSingleItemRow::OnArrayDrop);
+
+				SwappablePropertyNode = PropertyNode;
+			}
 
 			if(bEnableFavoriteSystem)
 			{
@@ -356,13 +418,16 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	STableRow< TSharedPtr< FDetailTreeNode > >::ConstructInternal(
 		STableRow::FArguments()
 			.Style(FEditorStyle::Get(), "DetailsView.TreeView.TableRow")
-			.ShowSelection(false),
+			.ShowSelection(false)
+			.OnDragEnter(ArrayDragDelegate)
+			.OnDragLeave(ArrayDragLeaveDelegate)
+			.OnDrop(ArrayDropDelegate),
 		InOwnerTableView
 	);
 }
 
 
-bool SDetailSingleItemRow::OnContextMenuOpening( FMenuBuilder& MenuBuilder )
+bool SDetailSingleItemRow::OnContextMenuOpening(FMenuBuilder& MenuBuilder)
 {
 	const bool bIsCopyPasteBound = Customization->GetWidgetRow().IsCopyPasteBound();
 
@@ -491,19 +556,17 @@ bool SDetailSingleItemRow::CanPasteProperty() const
 
 const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 {
-	/*bool UseDarkTheme = false;
-	if (Customization->GetWidgetRow().IsDarkThemeAttr.IsSet())
-	{
-		UseDarkTheme = Customization->GetWidgetRow().IsDarkThemeAttr.Get();
-	}*/
-
 	if( IsHighlighted() )
 	{
 		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Highlighted");
 	}
-	else if (IsHovered())
+	else if (IsHovered() && !bIsHoveredDragTarget)
 	{
 		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Hovered");
+	}
+	else if (bIsHoveredDragTarget)
+	{
+		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Highlighted");
 	}
 	else
 	{
@@ -596,4 +659,38 @@ FReply SDetailSingleItemRow::OnAddKeyframeClicked()
 bool SDetailSingleItemRow::IsHighlighted() const
 {
 	return OwnerTreeNode.Pin()->IsHighlighted();
+}
+
+void SArrayRowHandle::Construct(const FArguments& InArgs)
+{
+	ParentRow = InArgs._ParentRow;
+
+	ChildSlot
+	[
+		InArgs._Content.Widget
+	];
+}
+
+FReply SArrayRowHandle::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	{
+		{	
+			TSharedPtr<FDragDropOperation> DragDropOp = CreateDragDropOperation(ParentRow);
+			if (DragDropOp.IsValid())
+			{
+				return FReply::Handled().BeginDragDrop(DragDropOp.ToSharedRef());
+			}
+		}
+	}
+
+	return FReply::Unhandled();
+
+}
+
+TSharedPtr<FArrayRowDragDropOp> SArrayRowHandle::CreateDragDropOperation(class SDetailSingleItemRow* InRow)
+{
+	TSharedPtr<FArrayRowDragDropOp> Operation = MakeShareable(new FArrayRowDragDropOp(InRow));
+
+	return Operation;
 }

@@ -94,6 +94,9 @@ public:
 	/** Forces playback both in editor and at runtime to be evaluated at fixed frame intervals. */
 	TSharedPtr< FUICommandInfo > ToggleForceFixedFrameIntervalPlayback;
 
+	/** Reruns construction scripts on bound actors every frame. */
+	TSharedPtr< FUICommandInfo > ToggleRerunConstructionScripts;
+
 	/** Toggle constraining the time cursor to the playback range while scrubbing */
 	TSharedPtr< FUICommandInfo > ToggleKeepCursorInPlaybackRangeWhileScrubbing;
 

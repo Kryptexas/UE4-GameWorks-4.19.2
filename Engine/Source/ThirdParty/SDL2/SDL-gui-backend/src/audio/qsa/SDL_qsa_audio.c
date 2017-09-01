@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -56,24 +56,6 @@
 #define DEFAULT_CPARAMS_FRAGS_MIN 1
 #define DEFAULT_CPARAMS_FRAGS_MAX 1
 
-#define QSA_NO_WORKAROUNDS  0x00000000
-#define QSA_MMAP_WORKAROUND 0x00000001
-
-struct BuggyCards
-{
-    char *cardname;
-    unsigned long bugtype;
-};
-
-#define QSA_WA_CARDS             3
-#define QSA_MAX_CARD_NAME_LENGTH 33
-
-struct BuggyCards buggycards[QSA_WA_CARDS] = {
-    {"Sound Blaster Live!", QSA_MMAP_WORKAROUND},
-    {"Vortex 8820", QSA_MMAP_WORKAROUND},
-    {"Vortex 8830", QSA_MMAP_WORKAROUND},
-};
-
 /* List of found devices */
 #define QSA_MAX_DEVICES       32
 #define QSA_MAX_NAME_LENGTH   81+16     /* Hardcoded in QSA, can't be changed */
@@ -97,40 +79,16 @@ QSA_SetError(const char *fn, int status)
     return SDL_SetError("QSA: %s() failed: %s", fn, snd_strerror(status));
 }
 
-/* card names check to apply the workarounds */
-static int
-QSA_CheckBuggyCards(_THIS, unsigned long checkfor)
-{
-    char scardname[QSA_MAX_CARD_NAME_LENGTH];
-    int it;
-
-    if (snd_card_get_name
-        (this->hidden->cardno, scardname, QSA_MAX_CARD_NAME_LENGTH - 1) < 0) {
-        return 0;
-    }
-
-    for (it = 0; it < QSA_WA_CARDS; it++) {
-        if (SDL_strcmp(buggycards[it].cardname, scardname) == 0) {
-            if (buggycards[it].bugtype == checkfor) {
-                return 1;
-            }
-        }
-    }
-
-    return 0;
-}
-
 /* !!! FIXME: does this need to be here? Does the SDL version not work? */
 static void
 QSA_ThreadInit(_THIS)
 {
-    struct sched_param param;
-    int status;
-
     /* Increase default 10 priority to 25 to avoid jerky sound */
-    status = SchedGet(0, 0, &param);
-    param.sched_priority = param.sched_curpriority + 15;
-    status = SchedSet(0, 0, SCHED_NOCHANGE, &param);
+    struct sched_param param;
+    if (SchedGet(0, 0, &param) != -1) {
+        param.sched_priority = param.sched_curpriority + 15;
+        SchedSet(0, 0, SCHED_NOCHANGE, &param);
+    }
 }
 
 /* PCM channel parameters initialize function */
@@ -357,7 +315,6 @@ QSA_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
     if (this->hidden == NULL) {
         return SDL_OutOfMemory();
     }
-    SDL_zerop(this->hidden);
 
     /* Initialize channel transfer parameters to default */
     QSA_InitAudioParams(&cparams);
@@ -371,29 +328,19 @@ QSA_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         this->hidden->cardno = device->cardno;
         status = snd_pcm_open(&this->hidden->audio_handle,
                               device->cardno, device->deviceno,
-                              iscapture ? SND_PCM_OPEN_PLAYBACK : SND_PCM_OPEN_CAPTURE);
+                              iscapture ? SND_PCM_OPEN_CAPTURE : SND_PCM_OPEN_PLAYBACK);
     } else {
         /* Open system default audio device */
         status = snd_pcm_open_preferred(&this->hidden->audio_handle,
                                         &this->hidden->cardno,
                                         &this->hidden->deviceno,
-                                        iscapture ? SND_PCM_OPEN_PLAYBACK : SND_PCM_OPEN_CAPTURE);
+                                        iscapture ? SND_PCM_OPEN_CAPTURE : SND_PCM_OPEN_PLAYBACK);
     }
 
     /* Check if requested device is opened */
     if (status < 0) {
         this->hidden->audio_handle = NULL;
         return QSA_SetError("snd_pcm_open", status);
-    }
-
-    if (!QSA_CheckBuggyCards(this, QSA_MMAP_WORKAROUND)) {
-        /* Disable QSA MMAP plugin for buggy audio drivers */
-        status =
-            snd_pcm_plugin_set_disable(this->hidden->audio_handle,
-                                       PLUGIN_DISABLE_MMAP);
-        if (status < 0) {
-            return QSA_SetError("snd_pcm_plugin_set_disable", status);
-        }
     }
 
     /* Try for a closest match on audio format */
@@ -494,7 +441,7 @@ QSA_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
     /* Setup the transfer parameters according to cparams */
     status = snd_pcm_plugin_params(this->hidden->audio_handle, &cparams);
     if (status < 0) {
-        return QSA_SetError("snd_pcm_channel_params", status);
+        return QSA_SetError("snd_pcm_plugin_params", status);
     }
 
     /* Make sure channel is setup right one last time */
@@ -709,24 +656,6 @@ QSA_DetectDevices(void)
 }
 
 static void
-QSA_WaitDone(_THIS)
-{
-    if (!this->hidden->iscapture) {
-        if (this->hidden->audio_handle != NULL) {
-            /* Wait till last fragment is played and stop channel */
-            snd_pcm_plugin_flush(this->hidden->audio_handle,
-                                 SND_PCM_CHANNEL_PLAYBACK);
-        }
-    } else {
-        if (this->hidden->audio_handle != NULL) {
-            /* Discard all unread data and stop channel */
-            snd_pcm_plugin_flush(this->hidden->audio_handle,
-                                 SND_PCM_CHANNEL_CAPTURE);
-        }
-    }
-}
-
-static void
 QSA_Deinitialize(void)
 {
     /* Clear devices array on shutdown */
@@ -740,9 +669,6 @@ QSA_Deinitialize(void)
 static int
 QSA_Init(SDL_AudioDriverImpl * impl)
 {
-    snd_pcm_t *handle = NULL;
-    int32_t status = 0;
-
     /* Clear devices array */
     SDL_zero(qsa_playback_device);
     SDL_zero(qsa_capture_device);
@@ -759,24 +685,15 @@ QSA_Init(SDL_AudioDriverImpl * impl)
     impl->PlayDevice = QSA_PlayDevice;
     impl->GetDeviceBuf = QSA_GetDeviceBuf;
     impl->CloseDevice = QSA_CloseDevice;
-    impl->WaitDone = QSA_WaitDone;
     impl->Deinitialize = QSA_Deinitialize;
     impl->LockDevice = NULL;
     impl->UnlockDevice = NULL;
 
-    impl->OnlyHasDefaultOutputDevice = 0;
     impl->ProvidesOwnCallbackThread = 0;
     impl->SkipMixerLock = 0;
     impl->HasCaptureSupport = 1;
     impl->OnlyHasDefaultOutputDevice = 0;
     impl->OnlyHasDefaultCaptureDevice = 0;
-
-    /* Check if io-audio manager is running or not */
-    status = snd_cards();
-    if (status == 0) {
-        /* if no, return immediately */
-        return 1;
-    }
 
     return 1;   /* this audio target is available. */
 }

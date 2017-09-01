@@ -1632,34 +1632,41 @@ void FMatinee::OnContextTrackExportAnimFBX()
 
 					UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 
-					// Export the Matinee information to a COLLADA document.
-					Exporter->CreateDocument();
-					Exporter->SetTrasformBaking(bBakeTransforms);
-					const bool bKeepHierarchy = GetDefault<UEditorPerProjectUserSettings>()->bKeepAttachHierarchy;
-					Exporter->SetKeepHierarchy(bKeepHierarchy);
-
-					// Export the anim sequences
-					TArray<UAnimSequence*> AnimSequences;
-					for(int32 TrackKeyIndex = 0; TrackKeyIndex < AnimTrack->AnimSeqs.Num(); ++TrackKeyIndex)
+					//Show the fbx export dialog options
+					bool ExportCancel = false;
+					bool ExportAll = false;
+					Exporter->FillExportOptions(false, true, ExportFilename, ExportCancel, ExportAll);
+					if (!ExportCancel)
 					{
-						UAnimSequence* AnimSeq = AnimTrack->AnimSeqs[TrackKeyIndex].AnimSeq;
-						
-						if( AnimSeq )
-						{
-							AnimSequences.Push( AnimSeq );
-						}
-						else
-						{
-							UE_LOG(LogSlateMatinee, Warning, TEXT("Warning: Animation not found when exporting %s"), *AnimTrack->GetName() );
-						}
-					}
+						// Export the Matinee information to a COLLADA document.
+						Exporter->CreateDocument();
+						Exporter->SetTrasformBaking(bBakeTransforms);
+						const bool bKeepHierarchy = GetDefault<UEditorPerProjectUserSettings>()->bKeepAttachHierarchy;
+						Exporter->SetKeepHierarchy(bKeepHierarchy);
 
-					GWarn->BeginSlowTask( LOCTEXT("BeginExportingAnimationsTask", "Exporting Animations"), true );
-					FString ExportName = Group->GroupName.ToString() + TEXT("_") + AnimTrack->GetName();
-					Exporter->ExportAnimSequencesAsSingle( SkelMesh, SkelMeshActor, ExportName, AnimSequences, AnimTrack->AnimSeqs );
-					GWarn->EndSlowTask();
-					// Save to disk
-					Exporter->WriteToFile( *ExportFilename );
+						// Export the anim sequences
+						TArray<UAnimSequence*> AnimSequences;
+						for (int32 TrackKeyIndex = 0; TrackKeyIndex < AnimTrack->AnimSeqs.Num(); ++TrackKeyIndex)
+						{
+							UAnimSequence* AnimSeq = AnimTrack->AnimSeqs[TrackKeyIndex].AnimSeq;
+
+							if (AnimSeq)
+							{
+								AnimSequences.Push(AnimSeq);
+							}
+							else
+							{
+								UE_LOG(LogSlateMatinee, Warning, TEXT("Warning: Animation not found when exporting %s"), *AnimTrack->GetName());
+							}
+						}
+
+						GWarn->BeginSlowTask(LOCTEXT("BeginExportingAnimationsTask", "Exporting Animations"), true);
+						FString ExportName = Group->GroupName.ToString() + TEXT("_") + AnimTrack->GetName();
+						Exporter->ExportAnimSequencesAsSingle(SkelMesh, SkelMeshActor, ExportName, AnimSequences, AnimTrack->AnimSeqs);
+						GWarn->EndSlowTask();
+						// Save to disk
+						Exporter->WriteToFile(*ExportFilename);
+					}
 				}
 			}
 		}
@@ -2023,23 +2030,30 @@ void FMatinee::OnContextGroupExportAnimFBX()
 
 							UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 							
-							FFormatNamedArguments Args;
-							Args.Add( TEXT("MatineeGroupName"), FText::FromString( SelectedGroup->GetName() ) );
-							GWarn->BeginSlowTask( FText::Format( LOCTEXT("BeginExportingMatineeGroupTask", "Exporting {MatineeGroupName}"), Args ), true );
-							// Export the Matinee information to an FBX document.
-							Exporter->CreateDocument();
-							Exporter->SetTrasformBaking(bBakeTransforms);
-							const bool bKeepHierarchy = GetDefault<UEditorPerProjectUserSettings>()->bKeepAttachHierarchy;
-							Exporter->SetKeepHierarchy(bKeepHierarchy);
+							//Show the fbx export dialog options
+							bool ExportCancel = false;
+							bool ExportAll = false;
+							Exporter->FillExportOptions(false, true, ExportFilename, ExportCancel, ExportAll);
+							if (!ExportCancel)
+							{
+								FFormatNamedArguments Args;
+								Args.Add(TEXT("MatineeGroupName"), FText::FromString(SelectedGroup->GetName()));
+								GWarn->BeginSlowTask(FText::Format(LOCTEXT("BeginExportingMatineeGroupTask", "Exporting {MatineeGroupName}"), Args), true);
+								// Export the Matinee information to an FBX document.
+								Exporter->CreateDocument();
+								Exporter->SetTrasformBaking(bBakeTransforms);
+								const bool bKeepHierarchy = GetDefault<UEditorPerProjectUserSettings>()->bKeepAttachHierarchy;
+								Exporter->SetKeepHierarchy(bKeepHierarchy);
 
-							// Export the animation sequences in the group by sampling the skeletal mesh over the
-							// duration of the matinee sequence
-							Exporter->ExportMatineeGroup(MatineeActor, SkelMeshComponent);
+								// Export the animation sequences in the group by sampling the skeletal mesh over the
+								// duration of the matinee sequence
+								Exporter->ExportMatineeGroup(MatineeActor, SkelMeshComponent);
 
-							// Save to disk
-							Exporter->WriteToFile( *ExportFilename );
+								// Save to disk
+								Exporter->WriteToFile(*ExportFilename);
 
-							GWarn->EndSlowTask();
+								GWarn->EndSlowTask();
+							}
 
 						}
 					}
@@ -3898,39 +3912,46 @@ void FMatinee::OnMenuExport()
 			{
 				Exporter = UnFbx::FFbxExporter::GetInstance();
 
-				// Export the Matinee information to an FBX file
-				Exporter->CreateDocument();
-				Exporter->SetTrasformBaking(bBakeTransforms);
-				const bool bKeepHierarchy = GetDefault<UEditorPerProjectUserSettings>()->bKeepAttachHierarchy;
-				Exporter->SetKeepHierarchy(bKeepHierarchy);
-
-				UnFbx::FFbxExporter::FMatineeNodeNameAdapter NodeNameAdapter(MatineeActor);
-
-				const bool bSelectedOnly = false;
-				// Export the persistent level and all of it's actors
-				Exporter->ExportLevelMesh(MatineeActor->GetWorld()->PersistentLevel, bSelectedOnly, NodeNameAdapter );
-
-				// Export streaming levels and actors
-				for( int32 CurLevelIndex = 0; CurLevelIndex < MatineeActor->GetWorld()->GetNumLevels(); ++CurLevelIndex )
+				//Show the fbx export dialog options
+				bool ExportCancel = false;
+				bool ExportAll = false;
+				Exporter->FillExportOptions(false, true, ExportFilename, ExportCancel, ExportAll);
+				if (!ExportCancel)
 				{
-					ULevel* CurLevel = MatineeActor->GetWorld()->GetLevel(CurLevelIndex);
-					if( CurLevel != NULL && CurLevel != (MatineeActor->GetWorld()->PersistentLevel ))
-					{
-						Exporter->ExportLevelMesh( CurLevel, bSelectedOnly, NodeNameAdapter );
-					}
-				}
+					// Export the Matinee information to an FBX file
+					Exporter->CreateDocument();
+					Exporter->SetTrasformBaking(bBakeTransforms);
+					const bool bKeepHierarchy = GetDefault<UEditorPerProjectUserSettings>()->bKeepAttachHierarchy;
+					Exporter->SetKeepHierarchy(bKeepHierarchy);
 
-				// Export Matinee
-				if (Exporter->ExportMatinee(MatineeActor))
-				{
-					if (FEngineAnalytics::IsAvailable())
-					{
-						FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.Exported"));
-					}
-				}
+					UnFbx::FFbxExporter::FMatineeNodeNameAdapter NodeNameAdapter(MatineeActor);
 
-				// Save to disk
-				Exporter->WriteToFile( *ExportFilename );
+					const bool bSelectedOnly = false;
+					// Export the persistent level and all of it's actors
+					Exporter->ExportLevelMesh(MatineeActor->GetWorld()->PersistentLevel, bSelectedOnly, NodeNameAdapter);
+
+					// Export streaming levels and actors
+					for (int32 CurLevelIndex = 0; CurLevelIndex < MatineeActor->GetWorld()->GetNumLevels(); ++CurLevelIndex)
+					{
+						ULevel* CurLevel = MatineeActor->GetWorld()->GetLevel(CurLevelIndex);
+						if (CurLevel != NULL && CurLevel != (MatineeActor->GetWorld()->PersistentLevel))
+						{
+							Exporter->ExportLevelMesh(CurLevel, bSelectedOnly, NodeNameAdapter);
+						}
+					}
+
+					// Export Matinee
+					if (Exporter->ExportMatinee(MatineeActor))
+					{
+						if (FEngineAnalytics::IsAvailable())
+						{
+							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.Exported"));
+						}
+					}
+
+					// Save to disk
+					Exporter->WriteToFile(*ExportFilename);
+				}
 			}
 			else
 			{

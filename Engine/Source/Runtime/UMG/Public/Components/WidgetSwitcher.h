@@ -44,6 +44,10 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Switcher" )
 	UWidget* GetWidgetAtIndex( int32 Index ) const;
 	
+	/** Get the reference of the currently active widget */
+	UFUNCTION(BlueprintCallable, Category = "Switcher")
+	UWidget* GetActiveWidget() const;
+	
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;

@@ -1445,7 +1445,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 		if (SkeletalMesh)
 		{
 			SkeletalMesh->ClearFlags(RF_Standalone);
-			SkeletalMesh->Rename(NULL, GetTransientPackage());
+			SkeletalMesh->Rename(NULL, GetTransientPackage(), REN_DontCreateRedirectors);
 		}
 		return nullptr;
 	}
@@ -1469,7 +1469,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 		if (SkeletalMesh)
 		{
 			SkeletalMesh->ClearFlags(RF_Standalone);
-			SkeletalMesh->Rename(NULL, GetTransientPackage());
+			SkeletalMesh->Rename(NULL, GetTransientPackage(), REN_DontCreateRedirectors);
 		}
 		return nullptr;
 	}

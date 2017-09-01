@@ -12,7 +12,7 @@ static FAutoConsoleVariableRef CVarSlateMaxKernelSize(TEXT("Slate.BackgroundBlur
 static int32 bDownsampleForBlur = 1;
 static FAutoConsoleVariableRef CVarDownsampleForBlur(TEXT("Slate.BackgroundBlurDownsample"), bDownsampleForBlur, TEXT(""), ECVF_Cheat);
 
-#if PLATFORM_USES_ES2
+#if PLATFORM_ANDROID
 // This feature has not been tested on es2 and will likely not work so we force low quality fallback mode
 static int32 bForceLowQualityBrushFallback = 1;
 #else

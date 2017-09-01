@@ -12,6 +12,7 @@
 #include "MovieSceneCaptureHelpers.h"
 #include "EngineUtils.h"
 #include "Sections/MovieSceneCinematicShotSection.h"
+#include "TimerManager.h"
 
 UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInitializer& Init)
 	: Super(Init)
@@ -30,7 +31,6 @@ UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInit
 	DelayBeforeWarmUp = 0.0f;
 	bWriteEditDecisionList = true;
 
-	RemainingDelaySeconds = 0.0f;
 	RemainingWarmUpFrames = 0;
 
 	NumShots = 0;
@@ -173,7 +173,6 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 	ExportEDL();
 
 	CaptureState = ELevelSequenceCaptureState::Setup;
-	RemainingDelaySeconds = FMath::Max( 0.0f, DelayBeforeWarmUp );
 	CaptureStrategy = MakeShareable(new FFixedTimeStepCaptureStrategy(Settings.FrameRate));
 }
 
@@ -446,30 +445,24 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 		// Bind to the event so we know when to capture a frame
 		OnPlayerUpdatedBinding = Actor->SequencePlayer->OnSequenceUpdated().AddUObject( this, &UAutomatedLevelSequenceCapture::SequenceUpdated );
 
-		CaptureState = ELevelSequenceCaptureState::DelayBeforeWarmUp;
-	}
+		if (DelayBeforeWarmUp > 0)
+		{
+			CaptureState = ELevelSequenceCaptureState::DelayBeforeWarmUp;
 
-	bool bShouldPlaySequence = false;
+			Actor->GetWorld()->GetTimerManager().SetTimer(DelayTimer, FTimerDelegate::CreateUObject(this, &UAutomatedLevelSequenceCapture::DelayBeforeWarmupFinished), DelayBeforeWarmUp, false);
+		}
+		else
+		{
+			DelayBeforeWarmupFinished();
+		}
+	}
 
 	// Then we'll just wait a little bit.  We'll delay the specified number of seconds before capturing to allow any
 	// textures to stream in or post processing effects to settle.
 	if( CaptureState == ELevelSequenceCaptureState::DelayBeforeWarmUp )
 	{
+		// Ensure evaluation at the start of the sequence/shot
 		Actor->SequencePlayer->SetPlaybackPosition(0.f);
-		
-		RemainingDelaySeconds -= DeltaSeconds;
-		if( RemainingDelaySeconds <= 0.0f )
-		{
-			RemainingDelaySeconds = 0.0f;
-
-			// Start warming up.  Even if we're not capturing yet, this will make sure we're rendering at a
-			// fixed frame rate.
-			StartWarmup();
-
-			// Wait a frame to go by after we've set the fixed time step, so that the animation starts
-			// playback at a consistent time
-			CaptureState = ELevelSequenceCaptureState::ReadyToWarmUp;
-		}
 	}
 	else if( CaptureState == ELevelSequenceCaptureState::ReadyToWarmUp )
 	{
@@ -511,12 +504,57 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	}
 }
 
+void UAutomatedLevelSequenceCapture::DelayBeforeWarmupFinished()
+{
+	StartWarmup();
+
+	// Wait a frame to go by after we've set the fixed time step, so that the animation starts
+	// playback at a consistent time
+	CaptureState = ELevelSequenceCaptureState::ReadyToWarmUp;
+}
+
+void UAutomatedLevelSequenceCapture::PauseFinished()
+{
+	CaptureState = ELevelSequenceCaptureState::FinishedWarmUp;
+
+	if (CachedPlayRate.IsSet())
+	{
+		ALevelSequenceActor* Actor = LevelSequenceActor.Get();
+	
+		// Force an evaluation to capture this frame
+		Actor->SequencePlayer->SetPlaybackPosition(Actor->SequencePlayer->GetPlaybackPosition());
+		
+		// Continue playing forwards
+		Actor->SequencePlayer->SetPlayRate(CachedPlayRate.GetValue());
+		CachedPlayRate.Reset();
+	}
+}
+
 void UAutomatedLevelSequenceCapture::SequenceUpdated(const UMovieSceneSequencePlayer& Player, float CurrentTime, float PreviousTime)
 {
 	if (bCapturing)
 	{
+		FLevelSequencePlayerSnapshot PreviousState = CachedState;
+
 		UpdateFrameState();
-		CaptureThisFrame(CurrentTime - PreviousTime);
+
+		ALevelSequenceActor* Actor = LevelSequenceActor.Get();
+		if (Actor && Actor->SequencePlayer)
+		{
+			// If this is a new shot, set the state to shot warm up and pause on this frame until warmed up
+			bool bNewShot = !PreviousState.CurrentShotName.IdenticalTo(CachedState.CurrentShotName);
+			if (bNewShot && Actor->SequencePlayer->IsPlaying() && DelayBeforeWarmUp > 0)
+			{
+				CaptureState = ELevelSequenceCaptureState::Paused;
+				Actor->GetWorld()->GetTimerManager().SetTimer(DelayTimer, FTimerDelegate::CreateUObject(this, &UAutomatedLevelSequenceCapture::PauseFinished), DelayBeforeWarmUp, false);
+				CachedPlayRate = Actor->SequencePlayer->GetPlayRate();
+				Actor->SequencePlayer->SetPlayRate(0.f);
+			}
+			else if (CaptureState == ELevelSequenceCaptureState::FinishedWarmUp)
+			{
+				CaptureThisFrame(CurrentTime - PreviousTime);
+			}
+		}
 	}
 }
 

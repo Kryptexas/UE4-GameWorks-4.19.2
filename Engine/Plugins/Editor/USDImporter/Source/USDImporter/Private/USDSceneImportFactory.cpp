@@ -17,6 +17,7 @@
 #include "PropertySetter.h"
 #include "AssetSelection.h"
 #include "JsonObjectConverter.h"
+#include "USDPrimResolver.h"
 
 #define LOCTEXT_NAMESPACE "USDImportPlugin"
 
@@ -55,193 +56,41 @@ UObject* UUSDSceneImportFactory::FactoryCreateFile(UClass* InClass, UObject* InP
 		{
 			IUsdPrim* RootPrim = Stage->GetRootPrim();
 
-			ImportContext.Init(InParent, InName.ToString(), Flags, Stage);
+			ImportContext.Init(InParent, InName.ToString(), Stage);
 			ImportContext.ImportOptions = ImportOptions;
+
+			if (IsAutomatedImport() && InParent && ImportOptions->PathForAssets.Path == TEXT("/Game"))
+			{
+				ImportOptions->PathForAssets.Path = ImportContext.ImportPathName;
+			}
+
 			ImportContext.ImportPathName = ImportOptions->PathForAssets.Path;
 	
 			// Actors will have the transform
 			ImportContext.bApplyWorldTransformToGeometry = false;
 
 			TArray<FUsdPrimToImport> PrimsToImport;
-			USDImporter->FindPrimsToImport(ImportContext, PrimsToImport);
 
-			//Find Meshes to import
-			struct FPrimToAssetName
-			{
-				FUsdPrimToImport PrimData;
-				FString UniqueAssetName;
-			};
-
-			TMap<FString, TArray<FPrimToAssetName>> ExistingNamesToCount;
-
-
-			for (const FUsdPrimToImport& PrimData : PrimsToImport)
-			{
-				FString MeshName = USDToUnreal::ConvertString(PrimData.Prim->GetPrimName());
-
-				// Make unique names
-				TArray<FPrimToAssetName>& ExistingPrimsWithName = ExistingNamesToCount.FindOrAdd(MeshName);
-
-				int32 ExistingCount = ExistingPrimsWithName.Num();
-				if (ExistingCount)
-				{
-					MeshName += TEXT("_");
-					MeshName.AppendInt(ExistingCount);
-				}
-
-				MeshName = ObjectTools::SanitizeObjectName(MeshName);
-
-				FPrimToAssetName PrimToAssetName;
-				PrimToAssetName.PrimData = PrimData;
-				PrimToAssetName.UniqueAssetName = MeshName;
-
-				ExistingPrimsWithName.Add(PrimToAssetName);
-			}
-
-			FScopedSlowTask SlowTask(2.0f, LOCTEXT("ImportingUSDMeshes", "Importing USD Meshes"));
-			SlowTask.Visibility = ESlowTaskVisibility::ForceVisible;
-			int32 MeshCount = 0;
-
-
-			for (auto It = ExistingNamesToCount.CreateConstIterator(); It; ++It)
-			{
-				const FString RawMeshName = It.Key();
-				const TArray<FPrimToAssetName>& PrimToAssetNames = It.Value();
-
-				UObject* Asset = nullptr;
-				int32 Count = PrimToAssetNames.Num();
-
-				for(const FPrimToAssetName& PrimToAssetName : PrimToAssetNames)
-				{
-					FString FullPath;
-					if (!ImportOptions->bGenerateUniqueMeshes)
-					{
-						FullPath = ImportContext.ImportPathName / RawMeshName;
-					}
-					else if (ImportOptions->bGenerateUniquePathPerUSDPrim)
-					{
-						FString USDPath = USDToUnreal::ConvertString(PrimToAssetName.PrimData.Prim->GetPrimPath());
-						USDPath.RemoveFromEnd(RawMeshName);
-						FullPath = ImportContext.ImportPathName / USDPath / RawMeshName;
-					}
-					else
-					{
-						FullPath = ImportContext.ImportPathName / PrimToAssetName.UniqueAssetName;
-					}
-
-					if (AssetRegistry.IsLoadingAssets())
-					{
-						Asset = LoadObject<UObject>(nullptr, *FullPath, nullptr, LOAD_NoWarn | LOAD_Quiet);
-					}
-					else
-					{
-						// Use the asset registry if it is available for faster searching
-						FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(*FullPath);
-						Asset = AssetData.GetAsset();
-					}
-
-					const bool bImportAsset =
-						ImportOptions->bImportMeshes &&
-						(!Asset || ImportOptions->ExistingAssetPolicy == EExistingAssetPolicy::Reimport);
-
-					SlowTask.EnterProgressFrame(1.0f / PrimsToImport.Num(), FText::Format(LOCTEXT("ImportingUSDMesh", "Importing Mesh {0} of {1}"), MeshCount + 1, PrimsToImport.Num()));
-
-					if (bImportAsset)
-					{
-						FString NewPackageName = PackageTools::SanitizePackageName(FullPath);
-						UPackage* Package = CreatePackage(nullptr, *NewPackageName);
-						Package->FullyLoad();
-
-						ImportContext.Parent = Package;
-						ImportContext.ObjectName = FPackageName::GetLongPackageAssetName(Package->GetOutermost()->GetName());
-
-						Asset = USDImporter->ImportSingleMesh(ImportContext, ImportOptions->MeshImportType, PrimToAssetName.PrimData);
-
-						if(Asset)
-						{
-							FAssetRegistryModule::AssetCreated(Asset);
-							Package->MarkPackageDirty();
-						}
-					}
-	
-					if(Asset)
-					{
-						ImportContext.PrimToAssetMap.Add(PrimToAssetName.PrimData.Prim, Asset);
-					}
-
-					++MeshCount;
-				}
-			}
-
-
-			// Important: Actors should not be created with RF_Public or RF_Standalone so remove them now.   We only want transactional for actors.
-			ImportContext.ObjectFlags = RF_Transactional;
-
+			UUSDPrimResolver* PrimResolver = ImportContext.PrimResolver;
+		
 			EExistingActorPolicy ExistingActorPolicy = ImportOptions->ExistingActorPolicy;
 
-			TArray<FActorSpawnData> RootSpawnDatas;
+			TArray<FActorSpawnData> SpawnDatas;
 
-			int32 TotalNumSpawnables = 0;
-			GenerateSpawnables(RootSpawnDatas, TotalNumSpawnables);
+			FScopedSlowTask SlowTask(3.0f, LOCTEXT("ImportingUSDScene", "Importing USD Scene"));
+	
+			SlowTask.EnterProgressFrame(1.0f, LOCTEXT("FindingActorsToSpawn", "Finding Actors To Spawn"));
+			PrimResolver->FindActorsToSpawn(ImportContext, SpawnDatas);
 
-			// We need to check here for any actors that exist that need to be deleted before we continue (they are getting replaced)
-			{
-				bool bDeletedActors = false;
+			SlowTask.EnterProgressFrame(1.0f, LOCTEXT("SpawningActors", "SpawningActors"));
+			RemoveExistingActors();
 
-				USelection* ActorSelection = GEditor->GetSelectedActors();
-				ActorSelection->BeginBatchSelectOperation();
-
-				if (ExistingActorPolicy == EExistingActorPolicy::Replace && ImportContext.ActorsToDestroy.Num())
-				{
-					for (FName ExistingActorName : ImportContext.ActorsToDestroy)
-					{
-						AActor* ExistingActor = ImportContext.ExistingActors.FindAndRemoveChecked(ExistingActorName);
-						if (ExistingActor)
-						{
-							bDeletedActors = true;
-							if (ExistingActor->IsSelected())
-							{
-								GEditor->SelectActor(ExistingActor, false, false);
-							}
-							ImportContext.World->DestroyActor(ExistingActor);
-						}
-					}
-				}
-
-				ActorSelection->EndBatchSelectOperation();
-
-				if (!IsAutomatedImport())
-				{
-					GEditor->NoteSelectionChange();
-				}
-
-				if (bDeletedActors)
-				{
-					// We need to make sure the actors are really gone before we start replacing them
-					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-				}
-			}
-
-			// Refresh actor labels as we deleted actors which were cached
-			ULevel* CurrentLevel = ImportContext.World->GetCurrentLevel();
-			check(CurrentLevel);
-
-			for (AActor* Actor : CurrentLevel->Actors)
-			{
-				if (Actor)
-				{
-					ImportContext.ActorLabels.Add(Actor->GetActorLabel());
-				}
-			}
-
-			for (const FActorSpawnData& SpawnData : RootSpawnDatas)
-			{
-				SpawnActors(SpawnData, nullptr, TotalNumSpawnables, SlowTask);
-			}
-
+			SpawnActors(SpawnDatas, SlowTask);
 		}
 
 		FEditorDelegates::OnAssetPostImport.Broadcast(this, ImportContext.World);
+
+		GEditor->BroadcastLevelActorListChanged();
 
 		ImportContext.DisplayErrorMessages(IsAutomatedImport());
 
@@ -277,240 +126,79 @@ void UUSDSceneImportFactory::ParseFromJson(TSharedRef<class FJsonObject> ImportS
 	FJsonObjectConverter::JsonObjectToUStruct(ImportSettingsJson, ImportOptions->GetClass(), ImportOptions, 0, CPF_InstancedReference);
 }
 
-void UUSDSceneImportFactory::GenerateSpawnables(TArray<FActorSpawnData>& OutRootSpawnDatas, int32& OutTotalNumSpawnables)
+void UUSDSceneImportFactory::SpawnActors(const TArray<FActorSpawnData>& SpawnDatas, FScopedSlowTask& SlowTask)
 {
-	IUsdPrim* RootPrim = ImportContext.RootPrim;
+	if(SpawnDatas.Num() > 0)
+	{
+		int32 SpawnCount = 0;
 
-	if(RootPrim->HasTransform())
-	{
-		InitSpawnData_Recursive(RootPrim, OutRootSpawnDatas, OutTotalNumSpawnables);
-	}
-	else
-	{
-		for (int32 ChildIdx = 0; ChildIdx < RootPrim->GetNumChildren(); ++ChildIdx)
+		FText NumActorsToSpawn = FText::AsNumber(SpawnDatas.Num());
+
+		const float WorkAmount = 1.0f / SpawnDatas.Num();
+
+		for (const FActorSpawnData& SpawnData : SpawnDatas)
 		{
-			IUsdPrim* Child = RootPrim->GetChild(ChildIdx);
+			++SpawnCount;
+			SlowTask.EnterProgressFrame(WorkAmount, FText::Format(LOCTEXT("SpawningActor", "SpawningActor {0}/{1}"), FText::AsNumber(SpawnCount), NumActorsToSpawn));
 
-			InitSpawnData_Recursive(Child, OutRootSpawnDatas, OutTotalNumSpawnables);
+			AActor* SpawnedActor = ImportContext.PrimResolver->SpawnActor(ImportContext, SpawnData);
+
+			OnActorSpawned(SpawnedActor, SpawnData);
 		}
 	}
 }
 
-void UUSDSceneImportFactory::SpawnActors(const FActorSpawnData& SpawnData, AActor* AttachParent, int32 TotalNumSpawnables, FScopedSlowTask& SlowTask)
+void UUSDSceneImportFactory::RemoveExistingActors()
 {
-	SlowTask.EnterProgressFrame(1.0f / TotalNumSpawnables, LOCTEXT("SpawningActors", "Spawning Actors"));
-
-	const bool bFlattenHierarchy = ImportOptions->bFlattenHierarchy;
-
-	AActor* ModifiedActor = nullptr;
-
-	// Look for an existing actor and decide what to do based on the users choice
-	AActor* ExistingActor = ImportContext.ExistingActors.FindRef(SpawnData.ActorName);
-
-	bool bShouldSpawnNewActor = true;
-	EExistingActorPolicy ExistingActorPolicy = ImportOptions->ExistingActorPolicy;
-
-	const FMatrix ActorMtx = USDToUnreal::ConvertMatrix(bFlattenHierarchy ? SpawnData.Prim->GetLocalToWorldTransform() : SpawnData.Prim->GetLocalToParentTransform());
-
-	const FTransform ConversionTransform = ImportContext.ConversionTransform;
-
-	const FTransform ActorTransform = ConversionTransform*FTransform(ActorMtx)*ConversionTransform;
-
-	if (ExistingActor && ExistingActorPolicy == EExistingActorPolicy::UpdateTransform)
+	// We need to check here for any actors that exist that need to be deleted before we continue (they are getting replaced)
 	{
-		ExistingActor->Modify();
-		ModifiedActor = ExistingActor;
+		bool bDeletedActors = false;
 
-		ExistingActor->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
-		ExistingActor->SetActorRelativeTransform(ActorTransform);
+		USelection* ActorSelection = GEditor->GetSelectedActors();
+		ActorSelection->BeginBatchSelectOperation();
 
-		bShouldSpawnNewActor = false;
-	}
-	else if (ExistingActor && ExistingActorPolicy == EExistingActorPolicy::Ignore)
-	{
-		// Ignore this actor and do nothing
-		bShouldSpawnNewActor = false;
-	}
+		EExistingActorPolicy ExistingActorPolicy = ImportOptions->ExistingActorPolicy;
 
-	bShouldSpawnNewActor &= (SpawnData.Asset || SpawnData.CustomActorClass || !bFlattenHierarchy);
-
-	if (bShouldSpawnNewActor)
-	{
-		UActorFactory* Factory = SpawnData.ActorFactory;
-
-		AActor* SpawnedActor = nullptr;
-		if (SpawnData.CustomActorClass)
+		if (ExistingActorPolicy == EExistingActorPolicy::Replace && ImportContext.ActorsToDestroy.Num())
 		{
-			SpawnedActor = ImportContext.World->SpawnActor<AActor>(SpawnData.CustomActorClass);
-		}
-		else
-		{
-			SpawnedActor = Factory->CreateActor(SpawnData.Asset, ImportContext.World->GetCurrentLevel(), FTransform::Identity, ImportContext.ObjectFlags, SpawnData.ActorName);
-		}
-
-		if (AttachParent)
-		{
-			SpawnedActor->AttachToActor(AttachParent, FAttachmentTransformRules::KeepRelativeTransform);
-		}
-
-		SpawnedActor->SetActorRelativeTransform(ActorTransform);
-
-		FActorLabelUtilities::SetActorLabelUnique(SpawnedActor, SpawnData.ActorName.ToString(), &ImportContext.ActorLabels);
-		ImportContext.ActorLabels.Add(SpawnedActor->GetActorLabel());
-
-		OnActorSpawned(SpawnedActor, SpawnData);
-
-		ModifiedActor = SpawnedActor;
-	}
-
-	for (const FActorSpawnData& ChildData : SpawnData.Children)
-	{
-		SpawnActors(ChildData, !bFlattenHierarchy ? ModifiedActor : nullptr, TotalNumSpawnables, SlowTask);
-	}
-
-}
-
-void UUSDSceneImportFactory::InitSpawnData_Recursive(IUsdPrim* Prim, TArray<FActorSpawnData>& OutSpawnDatas, int32& OutTotalNumSpawnables)
-{
-	TArray<FActorSpawnData>* SpawnDataArray = &OutSpawnDatas;
-
-	FString AssetPath;
-	FName ActorClassName;
-	if(Prim->HasTransform())
-	{
-		FActorSpawnData SpawnData;
-
-		SpawnData.ActorFactory = ImportContext.EmptyActorFactory;
-
-		if (Prim->GetUnrealActorClass())
-		{
-			ActorClassName = USDToUnreal::ConvertName(Prim->GetUnrealActorClass());
-		}
-
-		if (Prim->GetUnrealAssetPath())
-		{
-			AssetPath = USDToUnreal::ConvertString(Prim->GetUnrealAssetPath());
-		}
-
-		SpawnData.Prim = Prim;
-
-		// Spawn a custom actor class (may not have an associated actor factory)
-		if (ActorClassName != NAME_None)
-		{
-			TSubclassOf<AActor> ActorClass = nullptr;
-
-			// Attempt to use the fully qualified path first.  If not use the expensive slow path.
+			for (FName ExistingActorName : ImportContext.ActorsToDestroy)
 			{
-				ActorClass = LoadClass<AActor>(nullptr, *ActorClassName.ToString(), nullptr);
-			}
-
-			if(!ActorClass)
-			{
-				IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
-
-				UObject* TestObject = nullptr;
-				TArray<FAssetData> AssetDatas;
-
-				AssetRegistry.GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), AssetDatas);
-				
-				UClass* TestClass = nullptr;
-				for (const FAssetData& AssetData : AssetDatas)
+				AActor* ExistingActor = ImportContext.ExistingActors.FindAndRemoveChecked(ExistingActorName);
+				if (ExistingActor)
 				{
-					if (AssetData.AssetName == ActorClassName)
+					bDeletedActors = true;
+					if (ExistingActor->IsSelected())
 					{
-						TestClass = Cast<UBlueprint>(AssetData.GetAsset())->GeneratedClass;
-						break;
+						GEditor->SelectActor(ExistingActor, false, false);
 					}
-				}
-
-				if (TestClass && TestClass->IsChildOf<AActor>())
-				{
-					ActorClass = TestClass;
-				}
-
-				if (!ActorClass)
-				{
-					ImportContext.AddErrorMessage(
-						EMessageSeverity::Error, FText::Format(LOCTEXT("CouldNotFindUnrealActorClass", "Could not find Unreal Actor Class '{0}' for USD prim '{1}'"),
-							FText::FromName(ActorClassName),
-							FText::FromString(USDToUnreal::ConvertString(Prim->GetPrimPath()))));
-
+					ImportContext.World->DestroyActor(ExistingActor);
 				}
 			}
-
-			SpawnData.CustomActorClass = ActorClass;
-
 		}
-		else if (!AssetPath.IsEmpty())
+
+		ActorSelection->EndBatchSelectOperation();
+
+		if (!IsAutomatedImport())
 		{
-			SpawnData.Asset = LoadObject<UObject>(nullptr, *AssetPath);
-			if (!SpawnData.Asset)
-			{
-				ImportContext.AddErrorMessage(
-					EMessageSeverity::Error, FText::Format(LOCTEXT("CouldNotFindUnrealAssetPath", "Could not find Unreal Asset '{0}' for USD prim '{1}'"), 
-					FText::FromString(AssetPath), 
-					FText::FromString(USDToUnreal::ConvertString(Prim->GetPrimPath()))));
-
-				UE_LOG(LogUSDImport, Error, TEXT("Could not find Unreal Asset '%s' for USD prim '%s'"), *AssetPath, *SpawnData.ActorName.ToString());
-			}
-			
+			GEditor->NoteSelectionChange();
 		}
 
-		if (!SpawnData.Asset)
+		if (bDeletedActors)
 		{
-			SpawnData.Asset = ImportContext.PrimToAssetMap.FindRef(Prim);
+			// We need to make sure the actors are really gone before we start replacing them
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 		}
-
-		if (SpawnData.Asset)
-		{
-			UClass* AssetClass = SpawnData.Asset->GetClass();
-
-			// Find an actor factory to use to spawn this asset.  Cache it off so we are not constantly searching through the entire factory list
-			// likely event that the usd file has more than one of the same type of actor
-			UActorFactory* Factory = ImportContext.UsedFactories.FindRef(AssetClass);
-			if (!Factory)
-			{
-				Factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(SpawnData.Asset);
-				if (Factory)
-				{
-					ImportContext.UsedFactories.Add(AssetClass, Factory);
-				}
-				else
-				{
-					ImportContext.AddErrorMessage(
-						EMessageSeverity::Error, FText::Format(LOCTEXT("CouldNotFindActorFactory", "Could not find an actor type to spawn for '{0}'"),
-							FText::FromString(SpawnData.Asset->GetName()))
-					);
-
-					Factory = ImportContext.EmptyActorFactory;
-				}
-			}
-
-			SpawnData.ActorFactory = Factory;
-		}
-
-		FName PrimName = USDToUnreal::ConvertName(Prim->GetPrimName());
-		SpawnData.ActorName = PrimName;
-
-		if (ImportOptions->ExistingActorPolicy == EExistingActorPolicy::Replace && ImportContext.ExistingActors.Contains(SpawnData.ActorName))
-		{
-			ImportContext.ActorsToDestroy.Add(SpawnData.ActorName);
-		}
-
-		int32 Index = OutSpawnDatas.Add(SpawnData);
-
-		SpawnDataArray = &OutSpawnDatas[Index].Children;
-
-		++OutTotalNumSpawnables;
 	}
 
-	if(!ImportContext.bFindUnrealAssetReferences || AssetPath.IsEmpty())
-	{
-		for (int32 ChildIdx = 0; ChildIdx < Prim->GetNumChildren(); ++ChildIdx)
-		{
-			IUsdPrim* Child = Prim->GetChild(ChildIdx);
+	// Refresh actor labels as we deleted actors which were cached
+	ULevel* CurrentLevel = ImportContext.World->GetCurrentLevel();
+	check(CurrentLevel);
 
-			InitSpawnData_Recursive(Child, *SpawnDataArray, OutTotalNumSpawnables);
+	for (AActor* Actor : CurrentLevel->Actors)
+	{
+		if (Actor)
+		{
+			ImportContext.ActorLabels.Add(Actor->GetActorLabel());
 		}
 	}
 }
@@ -521,13 +209,13 @@ void UUSDSceneImportFactory::OnActorSpawned(AActor* SpawnedActor, const FActorSp
 	{
 		FUSDPropertySetter PropertySetter(ImportContext);
 
-		PropertySetter.ApplyPropertiesToActor(SpawnedActor, SpawnData.Prim, TEXT(""));
+		PropertySetter.ApplyPropertiesToActor(SpawnedActor, SpawnData.ActorPrim, TEXT(""));
 	}
 }
 
-void FUSDSceneImportContext::Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, IUsdStage* InStage)
+void FUSDSceneImportContext::Init(UObject* InParent, const FString& InName, IUsdStage* InStage)
 {
-	FUsdImportContext::Init(InParent, InName, InFlags, InStage);
+	FUsdImportContext::Init(InParent, InName, InStage);
 
 	World = GEditor->GetEditorWorldContext().World();
 

@@ -55,7 +55,7 @@ struct FMetalDebugBufferBindings
     /** The bound buffers or nil. */
     id<MTLBuffer> _Nullable Buffers[ML_MaxBuffers];
     /** Optional bytes buffer used instead of an id<MTLBuffer> */
-    void const * _Nullable Bytes[ML_MaxBuffers];
+    void const* _Nullable Bytes[ML_MaxBuffers];
     /** The bound buffer offsets or 0. */
     NSUInteger Offsets[ML_MaxBuffers];
 };

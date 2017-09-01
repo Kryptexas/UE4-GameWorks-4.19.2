@@ -12,24 +12,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogUSDSceneImport, Log, All);
 
 class UWorld;
 
-struct FActorSpawnData
-{
-	FActorSpawnData()
-		: Asset(nullptr)
-		, CustomActorClass(nullptr)
-		, Prim(nullptr)
-	{}
-
-	UActorFactory* ActorFactory;
-	UObject* Asset;
-	TSubclassOf<AActor> CustomActorClass;
-	FName ActorName;
-	FName InstanceName;
-	IUsdPrim* Prim;
-
-	TArray<FActorSpawnData> Children;
-};
-
 USTRUCT()
 struct FUSDSceneImportContext : public FUsdImportContext
 {
@@ -52,7 +34,7 @@ struct FUSDSceneImportContext : public FUsdImportContext
 
 	FCachedActorLabels ActorLabels;
 
-	virtual void Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, class IUsdStage* InStage);
+	virtual void Init(UObject* InParent, const FString& InName, class IUsdStage* InStage);
 };
 
 UCLASS(transient)
@@ -70,10 +52,9 @@ public:
 	/** IImportSettingsParser interface */
 	virtual void ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson) override;
 private:
-
 	void GenerateSpawnables(TArray<FActorSpawnData>& OutRootSpawnData, int32& OutTotalNumSpawnables);
-	void InitSpawnData_Recursive(class IUsdPrim* Prim, TArray<FActorSpawnData>& OutSpawnDatas, int32& OutTotalNumSpawnables);
-	void SpawnActors(const FActorSpawnData& SpawnData, AActor* AttachParent, int32 TotalNumSpawnables, FScopedSlowTask& SlowTask);
+	void RemoveExistingActors();
+	void SpawnActors(const TArray<FActorSpawnData>& SpawnDatas, FScopedSlowTask& SlowTask);
 	void OnActorSpawned(AActor* SpawnedActor, const FActorSpawnData& SpawnData);
 private:
 	UPROPERTY()

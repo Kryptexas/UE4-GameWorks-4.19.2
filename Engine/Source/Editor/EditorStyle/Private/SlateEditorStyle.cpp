@@ -534,6 +534,14 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetMenuBorderPadding( FMargin( 0.0f ) );
 		Set( "ToolbarComboButton", ToolbarComboButton );
 
+		Set("GenericFilters.ComboButtonStyle", ToolbarComboButton);
+
+		Set("GenericFilters.TextStyle", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 9))
+			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.9f))
+			.SetShadowOffset(FVector2D(1, 1))
+			.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f)));
+
 		ComboButton.SetMenuBorderPadding(FMargin(1.0));
 
 		FComboBoxStyle ComboBox = FComboBoxStyle()
@@ -1166,15 +1174,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			);
 
 		Set("DebugConsole.Background", new BOX_BRUSH("Old/Menu_Background", FMargin(8.0f / 64.0f)));
-
-		const FComboButtonStyle FiltersComboButton = GetWidgetStyle<FComboButtonStyle>("ToolbarComboButton");
-		Set("OutputLog.Filters.Style", FiltersComboButton);
-
-		Set("OutputLog.Filters.Text", FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 9))
-			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.9f))
-			.SetShadowOffset(FVector2D(1, 1))
-			.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f)));
 	}
 
 	// Debug Tools Window
@@ -1555,7 +1554,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "MainFrame.PackageProject", new IMAGE_BRUSH( "Icons/icon_package_16x", Icon16x16 ) );
 		Set( "MainFrame.RecentProjects", new IMAGE_BRUSH( "Icons/icon_file_ProjectsRecent_16px", Icon16x16 ) );
 		Set( "MainFrame.RecentLevels", new IMAGE_BRUSH( "Icons/icon_file_LevelsRecent_16px", Icon16x16 ) );
-		Set( "MainFrame.FavoriteLevels", new IMAGE_BRUSH( "Icons/icon_file_LevelsRecent_16px", Icon16x16 ) );
+		Set( "MainFrame.FavoriteLevels", new IMAGE_BRUSH( "Old/Favorites_Enabled", Icon16x16 ) );
 
 		Set( "MainFrame.DebugTools.SmallFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "MainFrame.DebugTools.NormalFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
@@ -2856,20 +2855,19 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 		Set( "Window.Buttons.Restore.Hovered",    new IMAGE_BRUSH( "Old/Window/WindowButton_Restore_Hovered", FVector2D(23, 18) ) );
 		Set( "Window.Buttons.Restore.Pressed",    new IMAGE_BRUSH( "Old/Window/WindowButton_Restore_Pressed", FVector2D(23, 18) ) );	
 
-		const FButtonStyle CloseButtonStyle = FButtonStyle(Button)
-			.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Close_Normal", FVector2D(44, 18) ) )
-			.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Close_Hovered", FVector2D(44, 18) ) )
-			.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Close_Pressed", FVector2D(44, 18) ) );
-
-		Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Normal", FVector2D(44, 18) ) );
-		Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Hovered", FVector2D(44, 18) ) );
-		Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Pressed", FVector2D(44, 18) ) );
-
 		Set( "Window.Buttons.Minimize", MinimizeButtonStyle );
 		Set( "Window.Buttons.Maximize", MaximizeButtonStyle );
 		Set( "Window.Buttons.Restore", RestoreButtonStyle );
-		Set( "Window.Buttons.Close", CloseButtonStyle );
+        
 #endif
+        const FButtonStyle CloseButtonStyle = FButtonStyle(Button)
+        .SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Close_Normal", FVector2D(44, 18) ) )
+        .SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Close_Hovered", FVector2D(44, 18) ) )
+        .SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Close_Pressed", FVector2D(44, 18) ) );
+        
+        Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Normal", FVector2D(44, 18) ) );
+        Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Hovered", FVector2D(44, 18) ) );
+        Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Pressed", FVector2D(44, 18) ) );		Set( "Window.Buttons.Close", CloseButtonStyle );
 
 		// Title Text
 		const FTextBlockStyle TitleTextStyle = FTextBlockStyle(NormalText)
@@ -3581,6 +3579,9 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 			.SetTextColor( DefaultForeground )
 			.SetSelectedTextColor( InvertedForeground )
 			);
+
+		Set("DetailsView.DropZone.Below", new BOX_BRUSH("Common/VerticalBoxDropZoneIndicator_Below", FMargin(10.0f / 16.0f, 0, 0, 10.0f / 16.0f), SelectionColor_Subdued));
+
 	}
 	}
 
@@ -6042,14 +6043,7 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 		Set( "ContentBrowser.PathActions.NewAsset", new IMAGE_BRUSH( "Icons/icon_file_new_16px", Icon16x16 ) );
 		Set( "ContentBrowser.PathActions.SetColor", new IMAGE_BRUSH( "Icons/icon_Cascade_Color_40x", Icon16x16 ) );
 
-		FComboButtonStyle FiltersComboButton = GetWidgetStyle<FComboButtonStyle>( "ToolbarComboButton" );
-		Set( "ContentBrowser.Filters.Style", FiltersComboButton );
-
-		Set( "ContentBrowser.Filters.Text", FTextBlockStyle( NormalText )
-			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Bold", 9 ) )
-			.SetColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 0.9f ) )
-			.SetShadowOffset( FVector2D( 1, 1 ) )
-			.SetShadowColorAndOpacity( FLinearColor( 0, 0, 0, 0.9f ) ) );
+	
 
 		Set( "ContentBrowser.SaveDirtyPackages", new IMAGE_BRUSH( "Icons/icon_file_saveall_40x", Icon25x25 ) );
 		Set( "ContentBrowser.AddContent", new IMAGE_BRUSH( "Icons/icon_AddContent_40x", Icon25x25 ) );
@@ -7118,6 +7112,8 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("WidgetDesigner.ToggleOutlines.Small", new IMAGE_BRUSH("Icons/UMG/ToggleOutlines.Small", Icon16x16));
 	Set("WidgetDesigner.ToggleRespectLocks", new IMAGE_BRUSH("Icons/UMG/ToggleRespectLocks.Small", Icon16x16));
 	Set("WidgetDesigner.ToggleRespectLocks.Small", new IMAGE_BRUSH("Icons/UMG/ToggleRespectLocks.Small", Icon16x16));
+	Set("WidgetDesigner.ToggleLocalizationPreview", new IMAGE_BRUSH("Icons/icon_localization_white_16x", Icon16x16, FLinearColor::Black));
+	Set("WidgetDesigner.ToggleLocalizationPreview.Small", new IMAGE_BRUSH("Icons/icon_localization_white_16x", Icon16x16, FLinearColor::Black));
 
 	Set("WidgetDesigner.LocationGridSnap", new IMAGE_BRUSH("Old/LevelEditor/LocationGridSnap", Icon14x14, IconColor));
 	Set("WidgetDesigner.RotationGridSnap", new IMAGE_BRUSH("Old/LevelEditor/RotationGridSnap", Icon14x14, IconColor));
@@ -7207,7 +7203,7 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("UMGEditor.SwitchToDesigner", new IMAGE_BRUSH("UMG/Designer_40x", Icon40x40));
 	Set("UMGEditor.SwitchToDesigner.Small", new IMAGE_BRUSH("UMG/Designer_16x", Icon16x16));
 
-	Set("UMGEditor.AnchorGrid", new IMAGE_BRUSH("Icons/UMG/AnchorGrid", Icon10x10, FLinearColor::White, ESlateBrushTileType::Both ));
+	Set("UMGEditor.AnchorGrid", new IMAGE_BRUSH("Icons/UMG/AnchorGrid", Icon10x10, FLinearColor(.1f, .1f, .1f, 0.5f), ESlateBrushTileType::Both ));
 
 	Set("UMGEditor.DPISettings", new IMAGE_BRUSH("Icons/UMG/SettingsButton", Icon16x16));
 

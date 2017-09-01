@@ -170,21 +170,24 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	/** World origin offset value. Non-zero only for a single frame when origin is rebased */
 	FVector OriginOffsetThisFrame;
 
-	// Was there a camera cut this frame?
+	/** Was there a camera cut this frame? */
 	bool bInCameraCut;
 
-	// Whether to use FOV when computing mesh LOD.
+	/** Whether to use FOV when computing mesh LOD. */
 	bool bUseFieldOfViewForLOD;
 
 #if WITH_EDITOR
-	// default to 0'th view index, which is a bitfield of 1
+	/** default to 0'th view index, which is a bitfield of 1 */
 	uint64 EditorViewBitflag;
 
-	// this can be specified for ortho views so that it's min draw distance/LOD parenting etc, is controlled by a perspective viewport
+	/** this can be specified for ortho views so that it's min draw distance/LOD parenting etc, is controlled by a perspective viewport */
 	FVector OverrideLODViewOrigin;
 
-	// In case of ortho, generate a fake view position that has a non-zero W component. The view position will be derived based on the view matrix.
+	/** In case of ortho, generate a fake view position that has a non-zero W component. The view position will be derived based on the view matrix. */
 	bool bUseFauxOrthoViewPos;
+
+	/** Any override for screen percentage per editor view.  Set by DPI scale factor or user overrides */
+	TOptional<float> EditorViewScreenPercentage;
 #endif
 
 	FSceneViewInitOptions()
@@ -208,6 +211,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, EditorViewBitflag(1)
 		, OverrideLODViewOrigin(ForceInitToZero)
 		, bUseFauxOrthoViewPos(false)
+		, EditorViewScreenPercentage()
 		//@TODO: , const TBitArray<>& InSpriteCategoryVisibility=TBitArray<>()
 #endif
 	{

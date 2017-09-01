@@ -1,7 +1,7 @@
-Pandora 
+Pandora 
 =====================================================================
-
-( http://openpandora.org/ )
+
+( http://openpandora.org/ )
 - A pandora specific video driver was written to allow SDL 2.0 with OpenGL ES
 support to work on the pandora under the framebuffer. This driver do not have
 input support for now, so if you use it you will have to add your own control code.

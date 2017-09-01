@@ -95,13 +95,13 @@ UMaterial* FEditorPromotionTestUtilities::CreateMaterialFromTexture(UTexture* In
 * @param Command - The command name to set
 * @param NewChord - The new input chord to assign
 */
-bool FEditorPromotionTestUtilities::SetEditorKeybinding(const FString& CommandContext, const FString& Command, const FInputChord& NewChord)
+bool FEditorPromotionTestUtilities::SetEditorKeybinding(const FString& CommandContext, const FString& Command, const FInputChord& NewChord, const FInputChord& NewAlternateChord)
 {
 	TSharedPtr<FUICommandInfo> UICommand = FInputBindingManager::Get().FindCommandInContext(*CommandContext, *Command);
 	if (UICommand.IsValid())
 	{
-		UICommand->SetActiveChord(NewChord);
-		FInputBindingManager::Get().NotifyActiveChordChanged(*UICommand.Get());
+		UICommand->SetActiveChord(NewChord, EMultipleKeyBindingIndex::Primary);
+		UICommand->SetActiveChord(NewAlternateChord, EMultipleKeyBindingIndex::Secondary);
 		FInputBindingManager::Get().SaveInputBindings();
 		return true;
 	}
@@ -123,8 +123,7 @@ FInputChord FEditorPromotionTestUtilities::GetEditorKeybinding(const FString& Co
 	TSharedPtr<FUICommandInfo> UICommand = FInputBindingManager::Get().FindCommandInContext(*CommandContext, *Command);
 	if (UICommand.IsValid())
 	{
-		TSharedRef<const FInputChord> ActiveChord = UICommand->GetActiveChord();
-		Keybinding = ActiveChord.Get();
+		Keybinding = UICommand->GetFirstValidChord().Get();
 	}
 	return Keybinding;
 }

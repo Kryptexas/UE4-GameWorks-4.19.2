@@ -578,7 +578,7 @@ namespace ImagePlateFrameCache
 			Thread = FRunnableThread::Create(this, TEXT("FFrameLoadingThread"), 4 * 1024, TPri_AboveNormal);
 		}
 
-		TSharedRef<FImagePlateSequenceCache, ESPMode::ThreadSafe> InitialzeLoader(const FString& SequenceFolder, const FString& Wildcard, float Framerate)
+		TSharedRef<FImagePlateSequenceCache, ESPMode::ThreadSafe> InitializeLoader(const FString& SequenceFolder, const FString& Wildcard, float Framerate)
 		{
 			FScopeLock Lock(&CacheArrayCriticalSection);
 			TSharedRef<FImagePlateSequenceCache, ESPMode::ThreadSafe> NewImpl = MakeShared<FImagePlateSequenceCache, ESPMode::ThreadSafe>(SequenceFolder, Wildcard, Framerate);
@@ -723,7 +723,7 @@ namespace ImagePlateFrameCache
 FImagePlateAsyncCache FImagePlateAsyncCache::MakeCache(const FString& InSequencePath, const FString& InWildcard, float Framerate)
 {
 	FImagePlateAsyncCache NewCache;
-	NewCache.Impl = ImagePlateFrameCache::GetFrameLoader().InitialzeLoader(InSequencePath, InWildcard, Framerate);
+	NewCache.Impl = ImagePlateFrameCache::GetFrameLoader().InitializeLoader(InSequencePath, InWildcard, Framerate);
 	return NewCache;
 }
 

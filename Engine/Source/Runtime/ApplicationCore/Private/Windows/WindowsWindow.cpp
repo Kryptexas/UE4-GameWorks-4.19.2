@@ -558,7 +558,7 @@ void FWindowsWindow::Destroy()
 		// If we decremented OLEReferenceCount check it for being null (shutdown)
 		if (Result == S_OK)
 		{
-			checkf(OLEReferenceCount == 0, TEXT("Not all references to window are released, %i left"), OLEReferenceCount);
+			ensureMsgf(OLEReferenceCount == 0, TEXT("Not all references to window are released, %i left"), OLEReferenceCount);
 		}
 	}
 

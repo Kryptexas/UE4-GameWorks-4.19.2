@@ -120,6 +120,15 @@ struct CORE_API FFileHelper
 	 *	@return	bool				true if successful, false if not
 	 */
 	static bool LoadANSITextFileToStrings(const TCHAR* InFilename, IFileManager* InFileManager, TArray<FString>& OutStrings);
+
+	/**
+	* Checks to see if a filename is valid for saving.
+	* A filename must be under MAX_UNREAL_FILENAME_LENGTH to be saved
+	*
+	* @param Filename	Filename, with or without path information, to check.
+	* @param OutError	If an error occurs, this is the reason why
+	*/
+	static bool IsFilenameValidForSaving(const FString& Filename, FText& OutError);
 };
 
 ENUM_CLASS_FLAGS(FFileHelper::EHashOptions)

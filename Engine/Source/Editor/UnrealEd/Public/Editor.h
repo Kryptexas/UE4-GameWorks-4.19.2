@@ -61,6 +61,8 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPostSaveWorld, uint32, class UWorld*, bool);
 	/** delegate for a PIE event (begin, end, pause/resume, etc) (Params: bool bIsSimulating) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPIEEvent, const bool);
+	/** delegate for a standalone local play event (Params: uint32 processID) */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStandaloneLocalPlayEvent, const uint32);
 	/** delegate type for beginning or finishing configuration of the properties of a new asset */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNewAssetCreation, UFactory*);
 	/** delegate type fired when new assets are being (re-)imported. Params: UFactory* InFactory, UClass* InClass, UObject* InParent, const FName& Name, const TCHAR* Type */
@@ -150,6 +152,8 @@ struct UNREALED_API FEditorDelegates
 	static FOnPIEEvent OnPreSwitchBeginPIEAndSIE;
 	/** Sent after the user switches between from PIE to SIE, or vice-versa.  Passes in whether we are currently in SIE */
 	static FOnPIEEvent OnSwitchBeginPIEAndSIE;
+	/** Sent when PC local play session is starting */
+	static FOnStandaloneLocalPlayEvent BeginStandaloneLocalPlay;
 	/** Within a property window, the currently selected item was changed.*/
 	static FSimpleMulticastDelegate PropertySelectionChange;
 	/** Called after Landscape layer infomap update have completed */

@@ -202,7 +202,7 @@ bool FUICommandList::ConditionalProcessCommandBindings( const FKey Key, bool bCt
 				// Check to see if there is any command in the context activated by the chord
 				TSharedPtr<FUICommandInfo> Command = FInputBindingManager::Get().FindCommandInContext( Context, CheckChord, bCheckDefault );
 
-				if( Command.IsValid() && ensure( *Command->GetActiveChord() == CheckChord ) )
+				if( Command.IsValid() && Command->HasActiveChord(CheckChord)  )
 				{
 					// Find the bound action for this command
 					const FUIAction* Action = GetActionForCommand(Command);

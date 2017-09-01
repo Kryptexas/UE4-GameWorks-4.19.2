@@ -560,30 +560,60 @@ static void SetProcessMemoryLimit( SIZE_T ProcessMemoryLimitMB )
 
 void FWindowsPlatformMisc::SetHighDPIMode()
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("enablehighdpi")))
+	if (!FParse::Param(FCommandLine::Get(), TEXT("nohighdpi")))
 	{
 		if (void* ShCoreDll = FPlatformProcess::GetDllHandle(TEXT("shcore.dll")))
 		{
-			typedef HRESULT(STDAPICALLTYPE *SetProcessDpiAwarenessProc)(int32 Value);
+			typedef enum _PROCESS_DPI_AWARENESS {
+				PROCESS_DPI_UNAWARE = 0,
+				PROCESS_SYSTEM_DPI_AWARE = 1,
+				PROCESS_PER_MONITOR_DPI_AWARE = 2
+			} PROCESS_DPI_AWARENESS;
+
+			typedef HRESULT(STDAPICALLTYPE *SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS Value);
 			SetProcessDpiAwarenessProc SetProcessDpiAwareness = (SetProcessDpiAwarenessProc)FPlatformProcess::GetDllExport(ShCoreDll, TEXT("SetProcessDpiAwareness"));
 			GetDpiForMonitor = (GetDpiForMonitorProc)FPlatformProcess::GetDllExport(ShCoreDll, TEXT("GetDpiForMonitor"));
-			FPlatformProcess::FreeDllHandle(ShCoreDll);
 
-			if (SetProcessDpiAwareness)
+			typedef HRESULT(STDAPICALLTYPE *GetProcessDpiAwarenessProc)(HANDLE hProcess, PROCESS_DPI_AWARENESS* Value);
+			GetProcessDpiAwarenessProc GetProcessDpiAwareness = (GetProcessDpiAwarenessProc)FPlatformProcess::GetDllExport(ShCoreDll, TEXT("GetProcessDpiAwareness"));
+
+			if (SetProcessDpiAwareness && GetProcessDpiAwareness && !IsRunningCommandlet() && !FApp::IsUnattended())
 			{
-				SetProcessDpiAwareness(2); // PROCESS_PER_MONITOR_DPI_AWARE_VALUE
+				PROCESS_DPI_AWARENESS CurrentAwareness = PROCESS_DPI_UNAWARE;
+
+				GetProcessDpiAwareness(nullptr, &CurrentAwareness);
+
+				if(CurrentAwareness != PROCESS_PER_MONITOR_DPI_AWARE)
+				{
+					UE_LOG(LogInit, Log, TEXT("Setting process to per monitor DPI aware"));
+					HRESULT Hr = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE); // PROCESS_PER_MONITOR_DPI_AWARE_VALUE
+					// We dont care about this warning if we are in any kind of headless mode
+					if (Hr != S_OK)
+					{
+						UE_LOG(LogInit, Warning, TEXT("SetProcessDpiAwareness failed.  Error code %x"), Hr);
+					}
+				}
 			}
+
+			FPlatformProcess::FreeDllHandle(ShCoreDll);
 		}
 		else if (void* User32Dll = FPlatformProcess::GetDllHandle(TEXT("user32.dll")))
 		{
 			typedef BOOL(WINAPI *SetProcessDpiAwareProc)(void);
 			SetProcessDpiAwareProc SetProcessDpiAware = (SetProcessDpiAwareProc)FPlatformProcess::GetDllExport(User32Dll, TEXT("SetProcessDPIAware"));
-			FPlatformProcess::FreeDllHandle(User32Dll);
 
-			if (SetProcessDpiAware)
+			if (SetProcessDpiAware && !IsRunningCommandlet() && !FApp::IsUnattended())
 			{
-				SetProcessDpiAware();
+				UE_LOG(LogInit, Log, TEXT("Setting process to DPI aware"));
+
+				BOOL Result = SetProcessDpiAware();
+				if (Result == 0)
+				{
+					UE_LOG(LogInit, Warning, TEXT("SetProcessDpiAware failed"));
+				}
 			}
+
+			FPlatformProcess::FreeDllHandle(User32Dll);
 		}
 	}
 
@@ -607,8 +637,6 @@ void FWindowsPlatformMisc::PlatformPreInit()
 
 	// initialize the file SHA hash mapping
 	InitSHAHashes();
-
-	SetHighDPIMode();
 }
 
 

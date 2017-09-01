@@ -101,7 +101,7 @@ public:
 	 *
 	 * @param CommandInfo	The command that had the active chord changed. 
 	 */
-	virtual void NotifyActiveChordChanged( const FUICommandInfo& CommandInfo );
+	virtual void NotifyActiveChordChanged( const FUICommandInfo& CommandInfo, const EMultipleKeyBindingIndex InChordIndex);
 	
 	/**
 	 * Saves the user defined chords to a json file
@@ -145,8 +145,9 @@ private:
 	 * 
 	 * @param InBindingContext	The context in which the command is active
 	 * @param InCommandName		The name of the command to get the chord from
+	 * @param ChordIndex		The index of the key binding (in the multiple key bindings array)
 	 */
-	bool GetUserDefinedChord( const FName InBindingContext, const FName InCommandName, FInputChord& OutUserDefinedChord );
+	bool GetUserDefinedChord( const FName InBindingContext, const FName InCommandName, const EMultipleKeyBindingIndex InChordIndex, FInputChord& OutUserDefinedChord );
 
 	/**
 	 *	Checks a binding context for duplicate chords 
@@ -165,11 +166,15 @@ private:
 
 	struct FContextEntry
 	{
+		FContextEntry()
+		{
+			ChordToCommandInfoMaps.Init(FChordMap(), static_cast<uint8>(EMultipleKeyBindingIndex::NumChords));
+		}
 		/** A list of commands associated with the context */
 		FCommandInfoMap CommandInfoMap;
 
-		/** Chord to command info map */
-		FChordMap ChordToCommandInfoMap;
+		/** Chord to command info maps, one for each set of key bindings */
+		TArray<FChordMap> ChordToCommandInfoMaps;
 
 		/** The binding context for this entry*/
 		TSharedPtr< FBindingContext > BindingContext;

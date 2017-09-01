@@ -282,15 +282,19 @@ void FSlateMacMenu::UpdateCachedState()
 
 	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment
 	// so instead we assume that as long as there's any visible, regular window open, we do have some menu to show/update.
-	const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
-	for (auto Window : AllWindows)
+	if(!FSlateApplication::Get().GetActiveModalWindow().IsValid())
 	{
-		if (Window->IsRegularWindow() && Window->IsVisible())
+		const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
+		for (auto Window : AllWindows)
 		{
-			bShouldUpdate = true;
-			break;
+			if (Window->IsRegularWindow() && Window->IsVisible())
+			{
+				bShouldUpdate = true;
+				break;
+			}
 		}
 	}
+	
 
 	if (bShouldUpdate)
 	{
@@ -455,28 +459,31 @@ NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class F
 {
 	if (Block->GetAction().IsValid())
 	{
-		const TSharedRef<const FInputChord>& Chord = Block->GetAction()->GetActiveChord();
+		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+		{
+			const TSharedRef<const FInputChord>& Chord = Block->GetAction()->GetActiveChord(static_cast<EMultipleKeyBindingIndex>(i));
 
-		*OutModifiers = 0;
-		if (Chord->NeedsControl())
-		{
-			*OutModifiers |= NSControlKeyMask;
-		}
-		if (Chord->NeedsShift())
-		{
-			*OutModifiers |= NSShiftKeyMask;
-		}
-		if (Chord->NeedsAlt())
-		{
-			*OutModifiers |= NSAlternateKeyMask;
-		}
-		if (Chord->NeedsCommand())
-		{
-			*OutModifiers |= NSCommandKeyMask;
-		}
+			*OutModifiers = 0;
+			if (Chord->NeedsControl())
+			{
+				*OutModifiers |= NSControlKeyMask;
+			}
+			if (Chord->NeedsShift())
+			{
+				*OutModifiers |= NSShiftKeyMask;
+			}
+			if (Chord->NeedsAlt())
+			{
+				*OutModifiers |= NSAlternateKeyMask;
+			}
+			if (Chord->NeedsCommand())
+			{
+				*OutModifiers |= NSCommandKeyMask;
+			}
 
-		FString KeyString = Chord->GetKeyText().ToString().ToLower();
-		return KeyString.GetNSString();
+			FString KeyString = Chord->GetKeyText().ToString().ToLower();
+			return KeyString.GetNSString();
+		}
 	}
 	return @"";
 }

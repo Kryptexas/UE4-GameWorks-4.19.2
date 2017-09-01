@@ -392,6 +392,11 @@ public:
 
 	}
 
+	virtual void HandleDPIScaleChanged( const TSharedRef< FGenericWindow >& Window )
+	{
+
+	}
+
 	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& Window, const int32 X, const int32 Y )
 	{
 

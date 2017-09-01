@@ -559,7 +559,7 @@ TSharedRef<ITableRow> FDetailCategoryImpl::GenerateWidgetForTableView(const TSha
 {
 	return
 		SNew(SDetailCategoryTableRow, AsShared(), OwnerTable)
-		.InnerCategory(DetailLayoutBuilder.Pin()->IsLayoutForExternalRoot())
+		.InnerCategory(DetailLayoutBuilder.IsValid() ? DetailLayoutBuilder.Pin()->IsLayoutForExternalRoot() : false)
 		.DisplayName(GetDisplayName())
 		.HeaderContent(HeaderContentWidget);
 }

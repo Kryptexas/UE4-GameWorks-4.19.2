@@ -32,6 +32,8 @@ public:
 	 */
 	static void MakeMenu( FMenuBuilder& MenuBuilder )
 	{
+		const TArray<FString>& ConfidentalPlatforms = FPlatformMisc::GetConfidentialPlatforms();
+
 		TArray<PlatformInfo::FVanillaPlatformEntry> VanillaPlatforms = PlatformInfo::BuildPlatformHierarchy(PlatformInfo::EPlatformFilter::All);
 		if (!VanillaPlatforms.Num())
 		{
@@ -58,11 +60,10 @@ public:
 			}
 
 			// Make sure we're able to run this platform
-/*			ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(VanillaPlatform.PlatformInfo->TargetPlatformName.ToString());
-			if (!Platform)
+			if (VanillaPlatform.PlatformInfo->bIsConfidential && !ConfidentalPlatforms.Contains(VanillaPlatform.PlatformInfo->IniPlatformName))
 			{
 				continue;
-			}*/
+			}
 
 			if (VanillaPlatform.PlatformFlavors.Num())
 			{

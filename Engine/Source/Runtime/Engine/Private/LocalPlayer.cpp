@@ -706,6 +706,22 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 		ViewInitOptions.SceneViewStateInterface = MonoViewState.GetReference();
 		break;
 	}
+
+
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+
+		// Let scalability settings override editor in game viewports
+		if(ScreenPercentageCVar->GetValueOnGameThread() == 100)
+		{
+			// PIE viewports should adjust screen percentage if necessary (for DPI scale performance)
+			ViewInitOptions.EditorViewScreenPercentage = ViewportClient->GetEditorScreenPercentage();
+		}
+	}
+#endif
+
 	ViewInitOptions.ViewActor = PlayerController->GetViewTarget();
 	ViewInitOptions.PlayerIndex = GetControllerId();
 	ViewInitOptions.ViewElementDrawer = ViewDrawer;

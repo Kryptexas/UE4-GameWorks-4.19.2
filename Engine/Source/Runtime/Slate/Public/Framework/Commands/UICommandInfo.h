@@ -37,6 +37,13 @@ namespace EUserInterfaceActionType
 	};
 };
 
+UENUM()
+enum class EMultipleKeyBindingIndex : uint8
+{
+	Primary = 0,
+	Secondary,
+	NumChords
+};
 
 class FUICommandInfo;
 
@@ -50,7 +57,7 @@ class SLATE_API FUICommandInfoDecl
 
 public:
 
-	FUICommandInfoDecl& DefaultChord( const FInputChord& InDefaultChord );
+	FUICommandInfoDecl& DefaultChord( const FInputChord& InDefaultChord, const EMultipleKeyBindingIndex InChordIndex = EMultipleKeyBindingIndex::Primary);
 	FUICommandInfoDecl& UserInterfaceType( EUserInterfaceActionType::Type InType );
 	FUICommandInfoDecl& Icon( const FSlateIcon& InIcon );
 	FUICommandInfoDecl& Description( const FText& InDesc );
@@ -168,28 +175,55 @@ public:
 	 * @param InBindingContext The name of the binding context to use.
 	 */
 	FUICommandInfo( const FName InBindingContext )
-		: ActiveChord( new FInputChord )
-		, DefaultChord( EKeys::Invalid, EModifierKey::None )
-		, BindingContext( InBindingContext )
+		: BindingContext( InBindingContext )
 		, UserInterfaceType( EUserInterfaceActionType::Button )
-	{ }
+	{
+		ActiveChords.Empty(2);
+		ActiveChords.Add(TSharedRef<FInputChord>(new FInputChord));
+		ActiveChords.Add(TSharedRef<FInputChord>(new FInputChord));
+
+		DefaultChords.Init(FInputChord(EKeys::Invalid, EModifierKey::None), 2);
+	}
 
 	/**
-	 * Returns the friendly, localized string name of the chord that is required to perform the command
+	 * Returns the friendly, localized string name of the first valid chord in the key bindings list that is required to perform the command
 	 *
 	 * @return	Localized friendly text for the chord
 	 */
 	const FText GetInputText() const;
 
 	/**
-	 * @return	Returns the active chord for this command
+	 * @return	Returns the active chord at the specified index for this command
 	 */
-	const TSharedRef<const FInputChord> GetActiveChord() const { return ActiveChord; }
+	const TSharedRef<const FInputChord> GetActiveChord(const EMultipleKeyBindingIndex InChordIndex) const { return ActiveChords[static_cast<uint8>(InChordIndex)]; }
+	
+	/**
+	* @return	Checks if there is an active chord for this command matching the input chord
+	*/
+	const bool HasActiveChord(const FInputChord InChord) const { return *ActiveChords[static_cast<uint8>(EMultipleKeyBindingIndex::Primary)] == InChord ||
+																	*ActiveChords[static_cast<uint8>(EMultipleKeyBindingIndex::Secondary)] == InChord; }
 
-	const FInputChord& GetDefaultChord() const { return DefaultChord; }
+	/**
+	* @return	Checks if there is an active chord for this command matching the input chord
+	*/
+	const TSharedRef<const FInputChord> GetFirstValidChord() const {
+		return ActiveChords[static_cast<uint8>(EMultipleKeyBindingIndex::Primary)]->IsValidChord()
+				? ActiveChords[static_cast<uint8>(EMultipleKeyBindingIndex::Primary)]
+				: ActiveChords[static_cast<uint8>(EMultipleKeyBindingIndex::Secondary)];
+	}
+
+	/**
+	* @return	Checks if there is an active chord for this command matching the input chord
+	*/
+	const bool HasDefaultChord(const FInputChord InChord) const {
+		return (DefaultChords[static_cast<uint8>(EMultipleKeyBindingIndex::Primary)] == InChord) ||
+			(DefaultChords[static_cast<uint8>(EMultipleKeyBindingIndex::Secondary)] == InChord);
+	}
+
+	const FInputChord& GetDefaultChord(const EMultipleKeyBindingIndex InChordIndex) const { return DefaultChords[static_cast<uint8>(InChordIndex)]; }
 
 	/** Utility function to make an FUICommandInfo */
-	static void MakeCommandInfo( const TSharedRef<class FBindingContext>& InContext, TSharedPtr< FUICommandInfo >& OutCommand, const FName InCommandName, const FText& InCommandLabel, const FText& InCommandDesc, const FSlateIcon& InIcon, const EUserInterfaceActionType::Type InUserInterfaceType, const FInputChord& InDefaultChord );
+	static void MakeCommandInfo( const TSharedRef<class FBindingContext>& InContext, TSharedPtr< FUICommandInfo >& OutCommand, const FName InCommandName, const FText& InCommandLabel, const FText& InCommandDesc, const FSlateIcon& InIcon, const EUserInterfaceActionType::Type InUserInterfaceType, const FInputChord& InDefaultChord, const FInputChord& InAlternateDefaultChord = FInputChord());
 
 	/** Utility function to unregister an FUICommandInfo */
 	static void UnregisterCommandInfo(const TSharedRef<class FBindingContext>& InContext, const TSharedRef<FUICommandInfo>& InCommand);
@@ -213,10 +247,10 @@ public:
 	FName GetBindingContext() const { return BindingContext; }
 
 	/** Sets the new active chord for this command */
-	void SetActiveChord( const FInputChord& NewChord );
+	void SetActiveChord( const FInputChord& NewChord, const EMultipleKeyBindingIndex InChordIndex );
 
 	/** Removes the active chord from this command */
-	void RemoveActiveChord();
+	void RemoveActiveChord(const EMultipleKeyBindingIndex InChordIndex);
 
 	/** 
 	 * Makes a tooltip for this command.
@@ -227,8 +261,8 @@ public:
 
 private:
 
-	/** Input command that executes this action */
-	TSharedRef<FInputChord> ActiveChord;
+	/** Input commands that executes this action */
+	TArray<TSharedRef<FInputChord>> ActiveChords;
 
 	/** Default display name of the command */
 	FText Label;
@@ -236,8 +270,8 @@ private:
 	/** Localized help text for this command */
 	FText Description;
 
-	/** The default input chord for this command (can be invalid) */
-	FInputChord DefaultChord;
+	/** The default input chords for this command (can be invalid) */
+	TArray<FInputChord> DefaultChords;
 
 	/** Brush name for icon to use in tool bars and menu items to represent this command */
 	FSlateIcon Icon;

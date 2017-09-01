@@ -167,9 +167,6 @@ const FNumberFormattingOptions& FNumberFormattingOptions::DefaultNoGrouping()
 	return Options;
 }
 
-bool FText::bEnableErrorCheckingResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS;
-bool FText::bSuppressWarnings = false;
-
 FText::FText()
 	: TextData(GetEmpty().TextData)
 	, Flags(0)

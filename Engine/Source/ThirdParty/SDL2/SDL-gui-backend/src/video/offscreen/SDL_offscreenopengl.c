@@ -26,12 +26,13 @@
 
 #include "SDL_offscreenopengl.h"
 
-void
+int
 OFFSCREEN_GL_SwapWindow(_THIS, SDL_Window* window)
 {
     OFFSCREEN_Window* offscreen_wind = window->driverdata;
 
     SDL_EGL_SwapBuffers(_this, offscreen_wind->egl_surface);
+    return 0;
 }
 
 int

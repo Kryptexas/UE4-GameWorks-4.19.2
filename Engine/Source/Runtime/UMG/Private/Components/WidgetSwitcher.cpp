@@ -77,6 +77,11 @@ UWidget* UWidgetSwitcher::GetWidgetAtIndex( int32 Index ) const
 	return nullptr;
 }
 
+UWidget* UWidgetSwitcher::GetActiveWidget()const
+{
+	return GetWidgetAtIndex(GetActiveWidgetIndex());
+}
+
 UClass* UWidgetSwitcher::GetSlotClass() const
 {
 	return UWidgetSwitcherSlot::StaticClass();

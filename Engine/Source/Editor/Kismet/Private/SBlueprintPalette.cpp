@@ -18,7 +18,7 @@
 #include "EdGraphNode_Comment.h"
 #include "Components/TimelineComponent.h"
 #include "Kismet2/ComponentEditorUtils.h"
-#include "FileHelpers.h"
+#include "Misc/FileHelper.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node.h"
 #include "EdGraphSchema_K2_Actions.h"
@@ -450,7 +450,7 @@ private:
 		FAssetRegistryModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 		AssetToolsModule.Get().GetAssetsByPath(FName(*FPaths::GetPath(Object->GetOutermost()->GetPathName())), AssetData);
 
-		if(!FEditorFileUtils::IsFilenameValidForSaving(InNewText.ToString(), OutErrorMessage) || !FName(*InNewText.ToString()).IsValidObjectName( OutErrorMessage ))
+		if(!FFileHelper::IsFilenameValidForSaving(InNewText.ToString(), OutErrorMessage) || !FName(*InNewText.ToString()).IsValidObjectName( OutErrorMessage ))
 		{
 			return false;
 		}

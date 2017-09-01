@@ -59,6 +59,8 @@ public:
 
 	static const int32 MaxRecentFiles = 10;
 	TArray< TSharedPtr< FUICommandInfo > > OpenRecentFileCommands;
+	static const int32 MaxFavoriteFiles = 10;
+	TArray< TSharedPtr< FUICommandInfo > > OpenFavoriteFileCommands;
 
 	TSharedPtr< FUICommandInfo > ToggleFavorite;
 

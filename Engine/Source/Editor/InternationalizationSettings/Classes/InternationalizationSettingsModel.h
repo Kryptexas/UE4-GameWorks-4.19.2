@@ -128,8 +128,8 @@ public:
 	void SetEditorLanguage(const FString& InEditorLanguage);
 	bool GetEditorLocale(FString& OutEditorLocale) const;
 	void SetEditorLocale(const FString& InEditorLocale);
-	bool GetNativeGameLanguage(FString& OutNativeGameLanguage) const;
-	void SetNativeGameLanguage(const FString& InNativeGameLanguage);
+	bool GetPreviewGameLanguage(FString& OutPreviewGameLanguage) const;
+	void SetPreviewGameLanguage(const FString& InPreviewGameLanguage);
 	bool ShouldLoadLocalizedPropertyNames() const;
 	void ShouldLoadLocalizedPropertyNames(const bool Value);
 	bool ShouldShowNodesAndPinsUnlocalized() const;

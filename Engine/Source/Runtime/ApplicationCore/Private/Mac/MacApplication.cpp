@@ -1065,6 +1065,15 @@ void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRes
 	MessageHandler->OnResizingWindow(Window);
 }
 
+
+void FMacApplication::OnWindowChangedScreen(TSharedRef<FMacWindow> Window)
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	MessageHandler->HandleDPIScaleChanged(Window);
+}
+
+
 bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> Window)
 {
 	SCOPED_AUTORELEASE_POOL;

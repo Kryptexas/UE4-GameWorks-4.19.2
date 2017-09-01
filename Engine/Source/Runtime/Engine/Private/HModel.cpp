@@ -107,8 +107,8 @@ bool HModel::ResolveSurface(const FSceneView* View,int32 X,int32 Y,uint32& OutSu
 					{
 						FVector4 ScreenPosition = View->WorldToScreen(NodePolygon.Vertices[TriangleVertexIndices[VertexIndex]]);
 						float InvW = 1.0f / ScreenPosition.W;
-						float SizeX = View->ViewRect.Width();
-						float SizeY = View->ViewRect.Height();
+						float SizeX = View->UnscaledViewRect.Width();
+						float SizeY = View->UnscaledViewRect.Height();
 						Vertices[VertexIndex] = FVector4(
 							View->ViewRect.Min.X + (0.5f + ScreenPosition.X * 0.5f * InvW) * SizeX,
 							View->ViewRect.Min.Y + (0.5f - ScreenPosition.Y * 0.5f * InvW) * SizeY,

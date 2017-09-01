@@ -1031,7 +1031,7 @@ void ProcessTriangleCorner( SpeedTree::CCore& SpeedTree, const int32 TriangleInd
 }
 
 
-UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn )
+UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
@@ -1504,6 +1504,11 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 				StaticMesh->bRequiresLODDistanceConversion = false;
 			}
 		}
+	}
+	else
+	{
+		//If user cancel, set the boolean
+		bOutOperationCanceled = true;
 	}
 
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, StaticMesh);

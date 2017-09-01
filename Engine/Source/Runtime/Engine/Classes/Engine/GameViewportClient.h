@@ -179,6 +179,7 @@ public:
 	virtual void MouseEnter(FViewport* Viewport, int32 x, int32 y) override;
 	virtual void MouseLeave(FViewport* Viewport) override;
 	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) override;
+
 	//~ End FViewportClient Interface.
 
 	/** make any adjustments to the views after they've been completely set up */
@@ -564,6 +565,11 @@ public:
 	 * @return @true if this viewport is currently being used for simulate in editors
 	 */
 	bool IsSimulateInEditorViewport() const;
+
+protected:
+	/** FCommonViewportClient interface */
+	virtual float GetViewportClientWindowDPIScale() const override;
+
 public:
 	/** The show flags used by the viewport's players. */
 	FEngineShowFlags EngineShowFlags;
@@ -810,7 +816,10 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
-	
+
+	/** Delegate handler for when a window DPI changes and we might need to adjust the scenes resolution */
+	void HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow);
+
 	/** Adds a cursor to the set based on the enum and the class reference to it. */
 	void AddSoftwareCursor(EMouseCursor::Type Cursor, const FSoftClassPath& CursorClass);
 

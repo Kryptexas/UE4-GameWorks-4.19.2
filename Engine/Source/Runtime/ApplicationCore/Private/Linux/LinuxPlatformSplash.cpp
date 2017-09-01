@@ -21,16 +21,11 @@
 #include "Misc/EngineVersion.h"
 #include "Misc/EngineBuildSettings.h"
 #include "Modules/ModuleManager.h"
-#include "ScopeLock.h"
 #include "HAL/PlatformApplicationMisc.h"
 
 #if WITH_EDITOR
 
-#include <GL/glcorearb.h>
-#include <GL/glext.h>
 #include "SDL.h"
-#include "SDL_thread.h"
-#include "SDL_timer.h"
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 
@@ -44,6 +39,7 @@
 
 struct Rect
 {
+	Rect(const int32 t = 0,const int32 l = 0, const int32 r = 0, const int32 b = 0) : Top(t), Left(l), Right(r), Bottom(b) {}
 	int32 Top;
 	int32 Left;
 	int32 Right;
@@ -51,513 +47,358 @@ struct Rect
 };
 
 
-struct SplashFont
+class FLinuxSplashState
 {
-	enum State
-	{
-		NotLoaded = 0,
-		Loaded
-	};
+public:
+	~FLinuxSplashState();
+	bool InitSplashResources(const FText &AppName, const FString &SplashPath, const FString &IconPath);
+	void SetSplashText(const SplashTextType::Type InType, const FText& InText);
+	void Pump();
 
-	FT_Face Face;
-	int32 Status;
+private:
+	static SDL_Surface* LoadImage(const FString &InImagePath);
+	void DrawCharacter(int32 penx, int32 peny, FT_GlyphSlot Glyph, int32 CurTypeIndex, float Red, float Green, float Blue);
+	void RenderStrings();
+	bool OpenFonts();
+	void Redraw();
+
+	FT_Library FontLibrary = nullptr;
+	FT_Face FontSmall = nullptr;
+	FT_Face FontNormal = nullptr;
+	FT_Face FontLarge = nullptr;
+
+	SDL_Surface *SplashSurface = nullptr;
+	SDL_Window *SplashWindow = nullptr;
+	SDL_Renderer *SplashRenderer = nullptr;
+	SDL_Texture *SplashTexture = nullptr;
+	FText SplashText[ SplashTextType::NumTextTypes ];
+	Rect SplashTextRects[ SplashTextType::NumTextTypes ];
+
+	unsigned char *ScratchSpace = nullptr;
+	bool bNeedsRedraw = false;
+	bool bStringsChanged = false;
 };
 
-FT_Library FontLibrary;
+static FLinuxSplashState *GSplashState = nullptr;
 
-SplashFont FontSmall;
-SplashFont FontNormal;
-SplashFont FontLarge;
 
-static SDL_Thread *GSplashThread = nullptr;
-static SDL_Window *GSplashWindow = nullptr;
-static SDL_Renderer *GSplashRenderer = nullptr;
-static SDL_Texture *GSplashTexture = nullptr;
-static SDL_Surface *GSplashScreenImage = nullptr;
-static SDL_Surface *GSplashIconImage = nullptr;
-static SDL_Surface *message = nullptr;
-static FText GSplashScreenAppName;
-static FText GSplashScreenText[ SplashTextType::NumTextTypes ];
-static Rect GSplashScreenTextRects[ SplashTextType::NumTextTypes ];
-static FString GSplashPath;
-static FString GIconPath;
-static TSharedPtr<IImageWrapper> GSplashImageWrapper;
-static TSharedPtr<IImageWrapper> GIconImageWrapper;
-static FCriticalSection GSplashScreenTextCriticalSection;
-
-static int32 SplashWidth = 0, SplashHeight = 0;
-static unsigned char *ScratchSpace = nullptr;
-/** 
- * Used for communication with a splash thread. 
- * Negative values -> thread is (or must be) stopped. 
- * >= 0 -> thread is running
- * > 0 -> there is an update that necessitates (re)rendering the string.
- */
-static volatile int32 ThreadState = -1;
-static int32 SplashBPP = 0;
-
-//////////////////////////////////
-// the below GL subset is a hack, as in general using GL for that
-
-// subset of GL functions
-/** List all OpenGL entry points used by Unreal. */
-#define ENUM_GL_ENTRYPOINTS(EnumMacro) \
-	EnumMacro(PFNGLENABLEPROC, glEnable) \
-	EnumMacro(PFNGLDISABLEPROC, glDisable) \
-	EnumMacro(PFNGLCLEARPROC, glClear) \
-	EnumMacro(PFNGLCLEARCOLORPROC, glClearColor) \
-	EnumMacro(PFNGLDRAWARRAYSPROC, glDrawArrays) \
-	EnumMacro(PFNGLGENBUFFERSARBPROC, glGenBuffers) \
-	EnumMacro(PFNGLBINDBUFFERARBPROC, glBindBuffer) \
-	EnumMacro(PFNGLBUFFERDATAARBPROC, glBufferData) \
-	EnumMacro(PFNGLDELETEBUFFERSARBPROC, glDeleteBuffers) \
-	EnumMacro(PFNGLMAPBUFFERARBPROC, glMapBuffer) \
-	EnumMacro(PFNGLUNMAPBUFFERARBPROC, glDrawRangeElements) \
-	EnumMacro(PFNGLBINDTEXTUREPROC, glBindTexture) \
-	EnumMacro(PFNGLACTIVETEXTUREARBPROC, glActiveTexture) \
-	EnumMacro(PFNGLTEXIMAGE2DPROC, glTexImage2D) \
-	EnumMacro(PFNGLGENTEXTURESPROC, glGenTextures) \
-	EnumMacro(PFNGLCREATESHADERPROC, glCreateShader) \
-	EnumMacro(PFNGLSHADERSOURCEPROC, glShaderSource) \
-	EnumMacro(PFNGLCOMPILESHADERPROC, glCompileShader) \
-	EnumMacro(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog) \
-	EnumMacro(PFNGLATTACHSHADERPROC, glAttachShader) \
-	EnumMacro(PFNGLDETACHSHADERPROC, glDetachShader) \
-	EnumMacro(PFNGLLINKPROGRAMPROC, glLinkProgram) \
-	EnumMacro(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog) \
-	EnumMacro(PFNGLUSEPROGRAMPROC, glUseProgram) \
-	EnumMacro(PFNGLDELETESHADERPROC, glDeleteShader) \
-	EnumMacro(PFNGLCREATEPROGRAMPROC,glCreateProgram) \
-	EnumMacro(PFNGLDELETEPROGRAMPROC, glDeleteProgram) \
-	EnumMacro(PFNGLGETSHADERIVPROC, glGetShaderiv) \
-	EnumMacro(PFNGLGETPROGRAMIVPROC, glGetProgramiv) \
-	EnumMacro(PFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation) \
-	EnumMacro(PFNGLUNIFORM1FPROC, glUniform1f) \
-	EnumMacro(PFNGLUNIFORM2FPROC, glUniform2f) \
-	EnumMacro(PFNGLUNIFORM3FPROC, glUniform3f) \
-	EnumMacro(PFNGLUNIFORM4FPROC, glUniform4f) \
-	EnumMacro(PFNGLUNIFORM1IPROC, glUniform1i) \
-	EnumMacro(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv) \
-	EnumMacro(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer) \
-	EnumMacro(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation) \
-	EnumMacro(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray) \
-	EnumMacro(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray) \
-	EnumMacro(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation) \
-	EnumMacro(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray) \
-	EnumMacro(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays) \
-	EnumMacro(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays) \
-	EnumMacro(PFNGLISVERTEXARRAYPROC, glIsVertexArray) \
-	EnumMacro(PFNGLTEXPARAMETERIPROC, glTexParameteri)
-
-#define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
-namespace GLFuncPointers	// see explanation in OpenGLLinux.h why we need the namespace
+FLinuxSplashState::~FLinuxSplashState()
 {
-	ENUM_GL_ENTRYPOINTS(DEFINE_GL_ENTRYPOINTS);
-};
+	// Just in case SDL's renderer steps on GL state...
+	SDL_Window *CurrentWindow = SDL_GL_GetCurrentWindow();
+	SDL_GLContext CurrentContext = SDL_GL_GetCurrentContext();
 
-using namespace GLFuncPointers;
-
-//////////////////////////////////
-
-
-/**
- * Returns the current shader log for a GLSL shader                   
- */
-static FString GetGLSLShaderLog( GLuint Shader )
-{
-	GLint Len;
-	FString ShaderLog;
-
-	glGetShaderiv(Shader, GL_INFO_LOG_LENGTH, &Len);
-
-	if(Len > 0)
+	if (SplashSurface)
 	{
-		GLsizei ActualLen;
-		GLchar *Log = new GLchar[Len];
-
-		glGetShaderInfoLog(Shader, Len, &ActualLen, Log);
-	
-		ShaderLog = UTF8_TO_TCHAR( Log );
-
-		delete[] Log;
+		SDL_FreeSurface(SplashSurface);
 	}
 
-	return ShaderLog;
-}
-
-static FString GetGLSLProgramLog( GLuint Program )
-{
-	GLint Len;
-	FString ProgramLog;
-	glGetProgramiv( Program, GL_INFO_LOG_LENGTH, &Len );
-
-	if( Len > 0 )
+	if (SplashTexture)
 	{
-		GLchar* Log = new GLchar[Len];
-
-		GLsizei ActualLen;
-		glGetProgramInfoLog( Program, Len, &ActualLen, Log );
-
-		ProgramLog = UTF8_TO_TCHAR( Log );
-
-		delete[] Log;
+		SDL_DestroyTexture(SplashTexture);
 	}
 
-	return ProgramLog;
+	if (SplashRenderer)
+	{
+		SDL_DestroyRenderer(SplashRenderer);
+	}
+
+	if (SplashWindow)
+	{
+		SDL_DestroyWindow(SplashWindow);
+	}
+
+	if (ScratchSpace)
+	{
+		FMemory::Free(ScratchSpace);
+	}
+
+	if (FontSmall)
+	{
+		FT_Done_Face(FontSmall);
+	}
+
+	if (FontNormal)
+	{
+		FT_Done_Face(FontNormal);
+	}
+
+	if (FontLarge)
+	{
+		FT_Done_Face(FontLarge);
+	}
+
+	if (FontLibrary)
+	{
+		FT_Done_FreeType(FontLibrary);
+	}
+
+	if (CurrentWindow)  // put back any old GL state...
+	{
+		SDL_GL_MakeCurrent(CurrentWindow, CurrentContext);
+	}
+
+	// do not deinit SDL here
 }
 
 //---------------------------------------------------------
-static int CompileShaderFromString( const FString& Source, GLuint& ShaderID, GLenum ShaderType )
+bool FLinuxSplashState::OpenFonts()
 {
-	// Create a new shader ID.
-	ShaderID = glCreateShader( ShaderType );
-	GLint CompileStatus = GL_FALSE;
-
-	check( ShaderID );
-	
-	// Allocate a buffer big enough to store the string in ascii format
-	ANSICHAR* Chars[2] = {nullptr};
-	// pass the #define along to the shader
-#if PLATFORM_USES_ES2
-	Chars[0] = (ANSICHAR*)"#define PLATFORM_USES_ES2 1\n\n#define PLATFORM_LINUX 0\n";
-#elif PLATFORM_LINUX
-	Chars[0] = (ANSICHAR*)"#version 150\n\n#define PLATFORM_USES_ES2 0\n\n#define PLATFORM_LINUX 1\n";
-#else
-	Chars[0] = (ANSICHAR*)"#version 120\n\n#define PLATFORM_USES_ES2 0\n\n#define PLATFORM_LINUX 0\n";
-#endif
-	Chars[1] = new ANSICHAR[Source.Len()+1];
-	FCStringAnsi::Strcpy(Chars[1], Source.Len() + 1, TCHAR_TO_ANSI(*Source));
-
-	// give opengl the source code for the shader
-	glShaderSource( ShaderID, 2, (const ANSICHAR**)Chars, NULL );
-	delete[] Chars[1];
-
-	// Compile the shader and check for success
-	glCompileShader( ShaderID );
-
-	glGetShaderiv( ShaderID, GL_COMPILE_STATUS, &CompileStatus );
-	if( CompileStatus == GL_FALSE )
-	{
-		// The shader did not compile.  Display why it failed.
-		FString Log = GetGLSLShaderLog( ShaderID );
-
-		checkf(false, TEXT("Failed to compile shader: %s\n"), *Log );
-
-		// Delete the shader since it failed.
-		glDeleteShader( ShaderID );
-		ShaderID = 0;
-		return -1;
-	}
-	
-	return 0;
-}
-
-//---------------------------------------------------------
-static int CompileShaderFromFile( const FString& Filename, GLuint& ShaderID, GLenum ShaderType )
-{
-	// Load the file to a string
-	FString Source;
-	bool bFileFound = FFileHelper::LoadFileToString( Source, *Filename );
-	check(bFileFound);
-
-	return CompileShaderFromString(Source, ShaderID, ShaderType);
-}
-
-static int LinkShaders(GLuint& ShaderProgram, GLuint& VertexShader, GLuint& FragmentShader)
-{
-	// Create a new program id and attach the shaders
-	ShaderProgram = glCreateProgram();
-	glAttachShader( ShaderProgram, VertexShader );
-	glAttachShader( ShaderProgram, FragmentShader );
-
-	// Set up attribute locations for per vertex data
-	glBindAttribLocation(ShaderProgram, 0, "InPosition");
-
-	// Link the shaders
-	glLinkProgram( ShaderProgram );
-
-	// Check to see if linking succeeded
-	GLint LinkStatus;
-	glGetProgramiv( ShaderProgram, GL_LINK_STATUS, &LinkStatus );
-	if( LinkStatus == GL_FALSE )
-	{
-		return -1;
-	}
-
-	return 0;
-}
-
-//---------------------------------------------------------
-static int32 OpenFonts ( )
-{
-	FontSmall.Status = SplashFont::NotLoaded;
-	FontNormal.Status = SplashFont::NotLoaded;
-	FontLarge.Status = SplashFont::NotLoaded;
-	
 	if (FT_Init_FreeType(&FontLibrary))
 	{
-		UE_LOG(LogHAL, Error, TEXT("*** Unable to initialize font library."));		
-		return -1;
+		UE_LOG(LogHAL, Error, TEXT("*** Unable to initialize font library."));
+		return false;
 	}
-	
+
 	// small font face
 	FString FontPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Light.ttf"));
 	
-	if (FT_New_Face(FontLibrary, TCHAR_TO_UTF8(*FontPath), 0, &FontSmall.Face))
+	if (FT_New_Face(FontLibrary, TCHAR_TO_UTF8(*FontPath), 0, &FontSmall))
 	{
-		UE_LOG(LogHAL, Error, TEXT("*** Unable to open small font face for splash screen."));		
+		UE_LOG(LogHAL, Error, TEXT("*** Unable to open small font face for splash screen."));
 	}
 	else
 	{
-		FT_Set_Pixel_Sizes(FontSmall.Face, 0, 10);
-		FontSmall.Status = SplashFont::Loaded;
+		FT_Set_Pixel_Sizes(FontSmall, 0, 10);
 	}
-
 
 	// normal font face
 	FontPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"));
 	
-	if (FT_New_Face(FontLibrary, TCHAR_TO_UTF8(*FontPath), 0, &FontNormal.Face))
+	if (FT_New_Face(FontLibrary, TCHAR_TO_UTF8(*FontPath), 0, &FontNormal))
 	{
-		UE_LOG(LogHAL, Error, TEXT("*** Unable to open normal font face for splash screen."));		
+		UE_LOG(LogHAL, Error, TEXT("*** Unable to open normal font face for splash screen."));
 	}
 	else
 	{
-		FT_Set_Pixel_Sizes(FontNormal.Face, 0, 12);
-		FontNormal.Status = SplashFont::Loaded;
-	}	
+		FT_Set_Pixel_Sizes(FontNormal, 0, 12);
+	}
 	
 	// large font face
 	FontPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"));
 	
-	if (FT_New_Face(FontLibrary, TCHAR_TO_UTF8(*FontPath), 0, &FontLarge.Face))
+	if (FT_New_Face(FontLibrary, TCHAR_TO_UTF8(*FontPath), 0, &FontLarge))
 	{
 		UE_LOG(LogHAL, Error, TEXT("*** Unable to open large font face for splash screen."));		
 	}
 	else
 	{
-		FT_Set_Pixel_Sizes (FontLarge.Face, 0, 40);
-		FontLarge.Status = SplashFont::Loaded;
+		FT_Set_Pixel_Sizes(FontLarge, 0, 40);
 	}
-	
-	return 0;
+
+	return true;
 }
 
 
 //---------------------------------------------------------
-static void DrawCharacter(int32 penx, int32 peny, FT_GlyphSlot Glyph, int32 CurTypeIndex, float red, float green, float blue)
+void FLinuxSplashState::DrawCharacter(int32 PenX, int32 PenY, FT_GlyphSlot Glyph, int32 CurTypeIndex, float Red, float Green, float Blue)
 {
-
 	// drawing boundaries
-	int32 xmin = GSplashScreenTextRects[CurTypeIndex].Left;
-	int32 xmax = GSplashScreenTextRects[CurTypeIndex].Right;
-	int32 ymax = GSplashScreenTextRects[CurTypeIndex].Bottom;
-	int32 ymin = GSplashScreenTextRects[CurTypeIndex].Top;
-	
+	const int32 MinX = SplashTextRects[CurTypeIndex].Left;
+	const int32 MaxX = SplashTextRects[CurTypeIndex].Right;
+	const int32 MaxY = SplashTextRects[CurTypeIndex].Bottom;
+	const int32 MinY = SplashTextRects[CurTypeIndex].Top;
+
 	// glyph dimensions
-	int32 cwidth = Glyph->bitmap.width;
-	int32 cheight = Glyph->bitmap.rows;
-	int32 cpitch = Glyph->bitmap.pitch;
-		
-	unsigned char *pixels = Glyph->bitmap.buffer;
-	
+	const int32 GlyphWidth = Glyph->bitmap.width;
+	const int32 GlyphHeight = Glyph->bitmap.rows;
+	const int32 GlyphPitch = Glyph->bitmap.pitch;
+
+	unsigned char *Pixels = Glyph->bitmap.buffer;
+
+	const int SplashWidth = SplashSurface->w;
+	const int SplashBPP = SplashSurface->format->BytesPerPixel;
+
 	// draw glyph raster to texture
-	for (int y=0; y<cheight; y++)
+	for (int GlyphY = 0; GlyphY < GlyphHeight; GlyphY++)
 	{
-		for (int x=0; x<cwidth; x++)
+		for (int GlyphX = 0; GlyphX < GlyphWidth; GlyphX++)
 		{
 			// find pixel position in splash image
-			int xpos = penx + x + (Glyph->metrics.horiBearingX >> 6);
-			int ypos = peny + y - (Glyph->metrics.horiBearingY >> 6);
+			const int PosX = PenX + GlyphX + (Glyph->metrics.horiBearingX >> 6);
+			const int PosY = PenY + GlyphY - (Glyph->metrics.horiBearingY >> 6);
 			
 			// make sure pixel is in drawing rectangle
-			if (xpos < xmin || xpos >= xmax || ypos < ymin || ypos >= ymax)
+			if (PosX < MinX || PosX >= MaxX || PosY < MinY || PosY >= MaxY)
 				continue;
 
 			// get index of pixel in glyph bitmap			
-			int32 src_idx = (y * cpitch) + x;
-			int32 dst_idx = (ypos * SplashWidth + xpos) * SplashBPP;
-			
+			const int32 SourceIndex = (GlyphY * GlyphPitch) + GlyphX;
+			int32 DestIndex = (PosY * SplashWidth + PosX) * SplashBPP;
+
 			// write pixel
-			float alpha = pixels[src_idx] / 255.0f;
-			
-			ScratchSpace[dst_idx] = ScratchSpace[dst_idx]*(1.0 - alpha) + alpha*red;
-			dst_idx++;
-			ScratchSpace[dst_idx] = ScratchSpace[dst_idx]*(1.0 - alpha) + alpha*green;
-			dst_idx++;
-			ScratchSpace[dst_idx] = ScratchSpace[dst_idx]*(1.0 - alpha) + alpha*blue;
+			const float Alpha = Pixels[SourceIndex] / 255.0f;
+
+			ScratchSpace[DestIndex] = ScratchSpace[DestIndex]*(1.0 - Alpha) + Alpha*Red;
+			DestIndex++;
+			ScratchSpace[DestIndex] = ScratchSpace[DestIndex]*(1.0 - Alpha) + Alpha*Green;
+			DestIndex++;
+			ScratchSpace[DestIndex] = ScratchSpace[DestIndex]*(1.0 - Alpha) + Alpha*Blue;
 		}
 	}
 }
 
 
 //---------------------------------------------------------
-static int RenderString (GLuint tex_idx)
+void FLinuxSplashState::RenderStrings()
 {
-	FT_UInt last_glyph = 0;
-	FT_Vector kern;	
+	FT_UInt LastGlyph = 0;
+	FT_Vector Kerning;
 	bool bRightJustify = false;
-	float red, blue, green; // font color
+	float Red, Blue, Green; // font color
+
+	if (!bStringsChanged)
+	{
+		return;
+	}
+
+	bStringsChanged = false;
+	bNeedsRedraw = true;
+
+	const int SplashWidth = SplashSurface->w;
+	const int SplashHeight =  SplashSurface->h;
+	const int SplashBPP = SplashSurface->format->BytesPerPixel;
 
 	// clear the rendering scratch pad.
-	FMemory::Memcpy(ScratchSpace, GSplashScreenImage->pixels, SplashWidth*SplashHeight*SplashBPP);
+	FMemory::Memcpy(ScratchSpace, SplashSurface->pixels, SplashWidth*SplashHeight*SplashBPP);
 
 	// draw each type of string
 	for (int CurTypeIndex=0; CurTypeIndex<SplashTextType::NumTextTypes; CurTypeIndex++)
 	{
-		SplashFont *Font;
+		FT_Face Font = nullptr;
 		
 		// initial pen position
-		uint32 penx = GSplashScreenTextRects[ CurTypeIndex].Left;
-		uint32 peny = GSplashScreenTextRects[ CurTypeIndex].Bottom;
-		kern.x = 0;		
+		uint32 PenX = SplashTextRects[ CurTypeIndex].Left;
+		uint32 PenY = SplashTextRects[ CurTypeIndex].Bottom;
+		Kerning.x = 0;
 		
 		// Set font color and text position
 		if (CurTypeIndex == SplashTextType::StartupProgress)
 		{
-			red = green = blue = 200.0f;
-			Font = &FontSmall;
+			Red = Green = Blue = 200.0f;
+			Font = FontSmall;
 		}
 		else if (CurTypeIndex == SplashTextType::VersionInfo1)
 		{
-			red = green = blue = 240.0f;
-			Font = &FontNormal;
+			Red = Green = Blue = 240.0f;
+			Font = FontNormal;
 		}
 		else if (CurTypeIndex == SplashTextType::GameName)
 		{
-			red = green = blue = 240.0f;
-			Font = &FontLarge;
-			penx = GSplashScreenTextRects[ CurTypeIndex].Right;
+			Red = Green = Blue = 240.0f;
+			Font = FontLarge;
+			PenX = SplashTextRects[ CurTypeIndex].Right;
 			bRightJustify = true;
 		}
 		else
 		{
-			red = green = blue = 160.0f;
-			Font = &FontSmall;
+			Red = Green = Blue = 160.0f;
+			Font = FontSmall;
 		}
 		
 		// sanity check: make sure we have a font loaded.
-		if (Font->Status == SplashFont::NotLoaded)
+		if (!Font)
+		{
 			continue;
+		}
 
 		// adjust verticle pos to allow for descenders
-		peny += Font->Face->descender >> 6;
+		PenY += Font->descender >> 6;
 
 		// convert strings to glyphs and place them in bitmap.
 		{
-			FScopeLock ScopeLock(&GSplashScreenTextCriticalSection);
-
-			FString Text = GSplashScreenText[CurTypeIndex].ToString();
+			FString Text = SplashText[CurTypeIndex].ToString();
 
 			for (int i=0; i<Text.Len(); i++)
 			{
-				FT_ULong charcode;
+				FT_ULong CharacterCode;
 				
 				// fetch next glyph
 				if (bRightJustify)
 				{
-					charcode = (Uint32)(Text[Text.Len() - i - 1]);
+					CharacterCode = (Uint32)(Text[Text.Len() - i - 1]);
 				}
 				else
 				{
-					charcode = (Uint32)(Text[i]);				
+					CharacterCode = (Uint32)(Text[i]);				
 				}
 							
-				FT_UInt glyph_idx = FT_Get_Char_Index(Font->Face, charcode);
-				FT_Load_Glyph(Font->Face, glyph_idx, FT_LOAD_DEFAULT);
+				FT_UInt GlyphIndex = FT_Get_Char_Index(Font, CharacterCode);
+				FT_Load_Glyph(Font, GlyphIndex, FT_LOAD_DEFAULT);
 
 				
-				if (Font->Face->glyph->format != FT_GLYPH_FORMAT_BITMAP)
+				if (Font->glyph->format != FT_GLYPH_FORMAT_BITMAP)
 				{
-					FT_Render_Glyph(Font->Face->glyph, FT_RENDER_MODE_NORMAL);
+					FT_Render_Glyph(Font->glyph, FT_RENDER_MODE_NORMAL);
 				}
-
 
 				// pen advance and kerning
 				if (bRightJustify)
 				{
-					if (last_glyph != 0)
+					if (LastGlyph != 0)
 					{
-						FT_Get_Kerning(Font->Face, glyph_idx, last_glyph, FT_KERNING_DEFAULT, &kern);
+						FT_Get_Kerning(Font, GlyphIndex, LastGlyph, FT_KERNING_DEFAULT, &Kerning);
 					}
 					
-					penx -= (Font->Face->glyph->metrics.horiAdvance - kern.x) >> 6;	
+					PenX -= (Font->glyph->metrics.horiAdvance - Kerning.x) >> 6;	
 				}
 				else
 				{
-					if (last_glyph != 0)
+					if (LastGlyph != 0)
 					{
-						FT_Get_Kerning(Font->Face, last_glyph, glyph_idx, FT_KERNING_DEFAULT, &kern);
+						FT_Get_Kerning(Font, LastGlyph, GlyphIndex, FT_KERNING_DEFAULT, &Kerning);
 					}	
 				}
 
-				last_glyph = glyph_idx;
+				LastGlyph = GlyphIndex;
 
 				// draw character
-				DrawCharacter(penx, peny, Font->Face->glyph,CurTypeIndex, red, green, blue);
+				DrawCharacter(PenX, PenY, Font->glyph, CurTypeIndex, Red, Green, Blue);
 							
 				if (!bRightJustify)
 				{
-					penx += (Font->Face->glyph->metrics.horiAdvance - kern.x) >> 6;
+					PenX += (Font->glyph->metrics.horiAdvance - Kerning.x) >> 6;
 				}
 			}
 		}
-		// store rendered text as texture
-		glBindTexture(GL_TEXTURE_2D, tex_idx);
-		
-		bool bIsBGR = GSplashScreenImage->format->Rmask > GSplashScreenImage->format->Bmask;
-		if (SplashBPP == 3)
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-				GSplashScreenImage->w, GSplashScreenImage->h,
-				0, bIsBGR ? GL_BGR : GL_RGB, GL_UNSIGNED_BYTE, ScratchSpace);
-		}
-		else
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-				GSplashScreenImage->w, GSplashScreenImage->h,
-				0, bIsBGR ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, ScratchSpace);			
-		}
-	}
 
-	return 0;
+		// store rendered text as texture
+		SDL_UpdateTexture(SplashTexture, NULL, ScratchSpace, SplashWidth * SplashBPP);
+	}
 }
 
 /**
  * @brief Helper function to load an image in any format.
  *
  * @param ImagePath an (absolute) path to the image
- * @param OutImageWrapper a pointer to IImageWrapper which may be needed to hold the data (should outlive returned SDL_Surface)
  *
  * @return Splash surface
  */
-static SDL_Surface* LinuxSplash_LoadImage(const TCHAR* InImagePath, TSharedPtr<IImageWrapper>& OutImageWrapper)
+SDL_Surface* FLinuxSplashState::LoadImage(const FString &ImagePath)
 {
 	TArray<uint8> RawFileData;
-	FString ImagePath(InImagePath);
 
 	// Load the image buffer first (unless it's BMP)
 	if (!ImagePath.EndsWith(TEXT("bmp"), ESearchCase::IgnoreCase) && FFileHelper::LoadFileToArray(RawFileData, *ImagePath))
 	{
 		auto& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 		auto Format = ImageWrapperModule.DetectImageFormat(RawFileData.GetData(), RawFileData.Num());
-		OutImageWrapper = ImageWrapperModule.CreateImageWrapper(Format);
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(Format);
 
-		if (OutImageWrapper.IsValid() && OutImageWrapper->SetCompressed(RawFileData.GetData(), RawFileData.Num()))
+		if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(RawFileData.GetData(), RawFileData.Num()))
 		{
 			const TArray<uint8>* RawData = nullptr;
-
-			if (OutImageWrapper->GetRaw(ERGBFormat::BGRA, 8, RawData))
+			if (ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, RawData))
 			{
-				uint32 Bmask = 0x000000ff;
-				uint32 Gmask = 0x0000ff00;
-				uint32 Rmask = 0x00ff0000;
-				uint32 Amask = 0xff000000;
-
-				return SDL_CreateRGBSurfaceFrom((void*)RawData->GetData(),
-					OutImageWrapper->GetWidth(), OutImageWrapper->GetHeight(),
-					32, OutImageWrapper->GetWidth() * 4,
-					Rmask, Gmask, Bmask, Amask);
+				SDL_Surface *Surface = SDL_CreateRGBSurfaceWithFormat(0, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), 32, SDL_PIXELFORMAT_BGRA8888);
+				if (Surface)
+				{
+					const int Width = Surface->w;
+					const int Height =  Surface->h;
+					const int BytesPerPixel = Surface->format->BytesPerPixel;
+					FMemory::Memcpy(Surface->pixels, (void*)RawData->GetData(), Width * Height * BytesPerPixel);
+					return Surface;
+				}
 			}
 		}
 	}
@@ -566,332 +407,155 @@ static SDL_Surface* LinuxSplash_LoadImage(const TCHAR* InImagePath, TSharedPtr<I
 	return SDL_LoadBMP(TCHAR_TO_UTF8(*ImagePath));
 }
 
-void LinuxSplash_TearDownSplashResources();
 
-/** Helper function to init resources used by the splash thread */
-bool LinuxSplash_InitSplashResources()
+// This class helps cleans up SDL_Surfaces when they go out of scope.
+class SdlSurfacePtr
 {
-	checkf(GSplashScreenImage == nullptr, TEXT("LinuxSplash_InitSplashResources() has been called multiple times."));
-	checkf(GSplashWindow == nullptr, TEXT("LinuxSplash_InitSplashResources() has been called multiple times."));
-	checkf(GSplashIconImage == nullptr, TEXT("LinuxSplash_InitSplashResources() has been called multiple times."));
+public:
+	SdlSurfacePtr(SDL_Surface *InSurface) : Surface(InSurface) {}
+	~SdlSurfacePtr() { if (Surface) { SDL_FreeSurface(Surface); } }
+private:
+	SDL_Surface *Surface;
+};
+
+
+/** Helper function to init resources used by the splash window */
+bool FLinuxSplashState::InitSplashResources(const FText &AppName, const FString &SplashPath, const FString &IconPath)
+{
+	checkf(SplashWindow == nullptr, TEXT("FLinuxSplashState::InitSplashResources() has been called multiple times."));
 
 	if (!FPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		UE_LOG(LogInit, Warning, TEXT("LinuxSplash_InitSplashResources() : InitSDL() failed, there will be no splash."));
+		UE_LOG(LogInit, Warning, TEXT("FLinuxSplashState::InitSplashResources() : InitSDL() failed, there will be no splash."));
 		return false;
 	}
 
 	// load splash .bmp image
-	GSplashScreenImage = LinuxSplash_LoadImage(*GSplashPath, GSplashImageWrapper);
-	
-	if (GSplashScreenImage == nullptr)
+	SplashSurface = LoadImage(SplashPath);
+	if (SplashSurface == nullptr)
 	{
-		UE_LOG(LogHAL, Warning, TEXT("LinuxSplash_InitSplashResources() : Could not load splash BMP! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		UE_LOG(LogHAL, Warning, TEXT("FLinuxSplashState::InitSplashResources() : Could not load splash BMP! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
 		return false;
 	}
 
-	// create splash window
-	GSplashWindow = SDL_CreateWindow(NULL,
-									SDL_WINDOWPOS_CENTERED,
-									SDL_WINDOWPOS_CENTERED,
-									GSplashScreenImage->w,
-									GSplashScreenImage->h,
-									SDL_WINDOW_BORDERLESS | SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
-									);
-	if (GSplashWindow == nullptr)
-	{
-		UE_LOG(LogHAL, Error, TEXT("LinuxSplash_InitSplashResources() : Splash screen window could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
-		LinuxSplash_TearDownSplashResources();
-		return false;
-	}
-
-	SDL_SetWindowTitle( GSplashWindow, TCHAR_TO_UTF8(*GSplashScreenAppName.ToString()) );
-
-	GSplashIconImage = LinuxSplash_LoadImage(*GIconPath, GIconImageWrapper);
-
-	if (GSplashIconImage != nullptr)
-	{
-		SDL_SetWindowIcon(GSplashWindow, GSplashIconImage);
-	}
-	else
-	{
-		UE_LOG(LogHAL, Warning, TEXT("LinuxSplash_InitSplashResources() : Splash icon could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
-		LinuxSplash_TearDownSplashResources();
-		return false;
-	}
-
-	return true;
-}
-
-/** Helper function to tear down resources used by the splash thread */
-void LinuxSplash_TearDownSplashResources()
-{
-	if (GSplashIconImage)
-	{
-		SDL_FreeSurface(GSplashIconImage);
-		GSplashIconImage = nullptr;
-	}
-	GIconImageWrapper.Reset();
-
-	if (GSplashWindow)
-	{
-		SDL_DestroyWindow(GSplashWindow);
-		GSplashWindow = nullptr;
-	}
-
-	if (GSplashScreenImage)
-	{
-		SDL_FreeSurface(GSplashScreenImage);
-		GSplashScreenImage = nullptr;
-		GSplashImageWrapper.Reset();
-	}
-
-	// do not deinit SDL here
-}
-
-/**
- * Thread function that actually creates the window and
- * renders its contents.
- */
-static int StartSplashScreenThread(void *ptr)
-{	
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute( SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0 );
-
-	SDL_GLContext Context = SDL_GL_CreateContext( GSplashWindow );
-
-	if (Context == NULL)
-	{
-		UE_LOG(LogHAL, Error, TEXT("Splash screen SDL_GL_CreateContext failed: %s"), UTF8_TO_TCHAR(SDL_GetError()));
-		return -1;		
-	}
-
-	// Initialize all entry points required by Unreal.
-	#define GET_GL_ENTRYPOINTS(Type,Func) GLFuncPointers::Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
-	ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
-
-	if (SDL_GL_MakeCurrent( GSplashWindow, Context ) != 0) 
-	{
-		UE_LOG(LogHAL, Error, TEXT("Splash screen SDL_GL_MakeCurrent failed: %s"), UTF8_TO_TCHAR(SDL_GetError()));
-		return -1;
-	}
-
-	// Initialize Shaders, Programs, etc.
-	GLuint VertexShader 	= 0;
-	GLuint FragmentShader 	= 0;
-	GLuint ShaderProgram	= 0;
-	GLuint SplashTextureID 	= 0;
-
-	// Compile Vertex and Fragment Shaders from file.
-	if (CompileShaderFromFile( FString::Printf( TEXT("%sShaders/StandaloneRenderer/OpenGL/SplashVertexShader.glsl"), *FPaths::EngineDir()), VertexShader, GL_VERTEX_SHADER) < 0)
-	{
-		UE_LOG(LogHAL, Error, TEXT("Splash screen CompileShaderFromFile failed."));
-		return -1;		
-	}
-
-	if (CompileShaderFromFile(FString::Printf( TEXT("%sShaders/StandaloneRenderer/OpenGL/SplashFragmentShader.glsl"), *FPaths::EngineDir()), FragmentShader, GL_FRAGMENT_SHADER) < 0)
-	{
-		UE_LOG(LogHAL, Error, TEXT("Splash screen CompileShaderFromFile failed."));
-		return -1;		
-	}
-
-	// Create Shader Program and link it.
-	if(LinkShaders(ShaderProgram, VertexShader, FragmentShader) < 0) 
-	{
-		FString Log = GetGLSLProgramLog( ShaderProgram );
-		UE_LOG(LogHAL, Error, TEXT("Failed to link GLSL program: %s"), *Log);
-	}
-
-	// Returns the reference to the Splash Texture from the Shader.
-	SplashTextureID = glGetUniformLocation( ShaderProgram, "SplashTexture" );
-
-	// Create Vertex Array Object. We need that to be conform with OpenGL 3.2+ spec.
-	GLuint VertexArrayObject;
-	glGenVertexArrays(1, &VertexArrayObject);
-	glBindVertexArray(VertexArrayObject);
-	
-	// Create Vertex Buffer and upload data.
-	GLuint VertexBuffer;
-	glGenBuffers(1, &VertexBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-	float screen_vertex [] = 
-	{
-		-1.0, -1.0f,
-		-1.0f, 1.0f,
-		1.0f, 1.0f,
-
-		1.0f, 1.0f,
-		1.0f, -1.0f,
-		-1.0f, -1.0f
-	};
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*12, (GLvoid*)screen_vertex, GL_DYNAMIC_DRAW );
-
-	// create texture slot
-	GLuint texture;
-	glGenTextures(1, &texture);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	// set filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// load splash image as texture in opengl
-	bool bIsBGR = GSplashScreenImage->format->Rmask > GSplashScreenImage->format->Bmask;
-	if (GSplashScreenImage->format->BytesPerPixel == 3)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-			GSplashScreenImage->w, GSplashScreenImage->h,
-			0, bIsBGR ? GL_BGR : GL_RGB, GL_UNSIGNED_BYTE, GSplashScreenImage->pixels);
-	}
-	else if (GSplashScreenImage->format->BytesPerPixel == 4)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-			GSplashScreenImage->w, GSplashScreenImage->h,
-			0, bIsBGR ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, GSplashScreenImage->pixels);		
-	}
-	else
-	{
-		UE_LOG(LogHAL, Warning, TEXT("Splash BMP image has unsupported format"));
-		return -1;
-	}
-
-	// remember bmp stats
-	SplashWidth = GSplashScreenImage->w;
-	SplashHeight =  GSplashScreenImage->h;
-	SplashBPP = GSplashScreenImage->format->BytesPerPixel;
+	const int SplashWidth = SplashSurface->w;
+	const int SplashHeight =  SplashSurface->h;
+	const int SplashBPP = SplashSurface->format->BytesPerPixel;
 
 	if (SplashWidth <= 0 || SplashHeight <= 0)
 	{
-		UE_LOG(LogHAL, Warning, TEXT("Invalid splash image dimensions."));		
+		UE_LOG(LogHAL, Warning, TEXT("Invalid splash image dimensions."));
 		return -1;
+	}
+
+	SDL_Surface *SplashIconImage = LoadImage(IconPath);
+	SdlSurfacePtr SplashIconPtr(SplashIconImage);
+	if (SplashIconImage == nullptr)
+	{
+		UE_LOG(LogHAL, Warning, TEXT("FLinuxSplashState::InitSplashResources() : Splash icon could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+	}
+
+	// Just in case SDL's renderer steps on GL state...
+	SDL_Window *CurrentWindow = SDL_GL_GetCurrentWindow();
+	SDL_GLContext CurrentContext = SDL_GL_GetCurrentContext();
+
+	// on modern X11, your windows might turn gray if they don't pump the event queue fast enough.
+	// But this is because they opt-in to an optional window manager protocol by default; legacy
+	// apps and those that know they'll be slow to respond to events--like splash screens--can
+	// just choose to not support the protocol. Since we're a splash screen, it doesn't matter if
+	// we would be unresponsive, since we accept no input. So don't opt-in.
+	// We pump the event queue during SetSplashText, but it might be at a slow rate.
+	const char *_OriginalHint = SDL_GetHint(SDL_HINT_VIDEO_X11_NET_WM_PING);  // (SDL_SetHint will free this pointer.)
+	char *OriginalHint = _OriginalHint ? SDL_strdup(_OriginalHint) : NULL;
+	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_PING, "0");
+	SplashWindow = SDL_CreateWindow(TCHAR_TO_UTF8(*AppName.ToString()),
+									SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+									SplashWidth, SplashHeight,
+									SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN
+									);
+
+	if (SplashWindow == nullptr)
+	{
+		UE_LOG(LogHAL, Error, TEXT("FLinuxSplashState::InitSplashResources() : Splash screen window could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_PING, OriginalHint ? OriginalHint : "1");
+		SDL_free(OriginalHint);
+		return false;
+	}
+
+	if (SplashIconImage != nullptr)
+	{
+		SDL_SetWindowIcon(SplashWindow, SplashIconImage);  // SDL_SetWindowIcon() makes a copy of this.
+	}
+
+	SplashRenderer = SDL_CreateRenderer(SplashWindow, -1, 0);
+
+	// it's safe to set the hint back once the Renderer is created (since it might recreate the window to get a GL or whatever visual).
+	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_PING, OriginalHint ? OriginalHint : "1");
+	SDL_free(OriginalHint);
+
+	if (SplashRenderer == nullptr)
+	{
+		UE_LOG(LogHAL, Error, TEXT("FLinuxSplashState::InitSplashResources() : Splash screen renderer could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		return false;
+	}
+
+	SplashTexture = SDL_CreateTexture(SplashRenderer, SplashSurface->format->format, SDL_TEXTUREACCESS_STATIC, SplashSurface->w, SplashSurface->h);
+	if (SplashTexture == nullptr)
+	{
+		UE_LOG(LogHAL, Error, TEXT("FLinuxSplashState::InitSplashResources() : Splash screen texture could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		return false;
 	}
 
 	// allocate scratch space for rendering text
 	ScratchSpace = reinterpret_cast<unsigned char *>(FMemory::Malloc(SplashHeight*SplashWidth*SplashBPP));
 
 	// Setup bounds for game name
-	GSplashScreenTextRects[ SplashTextType::GameName ].Top = 0;
-	GSplashScreenTextRects[ SplashTextType::GameName ].Bottom = 50;
-	GSplashScreenTextRects[ SplashTextType::GameName ].Left = 12;
-	GSplashScreenTextRects[ SplashTextType::GameName ].Right = SplashWidth - 12;
+	SplashTextRects[ SplashTextType::GameName ].Top = 0;
+	SplashTextRects[ SplashTextType::GameName ].Bottom = 50;
+	SplashTextRects[ SplashTextType::GameName ].Left = 12;
+	SplashTextRects[ SplashTextType::GameName ].Right = SplashWidth - 12;
 
 	// Setup bounds for version info text 1
-	GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].Top = SplashHeight - 60;
-	GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].Bottom = SplashHeight - 40;
-	GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].Left = 10;
-	GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].Right = SplashWidth - 10;
+	SplashTextRects[ SplashTextType::VersionInfo1 ].Top = SplashHeight - 60;
+	SplashTextRects[ SplashTextType::VersionInfo1 ].Bottom = SplashHeight - 40;
+	SplashTextRects[ SplashTextType::VersionInfo1 ].Left = 10;
+	SplashTextRects[ SplashTextType::VersionInfo1 ].Right = SplashWidth - 10;
 
 	// Setup bounds for copyright info text
 	if (GIsEditor)
 	{
-		GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].Top = SplashHeight - 44;
-		GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].Bottom = SplashHeight - 24;
+		SplashTextRects[ SplashTextType::CopyrightInfo ].Top = SplashHeight - 44;
+		SplashTextRects[ SplashTextType::CopyrightInfo ].Bottom = SplashHeight - 24;
 	}
 	else
 	{
-		GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].Top = SplashHeight - 16;
-		GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].Bottom = SplashHeight - 6;
+		SplashTextRects[ SplashTextType::CopyrightInfo ].Top = SplashHeight - 16;
+		SplashTextRects[ SplashTextType::CopyrightInfo ].Bottom = SplashHeight - 6;
 	}
 
-	GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].Left = 10;
-	GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].Right = SplashWidth - 20;
+	SplashTextRects[ SplashTextType::CopyrightInfo ].Left = 10;
+	SplashTextRects[ SplashTextType::CopyrightInfo ].Right = SplashWidth - 20;
 
 	// Setup bounds for startup progress text
-	GSplashScreenTextRects[ SplashTextType::StartupProgress ].Top = SplashHeight - 20;
-	GSplashScreenTextRects[ SplashTextType::StartupProgress ].Bottom = SplashHeight;
-	GSplashScreenTextRects[ SplashTextType::StartupProgress ].Left = 10;
-	GSplashScreenTextRects[ SplashTextType::StartupProgress ].Right = SplashWidth - 20;
+	SplashTextRects[ SplashTextType::StartupProgress ].Top = SplashHeight - 20;
+	SplashTextRects[ SplashTextType::StartupProgress ].Bottom = SplashHeight;
+	SplashTextRects[ SplashTextType::StartupProgress ].Left = 10;
+	SplashTextRects[ SplashTextType::StartupProgress ].Right = SplashWidth - 20;
 
 	OpenFonts();
 
-	glDisable(GL_DEPTH_TEST);
+	bStringsChanged = true;
+	RenderStrings();
+	SDL_ShowWindow(SplashWindow);
+	Redraw();
 
-	// drawing loop
-	while (ThreadState >= 0)
+	if (CurrentWindow)  // put back any old GL state...
 	{
-		SDL_Event event;
-		// Poll events otherwise the window will get dark or
-		// on some Desktops it will complain that the thread
-		// does not work anymore.
-		while (SDL_PollEvent(&event))
-		{
-			// intentionally empty
-		}
-
-		SDL_Delay(300);
-		
-		// Activate Shader Program, Texture etc.
-		glBindVertexArray(VertexArrayObject);
-		glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-		glUseProgram(ShaderProgram);
-		glActiveTexture(GL_TEXTURE0);
-		glUniform1i(SplashTextureID, 0);
-
-		if (ThreadState > 0)
-		{
-			RenderString(texture);
-			FPlatformAtomics::InterlockedDecrement(&ThreadState);
-		}
-
-		// Set stream positions and draw.
-		glEnableVertexAttribArray(0); 
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-		// Disable Shader Program, VAO, VBO etc.
-		glDisableVertexAttribArray(0); 
-		glUseProgram(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-
-		SDL_GL_SwapWindow( GSplashWindow );
+		SDL_GL_MakeCurrent(CurrentWindow, CurrentContext);
 	}
 
-	// clean up
-	glDeleteBuffers(1, &VertexBuffer);
-	glDeleteVertexArrays(1, &VertexArrayObject);
-	glDetachShader(ShaderProgram, VertexShader);
-	glDetachShader(ShaderProgram, FragmentShader);
-	glDeleteShader(VertexShader);
-	glDeleteShader(FragmentShader);
-	glDeleteProgram(ShaderProgram);
- 
-	if (ScratchSpace)
-	{
-		FMemory::Free(ScratchSpace);
-		ScratchSpace = NULL;
-	}
-
-	if (FontSmall.Status == SplashFont::Loaded)
-	{
-		FT_Done_Face(FontSmall.Face);
-	}
-
-	if (FontNormal.Status == SplashFont::Loaded)
-	{
-		FT_Done_Face(FontNormal.Face);
-	}
-
-	if (FontLarge.Status == SplashFont::Loaded)
-	{
-		FT_Done_Face(FontLarge.Face);
-	}
-
-	FT_Done_FreeType(FontLibrary);
-
-	SDL_GL_DeleteContext(Context);
-	FMemory::Free(ScratchSpace);
-
-	// set the thread state to -1 to let the caller know we're done (FIXME: can be done without busy-loops)
-	FPlatformAtomics::InterlockedExchange(&ThreadState, -1);
-
-	return 0;
+	return true;
 }
-
-#endif //WITH_EDITOR
 
 /**
  * Sets the text displayed on the splash screen (for startup/loading progress)
@@ -899,15 +563,53 @@ static int StartSplashScreenThread(void *ptr)
  * @param	InType		Type of text to change
  * @param	InText		Text to display
  */
-static void StartSetSplashText( const SplashTextType::Type InType, const FText& InText )
+void FLinuxSplashState::SetSplashText( const SplashTextType::Type InType, const FText& InText )
 {
 #if WITH_EDITOR
-	FScopeLock ScopeLock(&GSplashScreenTextCriticalSection);
-
-	// Update splash text
-	GSplashScreenText[ InType ] = InText;
+	if (!InText.EqualTo(SplashText[ InType ]))
+	{
+		SplashText[ InType ] = InText;
+		bStringsChanged = true;
+	}
 #endif
 }
+
+void FLinuxSplashState::Redraw()
+{
+	if (bNeedsRedraw || bStringsChanged)
+	{
+		// Just in case SDL's renderer steps on GL state...
+		SDL_Window *CurrentWindow = SDL_GL_GetCurrentWindow();
+		SDL_GLContext CurrentContext = SDL_GL_GetCurrentContext();
+
+		RenderStrings();
+		SDL_RenderCopy(SplashRenderer, SplashTexture, NULL, NULL);
+		SDL_RenderPresent(SplashRenderer);
+		bNeedsRedraw = false;
+
+		if (CurrentWindow)  // put back any old GL state...
+		{
+			SDL_GL_MakeCurrent(CurrentWindow, CurrentContext);
+		}
+	}
+}
+
+void FLinuxSplashState::Pump()
+{
+	if (SplashWindow)
+	{
+		SDL_Event Event;
+		while (SDL_PollEvent(&Event))
+		{
+			if ((Event.type == SDL_WINDOWEVENT) && (Event.window.event == SDL_WINDOWEVENT_EXPOSED) && (SDL_GetWindowID(SplashWindow) == Event.window.windowID))
+			{
+				bNeedsRedraw = true;
+			}
+		}
+		Redraw();
+	}
+}
+#endif //WITH_EDITOR
 
 
 /**
@@ -918,7 +620,7 @@ void FLinuxPlatformSplash::Show( )
 {
 #if WITH_EDITOR
 	// need to do a splash screen?
-	if(GSplashThread || FParse::Param(FCommandLine::Get(),TEXT("NOSPLASH")) == true)
+	if(GSplashState || FParse::Param(FCommandLine::Get(),TEXT("NOSPLASH")) == true)
 	{
 		return;
 	}
@@ -929,9 +631,10 @@ void FLinuxPlatformSplash::Show( )
 	bool IsCustom = false;
 
 	// first look for the splash, do not init anything if not found
+	FString SplashPath;
 	{
 		const TCHAR* SplashImage = GIsEditor ? (GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash")) : (GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash"));
-		if (!GetSplashPath(SplashImage, GSplashPath, IsCustom))
+		if (!GetSplashPath(SplashImage, SplashPath, IsCustom))
 		{
 			UE_LOG(LogHAL, Warning, TEXT("Splash screen image not found."));
 			return;	// early out
@@ -939,6 +642,7 @@ void FLinuxPlatformSplash::Show( )
 	}
 
 	// look for the icon separately, also avoid initialization if not found
+	FString IconPath;
 	{
 		const TCHAR* EditorIcons[] =
 		{
@@ -959,7 +663,7 @@ void FLinuxPlatformSplash::Show( )
 		for (const TCHAR* IconImage = *IconsToTry; IconImage != nullptr && !bIconFound; IconImage = *(++IconsToTry))
 		{
 			bool bDummy;
-			if (GetSplashPath(IconImage, GIconPath, bDummy))
+			if (GetSplashPath(IconImage, IconPath, bDummy))
 			{
 				bIconFound = true;
 			}
@@ -972,18 +676,21 @@ void FLinuxPlatformSplash::Show( )
 		}
 	}
 
+	GSplashState = new FLinuxSplashState;
+
 	// Don't set the game name if the splash screen is custom.
 	if ( !IsCustom )
 	{
-		StartSetSplashText( SplashTextType::GameName, GameName );
+		GSplashState->SetSplashText( SplashTextType::GameName, GameName );
 	}
 
 	// In the editor, we'll display loading info
+	FText AppName;
 	if( GIsEditor )
 	{
 		// Set initial startup progress info
 		{
-			StartSetSplashText( SplashTextType::StartupProgress,
+			GSplashState->SetSplashText( SplashTextType::StartupProgress,
 				NSLOCTEXT("UnrealEd", "SplashScreen_InitialStartupProgress", "Loading..." ) );
 		}
 
@@ -992,7 +699,6 @@ void FLinuxPlatformSplash::Show( )
 			const FText Version = FText::FromString( FEngineVersion::Current().ToString( FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch ) );
 
 			FText VersionInfo;
-			FText AppName;
 			if( GameName.IsEmpty() )
 			{
 				VersionInfo = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitleWithVersionNoGameName_F", "Unreal Editor {0}" ), Version );
@@ -1004,36 +710,20 @@ void FLinuxPlatformSplash::Show( )
 				AppName = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitle_F", "Unreal Editor - {0}" ), GameName );
 			}
 
-			StartSetSplashText( SplashTextType::VersionInfo1, VersionInfo );
-
-			// Change the window text (which will be displayed in the taskbar)
-			GSplashScreenAppName = AppName;
+			GSplashState->SetSplashText( SplashTextType::VersionInfo1, VersionInfo );
 		}
 
 		// Display copyright information in editor splash screen
 		{
 			const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2017   Epic Games, Inc.   All rights reserved." );
-			StartSetSplashText( SplashTextType::CopyrightInfo, CopyrightInfo );
+			GSplashState->SetSplashText( SplashTextType::CopyrightInfo, CopyrightInfo );
 		}
 	}
 
-	// init splash LinuxSplash_InitSplashResources
-	if (!LinuxSplash_InitSplashResources())
+	if (!GSplashState->InitSplashResources(AppName, SplashPath, IconPath))
 	{
-		return;
-	}
-
-	// Create rendering thread to display splash
-	GSplashThread = SDL_CreateThread(StartSplashScreenThread, "StartSplashScreenThread", (void *)NULL);
-
-	if (GSplashThread == nullptr)
-	{
-		UE_LOG(LogHAL, Error, TEXT("Splash screen SDL_CreateThread failed: %s"), UTF8_TO_TCHAR(SDL_GetError()));
-	}
-	else
-	{
-		SDL_DetachThread(GSplashThread);
-		FPlatformAtomics::InterlockedExchange(&ThreadState, 1);
+		delete GSplashState;
+		GSplashState = nullptr;
 	}
 #endif //WITH_EDITOR
 }
@@ -1045,23 +735,8 @@ void FLinuxPlatformSplash::Show( )
 void FLinuxPlatformSplash::Hide()
 {
 #if WITH_EDITOR
-	// signal thread it's time to quit
-	if (ThreadState >= 0)	// if there's a thread at all...
-	{
-		FPlatformAtomics::InterlockedExchange(&ThreadState, -99);
-
-		// wait for the thread to be done before tearing it tearing it down (it will set the ThreadState to 0)
-		while (ThreadState != -1)
-		{
-			// busy loop!
-			FPlatformProcess::Sleep(0.01f);
-		}
-	}
-
-	// tear down resources that thread used (safe to call even if they were not initialized
-	LinuxSplash_TearDownSplashResources();
-
-	GSplashThread = nullptr;
+	delete GSplashState;
+	GSplashState = nullptr;
 #endif
 }
 
@@ -1075,27 +750,16 @@ void FLinuxPlatformSplash::Hide()
 void FLinuxPlatformSplash::SetSplashText( const SplashTextType::Type InType, const TCHAR* InText )
 {
 #if WITH_EDITOR
-	// We only want to bother drawing startup progress in the editor, since this information is
-	// not interesting to an end-user (also, it's not usually localized properly.)	
-
-	if (InType == SplashTextType::CopyrightInfo || GIsEditor)
+	if (GSplashState)
 	{
-		bool bWasUpdated = false;
+		// We only want to bother drawing startup progress in the editor, since this information is
+		// not interesting to an end-user (also, it's not usually localized properly.)
+		if (InType == SplashTextType::CopyrightInfo || GIsEditor)
 		{
-			FScopeLock ScopeLock(&GSplashScreenTextCriticalSection);
-
-			// Update splash text
-			if (FCString::Strcmp( InText, *GSplashScreenText[ InType ].ToString() ) != 0)
-			{
-				GSplashScreenText[ InType ] = FText::FromString( InText );
-				bWasUpdated = true;
-			}
+			GSplashState->SetSplashText(InType, FText::FromString(InText));
 		}
-
-		if (bWasUpdated && GSplashThread && ThreadState >= 0)
-		{
-			FPlatformAtomics::InterlockedIncrement(&ThreadState);
-		}
+		GSplashState->Pump();
 	}
+
 #endif //WITH_EDITOR
 }

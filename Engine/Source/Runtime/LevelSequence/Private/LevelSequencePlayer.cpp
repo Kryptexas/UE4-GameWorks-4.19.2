@@ -77,11 +77,9 @@ bool ULevelSequencePlayer::CanPlay() const
 	return World.IsValid();
 }
 
-void ULevelSequencePlayer::BeginPlay()
+void ULevelSequencePlayer::OnStartedPlaying()
 {
 	EnableCinematicMode(true);
-
-	Super::BeginPlay();
 }
 
 void ULevelSequencePlayer::OnStopped()
@@ -115,6 +113,11 @@ void ULevelSequencePlayer::OnStopped()
 
 void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut)
 {
+	if (World == nullptr || World->GetGameInstance() == nullptr)
+	{
+		return;
+	}
+
 	// skip missing player controller
 	APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 

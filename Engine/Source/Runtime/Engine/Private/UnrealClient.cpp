@@ -1842,6 +1842,45 @@ void FCommonViewportClient::DrawHighResScreenshotCaptureRegion(FCanvas& Canvas)
 	LineItem.Draw( &Canvas, FVector2D(Config.UnscaledCaptureRegion.Min.X, Config.UnscaledCaptureRegion.Max.Y), FVector2D(Config.UnscaledCaptureRegion.Min.X, Config.UnscaledCaptureRegion.Min.Y));
 }
 
+#if WITH_EDITOR
+
+void FCommonViewportClient::RequestUpdateEditorScreenPercentage()
+{
+	bShouldUpdateScreenPercentage = true;
+}
+
+TOptional<float> FCommonViewportClient::GetEditorScreenPercentage()
+{
+	if (bShouldUpdateScreenPercentage)
+	{
+		static auto CVarEnableEditorScreenPercentageOverride = IConsoleManager::Get().FindConsoleVariable(TEXT("Editor.OverrideDPIBasedEditorViewportScaling"));
+		if (CVarEnableEditorScreenPercentageOverride->GetInt() == 0)
+		{
+			float EditorScreenPercentageValue;
+			float DPIScale = GetViewportClientWindowDPIScale();
+
+			if (DPIScale > 1.0f)
+			{
+				EditorScreenPercentageValue = 100.f / DPIScale;
+			}
+			else
+			{
+				EditorScreenPercentageValue = 100.0f;
+			}
+
+			EditorScreenPercentage = TOptional<float>(EditorScreenPercentageValue);
+		}
+		else
+		{
+			EditorScreenPercentage.Reset();
+		}
+
+		bShouldUpdateScreenPercentage = false;
+	}
+
+	return EditorScreenPercentage;
+}
+#endif
 
 /**
  * FDummyViewport

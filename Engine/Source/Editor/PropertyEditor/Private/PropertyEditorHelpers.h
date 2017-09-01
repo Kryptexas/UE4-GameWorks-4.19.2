@@ -10,6 +10,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "PropertyNode.h"
 #include "Presentation/PropertyEditor/PropertyEditor.h"
+#include "SDetailSingleItemRow.h"
 
 class FNotifyHook;
 class FObjectPropertyNode;
@@ -115,6 +116,8 @@ private:
 
 namespace PropertyEditorHelpers
 {
+
+	static bool IsPropertyButtonEnabled(TWeakPtr<FPropertyNode> PropertyNode);
 	/**
 	 * Returns whether or not a property is a built in struct property like a vector or color
 	 *
@@ -225,7 +228,7 @@ namespace PropertyEditorHelpers
 	void MakeRequiredPropertyButtons( const TSharedRef< FPropertyEditor >& PropertyEditor, TArray< TSharedRef<SWidget> >& OutButtons, const TArray<EPropertyButton::Type>& ButtonsToIgnore = TArray<EPropertyButton::Type>(), bool bUsingAssetPicker = true );
 
 	TSharedRef<SWidget> MakePropertyButton( const EPropertyButton::Type ButtonType, const TSharedRef< FPropertyEditor >& PropertyEditor );
-
+	TSharedRef<SWidget> MakePropertyReorderHandle(const TSharedRef<FPropertyNode>& PropertyNode, SDetailSingleItemRow* InParentRow);
 	/**
 	 * Recursively finds all object property nodes in a property tree
 	 *

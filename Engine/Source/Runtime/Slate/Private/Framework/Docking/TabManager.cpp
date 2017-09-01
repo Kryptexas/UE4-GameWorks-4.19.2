@@ -328,8 +328,8 @@ TSharedRef<FJsonObject> FTabManager::FLayout::PersistToString_Helper(const TShar
 		if ( NodeAsArea->WindowPlacement == FArea::Placement_Automatic )
 		{
 			JsonObj->SetStringField( TEXT("WindowPlacement"), TEXT("Placement_Automatic") );
-			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->WindowSize.X );
-			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->WindowSize.Y );
+			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->UnscaledWindowSize.X );
+			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->UnscaledWindowSize.Y );
 		}
 		else if (NodeAsArea->WindowPlacement == FArea::Placement_NoWindow)
 		{
@@ -338,10 +338,10 @@ TSharedRef<FJsonObject> FTabManager::FLayout::PersistToString_Helper(const TShar
 		else if ( NodeAsArea->WindowPlacement == FArea::Placement_Specified )
 		{
 			JsonObj->SetStringField( TEXT("WindowPlacement"), TEXT("Placement_Specified") );
-			JsonObj->SetNumberField( TEXT("WindowPosition_X"), NodeAsArea->WindowPosition.X );
-			JsonObj->SetNumberField( TEXT("WindowPosition_Y"), NodeAsArea->WindowPosition.Y );
-			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->WindowSize.X );
-			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->WindowSize.Y );
+			JsonObj->SetNumberField( TEXT("WindowPosition_X"), NodeAsArea->UnscaledWindowPosition.X );
+			JsonObj->SetNumberField( TEXT("WindowPosition_Y"), NodeAsArea->UnscaledWindowPosition.Y );
+			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->UnscaledWindowSize.X );
+			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->UnscaledWindowSize.Y );
 			JsonObj->SetBoolField( TEXT("bIsMaximized"), NodeAsArea->bIsMaximized );
 		}
 				
@@ -1312,13 +1312,13 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 			TSharedRef<SWindow> NewWindow = (bAutoPlacement)
 				? SNew(SWindow)
 					.AutoCenter( EAutoCenter::PreferredWorkArea )
-					.ClientSize( NodeAsArea->WindowSize )
+					.ClientSize( NodeAsArea->UnscaledWindowSize )
 					.CreateTitleBar( false )
 					.IsInitiallyMaximized( NodeAsArea->bIsMaximized )
 				: SNew(SWindow)
 					.AutoCenter( EAutoCenter::None )
-					.ScreenPosition( NodeAsArea->WindowPosition )
-					.ClientSize( NodeAsArea->WindowSize )
+					.ScreenPosition( NodeAsArea->UnscaledWindowPosition )
+					.ClientSize( NodeAsArea->UnscaledWindowSize)
 					.CreateTitleBar( false )
 					.IsInitiallyMaximized( NodeAsArea->bIsMaximized );
 

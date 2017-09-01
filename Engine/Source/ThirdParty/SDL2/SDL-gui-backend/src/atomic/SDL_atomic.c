@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -33,6 +33,23 @@
 
 #if !defined(HAVE_GCC_ATOMICS) && defined(__SOLARIS__)
 #include <atomic.h>
+#endif
+
+/* The __atomic_load_n() intrinsic showed up in different times for different compilers. */
+#if defined(HAVE_GCC_ATOMICS)
+# if defined(__clang__)
+#   if __has_builtin(__atomic_load_n)
+      /* !!! FIXME: this advertises as available in the NDK but uses an external symbol we don't have.
+         It might be in a later NDK or we might need an extra library? --ryan. */
+#     if !defined(__ANDROID__)
+#       define HAVE_ATOMIC_LOAD_N 1
+#     endif
+#   endif
+# elif defined(__GNUC__)
+#   if (__GNUC__ >= 5)
+#     define HAVE_ATOMIC_LOAD_N 1
+#   endif
+# endif
 #endif
 
 /*
@@ -88,10 +105,10 @@ SDL_AtomicCAS(SDL_atomic_t *a, int oldval, int newval)
 {
 #ifdef HAVE_MSC_ATOMICS
     return (_InterlockedCompareExchange((long*)&a->value, (long)newval, (long)oldval) == (long)oldval);
-#elif defined(__MACOSX__)  /* !!! FIXME: should we favor gcc atomics? */
-    return (SDL_bool) OSAtomicCompareAndSwap32Barrier(oldval, newval, &a->value);
 #elif defined(HAVE_GCC_ATOMICS)
     return (SDL_bool) __sync_bool_compare_and_swap(&a->value, oldval, newval);
+#elif defined(__MACOSX__)  /* this is deprecated in 10.12 sdk; favor gcc atomics. */
+    return (SDL_bool) OSAtomicCompareAndSwap32Barrier(oldval, newval, &a->value);
 #elif defined(__SOLARIS__) && defined(_LP64)
     return (SDL_bool) ((int) atomic_cas_64((volatile uint64_t*)&a->value, (uint64_t)oldval, (uint64_t)newval) == oldval);
 #elif defined(__SOLARIS__) && !defined(_LP64)
@@ -119,12 +136,12 @@ SDL_AtomicCASPtr(void **a, void *oldval, void *newval)
     return (_InterlockedCompareExchange((long*)a, (long)newval, (long)oldval) == (long)oldval);
 #elif defined(HAVE_MSC_ATOMICS) && (!_M_IX86)
     return (_InterlockedCompareExchangePointer(a, newval, oldval) == oldval);
-#elif defined(__MACOSX__) && defined(__LP64__)   /* !!! FIXME: should we favor gcc atomics? */
-    return (SDL_bool) OSAtomicCompareAndSwap64Barrier((int64_t)oldval, (int64_t)newval, (int64_t*) a);
-#elif defined(__MACOSX__) && !defined(__LP64__)  /* !!! FIXME: should we favor gcc atomics? */
-    return (SDL_bool) OSAtomicCompareAndSwap32Barrier((int32_t)oldval, (int32_t)newval, (int32_t*) a);
 #elif defined(HAVE_GCC_ATOMICS)
     return __sync_bool_compare_and_swap(a, oldval, newval);
+#elif defined(__MACOSX__) && defined(__LP64__)  /* this is deprecated in 10.12 sdk; favor gcc atomics. */
+    return (SDL_bool) OSAtomicCompareAndSwap64Barrier((int64_t)oldval, (int64_t)newval, (int64_t*) a);
+#elif defined(__MACOSX__) && !defined(__LP64__)  /* this is deprecated in 10.12 sdk; favor gcc atomics. */
+    return (SDL_bool) OSAtomicCompareAndSwap32Barrier((int32_t)oldval, (int32_t)newval, (int32_t*) a);
 #elif defined(__SOLARIS__)
     return (SDL_bool) (atomic_cas_ptr(a, oldval, newval) == oldval);
 #elif EMULATE_CAS
@@ -211,36 +228,41 @@ SDL_AtomicAdd(SDL_atomic_t *a, int v)
 int
 SDL_AtomicGet(SDL_atomic_t *a)
 {
+#ifdef HAVE_ATOMIC_LOAD_N
+    return __atomic_load_n(&a->value, __ATOMIC_SEQ_CST);
+#else
     int value;
     do {
         value = a->value;
     } while (!SDL_AtomicCAS(a, value, value));
     return value;
+#endif
 }
 
 void *
 SDL_AtomicGetPtr(void **a)
 {
+#ifdef HAVE_ATOMIC_LOAD_N
+    return __atomic_load_n(a, __ATOMIC_SEQ_CST);
+#else
     void *value;
     do {
         value = *a;
     } while (!SDL_AtomicCASPtr(a, value, value));
     return value;
+#endif
 }
 
-#ifdef __thumb__
-#if defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__)
-__asm__(
-"   .align 2\n"
-"   .globl _SDL_MemoryBarrierRelease\n"
-"   .globl _SDL_MemoryBarrierAcquire\n"
-"_SDL_MemoryBarrierRelease:\n"
-"_SDL_MemoryBarrierAcquire:\n"
-"   mov r0, #0\n"
-"   mcr p15, 0, r0, c7, c10, 5\n"
-"   bx lr\n"
-);
-#endif
-#endif
+void
+SDL_MemoryBarrierReleaseFunction(void)
+{
+    SDL_MemoryBarrierRelease();
+}
+
+void
+SDL_MemoryBarrierAcquireFunction(void)
+{
+    SDL_MemoryBarrierAcquire();
+}
 
 /* vi: set ts=4 sw=4 expandtab: */

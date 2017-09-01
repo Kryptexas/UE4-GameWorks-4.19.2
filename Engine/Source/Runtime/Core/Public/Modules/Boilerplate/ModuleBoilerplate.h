@@ -40,9 +40,17 @@ class FFixedUObjectArray;
 
 class FFixedUObjectArray;
 
+// GDB/LLDB pretty printers don't use these - no need to export additional symbols. This also solves ODR violation reported by ASan on Linux
+#if PLATFORM_LINUX
+#define UE4_VISUALIZERS_HELPERS
+#else
+#define UE4_VISUALIZERS_HELPERS \
+	FNameEntry*** GFNameTableForDebuggerVisualizers_MT = FName::GetNameTableForDebuggerVisualizers_MT(); \
+	FFixedUObjectArray*& GObjectArrayForDebugVisualizers = GCoreObjectArrayForDebugVisualizers;
+#endif
+
 // in DLL builds, these are done per-module, otherwise we just need one in the application
 // visual studio cannot find cross dll data for visualizers, so these provide access
 #define PER_MODULE_BOILERPLATE \
-	FNameEntry*** GFNameTableForDebuggerVisualizers_MT = FName::GetNameTableForDebuggerVisualizers_MT(); \
-	FFixedUObjectArray*& GObjectArrayForDebugVisualizers = GCoreObjectArrayForDebugVisualizers; \
+	UE4_VISUALIZERS_HELPERS \
 	REPLACEMENT_OPERATOR_NEW_AND_DELETE

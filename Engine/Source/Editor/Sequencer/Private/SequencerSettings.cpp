@@ -49,6 +49,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAllowPossessionOfPIEViewports = false;
 	bActivateRealtimeViewports = true;
 	bEvaluateSubSequencesInIsolation = false;
+	bRerunConstructionScripts = false;
 	bVisualizePreAndPostRoll = true;
 }
 
@@ -700,6 +701,20 @@ void USequencerSettings::SetEvaluateSubSequencesInIsolation(bool bInEvaluateSubS
 		SaveConfig();
 
 		OnEvaluateSubSequencesInIsolationChangedEvent.Broadcast();
+	}
+}
+
+bool USequencerSettings::ShouldRerunConstructionScripts() const
+{
+	return bRerunConstructionScripts;
+}
+
+void USequencerSettings::SetRerunConstructionScripts(bool bInRerunConstructionScripts)
+{
+	if (bRerunConstructionScripts != bInRerunConstructionScripts)
+	{
+		bRerunConstructionScripts = bInRerunConstructionScripts;
+		SaveConfig();
 	}
 }
 

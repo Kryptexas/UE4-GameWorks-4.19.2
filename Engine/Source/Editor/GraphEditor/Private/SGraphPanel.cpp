@@ -574,13 +574,22 @@ FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InK
 				return FReply::Handled();
 			}
 		}
+		bool bZoomOutKeyEvent = false;
+		bool bZoomInKeyEvent = false;
+		// Iterate through all key mappings to generate key event flags
+		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+		{
+			EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex> (i);
+			bZoomOutKeyEvent |= InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomOut->GetActiveChord(ChordIndex)->Key;
+			bZoomInKeyEvent |= InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomIn->GetActiveChord(ChordIndex)->Key;
+		}
 
-		if(InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomOut->GetActiveChord()->Key)
+		if(bZoomOutKeyEvent)
 		{
 			ChangeZoomLevel(-1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
 		}
-		if(InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomIn->GetActiveChord()->Key)
+		if( bZoomInKeyEvent)
 		{
 			ChangeZoomLevel(+1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();

@@ -120,6 +120,8 @@ protected:
 
 	/** Enumeration value specifyin in which time-space to generate thumbnails */
 	ETimeSpace TimeSpace;
+
+	FDelegateHandle RedrawThumbnailDelegateHandle;
 };
 
 /**

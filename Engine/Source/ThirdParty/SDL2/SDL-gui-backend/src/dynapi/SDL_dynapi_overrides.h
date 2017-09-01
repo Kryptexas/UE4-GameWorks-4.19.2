@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,12 +25,6 @@
 
 #if !SDL_DYNAMIC_API
 #error You should not be here.
-#endif
-
-/* so annoying. */
-#if defined(__thumb__) && (defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__))
-#define SDL_MemoryBarrierRelease SDL_MemoryBarrierRelease_REAL
-#define SDL_MemoryBarrierAcquire SDL_MemoryBarrierAcquire_REAL
 #endif
 
 #define SDL_SetError SDL_SetError_REAL
@@ -445,6 +439,8 @@
 #define SDL_iconv_close SDL_iconv_close_REAL
 #define SDL_iconv SDL_iconv_REAL
 #define SDL_iconv_string SDL_iconv_string_REAL
+#define SDL_CreateRGBSurfaceWithFormat SDL_CreateRGBSurfaceWithFormat_REAL
+#define SDL_CreateRGBSurfaceWithFormatFrom SDL_CreateRGBSurfaceWithFormatFrom_REAL
 #define SDL_CreateRGBSurface SDL_CreateRGBSurface_REAL
 #define SDL_CreateRGBSurfaceFrom SDL_CreateRGBSurfaceFrom_REAL
 #define SDL_FreeSurface SDL_FreeSurface_REAL
@@ -614,3 +610,26 @@
 #define SDL_RenderSetIntegerScale SDL_RenderSetIntegerScale_REAL
 #define SDL_RenderGetIntegerScale SDL_RenderGetIntegerScale_REAL
 #define SDL_DequeueAudio SDL_DequeueAudio_REAL
+#define SDL_SetWindowResizable SDL_SetWindowResizable_REAL
+#define SDL_CreateRGBSurfaceWithFormat SDL_CreateRGBSurfaceWithFormat_REAL
+#define SDL_CreateRGBSurfaceWithFormatFrom SDL_CreateRGBSurfaceWithFormatFrom_REAL
+#define SDL_GetHintBoolean SDL_GetHintBoolean_REAL
+#define SDL_JoystickGetDeviceVendor SDL_JoystickGetDeviceVendor_REAL
+#define SDL_JoystickGetDeviceProduct SDL_JoystickGetDeviceProduct_REAL
+#define SDL_JoystickGetDeviceProductVersion SDL_JoystickGetDeviceProductVersion_REAL
+#define SDL_JoystickGetVendor SDL_JoystickGetVendor_REAL
+#define SDL_JoystickGetProduct SDL_JoystickGetProduct_REAL
+#define SDL_JoystickGetProductVersion SDL_JoystickGetProductVersion_REAL
+#define SDL_GameControllerGetVendor SDL_GameControllerGetVendor_REAL
+#define SDL_GameControllerGetProduct SDL_GameControllerGetProduct_REAL
+#define SDL_GameControllerGetProductVersion SDL_GameControllerGetProductVersion_REAL
+#define SDL_HasNEON SDL_HasNEON_REAL
+#define SDL_GameControllerNumMappings SDL_GameControllerNumMappings_REAL
+#define SDL_GameControllerMappingForIndex SDL_GameControllerMappingForIndex_REAL
+#define SDL_JoystickGetAxisInitialState SDL_JoystickGetAxisInitialState_REAL
+#define SDL_JoystickGetDeviceType SDL_JoystickGetDeviceType_REAL
+#define SDL_JoystickGetType SDL_JoystickGetType_REAL
+#define SDL_MemoryBarrierReleaseFunction SDL_MemoryBarrierReleaseFunction_REAL
+#define SDL_MemoryBarrierAcquireFunction SDL_MemoryBarrierAcquireFunction_REAL
+#define SDL_JoystickGetDeviceInstanceID SDL_JoystickGetDeviceInstanceID_REAL
+#define SDL_utf8strlen SDL_utf8strlen_REAL

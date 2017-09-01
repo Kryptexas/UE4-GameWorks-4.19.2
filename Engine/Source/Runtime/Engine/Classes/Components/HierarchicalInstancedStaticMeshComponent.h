@@ -159,6 +159,8 @@ public:
 	/** Heuristic for the number of leaves in the tree **/
 	int32 DesiredInstancesPerLeaf();
 
+	virtual void ApplyComponentInstanceData(class FInstancedStaticMeshComponentInstanceData* InstancedMeshData) override;
+
 protected:
 	void BuildTree();
 	void BuildTreeAsync();

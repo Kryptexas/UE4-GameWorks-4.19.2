@@ -1065,9 +1065,8 @@ protected:
 			// aggressive filtering?
 			if (bAggressiveFiltering && TextBasedFilterStringTokens.Num() > 0)
 			{
-				FEventGraphData *NewData = new FEventGraphData(GetEventGraph().Get());
-				RebuildForFilter(NewData->GetRoot()->GetChildren());
-				delete NewData;
+				// Rebuild the event graph in-place
+				RebuildForFilter(GetEventGraph()->GetRoot()->GetChildren());
 			}
 			else
 			{

@@ -88,3 +88,8 @@ double SMiniCurveEditor::GetLastActivationTime()
 	//@TODO: This editor should probably derive from FAssetEditorToolkit instead!
 	return 0.0;
 }
+
+void SMiniCurveEditor::RemoveEditingAsset(UObject* Asset)
+{
+	//@TODO: This editor should probably derive from FAssetEditorToolkit instead!
+}

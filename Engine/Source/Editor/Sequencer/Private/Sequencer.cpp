@@ -316,7 +316,10 @@ FSequencer::FSequencer()
 
 FSequencer::~FSequencer()
 {
-	GEditor->UnregisterForUndo(this);
+	if (GEditor)
+	{
+		GEditor->UnregisterForUndo(this);
+	}
 
 	for (auto TrackEditor : TrackEditors)
 	{
@@ -702,6 +705,84 @@ void FSequencer::UpdateSubSequenceData()
 	{
 		SubSequenceRange = SubSequenceData->ValidPlayRange;
 		RootToLocalTransform = SubSequenceData->RootToSequenceTransform;
+	}
+}
+
+void FSequencer::RerunConstructionScripts()
+{
+	TSet<TWeakObjectPtr<AActor> > BoundActors;
+
+	FMovieSceneRootEvaluationTemplateInstance& RootTemplate = GetEvaluationTemplate();
+		
+	UMovieSceneSequence* Sequence = RootTemplate.GetSequence(MovieSceneSequenceID::Root);
+
+	GetConstructionScriptActors(Sequence->GetMovieScene(), MovieSceneSequenceID::Root, BoundActors);
+
+	for (auto& SubInstance : RootTemplate.GetSubInstances())
+	{
+		if (RootTemplateInstance.GetThisFrameMetaData().ActiveSequences.Contains(SubInstance.Key))
+		{
+			UMovieSceneSequence* SubSequence = SubInstance.Value.Sequence.Get();
+			if (SubSequence)
+			{
+				GetConstructionScriptActors(SubSequence->GetMovieScene(), SubInstance.Key, BoundActors);
+			}
+		}
+	}
+
+	for (TWeakObjectPtr<AActor> BoundActor : BoundActors)
+	{
+		if (BoundActor.IsValid())
+		{
+			BoundActor.Get()->RerunConstructionScripts();
+		}
+	}
+}
+
+void FSequencer::GetConstructionScriptActors(UMovieScene* MovieScene, FMovieSceneSequenceIDRef SequenceID, TSet<TWeakObjectPtr<AActor> >& BoundActors)
+{
+	for (int32 Index = 0; Index < MovieScene->GetPossessableCount(); ++Index)
+	{
+		FGuid ThisGuid = MovieScene->GetPossessable(Index).GetGuid();
+
+		for (TWeakObjectPtr<> WeakObject : FindBoundObjects(ThisGuid, SequenceID))
+		{
+			if (WeakObject.IsValid())
+			{
+				AActor* Actor = Cast<AActor>(WeakObject.Get());
+	
+				if (Actor)
+				{
+					UBlueprint* Blueprint = Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy);
+					if (Blueprint && Blueprint->bRunConstructionScriptInSequencer)
+					{
+						BoundActors.Add(Actor);
+					}
+				}
+			}
+		}
+	}
+
+	for (int32 Index = 0; Index < MovieScene->GetSpawnableCount(); ++Index)
+	{
+		FGuid ThisGuid = MovieScene->GetSpawnable(Index).GetGuid();
+
+		for (TWeakObjectPtr<> WeakObject : FindBoundObjects(ThisGuid, SequenceID))
+		{
+			if (WeakObject.IsValid())
+			{
+				AActor* Actor = Cast<AActor>(WeakObject.Get());
+
+				if (Actor)
+				{
+					UBlueprint* Blueprint = Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy);
+					if (Blueprint && Blueprint->bRunConstructionScriptInSequencer)
+					{
+						BoundActors.Add(Actor);
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -1700,6 +1781,11 @@ void FSequencer::EvaluateInternal(FMovieSceneEvaluationRange InRange, bool bHasJ
 	RootTemplateInstance.Evaluate(Context, *this, RootOverride);
 
 	TemplateStore->PurgeStaleTracks();
+
+	if (Settings->ShouldRerunConstructionScripts())
+	{
+		RerunConstructionScripts();
+	}
 
 	// If realtime is off, this needs to be called to update the pivot location when scrubbing.
 	GUnrealEd->UpdatePivotLocationForSelection();
@@ -3892,12 +3978,13 @@ void FSequencer::SaveCurrentMovieSceneAs()
 }
 
 
-void FSequencer::AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors)
+TArray<FGuid> FSequencer::AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors)
 {
 	// @todo sequencer: Undo doesn't seem to be working at all
 	const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object in Sequencer"));
 	GetFocusedMovieSceneSequence()->Modify();
 
+	TArray<FGuid> PossessableGuids;
 	bool bPossessableAdded = false;
 	for (TWeakObjectPtr<AActor> WeakActor : InActors)
 	{
@@ -3907,6 +3994,7 @@ void FSequencer::AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors)
 			if (!ExistingGuid.IsValid())
 			{
 				FGuid PossessableGuid = CreateBinding(*Actor, Actor->GetActorLabel());
+				PossessableGuids.Add(PossessableGuid);
 
 				UpdateRuntimeInstances();
 
@@ -3922,6 +4010,8 @@ void FSequencer::AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors)
 
 		SynchronizeSequencerSelectionWithExternalSelection();
 	}
+
+	return PossessableGuids;
 }
 
 
@@ -6370,56 +6460,62 @@ void FSequencer::ExportFBX()
 		FEditorDirectories::Get().SetLastDirectory( ELastDirectory::FBX, FPaths::GetPath( ExportFilename ) ); // Save path as default for next time.
 
 		UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
-
-		Exporter->CreateDocument();
-		Exporter->SetTrasformBaking( false );
-		Exporter->SetKeepHierarchy( true );
-
-		// Select selected nodes if there are selected nodes
-		TArray<FGuid> Bindings;
-		for (const TSharedRef<FSequencerDisplayNode>& Node : Selection.GetSelectedOutlinerNodes())
+		//Show the fbx export dialog options
+		bool ExportCancel = false;
+		bool ExportAll = false;
+		Exporter->FillExportOptions(false, true, ExportFilename, ExportCancel, ExportAll);
+		if (!ExportCancel)
 		{
-			if (Node->GetType() == ESequencerNode::Object)
-			{
-				auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
-				Bindings.Add(ObjectBindingNode.Get().GetObjectBinding());
+			Exporter->CreateDocument();
+			Exporter->SetTrasformBaking(false);
+			Exporter->SetKeepHierarchy(true);
 
-				TSet<TSharedRef<FSequencerDisplayNode> > DescendantNodes;
-				SequencerHelpers::GetDescendantNodes(Node, DescendantNodes);
-				for (auto DescendantNode : DescendantNodes)
+			// Select selected nodes if there are selected nodes
+			TArray<FGuid> Bindings;
+			for (const TSharedRef<FSequencerDisplayNode>& Node : Selection.GetSelectedOutlinerNodes())
+			{
+				if (Node->GetType() == ESequencerNode::Object)
 				{
-					if (!Selection.IsSelected(DescendantNode) && DescendantNode->GetType() == ESequencerNode::Object)
+					auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
+					Bindings.Add(ObjectBindingNode.Get().GetObjectBinding());
+
+					TSet<TSharedRef<FSequencerDisplayNode> > DescendantNodes;
+					SequencerHelpers::GetDescendantNodes(Node, DescendantNodes);
+					for (auto DescendantNode : DescendantNodes)
 					{
-						auto DescendantObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(DescendantNode);
-						Bindings.Add(DescendantObjectBindingNode.Get().GetObjectBinding());
+						if (!Selection.IsSelected(DescendantNode) && DescendantNode->GetType() == ESequencerNode::Object)
+						{
+							auto DescendantObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(DescendantNode);
+							Bindings.Add(DescendantObjectBindingNode.Get().GetObjectBinding());
+						}
 					}
 				}
 			}
-		}
 
-		const bool bSelectedOnly = Bindings.Num() != 0;
+			const bool bSelectedOnly = Bindings.Num() != 0;
 
-		UnFbx::FFbxExporter::FLevelSequenceNodeNameAdapter NodeNameAdapter(GetFocusedMovieSceneSequence()->GetMovieScene(), this, GetFocusedTemplateID());
+			UnFbx::FFbxExporter::FLevelSequenceNodeNameAdapter NodeNameAdapter(GetFocusedMovieSceneSequence()->GetMovieScene(), this, GetFocusedTemplateID());
 
-		// Export the persistent level and all of it's actors
-		UWorld* World = Cast<UWorld>( GetPlaybackContext() );
-		Exporter->ExportLevelMesh( World->PersistentLevel, bSelectedOnly, NodeNameAdapter );
+			// Export the persistent level and all of it's actors
+			UWorld* World = Cast<UWorld>(GetPlaybackContext());
+			Exporter->ExportLevelMesh(World->PersistentLevel, bSelectedOnly, NodeNameAdapter);
 
-		// Export streaming levels and actors
-		for ( int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex )
-		{
-			ULevel* CurLevel = World->GetLevel( CurLevelIndex );
-			if ( CurLevel != NULL && CurLevel != ( World->PersistentLevel ) )
+			// Export streaming levels and actors
+			for (int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex)
 			{
-				Exporter->ExportLevelMesh( CurLevel, bSelectedOnly, NodeNameAdapter );
+				ULevel* CurLevel = World->GetLevel(CurLevelIndex);
+				if (CurLevel != NULL && CurLevel != (World->PersistentLevel))
+				{
+					Exporter->ExportLevelMesh(CurLevel, bSelectedOnly, NodeNameAdapter);
+				}
 			}
+
+			// Export the movie scene data.
+			Exporter->ExportLevelSequence(GetFocusedMovieSceneSequence()->GetMovieScene(), Bindings, this, GetFocusedTemplateID());
+
+			// Save to disk
+			Exporter->WriteToFile(*ExportFilename);
 		}
-
-		// Export the movie scene data.
-		Exporter->ExportLevelSequence( GetFocusedMovieSceneSequence()->GetMovieScene(), Bindings, this, GetFocusedTemplateID() );
-
-		// Save to disk
-		Exporter->WriteToFile( *ExportFilename );
 	}
 }
 
@@ -6941,6 +7037,12 @@ void FSequencer::BindCommands()
 				? FocusedMovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback()
 				: false;
 		} ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleRerunConstructionScripts,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetRerunConstructionScripts( !Settings->ShouldRerunConstructionScripts() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->ShouldRerunConstructionScripts(); } ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleKeepCursorInPlaybackRangeWhileScrubbing,

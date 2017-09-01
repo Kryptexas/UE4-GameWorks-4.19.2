@@ -13,11 +13,10 @@
 #include "ContentBrowserSettings.generated.h"
 
 /**
- * Implements the Level Editor's loading and saving settings.
+ * Implements content browser settings.  These are global not per-project
  */
-UCLASS(config=EditorPerProjectUserSettings)
-class UNREALED_API UContentBrowserSettings
-	: public UObject
+UCLASS(config=EditorSettings)
+class UNREALED_API UContentBrowserSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -26,6 +25,10 @@ public:
 	/** The number of objects to load at once in the Content Browser before displaying a warning about loading many assets */
 	UPROPERTY(EditAnywhere, config, Category=ContentBrowser, meta=(DisplayName = "Assets to Load at Once Before Warning"))
 	int32 NumObjectsToLoadBeforeWarning;
+
+	/** Whether the Content Browser should open the Sources Panel by default */
+	UPROPERTY(EditAnywhere, config, Category = ContentBrowser)
+	bool bOpenSourcesPanelByDefault;
 
 	/** Whether to render thumbnails for loaded assets in real-time in the Content Browser */
 	UPROPERTY(config)

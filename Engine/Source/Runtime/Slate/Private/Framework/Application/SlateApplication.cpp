@@ -3435,8 +3435,11 @@ void FSlateApplication::SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, con
 			// Make sure the desired size is valid
 			NewToolTipWindow->SlatePrepass(FSlateApplication::Get().GetApplicationScale()*NewToolTipWindow->GetNativeWindow()->GetDPIScaleFactor());
 
+			// already handled
+			const bool bAutoAdjustForDPIScale = false;
+
 			FSlateRect Anchor(DesiredToolTipLocation.X, DesiredToolTipLocation.Y, DesiredToolTipLocation.X, DesiredToolTipLocation.Y);
-			DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, NewToolTipWindow->GetDesiredSizeDesktopPixels() );
+			DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, NewToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
 
 			// MoveWindowTo will adjust the window's position, if needed
 			NewToolTipWindow->MoveWindowTo( DesiredToolTipLocation );
@@ -3635,8 +3638,11 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	TSharedPtr< SWindow > ToolTipWindowPtr = ToolTipWindow.Pin();
 	if ( ToolTipWindowPtr.IsValid() )
 	{
+		// already handled
+		const bool bAutoAdjustForDPIScale = false;
+
 		FSlateRect Anchor(DesiredToolTipLocation.X, DesiredToolTipLocation.Y, DesiredToolTipLocation.X, DesiredToolTipLocation.Y);
-		DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, ToolTipWindowPtr->GetDesiredSizeDesktopPixels());
+		DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, ToolTipWindowPtr->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
 	}
 
 	// Repel tool-tip from a force field, if necessary
@@ -3721,9 +3727,12 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 		FVector2D WindowLocation = DesiredToolTipLocation + SlideProgress * SlideDistance;
 		if( WindowLocation != PinnedToolTipWindow->GetPositionInScreen() )
 		{
+			// already handled
+			const bool bAutoAdjustForDPIScale = false;
+
 			// Avoid the edges of the desktop
 			FSlateRect Anchor(WindowLocation.X, WindowLocation.Y, WindowLocation.X, WindowLocation.Y);
-			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSizeDesktopPixels());
+			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
 
 			// Update the tool tip window positioning
 			// SetCachedScreenPosition is a hack (issue tracked as TTP #347070) which is needed because code in TickWindowAndChildren()/DrawPrepass()
@@ -4032,9 +4041,18 @@ bool FSlateApplication::GetAllowTooltips() const
 	return bAllowToolTips != 0;
 }
 
-FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement, const EOrientation Orientation) const
+FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, bool bAutoAdjustForDPIScale, const FVector2D& InProposedPlacement, const EOrientation Orientation) const
 {
 	FVector2D CalculatedPopUpWindowPosition( 0, 0 );
+
+	float DPIScale = 1.0f; 
+
+	if (bAutoAdjustForDPIScale)
+	{
+		DPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(InAnchor.Left, InAnchor.Top);
+	}
+
+	FVector2D AdjustedSize = InSize * DPIScale;
 
 	FPlatformRect AnchorRect;
 	AnchorRect.Left = InAnchor.Left;
@@ -4049,9 +4067,9 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 		PopUpOrientation =  EPopUpOrientation::Vertical;
 	}
 
-	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, InSize, InProposedPlacement, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
+	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, AdjustedSize, InProposedPlacement, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
 	{
-		return CalculatedPopUpWindowPosition;
+		return CalculatedPopUpWindowPosition/DPIScale;
 	}
 	else
 	{
@@ -4079,7 +4097,7 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 				Orientation == Orient_Horizontal ? AnchorRect.Top : AnchorRect.Bottom);
 		}
 
-		return ComputePopupFitInRect(InAnchor, FSlateRect(ProposedPlacement, ProposedPlacement+InSize), Orientation, WorkAreaRect);
+		return ComputePopupFitInRect(InAnchor, FSlateRect(ProposedPlacement, ProposedPlacement+AdjustedSize), Orientation, WorkAreaRect) / DPIScale;
 	}
 }
 
@@ -6340,6 +6358,19 @@ void FSlateApplication::FinishedReshapingWindow( const TSharedRef< FGenericWindo
 		FSlateThrottleManager::Get().LeaveResponsiveMode(ThrottleHandle);
 	}
 }
+
+void FSlateApplication::HandleDPIScaleChanged(const TSharedRef<FGenericWindow>& PlatformWindow)
+{
+#if WITH_EDITOR
+	TSharedPtr< SWindow > SlateWindow = FSlateWindowHelper::FindWindowByPlatformWindow(SlateWindows, PlatformWindow);
+
+	if (SlateWindow.IsValid())
+	{
+		OnWindowDPIScaleChangedEvent.Broadcast(SlateWindow.ToSharedRef());
+	}
+#endif
+}
+
 
 void FSlateApplication::OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y )
 {

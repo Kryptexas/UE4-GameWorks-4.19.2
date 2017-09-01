@@ -1463,8 +1463,10 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 
 FReply SAssetView::OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent )
 {
+	const bool bIsControlOrCommandDown = InCharacterEvent.IsControlDown() || InCharacterEvent.IsCommandDown();
+	
 	const bool bTestOnly = false;
-	if(HandleQuickJumpKeyDown(InCharacterEvent.GetCharacter(), InCharacterEvent.IsControlDown(), InCharacterEvent.IsAltDown(), bTestOnly).IsEventHandled())
+	if(HandleQuickJumpKeyDown(InCharacterEvent.GetCharacter(), bIsControlOrCommandDown, InCharacterEvent.IsAltDown(), bTestOnly).IsEventHandled())
 	{
 		return FReply::Handled();
 	}
@@ -1507,7 +1509,9 @@ static bool ContainsT3D(const FString& ClipboardText)
 
 FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected())
+	const bool bIsControlOrCommandDown = InKeyEvent.IsControlDown() || InKeyEvent.IsCommandDown();
+	
+	if (bIsControlOrCommandDown && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected())
 	{
 		FString AssetPaths;
 		TArray<FString> AssetPathsSplit;
@@ -1546,7 +1550,7 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 	}
 	// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
 	// eg) Pressing "W" without this would set the viewport to "translate" mode
-	else if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), /*bTestOnly*/true).IsEventHandled())
+	else if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), bIsControlOrCommandDown, InKeyEvent.IsAltDown(), /*bTestOnly*/true).IsEventHandled())
 	{
 		return FReply::Handled();
 	}
@@ -2150,6 +2154,14 @@ void SAssetView::RefreshFolders()
 
 void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 {
+	auto IsFixedColumn = [this](FName InColumnId)
+	{
+		const bool bIsFixedNameColumn = InColumnId == SortManager.NameColumnId;
+		const bool bIsFixedClassColumn = bShowTypeInColumnView && InColumnId == SortManager.ClassColumnId;
+		const bool bIsFixedPathColumn = bShowPathInColumnView && InColumnId == SortManager.PathColumnId;
+		return bIsFixedNameColumn || bIsFixedClassColumn || bIsFixedPathColumn;
+	};
+
 	if ( NewMajorityAssetType != MajorityAssetType )
 	{
 		UE_LOG(LogContentBrowser, Verbose, TEXT("The majority of assets in the view are of type: %s"), *NewMajorityAssetType.ToString());
@@ -2165,11 +2177,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 		{
 			const FName ColumnId = Columns[ColumnIdx].ColumnId;
 
-			const bool bIsFixedNameColumn = ColumnId == SortManager.NameColumnId;
-			const bool bIsFixedClassColumn = bShowTypeInColumnView && ColumnId == SortManager.ClassColumnId;
-			const bool bIsFixedPathColumn = bShowPathInColumnView && ColumnId == SortManager.PathColumnId;
-
-			if ( ColumnId != NAME_None && !(bIsFixedNameColumn || bIsFixedClassColumn || bIsFixedPathColumn) )
+			if ( ColumnId != NAME_None && !IsFixedColumn(ColumnId) )
 			{
 				ColumnView->GetHeaderRow()->RemoveColumn(ColumnId);
 			}
@@ -2246,12 +2254,18 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 					TArray<UObject::FAssetRegistryTag> AssetRegistryTags;
 					CDO->GetAssetRegistryTags(AssetRegistryTags);
 
-					// Add a column for every tag that isn't hidden
+					// Add a column for every tag that isn't hidden or using a reserved name
 					for ( auto TagIt = AssetRegistryTags.CreateConstIterator(); TagIt; ++TagIt )
 					{
 						if ( TagIt->Type != UObject::FAssetRegistryTag::TT_Hidden )
 						{
 							const FName TagName = TagIt->Name;
+
+							if (IsFixedColumn(TagName))
+							{
+								// Reserved name
+								continue;
+							}
 
 							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, TagName) )
 							{

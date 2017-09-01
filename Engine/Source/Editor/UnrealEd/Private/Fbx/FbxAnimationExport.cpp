@@ -16,6 +16,7 @@
 #include "Matinee/MatineeActor.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "FbxExporter.h"
+#include "Exporters/FbxExportOption.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxAnimationExport, Log, All);
 
@@ -437,7 +438,7 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, AActor* 
 
 			FTransform BoneTransform = SkeletalMeshComponent->BoneSpaceTransforms[BoneIndex];
 
-			if (GetDefault<UEditorPerProjectUserSettings>()->bMapSkeletalMotionToRoot && BoneIndex == 0)
+			if (ExportOptions->MapSkeletalMotionToRoot && BoneIndex == 0)
 			{
 				BoneTransform = SkeletalMeshComponent->GetSocketTransform(BoneName) * InitialInvParentTransform;
 			}

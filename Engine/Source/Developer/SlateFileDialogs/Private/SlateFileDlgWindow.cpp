@@ -1058,12 +1058,12 @@ FReply SSlateFileOpenDlg::OnQuickLinkClick(FSlateFileDlgWindow::EResult ButtonID
 	{
 		// Taken from DesktopPlatform. We have to do this to avoid a circular dependency.
 		const FString DefaultProjectSubFolder =TEXT("Unreal Projects");
-		CurrentPath = FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder + TEXT("/");
+		CurrentPath = FPaths::ConvertRelativePathToFull(FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder + TEXT("/"));
 	}
 
 	if (ButtonID == FSlateFileDlgWindow::Engine)
 	{
-		CurrentPath = FPaths::EngineDir();
+		CurrentPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
 	}
 	
 	if ((History.Num()-HistoryIndex-1) > 0)

@@ -672,6 +672,19 @@ void FAssetEditorToolkit::SetAssetEditorModeManager(FAssetEditorModeManager* InM
 	AssetEditorModeManager = InModeManager;
 }
 
+void FAssetEditorToolkit::RemoveEditingAsset(UObject* Asset)
+{
+	// Just close the editor tab if it's the last element
+	if (EditingObjects.Num() == 1 && EditingObjects.Contains(Asset))
+	{
+		CloseWindow();
+	}
+	else
+	{
+		RemoveEditingObject(Asset);
+	}
+}
+
 void FAssetEditorToolkit::SwitchToStandaloneEditor_Execute( TWeakPtr< FAssetEditorToolkit > ThisToolkitWeakRef )
 {
 	// NOTE: We're being very careful here with pointer handling because we need to make sure the tookit's

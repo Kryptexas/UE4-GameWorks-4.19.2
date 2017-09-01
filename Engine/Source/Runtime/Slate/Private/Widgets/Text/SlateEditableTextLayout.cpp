@@ -118,17 +118,9 @@ FSlateEditableTextLayout::FSlateEditableTextLayout(ISlateEditableTextWidget& InO
 	}
 
 	VirtualKeyboardEntry = FVirtualKeyboardEntry::Create(*this);
-	TextInputMethodContext = FTextInputMethodContext::Create(*this);
 
-	ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-	if (TextInputMethodSystem)
-	{
-		TextInputMethodChangeNotifier = TextInputMethodSystem->RegisterContext(TextInputMethodContext.ToSharedRef());
-	}
-	if (TextInputMethodChangeNotifier.IsValid())
-	{
-		TextInputMethodChangeNotifier->NotifyLayoutChanged(ITextInputMethodChangeNotifier::ELayoutChangeType::Created);
-	}
+	bHasRegisteredTextInputMethodContext = false;
+	TextInputMethodContext = FTextInputMethodContext::Create(*this);
 
 	CursorLineHighlighter = SlateEditableTextTypes::FCursorLineHighlighter::Create(&CursorInfo);
 	TextCompositionHighlighter = SlateEditableTextTypes::FTextCompositionHighlighter::Create();
@@ -202,12 +194,12 @@ FSlateEditableTextLayout::~FSlateEditableTextLayout()
 	}
 
 	ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::IsInitialized() ? FSlateApplication::Get().GetTextInputMethodSystem() : nullptr;
-	if (TextInputMethodSystem)
+	if (TextInputMethodSystem && bHasRegisteredTextInputMethodContext)
 	{
 		TSharedRef<FTextInputMethodContext> TextInputMethodContextRef = TextInputMethodContext.ToSharedRef();
 		
-		// Make sure that the composition is aborted to avoid any IME calls to EndComposition from trying to mutate our dying owner widget
-		TextInputMethodContextRef->AbortComposition();
+		// Make sure that the context is marked as dead to avoid any further IME calls from trying to mutate our dying owner widget
+		TextInputMethodContextRef->KillContext();
 
 		if (TextInputMethodSystem->IsActiveContext(TextInputMethodContextRef))
 		{
@@ -686,6 +678,17 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
 		if (TextInputMethodSystem)
 		{
+			if (!bHasRegisteredTextInputMethodContext)
+			{
+				bHasRegisteredTextInputMethodContext = true;
+
+				TextInputMethodChangeNotifier = TextInputMethodSystem->RegisterContext(TextInputMethodContext.ToSharedRef());
+				if (TextInputMethodChangeNotifier.IsValid())
+				{
+					TextInputMethodChangeNotifier->NotifyLayoutChanged(ITextInputMethodChangeNotifier::ELayoutChangeType::Created);
+				}
+			}
+
 			TextInputMethodContext->CacheWindow();
 			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 		}
@@ -737,7 +740,7 @@ bool FSlateEditableTextLayout::HandleFocusLost(const FFocusEvent& InFocusEvent)
 	else
 	{
 		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if (TextInputMethodSystem)
+		if (TextInputMethodSystem && bHasRegisteredTextInputMethodContext)
 		{
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
 		}
@@ -2103,7 +2106,7 @@ bool FSlateEditableTextLayout::MoveCursor(const FMoveCursor& InArgs)
 	if (TextInputMethodContext->IsComposing())
 	{
 		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if (TextInputMethodSystem)
+		if (TextInputMethodSystem && bHasRegisteredTextInputMethodContext)
 		{
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
 			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
@@ -3520,16 +3523,21 @@ FSlateEditableTextLayout::FTextInputMethodContext::FTextInputMethodContext(FSlat
 
 bool FSlateEditableTextLayout::FTextInputMethodContext::IsComposing()
 {
-	return bIsComposing;
+	return OwnerLayout && bIsComposing;
 }
 
 bool FSlateEditableTextLayout::FTextInputMethodContext::IsReadOnly()
 {
-	return OwnerLayout->OwnerWidget->IsTextReadOnly();
+	return !OwnerLayout || OwnerLayout->OwnerWidget->IsTextReadOnly();
 }
 
 uint32 FSlateEditableTextLayout::FTextInputMethodContext::GetTextLength()
 {
+	if (!OwnerLayout)
+	{
+		return 0;
+	}
+
 	FTextLayout::FTextOffsetLocations OffsetLocations;
 	OwnerLayout->TextLayout->GetTextOffsetLocations(OffsetLocations);
 	return OffsetLocations.GetTextLength();
@@ -3537,6 +3545,14 @@ uint32 FSlateEditableTextLayout::FTextInputMethodContext::GetTextLength()
 
 void FSlateEditableTextLayout::FTextInputMethodContext::GetSelectionRange(uint32& BeginIndex, uint32& Length, ECaretPosition& OutCaretPosition)
 {
+	if (!OwnerLayout)
+	{
+		BeginIndex = 0;
+		Length = 0;
+		OutCaretPosition = ITextInputMethodContext::ECaretPosition::Beginning;
+		return;
+	}
+
 	const FTextLocation CursorInteractionPosition = OwnerLayout->CursorInfo.GetCursorInteractionLocation();
 	const FTextLocation SelectionLocation = OwnerLayout->SelectionStart.Get(CursorInteractionPosition);
 
@@ -3575,6 +3591,11 @@ void FSlateEditableTextLayout::FTextInputMethodContext::GetSelectionRange(uint32
 
 void FSlateEditableTextLayout::FTextInputMethodContext::SetSelectionRange(const uint32 BeginIndex, const uint32 Length, const ECaretPosition InCaretPosition)
 {
+	if (!OwnerLayout)
+	{
+		return;
+	}
+
 	const uint32 TextLength = GetTextLength();
 
 	const uint32 MinIndex = FMath::Min(BeginIndex, TextLength);
@@ -3612,12 +3633,23 @@ void FSlateEditableTextLayout::FTextInputMethodContext::SetSelectionRange(const 
 
 void FSlateEditableTextLayout::FTextInputMethodContext::GetTextInRange(const uint32 BeginIndex, const uint32 Length, FString& OutString)
 {
+	if (!OwnerLayout)
+	{
+		OutString.Reset();
+		return;
+	}
+
 	const FText EditedText = OwnerLayout->GetEditableText();
 	OutString = EditedText.ToString().Mid(BeginIndex, Length);
 }
 
 void FSlateEditableTextLayout::FTextInputMethodContext::SetTextInRange(const uint32 BeginIndex, const uint32 Length, const FString& InString)
 {
+	if (!OwnerLayout)
+	{
+		return;
+	}
+
 	// We don't use Start/FinishEditing text here because the whole IME operation handles that.
 	// Also, we don't want to support undo for individual characters added during an IME context
 	const FText OldEditedText = OwnerLayout->GetEditableText();
@@ -3640,6 +3672,11 @@ void FSlateEditableTextLayout::FTextInputMethodContext::SetTextInRange(const uin
 
 int32 FSlateEditableTextLayout::FTextInputMethodContext::GetCharacterIndexFromPoint(const FVector2D& Point)
 {
+	if (!OwnerLayout)
+	{
+		return INDEX_NONE;
+	}
+
 	const FTextLocation CharacterPosition = OwnerLayout->TextLayout->GetTextLocationAt(Point * OwnerLayout->TextLayout->GetScale());
 
 	FTextLayout::FTextOffsetLocations OffsetLocations;
@@ -3650,6 +3687,13 @@ int32 FSlateEditableTextLayout::FTextInputMethodContext::GetCharacterIndexFromPo
 
 bool FSlateEditableTextLayout::FTextInputMethodContext::GetTextBounds(const uint32 BeginIndex, const uint32 Length, FVector2D& Position, FVector2D& Size)
 {
+	if (!OwnerLayout)
+	{
+		Position = FVector2D::ZeroVector;
+		Size = FVector2D::ZeroVector;
+		return false;
+	}
+
 	FTextLayout::FTextOffsetLocations OffsetLocations;
 	OwnerLayout->TextLayout->GetTextOffsetLocations(OffsetLocations);
 
@@ -3681,24 +3725,46 @@ bool FSlateEditableTextLayout::FTextInputMethodContext::GetTextBounds(const uint
 
 void FSlateEditableTextLayout::FTextInputMethodContext::GetScreenBounds(FVector2D& Position, FVector2D& Size)
 {
+	if (!OwnerLayout)
+	{
+		Position = FVector2D::ZeroVector;
+		Size = FVector2D::ZeroVector;
+		return;
+	}
+
 	Position = CachedGeometry.AbsolutePosition;
 	Size = CachedGeometry.GetDrawSize();
 }
 
 void FSlateEditableTextLayout::FTextInputMethodContext::CacheWindow()
 {
+	if (!OwnerLayout)
+	{
+		return;
+	}
+
 	const TSharedRef<const SWidget> OwningSlateWidgetPtr = OwnerLayout->OwnerWidget->GetSlateWidget();
 	CachedParentWindow = FSlateApplication::Get().FindWidgetWindow(OwningSlateWidgetPtr);
 }
 
 TSharedPtr<FGenericWindow> FSlateEditableTextLayout::FTextInputMethodContext::GetWindow()
 {
+	if (!OwnerLayout)
+	{
+		return nullptr;
+	}
+
 	const TSharedPtr<SWindow> SlateWindow = CachedParentWindow.Pin();
 	return SlateWindow.IsValid() ? SlateWindow->GetNativeWindow() : nullptr;
 }
 
 void FSlateEditableTextLayout::FTextInputMethodContext::BeginComposition()
 {
+	if (!OwnerLayout)
+	{
+		return;
+	}
+
 	if (!bIsComposing)
 	{
 		bIsComposing = true;
@@ -3710,6 +3776,11 @@ void FSlateEditableTextLayout::FTextInputMethodContext::BeginComposition()
 
 void FSlateEditableTextLayout::FTextInputMethodContext::UpdateCompositionRange(const int32 InBeginIndex, const uint32 InLength)
 {
+	if (!OwnerLayout)
+	{
+		return;
+	}
+
 	if (bIsComposing)
 	{
 		CompositionBeginIndex = InBeginIndex;
@@ -3721,6 +3792,11 @@ void FSlateEditableTextLayout::FTextInputMethodContext::UpdateCompositionRange(c
 
 void FSlateEditableTextLayout::FTextInputMethodContext::EndComposition()
 {
+	if (!OwnerLayout)
+	{
+		return;
+	}
+
 	if (bIsComposing)
 	{
 		OwnerLayout->EndEditTransaction();

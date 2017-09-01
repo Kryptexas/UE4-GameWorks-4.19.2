@@ -164,9 +164,6 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 
 		Style.Set("ContentBrowser.FilterNameFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 9));
 		//Style.Set("ContentBrowser.FilterNameFont", FEditorStyle::Get().GetFontStyle("ContentBrowser.FilterNameFont"));
-
-		FTextBlockStyle FiltersText = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("ContentBrowser.Filters.Text");
-		Style.Set("Filters.Text", FiltersText);
 	}
 
 	//Sequencer

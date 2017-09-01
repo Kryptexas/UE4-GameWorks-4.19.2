@@ -148,7 +148,7 @@ TSharedPtr< FEdGraphSchemaAction > FMaterialEditorSpawnNodeCommands::GetGraphAct
 	{
 		for(int32 x = 0; x < NodeCommands.Num(); ++x)
 		{
-			if(NodeCommands[x]->CommandInfo->GetActiveChord().Get() == InChord)
+			if (NodeCommands[x]->CommandInfo->HasActiveChord(InChord))
 			{
 				return NodeCommands[x]->GetAction(InDestGraph);
 			}
@@ -162,9 +162,10 @@ const TSharedPtr<const FInputChord> FMaterialEditorSpawnNodeCommands::GetChordBy
 {
 	for(int32 Index = 0; Index < NodeCommands.Num(); ++Index)
 	{
-		if (NodeCommands[Index]->GetClass() == MaterialExpressionClass)
+		if (NodeCommands[Index]->GetClass() == MaterialExpressionClass && NodeCommands[Index]->CommandInfo->GetFirstValidChord()->IsValidChord())
 		{
-			return NodeCommands[Index]->CommandInfo->GetActiveChord();
+			// Just return the first valid chord
+			return NodeCommands[Index]->CommandInfo->GetFirstValidChord();
 		}
 	}
 

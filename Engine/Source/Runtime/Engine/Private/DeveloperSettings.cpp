@@ -124,49 +124,51 @@ void UDeveloperSettings::ImportConsoleVariableValues()
 
 void UDeveloperSettings::ExportValuesToConsoleVariables(UProperty* PropertyThatChanged)
 {
-	check(PropertyThatChanged);
-	FString CVarName = PropertyThatChanged->GetMetaData(DeveloperSettingsConsoleVariableMetaFName);
-	if (!CVarName.IsEmpty())
+	if(PropertyThatChanged)
 	{
-		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);
-		if (CVar && (CVar->GetFlags() & ECVF_ReadOnly) == 0)
+		FString CVarName = PropertyThatChanged->GetMetaData(DeveloperSettingsConsoleVariableMetaFName);
+		if (!CVarName.IsEmpty())
 		{
-			UByteProperty* ByteProperty = Cast<UByteProperty>(PropertyThatChanged);
-			if (ByteProperty != NULL && ByteProperty->Enum != NULL)
+			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);
+			if (CVar && (CVar->GetFlags() & ECVF_ReadOnly) == 0)
 			{
-				CVar->Set(ByteProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
-			}
-			else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(PropertyThatChanged))
-			{
-				UNumericProperty* UnderlyingProp = EnumProperty->GetUnderlyingProperty();
-				void* PropertyAddress = EnumProperty->ContainerPtrToValuePtr<void>(this);
-				CVar->Set((int32)UnderlyingProp->GetSignedIntPropertyValue(PropertyAddress), ECVF_SetByProjectSetting);
-			}
-			else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropertyThatChanged))
-			{
-				CVar->Set((int32)BoolProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
-			}
-			else if (UIntProperty* IntProperty = Cast<UIntProperty>(PropertyThatChanged))
-			{
-				CVar->Set(IntProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
-			}
-			else if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(PropertyThatChanged))
-			{
-				CVar->Set(FloatProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
-			}
-			else if(UStrProperty* StringProperty = Cast<UStrProperty>(PropertyThatChanged))
-			{
-				CVar->Set(*StringProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
-			}
-			else if(UNameProperty* NameProperty = Cast<UNameProperty>(PropertyThatChanged))
-			{
-				CVar->Set(*NameProperty->GetPropertyValue_InContainer(this).ToString(), ECVF_SetByProjectSetting);
-			}
+				UByteProperty* ByteProperty = Cast<UByteProperty>(PropertyThatChanged);
+				if (ByteProperty != NULL && ByteProperty->Enum != NULL)
+				{
+					CVar->Set(ByteProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
+				}
+				else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(PropertyThatChanged))
+				{
+					UNumericProperty* UnderlyingProp = EnumProperty->GetUnderlyingProperty();
+					void* PropertyAddress = EnumProperty->ContainerPtrToValuePtr<void>(this);
+					CVar->Set((int32)UnderlyingProp->GetSignedIntPropertyValue(PropertyAddress), ECVF_SetByProjectSetting);
+				}
+				else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropertyThatChanged))
+				{
+					CVar->Set((int32)BoolProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
+				}
+				else if (UIntProperty* IntProperty = Cast<UIntProperty>(PropertyThatChanged))
+				{
+					CVar->Set(IntProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
+				}
+				else if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(PropertyThatChanged))
+				{
+					CVar->Set(FloatProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
+				}
+				else if (UStrProperty* StringProperty = Cast<UStrProperty>(PropertyThatChanged))
+				{
+					CVar->Set(*StringProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
+				}
+				else if (UNameProperty* NameProperty = Cast<UNameProperty>(PropertyThatChanged))
+				{
+					CVar->Set(*NameProperty->GetPropertyValue_InContainer(this).ToString(), ECVF_SetByProjectSetting);
+				}
 
-		}
-		else
-		{
-			UE_LOG(LogInit, Warning, TEXT("CVar named '%s' marked up in %s was not found or is set to read-only"), *CVarName, *GetClass()->GetName());
+			}
+			else
+			{
+				UE_LOG(LogInit, Warning, TEXT("CVar named '%s' marked up in %s was not found or is set to read-only"), *CVarName, *GetClass()->GetName());
+			}
 		}
 	}
 }

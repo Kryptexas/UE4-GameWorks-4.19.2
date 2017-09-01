@@ -387,12 +387,6 @@ void FPropertyLocalizationDataGatherer::GatherTextInstance(const FText& Text, co
 	// Always include the text without its package localization ID
 	const FString CleanNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
 	AddGatheredText(CleanNamespace, Key, SourceData, bIsEditorOnly);
-
-	// Include the version with the package localization ID as editor-only
-	if (!CleanNamespace.Equals(Namespace, ESearchCase::CaseSensitive))
-	{
-		AddGatheredText(Namespace, Key, SourceData, true);
-	}
 }
 
 struct FGatherTextFromScriptBytecode

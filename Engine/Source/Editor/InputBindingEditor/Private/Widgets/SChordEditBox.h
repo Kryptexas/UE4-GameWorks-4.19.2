@@ -32,7 +32,7 @@ public:
 	 *
 	 * @param InArgs The Slate argument list.
 	 */
-	void Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand );
+	void Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand, EMultipleKeyBindingIndex ChordIndex );
 private:
 
 	/** @return Border image for the text box based on the hovered and focused state */

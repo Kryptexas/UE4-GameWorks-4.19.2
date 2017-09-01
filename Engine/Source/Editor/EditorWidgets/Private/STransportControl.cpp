@@ -110,7 +110,9 @@ void STransportControl::Construct( const STransportControl::FArguments& InArgs )
 {
 	TransportControlArgs = InArgs._TransportArgs;
 	
-	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox)
+		.Clipping(EWidgetClipping::ClipToBounds);
+
 	if(TransportControlArgs.WidgetsToCreate.Num() > 0)
 	{
 		for(FTransportControlWidget WidgetDesc : TransportControlArgs.WidgetsToCreate)

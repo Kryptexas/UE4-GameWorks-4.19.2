@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -158,7 +158,7 @@ UIKit_SuspendScreenSaver(_THIS)
     @autoreleasepool {
         /* Ignore ScreenSaver API calls if the idle timer hint has been set. */
         /* FIXME: The idle timer hint should be deprecated for SDL 2.1. */
-        if (SDL_GetHint(SDL_HINT_IDLE_TIMER_DISABLED) == NULL) {
+        if (!SDL_GetHintBoolean(SDL_HINT_IDLE_TIMER_DISABLED, SDL_FALSE)) {
             UIApplication *app = [UIApplication sharedApplication];
 
             /* Prevent the display from dimming and going to sleep. */

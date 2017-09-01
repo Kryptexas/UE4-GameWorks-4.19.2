@@ -246,13 +246,16 @@ public:
 	virtual const char* GetPrimName() const = 0;
 	virtual const char* GetPrimPath() const = 0;
 	virtual const char* GetUnrealPropertyPath() const = 0;
+	virtual const char* GetKind() const = 0;
+	virtual bool IsKindChildOf(const std::string& InKind) const = 0;
 	virtual bool IsGroup() const = 0;
+	virtual bool IsModel() const = 0;
 	virtual bool IsUnrealProperty() const = 0;
 	virtual bool HasTransform() const = 0;
-	virtual FUsdMatrixData GetLocalToWorldTransform() const = 0;
-	virtual FUsdMatrixData GetLocalToWorldTransform(double Time) const = 0;
-	virtual FUsdMatrixData GetLocalToParentTransform() const = 0;
-	virtual FUsdMatrixData GetLocalToParentTransform(double Time) const = 0;
+	virtual FUsdMatrixData GetLocalToWorldTransform(double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
+	virtual FUsdMatrixData GetLocalToParentTransform(double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
+	virtual FUsdMatrixData GetLocalToAncestorTransform(IUsdPrim* Ancestor, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
+
 	virtual int GetNumChildren() const = 0;
 	virtual IUsdPrim* GetChild(int ChildIndex) = 0;
 	virtual const char* GetUnrealAssetPath() const = 0;

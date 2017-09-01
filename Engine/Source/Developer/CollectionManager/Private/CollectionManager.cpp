@@ -6,6 +6,7 @@
 #include "Containers/Ticker.h"
 #include "CollectionManagerLog.h"
 #include "FileCache.h"
+#include "Misc/FileHelper.h"
 
 #define LOCTEXT_NAMESPACE "CollectionManager"
 
@@ -707,6 +708,13 @@ bool FCollectionManager::CreateCollection(FName CollectionName, ECollectionShare
 	// Try to add the collection
 	const bool bUseSCC = ShouldUseSCC(ShareType);
 	const FString CollectionFilename = GetCollectionFilename(CollectionName, ShareType);
+
+	// Validate collection name as file name
+	bool bFilenameValid = FFileHelper::IsFilenameValidForSaving(CollectionName.ToString(), LastError);
+	if (!bFilenameValid)
+	{
+		return false;
+	}
 
 	TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection(CollectionFilename, bUseSCC, StorageMode));
 	if (!AddCollection(NewCollection, ShareType))

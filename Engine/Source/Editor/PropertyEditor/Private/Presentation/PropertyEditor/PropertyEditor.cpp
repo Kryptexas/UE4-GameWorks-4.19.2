@@ -710,10 +710,6 @@ bool FPropertyEditor::SupportsEditConditionToggle( UProperty* InProperty )
 				const FString PropertyScopeName = PropertyScope ? PropertyScope->GetName() : FString();
 				const FString ConditionalPropertyScopeName = ConditionalPropertyScope ? ConditionalPropertyScope->GetName() : FString();
 
-				// Show the toggle box anyway, with a warning
-				UE_LOG(LogPropertyNode, Warning, TEXT("Property %s::%s is an editcondition for %s::%s, but is not marked as EditAnywhere."),
-						*ConditionalPropertyScopeName, *ConditionalProperty->GetName(), *PropertyScopeName, *InProperty->GetName());
-
 				bShowEditConditionToggle = true;
 			}
 			else

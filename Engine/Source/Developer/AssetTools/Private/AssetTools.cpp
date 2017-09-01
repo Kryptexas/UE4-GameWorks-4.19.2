@@ -1637,6 +1637,9 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 	TArray<UExporter*> Exporters;
 	ObjectTools::AssembleListOfExporters(Exporters);
 
+	//Array to control the batch mode and the show options for the exporters that will be use by the selected assets
+	TArray<UExporter*> UsedExporters;
+
 	// Export the objects.
 	bool bAnyObjectMissingSourceData = false;
 	for (int32 Index = 0; Index < ObjectsToExport.Num(); Index++)
@@ -1858,6 +1861,14 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 			{
 				const FScopedBusyCursor BusyCursor;
 
+				if (!UsedExporters.Contains(ExporterToUse))
+				{
+					ExporterToUse->SetBatchMode(ObjectsToExport.Num() > 1 && !bPromptIndividualFilenames);
+					ExporterToUse->SetCancelBatch(false);
+					ExporterToUse->SetShowExportOption(true);
+					UsedExporters.Add(ExporterToUse);
+				}
+
 				UExporter::FExportToFileParams Params;
 				Params.Object = ObjectToExport;
 				Params.Exporter = ExporterToUse;
@@ -1868,9 +1879,23 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 				Params.bUseFileArchive = ObjectToExport->IsA(UPackage::StaticClass());
 				Params.WriteEmptyFiles = false;
 				UExporter::ExportToFileEx(Params);
+				if (ExporterToUse->GetBatchMode() && ExporterToUse->GetCancelBatch())
+				{
+					//Exit the export file loop when there is a cancel all
+					break;
+				}
 			}
 		}
 	}
+
+	//Set back the default value for the all used exporters
+	for (UExporter* UsedExporter : UsedExporters)
+	{
+		UsedExporter->SetBatchMode(false);
+		UsedExporter->SetCancelBatch(false);
+		UsedExporter->SetShowExportOption(true);
+	}
+	UsedExporters.Empty();
 
 	if (bAnyObjectMissingSourceData)
 	{

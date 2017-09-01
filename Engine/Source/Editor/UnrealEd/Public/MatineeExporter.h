@@ -32,6 +32,16 @@ public:
 	virtual ~MatineeExporter() {}
 
 	/**
+	* Load the export option from the last save state and show the dialog if bShowOptionDialog is true.
+	* FullPath is the export file path we display it in the dialog
+	* If user cancel the dialog, the OutOperationCanceled will be true
+	* bOutExportAll will be true if the user want to use the same option for all other asset he want to export
+	*
+	* The function is saving the dialog state in a user ini file and reload it from there. It is not changing the CDO.
+	*/
+	virtual void FillExportOptions(bool BatchMode, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutExportAll) = 0;
+
+	/**
 	 * Creates and readies an empty document for export.
 	 */
 	virtual void CreateDocument() = 0;

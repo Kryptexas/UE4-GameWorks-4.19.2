@@ -169,6 +169,9 @@ namespace PlatformInfo
 		/** Whether UAT closes immediately after launching on this platform, or if it sticks around to read output from the running process */
 		bool bUATClosesAfterLaunch;
 
+		/** Whether or not the platform is confidential in nature */
+		bool bIsConfidential;
+
 		/** An identifier that corresponds to UBT's UnrealTargetPlatform enum (and by proxy, FGenericPlatformMisc::GetUBTPlatform()) */
 		FName UBTTargetId;
 
@@ -318,9 +321,11 @@ namespace PlatformInfo
 
 	/**
 	 * Convenience function to enumerate all the platforms we know about (compatible with range-based-for)
+	 *
+	 * @param bAccessiblePlatformsOnly	If true, only the accessible platforms(installed, or could be installed) will be returned
 	 * @return An enumerator for the platforms (see FPlatformEnumerator)
 	 */
-	DESKTOPPLATFORM_API FPlatformEnumerator EnumeratePlatformInfoArray();
+	DESKTOPPLATFORM_API FPlatformEnumerator EnumeratePlatformInfoArray(bool bAccessiblePlatformsOnly = true);
 
 	/**
 	 * Build a hierarchy mapping vanilla platforms to their flavors

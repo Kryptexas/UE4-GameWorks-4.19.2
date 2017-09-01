@@ -11,7 +11,7 @@
 #include "AssetData.h"
 #include "Engine/Selection.h"
 #include "Editor.h"
-#include "FileHelpers.h"
+#include "Misc/FileHelper.h"
 #include "IAssetTools.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
@@ -166,7 +166,7 @@ void SCreateAssetFromObject::OnFilenameChanged(const FText& InNewName)
 	AssetRegistryModule.Get().GetAssetsByPath(FName(*AssetPath), AssetData);
 
 	FText ErrorText;
-	if (!FEditorFileUtils::IsFilenameValidForSaving(InNewName.ToString(), ErrorText) || !FName(*InNewName.ToString()).IsValidObjectName(ErrorText))
+	if (!FFileHelper::IsFilenameValidForSaving(InNewName.ToString(), ErrorText) || !FName(*InNewName.ToString()).IsValidObjectName(ErrorText))
 	{
 		FileNameWidget->SetError(ErrorText);
 		bIsReportingError = true;

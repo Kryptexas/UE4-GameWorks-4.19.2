@@ -268,7 +268,7 @@ void SGridPanel::SetColumnFill( int32 ColumnId, const TAttribute<float>& Coeffic
 
 void SGridPanel::SetRowFill( int32 RowId, const TAttribute<float>& Coefficient )
 {
-	if (RowFillCoefficients.Num() <= RowId)
+	while (RowFillCoefficients.Num() <= RowId)
 	{
 		RowFillCoefficients.Emplace(0);
 	}

@@ -950,7 +950,7 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 
 		// If something went wrong when saving and the new asset does not exist on disk, don't branch it
 		// as it will just create a copy and any attempt to load it will result in crashes.
-		if (!RenameData.bOnlyFixSoftReferences && FPackageName::DoesPackageExist(NewPackage->GetName()))
+		if (!RenameData.bOnlyFixSoftReferences && NewPackage && FPackageName::DoesPackageExist(NewPackage->GetName()))
 		{
 			SourceControlHelpers::BranchPackage(NewPackage, OldPackage);
 		}

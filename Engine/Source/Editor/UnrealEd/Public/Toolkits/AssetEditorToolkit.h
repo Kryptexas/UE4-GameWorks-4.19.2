@@ -88,6 +88,7 @@ public:
 	virtual void InvokeTab(const FTabId& TabId) override;
 	virtual TSharedPtr<FTabManager> GetAssociatedTabManager() override;
 	virtual double GetLastActivationTime() override;
+	virtual void RemoveEditingAsset(UObject* Asset) override;
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file

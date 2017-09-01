@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -33,9 +33,7 @@
 #endif
 
 #define INPUT_QSIZE 32      /* Buffer up to 32 input messages */
-#define AXIS_MIN    -32768  /* minimum value for axis coordinate */
-#define AXIS_MAX    32767   /* maximum value for axis coordinate */
-#define JOY_AXIS_THRESHOLD  (((AXIS_MAX)-(AXIS_MIN))/100)   /* 1% motion */
+#define JOY_AXIS_THRESHOLD  (((SDL_JOYSTICK_AXIS_MAX)-(SDL_JOYSTICK_AXIS_MIN))/100)   /* 1% motion */
 
 /* external variables referenced. */
 extern HWND SDL_HelperWindow;
@@ -214,7 +212,7 @@ static DIOBJECTDATAFORMAT dfDIJoystick2[] = {
         { &GUID_Slider, FIELD_OFFSET(DIJOYSTATE2, rglFSlider[1]), DIDFT_OPTIONAL | DIDFT_AXIS | DIDFT_ANYINSTANCE, 0 },
 };
 
-const DIDATAFORMAT c_dfDIJoystick2 = {
+const DIDATAFORMAT SDL_c_dfDIJoystick2 = {
     sizeof(DIDATAFORMAT),
     sizeof(DIOBJECTDATAFORMAT),
     DIDF_ABSAXIS,
@@ -350,12 +348,27 @@ SDL_DINPUT_JoystickInit(void)
 static BOOL CALLBACK
 EnumJoysticksCallback(const DIDEVICEINSTANCE * pdidInstance, VOID * pContext)
 {
+    const Uint16 BUS_USB = 0x03;
+    const Uint16 BUS_BLUETOOTH = 0x05;
     JoyStick_DeviceData *pNewJoystick;
     JoyStick_DeviceData *pPrevJoystick = NULL;
     const DWORD devtype = (pdidInstance->dwDevType & 0xFF);
+    Uint16 *guid16;
 
     if (devtype == DI8DEVTYPE_SUPPLEMENTAL) {
-        return DIENUM_CONTINUE;  /* Ignore touchpads, etc. */
+        /* Add any supplemental devices that should be ignored here */
+#define MAKE_TABLE_ENTRY(VID, PID)	((((DWORD)PID)<<16)|VID)
+		static DWORD ignored_devices[] = {
+			MAKE_TABLE_ENTRY(0, 0)
+		};
+#undef MAKE_TABLE_ENTRY
+		unsigned int i;
+
+		for (i = 0; i < SDL_arraysize(ignored_devices); ++i) {
+			if (pdidInstance->guidProduct.Data1 == ignored_devices[i]) {
+				return DIENUM_CONTINUE;
+			}
+		}
     }
 
     if (SDL_IsXInputDevice(&pdidInstance->guidProduct)) {
@@ -397,7 +410,24 @@ EnumJoysticksCallback(const DIDEVICEINSTANCE * pdidInstance, VOID * pContext)
     SDL_memcpy(&(pNewJoystick->dxdevice), pdidInstance,
         sizeof(DIDEVICEINSTANCE));
 
-    SDL_memcpy(&pNewJoystick->guid, &pdidInstance->guidProduct, sizeof(pNewJoystick->guid));
+    SDL_memset(pNewJoystick->guid.data, 0, sizeof(pNewJoystick->guid.data));
+
+    guid16 = (Uint16 *)pNewJoystick->guid.data;
+    if (SDL_memcmp(&pdidInstance->guidProduct.Data4[2], "PIDVID", 6) == 0) {
+        *guid16++ = SDL_SwapLE16(BUS_USB);
+        *guid16++ = 0;
+        *guid16++ = SDL_SwapLE16((Uint16)LOWORD(pdidInstance->guidProduct.Data1)); /* vendor */
+        *guid16++ = 0;
+        *guid16++ = SDL_SwapLE16((Uint16)HIWORD(pdidInstance->guidProduct.Data1)); /* product */
+        *guid16++ = 0;
+        *guid16++ = 0; /* version */
+        *guid16++ = 0;
+    } else {
+        *guid16++ = SDL_SwapLE16(BUS_BLUETOOTH);
+        *guid16++ = 0;
+        SDL_strlcpy((char*)guid16, pNewJoystick->joystickname, sizeof(pNewJoystick->guid.data) - 4);
+    }
+
     SDL_SYS_AddJoystickDevice(pNewJoystick);
 
     return DIENUM_CONTINUE; /* get next device, please */
@@ -461,8 +491,8 @@ EnumDevObjectsCallback(LPCDIDEVICEOBJECTINSTANCE dev, LPVOID pvRef)
         diprg.diph.dwHeaderSize = sizeof(diprg.diph);
         diprg.diph.dwObj = dev->dwType;
         diprg.diph.dwHow = DIPH_BYID;
-        diprg.lMin = AXIS_MIN;
-        diprg.lMax = AXIS_MAX;
+        diprg.lMin = SDL_JOYSTICK_AXIS_MIN;
+        diprg.lMax = SDL_JOYSTICK_AXIS_MAX;
 
         result =
             IDirectInputDevice8_SetProperty(joystick->hwdata->InputDevice,
@@ -594,7 +624,7 @@ SDL_DINPUT_JoystickOpen(SDL_Joystick * joystick, JoyStick_DeviceData *joystickde
     /* Use the extended data structure: DIJOYSTATE2. */
     result =
         IDirectInputDevice8_SetDataFormat(joystick->hwdata->InputDevice,
-        &c_dfDIJoystick2);
+        &SDL_c_dfDIJoystick2);
     if (FAILED(result)) {
         return SetDIerror("IDirectInputDevice8::SetDataFormat", result);
     }

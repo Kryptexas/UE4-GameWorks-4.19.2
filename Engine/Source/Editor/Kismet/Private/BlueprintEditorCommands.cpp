@@ -415,7 +415,7 @@ void FBlueprintSpawnNodeCommands::GetGraphActionByChord(FInputChord& InChord, UE
 	{
 		for(int32 x = 0; x < NodeCommands.Num(); ++x)
 		{
-			if(NodeCommands[x]->CommandInfo->GetActiveChord().Get() == InChord)
+			if(NodeCommands[x]->CommandInfo->HasActiveChord(InChord))
 			{
 				NodeCommands[x]->GetActions(InDestGraph, InOutDestPosition, OutNodes);
 			}

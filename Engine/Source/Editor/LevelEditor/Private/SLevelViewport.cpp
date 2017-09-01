@@ -559,7 +559,7 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 		LevelViewportClient->GetViewportDimensions(ViewportOrigin, ViewportSize);
 
 		// Save off the local mouse position from the drop point for potential use later (with Drag Drop context menu)
-		CachedOnDropLocalMousePos = MyGeometry.AbsoluteToLocal( DragDropEvent.GetScreenSpacePosition() );
+		CachedOnDropLocalMousePos = MyGeometry.AbsoluteToLocal( DragDropEvent.GetScreenSpacePosition() ) * MyGeometry.Scale;
 		CachedOnDropLocalMousePos.X -= ViewportOrigin.X;
 		CachedOnDropLocalMousePos.Y -= ViewportOrigin.Y;
 	}
@@ -3557,10 +3557,10 @@ FText SLevelViewport::GetMouseCaptureLabelText() const
 		// Default Shift+F1 if a valid chord is not found
 		static FInputChord Chord(EKeys::F1, EModifierKey::Shift);
 		TSharedPtr<FUICommandInfo> UICommand = FInputBindingManager::Get().FindCommandInContext(TEXT("PlayWorld"), TEXT("GetMouseControl"));
-		if (UICommand.IsValid())
+		if (UICommand.IsValid() && UICommand->GetFirstValidChord()->IsValidChord())
 		{
-			TSharedRef<const FInputChord> ActiveChord = UICommand->GetActiveChord();
-			Chord = ActiveChord.Get();
+			// Just pick the first key bind that is valid for a text suggestion
+			Chord = UICommand->GetFirstValidChord().Get();
 		}
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("InputText"), Chord.GetInputText());

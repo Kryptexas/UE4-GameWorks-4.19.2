@@ -22,6 +22,10 @@ void FVideoCaptureProtocol::ConditionallyCreateWriter(const ICaptureProtocolHost
 {
 #if PLATFORM_MAC
 	static const TCHAR* Extension = TEXT(".mov");
+#elif PLATFORM_LINUX
+	static const TCHAR* Extension = TEXT(".unsupp");
+	UE_LOG(LogInit, Warning, TEXT("Writing movies is not currently supported on Linux"));
+	return;
 #else
 	static const TCHAR* Extension = TEXT(".avi");
 #endif
@@ -84,16 +88,19 @@ void FVideoCaptureProtocol::ProcessFrame(FCapturedFrameData Frame)
 
 	const int32 WriterIndex = Payload->WriterIndex;
 
-	AVIWriters[WriterIndex]->DropFrames(Payload->Metrics.NumDroppedFrames);
-	AVIWriters[WriterIndex]->Update(Payload->Metrics.TotalElapsedTime, MoveTemp(Frame.ColorBuffer));
-
-	// Finalize previous writers if necessary
-	for (int32 Index = 0; Index < Payload->WriterIndex; ++Index)
+	if (WriterIndex >= 0)
 	{
-		TUniquePtr<FAVIWriter>& Writer = AVIWriters[Index];
-		if (Writer->IsCapturing())
+		AVIWriters[WriterIndex]->DropFrames(Payload->Metrics.NumDroppedFrames);
+		AVIWriters[WriterIndex]->Update(Payload->Metrics.TotalElapsedTime, MoveTemp(Frame.ColorBuffer));
+	
+		// Finalize previous writers if necessary
+		for (int32 Index = 0; Index < Payload->WriterIndex; ++Index)
 		{
-			Writer->Finalize();
+			TUniquePtr<FAVIWriter>& Writer = AVIWriters[Index];
+			if (Writer->IsCapturing())
+			{
+				Writer->Finalize();
+			}
 		}
 	}
 }

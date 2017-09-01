@@ -85,6 +85,8 @@ public:
 	bool IsTogglePreviewGridChecked() const;
 	void TogglePreviewBackground();
 	bool IsTogglePreviewBackgroundChecked() const;
+	/** Call back for when the user changes preview scene settings in the UI */
+	void OnAssetViewerSettingsChanged(const FName& InPropertyName);
 
 	// ICommonEditorViewportToolbarInfoProvider interface
 	virtual TSharedRef<class SEditorViewport> GetViewportWidget() override;

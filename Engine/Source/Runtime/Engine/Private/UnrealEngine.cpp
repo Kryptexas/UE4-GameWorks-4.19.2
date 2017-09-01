@@ -9585,25 +9585,27 @@ bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *In
 			Ar.Logf(TEXT("ERROR: The map '%s' does not exist."), *TestURL.Map);
 			return true;
 		}
-	}
 #if WITH_EDITOR
-	// Next comes a complicated but necessary way of blocking a crash caused by opening a level when playing multiprocess as a client (that's not allowed because of streaming levels)
-	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
-	check(PlayInSettings);
-	bool bMultiProcess = !([&PlayInSettings] { bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }());
-	
-	const EPlayNetMode PlayNetMode = [&PlayInSettings] { EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
-	bool bClientMode = PlayNetMode == EPlayNetMode::PIE_Client;
-	
-	if (bMultiProcess && bClientMode)
-	{
-		UE_LOG(LogNet, Log, TEXT("%s"), TEXT("Opening a map is not allowed in this play mode (client mode + multiprocess)!"));
-	}
-	else
+		else
+		{
+			// Next comes a complicated but necessary way of blocking a crash caused by opening a level when playing multiprocess as a client (that's not allowed because of streaming levels)
+			ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+			check(PlayInSettings);
+			bool bMultiProcess = !([&PlayInSettings] { bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }());
+
+			const EPlayNetMode PlayNetMode = [&PlayInSettings] { EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+			bool bClientMode = PlayNetMode == EPlayNetMode::PIE_Client;
+
+			if (bMultiProcess && bClientMode)
+			{
+				UE_LOG(LogNet, Log, TEXT("%s"), TEXT("Opening a map is not allowed in this play mode (client mode + multiprocess)!"));
+				return true;
+			}
+		}
 #endif
-	{
-		SetClientTravel(InWorld, Cmd, TRAVEL_Absolute);
 	}
+
+	SetClientTravel(InWorld, Cmd, TRAVEL_Absolute);
 	return true;
 }
 

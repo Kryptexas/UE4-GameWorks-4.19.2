@@ -1684,6 +1684,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
+	if (GIsEditor)
+	{
+		// High DPI must be enabled before any windows are shown.
+		// only doing this in editor for now
+		FPlatformMisc::SetHighDPIMode();
+	}
+
 	UStringTable::InitializeEngineBridge();
 
 	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowAudioThread())

@@ -1470,34 +1470,42 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 	GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"), true );
 
 	UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
-	Exporter->CreateDocument();
-
-	GWarn->StatusUpdate( 0, 1, NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX") );
-
+	
+	//Show the fbx export dialog options
+	bool ExportCancel = false;
+	bool ExportAll = false;
+	Exporter->FillExportOptions(false, true, UExporter::CurrentFilename, ExportCancel, ExportAll);
+	if (!ExportCancel)
 	{
-		UWorld* World = CastChecked<UWorld>(Object);
-		ULevel* Level = World->PersistentLevel;
+		Exporter->CreateDocument();
 
-		if( bSelectedOnly )
+		GWarn->StatusUpdate(0, 1, NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"));
+
 		{
-			Exporter->ExportBSP( World->GetModel(), true );
-		}
+			UWorld* World = CastChecked<UWorld>(Object);
+			ULevel* Level = World->PersistentLevel;
 
-		INodeNameAdapter NodeNameAdapter;
-
-		Exporter->ExportLevelMesh( Level, bSelectedOnly, NodeNameAdapter );
-
-		// Export streaming levels and actors
-		for( int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex )
-		{
-			ULevel* CurLevel = World->GetLevel( CurLevelIndex );
-			if( CurLevel != NULL && CurLevel != Level )
+			if (bSelectedOnly)
 			{
-				Exporter->ExportLevelMesh( CurLevel, bSelectedOnly, NodeNameAdapter );
+				Exporter->ExportBSP(World->GetModel(), true);
+			}
+
+			INodeNameAdapter NodeNameAdapter;
+
+			Exporter->ExportLevelMesh(Level, bSelectedOnly, NodeNameAdapter);
+
+			// Export streaming levels and actors
+			for (int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex)
+			{
+				ULevel* CurLevel = World->GetLevel(CurLevelIndex);
+				if (CurLevel != NULL && CurLevel != Level)
+				{
+					Exporter->ExportLevelMesh(CurLevel, bSelectedOnly, NodeNameAdapter);
+				}
 			}
 		}
+		Exporter->WriteToFile(*UExporter::CurrentFilename);
 	}
-	Exporter->WriteToFile(*UExporter::CurrentFilename);
 
 	GWarn->EndSlowTask();
 
@@ -1810,6 +1818,18 @@ bool UStaticMeshExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, F
 {
 	UStaticMesh* StaticMesh = CastChecked<UStaticMesh>( Object );
 	UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
+	//Show the fbx export dialog options
+	bool ExportAll = GetBatchMode() && !GetShowExportOption();
+	bool ExportCancel = false;
+	Exporter->FillExportOptions(GetBatchMode(), GetShowExportOption(), UExporter::CurrentFilename, ExportCancel, ExportAll);
+	if (ExportCancel)
+	{
+		SetCancelBatch(GetBatchMode());
+		//User cancel the FBX export
+		return false;
+	}
+	SetShowExportOption(!ExportAll);
+
 	Exporter->CreateDocument();
 	Exporter->ExportStaticMesh(StaticMesh);
 	Exporter->WriteToFile(*UExporter::CurrentFilename);
@@ -1836,6 +1856,18 @@ bool USkeletalMeshExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type,
 {
 	USkeletalMesh* SkeletalMesh = CastChecked<USkeletalMesh>( Object );
 	UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
+	//Show the fbx export dialog options
+	bool ExportAll = GetBatchMode() && !GetShowExportOption();
+	bool ExportCancel = false;
+	Exporter->FillExportOptions(GetBatchMode(), GetShowExportOption(), UExporter::CurrentFilename, ExportCancel, ExportAll);
+	if (ExportCancel)
+	{
+		SetCancelBatch(GetBatchMode());
+		//User cancel the FBX export
+		return false;
+	}
+	SetShowExportOption(!ExportAll);
+
 	Exporter->CreateDocument();
 	Exporter->ExportSkeletalMesh(SkeletalMesh);
 	Exporter->WriteToFile(*UExporter::CurrentFilename);
@@ -1866,13 +1898,34 @@ bool UAnimSequenceExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type,
 	if (AnimSkeleton && PreviewMesh)
 	{
 		UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
+		//Show the fbx export dialog options
+		bool ExportAll = GetBatchMode() && !GetShowExportOption();
+		bool ExportCancel = false;
+		Exporter->FillExportOptions(GetBatchMode(), GetShowExportOption(), UExporter::CurrentFilename, ExportCancel, ExportAll);
+		if (ExportCancel)
+		{
+			SetCancelBatch(GetBatchMode());
+			//User cancel the FBX export
+			return false;
+		}
+		SetShowExportOption(!ExportAll);
+
 		Exporter->CreateDocument();
 		Exporter->ExportAnimSequence(AnimSequence, PreviewMesh, false);
 		Exporter->WriteToFile( *UExporter::CurrentFilename );
 
 		return true;
 	}
-
+	
+	if(!AnimSkeleton)
+	{
+		UE_LOG(LogEditorExporters, Warning, TEXT("Cannot export animation sequence [%s] because the skeleton is not set."), *AnimSequence->GetName());
+	}
+	else
+	{
+		UE_LOG(LogEditorExporters, Warning, TEXT("Cannot export animation sequence [%s] because the preview mesh is not set."), *AnimSequence->GetName());
+	}
+	
 	return false;
 }
 

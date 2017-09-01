@@ -47,6 +47,9 @@ UExporter::UExporter(const FObjectInitializer& ObjectInitializer)
 			RegisteredExporters.Add(DefaultExporterObj);
 		}
 	}
+	BatchExportMode = false;
+	CancelBatch = false;
+	ShowExportOption = true;
 }
 
 void UExporter::Serialize( FArchive& Ar )
@@ -62,6 +65,35 @@ bool UExporter::SupportsObject(UObject* Object) const
 	return (SupportedClass && Object->IsA(SupportedClass));
 }
 
+bool UExporter::GetBatchMode() const
+{
+	return BatchExportMode;
+}
+
+void UExporter::SetBatchMode(bool InBatchExportMode)
+{
+	BatchExportMode = InBatchExportMode;
+}
+
+bool UExporter::GetCancelBatch() const
+{
+	return CancelBatch;
+}
+
+void UExporter::SetCancelBatch(bool InCancelBatch)
+{
+	CancelBatch = InCancelBatch;
+}
+
+bool UExporter::GetShowExportOption() const
+{
+	return ShowExportOption;
+}
+
+void UExporter::SetShowExportOption(bool InShowExportOption)
+{
+	ShowExportOption = InShowExportOption;
+}
 
 UExporter* UExporter::FindExporter( UObject* Object, const TCHAR* FileType )
 {

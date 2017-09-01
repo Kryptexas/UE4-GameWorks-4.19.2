@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,13 +18,8 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-
-#if defined(__clang_analyzer__) && !defined(SDL_DISABLE_ANALYZE_MACROS)
+#if defined(__clang_analyzer__)
 #define SDL_DISABLE_ANALYZE_MACROS 1
-#endif
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
 #endif
 
 #include "../SDL_internal.h"
@@ -33,9 +28,10 @@
 
 #include "SDL_stdinc.h"
 
-
+#if !defined(HAVE_VSSCANF) || !defined(HAVE_STRTOL) || !defined(HAVE_STRTOUL)  || !defined(HAVE_STRTOLL) || !defined(HAVE_STRTOULL) || !defined(HAVE_STRTOD)
 #define SDL_isupperhex(X)   (((X) >= 'A') && ((X) <= 'F'))
 #define SDL_islowerhex(X)   (((X) >= 'a') && ((X) <= 'f'))
+#endif
 
 #define UTF8_IsLeadByte(c) ((c) >= 0xC0 && (c) <= 0xF4)
 #define UTF8_IsTrailingByte(c) ((c) >= 0x80 && (c) <= 0xBF)
@@ -481,7 +477,8 @@ SDL_strlcpy(SDL_OUT_Z_CAP(maxlen) char *dst, const char *src, size_t maxlen)
 #endif /* HAVE_STRLCPY */
 }
 
-size_t SDL_utf8strlcpy(SDL_OUT_Z_CAP(dst_bytes) char *dst, const char *src, size_t dst_bytes)
+size_t
+SDL_utf8strlcpy(SDL_OUT_Z_CAP(dst_bytes) char *dst, const char *src, size_t dst_bytes)
 {
     size_t src_bytes = SDL_strlen(src);
     size_t bytes = SDL_min(src_bytes, dst_bytes - 1);
@@ -511,6 +508,23 @@ size_t SDL_utf8strlcpy(SDL_OUT_Z_CAP(dst_bytes) char *dst, const char *src, size
     }
     dst[bytes] = '\0';
     return bytes;
+}
+
+size_t
+SDL_utf8strlen(const char *str)
+{
+    size_t retval = 0;
+    const char *p = str;
+    char ch;
+
+    while ((ch = *(p++))) {
+        /* if top two bits are 1 and 0, it's a continuation byte. */
+        if ((ch & 0xc0) != 0x80) {
+            retval++;
+        }
+    }
+    
+    return retval;
 }
 
 size_t
@@ -1315,6 +1329,11 @@ static size_t
 SDL_PrintString(char *text, size_t maxlen, SDL_FormatInfo *info, const char *string)
 {
     size_t length = 0;
+    size_t slen;
+
+    if (string == NULL) {
+        string = "(null)";
+    }
 
     if (info && info->width && (size_t)info->width > SDL_strlen(string)) {
         char fill = info->pad_zeroes ? '0' : ' ';
@@ -1326,7 +1345,8 @@ SDL_PrintString(char *text, size_t maxlen, SDL_FormatInfo *info, const char *str
         }
     }
 
-    length += SDL_strlcpy(text, string, maxlen);
+    slen = SDL_strlcpy(text, string, maxlen);
+    length += SDL_min(slen, maxlen);
 
     if (info) {
         if (info->force_case == SDL_CASE_LOWER) {
@@ -1402,10 +1422,11 @@ SDL_PrintFloat(char *text, size_t maxlen, SDL_FormatInfo *info, double arg)
         }
         value = (unsigned long) arg;
         len = SDL_PrintUnsignedLong(text, left, NULL, value);
-        text += len;
         if (len >= left) {
+            text += (left > 1) ? left - 1 : 0;
             left = SDL_min(left, 1);
         } else {
+            text += len;
             left -= len;
         }
         arg -= value;
@@ -1422,10 +1443,11 @@ SDL_PrintFloat(char *text, size_t maxlen, SDL_FormatInfo *info, double arg)
             while (info->precision-- > 0) {
                 value = (unsigned long) (arg * mult);
                 len = SDL_PrintUnsignedLong(text, left, NULL, value);
-                text += len;
                 if (len >= left) {
+                    text += (left > 1) ? left - 1 : 0;
                     left = SDL_min(left, 1);
                 } else {
+                    text += len;
                     left -= len;
                 }
                 arg -= (double) value / mult;
@@ -1458,10 +1480,11 @@ SDL_PrintFloat(char *text, size_t maxlen, SDL_FormatInfo *info, double arg)
             }
         }
         len = (size_t)width;
-        text += len;
         if (len >= left) {
+            text += (left > 1) ? left - 1 : 0;
             left = SDL_min(left, 1);
         } else {
+            text += len;
             left -= len;
         }
         while (len--) {
@@ -1483,7 +1506,7 @@ SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, size_t maxlen, const char *fmt, 
     if (!fmt) {
         fmt = "";
     }
-    while (*fmt) {
+    while (*fmt && left > 1) {
         if (*fmt == '%') {
             SDL_bool done = SDL_FALSE;
             size_t len = 0;
@@ -1627,6 +1650,16 @@ SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, size_t maxlen, const char *fmt, 
                     len = SDL_PrintFloat(text, left, &info, va_arg(ap, double));
                     done = SDL_TRUE;
                     break;
+                case 'S':
+                    {
+                        /* In practice this is used on Windows for WCHAR strings */
+                        wchar_t *wide_arg = va_arg(ap, wchar_t *);
+                        char *arg = SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(wide_arg), (SDL_wcslen(wide_arg)+1)*sizeof(*wide_arg));
+                        len = SDL_PrintString(text, left, &info, arg);
+                        SDL_free(arg);
+                        done = SDL_TRUE;
+                    }
+                    break;
                 case 's':
                     len = SDL_PrintString(text, left, &info, va_arg(ap, char *));
                     done = SDL_TRUE;
@@ -1637,19 +1670,16 @@ SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, size_t maxlen, const char *fmt, 
                 }
                 ++fmt;
             }
-            text += len;
             if (len >= left) {
+                text += (left > 1) ? left - 1 : 0;
                 left = SDL_min(left, 1);
             } else {
+                text += len;
                 left -= len;
             }
         } else {
-            if (left > 1) {
-                *text = *fmt;
-                --left;
-            }
-            ++fmt;
-            ++text;
+            *text++ = *fmt++;
+            --left;
         }
     }
     if (left > 0) {

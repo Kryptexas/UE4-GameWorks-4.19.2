@@ -1360,7 +1360,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 					const FSectionInfo& Section = Sections[SectionIndex];
 					const int32 UniqueIndex = DataTracker.AddSection(Section);
 					DataTracker.AddSectionRemapping(ComponentIndex, LODIndex, Section.MaterialIndex, UniqueIndex);
-
+					DataTracker.AddMaterialSlotName(Section.Material, Section.MaterialSlotName);
 					for (int32 StartIndex = Section.StartIndex; StartIndex < Section.EndIndex; ++StartIndex)
 					{
 						RawMesh.FaceMaterialIndices[StartIndex] = UniqueIndex;
@@ -1437,6 +1437,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 
 				// Store of original to unique section index entry for this component + LOD index
 				DataTracker.AddSectionRemapping(ComponentIndex, LODIndex, Section.MaterialIndex, UniqueIndex);
+				DataTracker.AddMaterialSlotName(Section.Material, Section.MaterialSlotName);
 
 				if (!bMergeMaterialData)
 				{
@@ -2083,7 +2084,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			{
 				Material = nullptr; // do not save non-asset materials
 			}
-			StaticMesh->StaticMaterials.Add(FStaticMaterial(Material));
+			StaticMesh->StaticMaterials.Add(FStaticMaterial(Material, DataTracker.GetMaterialSlotName(Material)));
 		}
 
 		if (InSettings.bMergePhysicsData)

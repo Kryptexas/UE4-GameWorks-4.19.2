@@ -43,7 +43,7 @@ void SVisualLoggerFilters::Construct(const FArguments& InArgs, const TSharedRef<
 		.ButtonContent()
 		[
 			SNew(STextBlock)
-			.TextStyle(FLogVisualizerStyle::Get(), "Filters.Text")
+			.TextStyle(FLogVisualizerStyle::Get(), "GenericFilters.TextStyle")
 			.Text(LOCTEXT("GraphFilters", "Graph Filters"))
 		];
 

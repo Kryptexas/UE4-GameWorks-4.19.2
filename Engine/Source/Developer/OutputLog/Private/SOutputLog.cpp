@@ -818,7 +818,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 					.AutoWidth()
 					[
 						SNew(SComboButton)
-						.ComboButtonStyle(FEditorStyle::Get(), "OutputLog.Filters.Style")
+						.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
 						.ForegroundColor(FLinearColor::White)
 						.ContentPadding(0)
 						.ToolTipText(LOCTEXT("AddFilterToolTip", "Add an output log filter."))
@@ -833,7 +833,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 							.AutoWidth()
 							[
 								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
+								.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
 								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
 								.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
 							]
@@ -843,7 +843,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 							.Padding(2, 0, 0, 0)
 							[
 								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
+								.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
 								.Text(LOCTEXT("Filters", "Filters"))
 							]
 						]

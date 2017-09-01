@@ -62,39 +62,43 @@ FSearchResult FImaginaryFiBData::CreateSearchResult(FSearchResult InParent) cons
 
 FSearchResult FImaginaryFiBData::CreateSearchTree(FSearchResult InParentSearchResult, TWeakPtr< FImaginaryFiBData > InCurrentPointer, TArray< const FImaginaryFiBData* >& InValidSearchResults, TMultiMap< const FImaginaryFiBData*, FComponentUniqueDisplay >& InMatchingSearchComponents)
 {
-	FSearchResult CurrentSearchResult = InCurrentPointer.Pin()->CreateSearchResult(InParentSearchResult);
-	bool bValidSearchResults = false;
-
-	// Check all children first, to see if they are valid in the search results
-	for (TSharedPtr<FImaginaryFiBData> ChildData : InCurrentPointer.Pin()->ParsedChildData)
+	TSharedPtr<FImaginaryFiBData> CurrentDataPtr = InCurrentPointer.Pin();
+	if (FImaginaryFiBData* CurrentData = CurrentDataPtr.Get())
 	{
-		FSearchResult Result = CreateSearchTree(CurrentSearchResult, ChildData, InValidSearchResults, InMatchingSearchComponents);
-		if (Result.IsValid())
+		FSearchResult CurrentSearchResult = CurrentData->CreateSearchResult(InParentSearchResult);
+		bool bValidSearchResults = false;
+
+		// Check all children first, to see if they are valid in the search results
+		for (TSharedPtr<FImaginaryFiBData> ChildData : CurrentData->ParsedChildData)
+		{
+			FSearchResult Result = CreateSearchTree(CurrentSearchResult, ChildData, InValidSearchResults, InMatchingSearchComponents);
+			if (Result.IsValid())
+			{
+				bValidSearchResults = true;
+				CurrentSearchResult->Children.Add(Result);
+			}
+		}
+
+		// If the children did not match the search results but this item does, then we will want to return true
+		if (!bValidSearchResults && !CurrentData->IsCategory() && (InValidSearchResults.Find(CurrentData) != INDEX_NONE || InMatchingSearchComponents.Find(CurrentData)))
 		{
 			bValidSearchResults = true;
-			CurrentSearchResult->Children.Add(Result);
 		}
-	}
 
-	// If the children did not match the search results but this item does, then we will want to return true
-	if (!bValidSearchResults && !InCurrentPointer.Pin()->IsCategory() && (InValidSearchResults.Find(InCurrentPointer.Pin().Get()) != INDEX_NONE || InMatchingSearchComponents.Find(InCurrentPointer.Pin().Get())))
-	{
-		bValidSearchResults = true;
-	}
-
-	if (bValidSearchResults)
-	{
-		TArray< FComponentUniqueDisplay > SearchResultList;
-		InMatchingSearchComponents.MultiFind(InCurrentPointer.Pin().Get(), SearchResultList, true);
-		CurrentSearchResult->Children.Reserve(CurrentSearchResult->Children.Num() + SearchResultList.Num());
-
-		// Add any data that matched the search results as a child of our search result
-		for (FComponentUniqueDisplay& SearchResultWrapper : SearchResultList)
+		if (bValidSearchResults)
 		{
-			SearchResultWrapper.SearchResult->Parent = CurrentSearchResult;
-			CurrentSearchResult->Children.Add(SearchResultWrapper.SearchResult);
+			TArray< FComponentUniqueDisplay > SearchResultList;
+			InMatchingSearchComponents.MultiFind(CurrentData, SearchResultList, true);
+			CurrentSearchResult->Children.Reserve(CurrentSearchResult->Children.Num() + SearchResultList.Num());
+
+			// Add any data that matched the search results as a child of our search result
+			for (FComponentUniqueDisplay& SearchResultWrapper : SearchResultList)
+			{
+				SearchResultWrapper.SearchResult->Parent = CurrentSearchResult;
+				CurrentSearchResult->Children.Add(SearchResultWrapper.SearchResult);
+			}
+			return CurrentSearchResult;
 		}
-		return CurrentSearchResult;
 	}
 	return nullptr;
 }

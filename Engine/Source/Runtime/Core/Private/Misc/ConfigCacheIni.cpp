@@ -537,7 +537,7 @@ void FConfigFile::CombineFromBuffer(const FString& Buffer)
 				if (Cmd == '+')
 				{
 					// Add if not already present.
-					CurrentSection->HandleAddCommand( Start, ProcessedValue, true );
+					CurrentSection->HandleAddCommand( Start, ProcessedValue, false );
 				}
 				else if( Cmd=='-' )	
 				{
@@ -547,7 +547,7 @@ void FConfigFile::CombineFromBuffer(const FString& Buffer)
 				}
 				else if ( Cmd=='.' )
 				{
-					CurrentSection->HandleAddCommand( Start, ProcessedValue, false );
+					CurrentSection->HandleAddCommand( Start, ProcessedValue, true );
 				}
 				else if( Cmd=='!' )
 				{

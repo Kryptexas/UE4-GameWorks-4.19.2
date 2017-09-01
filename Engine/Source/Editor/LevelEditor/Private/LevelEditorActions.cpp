@@ -359,8 +359,10 @@ void FLevelEditorActionCallbacks::RemoveFavorite( int32 FavoriteFileIndex )
 
 bool FLevelEditorActionCallbacks::ToggleFavorite_CanExecute()
 {
+	const FMainMRUFavoritesList& MRUFavorites = *FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame").GetMRUFavoritesList();
+	const int32 NumFavorites = MRUFavorites.GetNumFavorites();
 	// Disable the favorites button if the map isn't associated to a file yet (new map, never before saved, etc.)
-	return LevelEditorActionsHelpers::IsPersistentWorld(GetWorld());
+	return LevelEditorActionsHelpers::IsPersistentWorld(GetWorld()) && NumFavorites <= FLevelEditorCommands::Get().OpenFavoriteFileCommands.Num();
 }
 
 
@@ -1064,15 +1066,7 @@ void FLevelEditorActionCallbacks::SubmitToSourceControl_Clicked()
 void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
 {
 	const auto& SelectedActorInfo = AssetSelectionUtils::GetSelectedActorInfo();
-	if( SelectedActorInfo.SelectionClass != nullptr )
-	{
-		FString ClassHeaderPath;
-		if( FSourceCodeNavigation::FindClassHeaderPath( SelectedActorInfo.SelectionClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
-		{
-			FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);
-			FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
-		}
-	}
+	FSourceCodeNavigation::NavigateToClass(SelectedActorInfo.SelectionClass);
 }
 
 void FLevelEditorActionCallbacks::GoToDocsForActor_Clicked()
@@ -2945,6 +2939,20 @@ void FLevelEditorCommands::RegisterCommands()
 			.UserInterfaceType( EUserInterfaceActionType::Button )
 			.DefaultChord( FInputChord() );
 		OpenRecentFileCommands.Add( OpenRecentFile );
+	}
+	for (int32 CurFavoriteIndex = 0; CurFavoriteIndex < FLevelEditorCommands::MaxRecentFiles; ++CurFavoriteIndex)
+	{
+		// NOTE: The actual label and tool-tip will be overridden at runtime when the command is bound to a menu item, however
+		// we still need to set one here so that the key bindings UI can function properly
+		TSharedRef< FUICommandInfo > OpenFavoriteFile =
+			FUICommandInfoDecl(
+				this->AsShared(),
+				FName(*FString::Printf(TEXT("OpenFavoriteFile%i"), CurFavoriteIndex)),
+				FText::Format(NSLOCTEXT("LevelEditorCommands", "OpenFavoriteFile", "Open Favorite File {0}"), FText::AsNumber(CurFavoriteIndex)),
+				NSLOCTEXT("LevelEditorCommands", "OpenFavoriteFileToolTip", "Opens a favorite file"))
+			.UserInterfaceType(EUserInterfaceActionType::Button)
+			.DefaultChord(FInputChord());
+		OpenFavoriteFileCommands.Add(OpenFavoriteFile);
 	}
 
 	UI_COMMAND( ImportScene, "Import Into Level...", "Imports a scene from a FBX or T3D format into the current level", EUserInterfaceActionType::Button, FInputChord());

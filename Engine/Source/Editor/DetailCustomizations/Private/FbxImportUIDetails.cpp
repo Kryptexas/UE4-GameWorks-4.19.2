@@ -65,11 +65,6 @@ FFbxImportUIDetails::~FFbxImportUIDetails()
 
 void FFbxImportUIDetails::RefreshCustomDetail()
 {
-	UEditorEngine* Editor = Cast<UEditorEngine>(GEngine);
-	if (Editor != nullptr)
-	{
-		Editor->UnregisterForUndo(this);
-	}
 	if (CachedDetailBuilder)
 	{
 		CachedDetailBuilder->ForceRefreshDetails();

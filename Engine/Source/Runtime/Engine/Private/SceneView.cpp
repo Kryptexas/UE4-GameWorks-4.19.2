@@ -127,9 +127,9 @@ static TAutoConsoleVariable<int32> CVarRenderTimeFrozen(
 	ECVF_Cheat);
 
 static TAutoConsoleVariable<int32> CVarScreenPercentageEditor(
-	TEXT("r.ScreenPercentage.Editor"),
+	TEXT("r.ScreenPercentage.VREditor"),
 	0,
-	TEXT("To allow to have an effect of ScreenPercentage in the editor.\n")
+	TEXT("To allow to have an effect of ScreenPercentage in the VR Editor.\n")
 	TEXT("0: off (default)\n")
 	TEXT("1: allow upsample (blurry but faster) and downsample (cripser but slower)"),
 	ECVF_Default);
@@ -1806,13 +1806,23 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-
-		float Value = ScreenPercentageCVar->GetValueOnGameThread();
-
-		if(Value >= 0.0)
+		float ScreenPercentageValue = 100.f;
+#if WITH_EDITOR
+		// Let the editor override screen percentage per view if needed.  Otherwise check the global cvar
+		if (ViewInitOptions.EditorViewScreenPercentage.IsSet())
 		{
-			FinalPostProcessSettings.ScreenPercentage *= Value / 100.0f;
+			ScreenPercentageValue = ViewInitOptions.EditorViewScreenPercentage.GetValue();
+		}
+		else
+#endif
+		{
+			static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+			ScreenPercentageValue = ScreenPercentageCVar->GetValueOnGameThread();
+		}
+
+		if (ScreenPercentageValue >= 0.0)
+		{
+			FinalPostProcessSettings.ScreenPercentage *= ScreenPercentageValue / 100.0f;
 		}
 	}
 
@@ -1987,23 +1997,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 
 		check(Family->RenderTarget);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if(CVarScreenPercentageEditor.GetValueOnAnyThread() == 0)
-		{
-			// Don't apply editor screen percentage scaling while in a PIE viewport
-			const bool bInGame = !GEngine || GEngine->GameViewport != nullptr;
-
-			// Don't apply editor screen percentage scaling while rendering a stereo view in the editor, as HMDs often
-			// require device-specific upscaling to look correct
-			const bool bStereo = ViewInitOptions.StereoPass != eSSP_FULL;
-
-			if(!bInGame && !bStereo)
-			{
-				Fraction = 1.0f;
-			}
-		}
-#endif
 
 		// Upscale if needed
 		if (Fraction != 1.0f)

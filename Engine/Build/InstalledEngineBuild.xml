@@ -370,6 +370,7 @@
 		<Node Name="Build Tools Linux" Requires="Compile UnrealHeaderTool $(HostPlatform)">
 			<Compile Target="CrashReportClient" Platform="Linux" Configuration="Shipping"/>
 			<Compile Target="ShaderCompileWorker" Configuration="Development" Platform="Linux" Tag="#Build Tools Linux"/>
+			<Compile Target="UnrealLightmass" Configuration="Development" Platform="Linux" Tag="#Build Tools Linux"/>
 		</Node>
 		<!-- Compile a version of UAT with all confidential exceptions stripped out -->
 		<Node Name="Compile Stripped UAT" Requires="Update Version Files" Produces="#StrippedUAT">

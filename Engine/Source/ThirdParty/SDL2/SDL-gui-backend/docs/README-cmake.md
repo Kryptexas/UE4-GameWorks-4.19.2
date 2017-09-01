@@ -1,6 +1,6 @@
-CMake
+CMake
 ================================================================================
-(www.cmake.org)
+(www.cmake.org)
 
 SDL's build system was traditionally based on autotools. Over time, this
 approach has suffered from several issues across the different supported 

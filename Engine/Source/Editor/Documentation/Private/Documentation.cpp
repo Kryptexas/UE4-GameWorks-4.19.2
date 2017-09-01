@@ -45,10 +45,15 @@ bool FDocumentation::OpenHome(const FCultureRef& Culture, FDocumentationSourceIn
 
 bool FDocumentation::OpenAPIHome(FDocumentationSourceInfo Source) const
 {
-	FString DocumentationUrl; 
-	if(FUnrealEdMisc::Get().GetURL(TEXT("APIDocsURL"), DocumentationUrl))
+	FString Url;
+	FUnrealEdMisc::Get().GetURL(TEXT("APIDocsURL"), Url, true);
+
+	if (!Url.IsEmpty())
 	{
-		FPlatformProcess::LaunchURL(*DocumentationUrl, NULL, NULL);
+		Url.ReplaceInline(TEXT("/INT/"), *FString::Printf(TEXT("/%s/"), *(FInternationalization::Get().GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName())));
+
+		FPlatformProcess::LaunchURL(*Url, nullptr, nullptr);
+
 		return true;
 	}
 	return false;

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -37,7 +37,6 @@
 #endif
 #include <unistd.h>
 #include <sys/types.h>
-#include <errno.h>
 #include <pulse/pulseaudio.h>
 
 #include "SDL_timer.h"
@@ -367,28 +366,6 @@ PULSEAUDIO_PlayDevice(_THIS)
         }
     }
 }
-
-static void
-PULSEAUDIO_WaitDone(_THIS)
-{
-    if (SDL_AtomicGet(&this->enabled)) {
-        struct SDL_PrivateAudioData *h = this->hidden;
-        pa_operation *o = PULSEAUDIO_pa_stream_drain(h->stream, stream_operation_complete_no_op, NULL);
-        if (o) {
-            while (PULSEAUDIO_pa_operation_get_state(o) != PA_OPERATION_DONE) {
-                if (PULSEAUDIO_pa_context_get_state(h->context) != PA_CONTEXT_READY ||
-                    PULSEAUDIO_pa_stream_get_state(h->stream) != PA_STREAM_READY ||
-                    PULSEAUDIO_pa_mainloop_iterate(h->mainloop, 1, NULL) < 0) {
-                    PULSEAUDIO_pa_operation_cancel(o);
-                    break;
-                }
-            }
-            PULSEAUDIO_pa_operation_unref(o);
-        }
-    }
-}
-
-
 
 static Uint8 *
 PULSEAUDIO_GetDeviceBuf(_THIS)
@@ -776,7 +753,6 @@ PULSEAUDIO_Init(SDL_AudioDriverImpl * impl)
     impl->WaitDevice = PULSEAUDIO_WaitDevice;
     impl->GetDeviceBuf = PULSEAUDIO_GetDeviceBuf;
     impl->CloseDevice = PULSEAUDIO_CloseDevice;
-    impl->WaitDone = PULSEAUDIO_WaitDone;
     impl->Deinitialize = PULSEAUDIO_Deinitialize;
     impl->CaptureFromDevice = PULSEAUDIO_CaptureFromDevice;
     impl->FlushCapture = PULSEAUDIO_FlushCapture;

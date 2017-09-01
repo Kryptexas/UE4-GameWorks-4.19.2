@@ -140,7 +140,7 @@ private:
 class FPersonaMeshDetails : public IDetailCustomization
 {
 public:
-	FPersonaMeshDetails(TSharedRef<class IPersonaToolkit> InPersonaToolkit) : PersonaToolkitPtr(InPersonaToolkit) {}
+	FPersonaMeshDetails(TSharedRef<class IPersonaToolkit> InPersonaToolkit) : PersonaToolkitPtr(InPersonaToolkit) { CustomLODEditMode = false; }
 	~FPersonaMeshDetails();
 
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
@@ -460,6 +460,12 @@ private:
 	
 	bool FilterOutBakePose(const struct FAssetData& AssetData, USkeleton* Skeleton) const;
 
+	EVisibility LodComboBoxVisibilityForSectionList(int32 LodIndex) const;
+	FText GetLODCustomModeNameContent(int32 LODIndex) const;
+	ECheckBoxState IsLODCustomModeCheck(int32 LODIndex) const;
+	void SetLODCustomModeCheck(ECheckBoxState NewState, int32 LODIndex);
+	bool IsLODCustomModeEnable(int32 LODIndex) const;
+
 public:
 
 	bool IsApplyNeeded() const;
@@ -489,6 +495,9 @@ private:
 	TMap<int32, TArray<FSectionLocalizer>> MaterialUsedMap;
 
 	TArray<class IDetailCategoryBuilder*> LodCategories;
+
+	bool CustomLODEditMode;
+	bool DetailDisplayLODs[MAX_SKELETAL_MESH_LODS];
 
 #if WITH_APEX_CLOTHING
 private:

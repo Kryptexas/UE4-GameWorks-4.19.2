@@ -549,9 +549,19 @@ namespace PackageTools
 		});
 
 		// Unload the current world (if needed).
+		TMap<FName, const UMapBuildDataRegistry*> LevelsToMapBuildData;
 		if (!WorldNameToReload.IsNone())
 		{
 			GEditor->CreateNewMapForEditing();
+		}
+		// Cache the current map build data for the levels of the current world so we can see if they change due to a reload (we skip this if reloading the current world).
+		else if (UWorld* EditorWorld = GEditor->GetEditorWorldContext().World())
+		{
+			for (int32 LevelIndex = 0; LevelIndex < EditorWorld->GetNumLevels(); ++LevelIndex)
+			{
+				ULevel* Level = EditorWorld->GetLevel(LevelIndex);
+				LevelsToMapBuildData.Add(Level->GetFName(), Level->MapBuildData);
+			}
 		}
 
 		if (PackagesToReload.Num() > 0)
@@ -573,6 +583,7 @@ namespace PackageTools
 			PackagesToReloadData.Reserve(PackagesToReload.Num());
 			for (UPackage* PackageToReload : PackagesToReload)
 			{
+				check(PackageToReload);
 				bScriptPackageWasReloaded |= PackageToReload->HasAnyPackageFlags(PKG_ContainsScript);
 				PackagesToReloadData.Emplace(PackageToReload, LOAD_None);
 			}
@@ -629,6 +640,24 @@ namespace PackageTools
 			TArray<FName> WorldNamesToReload;
 			WorldNamesToReload.Add(WorldNameToReload);
 			FAssetEditorManager::Get().OpenEditorsForAssets(WorldNamesToReload);
+		}
+		// Update the rendering resources for the levels of the current world if their map build data has changed (we skip this if reloading the current world).
+		else if (LevelsToMapBuildData.Num() > 0)
+		{
+			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+			check(EditorWorld);
+
+			for (int32 LevelIndex = 0; LevelIndex < EditorWorld->GetNumLevels(); ++LevelIndex)
+			{
+				ULevel* Level = EditorWorld->GetLevel(LevelIndex);
+				const UMapBuildDataRegistry* OldMapBuildData = LevelsToMapBuildData.FindRef(Level->GetFName());
+
+				if (OldMapBuildData && OldMapBuildData != Level->MapBuildData)
+				{
+					Level->ReleaseRenderingResources();
+					Level->InitializeRenderingResources();
+				}
+			}
 		}
 
 		OutErrorMessage = ErrorMessageBuilder.ToText();

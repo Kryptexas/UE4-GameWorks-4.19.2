@@ -2037,6 +2037,24 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 	}
 }
 
+bool FPropertyNode::IsReorderable()
+{
+	UProperty* NodeProperty = GetProperty();
+	if (NodeProperty == nullptr)
+	{
+		return false;
+	}
+	// It is reorderable if the parent is an array and metadata doesn't prohibit it
+	const UArrayProperty* OuterArrayProp = Cast<UArrayProperty>(NodeProperty->GetOuter());
+
+	static const FName Name_DisableReordering("EditFixedOrder");
+	static const FName NAME_ArraySizeEnum("ArraySizeEnum");
+	return OuterArrayProp != nullptr 
+		&& !NodeProperty->HasMetaData(Name_DisableReordering)
+		&& !IsEditConst()
+		&& !NodeProperty->HasMetaData(NAME_ArraySizeEnum);
+}
+
 /**
  * Helper function to obtain the display name for an enum property
  * @param InEnum		The enum whose metadata to pull from

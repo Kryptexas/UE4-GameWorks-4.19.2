@@ -5,9 +5,6 @@
 #include "pxr/usd/usd/usdFileFormat.h"
 #include "pxr/usd/usd/common.h"
 #include "pxr/usd/usd/stage.h"
-#if PXR_VERSION < 075   // this file seems to have been removed in recent versions
-    #include "pxr/usd/usd/treeIterator.h"
-#endif // PXR_VERSION < 075
 #include "pxr/base/tf/errorMark.h"
 #include "pxr/base/plug/registry.h"
 #include "pxr/base/plug/plugin.h"
@@ -27,6 +24,7 @@
 #include "pxr/base/gf/rotation.h"
 #include "pxr/usd/usd/variantSets.h"
 #include "pxr/usd/usd/debugCodes.h"
+#include "pxr/usd/kind/registry.h"
 
 using std::vector;
 using std::string;
@@ -457,6 +455,25 @@ public:
 		PrimName = Prim.GetName().GetString();
 		PrimPath = Prim.GetPath().GetString();
 
+		UsdModelAPI Model(Prim);
+		if (Model)
+		{
+			TfToken KindType;
+			Model.GetKind(&KindType);
+
+			Kind = KindType.GetString();
+		}
+		else
+		{
+			// Prim is not a model, read kind directly from metadata
+			static TfToken KindMetaDataToken("kind");
+			TfToken KindType;
+			if (Prim.GetMetadata(KindMetaDataToken, &KindType))
+			{
+				Kind = KindType.GetString();
+			}
+		}
+
 		UsdAttribute UnrealAssetPathAttr = Prim.GetAttribute(UnrealIdentifiers::AssetPath);
 		if (UnrealAssetPathAttr.HasValue())
 		{
@@ -526,9 +543,31 @@ public:
 		return UnrealPropertyPath.c_str();
 	}
 
+	virtual const char* GetKind() const override
+	{
+		return Kind.c_str();
+	}
+
+	virtual bool IsKindChildOf(const std::string& InKind) const override
+	{
+		TfToken TestKind(InKind);
+	
+		KindRegistry& Registry = KindRegistry::GetInstance();
+
+		TfToken PrimKind(Kind);
+
+		return Registry.IsA(TestKind, PrimKind);
+	}
+
+
 	virtual bool IsGroup() const override
 	{
 		return Prim.IsGroup();
+	}
+
+	virtual bool IsModel() const override
+	{
+		return Prim.IsModel();
 	}
 
 	virtual bool IsUnrealProperty() const override
@@ -541,12 +580,6 @@ public:
 		return UsdGeomXformable(Prim);
 	}
 
-	virtual FUsdMatrixData GetLocalToWorldTransform() const override
-	{
-		return GetLocalToWorldTransform(UsdTimeCode::Default().GetValue());
-	}
-
-#if !USDWRAPPER_USE_XFORMACHE
 	static GfMatrix4d GetLocalToWorldTransform(const UsdPrim& Prim, double Time, const SdfPath& AbsoluteRootPath)
 	{
 		SdfPath PrimPath = Prim.GetPath();
@@ -568,7 +601,6 @@ public:
 
 		return AccumulatedTransform;
 	}
-#endif // !USDWRAPPER_USE_XFORMACHE
 	
 	virtual FUsdMatrixData GetLocalToWorldTransform(double Time) const override
 	{
@@ -596,9 +628,24 @@ public:
 
 	}
 
-	virtual FUsdMatrixData GetLocalToParentTransform() const override
+	virtual FUsdMatrixData GetLocalToAncestorTransform(IUsdPrim* Ancestor, double Time) const override
 	{
-		return GetLocalToParentTransform(UsdTimeCode::Default().GetValue());
+		if (Ancestor)
+		{
+			FUsdPrim* InternalAncestorPrim = (FUsdPrim*)Ancestor;
+
+			GfMatrix4d LocalToAncestor;
+			LocalToAncestor = GetLocalToWorldTransform(Prim, Time, InternalAncestorPrim->GetUSDPrim().GetPath());
+
+			FUsdMatrixData Ret;
+			memcpy(Ret.Data, LocalToAncestor.GetArray(), sizeof(double) * 16);
+
+			return Ret;
+		}
+		else
+		{
+			return GetLocalToWorldTransform(Time);
+		}
 	}
 
 	virtual FUsdMatrixData GetLocalToParentTransform(double Time) const override
@@ -649,7 +696,7 @@ public:
 	{
 		UsdGeomMesh Mesh(Prim);
 
-		return Mesh;
+		return Mesh || GetNumLODs() > 0;
 	}
 
 	virtual const FUsdGeomData* GetGeometryData() override
@@ -1038,19 +1085,20 @@ public:
 #endif
 				LODVariantSet.SetVariantSelection(string(LODName));
 
-				UsdPrim LODChild = Prim.GetChild(TfToken(LODName));
+				string ChildPrimName = PrimName + "_" + LODName;
+				UsdPrim LODChild = Prim.GetChild(TfToken(ChildPrimName));
 				if (LODChild)
 				{
-					
+
 					auto Result = std::find_if(
 						std::begin(VariantData),
-						std::end(VariantData), 
+						std::end(VariantData),
 						[&LODChild](const FPrimAndData& Elem)
-						{
-							return Elem.Prim == LODChild;
-						});
+					{
+						return Elem.Prim == LODChild;
+					});
 
-					if (Result != std::end(VariantData))
+					if (Result == std::end(VariantData))
 					{
 						FUsdPrim* LODChildData = new FUsdPrim(LODChild);
 						FPrimAndData LODData(LODChild);
@@ -1116,6 +1164,7 @@ private:
 	string UnrealAssetPath;
 	string UnrealActorClass;
 	string UnrealPropertyPath;
+	string Kind;
 	FUsdGeomData* GeomData;
 };
 

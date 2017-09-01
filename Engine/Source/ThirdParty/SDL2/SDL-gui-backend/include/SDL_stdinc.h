@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,8 +25,8 @@
  *  This is a general header that includes C language support.
  */
 
-#ifndef _SDL_stdinc_h
-#define _SDL_stdinc_h
+#ifndef SDL_stdinc_h_
+#define SDL_stdinc_h_
 
 #include "SDL_config.h"
 
@@ -83,15 +83,19 @@
 #ifdef HAVE_FLOAT_H
 # include <float.h>
 #endif
-#if defined(HAVE_ICONV) && defined(HAVE_ICONV_H)
-# include <iconv.h>
-#endif
 
 /**
  *  The number of elements in an array.
  */
 #define SDL_arraysize(array)    (sizeof(array)/sizeof(array[0]))
 #define SDL_TABLESIZE(table)    SDL_arraysize(table)
+
+/**
+ *  Macro useful for building other macros with strings in them
+ *
+ *  e.g. #define LOG_ERROR(X) OutputDebugString(SDL_STRINGIFY_ARG(__FUNCTION__) ": " X "\n")
+ */
+#define SDL_STRINGIFY_ARG(arg)  #arg
 
 /**
  *  \name Cast operators
@@ -123,11 +127,18 @@
  */
 /* @{ */
 
+#ifdef __CC_ARM
+/* ARM's compiler throws warnings if we use an enum: like "SDL_bool x = a < b;" */
+#define SDL_FALSE 0
+#define SDL_TRUE 1
+typedef int SDL_bool;
+#else
 typedef enum
 {
     SDL_FALSE = 0,
     SDL_TRUE = 1
 } SDL_bool;
+#endif
 
 /**
  * \brief A signed 8-bit integer type.
@@ -258,7 +269,7 @@ typedef uint64_t Uint64;
 #endif /* SDL_DISABLE_ANALYZE_MACROS */
 
 #define SDL_COMPILE_TIME_ASSERT(name, x)               \
-       typedef int SDL_dummy_ ## name[(x) * 2 - 1]
+       typedef int SDL_compile_time_assert_ ## name[(x) * 2 - 1]
 /** \cond */
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
 SDL_COMPILE_TIME_ASSERT(uint8, sizeof(Uint8) == 1);
@@ -405,6 +416,7 @@ extern DECLSPEC char *SDLCALL SDL_strlwr(char *str);
 extern DECLSPEC char *SDLCALL SDL_strchr(const char *str, int c);
 extern DECLSPEC char *SDLCALL SDL_strrchr(const char *str, int c);
 extern DECLSPEC char *SDLCALL SDL_strstr(const char *haystack, const char *needle);
+extern DECLSPEC size_t SDLCALL SDL_utf8strlen(const char *str);
 
 extern DECLSPEC char *SDLCALL SDL_itoa(int value, char *str, int radix);
 extern DECLSPEC char *SDLCALL SDL_uitoa(unsigned int value, char *str, int radix);
@@ -433,7 +445,7 @@ extern DECLSPEC int SDLCALL SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, size
 
 #ifndef HAVE_M_PI
 #ifndef M_PI
-#define M_PI    3.14159265358979323846264338327950288   /* pi */
+#define M_PI    3.14159265358979323846264338327950288   /**< pi */
 #endif
 #endif
 
@@ -522,6 +534,6 @@ SDL_FORCE_INLINE void *SDL_memcpy4(SDL_OUT_BYTECAP(dwords*4) void *dst, SDL_IN_B
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_stdinc_h */
+#endif /* SDL_stdinc_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

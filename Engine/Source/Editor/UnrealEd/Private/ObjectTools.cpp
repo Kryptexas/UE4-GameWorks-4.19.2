@@ -14,6 +14,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/App.h"
+#include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
@@ -2772,7 +2773,7 @@ namespace ObjectTools
 				}
 				// Don't allow a move/rename to occur into a package that has a filename invalid for saving. This is a rare case
 				// that should not happen often, but could occur using packages created before the editor checked against file name length
-				else if ( ExistingOutermostPackage && ExistingOutermostPackageFilename.Len() > 0 && !FEditorFileUtils::IsFilenameValidForSaving( ExistingOutermostPackageFilename, Reason ) )
+				else if ( ExistingOutermostPackage && ExistingOutermostPackageFilename.Len() > 0 && !FFileHelper::IsFilenameValidForSaving( ExistingOutermostPackageFilename, Reason ) )
 				{
 					bMoveFailed = true;
 				}

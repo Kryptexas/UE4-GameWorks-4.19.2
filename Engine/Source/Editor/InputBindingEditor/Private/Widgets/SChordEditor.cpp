@@ -10,11 +10,12 @@
 /* SChordEditor interface
  *****************************************************************************/
 
-void SChordEditor::Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand )
+void SChordEditor::Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand, EMultipleKeyBindingIndex InChordIndex)
 {
 	bIsEditing = false;
 
 	CommandInfo = InputCommand;
+	ChordIndex = InChordIndex;
 	OnEditBoxLostFocus = InArgs._OnEditBoxLostFocus;
 	OnChordChanged = InArgs._OnChordChanged;
 	OnEditingStopped = InArgs._OnEditingStopped;
@@ -115,9 +116,9 @@ FText SChordEditor::OnGetChordInputText() const
 	{
 		return EditingInputChord.GetInputText();
 	}
-	else if( CommandInfo->GetActiveChord()->IsValidChord() )
+	else if( CommandInfo->GetActiveChord(ChordIndex)->IsValidChord() )
 	{
-		return CommandInfo->GetActiveChord()->GetInputText();
+		return CommandInfo->GetActiveChord(ChordIndex)->GetInputText();
 	}
 	else
 	{
@@ -128,9 +129,9 @@ FText SChordEditor::OnGetChordInputText() const
 
 FText SChordEditor::OnGetChordInputHintText() const
 {
-	const TSharedPtr<const FInputChord>& ActiveChord = CommandInfo->GetActiveChord();
-
-	if( !bIsEditing || !CommandInfo->GetDefaultChord().IsValidChord() )
+	const TSharedPtr<const FInputChord>& ActiveChord = CommandInfo->GetActiveChord(ChordIndex);
+	
+	if( !bIsEditing || !CommandInfo->GetDefaultChord(ChordIndex).IsValidChord() )
 	{
 		return LOCTEXT("NewBindingHelpText_NoCurrentBinding", "Type a new binding");
 
@@ -138,7 +139,7 @@ FText SChordEditor::OnGetChordInputHintText() const
 	else if( bIsEditing )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("InputCommandBinding"), CommandInfo->GetDefaultChord().GetInputText() );
+		Args.Add( TEXT("InputCommandBinding"), CommandInfo->GetDefaultChord(ChordIndex).GetInputText() );
 		return FText::Format( LOCTEXT("NewBindingHelpText_CurrentBinding", "Default: {InputCommandBinding}"), Args );
 	}
 	
@@ -150,14 +151,14 @@ void SChordEditor::CommitNewChord()
 {
 	if( EditingInputChord.IsValidChord() )
 	{
-		OnChordCommitted( EditingInputChord );
+		OnChordCommitted( EditingInputChord);
 	}
 }
 
 
 void SChordEditor::RemoveActiveChord()
 {
-	CommandInfo->RemoveActiveChord();
+	CommandInfo->RemoveActiveChord(ChordIndex);
 }
 
 
@@ -221,7 +222,7 @@ void SChordEditor::OnChordTyped( const FInputChord& NewChord )
 }
 
 
-void SChordEditor::OnChordCommitted( const FInputChord& NewChord )
+void SChordEditor::OnChordCommitted( const FInputChord& NewChord)
 {
 	// This delegate is only called on valid chords
 	check( NewChord.IsValidChord() );
@@ -235,11 +236,18 @@ void SChordEditor::OnChordCommitted( const FInputChord& NewChord )
 		if( FoundDesc.IsValid() && FoundDesc->GetCommandName() != CommandInfo->GetCommandName() )
 		{
 			// Remove the active chord on the command that was already bound to the chord being set on another command.
-			FoundDesc->RemoveActiveChord();
+			for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+			{
+				EMultipleKeyBindingIndex RemovableIndex = static_cast<EMultipleKeyBindingIndex> (i);
+				if (*FoundDesc->GetActiveChord(RemovableIndex) == NewChord)
+				{
+					FoundDesc->RemoveActiveChord(RemovableIndex);
+				}
+			}
 		}
 
 		// Set the new chord on the command being edited
-		CommandInfo->SetActiveChord( NewChord );
+		CommandInfo->SetActiveChord( NewChord, ChordIndex);
 	}
 }
 

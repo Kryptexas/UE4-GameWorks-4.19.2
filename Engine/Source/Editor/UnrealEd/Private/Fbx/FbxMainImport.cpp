@@ -30,6 +30,7 @@
 #include "AssetRegistryModule.h"
 #include "ARFilter.h"
 #include "Animation/Skeleton.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
 
@@ -111,17 +112,24 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		// Compute centered window position based on max window size, which include when all categories are expanded
 		const float FbxImportWindowWidth = 410.0f;
 		const float FbxImportWindowHeight = 750.0f;
-		const FVector2D FbxImportWindowSize = FVector2D(FbxImportWindowWidth, FbxImportWindowHeight); // Max window size it can get based on current slate
+		FVector2D FbxImportWindowSize = FVector2D(FbxImportWindowWidth, FbxImportWindowHeight); // Max window size it can get based on current slate
+
 
 		FSlateRect WorkAreaRect = FSlateApplicationBase::Get().GetPreferredWorkArea();
 		FVector2D DisplayTopLeft(WorkAreaRect.Left, WorkAreaRect.Top);
 		FVector2D DisplaySize(WorkAreaRect.Right - WorkAreaRect.Left, WorkAreaRect.Bottom - WorkAreaRect.Top);
-		FVector2D WindowPosition = DisplayTopLeft + (DisplaySize - FbxImportWindowSize) / 2.0f;
+
+		float ScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(DisplayTopLeft.X, DisplayTopLeft.Y);
+		FbxImportWindowSize *= ScaleFactor;
+
+		FVector2D WindowPosition = (DisplayTopLeft + (DisplaySize - FbxImportWindowSize) / 2.0f) / ScaleFactor;
+	
 
 		TSharedRef<SWindow> Window = SNew(SWindow)
 			.Title(NSLOCTEXT("UnrealEd", "FBXImportOpionsTitle", "FBX Import Options"))
 			.SizingRule(ESizingRule::Autosized)
 			.AutoCenter(EAutoCenter::None)
+			.ClientSize(FbxImportWindowSize)
 			.ScreenPosition(WindowPosition);
 		
 		auto OnPreviewFbxImportLambda = ImportUI->MeshTypeToImport == FBXIT_Animation ? nullptr : FOnPreviewFbxImport::CreateLambda([=]

@@ -23,15 +23,16 @@ struct FUserDefinedChordKey
 	{
 	}
 
-	FUserDefinedChordKey(const FName InBindingContext, const FName InCommandName)
+	FUserDefinedChordKey(const FName InBindingContext, const FName InCommandName, const EMultipleKeyBindingIndex InChordIndex)
 		: BindingContext(InBindingContext)
 		, CommandName(InCommandName)
+		, ChordIndex(InChordIndex)
 	{
 	}
 
 	bool operator==(const FUserDefinedChordKey& Other) const
 	{
-		return BindingContext == Other.BindingContext && CommandName == Other.CommandName;
+		return BindingContext == Other.BindingContext && CommandName == Other.CommandName && ChordIndex == Other.ChordIndex;
 	}
 
 	bool operator!=(const FUserDefinedChordKey& Other) const
@@ -41,6 +42,7 @@ struct FUserDefinedChordKey
 
 	FName BindingContext;
 	FName CommandName;
+	EMultipleKeyBindingIndex ChordIndex;
 };
 
 uint32 GetTypeHash( const FUserDefinedChordKey& Key )
@@ -53,20 +55,20 @@ class FUserDefinedChords
 public:
 	void LoadChords();
 	void SaveChords() const;
-	bool GetUserDefinedChord( const FName BindingContext, const FName CommandName, FInputChord& OutUserDefinedChord ) const;
-	void SetUserDefinedChord( const FUICommandInfo& CommandInfo );
+	bool GetUserDefinedChord( const FName BindingContext, const FName CommandName, const EMultipleKeyBindingIndex ChordIndex, FInputChord& OutUserDefinedChord ) const;
+	void SetUserDefinedChords( const FUICommandInfo& CommandInfo );
 	/** Remove all user defined chords */
 	void RemoveAll();
 private:
 
-	void LoadChord(const TSharedPtr<FJsonObject>& ChordInfoObject, const FName& BindingContextName, const FName& CommandName);
+	void LoadChord(const TSharedPtr<FJsonObject>& ChordInfoObject, const FName& BindingContextName, const EMultipleKeyBindingIndex ChordIndex, const FName& CommandName);
 
 	/* Mapping from a chord key to the user defined chord */
 	typedef TMap<FUserDefinedChordKey, FInputChord> FChordsMap;
 	TSharedPtr<FChordsMap> Chords;
 };
 
-void FUserDefinedChords::LoadChord(const TSharedPtr<FJsonObject>& ChordInfoObject, const FName& BindingContextName, const FName& CommandName)
+void FUserDefinedChords::LoadChord(const TSharedPtr<FJsonObject>& ChordInfoObject, const FName& BindingContextName, const EMultipleKeyBindingIndex ChordIndex, const FName& CommandName)
 {
 	const TSharedPtr<FJsonValue> CtrlObj = ChordInfoObject->Values.FindRef(TEXT("Control"));
 	const TSharedPtr<FJsonValue> AltObj = ChordInfoObject->Values.FindRef( TEXT("Alt") );
@@ -74,7 +76,7 @@ void FUserDefinedChords::LoadChord(const TSharedPtr<FJsonObject>& ChordInfoObjec
 	const TSharedPtr<FJsonValue> CmdObj = ChordInfoObject->Values.FindRef(TEXT("Command"));
 	const TSharedPtr<FJsonValue> KeyObj = ChordInfoObject->Values.FindRef( TEXT("Key") );
 
-	const FUserDefinedChordKey ChordKey(BindingContextName, CommandName);
+	const FUserDefinedChordKey ChordKey(BindingContextName, CommandName, ChordIndex);
 	FInputChord& UserDefinedChord = Chords->FindOrAdd(ChordKey);
 
 #if PLATFORM_MAC
@@ -126,11 +128,13 @@ void FUserDefinedChords::LoadChords()
 				{
 					const TSharedPtr<FJsonValue> BindingContextObj = ChordInfoObj->Values.FindRef( TEXT("BindingContext") );
 					const TSharedPtr<FJsonValue> CommandNameObj = ChordInfoObj->Values.FindRef( TEXT("CommandName") );
+					const TSharedPtr<FJsonValue> ChordIndexObj = ChordInfoObj->Values.FindRef(TEXT("ChordIndex") );
 
 					const FName BindingContext = *BindingContextObj->AsString();
-					const FName CommandName = *CommandNameObj->AsString();
+					const FName CommandName = *CommandNameObj->AsString(); 
+					const EMultipleKeyBindingIndex ChordIndex = ChordIndexObj.IsValid() ? static_cast<EMultipleKeyBindingIndex>(static_cast<uint32>(ChordIndexObj->AsNumber())) : EMultipleKeyBindingIndex::Primary;
 
-					LoadChord(ChordInfoObj, BindingContext, CommandName);
+					LoadChord(ChordInfoObj, BindingContext, ChordIndex, CommandName);
 				}
 			}
 		}
@@ -175,8 +179,10 @@ void FUserDefinedChords::LoadChords()
 					{
 						const FName CommandName = *CommandInfo.Key;
 						TSharedPtr<FJsonObject> CommandObj = CommandInfo.Value->AsObject();
-
-						LoadChord(CommandObj, BindingContext, CommandName);
+						for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+						{
+							LoadChord(CommandObj, BindingContext, static_cast<EMultipleKeyBindingIndex>(i), CommandName);
+						}
 					}
 				}
 			}
@@ -198,6 +204,7 @@ void FUserDefinedChords::SaveChords() const
 			// Set the chord values for the command
 			ChordInfoObj->Values.Add( TEXT("BindingContext"), MakeShareable( new FJsonValueString( ChordInfo.Key.BindingContext.ToString() ) ) );
 			ChordInfoObj->Values.Add( TEXT("CommandName"), MakeShareable( new FJsonValueString( ChordInfo.Key.CommandName.ToString() ) ) );
+			ChordInfoObj->Values.Add(TEXT("ChordIndex"), MakeShareable(new FJsonValueNumber(static_cast<uint8>(ChordInfo.Key.ChordIndex))));
 			ChordInfoObj->Values.Add( TEXT("Control"), MakeShareable( new FJsonValueBoolean( ChordInfo.Value.NeedsControl() ) ) );
 			ChordInfoObj->Values.Add( TEXT("Alt"), MakeShareable( new FJsonValueBoolean( ChordInfo.Value.NeedsAlt() ) ) );
 			ChordInfoObj->Values.Add( TEXT("Shift"), MakeShareable( new FJsonValueBoolean( ChordInfo.Value.NeedsShift() ) ) );
@@ -220,13 +227,13 @@ void FUserDefinedChords::SaveChords() const
 	}
 }
 
-bool FUserDefinedChords::GetUserDefinedChord( const FName BindingContext, const FName CommandName, FInputChord& OutUserDefinedChord ) const
+bool FUserDefinedChords::GetUserDefinedChord( const FName BindingContext, const FName CommandName, const EMultipleKeyBindingIndex ChordIndex, FInputChord& OutUserDefinedChord ) const
 {
 	bool bResult = false;
 
 	if( Chords.IsValid() )
 	{
-		const FUserDefinedChordKey ChordKey(BindingContext, CommandName);
+		const FUserDefinedChordKey ChordKey(BindingContext, CommandName, ChordIndex);
 		const FInputChord* const UserDefinedChordPtr = Chords->Find(ChordKey);
 		if( UserDefinedChordPtr )
 		{
@@ -238,21 +245,25 @@ bool FUserDefinedChords::GetUserDefinedChord( const FName BindingContext, const 
 	return bResult;
 }
 
-void FUserDefinedChords::SetUserDefinedChord( const FUICommandInfo& CommandInfo )
+void FUserDefinedChords::SetUserDefinedChords( const FUICommandInfo& CommandInfo)
 {
 	if( Chords.IsValid() )
 	{
 		const FName BindingContext = CommandInfo.GetBindingContext();
 		const FName CommandName = CommandInfo.GetCommandName();
 
-		// Find or create the command context
-		const FUserDefinedChordKey ChordKey(BindingContext, CommandName);
-		FInputChord& UserDefinedChord = Chords->FindOrAdd(ChordKey);
+		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+		{
+			EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex>(i);
+			// Find or create the command context
+			const FUserDefinedChordKey ChordKey(BindingContext, CommandName, ChordIndex);
+			FInputChord& UserDefinedChord = Chords->FindOrAdd(ChordKey);
 
-		// Save an empty invalid chord if one was not set
-		// This is an indication that the user doesn't want this bound and not to use the default chord
-		const TSharedPtr<const FInputChord> InputChord = CommandInfo.GetActiveChord();
-		UserDefinedChord = (InputChord.IsValid()) ? *InputChord : FInputChord();
+			// Save an empty invalid chord if one was not set
+			// This is an indication that the user doesn't want this bound and not to use the default chord
+			const TSharedPtr<const FInputChord> InputChord = CommandInfo.GetActiveChord(ChordIndex);
+			UserDefinedChord = (InputChord.IsValid()) ? *InputChord : FInputChord();
+		}
 	}
 }
 
@@ -286,7 +297,7 @@ FInputBindingManager& FInputBindingManager::Get()
  * @param InBindingContext	The context in which the command is active
  * @param InCommandName		The name of the command to get the chord from
  */
-bool FInputBindingManager::GetUserDefinedChord( const FName InBindingContext, const FName InCommandName, FInputChord& OutUserDefinedChord )
+bool FInputBindingManager::GetUserDefinedChord( const FName InBindingContext, const FName InCommandName, const EMultipleKeyBindingIndex InChordIndex, FInputChord& OutUserDefinedChord )
 {
 	if( !UserDefinedChords.IsValid() )
 	{
@@ -294,56 +305,76 @@ bool FInputBindingManager::GetUserDefinedChord( const FName InBindingContext, co
 		UserDefinedChords->LoadChords();
 	}
 
-	return UserDefinedChords->GetUserDefinedChord( InBindingContext, InCommandName, OutUserDefinedChord );
+	return UserDefinedChords->GetUserDefinedChord( InBindingContext, InCommandName, InChordIndex, OutUserDefinedChord );
 }
 
 void FInputBindingManager::CheckForDuplicateDefaultChords( const FBindingContext& InBindingContext, TSharedPtr<FUICommandInfo> InCommandInfo ) const
 {
 	const bool bCheckDefault = true;
-	TSharedPtr<FUICommandInfo> ExistingInfo = GetCommandInfoFromInputChord( InBindingContext.GetContextName(), InCommandInfo->DefaultChord, bCheckDefault );
-	if( ExistingInfo.IsValid() )
+	for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
 	{
-		if( ExistingInfo->CommandName != InCommandInfo->CommandName )
+		if (!InCommandInfo->DefaultChords[i].IsValidChord())
 		{
-			// Two different commands with the same name in the same context or parent context
-			UE_LOG(LogSlate, Fatal, TEXT("The command '%s.%s' has the same default chord as '%s.%s' [%s]"), 
-				*InCommandInfo->BindingContext.ToString(),
-				*InCommandInfo->CommandName.ToString(), 
-				*ExistingInfo->BindingContext.ToString(),
-				*ExistingInfo->CommandName.ToString(), 
-				*InCommandInfo->DefaultChord.GetInputText().ToString() );
+			continue;
+		}
+		TSharedPtr<FUICommandInfo> ExistingInfo = GetCommandInfoFromInputChord(InBindingContext.GetContextName(), InCommandInfo->DefaultChords[i], bCheckDefault);
+		if (ExistingInfo.IsValid())
+		{
+			if (ExistingInfo->CommandName != InCommandInfo->CommandName)
+			{
+				// Two different commands with the same name in the same context or parent context
+				UE_LOG(LogSlate, Fatal, TEXT("The command '%s.%s' has the same default chord as '%s.%s' [%s]"),
+					*InCommandInfo->BindingContext.ToString(),
+					*InCommandInfo->CommandName.ToString(),
+					*ExistingInfo->BindingContext.ToString(),
+					*ExistingInfo->CommandName.ToString(),
+					*InCommandInfo->DefaultChords[i].GetInputText().ToString());
+			}
 		}
 	}
 }
 
 
-void FInputBindingManager::NotifyActiveChordChanged( const FUICommandInfo& CommandInfo )
+void FInputBindingManager::NotifyActiveChordChanged( const FUICommandInfo& CommandInfo, const EMultipleKeyBindingIndex InChordIndex )
 {
 	FContextEntry& ContextEntry = ContextMap.FindChecked( CommandInfo.GetBindingContext() );
-
 	// Slow but doesn't happen frequently
-	for( FChordMap::TIterator It( ContextEntry.ChordToCommandInfoMap ); It; ++It )
+	FChordMap& ActualChordMap = ContextEntry.ChordToCommandInfoMaps[static_cast<uint8>(InChordIndex)];
+	for( FChordMap::TIterator It(ActualChordMap); It; ++It )
 	{
 		// Remove the currently active chord from the map if one exists
 		if( It.Value() == CommandInfo.GetCommandName() )
 		{
 			It.RemoveCurrent();
-			// There should only be one active chord
+			// There should only be one active chord for each map
 			break;
 		}
 	}
 
-	if( CommandInfo.GetActiveChord()->IsValidChord() )
+	if( CommandInfo.GetActiveChord(InChordIndex)->IsValidChord() )
 	{
-		checkSlow( !ContextEntry.ChordToCommandInfoMap.Contains( *CommandInfo.GetActiveChord() ) )
-		ContextEntry.ChordToCommandInfoMap.Add( *CommandInfo.GetActiveChord(), CommandInfo.GetCommandName() );
+		checkSlow( !ActualChordMap.Contains( *CommandInfo.GetActiveChord(InChordIndex) ) )
+			ActualChordMap.Add( *CommandInfo.GetActiveChord(InChordIndex), CommandInfo.GetCommandName() );
 	}
-	
+	//else if (!bIsAlternateChord) 
+	// This is optional, keep it off for now
+	//// We removed the primary chord, so swap them and remove the alternate; this is so that it's easier for the tooltip system 
+	//{
+	//	for (FChordMap::TIterator It(ContextEntry.AlternateChordToCommandInfoMap); It; ++It)
+	//	{
+	//		if (It.Value() == CommandInfo.GetCommandName())
+	//		{
+	//			It.RemoveCurrent();
+	//			ContextEntry.ChordToCommandInfoMap.Add(It.Key(), It.Value());
+	//			break;
+	//		}
+	//	}
+	//}
 
 	// The user defined chords should have already been created
 	check( UserDefinedChords.IsValid() );
 
-	UserDefinedChords->SetUserDefinedChord( CommandInfo );
+	UserDefinedChords->SetUserDefinedChords( CommandInfo );
 
 	// Broadcast the chord event when a new one is added
 	OnUserDefinedChordChanged.Broadcast(CommandInfo);
@@ -379,7 +410,10 @@ void FInputBindingManager::CreateInputCommand( const TSharedRef<FBindingContext>
 	check( InCommandInfo->CommandName != NAME_None );
 
 	// Should not have already created a chord for this command
-	check( !InCommandInfo->ActiveChord->IsValidChord() );
+	for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+	{
+		check(!InCommandInfo->ActiveChords[i]->IsValidChord());
+	}
 	
 	const FName ContextName = InBindingContext->GetContextName();
 
@@ -402,71 +436,78 @@ void FInputBindingManager::CreateInputCommand( const TSharedRef<FBindingContext>
 		ParentToChildMap.AddUnique( InBindingContext->GetContextParent(), InBindingContext->GetContextName() );
 	}
 
-	if( InCommandInfo->DefaultChord.IsValidChord() )
-	{
-		CheckForDuplicateDefaultChords( *InBindingContext, InCommandInfo );
-	}
-	
-	{
-		TSharedPtr<FUICommandInfo> ExistingInfo = CommandInfoMap.FindRef( InCommandInfo->CommandName );
-		ensureMsgf( !ExistingInfo.IsValid(), TEXT("A command with name %s already exists in context %s"), *InCommandInfo->CommandName.ToString(), *InBindingContext->GetContextName().ToString() );
-	}
+	CheckForDuplicateDefaultChords( *InBindingContext, InCommandInfo );
 
+	TSharedPtr<FUICommandInfo> ExistingInfo = CommandInfoMap.FindRef( InCommandInfo->CommandName );
+	ensureMsgf( !ExistingInfo.IsValid(), TEXT("A command with name %s already exists in context %s"), *InCommandInfo->CommandName.ToString(), *InBindingContext->GetContextName().ToString() );
+	
 	// Add the command info to the list of known infos.  It can only exist once.
 	CommandInfoMap.Add( InCommandInfo->CommandName, InCommandInfo );
 
 	// See if there are user defined chords for this command
-	FInputChord UserDefinedChord;
-	bool bFoundUserDefinedChord = GetUserDefinedChord( ContextName, InCommandInfo->CommandName, UserDefinedChord );
 
-	
-	if( !bFoundUserDefinedChord && InCommandInfo->DefaultChord.IsValidChord() )
+	for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
 	{
-		// Find any existing command with the same chord 
-		// This is for inconsistency between default and user defined chord.  We need to make sure that if default chords are changed to a chord that a user set to a different command, that the default chord doesn't replace
-		// the existing commands chord. Note: Duplicate default chords are found above in CheckForDuplicateDefaultChords
-		FName ExisingCommand = ContextEntry.ChordToCommandInfoMap.FindRef( InCommandInfo->DefaultChord );
+		EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex> (i);
+		FInputChord UserDefinedChord;
+		bool bFoundUserDefinedChord = GetUserDefinedChord(ContextName, InCommandInfo->CommandName, ChordIndex, UserDefinedChord);
 
-		if( ExisingCommand == NAME_None )
+
+		if (!bFoundUserDefinedChord && InCommandInfo->DefaultChords[i].IsValidChord())
 		{
-			// No existing command has a user defined chord and no user defined chord is available for this command 
-			TSharedRef<FInputChord> NewChord = MakeShareable( new FInputChord( InCommandInfo->DefaultChord ) );
-			InCommandInfo->ActiveChord = NewChord;
-		}
-
-	}
-	else if( bFoundUserDefinedChord )
-	{
-		// Find any existing command with the same chord 
-		// This is for inconsistency between default and user defined chord.  We need to make sure that if default chords are changed to a chord that a user set to a different command, that the default chord doesn't replace
-		// the existing commands chord.
-		FName ExisingCommandName = ContextEntry.ChordToCommandInfoMap.FindRef( UserDefinedChord );
-
-		if( ExisingCommandName != NAME_None )
-		{
-			// Get the command with using the same chord
-			TSharedPtr<FUICommandInfo> ExistingInfo = CommandInfoMap.FindRef( ExisingCommandName );
-			if( *ExistingInfo->ActiveChord != ExistingInfo->DefaultChord )
+			// Find any existing command with the same chord 
+			// This is for inconsistency between default and user defined chord.  We need to make sure that if default chords are changed to a chord that a user set to a different command, that the default chord doesn't replace
+			// the existing commands chord. Note: Duplicate default chords are found above in CheckForDuplicateDefaultChords
+			// This needs to check through the maps for the primary and alternate key bindings.
+			FName ExisingCommand = NAME_None;  
+			for (uint32 j = 0; j < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords) && ExisingCommand == NAME_None; ++j)
 			{
-				// two user defined chords are the same within a context.  If the keybinding editor was used this wont happen so this must have been directly a modified user setting file
-				UE_LOG(LogSlate, Error, TEXT("Duplicate user defined chords found: [%s,%s].  Chord for %s being removed"), *InCommandInfo->GetLabel().ToString(), *ExistingInfo->GetLabel().ToString(), *ExistingInfo->GetLabel().ToString() );
+				ExisingCommand = ContextEntry.ChordToCommandInfoMaps[j].FindRef(InCommandInfo->DefaultChords[i]);
 			}
-			ContextEntry.ChordToCommandInfoMap.Remove( *ExistingInfo->ActiveChord );
-			// Remove the existing chord. 
-			ExistingInfo->ActiveChord = MakeShareable( new FInputChord() );
-		
+			if (ExisingCommand == NAME_None)
+			{
+				// No existing command has a user defined chord and no user defined chord is available for this command 
+				TSharedRef<FInputChord> NewChord = MakeShareable(new FInputChord(InCommandInfo->DefaultChords[i]));
+				InCommandInfo->ActiveChords[i] = NewChord;
+			}
+
+		}
+		else if (bFoundUserDefinedChord)
+		{
+			// Find any existing command with the same chord 
+			// This is for inconsistency between default and user defined chord.  We need to make sure that if default chords are changed to a chord that a user set to a different command, that the default chord doesn't replace
+			// the existing commands chord. This needs to check through the maps for the primary and alternate key bindings.
+			FName ExisingCommandName = NAME_None;
+			for (uint32 j = 0; j < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords) && ExisingCommandName == NAME_None; ++j)
+			{
+				ExisingCommandName = ContextEntry.ChordToCommandInfoMaps[j].FindRef(UserDefinedChord);
+			}
+
+			if (ExisingCommandName != NAME_None)
+			{
+				// Get the command with using the same chord
+				TSharedPtr<FUICommandInfo> PreviousInfo = CommandInfoMap.FindRef(ExisingCommandName);
+				if (*PreviousInfo->ActiveChords[i] != PreviousInfo->DefaultChords[i])
+				{
+					// two user defined chords are the same within a context.  If the keybinding editor was used this wont happen so this must have been directly a modified user setting file
+					UE_LOG(LogSlate, Error, TEXT("Duplicate user defined chords found: [%s,%s].  Chord for %s being removed"), *InCommandInfo->GetLabel().ToString(), *PreviousInfo->GetLabel().ToString(), *ExistingInfo->GetLabel().ToString());
+				}
+				ContextEntry.ChordToCommandInfoMaps[i].Remove(*PreviousInfo->ActiveChords[i]);
+				// Remove the existing chord. 
+				PreviousInfo->ActiveChords[i] = MakeShareable(new FInputChord());
+			}
+
+			TSharedRef<FInputChord> NewChord = MakeShareable(new FInputChord(UserDefinedChord));
+			// Set the active chord on the command info
+			InCommandInfo->ActiveChords[i] = NewChord;
 		}
 
-		TSharedRef<FInputChord> NewChord = MakeShareable( new FInputChord( UserDefinedChord ) );
-		// Set the active chord on the command info
-		InCommandInfo->ActiveChord = NewChord;
-	}
-
-	// If the active chord is valid, map the chord to the map for fast lookup when processing bindings
-	if( InCommandInfo->ActiveChord->IsValidChord() )
-	{
-		checkSlow( !ContextEntry.ChordToCommandInfoMap.Contains( *InCommandInfo->GetActiveChord() ) );
-		ContextEntry.ChordToCommandInfoMap.Add( *InCommandInfo->GetActiveChord(), InCommandInfo->GetCommandName() );
+		// If the active chord is valid, map the chord to the map for fast lookup when processing bindings
+		if (InCommandInfo->ActiveChords[i]->IsValidChord())
+		{
+			checkSlow(!ContextEntry.ChordToCommandInfoMaps[i].Contains(*InCommandInfo->GetActiveChord(ChordIndex)));
+			ContextEntry.ChordToCommandInfoMaps[i].Add(*InCommandInfo->GetActiveChord(ChordIndex), InCommandInfo->GetCommandName());
+		}
 	}
 }
 
@@ -486,10 +527,12 @@ void FInputBindingManager::RemoveInputCommand(const TSharedRef<FBindingContext>&
 
 	// Remove the command and its associated chord if it's valid
 	ContextEntry.CommandInfoMap.Remove(InUICommandInfo->CommandName);
-
-	if (InUICommandInfo->ActiveChord->IsValidChord())
+	for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
 	{
-		ContextEntry.ChordToCommandInfoMap.Remove(*InUICommandInfo->GetActiveChord());
+		if (InUICommandInfo->ActiveChords[i]->IsValidChord())
+		{
+			ContextEntry.ChordToCommandInfoMaps[i].Remove(*InUICommandInfo->GetActiveChord(static_cast<EMultipleKeyBindingIndex> (i)));
+		}
 	}
 }
 
@@ -505,7 +548,7 @@ const TSharedPtr<FUICommandInfo> FInputBindingManager::FindCommandInContext( con
 		for( FCommandInfoMap::TConstIterator It(InfoMap); It && !FoundCommand.IsValid(); ++It )
 		{
 			const FUICommandInfo& CommandInfo = *It.Value();
-			if( CommandInfo.DefaultChord == InChord )
+			if( CommandInfo.HasDefaultChord(InChord))
 			{
 				FoundCommand = It.Value();
 			}	
@@ -513,11 +556,15 @@ const TSharedPtr<FUICommandInfo> FInputBindingManager::FindCommandInContext( con
 	}
 	else
 	{
-		// faster lookup for active chords
-		FName CommandName = ContextEntry.ChordToCommandInfoMap.FindRef( InChord );
-		if( CommandName != NAME_None )
+		// faster lookup for active chords, using the mapped values
+		FName CommandName = NAME_None;
+		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords) && CommandName == NAME_None; ++i)
 		{
-			FoundCommand = ContextEntry.CommandInfoMap.FindChecked( CommandName );
+			CommandName = ContextEntry.ChordToCommandInfoMaps[i].FindRef(InChord);
+		}
+		if (CommandName != NAME_None)
+		{
+			FoundCommand = ContextEntry.CommandInfoMap.FindChecked(CommandName);
 		}
 	}
 

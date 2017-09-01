@@ -1991,7 +1991,8 @@ bool FBlueprintEditor::IsParentClassNative() const
 
 bool FBlueprintEditor::IsNativeParentClassCodeLinkEnabled() const
 {
-	return IsParentClassNative() && FSourceCodeNavigation::IsCompilerAvailable();
+	const UBlueprint* Blueprint = GetBlueprintObj();
+	return Blueprint && FSourceCodeNavigation::CanNavigateToClass(Blueprint->ParentClass);
 }
 
 EVisibility FBlueprintEditor::GetNativeParentClassButtonsVisibility() const
@@ -2007,17 +2008,9 @@ EVisibility FBlueprintEditor::GetParentClassNameVisibility() const
 void FBlueprintEditor::OnEditParentClassNativeCodeClicked()
 {
 	const UBlueprint* Blueprint = GetBlueprintObj();
-	UClass* ParentClass = Blueprint ? Blueprint->ParentClass : NULL;
-	if (IsNativeParentClassCodeLinkEnabled() && ParentClass)
+	if (Blueprint)
 	{
-		FString NativeParentClassHeaderPath;
-		const bool bFileFound = FSourceCodeNavigation::FindClassHeaderPath(ParentClass, NativeParentClassHeaderPath) 
-			&& (IFileManager::Get().FileSize(*NativeParentClassHeaderPath) != INDEX_NONE);
-		if (bFileFound)
-		{
-			const FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NativeParentClassHeaderPath);
-			FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
-		}
+		FSourceCodeNavigation::NavigateToClass(Blueprint->ParentClass);
 	}
 }
 

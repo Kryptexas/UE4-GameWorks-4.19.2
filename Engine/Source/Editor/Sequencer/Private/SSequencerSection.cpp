@@ -1670,7 +1670,7 @@ FReply SSequencerSection::OnMouseButtonDown( const FGeometry& MyGeometry, const 
 FGeometry SSequencerSection::MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const
 {
 	return AllottedGeometry.MakeChild(
-		AllottedGeometry.GetDrawSize() - FVector2D( HandleOffsetPx*2, 0.0f ),
+		AllottedGeometry.GetLocalSize() - FVector2D( HandleOffsetPx*2, 0.0f ),
 		FSlateLayoutTransform(FVector2D(HandleOffsetPx, 0 ))
 	);
 }

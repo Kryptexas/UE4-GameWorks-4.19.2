@@ -13,7 +13,10 @@ TRange<float> FMovieSceneBinding::GetTimeRange() const
 
 	for (int32 TypeIndex = 0; TypeIndex < Tracks.Num(); ++TypeIndex)
 	{
-		Bounds.Add(Tracks[TypeIndex]->GetSectionBoundaries());
+		if (Tracks[TypeIndex] != nullptr)
+		{
+			Bounds.Add(Tracks[TypeIndex]->GetSectionBoundaries());
+		}
 	}
 
 	return TRange<float>::Hull(Bounds);

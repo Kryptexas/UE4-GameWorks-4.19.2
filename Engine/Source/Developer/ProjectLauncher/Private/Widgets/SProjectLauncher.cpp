@@ -201,7 +201,7 @@ void SProjectLauncher::Construct(const FArguments& InArgs, const TSharedRef<SDoc
 							.AutoWidth()
 							[
 								SNew(SComboButton)
-								.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Style")
+								.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
 								.ForegroundColor(FLinearColor::White)
 								.ContentPadding(0)
 								.ToolTipText(LOCTEXT("AddFilterToolTip", "Add a new custom launch profile using wizard"))

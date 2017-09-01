@@ -113,10 +113,7 @@ private:
 	bool MenuBlueprintBasesOnly_IsChecked() const;
 
 	/** Fills in the filter menu. */
-	void FillFilterEntries( FMenuBuilder& MenuBuilder );
-
-	/** Fills the tree entries menu. */
-	void FillTreeEntries( FMenuBuilder& MenuBuilder );
+	TSharedRef<SWidget> FillFilterEntries();
 
 	/** 
 	 *	Sets all expansion states in the tree.

@@ -320,8 +320,10 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 	// Calculate the correct position for the menu based on the popup method
 	if (ActiveMethod.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 	{
+		// already handled
+		const bool bAutoAdjustForDPIScale = false;
 		// Places the menu's window in the work area
-		OutResults.AnimStartLocation = OutResults.AnimFinalLocation = FSlateApplication::Get().CalculatePopupWindowPosition(InArgs.Anchor, OutResults.ExpectedSize, FVector2D::ZeroVector, Orientation);
+		OutResults.AnimStartLocation = OutResults.AnimFinalLocation = FSlateApplication::Get().CalculatePopupWindowPosition(InArgs.Anchor, OutResults.ExpectedSize, bAutoAdjustForDPIScale, FVector2D::ZeroVector, Orientation);
 	}
 	else
 	{
@@ -403,6 +405,7 @@ TSharedRef<FMenuBase> FMenuStack::PushNewWindow(TSharedPtr<IMenu> InParentMenu, 
 		.ScreenPosition(InPrePushResults.AnimStartLocation)
 		.AutoCenter(EAutoCenter::None)
 		.ClientSize(InPrePushResults.ExpectedSize)
+		.AdjustInitialSizeAndPositionForDPIScale(false)
 		.InitialOpacity(InitialWindowOpacity)
 		.SupportsTransparency(Transparency)
 		.FocusWhenFirstShown(InPrePushResults.bFocusImmediately)

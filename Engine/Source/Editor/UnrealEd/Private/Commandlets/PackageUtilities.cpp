@@ -245,18 +245,7 @@ bool SavePackageHelper(UPackage* Package, FString Filename, EObjectFlags KeepObj
 {
 	// look for a world object in the package (if there is one, there's a map)
 	UWorld* World = UWorld::FindWorldInPackage(Package);
-	bool bSavedCorrectly;
-	if (World)
-	{
-		bSavedCorrectly = GEditor->SavePackage(Package, World, RF_NoFlags, *Filename, ErrorDevice, LinkerToConformAgainst, false, true, SaveFlags);
-	}
-	else
-	{
-		bSavedCorrectly = GEditor->SavePackage(Package, NULL, KeepObjectFlags, *Filename, ErrorDevice, LinkerToConformAgainst, false, true, SaveFlags);
-	}
-
-	// return success
-	return bSavedCorrectly;
+	return GEditor->SavePackage(Package, World, KeepObjectFlags, *Filename, ErrorDevice, LinkerToConformAgainst, false, true, SaveFlags);
 }
 
 /**

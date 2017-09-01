@@ -252,15 +252,18 @@ private:
 class FMeshSectionSettingsLayout : public TSharedFromThis<FMeshSectionSettingsLayout>
 {
 public:
-	FMeshSectionSettingsLayout( IStaticMeshEditor& InStaticMeshEditor, int32 InLODIndex, TArray<class IDetailCategoryBuilder*> &InLodCategories)
+	FMeshSectionSettingsLayout( IStaticMeshEditor& InStaticMeshEditor, int32 InLODIndex, TArray<class IDetailCategoryBuilder*> &InLodCategories, bool *InCustomLODEditModePtr)
 		: StaticMeshEditor( InStaticMeshEditor )
 		, LODIndex( InLODIndex )
 		, LodCategoriesPtr(&InLodCategories)
+		, CustomLODEditModePtr(InCustomLODEditModePtr)
 	{}
 
 	virtual ~FMeshSectionSettingsLayout();
 
 	void AddToCategory( IDetailCategoryBuilder& CategoryBuilder );
+
+	void SetCurrentLOD(int32 NewLodIndex);
 
 private:
 	
@@ -322,6 +325,8 @@ private:
 	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
 
 	TSharedRef<SWidget> OnGenerateLodComboBoxForSectionList(int32 LodIndex);
+	EVisibility LodComboBoxVisibilityForSectionList(int32 LodIndex) const;
+
 	/*
 	* Generate the context menu to choose the LOD we will display the section list
 	*/
@@ -330,12 +335,11 @@ private:
 	FText GetCurrentLodName() const;
 	FText GetCurrentLodTooltip() const;
 
-	void SetCurrentLOD(int32 NewLodIndex);
-	
 	IStaticMeshEditor& StaticMeshEditor;
 	int32 LODIndex;
 
 	TArray<class IDetailCategoryBuilder*> *LodCategoriesPtr;
+	bool *CustomLODEditModePtr;
 };
 
 struct FSectionLocalizer
@@ -480,6 +484,12 @@ private:
 	FText GetLODCountTooltip() const;
 	FText GetMinLODTooltip() const;
 
+	FText GetLODCustomModeNameContent(int32 LODIndex) const;
+	ECheckBoxState IsLODCustomModeCheck(int32 LODIndex) const;
+	void SetLODCustomModeCheck(ECheckBoxState NewState, int32 LODIndex);
+	bool IsLODCustomModeEnable(int32 LODIndex) const;
+
+
 private:
 
 	/** The Static Mesh Editor this tool is associated with. */
@@ -518,4 +528,6 @@ private:
 	bool bSectionSettingsExpanded[MAX_STATIC_MESH_LODS];
 
 	TArray<class IDetailCategoryBuilder*> LodCategories;
+	bool CustomLODEditMode;
+	bool DetailDisplayLODs[MAX_STATIC_MESH_LODS];
 };

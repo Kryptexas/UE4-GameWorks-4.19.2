@@ -819,15 +819,15 @@ UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 	StaticMeshImportData->LoadOptions();
 	
 	SkeletalMeshImportData = CreateDefaultSubobject<UFbxSkeletalMeshImportData>(TEXT("SkeletalMeshImportData"));
-	StaticMeshImportData->SetFlags(RF_Transactional);
+	SkeletalMeshImportData->SetFlags(RF_Transactional);
 	SkeletalMeshImportData->LoadOptions();
 	
 	AnimSequenceImportData = CreateDefaultSubobject<UFbxAnimSequenceImportData>(TEXT("AnimSequenceImportData"));
-	StaticMeshImportData->SetFlags(RF_Transactional);
+	AnimSequenceImportData->SetFlags(RF_Transactional);
 	AnimSequenceImportData->LoadOptions();
 	
 	TextureImportData = CreateDefaultSubobject<UFbxTextureImportData>(TEXT("TextureImportData"));
-	StaticMeshImportData->SetFlags(RF_Transactional);
+	TextureImportData->SetFlags(RF_Transactional);
 	TextureImportData->LoadOptions();
 }
 

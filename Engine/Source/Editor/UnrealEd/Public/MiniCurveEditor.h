@@ -35,6 +35,7 @@ public:
 	virtual void InvokeTab(const struct FTabId& TabId) override {}
 	virtual TSharedPtr<class FTabManager> GetAssociatedTabManager() override;
 	virtual double GetLastActivationTime() override;
+	virtual void RemoveEditingAsset(UObject* Asset) override;
 
 private:
 

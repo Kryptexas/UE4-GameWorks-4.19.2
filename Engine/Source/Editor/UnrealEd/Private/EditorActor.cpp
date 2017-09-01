@@ -798,13 +798,20 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		{
 			for (AActor* ReferencingActor : (*ReferencingActors))
 			{
+
 				// If the referencing actor is a child actor that is referencing us, do not treat it
 				// as referencing for the purposes of warning about deletion
 				UChildActorComponent* ParentComponent = ReferencingActor->GetParentComponent();
 				if (ParentComponent == nullptr || ParentComponent->GetOwner() != Actor)
 				{
 					bReferencedByActor = true;
-					break;
+
+					FText ActorReferencedMessage = FText::Format(LOCTEXT("ActorDeleteReferencedMessage",
+						"Actor {0} is referenced by {1}."),
+						FText::FromString(Actor->GetActorLabel()),
+						FText::FromString(ReferencingActor->GetActorLabel())
+					);
+					UE_LOG(LogEditorActor, Log, TEXT("%s"), *ActorReferencedMessage.ToString());
 				}
 			}
 		}
@@ -950,6 +957,9 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		{
 			ActorParentGroup->Remove(*Actor);
 		}
+
+		// Remove actor from all asset editors
+		FAssetEditorManager::Get().RemoveAssetFromAllEditors(Actor);
 
 		// Mark the actor's level as dirty.
 		Actor->MarkPackageDirty();

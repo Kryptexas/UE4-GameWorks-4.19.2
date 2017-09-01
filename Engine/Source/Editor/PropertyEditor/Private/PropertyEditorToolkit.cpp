@@ -110,9 +110,6 @@ TSharedRef<FPropertyEditorToolkit> FPropertyEditorToolkit::CreateEditor( const E
 
 void FPropertyEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit )
 {
-	CreatePropertyTree();
-	CreatePropertyTable();
-
 	TArray< UObject* > AdjustedObjectsToEdit;
 	for( auto ObjectIter = ObjectsToEdit.CreateConstIterator(); ObjectIter; ++ObjectIter )
 	{
@@ -123,7 +120,7 @@ void FPropertyEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TS
 			UBlueprint* Blueprint = Cast<UBlueprint>( Object );
 
 			// Make sure that the generated class is valid, in case the super has been removed, and this class can't be loaded.
-			if( Blueprint->GeneratedClass != NULL )
+			if( ensureMsgf(Blueprint->GeneratedClass != NULL, TEXT("Blueprint %s has no generated class"), *Blueprint->GetName()) )
 			{
 				AdjustedObjectsToEdit.Add( Blueprint->GeneratedClass->GetDefaultObject() );
 			}
@@ -134,41 +131,48 @@ void FPropertyEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TS
 		}
 	}
 
-	PropertyTable->SetObjects( AdjustedObjectsToEdit );
-	TableColumnsChanged();
-
-	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_PropertyEditorToolkit_Layout" )
-	->AddArea
-	(
-		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Horizontal)
-		->Split
-		(
-			FTabManager::NewStack()
-			->SetSizeCoefficient(0.8f)
-			->AddTab(GridTabId, ETabState::OpenedTab)
-		)
-		->Split
-		(
-			FTabManager::NewStack()
-			->SetSizeCoefficient(0.2f)
-			->SetHideTabWell( true )
-			->AddTab(TreeTabId, ETabState::OpenedTab)
-		)
-	);
-
-	const bool bCreateDefaultStandaloneMenu = true;
-	const bool bCreateDefaultToolbar = false;
-	FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, ApplicationId, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, AdjustedObjectsToEdit );
-
-	TArray< TWeakObjectPtr<UObject> > AdjustedObjectsToEditWeak;
-	for( auto ObjectIter = AdjustedObjectsToEdit.CreateConstIterator(); ObjectIter; ++ObjectIter )
+	if(AdjustedObjectsToEdit.Num() > 0)
 	{
-		AdjustedObjectsToEditWeak.Add(*ObjectIter);
-	}
-	PropertyTree->SetObjectArray( AdjustedObjectsToEditWeak );
 
-	PinColor = FSlateColor( FLinearColor( 1, 1, 1, 0 ) );
-	GEditor->GetTimerManager()->SetTimer( TimerHandle_TickPinColor, FTimerDelegate::CreateSP(this, &FPropertyEditorToolkit::TickPinColorAndOpacity), 0.1f, true );
+		CreatePropertyTree();
+		CreatePropertyTable();
+
+		PropertyTable->SetObjects(AdjustedObjectsToEdit);
+		TableColumnsChanged();
+
+		TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_PropertyEditorToolkit_Layout")
+			->AddArea
+			(
+				FTabManager::NewPrimaryArea()->SetOrientation(Orient_Horizontal)
+				->Split
+				(
+					FTabManager::NewStack()
+					->SetSizeCoefficient(0.8f)
+					->AddTab(GridTabId, ETabState::OpenedTab)
+				)
+				->Split
+				(
+					FTabManager::NewStack()
+					->SetSizeCoefficient(0.2f)
+					->SetHideTabWell(true)
+					->AddTab(TreeTabId, ETabState::OpenedTab)
+				)
+			);
+
+		const bool bCreateDefaultStandaloneMenu = true;
+		const bool bCreateDefaultToolbar = false;
+		FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, ApplicationId, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, AdjustedObjectsToEdit);
+
+		TArray< TWeakObjectPtr<UObject> > AdjustedObjectsToEditWeak;
+		for (auto ObjectIter = AdjustedObjectsToEdit.CreateConstIterator(); ObjectIter; ++ObjectIter)
+		{
+			AdjustedObjectsToEditWeak.Add(*ObjectIter);
+		}
+		PropertyTree->SetObjectArray(AdjustedObjectsToEditWeak);
+
+		PinColor = FSlateColor(FLinearColor(1, 1, 1, 0));
+		GEditor->GetTimerManager()->SetTimer(TimerHandle_TickPinColor, FTimerDelegate::CreateSP(this, &FPropertyEditorToolkit::TickPinColorAndOpacity), 0.1f, true);
+	}
 }
 
 

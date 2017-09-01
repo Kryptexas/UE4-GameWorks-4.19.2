@@ -902,7 +902,7 @@ UFontFace* STypefaceEntryEditor::SaveFontFaceAsAsset(const UFontFace* InFontFace
 		NewPackageName = FPackageName::ObjectPathToPackageName(NewPackageName);
 
 		FText OutError;
-		bFilenameValid = FEditorFileUtils::IsFilenameValidForSaving(NewPackageName, OutError);
+		bFilenameValid = FFileHelper::IsFilenameValidForSaving(NewPackageName, OutError);
 	}
 
 	if (bFilenameValid)

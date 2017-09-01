@@ -5864,16 +5864,14 @@ void RestoreSlateTestSuite()
 		.SetDisplayName(LOCTEXT("WidgetGalleryTab", "Widget Gallery"))
 		.SetGroup(TestSuiteMenu::MenuRoot);
 
-	const float DPIScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(10, 10);
-
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "SlateTestSuite_Layout" )
 	->AddArea
 	(
-		FTabManager::NewArea(720 * DPIScaleFactor, 600 * DPIScaleFactor)
+		FTabManager::NewArea(720, 600)
 #if PLATFORM_MAC
-		->SetWindow( FVector2D(420 * DPIScaleFactor, 32 * DPIScaleFactor), false )
+		->SetWindow( FVector2D(420, 32), false )
 #else
-		->SetWindow( FVector2D(420 * DPIScaleFactor, 10 * DPIScaleFactor), false )
+		->SetWindow( FVector2D(420, 10), false )
 #endif
 		->Split
 		(
@@ -5888,11 +5886,11 @@ void RestoreSlateTestSuite()
 	->AddArea
 	(
 		// This area will get a 400x600 window at 10,10
-		FTabManager::NewArea(400 * DPIScaleFactor, 600 * DPIScaleFactor)
+		FTabManager::NewArea(400, 600)
 #if PLATFORM_MAC
-		->SetWindow( FVector2D(10 * DPIScaleFactor, 32 * DPIScaleFactor), false )
+		->SetWindow( FVector2D(10, 32), false )
 #else
-		->SetWindow( FVector2D(10 * DPIScaleFactor, 10 * DPIScaleFactor), false )
+		->SetWindow( FVector2D(10, 10), false )
 #endif
 		->Split
 		(

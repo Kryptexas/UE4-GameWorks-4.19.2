@@ -40,7 +40,7 @@ FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TShared
 	, TimeSpace(ETimeSpace::Global)
 {
 	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
-	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
+	RedrawThumbnailDelegateHandle = GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
 }
 
 
@@ -52,13 +52,13 @@ FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TShared
 	, TimeSpace(ETimeSpace::Global)
 {
 	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
-	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
+	RedrawThumbnailDelegateHandle = GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
 }
 
 
 FThumbnailSection::~FThumbnailSection()
 {
-	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().RemoveAll(this);
+	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().Remove(RedrawThumbnailDelegateHandle);
 }
 
 

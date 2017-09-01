@@ -327,6 +327,11 @@ public:
 	/** Gets the multicast delegate which is run whenever evaluate sub sequences in isolation is changed. */
 	FOnEvaluateSubSequencesInIsolationChanged& GetOnEvaluateSubSequencesInIsolationChanged() { return OnEvaluateSubSequencesInIsolationChangedEvent; }
 
+	/** @return Whether to rerun construction scripts on bound actors every frame */
+	bool ShouldRerunConstructionScripts() const;
+	/** Set whether to rerun construction scripts on bound actors every frame */
+	void SetRerunConstructionScripts(bool bInRerunConstructionScripts);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
@@ -511,6 +516,10 @@ protected:
 	/** When enabled, entering a sub sequence will evaluate that sub sequence in isolation, rather than from the master sequence */
 	UPROPERTY(config, EditAnywhere, Category=Playback)
 	bool bEvaluateSubSequencesInIsolation;
+
+	/** When enabled, construction scripts will be rerun on bound actors for every frame */
+	UPROPERTY(config, EditAnywhere, Category=Playback)
+	bool bRerunConstructionScripts;
 
 	/** Enable or disable showing of debug visualization. */
 	UPROPERTY( config, EditAnywhere, Category=General )

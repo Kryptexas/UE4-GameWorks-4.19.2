@@ -64,14 +64,9 @@ namespace
 bool FTextTest::RunTest (const FString& Parameters)
 {
 	FInternationalization& I18N = FInternationalization::Get();
-	const bool OriginalEnableErrorCheckingValue = FText::GetEnableErrorCheckingResults();
-	const bool OriginalSuppressWarningsValue = FText::GetSuppressWarnings();
 	
 	FInternationalization::FCultureStateSnapshot OriginalCultureState;
 	I18N.BackupCultureState(OriginalCultureState);
-
-	FText::SetEnableErrorCheckingResults(true);
-	FText::SetSuppressWarnings(true);
 
 	FText ArgText0 = FText::FromString(TEXT("Arg0"));
 	FText ArgText1 = FText::FromString(TEXT("Arg1"));
@@ -146,9 +141,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 	TEST( TestText.ToString(), FText::Format(TestText, ArgText0, ArgText1, ArgText2), INVTEXT("Arg0 Arg2"));
 	TestText = INVTEXT("{1}");
 	TEST( TestText.ToString(), FText::Format(TestText, ArgText0, ArgText1, ArgText2), INVTEXT("Arg1"));
-
-	FText::SetEnableErrorCheckingResults(false);
-	FText::SetSuppressWarnings(true);
 
 	TestText = INVTEXT("Starting text: {0} {1}");
 	TEST( TestText.ToString(), FText::Format(TestText, ArgText0, ArgText1), INVTEXT("Starting text: Arg0 Arg1"));
@@ -286,9 +278,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 #undef TEST
 
 #undef INVTEXT
-
-	FText::SetEnableErrorCheckingResults(true);
-	FText::SetSuppressWarnings(true);
 
 #if UE_ENABLE_ICU
 	if (I18N.SetCurrentCulture("en-US"))
@@ -597,9 +586,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 #else
 	AddWarning("ICU is disabled thus locale-aware formatting needed in rebuilding source text from history is disabled.");
 #endif
-
-	FText::SetEnableErrorCheckingResults(OriginalEnableErrorCheckingValue);
-	FText::SetSuppressWarnings(OriginalSuppressWarningsValue);
 
 	//**********************************
 	// FromString Test

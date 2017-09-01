@@ -74,9 +74,6 @@ namespace PropertyCustomizationHelpers
 	/** Returns a list of factories which can be used to create new assets, based on the supplied class */
 	PROPERTYEDITOR_API TArray<UFactory*> GetNewAssetFactoriesForClasses(const TArray<const UClass*>& Classes);
 
-	/** Build a combo button allowing access to text property localization utilities */
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeTextLocalizationButton(const TSharedRef<IPropertyHandle>& InPropertyHandle);
-
 	/** 
 	 * Build a combo button that you bind to a Name or String property or use general delegates
 	 * 

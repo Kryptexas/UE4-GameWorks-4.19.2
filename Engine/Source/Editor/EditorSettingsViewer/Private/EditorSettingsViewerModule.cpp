@@ -145,19 +145,6 @@ protected:
 		// @todo thomass: proper settings support for source control module
 		GetMutableDefault<UEditorLoadingSavingSettings>()->SccHackInitialize();
 
-		// global editor settings
-		SettingsModule.RegisterSettings("Editor", "General", "Global",
-			LOCTEXT("GlobalSettingsName", "Global"),
-			LOCTEXT("GlobalSettingsDescription", "Edit global settings that affect all editors."),
-			GetMutableDefault<UEditorSettings>()
-		);
-
-		SettingsModule.RegisterSettings("Editor", "General", "PerformanceSettings",
-			LOCTEXT("PerformanceSettingsName", "Performance"),
-			LOCTEXT("PerformanceSettingsDescription", "Settings to tweak the performance of the editor"),
-			GetMutableDefault<UEditorPerformanceSettings>()
-		);
-
 		// misc unsorted settings
 		SettingsModule.RegisterSettings("Editor", "General", "UserSettings",
 			LOCTEXT("UserSettingsName", "Miscellaneous"),

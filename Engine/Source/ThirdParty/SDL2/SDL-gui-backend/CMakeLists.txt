@@ -2,7 +2,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "Prevented in-tree built. Please create a build directory outside of the SDL source code and call cmake from there")
 endif()
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.5)
 project(SDL2 C)
 
 # !!! FIXME: this should probably do "MACOSX_RPATH ON" as a target property
@@ -26,6 +26,7 @@ include(CheckTypeSize)
 include(CheckStructHasMember)
 include(CMakeDependentOption)
 include(FindPkgConfig)
+include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH "${SDL2_SOURCE_DIR}/cmake")
 include(${SDL2_SOURCE_DIR}/cmake/macros.cmake)
 include(${SDL2_SOURCE_DIR}/cmake/sdlchecks.cmake)
@@ -40,9 +41,9 @@ include(${SDL2_SOURCE_DIR}/cmake/sdlchecks.cmake)
 # set SDL_BINARY_AGE and SDL_INTERFACE_AGE to 0.
 set(SDL_MAJOR_VERSION 2)
 set(SDL_MINOR_VERSION 0)
-set(SDL_MICRO_VERSION 4)
-set(SDL_INTERFACE_AGE 0)
-set(SDL_BINARY_AGE 4)
+set(SDL_MICRO_VERSION 5)
+set(SDL_INTERFACE_AGE 1)
+set(SDL_BINARY_AGE 5)
 set(SDL_VERSION "${SDL_MAJOR_VERSION}.${SDL_MINOR_VERSION}.${SDL_MICRO_VERSION}")
 
 # Calculate a libtool-like version number
@@ -63,7 +64,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(ARCH_64 TRUE)
   # EG BEGIN
   if (CMAKE_SYSTEM_PROCESSOR MATCHES "(amd64)|(AMD64)")
-    set(PROCESSOR_ARCH "x64")
+  set(PROCESSOR_ARCH "x64")
   else()
     set(PROCESSOR_ARCH ${CMAKE_SYSTEM_PROCESSOR})
   endif()
@@ -72,7 +73,7 @@ else()
   set(ARCH_64 FALSE)
   # EG BEGIN
   if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)")
-    set(PROCESSOR_ARCH "x86")
+  set(PROCESSOR_ARCH "x86")
   else()
     set(PROCESSOR_ARCH ${CMAKE_SYSTEM_PROCESSOR})
   endif()
@@ -148,9 +149,12 @@ endif()
 
 # Default option knobs
 # EG BEGIN
+# !!! FIXME: this test is wrong (both in Epic's SDL fork and the original SDL).  --ryan.
 if((APPLE OR ARCH_64) AND (PROCESSOR_ARCH MATCHES "(x86)|(x64)"))
 # EG END
-  set(OPT_DEF_SSEMATH ON)
+  if(NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "arm")
+    set(OPT_DEF_SSEMATH ON)
+  endif()
 endif()
 if(UNIX OR MINGW OR MSYS)
   set(OPT_DEF_LIBC ON)
@@ -275,13 +279,12 @@ set_option(MMX                 "Use MMX assembly routines" ${OPT_DEF_ASM})
 set_option(3DNOW               "Use 3Dnow! MMX assembly routines" ${OPT_DEF_ASM})
 set_option(SSE                 "Use SSE assembly routines" ${OPT_DEF_ASM})
 set_option(SSE2                "Use SSE2 assembly routines" ${OPT_DEF_SSEMATH})
+set_option(SSE3                "Use SSE3 assembly routines" ${OPT_DEF_SSEMATH})
 set_option(ALTIVEC             "Use Altivec assembly routines" ${OPT_DEF_ASM})
 set_option(DISKAUDIO           "Support the disk writer audio driver" ON)
 set_option(DUMMYAUDIO          "Support the dummy audio driver" ON)
 set_option(VIDEO_DIRECTFB      "Use DirectFB video driver" OFF)
 dep_option(DIRECTFB_SHARED     "Dynamically load directfb support" ON "VIDEO_DIRECTFB" OFF)
-set_option(FUSIONSOUND         "Use FusionSound audio driver" OFF)
-dep_option(FUSIONSOUND_SHARED  "Dynamically load fusionsound audio support" ON "FUSIONSOUND" OFF)
 set_option(VIDEO_DUMMY         "Use dummy video driver" ON)
 set_option(VIDEO_OPENGL        "Include OpenGL support" ON)
 set_option(VIDEO_OPENGLES      "Include OpenGL ES support" ON)
@@ -291,6 +294,8 @@ set_option(SDL_DLOPEN          "Use dlopen for shared object loading" ${SDL_DLOP
 set_option(OSS                 "Support the OSS audio API" ${UNIX_SYS})
 set_option(ALSA                "Support the ALSA audio API" ${UNIX_SYS})
 dep_option(ALSA_SHARED         "Dynamically load ALSA audio support" ON "ALSA" OFF)
+set_option(JACK                "Support the JACK audio API" ${UNIX_SYS})
+dep_option(JACK_SHARED         "Dynamically load JACK audio support" ON "JACK" OFF)
 set_option(ESD                 "Support the Enlightened Sound Daemon" ${UNIX_SYS})
 dep_option(ESD_SHARED          "Dynamically load ESD audio support" ON "ESD" OFF)
 set_option(PULSEAUDIO          "Use PulseAudio" ${UNIX_SYS})
@@ -299,16 +304,25 @@ set_option(ARTS                "Support the Analog Real Time Synthesizer" ${UNIX
 dep_option(ARTS_SHARED         "Dynamically load aRts audio support" ON "ARTS" OFF)
 set_option(NAS                 "Support the NAS audio API" ${UNIX_SYS})
 set_option(NAS_SHARED          "Dynamically load NAS audio API" ${UNIX_SYS})
+
+# EG BEGIN
+# !!! FIXME: SDL has this set to ${UNIX_SYS}. Is there a reason Unreal forces this off?  --ryan.
 set_option(SNDIO               "Support the sndio audio API" OFF)
+# EG END
+
+set_option(FUSIONSOUND         "Use FusionSound audio driver" OFF)
+dep_option(FUSIONSOUND_SHARED  "Dynamically load fusionsound audio support" ON "FUSIONSOUND" OFF)
+set_option(LIBSAMPLERATE       "Use libsamplerate for audio rate conversion" ${UNIX_SYS})
+dep_option(LIBSAMPLERATE_SHARED "Dynamically load libsamplerate" ON "LIBSAMPLERATE" OFF)
 set_option(RPATH               "Use an rpath when linking SDL" ${UNIX_SYS})
 set_option(CLOCK_GETTIME       "Use clock_gettime() instead of gettimeofday()" OFF)
 set_option(INPUT_TSLIB         "Use the Touchscreen library for input" ${UNIX_SYS})
 set_option(VIDEO_X11           "Use X11 video driver" ${UNIX_SYS})
-set_option(VIDEO_VULKAN        "Add Vulkan support" ON)
 # EG BEGIN
-# as of changeset 10374:dccf51aee79b this needs headers that are only generated by configure. FIXME: update CMakeLists to do the same.
-set_option(VIDEO_WAYLAND       "Use Wayland video driver" OFF)
+# (Note that SDL is about to land Vulkan support, which might be different than what Epic has here. Clean it up when it lands.  --ryan.
+set_option(VIDEO_VULKAN        "Add Vulkan support" ON)
 # EG END
+set_option(VIDEO_WAYLAND       "Use Wayland video driver" ${UNIX_SYS})
 dep_option(WAYLAND_SHARED      "Dynamically load Wayland support" ON "VIDEO_WAYLAND" OFF)
 dep_option(VIDEO_WAYLAND_QT_TOUCH  "QtWayland server support for Wayland video driver" ON "VIDEO_WAYLAND" OFF)
 set_option(VIDEO_MIR           "Use Mir video driver" ${UNIX_SYS})
@@ -324,11 +338,13 @@ set_option(VIDEO_COCOA         "Use Cocoa video driver" ${APPLE})
 set_option(DIRECTX             "Use DirectX for Windows audio/video" ${WINDOWS})
 set_option(RENDER_D3D          "Enable the Direct3D render driver" ${WINDOWS})
 set_option(VIDEO_VIVANTE       "Use Vivante EGL video driver" ${UNIX_SYS})
+set_option(VIDEO_KMSDRM        "Use KMS DRM video driver" ${UNIX_SYS})
+dep_option(KMSDRM_SHARED       "Dynamically load KMS DRM support" ON "VIDEO_KMSDRM" OFF)
+
 # EG BEGIN
 set_option(EPIC_EXTENSIONS     "Enable Epic extensions for Unreal Engine" ON)
 set_option(VIDEO_OFFSCREEN     "Use offscreen video driver" ${EPIC_EXTENSIONS})
 # EG END
-
 
 # TODO: We should (should we?) respect cmake's ${BUILD_SHARED_LIBS} flag here
 # The options below are for compatibility to configure's default behaviour.
@@ -536,10 +552,36 @@ if(ASSEMBLY)
       set(CMAKE_REQUIRED_FLAGS ${ORIG_CMAKE_REQUIRED_FLAGS})
     endif()
 
-    if(SSEMATH)
-      if(SSE OR SSE2)
+    if(SSE3)
+      set(CMAKE_REQUIRED_FLAGS "-msse3")
+      check_c_source_compiles("
+          #ifdef __MINGW32__
+          #include <_mingw.h>
+          #ifdef __MINGW64_VERSION_MAJOR
+          #include <intrin.h>
+          #else
+          #include <pmmintrin.h>
+          #endif
+          #else
+          #include <pmmintrin.h>
+          #endif
+          #ifndef __SSE3__
+          #error Assembler CPP flag not enabled
+          #endif
+          int main(int argc, char **argv) { }" HAVE_SSE3)
+      if(HAVE_SSE3)
+        list(APPEND EXTRA_CFLAGS "-msse3")
+      endif()
+      set(CMAKE_REQUIRED_FLAGS ${ORIG_CMAKE_REQUIRED_FLAGS})
+    endif()
+
+    if(NOT SSEMATH)
+      if(SSE OR SSE2 OR SSE3)
         if(USE_GCC)
-          list(APPEND EXTRA_CFLAGS "-mfpmath=387")
+          check_c_compiler_flag(-mfpmath=387 HAVE_FP_387)
+          if(HAVE_FP_387)
+            list(APPEND EXTRA_CFLAGS "-mfpmath=387")
+          endif()
         endif()
         set(HAVE_SSEMATH TRUE)
       endif()
@@ -577,12 +619,13 @@ if(ASSEMBLY)
     endif()
     set(HAVE_SSE TRUE)
     set(HAVE_SSE2 TRUE)
+    set(HAVE_SSE3 TRUE)
     set(SDL_ASSEMBLY_ROUTINES 1)
   endif()
 # TODO:
 #else()
 #  if(USE_GCC OR USE_CLANG)
-#    list(APPEND EXTRA_CFLAGS "-mno-sse" "-mno-sse2" "-mno-mmx")
+#    list(APPEND EXTRA_CFLAGS "-mno-sse" "-mno-sse2" "-mno-sse3" "-mno-mmx")
 #  endif()
 endif()
 
@@ -637,7 +680,7 @@ if(LIBC)
             _uitoa _ultoa strtol strtoul _i64toa _ui64toa strtoll strtoull
             atoi atof strcmp strncmp _stricmp strcasecmp _strnicmp strncasecmp
             vsscanf vsnprintf fseeko fseeko64 sigaction setjmp
-            nanosleep sysconf sysctlbyname
+            nanosleep sysconf sysctlbyname getauxval
             )
       string(TOUPPER ${_FN} _UPPER)
       set(_HAVEVAR "HAVE_${_UPPER}")
@@ -756,8 +799,19 @@ endif()
 if(ANDROID)
   file(GLOB ANDROID_CORE_SOURCES ${SDL2_SOURCE_DIR}/src/core/android/*.c)
   set(SOURCE_FILES ${SOURCE_FILES} ${ANDROID_CORE_SOURCES})
+
+  # SDL_spinlock.c Needs to be compiled in ARM mode.
+  # There seems to be no better way currently to set the ARM mode.
+  # see: https://issuetracker.google.com/issues/62264618
+  # Another option would be to set ARM mode to all compiled files
+  check_c_compiler_flag(-marm HAVE_ARM_MODE)
+  if(HAVE_ARM_MODE)
+    set_source_files_properties(${SDL2_SOURCE_DIR}/src/atomic/SDL_spinlock.c PROPERTIES COMPILE_FLAGS -marm)
+  endif()
+
   file(GLOB ANDROID_MAIN_SOURCES ${SDL2_SOURCE_DIR}/src/main/android/*.c)
-  set(SOURCE_FILES ${SOURCE_FILES} ${ANDROID_MAIN_SOURCES})
+  set(SDLMAIN_SOURCES ${SDLMAIN_SOURCES} ${ANDROID_MAIN_SOURCES})
+
   if(SDL_AUDIO)
     set(SDL_AUDIO_DRIVER_ANDROID 1)
     file(GLOB ANDROID_AUDIO_SOURCES ${SDL2_SOURCE_DIR}/src/audio/android/*.c)
@@ -788,12 +842,23 @@ if(ANDROID)
     set(SOURCE_FILES ${SOURCE_FILES} ${ANDROID_VIDEO_SOURCES})
     set(HAVE_SDL_VIDEO TRUE)
 
+    # Core stuff
+    find_library(ANDROID_DL_LIBRARY dl)
+    find_library(ANDROID_LOG_LIBRARY log)
+    find_library(ANDROID_LIBRARY_LIBRARY android)
+    list(APPEND EXTRA_LIBS ${ANDROID_DL_LIBRARY} ${ANDROID_LOG_LIBRARY} ${ANDROID_LIBRARY_LIBRARY})
+    add_definitions(-DGL_GLEXT_PROTOTYPES)
+
     #enable gles
     if(VIDEO_OPENGLES)
       set(SDL_VIDEO_OPENGL_EGL 1)
       set(HAVE_VIDEO_OPENGLES TRUE)
       set(SDL_VIDEO_OPENGL_ES2 1)
       set(SDL_VIDEO_RENDER_OGL_ES2 1)
+
+      find_library(OpenGLES1_LIBRARY GLESv1_CM)
+      find_library(OpenGLES2_LIBRARY GLESv2)
+      list(APPEND EXTRA_LIBS ${OpenGLES1_LIBRARY} ${OpenGLES2_LIBRARY})
     endif()
 
     if(VIDEO_VULKAN)
@@ -859,17 +924,17 @@ if(EMSCRIPTEN)
       set(SDL_VIDEO_RENDER_OGL_ES2 1)
     endif()
   endif()
-elseif(UNIX AND NOT APPLE)
+elseif(UNIX AND NOT APPLE AND NOT ANDROID)
   if(SDL_AUDIO)
     if(SYSV5 OR SOLARIS OR HPUX)
         set(SDL_AUDIO_DRIVER_SUNAUDIO 1)
         file(GLOB SUN_AUDIO_SOURCES ${SDL2_SOURCE_DIR}/src/audio/sun/*.c)
         set(SOURCE_FILES ${SOURCE_FILES} ${SUN_AUDIO_SOURCES})
         set(HAVE_SDL_AUDIO TRUE)
-    elseif(NETBSD OR OPENBSD)
-        set(SDL_AUDIO_DRIVER_BSD 1)
-        file(GLOB BSD_AUDIO_SOURCES ${SDL2_SOURCE_DIR}/src/audio/bsd/*.c)
-        set(SOURCE_FILES ${SOURCE_FILES} ${BSD_AUDIO_SOURCES})
+    elseif(NETBSD)
+        set(SDL_AUDIO_DRIVER_NETBSD 1)
+        file(GLOB NETBSD_AUDIO_SOURCES ${SDL2_SOURCE_DIR}/src/audio/netbsd/*.c)
+        set(SOURCE_FILES ${SOURCE_FILES} ${NETBSD_AUDIO_SOURCES})
         set(HAVE_SDL_AUDIO TRUE)
     elseif(AIX)
         set(SDL_AUDIO_DRIVER_PAUDIO 1)
@@ -879,12 +944,14 @@ elseif(UNIX AND NOT APPLE)
     endif()
     CheckOSS()
     CheckALSA()
+    CheckJACK()
     CheckPulseAudio()
     CheckESD()
     CheckARTS()
     CheckNAS()
     CheckSNDIO()
     CheckFusionSound()
+    CheckLibSampleRate()
   endif()
 
   if(SDL_VIDEO)
@@ -898,6 +965,7 @@ elseif(UNIX AND NOT APPLE)
     CheckVulkanX11()
     CheckWayland()
     CheckVivante()
+    CheckKMSDRM()
   endif()
 
   if(LINUX)
@@ -939,8 +1007,24 @@ elseif(UNIX AND NOT APPLE)
 
     check_include_file("libudev.h" HAVE_LIBUDEV_H)
 
-    # !!! FIXME: this needs pkg-config to find the include path, I think.
-    check_include_file("dbus/dbus.h" HAVE_DBUS_DBUS_H)
+    if(PKG_CONFIG_FOUND)
+      pkg_search_module(DBUS dbus-1 dbus)
+      if(DBUS_FOUND)
+        set(HAVE_DBUS_DBUS_H TRUE)
+        include_directories(${DBUS_INCLUDE_DIRS})
+        list(APPEND EXTRA_LIBS ${DBUS_LIBRARIES})
+      endif()
+
+      pkg_search_module(IBUS ibus-1.0 ibus)
+      if(IBUS_FOUND)
+        set(HAVE_IBUS_IBUS_H TRUE)
+        include_directories(${IBUS_INCLUDE_DIRS})
+        list(APPEND EXTRA_LIBS ${IBUS_LIBRARIES})
+      endif()
+    endif()
+
+    check_include_file("fcitx/frontend.h" HAVE_FCITX_FRONTEND_H)
+
   endif()
 
   if(INPUT_TSLIB)
@@ -1060,6 +1144,16 @@ elseif(WINDOWS)
         #include <windows.h>
         #include <xinput.h>
         int main(int argc, char **argv) { }" HAVE_XINPUT_H)
+      check_c_source_compiles("
+        #include <windows.h>
+        #include <xinput.h>
+        XINPUT_GAMEPAD_EX x1;
+        int main(int argc, char **argv) { }" HAVE_XINPUT_GAMEPAD_EX)
+      check_c_source_compiles("
+        #include <windows.h>
+        #include <xinput.h>
+        XINPUT_STATE_EX s1;
+        int main(int argc, char **argv) { }" HAVE_XINPUT_STATE_EX)
     else()
       check_include_file(xinput.h HAVE_XINPUT_H)
     endif()
@@ -1070,6 +1164,7 @@ elseif(WINDOWS)
     check_include_file(dsound.h HAVE_DSOUND_H)
     check_include_file(dinput.h HAVE_DINPUT_H)
     check_include_file(xaudio2.h HAVE_XAUDIO2_H)
+    check_include_file(audioclient.h HAVE_AUDIOCLIENT_H)
     check_include_file(dxgi.h HAVE_DXGI_H)
     if(HAVE_D3D_H OR HAVE_D3D11_H OR HAVE_DDRAW_H OR HAVE_DSOUND_H OR HAVE_DINPUT_H OR HAVE_XAUDIO2_H)
       set(HAVE_DIRECTX TRUE)
@@ -1098,6 +1193,12 @@ elseif(WINDOWS)
       set(SDL_AUDIO_DRIVER_XAUDIO2 1)
       file(GLOB XAUDIO2_AUDIO_SOURCES ${SDL2_SOURCE_DIR}/src/audio/xaudio2/*.c)
       set(SOURCE_FILES ${SOURCE_FILES} ${XAUDIO2_AUDIO_SOURCES})
+    endif()
+
+    if(HAVE_AUDIOCLIENT_H)
+      set(SDL_AUDIO_DRIVER_WASAPI 1)
+      file(GLOB WASAPI_AUDIO_SOURCES ${SDL2_SOURCE_DIR}/src/audio/wasapi/*.c)
+      set(SOURCE_FILES ${SOURCE_FILES} ${WASAPI_AUDIO_SOURCES})
     endif()
   endif()
 
@@ -1261,7 +1362,11 @@ elseif(APPLE)
 
   if(SDL_JOYSTICK)
     set(SDL_JOYSTICK_IOKIT 1)
-    file(GLOB JOYSTICK_SOURCES ${SDL2_SOURCE_DIR}/src/joystick/darwin/*.c)
+    if (IOS)
+      file(GLOB JOYSTICK_SOURCES ${SDL2_SOURCE_DIR}/src/joystick/iphoneos/*.m)
+    else()
+      file(GLOB JOYSTICK_SOURCES ${SDL2_SOURCE_DIR}/src/joystick/darwin/*.c)
+    endif()
     set(SOURCE_FILES ${SOURCE_FILES} ${JOYSTICK_SOURCES})
     set(HAVE_SDL_JOYSTICK TRUE)
     set(SDL_FRAMEWORK_IOKIT 1)
@@ -1270,7 +1375,12 @@ elseif(APPLE)
 
   if(SDL_HAPTIC)
     set(SDL_HAPTIC_IOKIT 1)
-    file(GLOB HAPTIC_SOURCES ${SDL2_SOURCE_DIR}/src/haptic/darwin/*.c)
+    if (IOS)
+      file(GLOB HAPTIC_SOURCES ${SDL2_SOURCE_DIR}/src/haptic/dummy/*.c)
+      set(SDL_HAPTIC_DUMMY 1)
+    else()
+      file(GLOB HAPTIC_SOURCES ${SDL2_SOURCE_DIR}/src/haptic/darwin/*.c)
+    endif()
     set(SOURCE_FILES ${SOURCE_FILES} ${HAPTIC_SOURCES})
     set(HAVE_SDL_HAPTIC TRUE)
     set(SDL_FRAMEWORK_IOKIT 1)
@@ -1282,7 +1392,11 @@ elseif(APPLE)
 
   if(SDL_POWER)
     set(SDL_POWER_MACOSX 1)
-    file(GLOB POWER_SOURCES ${SDL2_SOURCE_DIR}/src/power/macosx/*.c)
+    if (IOS)
+      file(GLOB POWER_SOURCES ${SDL2_SOURCE_DIR}/src/power/uikit/*.m)
+    else()
+      file(GLOB POWER_SOURCES ${SDL2_SOURCE_DIR}/src/power/macosx/*.c)
+    endif()
     set(SOURCE_FILES ${SOURCE_FILES} ${POWER_SOURCES})
     set(HAVE_SDL_POWER TRUE)
     set(SDL_FRAMEWORK_CARBON 1)
@@ -1336,12 +1450,18 @@ elseif(APPLE)
 
   # iOS hack needed - http://code.google.com/p/ios-cmake/ ?
   if(SDL_VIDEO)
-    CheckCOCOA()
-    if(VIDEO_OPENGL)
-      set(SDL_VIDEO_OPENGL 1)
-      set(SDL_VIDEO_OPENGL_CGL 1)
-      set(SDL_VIDEO_RENDER_OGL 1)
-      set(HAVE_VIDEO_OPENGL TRUE)
+    if (IOS)
+      set(SDL_VIDEO_DRIVER_UIKIT 1)
+      file(GLOB UIKITVIDEO_SOURCES ${SDL2_SOURCE_DIR}/src/video/uikit/*.m)
+      set(SOURCE_FILES ${SOURCE_FILES} ${UIKITVIDEO_SOURCES})
+    else()
+      CheckCOCOA()
+      if(VIDEO_OPENGL)
+        set(SDL_VIDEO_OPENGL 1)
+        set(SDL_VIDEO_OPENGL_CGL 1)
+        set(SDL_VIDEO_RENDER_OGL 1)
+        set(HAVE_VIDEO_OPENGL TRUE)
+      endif()
     endif()
   endif()
 
@@ -1552,8 +1672,8 @@ add_library(SDL2main STATIC ${SDLMAIN_SOURCES})
 set(_INSTALL_LIBS "SDL2main")
 
 if(SDL_SHARED)
-  add_library(SDL2 SHARED ${SOURCE_FILES})
-  if(UNIX)
+  add_library(SDL2 SHARED ${SOURCE_FILES} ${VERSION_SOURCES})
+  if(UNIX AND NOT ANDROID)
     set_target_properties(SDL2 PROPERTIES
       VERSION ${LT_VERSION}
       SOVERSION ${LT_REVISION}
@@ -1564,7 +1684,7 @@ if(SDL_SHARED)
       SOVERSION ${LT_REVISION}
       OUTPUT_NAME "SDL2")
   endif()
-  if(MSVC)
+  if(MSVC AND NOT LIBC)
     # Don't try to link with the default set of libraries.
     set_target_properties(SDL2 PROPERTIES LINK_FLAGS_RELEASE "/NODEFAULTLIB")
     set_target_properties(SDL2 PROPERTIES LINK_FLAGS_DEBUG "/NODEFAULTLIB")
@@ -1579,7 +1699,7 @@ if(SDL_STATIC)
   add_library(SDL2-static STATIC ${SOURCE_FILES})
   set_target_properties(SDL2-static PROPERTIES OUTPUT_NAME "SDL2")
   set_target_properties(SDL2-static PROPERTIES POSITION_INDEPENDENT_CODE ${SDL_STATIC_PIC})
-  if(MSVC)
+  if(MSVC AND NOT LIBC)
     set_target_properties(SDL2-static PROPERTIES LINK_FLAGS_RELEASE "/NODEFAULTLIB")
     set_target_properties(SDL2-static PROPERTIES LINK_FLAGS_DEBUG "/NODEFAULTLIB")
     set_target_properties(SDL2-static PROPERTIES STATIC_LIBRARY_FLAGS "/NODEFAULTLIB")
@@ -1626,7 +1746,7 @@ if(NOT (WINDOWS OR CYGWIN))
   endif()
   install(PROGRAMS ${SDL2_BINARY_DIR}/sdl2-config DESTINATION bin)
   # TODO: what about the .spec file? Is it only needed for RPM creation?
-  install(FILES "${SDL2_SOURCE_DIR}/sdl2.m4" DESTINATION "share/aclocal")
+  install(FILES "${SDL2_SOURCE_DIR}/sdl2.m4" DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/aclocal")
 endif()
 
 ##### Uninstall target #####

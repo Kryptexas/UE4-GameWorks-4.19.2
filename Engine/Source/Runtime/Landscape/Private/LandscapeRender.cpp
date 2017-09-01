@@ -663,7 +663,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 #if WITH_EDITOR
 	for (auto& Allocation : InComponent->WeightmapLayerAllocations)
 	{
-		if (ensure(Allocation.LayerInfo) && Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer)
+		if (Allocation.LayerInfo != nullptr && Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer)
 		{
 			// Use black for hole layer
 			LayerColors.Add(Allocation.LayerInfo->LayerUsageDebugColor);
@@ -2698,10 +2698,25 @@ public:
 			FName(TEXT("FConvertToUniformMeshGS")),
 			FName(TEXT("FVelocityVS")),
 			FName(TEXT("FVelocityPS")),
+
+			// No lightmap on thumbnails
 			FName(TEXT("TLightMapDensityVSFNoLightMapPolicy")),
 			FName(TEXT("TLightMapDensityPSFNoLightMapPolicy")),
 			FName(TEXT("TLightMapDensityVSFDummyLightMapPolicy")),
 			FName(TEXT("TLightMapDensityPSFDummyLightMapPolicy")),
+			FName(TEXT("TLightMapDensityPSTLightMapPolicyHQ")),
+			FName(TEXT("TLightMapDensityVSTLightMapPolicyHQ")),
+			FName(TEXT("TLightMapDensityPSTLightMapPolicyLQ")),
+			FName(TEXT("TLightMapDensityVSTLightMapPolicyLQ")),
+			FName(TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQSkylight")),
+			FName(TEXT("TBasePassVSTDistanceFieldShadowsAndLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyHQSkylight")),
+			FName(TEXT("TBasePassVSTLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyLQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyLQSkylight")),
+			FName(TEXT("TBasePassVSTLightMapPolicyLQ")),
 
 			FName(TEXT("TBasePassPSFNoLightMapPolicySkylight")),
 			FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicySkylight")),
@@ -2739,6 +2754,11 @@ public:
 			FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_Standard>")),
 			FName(TEXT("TTranslucencyShadowDepthVS<TranslucencyShadowDepth_PerspectiveCorrect>")),
 			FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_PerspectiveCorrect>")),
+
+			FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OnePassPointLightPositionOnly")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_OnePassPointLightPositionOnly")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthPositionOnly")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrectPositionOnly")),
 		};
 		return ExcludedShaderTypes;
 	}

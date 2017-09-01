@@ -632,6 +632,11 @@ protected:
 	int32 SettingsIndex;
 	bool bStartLateJoinersInSpectatorMode;
 
+private:
+
+	/** Additional launch options requested for the next PlaySession */
+	FString RequestedAdditionalStandaloneLaunchOptions;
+
 public:
 
 	/** The "manager" of all the layers for the UWorld currently being edited */
@@ -1691,7 +1696,7 @@ public:
 	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false, bool bUseVulkanPreview = false);
 
 	// @todo gmp: temp hack for Rocket demo
-	void RequestPlaySession(const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview, const FString& MobilePreviewTargetDevice);
+	void RequestPlaySession(const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview, const FString& MobilePreviewTargetDevice, FString AdditionalStandaloneLaunchParameters = TEXT(""));
 
 	/** Request to play a game on a remote device */
 	void RequestPlaySession( const FString& DeviceId, const FString& DeviceName );

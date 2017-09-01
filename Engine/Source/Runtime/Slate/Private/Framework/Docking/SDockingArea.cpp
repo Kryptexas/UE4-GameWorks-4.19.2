@@ -6,6 +6,7 @@
 #include "Framework/Docking/SDockingTabStack.h"
 #include "Framework/Docking/SDockingTarget.h"
 #include "Framework/Docking/FDockingDragOperation.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 
 void SDockingArea::Construct( const FArguments& InArgs, const TSharedRef<FTabManager>& InTabManager, const TSharedRef<FTabManager::FArea>& PersistentNode )
@@ -279,8 +280,11 @@ TSharedPtr<FTabManager::FLayoutNode> SDockingArea::GatherPersistentLayout() cons
 			WindowRect.Bottom -= WindowBorder.Top + WindowBorder.Bottom;
 		}
 
-		PersistentNode = FTabManager::NewArea( WindowRect.GetSize() );
-		PersistentNode->SetWindow( FVector2D( WindowRect.Left, WindowRect.Top ), ParentWindow->IsWindowMaximized() );
+		// Remove DPI Scale when saving layout so that the saved size is DPI independent
+		float DPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(WindowRect.Left, WindowRect.Top);
+
+		PersistentNode = FTabManager::NewArea( WindowRect.GetSize() / DPIScale );
+		PersistentNode->SetWindow( FVector2D( WindowRect.Left, WindowRect.Top ) / DPIScale, ParentWindow->IsWindowMaximized() );
 	}
 	else
 	{

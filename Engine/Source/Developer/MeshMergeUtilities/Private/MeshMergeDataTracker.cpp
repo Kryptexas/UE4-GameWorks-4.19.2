@@ -65,6 +65,22 @@ void FMeshMergeDataTracker::AddBakedMaterialSection(const FSectionInfo& SectionI
 	UniqueSections.AddUnique(SectionInfo);
 }
 
+void FMeshMergeDataTracker::AddMaterialSlotName(UMaterialInterface *MaterialInterface, FName MaterialSlotName)
+{
+	FName *FindMaterialSlotName = MaterialInterfaceToMaterialSlotName.Find(MaterialInterface);
+	//If there is a material use by more then one slot, only the first slot name occurrence will be use. (selection order)
+	if (FindMaterialSlotName == nullptr)
+	{
+		MaterialInterfaceToMaterialSlotName.Add(MaterialInterface, MaterialSlotName);
+	}
+}
+
+FName FMeshMergeDataTracker::GetMaterialSlotName(UMaterialInterface *MaterialInterface) const
+{
+	const FName *MaterialSlotName = MaterialInterfaceToMaterialSlotName.Find(MaterialInterface);
+	return MaterialSlotName == nullptr ? NAME_None : *MaterialSlotName;
+}
+
 void FMeshMergeDataTracker::AddLODIndex(int32 LODIndex)
 {
 	LODIndices.AddUnique(LODIndex);

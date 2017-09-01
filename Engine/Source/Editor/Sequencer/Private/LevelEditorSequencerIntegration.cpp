@@ -187,6 +187,11 @@ void FLevelEditorSequencerIntegration::Initialize()
 		AcquiredResources.Add([=]{ GEditor->GetActorRecordingState().Remove(Handle); });
 	}
 
+	{
+		FDelegateHandle Handle = FCoreDelegates::OnActorLabelChanged.AddRaw(this, &FLevelEditorSequencerIntegration::OnActorLabelChanged);
+		AcquiredResources.Add([=]{ FCoreDelegates::OnActorLabelChanged.Remove(Handle); });
+	}
+
 	AddLevelViewportMenuExtender();
 	ActivateDetailHandler();
 	AttachTransportControlsToViewports();
@@ -236,6 +241,54 @@ void FLevelEditorSequencerIntegration::GetActorRecordingState( bool& bIsRecordin
 			}
 		}
 	);
+}
+
+void RenameSpawnable(FSequencer* Sequencer, UMovieSceneSequence* Sequence, FMovieSceneSequenceIDRef SequenceID, AActor* ChangedActor)
+{
+	UMovieScene* MovieScene = Sequence->GetMovieScene();
+	if (!MovieScene)
+	{
+		return;
+	}
+		
+	for (int32 Index = 0; Index < MovieScene->GetSpawnableCount(); ++Index)
+	{
+		FGuid ThisGuid = MovieScene->GetSpawnable(Index).GetGuid();
+
+		for (TWeakObjectPtr<> WeakObject : Sequencer->FindBoundObjects(ThisGuid, SequenceID))
+		{
+			if (WeakObject.IsValid())
+			{
+				AActor* Actor = Cast<AActor>(WeakObject.Get());
+				if (Actor != nullptr)
+				{
+					if (Actor == ChangedActor)
+					{
+						MovieScene->GetSpawnable(Index).SetName(ChangedActor->GetActorLabel());
+					}
+				}
+			}
+		}
+	}
+}
+
+void FLevelEditorSequencerIntegration::OnActorLabelChanged(AActor* ChangedActor)
+{
+	for (const FSequencerAndOptions& SequencerAndOptions : BoundSequencers)
+	{
+		TSharedPtr<FSequencer> Pinned = SequencerAndOptions.Sequencer.Pin();
+		if (Pinned.IsValid())
+		{
+			FMovieSceneRootEvaluationTemplateInstance& RootTemplate = Pinned.Get()->GetEvaluationTemplate();
+	
+			RenameSpawnable(Pinned.Get(), Pinned.Get()->GetRootMovieSceneSequence(), MovieSceneSequenceID::Root, ChangedActor);
+			
+			for (auto& SubInstance : RootTemplate.GetSubInstances())
+			{
+				RenameSpawnable(Pinned.Get(), SubInstance.Value.Sequence.Get(), SubInstance.Key, ChangedActor);
+			}
+		}
+	}
 }
 
 void FLevelEditorSequencerIntegration::OnPreSaveWorld(uint32 SaveFlags, class UWorld* World)
@@ -1043,8 +1096,21 @@ void FLevelEditorSequencerIntegration::DetachOutlinerColumn()
 	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
 	if (LevelEditorTabManager->FindExistingLiveTab(FName("LevelEditorSceneOutliner")).IsValid())
 	{
-		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"))->RequestCloseTab();
-		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"));
+		if (LevelEditorTabManager.IsValid() && LevelEditorTabManager.Get())
+		{
+			if (LevelEditorTabManager->GetOwnerTab().IsValid())
+			{
+				LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"))->RequestCloseTab();			
+			}
+		}
+		
+		if (LevelEditorTabManager.IsValid() && LevelEditorTabManager.Get())
+		{
+			if (LevelEditorTabManager->GetOwnerTab().IsValid())
+			{
+				LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"));
+			}
+		}
 	}
 }
 

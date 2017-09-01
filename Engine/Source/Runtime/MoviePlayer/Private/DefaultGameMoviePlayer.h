@@ -98,7 +98,7 @@ public:
 
 	virtual FString GetMovieName() override;
 	virtual bool IsLastMovieInPlaylist() override;
-
+	float GetViewportDPIScale() const;
 
 private:
 
@@ -173,6 +173,10 @@ private:
 
 	/** Widget renderer used to tick and paint windows in a thread safe way */
 	TSharedPtr<FMoviePlayerWidgetRenderer, ESPMode::ThreadSafe> WidgetRenderer;
+
+	/** DPIScaler parented to the UserWidgetHolder to ensure correct scaling */
+	TSharedPtr<class SDPIScaler> UserWidgetDPIScaler;
+
 private:
 	/** Singleton handle */
 	static TSharedPtr<FDefaultGameMoviePlayer> MoviePlayer;

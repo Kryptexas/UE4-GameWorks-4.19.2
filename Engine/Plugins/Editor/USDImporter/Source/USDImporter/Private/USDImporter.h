@@ -4,37 +4,38 @@
 
 #include "USDImportOptions.h"
 #include "TokenizedMessage.h"
+#include "USDPrimResolver.h"
 
 THIRD_PARTY_INCLUDES_START
-
 #include "UnrealUSDWrapper.h"
-
 THIRD_PARTY_INCLUDES_END
 
 #include "USDImporter.generated.h"
 
-class UGeometryCache;
-class UEditableStaticMesh;
+
+class UUSDPrimResolver;
 class IUsdPrim;
 class IUsdStage;
 struct FUsdGeomData;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogUSDImport, Log, All);
 
-struct FUsdPrimToImport
+namespace USDKindTypes
 {
-	IUsdPrim* Prim;
-	int32 NumLODs;
+	// Note: std::string for compatiblity with USD
 
-	const FUsdGeomData* GetGeomData(int32 LODIndex, double Time) const;
-};
+	const std::string Component("component"); 
+	const std::string Group("group");
+	const std::string SubComponent("subcomponent");
+}
 
 USTRUCT()
 struct FUsdImportContext
 {
 	GENERATED_BODY()
 	
-	TMap<IUsdPrim*, UObject*> PrimToAssetMap;
+	/** Mapping of path to imported assets  */
+	TMap<FString, UObject*> PathToImportAssetMap;
 
 	/** Parent package to import a single mesh to */
 	UPROPERTY()
@@ -50,6 +51,9 @@ struct FUsdImportContext
 	UPROPERTY()
 	UUSDImportOptions* ImportOptions;
 
+	UPROPERTY()
+	UUSDPrimResolver* PrimResolver;
+
 	IUsdStage* Stage;
 
 	/** Root Prim of the USD file */
@@ -59,7 +63,7 @@ struct FUsdImportContext
 	FTransform ConversionTransform;
 
 	/** Object flags to apply to newly imported objects */
-	EObjectFlags ObjectFlags;
+	EObjectFlags ImportObjectFlags;
 
 	/** Whether or not to apply world transformations to the actual geometry */
 	bool bApplyWorldTransformToGeometry;
@@ -69,7 +73,7 @@ struct FUsdImportContext
 
 	virtual ~FUsdImportContext() { }
 
-	virtual void Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, IUsdStage* InStage);
+	virtual void Init(UObject* InParent, const FString& InName, IUsdStage* InStage);
 
 	void AddErrorMessage(EMessageSeverity::Type MessageSeverity, FText ErrorMessage);
 	void DisplayErrorMessages(bool bAutomated);
@@ -90,12 +94,7 @@ public:
 
 	IUsdStage* ReadUSDFile(FUsdImportContext& ImportContext, const FString& Filename);
 
-	void FindPrimsToImport(FUsdImportContext& ImportContext, TArray<FUsdPrimToImport>& OutPrimsToImport);
-
 	UObject* ImportMeshes(FUsdImportContext& ImportContext, const TArray<FUsdPrimToImport>& PrimsToImport);
 
 	UObject* ImportSingleMesh(FUsdImportContext& ImportContext, EUsdMeshImportType ImportType, const FUsdPrimToImport& PrimToImport);
-private:
-	void FindPrimsToImport_Recursive(FUsdImportContext& ImportContext, IUsdPrim* Prim, TArray<FUsdPrimToImport>& OutTopLevelPrims);
-
 };

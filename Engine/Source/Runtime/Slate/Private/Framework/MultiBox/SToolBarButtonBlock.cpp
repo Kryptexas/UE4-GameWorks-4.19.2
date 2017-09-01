@@ -113,8 +113,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 		static FText AppendKeyBindingToToolTip( const TAttribute<FText> ToolTip, TWeakPtr< const FUICommandInfo> Command )
 		{
 			TSharedPtr<const FUICommandInfo> CommandPtr = Command.Pin();
-
-			if( CommandPtr.IsValid() && CommandPtr->GetActiveChord()->IsValidChord() )
+			if( CommandPtr.IsValid() && (CommandPtr->GetFirstValidChord()->IsValidChord()) )
 			{
 				FFormatNamedArguments Args;
 				Args.Add( TEXT("ToolTipDescription"), ToolTip.Get() );

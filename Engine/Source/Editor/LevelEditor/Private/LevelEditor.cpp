@@ -591,6 +591,11 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		ActionList.MapAction( Commands.OpenRecentFileCommands[ CurRecentIndex ], FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenRecentFile, CurRecentIndex ), DefaultExecuteAction );
 	}
 
+	for (int32 CurFavoriteIndex = 0; CurFavoriteIndex < FLevelEditorCommands::MaxFavoriteFiles; ++CurFavoriteIndex)
+	{
+		ActionList.MapAction(Commands.OpenFavoriteFileCommands[CurFavoriteIndex], FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenFavoriteFile, CurFavoriteIndex), DefaultExecuteAction);
+	}
+
 	ActionList.MapAction( 
 		Commands.ToggleVR, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR ), 

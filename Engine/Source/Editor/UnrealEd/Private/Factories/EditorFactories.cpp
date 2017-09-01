@@ -5068,7 +5068,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		}
 
 		CurrentFilename = Filename;
-
+		bool bImportSucceed = true;
 		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ), true ) )
 		{
 			FFbxImporter->ApplyTransformSettingsToFbxNode(FFbxImporter->Scene->GetRootNode(), ImportData);
@@ -5132,16 +5132,18 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 			else
 			{
 				UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+				bImportSucceed = false;
 			}
 		}
 		else
 		{
 			UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+			bImportSucceed = false;
 		}
 
 		FFbxImporter->ReleaseScene(); 
 
-		return EReimportResult::Succeeded;
+		return bImportSucceed ? EReimportResult::Succeeded : EReimportResult::Failed;
 	}
 	else
 	{

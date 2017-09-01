@@ -11,6 +11,7 @@
 #include "Animation/AnimSequence.h"
 
 #include "FbxExporter.h"
+#include "Exporters/FbxExportOption.h"
 #include "SkeletalMeshTypes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxSkeletalMeshExport, Log, All);
@@ -223,17 +224,20 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 		}
 	}
 
-	// Create and fill in the vertex color data source.
-	FbxLayerElementVertexColor* VertexColor = FbxLayerElementVertexColor::Create(Mesh, "");
-	VertexColor->SetMappingMode(FbxLayerElement::eByControlPoint);
-	VertexColor->SetReferenceMode(FbxLayerElement::eDirect);
-	FbxLayerElementArrayTemplate<FbxColor>& VertexColorArray = VertexColor->GetDirectArray();
-	LayerZero->SetVertexColors(VertexColor);
-
-	for (int32 VertIndex = 0; VertIndex < VertexCount; ++VertIndex)
+	if (ExportOptions->VertexColor)
 	{
-		FLinearColor VertColor = Vertices[VertIndex].Color.ReinterpretAsLinear();
-		VertexColorArray.Add( FbxColor(VertColor.R, VertColor.G, VertColor.B, VertColor.A ));
+		// Create and fill in the vertex color data source.
+		FbxLayerElementVertexColor* VertexColor = FbxLayerElementVertexColor::Create(Mesh, "");
+		VertexColor->SetMappingMode(FbxLayerElement::eByControlPoint);
+		VertexColor->SetReferenceMode(FbxLayerElement::eDirect);
+		FbxLayerElementArrayTemplate<FbxColor>& VertexColorArray = VertexColor->GetDirectArray();
+		LayerZero->SetVertexColors(VertexColor);
+
+		for (int32 VertIndex = 0; VertIndex < VertexCount; ++VertIndex)
+		{
+			FLinearColor VertColor = Vertices[VertIndex].Color.ReinterpretAsLinear();
+			VertexColorArray.Add(FbxColor(VertColor.R, VertColor.G, VertColor.B, VertColor.A));
+		}
 	}
 
 	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(MeshName));

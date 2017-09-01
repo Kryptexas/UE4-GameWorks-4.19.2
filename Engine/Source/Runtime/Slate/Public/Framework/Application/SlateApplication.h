@@ -615,6 +615,9 @@ public:
 	DECLARE_EVENT_OneParam(FSlateApplication, FOnApplicationMousePreInputButtonDownListener, const FPointerEvent&);
 	FOnApplicationMousePreInputButtonDownListener& OnApplicationMousePreInputButtonDownListener() { return OnApplicationMousePreInputButtonDownListenerEvent; }
 
+	/** Gets a delegate that is invoked in the editor when a windows dpi scale changes */
+	DECLARE_EVENT_OneParam(FSlateApplication, FOnWindowDPIScaleChanged, TSharedRef<SWindow>);
+	FOnWindowDPIScaleChanged& OnWindowDPIScaleChanged() { return OnWindowDPIScaleChangedEvent; }
 #endif //WITH_EDITOR
 
 	/**
@@ -802,7 +805,7 @@ public:
 	 *								If horizontal it will attempt to open below the anchor but will open above if there is no room.
 	 * @return The adjusted position
 	 */
-	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement = FVector2D::ZeroVector, const EOrientation Orientation = Orient_Vertical) const;
+	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, bool bAutoAdjustForDPIScale = true, const FVector2D& InProposedPlacement = FVector2D::ZeroVector, const EOrientation Orientation = Orient_Vertical) const;
 
 	/**
 	 * Is the window in the app's destroy queue? If so it will be destroyed next tick.
@@ -1390,6 +1393,7 @@ public:
 	virtual void OnResizingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual bool BeginReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual void FinishedReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
+	virtual void HandleDPIScaleChanged(const TSharedRef<FGenericWindow>& Window) override;
 	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation ActivationType ) override;
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
@@ -2130,15 +2134,20 @@ private:
 
 #if WITH_EDITOR
 	/**
-	* Delegate that is invoked before the input key get process by slate widgets bubble system.
-	* User Function cannot mark the input as handled.
-	*/
+	 * Delegate that is invoked before the input key get process by slate widgets bubble system.
+	 * User Function cannot mark the input as handled.
+	 */
 	FOnApplicationPreInputKeyDownListener OnApplicationPreInputKeyDownListenerEvent;
 
 	/**
-	* Delegate that is invoked before the mouse input button get process by slate widgets bubble system.
-	* User Function cannot mark the input as handled.
-	*/
+	 * Delegate that is invoked before the mouse input button get process by slate widgets bubble system.
+	 * User Function cannot mark the input as handled.
+	 */
 	FOnApplicationMousePreInputButtonDownListener OnApplicationMousePreInputButtonDownListenerEvent;
+
+	/**
+	 * Called when an editor window dpi scale is changed
+	 */
+	FOnWindowDPIScaleChanged OnWindowDPIScaleChangedEvent;
 #endif // WITH_EDITOR
 };

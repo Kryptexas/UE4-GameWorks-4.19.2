@@ -20,6 +20,8 @@
 #include "SVirtualWindow.h"
 #include "SlateDrawBuffer.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Widgets/Layout/SDPIScaler.h"
+#include "Engine/UserInterfaceSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
 
@@ -200,9 +202,12 @@ void FDefaultGameMoviePlayer::Initialize(FSlateRenderer& InSlateRenderer)
 			]
 			+SOverlay::Slot()
 			[
-				SAssignNew(UserWidgetHolder, SBorder)
-				.BorderImage(FCoreStyle::Get().GetBrush(TEXT("NoBorder")))
-				.Padding(0)
+				SAssignNew(UserWidgetDPIScaler, SDPIScaler)
+				[
+					SAssignNew(UserWidgetHolder, SBorder)
+					.BorderImage(FCoreStyle::Get().GetBrush(TEXT("NoBorder")))
+					.Padding(0)
+				]
 			]
 		];
 
@@ -322,6 +327,8 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		{
 			MovieStreamingIsDone.Set(MovieStreamingIsPrepared() ? 0 : 1);
 			LoadingIsDone.Set(0);
+
+			UserWidgetDPIScaler->SetDPIScale(GetViewportDPIScale());
 			
 			UserWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
 			VirtualRenderWindow->Resize(MainWindow.Pin()->GetClientSizeInScreen());
@@ -778,4 +785,9 @@ void FMoviePlayerWidgetRenderer::DrawWindow(float DeltaTime)
 	SlateRenderer->DrawWindows(DrawBuffer);
 
 	DrawBuffer.ViewOffset = FVector2D::ZeroVector;
+}
+
+float FDefaultGameMoviePlayer::GetViewportDPIScale() const
+{
+	return 1.f;
 }

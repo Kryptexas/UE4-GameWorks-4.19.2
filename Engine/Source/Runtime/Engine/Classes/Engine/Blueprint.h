@@ -389,6 +389,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	uint32 bRunConstructionScriptOnDrag : 1;
 
+	/**whether or not you want to continuously rerun the construction script for an actor in sequencer*/
+	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
+	uint32 bRunConstructionScriptInSequencer : 1;
+
 	/** Whether or not this blueprint's class is a const class or not.  Should set CLASS_Const in the KismetCompiler. */
 	UPROPERTY(EditAnywhere, Category=ClassOptions, AdvancedDisplay)
 	uint32 bGenerateConstClass : 1;

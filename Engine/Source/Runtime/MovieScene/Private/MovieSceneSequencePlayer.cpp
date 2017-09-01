@@ -116,9 +116,19 @@ void UMovieSceneSequencePlayer::PlayInternal()
 			UpdateMovieSceneInstance(PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval));
 		}
 
-		if (OnPlay.IsBound())
+		if (bReversePlayback)
 		{
-			OnPlay.Broadcast();
+			if (OnPlayReverse.IsBound())
+			{
+				OnPlayReverse.Broadcast();
+			}
+		}
+		else
+		{
+			if (OnPlay.IsBound())
+			{
+				OnPlay.Broadcast();
+			}
 		}
 	}
 }
@@ -154,7 +164,7 @@ void UMovieSceneSequencePlayer::Pause()
 			return;
 		}
 
-		Status = EMovieScenePlayerStatus::Stopped;
+		Status = EMovieScenePlayerStatus::Paused;
 
 		// Evaluate the sequence at its current time, with a status of 'stopped' to ensure that animated state pauses correctly
 		{
@@ -201,7 +211,7 @@ void UMovieSceneSequencePlayer::Scrub()
 
 void UMovieSceneSequencePlayer::Stop()
 {
-	if (IsPlaying())
+	if (IsPlaying() || IsPaused())
 	{
 		if (bIsEvaluating)
 		{
@@ -259,6 +269,11 @@ void UMovieSceneSequencePlayer::JumpToPosition(float NewPlaybackPosition)
 bool UMovieSceneSequencePlayer::IsPlaying() const
 {
 	return Status == EMovieScenePlayerStatus::Playing;
+}
+
+bool UMovieSceneSequencePlayer::IsPaused() const
+{
+	return Status == EMovieScenePlayerStatus::Paused;
 }
 
 float UMovieSceneSequencePlayer::GetLength() const
@@ -441,4 +456,16 @@ TArray<UObject*> UMovieSceneSequencePlayer::GetBoundObjects(FMovieSceneObjectBin
 		}
 	}
 	return Objects;
+}
+
+void UMovieSceneSequencePlayer::BeginDestroy()
+{
+	Stop();
+
+	if (GEngine && OldMaxTickRate.IsSet())
+	{
+		GEngine->SetMaxFPS(OldMaxTickRate.GetValue());
+	}
+
+	Super::BeginDestroy();
 }

@@ -661,6 +661,13 @@ public:
 	virtual TSharedRef<IPropertyHandle> GetElement( int32 Index ) const = 0;
 
 	/**
+	* Moves an element from OriginalIndex to NewIndex
+	* @return Whether or not this was successful
+	*/
+	virtual FPropertyAccess::Result MoveElementTo(int32 OriginalIndex, int32 NewIndex) = 0;
+
+
+	/**
 	 * Sets a delegate to call when the number of elements changes                                                  
 	 */
 	virtual void SetOnNumElementsChanged( FSimpleDelegate& InOnNumElementsChanged ) = 0;

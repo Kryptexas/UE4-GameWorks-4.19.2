@@ -243,7 +243,7 @@ private:
 		{
 			if (LaunchProfile->HasValidationError(Error))
 			{
-				return FText::Format(LOCTEXT("NoPlatformSDKInstalledFmt", "A required platform SDK is mising: {0}"), FText::FromString(LaunchProfile->GetInvalidPlatform()));
+				return FText::Format(LOCTEXT("NoPlatformSDKInstalledFmt", "A required platform SDK is missing: {0}"), FText::FromString(LaunchProfile->GetInvalidPlatform()));
 			}
 
 			return FText::GetEmpty();

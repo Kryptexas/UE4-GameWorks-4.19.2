@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -91,6 +91,10 @@ void SDL_WAYLAND_UnloadSymbols(void);
 #define wl_output_interface (*WAYLAND_wl_output_interface)
 #define wl_shell_interface (*WAYLAND_wl_shell_interface)
 #define wl_shm_interface (*WAYLAND_wl_shm_interface)
+#define wl_data_device_interface (*WAYLAND_wl_data_device_interface)
+#define wl_data_offer_interface (*WAYLAND_wl_data_offer_interface)
+#define wl_data_source_interface (*WAYLAND_wl_data_source_interface)
+#define wl_data_device_manager_interface (*WAYLAND_wl_data_device_manager_interface)
 
 #endif /* SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC */
 

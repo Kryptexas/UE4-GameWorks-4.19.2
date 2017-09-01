@@ -30,6 +30,7 @@
 #include "Serialization/AsyncLoading.h"
 #include "ProfilingDebugging/LoadTimeTracker.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 #include "Serialization/BulkData.h"
 #include "Serialization/AsyncLoadingPrivate.h"
 #include "UObject/CoreRedirects.h"
@@ -2856,6 +2857,17 @@ void FLinkerLoad::LoadAllObjects(bool bForcePreload)
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
 	
+#if USE_STABLE_LOCALIZATION_KEYS
+	if (GIsEditor && (LoadFlags & LOAD_ForDiff))
+	{
+		// If this package is being loaded for diffing, then we need to force it to have a unique package localization ID to avoid in-memory identity conflicts
+		// Note: We set this on the archive first as finding/loading the meta-data (which ForcePackageNamespace does) may trigger the load of some objects within this package
+		const FString PackageLocalizationId = FGuid::NewGuid().ToString();
+		SetLocalizationNamespace(PackageLocalizationId);
+		TextNamespaceUtil::ForcePackageNamespace(LinkerRoot, PackageLocalizationId);
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 	// Tick the heartbeat if we're loading on the game thread
 	const bool bShouldTickHeartBeat = IsInGameThread();
 

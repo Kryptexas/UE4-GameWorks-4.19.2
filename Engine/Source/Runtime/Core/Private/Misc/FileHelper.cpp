@@ -13,6 +13,14 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/SecureHash.h"
 
+#define LOCTEXT_NAMESPACE "FileHelper"
+
+static const FString InvalidFilenames[] = {
+	TEXT("CON"), TEXT("PRN"), TEXT("AUX"), TEXT("CLOCK$"), TEXT("NUL"), TEXT("NONE"),
+	TEXT("COM1"), TEXT("COM2"), TEXT("COM3"), TEXT("COM4"), TEXT("COM5"), TEXT("COM6"), TEXT("COM7"), TEXT("COM8"), TEXT("COM9"),
+	TEXT("LPT1"), TEXT("LPT2"), TEXT("LPT3"), TEXT("LPT4"), TEXT("LPT5"), TEXT("LPT6"), TEXT("LPT7"), TEXT("LPT8"), TEXT("LPT9")
+};
+
 /*-----------------------------------------------------------------------------
 	FFileHelper
 -----------------------------------------------------------------------------*/
@@ -563,6 +571,82 @@ bool FFileHelper::LoadANSITextFileToStrings(const TCHAR* InFilename, IFileManage
 	}
 }
 
+/**
+* Checks to see if a filename is valid for saving.
+* A filename must be under MAX_UNREAL_FILENAME_LENGTH to be saved
+*
+* @param Filename	Filename, with or without path information, to check.
+* @param OutError	If an error occurs, this is the reason why
+*/
+bool FFileHelper::IsFilenameValidForSaving(const FString& Filename, FText& OutError)
+{
+	bool bFilenameIsValid = false;
+
+	// Get the clean filename (filename with extension but without path )
+	const FString BaseFilename = FPaths::GetBaseFilename(Filename);
+
+	// Check length of the filename
+	if (BaseFilename.Len() > 0)
+	{
+		if (BaseFilename.Len() <= MAX_UNREAL_FILENAME_LENGTH)
+		{
+			bFilenameIsValid = true;
+
+			/*
+			// Check that the name isn't the name of a UClass
+			for ( TObjectIterator<UClass> It; It; ++It )
+			{
+			UClass* Class = *It;
+			if ( Class->GetName() == BaseFilename )
+			{
+			bFilenameIsValid = false;
+			break;
+			}
+			}
+			*/
+
+			for (const FString& InvalidFilename : InvalidFilenames)
+			{
+				if (BaseFilename.Equals(InvalidFilename, ESearchCase::IgnoreCase))
+				{
+					OutError = NSLOCTEXT("UnrealEd", "Error_InvalidFilename", "A file/folder may not match any of the following : \nCON, PRN, AUX, CLOCK$, NUL, NONE, \nCOM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, \nLPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, or LPT9.");
+					return false;
+				}
+			}
+
+			if (FName(*BaseFilename).IsNone())
+			{
+				OutError = FText::Format(NSLOCTEXT("UnrealEd", "Error_NoneFilename", "Filename '{0}' resolves to 'None' and cannot be used"), FText::FromString(BaseFilename));
+				return false;
+			}
+
+			// Check for invalid characters in the filename
+			if (bFilenameIsValid &&
+				(BaseFilename.Contains(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd) ||
+					BaseFilename.Contains(TEXT(":"), ESearchCase::CaseSensitive, ESearchDir::FromEnd)))
+			{
+				bFilenameIsValid = false;
+			}
+
+			if (!bFilenameIsValid)
+			{
+				OutError = FText::Format(NSLOCTEXT("UnrealEd", "Error_FilenameDisallowed", "Filename '{0}' is disallowed."), FText::FromString(BaseFilename));
+			}
+		}
+		else
+		{
+			OutError = FText::Format(NSLOCTEXT("UnrealEd", "Error_FilenameIsTooLongForCooking", "Filename '{0}' is too long; this may interfere with cooking for consoles.  Unreal filenames should be no longer than {1} characters."),
+				FText::FromString(BaseFilename), FText::AsNumber(MAX_UNREAL_FILENAME_LENGTH));
+		}
+	}
+	else
+	{
+		OutError = LOCTEXT("Error_FilenameIsTooShort", "Please provide a filename for the asset.");
+	}
+
+	return bFilenameIsValid;
+}
+
 /*-----------------------------------------------------------------------------
 	FMaintenance
 -----------------------------------------------------------------------------*/
@@ -654,3 +738,4 @@ void FMaintenance::DeleteOldLogs()
 	}
 }
 
+#undef LOCTEXT_NAMESPACE

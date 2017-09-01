@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -102,7 +102,7 @@ generate_rowbytes(int src_w, int dst_w, int bpp)
         store = STORE_WORD;
         break;
     default:
-        return SDL_SetError("ASM stretch of %d bytes isn't supported\n", bpp);
+        return SDL_SetError("ASM stretch of %d bytes isn't supported", bpp);
     }
 #ifdef HAVE_MPROTECT
     /* Make the code writeable */

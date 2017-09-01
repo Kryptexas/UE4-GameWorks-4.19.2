@@ -22,7 +22,7 @@ struct FFoliageMeshInfo;
 // Function for filtering out hit components during FoliageTrace
 typedef TFunction<bool(const UPrimitiveComponent*)> FFoliageTraceFilterFunc;
 
-UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
+UCLASS(notplaceable, hidecategories = (Object, Rendering), MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

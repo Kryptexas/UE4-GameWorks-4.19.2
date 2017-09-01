@@ -77,6 +77,7 @@ void FOpenGLDynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 			if (!Query->bInvalidResource && !PlatformContextIsCurrent(Query->ResourceContext))
 			{
 				PlatformReleaseRenderQuery(Query->Resource, Query->ResourceContext);
+				Query->Resource = 0;
 				Query->bInvalidResource = true;
 			}
 
@@ -90,6 +91,13 @@ void FOpenGLDynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 		}
 		else if(Query->QueryType == RQT_AbsoluteTime)
 		{
+			// query can be silently invalidated in GetRenderQueryResult
+			if (Query->bInvalidResource)
+			{
+				PlatformGetNewRenderQuery(&Query->Resource, &Query->ResourceContext);
+				Query->bInvalidResource = false;
+			}
+
 			FOpenGL::QueryTimestampCounter(Query->Resource);
 			Query->bResultIsCached = false;
 		}
@@ -115,6 +123,7 @@ bool FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI
 	if (!Query->bInvalidResource && !PlatformContextIsCurrent(Query->ResourceContext))
 	{
 		PlatformReleaseRenderQuery(Query->Resource, Query->ResourceContext);
+		Query->Resource = 0;
 		Query->bInvalidResource = true;
 	}
 

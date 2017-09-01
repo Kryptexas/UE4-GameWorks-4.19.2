@@ -532,7 +532,7 @@ EAppReturnType::Type FGenericPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgT
 {
 	if (GWarn)
 	{
-		UE_LOG(LogGenericPlatformMisc, Warning, TEXT("Cannot display dialog box on this platform: %s : %s"), Caption, Text);
+		UE_LOG(LogGenericPlatformMisc, Warning, TEXT("MessageBox: %s : %s"), Caption, Text);
 	}
 
 	switch(MsgType)
