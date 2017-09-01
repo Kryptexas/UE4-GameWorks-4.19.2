@@ -369,13 +369,12 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		// Don't need to run this again
 		bHaveConfiguredEnabledPlugins = true;
 
-		// Get all the enabled plugin names
-		TArray<FString> InitialPluginNames;
-		TMap<FString, const FPluginReferenceDescriptor*> NameToPluginReference;
-#if IS_PROGRAM
-		// Programs can also define the list of enabled plugins in ini
-		GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), InitialPluginNames, GEngineIni);
-#endif
+		// Set of all the plugins which have been enabled
+		TSet<FString> EnabledPluginNames;
+
+		// Keep a set of all the plugin names that have been configured. We read configuration data from different places, but only configure a plugin from the first place that it's referenced.
+		TSet<FString> ConfiguredPluginNames;
+
 #if !IS_PROGRAM || HACK_HEADER_GENERATOR
 		if (!FParse::Param(FCommandLine::Get(), TEXT("NoEnginePlugins")))
 		{
@@ -383,44 +382,52 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			const FProjectDescriptor* ProjectDescriptor = IProjectManager::Get().GetCurrentProject();
 			if (ProjectDescriptor != nullptr)
 			{
-				for (const FPluginReferenceDescriptor& PluginReference : ProjectDescriptor->Plugins)
+				// Copy the plugin references, since we may modify the project if any plugins are missing
+				TArray<FPluginReferenceDescriptor> PluginReferences(ProjectDescriptor->Plugins);
+				for (const FPluginReferenceDescriptor& PluginReference : PluginReferences)
 				{
-					NameToPluginReference.FindOrAdd(PluginReference.Name) = &PluginReference;
+					if (!ConfiguredPluginNames.Contains(PluginReference.Name))
+					{
+						if (!ConfigureEnabledPlugin(PluginReference, EnabledPluginNames))
+						{
+							return false;
+						}
+						ConfiguredPluginNames.Add(PluginReference.Name);
+					}
 				}
 			}
 
-			// Get the default list of plugin names
+			// Add the plugins which are enabled by default
 			for (const TPair<FString, TSharedRef<FPlugin>>& PluginPair : AllPlugins)
 			{
-				const FPluginReferenceDescriptor* PluginReference = NameToPluginReference.FindRef(PluginPair.Key);
-				if ((PluginReference == nullptr && PluginPair.Value->Descriptor.bEnabledByDefault) || (PluginReference != nullptr && PluginReference->bEnabled))
+				if (PluginPair.Value->Descriptor.bEnabledByDefault && !ConfiguredPluginNames.Contains(PluginPair.Key))
 				{
-					InitialPluginNames.Add(PluginPair.Key);
+					if (!ConfigureEnabledPlugin(FPluginReferenceDescriptor(PluginPair.Key, true), EnabledPluginNames))
+					{
+						return false;
+					}
+					ConfiguredPluginNames.Add(PluginPair.Key);
 				}
 			}
 		}
 #endif
+#if IS_PROGRAM
+		// Programs can also define the list of enabled plugins in ini
+		TArray<FString> ProgramPluginNames;
+		GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), ProgramPluginNames, GEngineIni);
 
-		// Enable all the plugins
-		TSet<FString> EnabledPluginNames;
-		for (const FString& PluginName : InitialPluginNames)
+		for (const FString& PluginName : ProgramPluginNames)
 		{
-			const FPluginReferenceDescriptor* EnabledPluginReference = NameToPluginReference.FindRef(PluginName);
-			if (EnabledPluginReference == nullptr)
+			if (!ConfiguredPluginNames.Contains(PluginName))
 			{
 				if (!ConfigureEnabledPlugin(FPluginReferenceDescriptor(PluginName, true), EnabledPluginNames))
 				{
 					return false;
 				}
-			}
-			else
-			{
-				if (!ConfigureEnabledPlugin(*EnabledPluginReference, EnabledPluginNames))
-				{
-					return false;
-				}
+				ConfiguredPluginNames.Add(PluginName);
 			}
 		}
+#endif
 
 		// If we made it here, we have all the required plugins
 		bHaveAllRequiredPlugins = true;
