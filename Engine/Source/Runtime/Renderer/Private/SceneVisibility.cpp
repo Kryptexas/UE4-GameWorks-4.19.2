@@ -641,7 +641,7 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 		check(Params.SubIsOccluded);
 		TArray<bool>& SubIsOccluded = *Params.SubIsOccluded;
 		int32 SubIsOccludedStart = SubIsOccluded.Num();
-		if ((OcclusionFlags & EOcclusionFlags::HasSubprimitiveQueries) && GAllowSubPrimitiveQueries)
+		if ((OcclusionFlags & EOcclusionFlags::HasSubprimitiveQueries) && GAllowSubPrimitiveQueries && !View.bDisableQuerySubmissions)
 		{
 			FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
 			SubBounds = Proxy->GetOcclusionQueries(&View);
