@@ -875,7 +875,7 @@ bool FLinkerLoad::DeferExportCreation(const int32 Index)
 	FLinkerLoad* ClassLinker = LoadClass->GetLinker();
 	if ( !bIsPlaceholderClass 
 		&& ((ClassLinker == nullptr) || !ClassLinker->IsBlueprintFinalizationPending())
-		&& (!LoadClass->ClassDefaultObject || LoadClass->ClassDefaultObject->HasAnyFlags(RF_LoadCompleted)) )
+		&& (!LoadClass->ClassDefaultObject || LoadClass->ClassDefaultObject->HasAnyFlags(RF_LoadCompleted) || !LoadClass->ClassDefaultObject->HasAnyFlags(RF_WasLoaded)) )
 	{
 		return false;
 	}
