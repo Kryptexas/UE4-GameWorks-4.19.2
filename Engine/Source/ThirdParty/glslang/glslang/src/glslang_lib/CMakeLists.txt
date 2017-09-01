@@ -3,6 +3,8 @@
 cmake_minimum_required(VERSION 2.8.12)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Adhere to GNU filesystem layout conventions
 include(GNUInstallDirs)
 

@@ -2,15 +2,27 @@
 
 
 
+rem CMake
+
+set CMAKE_PATH=
+
+pushd ..\..\..\..\..\Extras\ThirdPartyNotUE\CMake\bin
+
+set CMAKE_PATH=%CD%
+
+popd
+
+
+
 rem ## Change relative path into absolute path. We need that for cmake.
 
 set REL_PATH=..\..\..\..\..\Extras\ThirdPartyNotUE\GNU_Make\make-3.81\bin
 
-set MAKEFILE_PATH=
+set MAKE_PATH=
 
 pushd %REL_PATH%
 
-set MAKEFILE_PATH=%CD%
+set MAKE_PATH=%CD%
 
 popd
 
@@ -40,15 +52,21 @@ rem set ARCHITECTURE_TRIPLE="aarch64-unknown-linux-gnueabi"
 
 rem ## Compile and Build.
 
-cmake -DCMAKE_MAKE_PROGRAM=%MAKEFILE_PATH%\make.exe -DCMAKE_TOOLCHAIN_FILE="LinuxCrossToolchain.multiarch.cmake" -DARCHITECTURE_TRIPLE=%ARCHITECTURE_TRIPLE% -G"Unix Makefiles" ../../../glslang/glslang/src/glslang_lib
+rmdir /S /Q cmake-temp
 
-%MAKEFILE_PATH%\make.exe
+mkdir cmake-temp
+
+cd cmake-temp
+
+%CMAKE_PATH%\cmake -DCMAKE_MAKE_PROGRAM=%MAKE_PATH%\make.exe -DCMAKE_TOOLCHAIN_FILE="../LinuxCrossToolchain.multiarch.cmake" -DARCHITECTURE_TRIPLE=%ARCHITECTURE_TRIPLE% -G"Unix Makefiles" ../../../../glslang/glslang/src/glslang_lib
+
+%MAKE_PATH%\make.exe
 
 
 
 rem ## Copy to destination.
 
-set DESTINATION_DIRECTORY="../../../glslang/glslang/lib/Linux"
+set DESTINATION_DIRECTORY="../../../../glslang/glslang/lib/Linux"
 
 
 
