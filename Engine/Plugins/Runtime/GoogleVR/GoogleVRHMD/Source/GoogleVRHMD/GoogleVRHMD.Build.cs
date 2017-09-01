@@ -12,7 +12,8 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"GoogleVRHMD/Private",
 					"../../../../../Source/Runtime/Renderer/Private",
-					"../../../../../Source/Runtime/Core/Private"
+					"../../../../../Source/Runtime/Core/Private",
+					"../../../../../Source/Runtime/ApplicationCore/Private"
 				}
 				);
 
