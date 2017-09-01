@@ -13,6 +13,7 @@
 #include "Misc/OutputDeviceHelper.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "HAL/FeedbackContextAnsi.h"
 #include "Mac/CocoaMenu.h"
 #include "Mac/CocoaThread.h"
 
