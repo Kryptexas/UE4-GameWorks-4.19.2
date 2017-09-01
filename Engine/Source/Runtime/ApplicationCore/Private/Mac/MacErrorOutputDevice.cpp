@@ -6,6 +6,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "FeedbackContextAnsi.h"
 #include "MacApplication.h"
+#include "MacConsoleOutputDevice.h"
 #include "MacPlatformApplicationMisc.h"
 #include "CocoaThread.h"
 

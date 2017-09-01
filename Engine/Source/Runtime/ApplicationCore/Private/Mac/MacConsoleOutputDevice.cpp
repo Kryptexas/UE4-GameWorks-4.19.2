@@ -7,6 +7,7 @@
 #include "MacApplication.h"
 #include "MacPlatformApplicationMisc.h"
 #include "Misc/OutputDeviceHelper.h"
+#include "Misc/ScopeLock.h"
 #include "CocoaThread.h"
 #include "HAL/PlatformApplicationMisc.h"
 

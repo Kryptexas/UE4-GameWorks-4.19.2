@@ -10,6 +10,10 @@
 #include "MacConsoleOutputDevice.h"
 #include "MacErrorOutputDevice.h"
 #include "MacFeedbackContext.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "HAL/ThreadHeartBeat.h"
+#include "Mac/CocoaMenu.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>

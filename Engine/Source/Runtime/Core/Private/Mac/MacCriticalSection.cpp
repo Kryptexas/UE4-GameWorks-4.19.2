@@ -6,6 +6,7 @@
 
 #include "Mac/MacCriticalSection.h"
 #include "Misc/App.h"
+#include "Misc/DateTime.h"
 #include <mach-o/dyld.h>
 #include <libproc.h>
 
