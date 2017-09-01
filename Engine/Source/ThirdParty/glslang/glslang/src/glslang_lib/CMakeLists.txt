@@ -60,6 +60,9 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     add_compile_options(-Wall -Wuninitialized -Wunused -Wunused-local-typedefs
                         -Wunused-parameter -Wunused-value  -Wunused-variable)
     add_compile_options(-Wno-reorder)  # disable this from -Wall, since it happens all over.
+    # use bundled libc++ - the variables should passed by the build script
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -nostdinc++ -I${LIBCXX_INCLUDE} -I${LIBCXX_ABI_INCLUDE}")
+    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -stdlib=libc++ -L${LIBCXX_LIB_DIR} ${LIBCXX_LIB_DIR}/libc++abi.a")
 endif()
 
 # Request C++11
