@@ -605,7 +605,10 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	{
 		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFalgs */ EInternalObjectFlags::PendingKill); It; ++It)
 		{
-			It->NotifyFoliageTypeChanged(this, bMeshChanged);
+			if (It->GetWorld() != nullptr)
+			{
+				It->NotifyFoliageTypeChanged(this, bMeshChanged);
+			}
 		}
 	}
 }
