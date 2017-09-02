@@ -1,26 +1,26 @@
-Availability:Public
-Title:Animation Toolbars
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:Overview of the different Toolbars used in each of the Animation Tool Editors. 
-Related: Engine/Animation/Persona/Modes/Skeleton
-Related: Engine/Animation/Persona/Modes/Mesh
-Related: Engine/Animation/Persona/Modes/Animation
-Related: Engine/Animation/Persona/Modes/Graph
-version: 4.16
-type:reference
-topic-image:Engine/Animation/animation_topic.png
-tags:animation
-
-
-[EXCERPT:Overview]
-Regardless of what Animation Tool you are working in, each Editor will feature a **Toolbar** which can be located at the top. However, the options on the Toolbar will vary based on the type of Editor you are currently working in.
-The Toolbar is comprised of two main areas, the **Asset Toolbar** which contains several options related to the Editor you are working with and the **Editor Toolbar** which enables you to quickly switch between the different Animation Tool Editors. 
-[/EXCERPT:Overview]
-
+Title:Animation Toolbars
+Description: Temporary Description
+Type: Reference
+Version: 4.16
+Parent: Engine/Animation/Persona
+Order: 1
+Tags:animation
+topic-image:SkeletonToolbar.png
+Related: Engine/Animation/Persona
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/AnimBlueprints
 
 [TOC(start:2)]
 
- 
+[EXCERPT:Overview]
+Inside each [Animation Tool](Engine/Animation/Persona/Modes), you will find a **Toolbar** located along the top of the Editor window. 
+The options located on that Toolbar will vary based on the type of Editor you are currently working in. 
+The Toolbar is comprised of two main areas, the **Asset Toolbar** that includes options related to the Editor you are working with and the **Editor Toolbar** that enables you to quickly switch between the different Animation Tools. 
+[/EXCERPT:Overview]
+
+
 ## Asset Toolbar
 
 Located along the left side of the Toolbar are the options that are available based on the type of Editor you are working with, refer to the sections below: 
@@ -65,10 +65,10 @@ The Animation Editor Toolbar is shown whenever you open any animation assets (An
 | ------- | ------------ |
 | ![](saveIcon.png) | Saves any changes made to the current animation asset.  |
 | ![](findincbIcon.png) | Opens the **Content Browser** and automatically navigates to the current animation asset. |
-| ![](createassetIcon.png) | Create new animation assets (animations, anim assets, Blend Spaces or Aim Offsets). When creating animation, this can be based on the **Reference Pose**, **Current Pose** or Current Animation's **Animation Data** or **Preview Mesh**. When using the Preview Mesh, the created animation will include any additional animation data generated from a post-process graph assigned tot he Skeletal Mesh, such as Anim Dynamics for Physics Simulation.   |
+| ![](createassetIcon.png) | Creates a new animation asset. When creating animation, this can be based on the **Reference Pose**, **Current Pose** or Current Animation's **Animation Data** or **Preview Mesh**. When using the preview mesh, the created animation will include any additional animation data generated from a post-process graph assigned to the Skeletal Mesh, such as Anim Dynamics for Physics Simulation as well as retargeting information on the preview mesh.   |
 | ![](ReimportAnimation.png) | Reimport the current animation. |
 | ![](compressionIcon.png) | Enables you to apply different [Compression](Engine/Animation/Sequences) settings to the animation (available for Animation Sequences). |
-| ![](ExportAsset.png) | Export current animation source data or current animation playing on the current preview mesh (includes retargeting, post process graph or other settings applied to the preview mesh).   |
+| ![](ExportAsset.png) | Export current animation source data or current animation playing on the current preview mesh (includes retargeting, post process graph or other settings applied to the preview mesh). |
 | ![](keyIcon.png) | Enables you to add the current Bone Transform of a selected Bone to an [Additive Layer Track.](Engine/Animation/AnimHowTo/LayerEditing)  |
 | ![](applyIcon.png) | Applies [Additive Layer Tracks](Engine/Animation/AnimHowTo/LayerEditing) to Runtime Animation Data. |
 | ![](PreviewMesh.png) | Set a new preview Skeletal Mesh for the current asset (stored per-animation or per-skeleton). |
@@ -102,7 +102,7 @@ The currently open editor will be highlighted:
 
 ![](animationdropdownmenu.png)
 
-A ** * (Asterisk) ** symbol in the lower left corner of the icon indicates that the asset has changes that have not been saved. 
+A ** * (Asterisk)** symbol in the lower left corner of the icon indicates that the asset has changes that have not been saved. 
 
 ![](unsavedasset.png)
 

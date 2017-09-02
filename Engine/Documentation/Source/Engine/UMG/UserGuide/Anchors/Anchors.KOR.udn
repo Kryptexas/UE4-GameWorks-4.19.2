@@ -1,13 +1,18 @@
-﻿INTSourceChangelist:3244089
-Availability:Public
+﻿INTSourceChangelist:3612551
+Availability: Public
+Crumbs: %ROOT%
 Title: 앵커
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:앵커를 사용하여 다른 종횡비에서도 UI 위젯을 고정된 위치에 유지하는 법입니다.
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide/DPIScaling
 Related: Engine/Blueprints
-version: 4.9
-tags:UMG UI Designer
+Order:1
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/AnchorsTopic.png
 
 
 [TOC(start:2 end:2)]

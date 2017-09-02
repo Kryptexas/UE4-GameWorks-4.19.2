@@ -33,14 +33,18 @@ Mac users currently have to resort to [native compilation](https://wiki.unrealen
 
 Please use the following table to download the appropriate toolchain: 
 
-| Toolchain                                                                                                                           | UE4 Version    | 
-| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
-| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | <= 4.8         | 
+| Toolchain                                                                                                                       | UE4 Version    | 
+| ------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
+| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | 4.8 and earlier| 
 | **-v6** [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 4.9 and 4.10   | 
 | **-v7** [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 4.11 thru 4.13 | 
 | **-v8** [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         | 4.14 and 4.15  |
 | **-v9** [clang-4.0.0-based](http://cdn.unrealengine.com/CrossToolchain_Linux/v9_clang-4.0.0-centos7.zip)                        | 4.16           |
 
+[REGION:note]
+The Setup and UnSetup Windows Batch Files (\*.bat) are not included in **-v9** because you only need these files if you're setting up AutoSDKs for UE4. 
+`Setup.bat` and `Unsetup.bat` were included in previous versions of the toolchain because they're part of the AutoSDKs system (which is currently not documented).
+[/REGION]  
 
 We also provide the libraries and toolchains that allow you to compile for [Linux ARM](https://s3.amazonaws.com/unrealengine/qfe/arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13.zip) as well (original Raspberry Pi and up). 
 Although, this will require you to make a (minor) code change in [Unreal Build Tool](Programming/UnrealBuildSystem) (UBT).

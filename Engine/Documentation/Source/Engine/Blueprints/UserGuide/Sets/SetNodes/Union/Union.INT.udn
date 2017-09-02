@@ -1,9 +1,9 @@
-Availability:Docs
+Availability:Public
 Title:Union
 Description:Performs a union of two Sets, assigning the union to a resultant Set.
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
+Order:11
 Version: 4.15
 Tags:Blueprints
 Type:reference

@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: Advanced iOS PC/Mac Workflow
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:Setting up for development for the iOS platform.
@@ -8,6 +8,7 @@ SkillLevel: Intermediate
 parent:Platforms/iOS
 order:0
 type:overview
+related:Platforms/iOS/Windows
 
 [TOC(start:2 end:2)]
 
@@ -77,8 +78,8 @@ XCode is [available as a free download](https://itunes.apple.com/us/app/xcode/id
 
 ## Getting Started as an Apple iOS Developer
 
-You will need to sign up for the [Apple IOS Developer Program](https://developer.apple.com/programs/ios/).
-* Individual - If you are working on your own, or will be the only one on a small them that needs Admin access to the IOS account
+You will need to sign up for the [Apple iOS Developer Program](https://developer.apple.com/programs/ios/).
+* Individual - If you are working on your own, or will be the only one on a small them that needs Admin access to the iOS account
 * Company - If you are a small team with Company / This allows you to add people to your team, and grant them different kinds of access
 
 When you create your Apple developer account, you will have to do the following (using Apple's instructions):
@@ -228,15 +229,15 @@ Once you have completed the above steps for setting up your Windows and Mac syst
 * Open the UE4.sln it creates.
 * Open the Games solution folder.
 * Select the Development Editor configuration, and Win64 platform.
-* **Right-click** on the game of choice (QAGame, for instance) and select Build.
-* Now, select the Development configuration, and IOS platform.
+* Right-click on the game of choice (QAGame, for instance) and select Build.
+* Now, select the Development configuration, and iOS platform.
 * Again, build your game.
     * This will connect to your Mac running UnrealRemoteTool, copy files over, and then run remote compilation commands on the Mac.
 	* It will also perform some signing at the end, so make sure that is working correctly. If not, double check the provision file and the certificate installed on the Mac.
 * Start the cooker.
     * In the UE4/Engine/Binaries/Win64 directory (in cmd.exe), run this (replacing QAGame with whatever your game is):
 	    * ue4editor-cmd QAGame -run=cook -targetplatform=ios -cookonthefly
-	* This will start up a cooking server that the IOS device will talk to over the network to retrieve cooked files.
+	* This will start up a cooking server that the iOS device will talk to over the network to retrieve cooked files.
 
 You can look on your Mac drive in the /UE4/Builds directory will have a directory named with your PC's computer name. Inside of there is a mirrored directory structure that matches your PC directory structure. When the compile finishes, the executable will be in the game's Binaries directory (or Engine/Binaries if you compiled the game-less UE4 project)
 
@@ -264,10 +265,10 @@ You can compile for IOS on a Mac. This is pretty new, so is more likely to have 
 * In Xcode, open UE4/UE4.xcodeproj
 * Select the QAGame - Mac. 
 * In the scheme (Option-Command-R) select Development, then click done. Command-B to build the Mac executable.
-* Run the IOS cooker from Terminal.
+* Run the iOS cooker from Terminal.
     * Launch Terminal.app and cd to the UE4/Engine/Binaries/Mac directory, then run this (replacing QAGame with whatever your game is):
 	    * open UE4Editor.app --args QAGame -run=cook -targetplatform=ios -cookonthefly
-* Select <GameName> - IOS (Run) target, and select a device to run it on.
+* Select **[GameName] - IOS (Run)** target, and select a device to run it on.
 * In the scheme (Option-Command-R), select Development in Info, and then go to Arguments.
     * Add any necessary commandline options for your game, and also
 	    * -filehostip=xx.xx.xx.xx

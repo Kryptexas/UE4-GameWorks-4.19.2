@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3180166
+﻿INTSourceChangelist:3599948
 Title:TMap
 Crumbs:
 Description:TMap は主に key 型と value 型の 2 つの型によって定義され、それが連想ペアとしてマップ内に格納されます。 
@@ -14,7 +14,7 @@ TArray の次に **Unreal Engine 4** (UE4) でよく使われるコンテナは 
 
 ## TMap
 
-TMap は主に key 型と value 型の 2 つの型によって定義され、それが連想ペアとしてマップ内に格納されます。これらのペアを個々のオブジェクトのようにマップの element 型と呼ぶと便利です。このページでは、個々のコンポーネントはエレメントのキーまたはエレメントの値と読んでいますが、エレメントはキー / 値のペアを意味します。element 型は実際は **TPair**<KeyType, ElementType> です。 TPair 型を直接参照する必要は滅多にありません。
+TMap は主に key 型と value 型の 2 つの型によって定義され、それが連想ペアとしてマップ内に格納されます。これらのペアを個々のオブジェクトのようにマップの element 型と呼ぶと便利です。このページでは、個々のコンポーネントはエレメントのキーまたはエレメントの値と読んでいますが、エレメントはキー / 値のペアを意味します。element 型は実際は `TPair< KeyType, ElementType >` です。 TPair 型を直接参照する必要は滅多にありません。
 
 TSet は TMap と同じ、均一なコンテナです。つまり、すべてのエレメントが完全に同じ型です。TMap も value 型で、通常のコピー、アサイメント、デストラクタ操作をサポートします。エレメントの強力なオーナーシップを持つのでマップが破棄されると破棄されます。Key 型と value 型が value 型である必要もあります。
 
@@ -458,11 +458,11 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 	{
 		// String which identifies our key (キーを特定する文字列) 
 		FString UniqueID;
-
 	// Some state which doesn't affect struct identity (構造体の恒等式に影響を及ぼさない一部のステート) 
 
 		float SomeFloat;
 	explicit FMyStruct(float InFloat)
+
 			:UniqueID (FGuid::NewGuid().ToString())
 			, SomeFloat(InFloat)
 		{
@@ -480,8 +480,8 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 			TPair<FMyStruct, ValueType>,
 			FString
 		> Super;
-
 	public:
+
 		typedef typename Super::ElementInitType ElementInitType;
 		typedef typename Super::KeyInitType     KeyInitType;
 
@@ -489,12 +489,13 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 		{
 			return Element.Key.UniqueID;
 		}
-
 	static bool Matches(KeyInitType A, KeyInitType B)
+
 		{
 			return A.Compare(B, ESearchCase::CaseSensitive) == 0;
 		}
 	static uint32 GetKeyHash(KeyInitType Key)
+
 		{
 			return FCrc::StrCrc32(*Key);
 		}
@@ -520,12 +521,12 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 			FDefaultSetAllocator,
 			TMyStructMapKeyFuncs<int32>
 		> MyMapToInt32;
+	// Add some elements
 
-		// Add some elements
 		MyMapToInt32.Add(FMyStruct(3.14f), 5);
 		MyMapToInt32.Add(FMyStruct(1.23f), 2);
+	// MyMapToInt32 == [
 
-		// MyMapToInt32 == [
 		// 	{
 		// 		Key: {
 		// 			UniqueID:"D06AABBA466CAA4EB62D2F97936274E4",

@@ -1,10 +1,15 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:アニメーション
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG でアニメートされた UI エレメントを作成する方法を説明します。 
-version:4.9
-tags:UMG UI Designer
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:2
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/AnimationTopic.png
 
 
 [REGION:fullwidth raw]

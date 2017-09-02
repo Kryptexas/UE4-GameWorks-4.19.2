@@ -29,7 +29,7 @@ parameter, you can refer directly to the original research paper referenced at t
 
 r.Upscale.Panini.D > 0 directly emphasizes the effect. However it not the only parameter. r.Upscale.Panini.S 
 lerp with the paper's hardcompression. And if still some sphere still looks elipsed in the corners, then this
-parameter can also be tweaked as well. However, for r.Upscale.Panini.S < 0, start shows unrendered black
+parameter can also be tweaked as well. However, for `r.Upscale.Panini.S < 0`, start shows unrendered black
 looking pixels in the corners.
 
 ![](qagame_fov120_vertical_compression.png)

@@ -1,98 +1,101 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Blend Spaces Overview
+﻿INTSourceChangelist:3477699
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Describes how Blend Space assets are used and the different types of Blend Space assets.
-Related: Engine\Animation\AnimHowTo\BlendSpace
-Related: Engine/Animation/Blendspaces/Editor
-Related: Engine/Animation/Blendspaces/UserGuide
-Related: Engine/Animation/StateMachines
-Related: Engine/Animation/AnimBlueprints
-version: 4.15
-type:overview
-topic-image:blendspacetopic.png
+Title:混合空间总览
+Description:讲述混合空间的使用方法，以及不同类型的混合空间资源。
+Type:Overview
+SkillLevel:Intermediate
+Version:4.16
+Parent:Engine/Animation
+Order:1
 tags:Animation
 tags:Animation Blueprint
 tags:Blend Space
+topic-image:blendspacetopic.png
+Related:Engine\Animation\AnimHowTo\BlendSpace
+Related:Engine/Animation/Blendspaces/Editor
+Related:Engine/Animation/Blendspaces/UserGuide
+Related:Engine/Animation/StateMachines
+Related:Engine/Animation/AnimBlueprints
 
 [TOC (start:2 end:2)]
 
-The goal of a **Blend Space** is to reduce the need for creating individual, hard-coded nodes for blending
-animations with an asset that performs blending based on specific properties or conditions instead. By allowing the animator or programmer to specify 
-the inputs, the animations, and how the inputs are used to blend between animations, virtually any 
-type of blending can be performed using the generic Blend Space. 
+**混合空间** 利用基于特定属性或条件进行混合的资源，降低创建单个硬编码节点进行混合动画的需求。它使动画师或程序员能够指定输入、动画，以及输入在动画之间进行混合的方式，实际上任何类型的混合都能通过混合空间泛型来执行。 
 
-This is completely contrary to how AnimTrees in Unreal Engine 3 handled the same tasks. 
-Any complex blending required the creation of a new node to handle that blending. 
-Blend Spaces are completely generic allowing the factors that determine the blending to be specified on each individual Blend Space. 
-Each Blend Space has inputs that simply take in values. 
-These values can be calculated during the update cycle of an [Animation Blueprint](Engine\Animation\AnimBlueprints) (via the **EventGraph**), 
-driven by gameplay code, or any other means (as seen in the example chart below). This makes them extremely flexible and puts the power into 
-the hands of the person creating the AnimGraph to blend animations in any way they see fit.
+这与动画树在虚幻引擎 3 中执行相同任务的原理完全相反。任何复杂混合都需要创建一个新节点来处理混合。而混合空间是完全的泛型，决定混合的因素在每个单独的混合空间上均有所不同。每个混合空间均有输入，可接收数值。这些数值可在 [动画蓝图](Engine\Animation\AnimBlueprints) 的更新周期中进行计算（通过 **EventGraph**），由游戏性代码或其他方式驱动（如下表所示）。这些特性使得混合空间灵活性极强，可把主动权交到 AnimGraph 的创建者手中，以符合其需求的方式混合动画。
 
 ![Input Flow](bs_flow.png)
 
 [REGION:caption]
-Above, the Event Graph, Gameplay Code or other factor drives each of the variables that in turn determines which pose in the Blend Space to use as the final pose. 
+上图中，事件图表、游戏性代码或驱动着每个变量。反之，这些变量决定混合空间中的哪个动作将用作最终动作。 
 [/REGION]
 
 
-## Blend Space
+## 混合空间
 
-You can think of a Blend Space like a 2D graph with each input value along one axis and animations plotted 
-on the graph at various points. The blended animation is calculated by blending between the animations 
-on the graph based on the location designated by the current input values.
-As an example, take the typical blending between directional run animations and an idle animation based on 
-the direction and speed of the movement of the player.
+混合空间可被视为一个 2D 图表，每个输入值均沿一根轴，动画则分布在图表上的各点处。混合动画由图表上动画之间的混合基于当前输入值所指定的位置进行计算。
+举例而言，定向跑步动画和待机动画之间的混合就是基于角色移动的方向和速度。
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-HzgiW2mZomU
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	WhfIvH1Uxpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-In Unreal Engine 3, this was performed using the directional blending node in combination with a speed 
-blending node. Each of these nodes was hard-coded to only do that specific blend. The values used to 
-perform the blending were hidden away in the code, so no modifications could be made to tweak the blend 
-except by a programmer; and if you modified the value in the code, it affected every instance of the node 
-in every AnimTree making use of it. This is far from ideal.
+在虚幻引擎 3 中，这样的混合是使用方向混合节点结合速度混合节点来实现。这些每个节点均为硬编码，只执行特定的混合。用于执行混合的数值隐藏在代码之中，因此对混合进行的修改只能由程序员执行。如果对代码中的数值进行了修改，将会对使用数值的每个动画树中的每个节点实例产生影响。这并非理想的工作方式。
 
-With Blend Spaces, this same blend can be performed using a single Blend Space. 
-The direction (which is indicated in the horizontal yellow box below) and speed (indicated in the vertical yellow box below) of the player would be values passed to the Blend Space as inputs.
-The animations (white diamonds below) would be set up to blend appropriately based on the values of these inputs resulting in the final pose you see (green diamond below) in-game.
+而使用混合空间时，相同的混合可使用单一的混合空间进行执行。 
+角色的方向（下图黄色水平框中所示）和速度（下图黄色垂直框中所示）就是作为输入传至混合空间的数值。
+动画（下图中的白色钻石）将被设为基于这些输入值进行适当的混合，使最终的动作出现在游戏中（下图中的绿色钻石）。
 
 ![](BlendSpaceDirection.png)(w:720)
 
-Below, our **AnimGraph** implements the Blend Space to which we can adjust our inputs (in this case **Speed**) to drive the blending. 
+下图中，**AnimGraph** 实现了混合空间。我们可以调整对其的输入（在此例中为 **Speed**）来驱动混合。 
 
 ![](AnimGraphBlendSpace.png)
 
-Just as in the previewer, as we adjust our input values we alter and drive the blending in our Blend Space. 
+如预览器中所示，调整输入值后即可调整并驱动混合空间中的混合。 
 
-## Blend Space 1D
+## 混合空间 1D
 
-Blend Spaces can also be created in a one-dimensional format, known as a **Blend Space 1D**. These can blend between any number of poses or animations but do so based on a single input value. An example that we use is to make a character lean when sprinting. We have two poses, one leaning left and one leaning right, and use an input driven by how much the player is turning the character while sprinting. By blending into the additive leaning poses, we can give the running animation a bit more life as the character seems to lean into hard turns.
+混合空间也可在单维度格式中创建，称之为 **Blend Space 1D**。它们可在任意数量的动作或动画之间进行混合，但只基于单个输入值。 
+混合空间 1D 的一个使用范例是角色自动朝向其移动的方向。 
+如角色无法在多个方向横跨或移动，一个混合空间 1D 资源可用于基于单个 **Speed** 值从待机动画混合到行走动画，最终混合到奔跑动画（如下例所示）。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-2g_IxGNE0T4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	KMl7-qkgs9g
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 [REGION:note]
-Aside from having only one axis instead of two, a Blend Space 1D is exactly the same as a standard two-axis Blend Space. 
+除只拥有一个轴外，混合空间 1D 和标准两轴混合空间完全一致。 
 [/REGION]
+
+
 
 

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3413822
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Remove
 Description:세트에서 아이템을 제거합니다.
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
+Order:8
 Version: 4.15
 Tags:Blueprints
 Type:reference

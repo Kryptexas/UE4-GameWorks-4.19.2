@@ -1,222 +1,185 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3514120
 Availability:Public
-Title:ブループリントでアクタをスポーン/ 破壊する方法
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/SpawnAndDestroyActors
-Description:UE4 のブループリントでアクタをスポーン / 破壊するための操作ガイド
-Version:4.9
-SkillLevel:Intermediate
-type:how-to
+Title:ブループリントでアクタをスポーン、破棄する
+Description:このガイドではブループリントを使って、ボタンが押されたときにオブジェクトをスポーンし、再度ボタンが押されると破棄します。 
+Type: how-to
+SkillLevel:Beginner
+Version:4.16	
+Parent:Gameplay/HowTo/SpawnAndDestroyActors
+Order:1
+Tags:Blueprints
+Tags:Basics
+Tags:Getting Started
+Related:Engine/Blueprints
 
-[TOC (start:2)]
+制作しているゲームの種類に関係なく、当初レベルに配置されていなかったものをランタイムに登場させたいことがあるでしょう。 
+ワールドにオブジェクトをスポーンさせるという概念は、 [ブループリント ビジュアル スクリプティング](Engine/Blueprints) を使って実現できます。また、ゲームプレイ中にスポーンされた (またはスポーンされていなかった) オブジェクトを破棄すなわちデスポーンさせる機能も実現できます。 
 
- このページでは、ブループリントでアクタをスポーンし、スポーン位置を定義する方法を学習します。スポーンされたアクタを破壊する方法も学習します。 
+ このガイドでは、ボタンが押されると [アクタ](Engine/Actors) をスポーンし、キャラクターにアタッチし、再度ボタンが押されると [変数](Engine/Blueprints/UserGuide/Variables) 参照を使用して破棄します。 
 
-##アクタをスポーンする
+![](HeroImage.png)
 
-以下では、キーを押してレベル内でアクタをスポーンする手順について説明します。 
+## ステップ
 
-1. エディタ内で任意のプロジェクトを一旦開き、 **[ブループリント]** ボタンと **Open Level Blueprint** をクリックします。  
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** を使います。 
+[/REGION]
 
-	[REGION:raw]
-	![](GHT1_1.png)
-	[/REGION]
+1.	**メイン ツールバー** で **[ブループリント]** ボタンをクリックして、次に **[Open Level Blueprint (Level ブループリントを開く)]** を選択します。 
 
-1. こうすると、(以下のような) **[ブループリント エディタ]** ウィンドウが開きます。 
+	![](SpawnDestroy_01.png)
+
+	[](Engine/Blueprints/UserGuide/Types/LevelBlueprint) は、各レベルで固有であり、レベル全体のグローバル グラフとしての役割を果たす、特別なタイプのブループリントです。 
+
+1.	グラフ内を右クリックして、 **Spawn Actor from Class** ノードを探して追加します。 
+
+	![](SpawnDestroy_02.png)
+
+	これでスポーンするクラス (またはオブジェクトの種類) を指定することでスポーンするものを定義することができます。 
+
+1.	**SpawnActor** ノードの **Class** セクションで **Blueprint_Effect_Fire** クラスを選択します。 
+
+	![](SpawnDestroy_03.png)
+
+	これはプロジェクト作成時に有効にした **Starter Content** パックの一部として作成された Blueprint クラスです。 
+
+1.	グラフ内で右クリックして、**Enter** Keyboard Event を探して追加します。 
+
+	![](SpawnDestroy_04.png)
+
+	これは、炎のエフェクトをスポーンし、破棄するキーになります。 
+
+1.	再びグラフ内で右クリックして、 **Flip Flop** ノードを検索して追加します。 
+
+	![](SpawnDestroy_05.png)
+
+	このノードはスイッチとして機能します。1 回めは **A** ピンを実行し、2 回めは **B** ピンを実行します。 
+	B ピンを実行したら、その次は再度 A ピンを実行し、A ピンと B ピンとの間で切り替わります。 
+
+1.	 **F** ノードの **Pressed** ピンから左クリックしてドラッグし、それを **Flip Flop** ノードと **Spawn Actor** ノードに接続します。 
+
+	![](SpawnDestroy_06.png)
+
+	これで Spawn Actor ノードへの呼び出しを実行し (F が押された場合)、Fire エフェクトをスポーンすることができます。 
+
+1.	グラフ内で右クリックして、**Destroy Actor** ノードを探して追加します。 
+
+	![](SpawnDestroy_07.png)
+
+	このノードで、指定するどのアクタでも破棄することができます。 
+
+1.	**Flip Flop** ノードの **B** ピンを **Destroy Actor** ノードに接続します。 
+
+	![](SpawnDestroy_08.png)
+
+	**F** キーを 2 回めに押すと、**Flip Flop** ノードの **B** ピンが呼び出されて **Destroy Actor** ノードを実行します。 
+	この Destroy アクタには、**Target** 入力ピンがあり、何を破棄するかをノードに指示します。 
+	デフォルトでこれは **Self** に設定されており、この場合は null ポインタです。Level ブループリントを破棄できないため、何を破棄するかが不明であることを表します。 
+	この Destroy Actor ノードが Character ブループリント内にあり、Self をターゲットにするように指示したら、キャラクターが破棄されます。 
+
+	この場合、Destroy Actor ノードに対して何を破棄するかを指示する必要があります (ブループリントの Fire エフェクト)。 
+	これを行うには、スポーンするブループリントの Fire エフェクトへの参照を作成する必要があります。 
+
+1.	**Spawn Actor** ノードの **Return Value** 上で右クリックして、**[Promote to variable]** を選択します。 
+
+	![](SpawnDestroy_09.png)
+
+	この場合の **Return Value** は、「スポーンするもの」であり、後で破棄できるように参照を保存するものです。 
+
+1.	この変数の **[Details]** パネルで、**CurrentFlames** 等の名前を付けます。 
+
+	![](SpawnDestroy_10.png)
+
+1.	**MyBlueprint** パネルの **Variables** で、**Ctrl** キーを押しながら **CurrentFlames** 変数をグラフにドラッグ＆ドロップし、それを **Destroy Actor** の **Target** に接続します。 
+
+	![](SpawnDestroy_11.png)
+
+	これで Destroy Actor ノードに対して変数の参照を作成したブループリントの Fire エフェクトを対象にするように指示しています。 
+
+1.	グラフ内で右クリックし、 **Get Player Character** ノードを検索して追加します。 
+
+	![](SpawnDestroy_12.png)
+
+	これにより、指定したプレイヤー キャラクターを見つけて、そのキャラクターにアクセスして情報を取得することができます。 
+
+1.	**Get Player Character** の **Return Value** から、**Get Actor Transform** ノードを探して追加します。 
+
+	![](SpawnDestroy_13.png)
+
+	これでプレイヤー キャラクターの **Location**、**Rotation**、**Scale** がわかり、これを使ってブループリントの Fire エフェクトのスポーン位置を定義します。 
+
+1.	**Get Actor Transform** の **Return Value** を **Spawn Actor** ノードの **Spawn Transform** に接続します。 
 
 	[REGION:lightbox]
-	[![](Engine\Blueprints\UserGuide\Types\LevelBlueprint\level_blueprint_editor.png)](Engine\Blueprints\UserGuide\Types\LevelBlueprint\level_blueprint_editor.png)
+	[![](SpawnDestroy_14.png)](SpawnDestroy_14.png)
 	[/REGION]
 
 	_画像をクリックしてフルサイズで表示_
 
-	アクタをスポーンするには、 Spawn Actor from Class ノードを使う必要があります。この例では Level ブループリント を使用しますが、以下に示すような Palette ウィンドウに存在するほとんどのブループリントで Spawn Actor from Class ノードを使用することもできます。
+	この時点でグラフはほぼ完成し、**F** キーを押すと、プレイヤーの位置でブループリントの Fire をスポーンし、それを変数として格納するように指示しました。 
+	**F** を 2 回めに押すと、作成した変数を破棄します (Fire エフェクトをキルします)。最後に、Fire エフェクトをプレイヤーにアタッチします。 
+	Fire エフェクトをスポーンすると、プレイヤーの位置にスポーンされますが、プレイヤーが炎の周囲を動くと、スポーンした位置にとどまります。 
 
-1. または、グラフとコンテキスト メニューのどこかを **右クリック** して、 **Spawn Actor from Class** ノードを検索して追加することもできます。 
+1.	 **Set** ノードの参照ピンを左クリックしてドラッグして、**AttachToActor** ノードを探して追加します。 
 
-	![](GHT1_5.png)
+	![](SpawnDestroy_15.png)
 
-1. **Spawn Actor from Class** ノードがグラフに追加されます (省略して **SpawnActor**)。 
+	このノードを使って炎のエフェクトを他のアクタにアタッチすることもできます。この場合、プレイヤー キャラクターにアタッチします。 
 
-	![](GHT1_4.png)
-
-	Spawn Actor from Class ノードは (Class 入力で指定された) Actor Class を受け取り、そのクラスのインスタンスをワールド内にスポーンしようとします。Spawn Transform 入力は、ワールド内のアクタのスポーンの位置 (および最初の向き) を定義するために使用します。その位置が衝突物によってブロックされている場合、 Spawn Even if Colliding の入力が True に設定されていない限り、アクタはスポーンに失敗します。 
-
-	以下は、 Spawn Actor ノードにある各ピンの概要です。
-
-	![](GHT1_6.png)
-
-	| 番号 | 説明 |
-	| ------- | ------------ |
-	| **Execution Input (1)** | アクタをスポーンするためにノードをトリガーする実行入力ピンです。 |
-	| **Class (2)** | ワールドにそのインスタンスをスポーンしたい Actor Class です (必須)。 |
-	| **Spawn Transform (3)** | ワールド内でアクタを配置し向きを調整する Transform を受け取ります。 |
-	| **Spawn Even If Colliding (4)** | スポーン位置が何かにブロックされている場合、アクタをスポーンするかどうか判断します。 |
-	| **Execution Output (5)** | Spawn Actor の後に発生するスクリプトへ導く実行出力ピンです。 |
-	| **Return Value (6)** | ワールド内にスポーンされる新規のアクタのインスタンスを出力します |
-
-1. **Class** ドロップダウン メニューをクリックして、アクタのリストからスポーンしたいアクタを選択します。 
-
-	![](GHT1_7.png)
-
-1. スポーンしたいアクタを選択すると、ノードが更新され、新しいピンが追加されます。 
-
-	![](GHT1_8.png)
-
-	Instigator はオプションで、スポーンされたアクタによるダメージに責任のあるポーンです。
-
-1. **Spawn Transform** ピンを **左クリック** して左にドラッグし、コンテキスト メニューから **Get Actor Transform** を見つけて追加します。 
-
-	![](GHT1_9.png)
-
-	**Get Actor Transform** ノードは、スポーンしたい新規アクタをどこにスポーンするのか **Spawn Actor** に指示します。
-
-1. **Get Actor Transform** ピンを **左クリック** してドラッグし、コンテキスト メニューから **Get Player Character** を見つけて追加します。 
-
-	![](GHT1_10.png)
-
-	つまり、Player Character の次にその Transform を get して、それを **Spawn Transform** に割り当てるということを表しています。 
-
-1. グラフのどこかを **右クリック** して、コンテキスト メニューから **F** Key Event を見つけて追加することもできます。 
-
-	![](GHT1_11.png)	
-
-1. **Pressed** ピンを **SpawnActor** ノードの **Execute Input** ピンに接続します。 
-
-	![](GHT1_12.png)
-
-	今度は、 **F** が押されたら、 **SpawnActor** を実行して、Player Character の Transform でアクタをスポーンすることを表しています。 
-
-1. **[Compile]** ボタンをクリックし、 **ブループリント** を閉じます。 
-
-	コンパイル前： 
-
-	![](GHT1_13.png)
-
-	正常にコンパイルされた後：  
-
-	![](GHT1_14.png)
-
-	緑のチェックマークがない場合は、すべてのノードが接続されて、 **Actor Class** が **SpawnActor** ノード上に指定されていることを確認してください。
-
-1. メイン ウィンドウで **[Play]** ボタンをクリックしてエディタで再生します。 
-
-	[REGION:raw]
-	![](GHT1_15.png)
-	[/REGION]
-
-	**F** を押すと、プレイヤー キャラクターがいるワールドの位置に選択したアクタがスポーンされます。
-
-この例は、キーを押してアクタをスポーンする方法を解説しましたが、お好きな数だけイベントを使って SpawnActor ノードを実行することができます。 
-
-**ブループリント** を使った作業の詳細については、 [](Engine/Blueprints/UserGuide) を参照してください。 
-
-## スポーン ポイントの設定
-
-指定位置でアクタをスポーンする場合、 Transform を手動で設定するか、別のアクタの Transform を参照します。
-
-Transform を手動で設定する方法およびアクタの Transform を参照してスポーン位置として使用する方法を、次の例で紹介します。
-
-1. エディタ内で任意のプロジェクトを一旦開き、 **[ブループリント]** ボタンと **Open Level Blueprint** をクリックします。  
-
-	[REGION:raw]
-	![](GHT1_1.png)
-	[/REGION]
-
-1.	グラフ ウィンドウで **右クリック ** して、 **Spawn Actor from Class** ノードを探して追加します。 
-
-	![](GHT1_5.png)
-
-1.	**Spawn Actor** ノードで、 **Class** ドロップダウン メニューをクリックしてスポーンするアクタを選択します。 
-
-	![](GHT1_7.png)
-
-1.	**[Level ブルー・プリント]** ウィンドウを最小化します。 
-
-1. メインのエディタ ウィンドウの **Modes** で **Target** を探して **Target Point** をレベル内にドラッグします。 
-
-	[REGION:raw]
-	![](GHT1_16.png)
-	[/REGION]
-
-1. **Level ブループリント** ウィンドウへ戻り、グラフを **右クリック** し、 **[Add Reference to TargetPoint]** を選択します。
-
-	![](GHT1_17.png)
-
-1. 追加したピンを **左クリック** してドラッグし、 **Get Actor Transform** ノードを探して追加します。 
-
-	![](GHT1_18.png)
-
-1. **Get Actor Transform** ノードの **Return Value** を **Spawn Transform** 入力ピンに接続します。 
-
-1.	グラフ内を **右クリック** して **F** Key Event を探して追加して、**Pressed** からそれを **SpawnActor** へ接続します。 
-
-	![](GHT1_19.png)
-
-	この例では、 Key Press イベントを使って **SpawnActor** ノードを実行しましたが、お好きな方法を使うことができます。
-
-1.	**コンパイル** して **ブループリント** を終了し、エディタで再生するとターゲットポイントでアクタがスポーンされたのがわかります。 
-
-アクタを参照してスポーン ポイントを指定する他、 SpawnActor に対する Spawn Transform を手動で入力することもできます。以下がその方法です。 
-
-1.	**SpawnActor** ノードの **Spawn Transform** ピンをドラッグし、 **Make Transform** を選択します。 
-
-	![](GHT1_21.png)
-
-1.	すると、 **Location** 、 **Rotation** 、 **Scale** を手動で入力した場所に **Make Transform** ノードができます。 
-
-	![](GHT1_22.png)
-
-## スポーンされたアクタを破壊する
-
-アクタをスポーンしたけれど、それを破壊したい場合を仮定します (例えば、プレイヤーがアクタを倒した、またはアクタをピックアップとして選択したなど)。 
-
-Level ブループリントでスポーンされたアクタを破壊するには、以下の操作を行います。 
-
-1. エディタ内で任意のプロジェクトを一旦開き、 **[ブループリント]** ボタンと **Open Level Blueprint** をクリックします。  
-
-	[REGION:raw]
-	![](GHT1_1.png)
-	[/REGION]
-
-1.	グラフ ウィンドウで **右クリック ** して、 **Spawn Actor from Class** ノードを探して追加します。 
-
-	![](GHT1_5.png)
-
-1.	**Spawn Actor** ノードで、 **Class** ドロップダウン メニューをクリックしてスポーンするアクタを選択します。 
-
-	![](GHT1_7.png)
-
-1.	**Spawn Transform** ピンを **左クリック** してドラッグし **Get Actor Transform** ノードを追加します。 
-
-1.	**Get Actor Transform** ノードを **左クリック** してドラッグし **Get Player Character** ノードを追加します。 
-
-1.	グラフ内の空の部分を **右クリック** して **F** Key Event を探して追加して、 **SpawnActor** ノードへ接続します。 
-
-	![](GHT1_12.png)
-
-1.	 **SpawnActor** の **Execute Out** ピンを **左クリック** してドラッグし **Delay** ノードを追加します。 
-
-1. **Delay** ノードの持続時間を **3** (アクタを破壊するまでの待機秒時間になります) に設定します。 
-
-1. **SpawnActor** の **Return Value** を **左クリック** してドラッグし **Destroy Actor** ノードを追加して以下のように接続します。 
+1.	**Get Player Character** ノードを使って以下のようにアタッチして、**Location Rule** と **Rotation Rule** を **Snape to Target** に設定します。 
 
 	[REGION:lightbox]
-	[![](GHT1_20.png)(w:740)](GHT1_20.png)
+	[![](SpawnDestroy_16.png)](SpawnDestroy_16.png)
 	[/REGION]
 
 	_画像をクリックしてフルサイズで表示_
 
-1.	**ブループリント** を **コンパイル** して終了し、エディタで再生すると、プレイヤーの位置でスポーンしたアクタが 3 秒後にデスポーン (消滅) されるのがわかります。 
+	ここでは、炎のエフェクトに対する参照の変数をプレイヤー キャラクターにアタッチし、その位置と回転をプレイヤー キャラクターに合うようにスナップします。 
 
-SpawnActor ノードを実行してアクタをスポーンすると、必要に応じたイベントの種類でアクタの破壊がトリガーされます。 
+1.	**[コンパイル]** ボタンをクリックし、ブループリントをコンパイルします。 
 
-ブループリント を使った作業の詳細については、 [](Engine/Blueprints/UserGuide) を参照してください。 
+	![](SpawnDestroy_17.png)
+
+1.	メインのレベル エディタ ウィンドウに戻り、**[メインツールバー]** から、**[Play]** ボタンをクリックしてエディタ内でプレイします。 
+
+	![](SpawnDestroy_18.png)
+	## 最終結果
 
 
 
+エディタで再生中に、**F** キーを押すと炎のエフェクトをスポーンし、プレイヤー キャラクターにアタッチされます。 
+炎がプレイヤーにアタッチされている状態で、**F** キーを押すとエフェクトを破棄して、再度 **F** キーを押してそれをリスポーンすることができます。 
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	uEzFpMt6mxo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 
+他の方法としては、ブループリントの炎のエフェクト内のパーティクルエフェクトを  **アクティベート** および **非アクティベート** にするやり方があります。 
 
+[REGION:lightbox]
+[![](AlternativeMethod.png)](AlternativeMethod.png)
+[/REGION]
 
+_画像をクリックしてフルサイズで表示_
+
+上の例では、ゲーム開始時に **Event BeginPlay** ノードを使って Blueprint Fire をスポーンして、それをプレイヤー キャラクターにアタッチします。 
+パーティクル エフェクトも非アクティベートにして、ゲーム開始時に関連するサウンドをフェードアウトします。 
+**F** を押すと、ブループリントの Fire エフェクトが既にスポーンされているため (アクティベートはされていません)、代わりにそれをアクティベートして、オーディオをフェードインします。 
+**F** を 2 回めに押すと、エフェクトを破棄する代わりに、それを非アクティブにして関連サウンドをフェードアウトさせます。 
 
 

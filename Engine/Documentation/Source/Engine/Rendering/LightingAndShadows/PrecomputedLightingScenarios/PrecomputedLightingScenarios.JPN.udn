@@ -1,17 +1,20 @@
-﻿INTSourceChangeList:3230896
-Availability:Docs
+﻿INTSourceChangelist:3603669
+Availability:Public
 Title:Precomputed Lighting Scenarios
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:UE4 の Precomputed Lighting Scenarios の概要です。
 Version:4.14
 Parent:Engine/Rendering/LightingAndShadows
-TagsRendering
+Order:1
 Type:Reference
+Tags:Rendering
+Tags:Lighting
+Tags:Lightmass
 topic-image:PCLS_Header.png
 
 [TOC(start:1 end:4)]
 
-Unreal Engine 4 (UE4) は、レベル内で異なる **Precomputed Lighting Scenarios** の使用をサポートしています。事前計算ライティングの負荷を変えずに動的ライティングの柔軟性を利用して、複数のライティング設定に対して 1 つのレベルを格納および表示する機能です。 
+Unreal Engine 4 (UE4) は、レベル内で様々な **Precomputed Lighting Scenarios** の使用をサポートしています。事前計算ライティングの負荷を変えずに動的ライティングの柔軟性を利用して、複数のライティング設定に対して 1 つのレベルを格納および表示する機能です。 
 高速パフォーマンス手段を利用した質の高いレンダリングが要求される VR あるいは建築ビジュアライゼーションでは、様々な Precomputed Lighting Scenarios で切り替えられる機能が特に重要です。 
 このリファレンスでは、UE4 プロジェクトで事前計算ライティングの使用方法を説明します。
 
@@ -21,7 +24,7 @@ Unreal Engine 4 (UE4) は、レベル内で異なる **Precomputed Lighting Scen
 上の例では、指向性ライト、スカイライト、スカイボックスが `DayScenario` という Lighting Scenario レベルに配置されています。街頭用のスポットは、`Night Scenario` と呼ばれる別の Lighting Scenario レベルに置かれています。
 [/REGION]
 
-## Precomputed Lighting Scenarios の制約事項
+## 機能の制限事項
 Precomputed Lighting scenarios には様々なメリットがあると同時に、デメリットと注意点もあります。 
 次のセクションでは、これらの制約事項および回避策について説明します。
 
@@ -37,7 +40,7 @@ UE4 プロジェクトで Lighting Scenarios を使用するには、以下の�
 
     ![](PCLS_Open_Levels.png)
 
-1. **[Levels Manager]** を開いたらサブレベルにある **[Levels]** メニューを→クリックし、**[Lighting Scenario]** の **[Change to Lighting Scenario]** オプションを選択して **Lighting Scenario** レベルに変更します。
+1. **[Levels Manager]** を開いたらサブレベルにある **[Levels]** メニューを→クリックし、**[Lighting Scenario]** の **[Change to Lighting Scenario]** オプションを選択して **[Lighting Scenario]** レベルに変更します。
 
     ![](PCLS_LS_Level_Option.png)
 
@@ -49,7 +52,7 @@ UE4 プロジェクトで Lighting Scenarios を使用するには、以下の�
 
     ![](PCLS_Level_Streaming_Method.png)
     
-1. 次に、プロジェクトに必要なライトまたは [](Engine/Content/Types/StaticMeshes) をいずれかのライティング レベルに配置します。そして、他のレベルと同じように各レベルのライティングをビルドします。
+1. 次に、プロジェクトに必要な光または [](Engine/Content/Types/StaticMeshes) をいずれかのライティング レベルに配置します。そして、他のレベルと同じように各レベルのライティングをビルドします。
 
     ![](PCLS_Build_Lighting.png)
 

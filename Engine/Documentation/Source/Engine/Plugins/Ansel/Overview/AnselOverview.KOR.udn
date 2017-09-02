@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3200408
+﻿INTSourceChangelist:3579346
 Availability:Public
-TItle:Ansel 플러그인 개요
-Description:게임에 특화된 이미지 캡처 및 공유를 위한 Nvidia Ansel 인게임 포토그라피 툴의 언리얼 엔진 4 통합에 대한 개요입니다.
+TItle:NVIDIA Ansel 플러그인 개요
+Description:게임에 특화된 이미지 캡처 및 공유를 위한 NVIDIA Ansel 인게임 포토그라피 툴의 언리얼 엔진 4 통합에 대한 개요입니다.
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:1
@@ -12,9 +12,9 @@ version:4.14
 topic-image:Engine/Plugins/Ansel/Ansel_topic.png
 
 [EXCERPT:intro]
-Nvidia Ansel 테크놀로지는 PC 게이머가 자신의 게임에 특화된 이미지를 간단히 캡처하고 공유할 수 있도록 해줍니다. Ansel UE4 플러그인은 쉽고 빠르게 게임에 통합시킬 수 있습니다.
+NVIDIA Ansel 테크놀로지는 PC 게이머가 자신의 게임에 특화된 이미지를 간단히 캡처하고 공유할 수 있도록 해줍니다. Ansel UE4 플러그인은 쉽고 빠르게 게임에 통합시킬 수 있습니다.
 
-Ansel 최종 사용자 개요는 [Nvidia's Ansel Site](http://www.geforce.com/hardware/technology/ansel) 에서 확인하실 수 있습니다.
+Ansel 최종 사용자 개요는 [NVIDIA's Ansel Site](http://www.geforce.com/hardware/technology/ansel) 에서 확인하실 수 있습니다.
 
 언리얼 엔진 4 에서 사용할 수 있는 Ansel 기능은 다음과 같습니다:
 
@@ -30,7 +30,7 @@ Ansel 최종 사용자 개요는 [Nvidia's Ansel Site](http://www.geforce.com/ha
 | 언리얼 엔진 버전 | 4.14 이상 |
 | 운영 체제 | Microsoft Windows |
 | GPU | NVIDIA GTX 780 이상 [REGION:none]전체 호환 목록은 [Ansel Supported GPUs page](http://www.geforce.com/hardware/technology/ansel/supported-gpus) 에서 확인하실 수 있습니다.[/REGION] |
-| 디스플레이 드라이버 | Nvidia Geforce 372.90 이상 |
+| 디스플레이 드라이버 | NVIDIA GeForce 372.90 이상 |
 [/EXCERPT:intro]
 
 ## 게임에 Ansel Photography 활성화
@@ -41,7 +41,7 @@ Ansel 최종 사용자 개요는 [Nvidia's Ansel Site](http://www.geforce.com/ha
 
 	![](Settings_Menu.png)
 
-1.	**Photography** 카테고리를 선택하고 **Nvidia Ansel Photography Plugin** 을 찾습니다. _Enabled_ 옵션을 토글합니다.
+1.	**Photography** 카테고리를 선택하고 **NVIDIA Ansel Photography Plugin** 을 찾습니다. _Enabled_ 옵션을 토글합니다.
 
 	![](Plugin_Enabled.png)
 

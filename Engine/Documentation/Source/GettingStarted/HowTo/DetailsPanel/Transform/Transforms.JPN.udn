@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3481084
+Availability:Public
 Title:1.アクタのトランスフォームの作業
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo, GettingStarted\HowTo\DetailsPanel
 Description:[詳細] パネルの [Transform (トランスフォーム)] セクションを使って、アクタの位置、回転、スケーリングを操作します。 
@@ -42,18 +43,45 @@ checkpoint: editorqs
 
 1.	アクタを配置すると、エディタの右下部分の **[詳細]** パネルにアイテムが追加されます。 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Details2.png)](Details2.png)
-	_クリックしてフルサイズで表示_
+	[![](DetailsPanel_Windows.png)](DetailsPanel_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](DetailsPanel_Mac.png)](DetailsPanel_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1.	 **[Details]** パネル内の **Transform** の下にある **Scale** で鍵のアイコンをクリックして **XYZ** の値を **3.0** に設定します。 
 
 	![](Details3.png)
 
 	鍵のアイコンをクリックすると、個別ではなく、X、 Y 、Z の値が均一にスケーリングされます。 
-	変更を加えると、レベル内の球体が入力した新しい値に更新されます。 
 
+	変更を加えると、レベル内の球体が入力した新しい値に更新されます。 
 
 	![](Details4.png)
 
@@ -68,7 +96,7 @@ checkpoint: editorqs
 
 [詳細] パネルからアクタの位置、スケーリング、可動性を直接設定しましたが、 [Transform ツール](GettingStarted/HowTo/ManipulatingActors) を使ってビューポート内でアクタを操作することもできます。正確に並べたい場合や、正確な数値が必要な場合は、[詳細] パネルのプロパティを使用すると便利です。 
 
-次では、詳細パネルでアクタに適用された **マテリアル** を更新します。 
+次では、[詳細] パネルでアクタに適用された **マテリアル** を更新します。 
 
 
 %Steps%

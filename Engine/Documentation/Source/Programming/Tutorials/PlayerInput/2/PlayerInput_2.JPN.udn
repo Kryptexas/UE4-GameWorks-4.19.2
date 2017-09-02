@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3599948
+Availability:Public
 Title:2.ゲーム入力の設定
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
 Description:アンリアルエンジンの入力値を設定
@@ -7,25 +8,27 @@ version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前の手順](Programming\Tutorials\PlayerInput\1 "%Programming\Tutorials\PlayerInput\1:title%")
+		[前のステップ](Programming\Tutorials\PlayerInput\1 "%Programming\Tutorials\PlayerInput\1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プレイヤー入力と Pawn クラス](Programming\Tutorials\PlayerInput)
+		[](Programming\Tutorials\PlayerInput)
 	[/PARAM]
 	[PARAM:next]
-		[次の手順](Programming\Tutorials\PlayerInput\3 "%Programming\Tutorials\PlayerInput\3:title%")
+		[次のステップ](Programming\Tutorials\PlayerInput\3 "%Programming\Tutorials\PlayerInput\3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-入力マッピングにはアクションと軸マッピングの 2 種類があります。
-<br>**Action Mappings (アクション マッピング)** は、例えばマウスやジョイスティックのボタンで入力する 「yes」 または 「no」 入力と考えるとわかりやすいです。ボタンを押下、リリース、ダブルクリック、またはしばらくの間押したままの状態の時にレポートします。ジャンプ動作、射撃動作、またはオブジェクトとのインタラクション動作などの離散アクションがこのタイプのマッピングの有力候補です。
-<br>**Axis Mappings (軸マッピング)** は継続的な入力に使用します。ジョイスティック入力やマウスのカーソル位置など、「どれだけ」の値が入力されたか？と考えると分かりやすいです。移動してない場合でもフレームごとに値をレポートします。ウォーキング、周囲の見回しやビークルの操縦など、大きさや方向を伴う動作は通常はこの手法で処理されます。
-<br>入力マッピングはコードに直接定義することもできますが、一般的にはこのチュートリアルで紹介するように **アンリアル エンジン** エディタで定義します。
+入力マッピングにはアクション マッピングと軸マッピングの 2 種類があります。
+
+* **Action Mappings (アクション マッピング)** は、例えばマウスやジョイスティックのボタンで入力する 「yes」 または 「no」 入力と考えるとわかりやすいです。ボタンを押下、リリース、ダブルクリック、またはしばらくの間押したままの状態の時にレポートします。ジャンプ動作、射撃動作、またはオブジェクトとのインタラクション動作などの個別のアクションがこのタイプのマッピングの有力候補です。
+* **Axis Mappings (軸マッピング)** は継続的な入力に使用します。ジョイスティック入力やマウスのカーソル位置など、「どれだけ」の値が入力されたか？と考えると分かりやすいです。移動してない場合でもフレームごとに値をレポートします。ウォーキング、周囲の見回しやビークルの操縦など、大きさや方向を伴う動作は通常はこの手法で処理されます。
+
+入力マッピングはコードに直接定義することもできますが、一般的にはこのチュートリアルで紹介するように **アンリアル エンジン** エディタで定義します。
 
 1. **アンリアルエンジン** エディタの **[Edit (編集)]** ドロップダウンメニューから **[Project Settings (プロジェクト設定)]** オプションをクリックします。
 
@@ -34,7 +37,7 @@ version:4.9
 1. そして左側の **[Engine (エンジン)]** セクションから **[Input (入力)]** オプションを選択します。右側に表示される **[Bindings (バインディング)]** カテゴリを展開して、**[Action Mapping]** を1つ、**[Axis Mappings]** を2つ追加します。
 	**[Action Mapping]** または **[Axis Mapping]** セクション見出しの横にある＋記号で新しいマッピングを追加します。左側の展開用の矢印でマッピングを表示または非表示にできます。
 
-	マッピングに入力を追加するには、対象のマッピングの横に表示される＋記号をクリックします。チュートリアルで設定するマッピングと入力は以下の通りです。"S" と A" 入力のマイナス値に留意してください。
+	マッピングに入力を追加するには、対象のマッピングの横に表示される＋記号をクリックします。必要なマッピングと入力は以下の通りです。"S" と A" の入力のマイナス値に留意してください。
 
 	| ----- | ----- | ----- |
 	| Action Mapping (アクション マッピング) | | |
@@ -74,7 +77,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -90,10 +93,12 @@ version:4.9
 				// Sets default values (デフォルト値を設定) 
 				AMyPawn();
 
-				// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+			protected:
+				// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出されます)
 				virtual void BeginPlay() override;
+			public:
 
-				// Called every frame (フレームごとに呼ばれます) 
+				// Called every frame (フレームごとに呼び出されます)
 				virtual void Tick( float DeltaSeconds ) override;
 
 				// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
@@ -104,7 +109,7 @@ version:4.9
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
@@ -112,7 +117,7 @@ version:4.9
 			// Sets default values (デフォルト値を設定) 
 			AMyPawn::AMyPawn()
 			{
- 				// Set this pawn to call Tick() every frame. (フレーム毎に Tick() を呼び出すには、このポーンを設定します)You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
+ 				// Set this pawn to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのポーンを設定します。) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 				PrimaryActorTick.bCanEverTick = true;
 
 				// Set this pawn to be controlled by the lowest-numbered player (このポーンが最小値のプレイヤーで制御されるように設定)
@@ -130,14 +135,14 @@ version:4.9
 				OurVisibleComponent->SetupAttachment(RootComponent);
 			}
 
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出されます)
 			void AMyPawn::BeginPlay()
 			{
 				Super::BeginPlay();
 
 			}
 
-			// Called every frame (フレームごとに呼ばれます) 
+			// Called every frame (フレームごとに呼び出されます)
 			void AMyPawn::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );

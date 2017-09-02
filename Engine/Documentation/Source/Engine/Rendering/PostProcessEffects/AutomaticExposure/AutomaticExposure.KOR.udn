@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
+﻿INTSourceChangelist:3599948
+Availability: Public
 Crumbs: %ROOT%
-Title:눈 순응 (자동 노출)
-Description:밝기의 변화에 눈이 순응하는 현상 시뮬레이션을 위해 씬 노출을 자동으로 조절하는 기능입니다.
+Title: 눈 순응 (자동 노출)
+Description: 밝기의 변화에 눈이 순응하는 현상 시뮬레이션을 위해 씬 노출을 자동 보정해 주는 기능입니다.
 Type: Overview
 SkillLevel: Beginnner
 Version:4.16

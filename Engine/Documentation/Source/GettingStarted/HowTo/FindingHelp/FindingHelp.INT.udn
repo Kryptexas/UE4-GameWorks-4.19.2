@@ -125,7 +125,7 @@ When clicking the **Help** button, several options are available in the dropdown
 | Control | Action |
 | ------- | ------ |
 | **Documentation** | This will take you to the main [Official Documentation](#externalhelp:documentation) page. |
-| **API Reference** | This will open the **UE4 API Documentation** and is a low level index of Engine classes and functions.  |
+| **API Reference** | This will open the [UE4 API Documentation](https://docs.unrealengine.com/latest/INT/API/index.html) and is a low level index of Engine classes and functions.  |
 | **Tutorials** | Selecting this option will open the [In-Editor Tutorials](#in-editortutorials). |
 | **Forums** | This will take you to the [Official Unreal Engine 4 Forums](#externalhelp:forums) page. |
 | **Answer Hub** | Selecting this will take you to the main [Answer Hub](#externalhelp:answerhub) page. |

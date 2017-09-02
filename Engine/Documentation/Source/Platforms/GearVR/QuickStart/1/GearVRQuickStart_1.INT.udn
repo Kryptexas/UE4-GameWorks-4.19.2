@@ -1,9 +1,9 @@
 Availability:Public
 Title:1. Gear VR Project Creation
 Crumbs:%ROOT%, Platforms/GearVR
-Description:How to create a UE4 C++ based project that can be used with the Gear VR Headset.
+Description: How to create a UE4 project that can be used with the Gear VR Headset.
 Navigation:platform
-Version: 4.16
+Version: 4.17
 Skilllevel: Intermediate
 tags:VR
 tags:GearVR
@@ -15,42 +15,47 @@ Checkpoint:GearVRQS
 [nav]
 
 
-With the release of Unreal Engine 4.8 and later, setting up a project that works with the Samsung Gear VR Headset is no different than setup than a normal UE4 project. 
-In the following section we will go over everything you need to know in order to create a new project that will work with the Gear VR headset.
-
-[REGION:warning]
-If you are using UE4 version 4.7 you will need to create your project as a C++ project and not a Blueprint project.
-In UE4 version 4.8 and later you do not have to do this and can use either C++ or Blueprints for your projects.
-[/REGION]
+In the following part of the Gear VR Quick Start, we will go over setting up a new UE4 project that can be used with Gear VR.
 
 ## Steps
 
-1. First make sure that you have UE4 version **4.7.4** or later downloaded and installed on your development PC. 
-You can get UE4 version **4.7.4** or later from the [Unreal Engine Launcher](http://tinyurl.com/oawb7x2) or from [Github](https://www.unrealengine.com/ue4-on-github). 
+1. From the [Unreal Engine Launcher](http://tinyurl.com/oawb7x2) make sure that you have UE4 version **4.17** or later downloaded and installed then press the **Launch** button to open the **Unreal Project Browser**.
 
-	[Region:note]
-	If you are using the [Github](https://www.unrealengine.com/ue4-on-github) version of UE4 to run the **Setup.Bat** file before going any further to ensure that you have the proper files downloaded to your development PC.
-	[/REGION]
+    [REGION:lightbox]
+    [![](GVR_New_Project_00.png)(w:550)](GVR_New_Project_00.png)
+    [/REGION]
 
-	![](GVR_New_Project_03.png)
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-1. Once you have a version of UE4 **4.7.4** or later installed on your development PC create a new **C++ Project** from the **New Project Tab**.
-	![](GVR_New_Project_00.png)
+1. From the New Project tab of the Unreal Project Browser, create a new **Blueprint** based project that is **Blank** and uses the following settings.
 
-	[Region:note]
-	If you are using Unreal Engine 4.8 or later you can use either a C++ based project or a Blueprint based project.
-	[/REGION]
+    [REGION:lightbox]
+    [![](GVR_New_Project_01.png)(w:550)](GVR_New_Project_01.png)
+    [/REGION]
 
-1. Next select the **First Person Template** as the template to be used and make sure to change the following options.
-	* **Mobile / Tablet**
-	* **Scalable 3D / 2D** 
-	* Also make sure to not include the **Starter Content** to help reduce project size.
-	![](GVR_New_Project_01.png)
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-1. Finally give the project a location to be saved to and a name. The name for this example the project name will be **GearVR_QS**. Once everything has been completed press the green **Create Project** button to create the project.
-	![](GVR_New_Project_02.png)
+    * **Blank Project**
+    * **Mobile / Tablet**
+    * **Scalable 3D / 2D**
+    * **No Starter Content**
+
+1. Next, set the project's location and give it a name. For this example, the name will be **GearVRQS** but feel free to pick any name you want. When that has been completed, press the **Create Project** button to create the project and load the UE4 Editor.
+
+    [REGION:lightbox]
+    [![](GVR_New_Project_02.png)(w:550)](GVR_New_Project_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
 ## End Result
-When completed you should now have a new First Person project created with all of the correct settings for the project to be used with a  Gear VR HMD.
+
+When completed you should now have a new Blank project created that is ready to be setup for use with Gear VR.
 
 [nav]

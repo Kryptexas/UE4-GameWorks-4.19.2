@@ -1,10 +1,20 @@
-﻿INTSourceChangelist:3244089
-Availability:Public
+﻿INTSourceChangelist:3612551
+Availability: Public
+Crumbs: %ROOT%
 Title: 위젯 블루프린트
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:위젯 블루프린트를 만드는 방법, 위젯 블루프린트 인터페이스에 대한 개요입니다.
-Version: 4.9
-tags:UMG UI Designer
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:1
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-image:Engine/UMG/UserGuide/WidgetBlueprintTopic.png
+
+
+
+
 
 **언리얼 모션 그래픽** 작업을 시작하기 위해서는 먼저 아래와 같이 **위젯 블루프린트** 를 만들 필요가 있습니다.
 

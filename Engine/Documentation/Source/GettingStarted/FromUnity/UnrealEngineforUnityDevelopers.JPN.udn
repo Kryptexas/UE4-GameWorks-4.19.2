@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3481084
+Availability:Public
 Title:Unity 引っ越しガイド
 Crumbs: %ROOT%, GettingStarted
 Description:Unity の操作内容を UE4 の該当する部分と比較して説明し、UE4 の迅速な習得を支援します。
@@ -15,13 +16,66 @@ version:4.9
 
 以下は Unity のエディタとアンリアル エディタの画面です。一般的な機能を表すために色分けされています。各ブロックには、該当する UE4 用語を示すラベルが付いています。アンリアル エディタのレイアウトは、タブをドラッグ ＆ ドロップすることで完全にカスタマイズ可能です。
 
-![](image_1.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](EditorCompare_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](EditorCompare_Mac.png)
+	[/PARAM]
+[/OBJECT]
+
 
 ### アセットの編集
 
 Unity では、インスペクター (Inspector) タブを使用してプロジェクト内で選択したアセットを編集します。UE4 では、**[詳細]** パネルに選択したオブジェクトのプロパティが表示されますが、編集タスクが大きい場合は、専用のウィンドウやタブ になります。編集した各アセットに対して新しくタブ化されたウィンドウが開きます。ウェブ ブラウザと同様です。当然、スタンドアロンのウィンドウとしてタブを自由にドラッグしたり、フロートさせたりできます。
 
-![](image_2.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabbedWindows_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabbedWindows_Mac.png)
+	[/PARAM]
+[/OBJECT]
 
 ## クイック用語集
 
@@ -63,7 +117,33 @@ Unity プロジェクトと同様に Unreal プロジェクトは常に独自の
 
 UE4 では、各プロジェクトに **Content ** フォルダがあります。Unity プロジェクトのアセット フォルダと同様に、ここにゲーム アセットを格納します。ゲームにアセットをインポートするには、プロジェクトの Content ディレクトリにファイルをドロップすると、自動的にインポートされて **コンテンツ ブラウザ** に表示されます。外部プログラムを使用してファイルに変更を加えるとエディタ内のアセットは自動的に更新されます。
 
-![image alt text](image_3.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](ProjectOnDisk_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](ProjectOnDisk_Mac.png)
+	[/PARAM]
+[/OBJECT]
 
 ### サポートされる共通ファイル形式は？
 
@@ -369,8 +449,8 @@ Unity の Start、OnDestroy、および Update の関数と同様に、以下の
 
 		// ゲーム開始時に呼び出されます。
 		void BeginPlay();
+	// 破壊時に呼び出されます。
 
-		// 破壊時に呼び出されます。
 		void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 		// アクタを更新するためにフレーム毎に呼び出されます。
@@ -493,8 +573,8 @@ NewObject 関数と SpawnActor 関数も一緒に動作する「テンプレー�
 	class AMyActor : public AActor
 	{
 		GENERATED_BODY()
-
 		UPROPERTY()
+
 		int32 MyIntProp;
 
 		UPROPERTY()
@@ -772,8 +852,8 @@ _フルサイズ表示するにはここをクリック_
 	{
 		// ...
 	}
-
 	//アクタがこのタグを持っているかをチェックします。
+
 	if (MyActor->ActorHasTag(FName(TEXT("MyTag"))))
 	{
 		// ...

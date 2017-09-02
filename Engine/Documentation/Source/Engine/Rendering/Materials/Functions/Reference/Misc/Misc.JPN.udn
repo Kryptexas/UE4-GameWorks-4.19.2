@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2735630
+﻿INTSourceChangelist:3494733
 Availability:Public
 title:その他の関数
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:既存カテゴリに属さないその他の関数
 Version:4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 
@@ -11,7 +12,7 @@ Version:4.9
 
 その他の関数は 1 回限りのさまざまな関数を含み、既存の他の関数カテゴリには属しません。カテゴリ内に関数が 1 つしか存在しないその他のカテゴリと混同しないようにこのドキュメントで別途紹介します。
 
-## 数学関数
+## その他の関数
 
 以下はその他の関数に属する全関数のリストです。
 

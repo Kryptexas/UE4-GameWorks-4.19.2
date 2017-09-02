@@ -95,7 +95,7 @@ These are completely optional, as many Actors will not actually die during play.
 * The lifetime of the Actor has expired
 * Application shut down (All Actors are Destroyed)
 
-Regardless of how this happens, the Actor will be marked RF_PendingKill so during the next garbage collection cycle it will be deallocated. Also, rather than checking for pending kill manually, consider using an FWeakObjectPtr<AActor> as it is cleaner.
+Regardless of how this happens, the Actor will be marked RF_PendingKill so during the next garbage collection cycle it will be deallocated. Also, rather than checking for pending kill manually, consider using an `FWeakObjectPtr<AActor>` as it is cleaner.
 
 **OnDestroy** - This is a legacy response to Destroy. You should probably move anything here to EndPlay as it is called by level transition and other game cleanup functions.
 

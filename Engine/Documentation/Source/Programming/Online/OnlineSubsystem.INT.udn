@@ -74,7 +74,7 @@ Additional services are loaded on demand when called from this function with the
 
 Much like Unreal Engine 3 (UE3), the online subsystem will make heavy use of delegates when calling functions with asynchronous side effects.   It is important to respect the delegates and wait for the proper delegate to be called before calling functions further down a chain.  Failure to wait for an asynchronous task can cause crashes and unexpected, undefined behavior.   Waiting for delegates is especially important during connectivity failures such as a cable pull or other disconnect events.   The amount of time a task may take to finish may seem instantaneous in the ideal case, but can be upwards of almost a minute in the timeout case.
 
-The delegate interface is fairly straightforward, with each delegate clearly defined at the top of each interface header.   Every delegate has an Add<DelegateName>, Clear<DelegateName>, and Trigger<DelegateName> function (although Triggering delegates manually is discouraged).   Common practice is to Add() the delegate right before calling the appropriate function, and then Clear() the delegate from within itself.   
+The delegate interface is fairly straightforward, with each delegate clearly defined at the top of each interface header.   Every delegate has an `Add<DelegateName>`, `Clear<DelegateName>`, and `Trigger<DelegateName>` function (although Triggering delegates manually is discouraged).   Common practice is to Add() the delegate right before calling the appropriate function, and then Clear() the delegate from within itself.   
 
 
 ### Interfaces

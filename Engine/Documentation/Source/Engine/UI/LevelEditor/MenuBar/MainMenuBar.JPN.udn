@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:メインメニュー バー
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -9,7 +9,37 @@ Version:4.9
 Windows アプリケーションを使用したことがあれば、エディタの **メニュー バー** は見慣れているはずです。このメニューバーからエディタのレベルでの作業中に、一般的なツールやコマンドを利用できます。
 [/EXCERPT:Intro]
 
-![](MainMenubar.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](MenuBar_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](MenuBar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 ## ファイル
 

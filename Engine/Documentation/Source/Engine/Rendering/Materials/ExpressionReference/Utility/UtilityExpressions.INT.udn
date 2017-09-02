@@ -15,10 +15,7 @@ Topic-image:Utility_topic.png
 [/EXCERPT:TOC]
 
 
-In this page, you'll find the available Utility Expressions that enable you to input values to affect Material's output value, like for example, using the GIReplace node will Replace an objects
-indirect bounce color with a given value you input, or LinearInterpolate will blend between two inputs using an alpha value to control how much.
-
-There are many others that enable you to control your Materials that you can look at the examples below to learn more about. 
+**Utility Expressions** nodes are nodes that can affect Materials in a number of different ways than one might be used to. For example the GIReplace node will Replace an objects indirect bounce color with a given value you input while the Linear Interpolate node will help blend between two Textures based on an Alpha input. On the following page you will find detailed descriptions for all of the Utility Expressions nodes that are available in the UE4 Material Editor.
 
 
 ## A - H
@@ -27,7 +24,7 @@ There are many others that enable you to control your Materials that you can loo
 [EXCERPT:AntialiasedTextureMask]
 ### AntialiasedTextureMask
 
-The **AntialiasedTextureMask** expression allows you to create a material using a soft (anti-aliased) transition mask. The mask can be used to blend between two complex material properties or to fade out an alpha blended material (works well with SoftMasked). Simply specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value. Assuming the channel stores a grayscale value in the range 0=black to 1=white the comparison function defines if the resulting mask should be 0 or 1. This expression is a parameter, allowing the **Texture** property to be overridden by child MaterialInstances.
+The **AntialiasedTextureMask** expression allows you to create a material using a soft (anti-aliased) transition mask. The mask can be used to blend between two complex material properties or to fade out an alpha blended material (works well with SoftMasked). Simply specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value. Assuming the channel stores a grayscale value in the range 0 = black to 1 = white the comparison function defines if the resulting mask should be 0 or 1. This expression is a parameter, allowing the **Texture** property to be overridden by child MaterialInstances.
 
 | Item | Description |
 | -------- | ----------- |
@@ -203,7 +200,7 @@ The **Desaturation** expression desaturates its input, or converts the colors of
 ![DesaturationExample.png](DesaturationExample.png)
 
 [REGION:note]
-**Programmers:** Define desaturated color `D`, input color `I` and luminance factor `L`.  The output will be `O = (1-Percent)*(D.dot(I)) + Percent*I`
+**Programmers:** Define desaturated color `D`, input color `I` and luminance factor `L`.  The output will be `O = (1 - Percent)*( D.dot( I )) + Percent * I`
 [/REGION]
 [/EXCERPT:Desaturation]
 
@@ -228,11 +225,11 @@ The **Distance** expression computes the (Euclidian) distance between two points
 
 **Pseudo code:**
 
-	Result = length(A - B)
+	Result = length (A - B)
 
 **Low level HLSL code:**
 	
-	float Result = sqrt(dot(A-B, A-B))
+	float Result = sqrt (dot (A-B, A-B))
 	
 [/EXCERPT:Distance]
 
@@ -443,11 +440,11 @@ The **Noise** expression creates a procedural noise field, giving you control ov
 | **Scale** | Changes the overall size of the noise cells. Lower numbers make the noise bigger. |
 | **Quality** | A look/performance setting. Lower values are faster but may look worse, higher values are slower but may look better. |
 | **Function** | [INCLUDE:#NoiseFunctions] |
-| **Turbulence** | Whether to use an absolute value when combining noise levels, results in a veined or billowy look. |
+| **Turbulence** | With Turbulence on, each noise octave will add only absolute values to the result. Changes the visual characteristics and can great shapes resembling sharp mountain ridges |
 | **Levels** | How many different levels of noise at different scales to combine, multiplies the computational cost by the number of levels. |
 | **Output Min** | The lowest value output by the noise calculation. |
 | **Output Max** | The highest value output by the noise calculation. |
-| **Level Scale** | Controls the scale of individual levels when using multiple levels of noise. This defaults to 2 so each level is twice the frequency at half the magnitude. |
+| **Level Scale** |  Level scale is always active and determines how much the scale changes for each new octave. |
 | **Tiling** | For noise functions that support it, allows noise to tile. This is more expensive, but useful when baking noise into a seamless wrapping texture. |
 | **Repeat Size** | When tiling, how often should the noise repeat. |
 || [REGION:tablesection]Inputs[/REGION] ||
@@ -466,7 +463,7 @@ The **Noise** expression creates a procedural noise field, giving you control ov
 |Fast Gradient | 3D Texture | High quality for direct use, **BAD** for bumps. about 16 instructions per level, 1 Texture lookup. Always tiles with a repeat of 16, "Tiling" mode is not an option for Fast Gradient noise.|
 | Gradient | Computational | High quality for direct use and bumps. Non-tiled: about 80 instructions per level, no Textures. Tiling: about 143 instructions per level, no Textures. |
 | Value | Computational | Low quality, but pure computation. Non-tiled: about 53 instructions per level, no Textures. Tiling: about 118 instructions per level, no Textures. Formerly mislabeled as Gradient noise. |
-| Voronoi | | Also know as Worley or Cellular noise. Quality=1 searches 8 cells, Quality=2 searches 16 cells, Quality=3 searches 27 cells, Quality=4 searches 32 cells. All are about about 20 instructions per cell searched. |
+| Voronoi | | Also know as Worley or Cellular noise. Quality = 1 searches 8 cells, Quality = 2 searches 16 cells, Quality = 3 searches 27 cells, Quality = 4 searches 32 cells. All are about about 20 instructions per cell searched. |
 [/EXCERPT]
 -->
 
@@ -500,7 +497,7 @@ In this example, the Previous Frame Switch is using a constant value to control 
 	YbjqiNZr4K4
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
-	50
+	100
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
 	56.25

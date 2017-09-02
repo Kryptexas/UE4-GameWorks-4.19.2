@@ -1,9 +1,14 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Animation
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:How to create animated UI elements in UMG. 
-version: 4.9
-tags:UMG UI Designer
+Description: How to create aniamted UI elements in UMG. 
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:2
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/AnimationTopic.png
 
 
 [REGION:fullwidth raw]

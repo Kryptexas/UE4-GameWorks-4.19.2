@@ -1,66 +1,41 @@
-Title:Oculus Rift Development
-Crumbs:%ROOT%, Platforms
-Description:
-Availability:Public
-Navigation:platform
-Platform:Oculus
-Version: 4.11
-type:landing
-parent:Platforms/VR
-tags:VR
-tags:Oculus Rift
-tags:Platform
-Topic-image:OculusRiftDevelopment_topic.png
+Title: Oculus Rift Development
+Availability: Public
+Crumbs: %ROOT%, Platforms
+Description: Information on getting UE4 to work with the Oculus Rift HMD.
+Navigation: platform
+Platform: Oculus
+Version: 4.16
+type: landing
+parent: Platforms/Oculus
+order:2
+tags: Oculus Rift
+tags: Platform
+topic-image: Platforms/VR/DesktopVR/Oculus_Topic_Image.png
+
+## Prerequisites 
+
+[DIR(end:"1" output:"topic" type:"reference" tags:"Oculus Rift" parent:"Platforms/Oculus")]
+
+## Quick Start
+
+[DIR(end:"1" output:"topic" type:"quick start" tags:" VR" parent:"Platforms/Oculus")]
+
+## Best Practices
+
+[DIR(end:"1" output:"topic" type:"overview" tags:" VR" parent:"Platforms/Oculus")]
+
+## Oculus How To
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Oculus" tags:"VR" parent:"Platforms/Oculus")]
+
+## Oculus Command Reference
+
+[DIR(end:"1" output:"topic" type:"reference" tags:"VR" parent:"Platforms/Oculus")]
+
+## Oculus Profiling & Performance
+
+[DIR(end:"1" output:"topic" type:"overview" tags:"Performance and Profiling" parent:"Platforms/Oculus")]
 
 
-## Starting Out
 
-[DIR(output:"listbutton" type:"quick start" parent:"Platforms/Oculus")]
-
-## Oculus Rift Topics
-
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/Oculus")]
-
-## Oculus Rift Resources
-
-[REGION:buttonlist]
-* [Lessons from Integrating the Oculus Rift into Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
-[/REGION]
-
-## Shipping with Oculus
-If you are planning on releasing a VR game that targets the Oculus Rift, you will need to make sure that you are using **UE4** version **4.11.1** or later. Earlier version of UE4 will not be compiled against the shipping versions of the Oculus Libraries. This means your project will not be able to be submitted to the Oculus store.
-
-## Enabling Unknown Sources 
-While you're developing your UE4 VR project, it's best to enable **Unknown Sources** so you can run your application with having to have it be registered or reviewed by Oculus. To enable the **Unknown Sources** option, you will need to do doing the following.
-
-1. Open the Oculus Store then click on the **Gear** icon that is in the upper right-hand corner to expose the **Settings** menu option, then click on the word **Settings**.
-
-	![](Rift_UKS_01.png)
-
-1. From the left hand side, select the **General** section. Then in the **Unknown Sources** section, click on the box that has an **X** inside of it.
-
-	![](Rift_UKS_02.png)
-
-1. After the box has been clicked on, a message will be displayed. Click on the **Allow** button to continue.
-
-	![](Rift_UKS_03.png)
-
-1. When completed, you should now see a checkmark in the button instead of a **X**. To revert this change back to the default settings, click on the button again and the checkmark will change from a checkmark back into an X.
-	
-	![](Rift_UKS_04.png)
-
-
-## Oculus Talks
- **Oculus Connect: Integrating the Oculus Rift into Unreal Engine 4**
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-0oM6Xe7fT-8
-[/PARAMLITERAL]
-[/OBJECT]
 

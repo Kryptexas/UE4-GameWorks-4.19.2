@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2942933
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:Place モード
 Crumbs:%ROOT%, Engine
@@ -47,7 +47,33 @@ SkillLevel:Beginner
 
 
 [REGION:fullwidth]
-	![](PlacementBrowser_Title.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](PlaceMode_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](PlaceMode_mac.png)
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 
@@ -63,10 +89,10 @@ Place モードはレベル エディタのデフォルト状態であり、**�
 
 ![](interface_PlacementBrowser.png)
 
-1. [**フィルタ**](#フィルタ)
+1. [**フィルター**](#フィルター)
 1. [**アセットビュー**](#アセットビュー)
 
-##フィルタ
+## フィルター
 
 ![](button_Filters.png)
 
@@ -82,7 +108,7 @@ Place モードはレベル エディタのデフォルト状態であり、**�
 | Volumes | すべての配置可能なボリュームの種類を含みます。 |
 | All Classes | すべての配置可能なアクタの種類を含みます。 |
 
-## アセットビュー
+## アセット ビュー
 
 ![](AssetView.png)
 

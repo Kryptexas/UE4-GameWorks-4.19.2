@@ -1,53 +1,20 @@
-﻿INTSourceChangelist:2939982
-Title:GitHub から VR エディタを設定する
-Description:GitHub からアンリアル エンジン VR エディタ プレビューをダウンロードし設定する
+﻿INTSourceChangelist:3360829
+Title:GitHub から VR エディタを設定する方法
+Description:GitHub からアンリアル エンジン VR エディタ プレビューをダウンロードして設定する方法
 Crumbs:
 Availability: public
 parent:Engine/Editor/VR
-type: howto
-order:1
+type:how-to
+order:2
 tags:VR
-tags: getting started
-version:4.11
+tags:GitHub
+version:4.15
 skilllevel: intermediate
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/Setup:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/Setup]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/Setup:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/Setup:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/Setup]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/Setup:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:vreditor_setup.png
 
 [EXCERPT:main]
 
-VR エディタは、もうすぐ発表されるアンリアル エンジンのリリースに含まれるプレビュー機能です。ソースコードをオンライン上にアップしておきました。使ってみて、フィードバックしてください！
+VR エディタは、次回のアンリアル エンジンのリリースに含まれるプレビュー機能です。ソースコードをオンライン上にアップしましたので、使った感想をフィードバックしてください！
 
 アンリアル エンジン フォーラムに参加して [Unreal Editor in VR](https://forums.unrealengine.com/showthread.php?99776-Unreal-Editor-in-VR-Official-megathread) スレッドでもフィードバックできます。
 
@@ -64,7 +31,7 @@ VR エディタは、もうすぐ発表されるアンリアル エンジンの�
 
 1. GitHub の [セットアップ方法](https://github.com/EpicGames/UnrealEngine/tree/dev-vr-editor#getting-up-and-running) に従って、エンジンを通常どおりにコンパイルします。
 1. エディタを実行します！
-1. 以下のファイルを実行して、エディタを開始します:
+1. 以下のファイルを実行して、エディタを開始します。
 
 	[UE4]\Engine\Binaries\Win64\UE4Editor.exe
 

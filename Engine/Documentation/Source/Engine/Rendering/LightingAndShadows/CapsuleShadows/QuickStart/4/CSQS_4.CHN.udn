@@ -1,27 +1,29 @@
-﻿INTSourceChangelist:0
-Availability:docs
-Title:4 - Your Level - Enabling Capsule Shadows For Your Character
-Crumbs:%ROOT%, Engine
-Description:In this step we create a second shot for our example cinematic. 
+﻿INTSourceChangelist:3454749
+Availability:Public
+Title:4 - 您的关卡 - 为角色启用胶囊体阴影
+Crumbs:
+Description:在这步中，我们将为示例动画创建第二个镜头。 
 SkillLevel:Intermeidate
-Version:4.12
+Version:4.15
 checkpoint: capsuleshadowsqs
 parent:Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart
-type:multi-step
+type:quick start
 order:4
+tags:Lighting
  
-[NAV]
 
-In the previous step, we assigned our Physics Asset to our Character's Skeletal Mesh as its Shadow Physics Asset. 
-This will enable us to use it for soft shadowing in our levels in direct and indirectly lit areas.
+[Nav]
+ 
+在上一步中，您已将物理资源指定到骨架编辑器中的角色，用作其阴影物理资源。而在这步中，利用此物理资源即可在直接和间接光照区域中投射出角色的胶囊体阴影。
 
-**Steps:**
+## 步骤
 
-1. Inside the **Content Browser**, navigate to the folder named **ThirdPersonBP**, then open the **Blueprints** folder. Double-click to open **ThirdPersonCharacter** Blueprint.
+1. 在 **Content Browser** 中，导航至 **ThirdPersonBP** > **Blueprints** 文件夹。选中 **ThirdPersonCharacter** 蓝图，双击将其打开。 
 
 	![](CB_TPBP.png)(w:400)
 
-1. In the ThirdPersonCharacter Blueprint, in the **Components** Window select **Mesh (Inherited)**. In the Details Panel, on the right, navigate down to the **Lighting** tab under the advanced rollout and enable the following: 
+1. 蓝图编辑器打开后，使用 **Components** 窗口并选择 **Mesh (Inherited)**。然后在 **Details** 面板中向下滚动并找到 **Lighting** 标签。在高级卷栏下找到并启用以下选项：
+
 	* **Capsule Direct Shadows**
 	* **Capsule Indirect Shadows**
 
@@ -29,13 +31,12 @@ This will enable us to use it for soft shadowing in our levels in direct and ind
 	[![](CapsuleSettings.png)(w:950)](CapsuleSettings.png)
 	[/REGION]
 	[REGION:caption]
-	_Click image for full size._
+	_点击图片查看全图。_
 	[/REGION]
 
-1. Now that these are set, you can **Save** & **Close** the ThirdPersonCharacter Blueprint.
+1. 为直接和间接光源启用胶囊体阴影后，即可 **保存** 并 **关闭** ThirdPersonCharacter 蓝图。 
 
-1. Before we test our Capsule Shadows we need to create some indirectly lit areas in our level. In your Level Viewport, select the **Floor** mesh and then hold the **ALT** key while **Left-clicking** to drag a copy up along the Z-axis. 
-Move the floor mesh to the top of the outer walls. Now use the X-axis on the translation tool to move it back so that only part of the floor area is covered. 
+1. 完整测试胶囊体阴影之前，需要使用 Capsule Indirect Shadows 在关卡中创建一些间接光照区域。在关卡视口中选择 **Floor** Actor，按住 **ALT** 键点击鼠标左键沿 Z 轴（蓝色）拖动一个副本。将地面 Actor 移至外墙顶部，然后使用平移工具上的 X 轴（红色）将其移回，只遮挡部分地面。这样一来，重建场景光照时便拥有了一个使用间接光照的区域。 
 	
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -49,20 +50,19 @@ Move the floor mesh to the top of the outer walls. Now use the X-axis on the tra
 		[/PARAMLITERAL]
 	[/OBJECT]
 	
-1. Now select the **Direcitonal Light**, named "Light Source," from the **World Outliner**. In its Details Panel set the **Intensity** for the light to **10**.
+1. 从 **World Outliner** 中选中 **Direcitonal Light**，名为“Light Source”。在 **Details** 面板中将光源 **Intensity** 设为 **10**。这能够确保有足够光线照亮被覆盖的区域。
 
 	![](LightSourceSettings.png)
 
-1. From the Main Toolbar click the **Build** button to rebuild the lighting for the scene. 
+1. 在主工具栏中点击 **Build** 按钮重建场景的光照。这可确保您能够使用角色的胶囊体间接阴影。
 
 	[REGION:raw]
 	![](BuildButton.png)
 	[/REGION]
 
-**End Result:**
+## 最终结果
 
-You now have a character that supports Capsule Shadowing for direct and indirectly lit areas. You can move around the scene to see the how the soft shadows work while sun lit areas or in areas that are
-covered and only receive bounce lighting, like under the ceiling we created for part of the level.
+现在您便拥有一个能在直接和间接光照中投射胶囊体阴影的角色。可进入 **Play in Editor**（PIE）模式，在场景中四处移动角色，查看阴影的柔和效果。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -76,9 +76,8 @@ covered and only receive bounce lighting, like under the ceiling we created for 
 	[/PARAMLITERAL]
 [/OBJECT]
 
-You can enable both Capsule Shadow settings individually depending on the needs of your game or project. These settings enable soft shadowing to make the character blend in with statically lit environments and to make the 
-character feel grounded in indirectly lit areas where normal shadowing techniques don't work well for dynamic Actors. 
+两个胶囊体阴影设置可单独启用。角色在空旷区域中被照亮时不需要柔和阴影，则可禁用此项；只启用间接光照区域中的胶囊体间接阴影。 
 
-In the next and final step, there are some "On Your Own" challenges you can attempt and reminders for creating your Shadow Physics Asset, along with some links to additional documentation. 
+在最后一步中，您将根据创建阴影物理资源的要点自行尝试一些挑战。 
 
-[NAV]
+[Nav]

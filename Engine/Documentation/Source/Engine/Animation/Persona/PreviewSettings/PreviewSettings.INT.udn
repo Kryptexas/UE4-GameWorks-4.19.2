@@ -1,6 +1,6 @@
-Availability: Docs
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Title:Preview Settings
+Title:Preview Scene Settings
 Description:User guide for the Preview Settings panel inside the Animation Tools. 
 Type: Reference
 version: 4.16
@@ -16,8 +16,20 @@ Related: Engine/Rendering/LightingAndShadows
 
 [TOC (start:2 end:2)]
 
-The **Preview Settings** enables you to quickly assess what your assets will look like in multiple environments and light scenarios without having to set up these scenes within your level. 
+The **Preview Scene Settings** panel enables you to quickly assess what your assets will look like in multiple environments and light scenarios without having to set up these scenes within your level. 
 Several different settings can be defined and applied from Skeletal Meshes to lighting and Post Process effects all within each of the [](Engine/Animation/Persona/Modes) inside the editor. 
+
+The location of the Preview Scene Settings panel can be found in the upper-right corner of the [Animation Tool](Engine/Animation/Persona/Modes) you are using. 
+
+![](PreviewSceneSettings.png)
+
+If you close the Preview Scene Settings panel, you can re-enable it from the **Window** option from the tool bar. 
+
+![](EnablePreviewSceneSettings.png)
+
+You can also access the Preview Scene Setting panel from the **Viewport Options** drop-down menu. 
+
+![](ViewportMenu.png)
 
 ## Animation
 
@@ -40,9 +52,12 @@ This section enables you to change the Skeletal Mesh used for previewing.
 |-------|------|
 | **Preview Mesh (Animation)** | The Skeletal Mesh to use for previewing. |
 
+Each type of asset, whether it's an Animation Sequence, Animation Blueprint, or a Skeleton can store and be overriden with different Preview Meshes. 
+The order of overriding goes from Skeleton to Asset, so if an asset doesn't have an override, it defaults to the Skeleton's Preview Mesh. 
+
 ## Additional Meshes
 
-This section enables you to include additional Skeletal Meshes (such as weapons, items or other objects) to the preview scene. 
+This section enables you to include additional Skeletal Meshes to the preview scene as part of a Preview Mesh Collection.  
 
 ![](PreviewMeshCollection.png)
 
@@ -51,6 +66,9 @@ This section enables you to include additional Skeletal Meshes (such as weapons,
 | **Additional Meshes** | The Preview Mesh Collection to use as included meshes for previewing. |
 | **Skeletal Meshes** | The Skeletal Mesh assets that are included in the specified Preview Mesh Collection. |
 
+Preview Mesh Collections are useful when you have several Skeletal Meshes that are related (like components of a character). 
+Preview Mesh Collections are also very flexible and support the use of unsaved assets within an unsaved collection. 
+They can also be extended by projects that might need to interface with other systems that can "build" a Skeletal Mesh out of other Skeletal Mesh parts. 
 
 ## Settings
 
@@ -126,5 +144,6 @@ This section includes the ability to define **Tone Mapping** functions for mobil
 [REGION:note]
 Please see [](Platforms/Mobile/PostProcessEffects) for more information. 
 [/REGION]
+
 
 

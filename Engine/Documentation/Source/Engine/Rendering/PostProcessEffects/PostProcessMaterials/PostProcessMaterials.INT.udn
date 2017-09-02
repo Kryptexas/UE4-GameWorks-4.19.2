@@ -1,30 +1,40 @@
-Availability: Public
-Crumbs: %ROOT%
-Title: Post Process Materials
-Description: How to author and blend custom Post Process passes with the material editor.
-Type: Overview
-SkillLevel:Beginner
+Availability:Public
+Crumbs:
+Title:Post Process Materials
+Description:How to author and blend custom Post Process passes with the Material Editor. 
+Type:reference
 Version:4.16
 Parent:Engine/Rendering/PostProcessEffects
 Order:8
 Tags:Post Process
 Topic-image:PPMaterials_Topic.png
 
+[TOC(start:2 end:4)]
 
+[REGION:banner]
+![](Teaser_Banner.png)
+[/REGION]
+
+<!---
 ![](Teaser3.png)
 ![](Teaser0.png)
 ![](Teaser1.png)
 ![](Teaser2.png)
+-->
 
-[TOC(start:2 end:4)]
+
+Post Process Materials enable you to set up materials that can be used with your post process to create visual screen effects for damage, area type effects, or overall look for your game
+that can only be achieved via Post Process Materials. 
+
+In the following sections, you'll learn about setting up Post Process Materials, the available settings you can use, along with some examples of how to setup some of your own Post Process
+Materials using different buffers, blending between Post Process Materials, and more. 
 
 ## Post Processing Graph
 
 [EXCERPT:PostProcessMaterials_Desc]
 The engine already features complex post processing based on a graph of post processing nodes. The **Post Processing Materials**
-can be additionally inserted in some specific position. See [FAQ](#FAQ) **r.CompositionGraphDebug** to get a dump of the full graph.
-The graph is actually not only doing post processing but also some parts of the lighting. Over time we plan to make more
-parts be customizable through the material editor.
+can be additionally inserted in some specific position. See [Frequently Asked Questions section](#FAQ) for **r.CompositionGraphDebug** to get a dump of the full graph.
+The graph is actually not only doing post processing but also some parts of the lighting. 
 [/EXCERPT:PostProcessMaterials_Desc]
 
 Most of the time the graph is automatically creating intermediate render targets. This means if you want to blend with the former
@@ -39,7 +49,7 @@ Post Process Materials should be used sparingly and only when you really need th
 ## Using a Post Process Material
 
 Through post process settings (usually defined with post process volumes or camera settings) it is possible to blend (so called) blendable assets.
-At the moment, only **materials** and **material instances** are blendable assets. The engine provides a few post process materials but with this feature
+At the moment, only **Materials** and **Material Instances** are blendable assets. The engine provides a few post process materials but with this feature
 you can create your own **custom post processing** without any programmer help.
 
 Simply assign one or more post process materials to a post process volume in the **Blendables** section. First press the **+** to add
@@ -59,7 +69,7 @@ A post processing material needs to specify the material domain **post process**
 
 ![](DomainPostProcess.png)
 
-The material should only use *EmissiveColor* to output the new color. Additionally, you can define where during the post processing this pass should be applied
+The material should only use **Emissive Color** to output the new color. Additionally, you can define where during the post processing this pass should be applied
 and, if there are multiple, in which order they should be processed (Priority):
 
 ![](PostProcessMaterialProps.png)
@@ -122,7 +132,7 @@ With camera movement, you can perceive soft linear transition between the two ef
 
 The following shows a top down view of a level that has how two volumes. The large unbound volume has a red material instance and the small volume has a green material instance specified as blendable.
 The smaller volume has a higher priority. The material params are getting blended depending on the camera position.
-The fuzzy borders are defined by the BlendRadius property specified in the volumes and extend the volume shape.
+The fuzzy borders are defined by the Blend Radius property specified in the volumes and extend the volume shape.
 
 With the correct setup all blending happens as expected.
 
@@ -181,7 +191,7 @@ Anti-Aliasing generally makes this a bit more difficult as a GBuffer pixel/texel
 
 ## CustomDepth
 
-This separate feature allows masking of certain objects by rendering them into another depth buffer (called custom depth buffer).
+This separate feature enables masking of certain objects by rendering them into another depth buffer (called custom depth buffer).
 This adds extra draw calls but no more materials. The rendering is fairly cheap as we only output depth. The feature can be activated on the mesh
 (e.g. Static Mesh Properties / Render Custom Depth):
 
@@ -199,11 +209,41 @@ This is the material we used to visualize it:
 
 ![](CustomDepthMat.png)
 
+## CustomDepth Stencil
+
+Custom Depth Stencil is an extension of Custom Depth where you can use a stencil, or cutout, of your rendered object to then do visually interesting things like the example below that enables you to 
+visualize occlude objects, draw object outlines, or only be visible from certain viewing angles. There is a lot of potential with what you can do by having access to the stencil of an Actor in your
+scene. Using the following settings to enable and assign a stencil value.
+
+![](CustomStencilSettings.png)
+
+In this scene, Custom Depth is enabled on three objects and a **Custom Depth Stencil Value** is set for each, but without any post processing pass to visualize the content, this feature remains invisible.
+
+![](CustomDepthStencilScene.png)(w:520)
+
+Once you've setup your Post Process Material you will be able to visualize how the Custom Depth Stencil looks, The occluded objects render with a randomly assigned color based on the **Custom Depth Stencil Value** used. 
+
+![](CustomDepthStencilVisualization.png)(w:520)
+
+This is a setup of the Material we used to visualize it:
+
+[REGION:lightbox]
+[![](CustomDepthStencilMaterial.png)(w:768)](CustomDepthStencilMaterial.png)
+[/REGION]
+[REGION:caption]
+_Click image for full size._
+[/REGION]
+
+This is by no means, the only way to use Custom Depth Stencil and in this particular Material setup the stencil is being divided so that it uses values between 1 and 255, a mask is being used 
+for any value that is between these values, a random color is being created for these values as well so as the Custom Depth Stencil Value changes so does the color, and finally the mask that is
+created is being used in a way that only colors the stencil if the object is occluded.
+
+
 ## Temporal Anti-Aliasing or Why the GBuffer Jitters
 
 Temporal anti-aliasing is a unique UE4 feature that greatly improves image quality with a very moderate performance cost.
 
-By default, a post process material is inserted in the end of the post processing graph (after tone mapper). This means you get the final LDR color after tonemapping, color grading and after the temporal anti-aliasing
+By default, a post process material is inserted in the end of the post processing graph (after tone mapper). This means you get the final LDR color after tone mapping, color grading and after the temporal anti-aliasing
 was applied. This is the best spot for many simple post processing effects - for performance and ease of use.
 
 Here you can see how we used the custom depth input to visualize a silhouette around specific objects:
@@ -256,7 +296,7 @@ Scalar parameter:
 	
 [EXCERPT:PostMatWarning]
 [REGION:warning]
-In order to get the parameters you need to create a material instance from the post process material!
+In order to get the parameters you need to create a material instance from the post process material.
 [/REGION]
 [/EXCERPT:PostMatWarning]
 
@@ -270,7 +310,7 @@ The following issues still need to be fixed:
     * Certain lookups do not work in certain passes (e.g. some we might not fix because they would cost too much performance).
     * MaterialFunction might report an error but it still can be used in a Material with the Post Process domain.
   * **Material**
-    * UV in the PostProcesMaterial might not be in 0-1 range (e.g. in editor when reducing viewport size), this aligns with the lookup but makes it hard to implement something like an vignette effect.
+    * UV in the PostProcesMaterial might not be in 0-1 range (e.g. in editor when reducing viewport size), this aligns with the lookup but makes it hard to implement something like a vignette effect.
     * The asset thumbnail of a post process material does not look right.
     * Outputting alpha is not yet supported (should go through Opacity).
     * The preview material in the material editor does not look right.
@@ -294,7 +334,7 @@ The following issues still need to be fixed:
 
   * **How much memory do I pay for a post process?**
 
-    Memory cost depends on screen resolution. Before tonemapping we use HDR (8bytes per pixel), after we use LDR (4 bytes per pixel).
+    Memory cost depends on screen resolution. Before tone mapping we use HDR (8bytes per pixel), after we use LDR (4 bytes per pixel).
 
   * **How can I lower the render cost for post processing?**
 

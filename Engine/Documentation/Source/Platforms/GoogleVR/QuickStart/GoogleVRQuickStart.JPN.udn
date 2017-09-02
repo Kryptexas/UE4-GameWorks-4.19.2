@@ -1,19 +1,24 @@
-﻿INTSourceChangelist:3432707
-Title:Google VR クイックスタート
-Crumbs:%ROOT%, Platforms, Platforms/GoogleVR
-Description:Google VR の設定および使用方法
+﻿INTSourceChangelist:3580887
 Availability:Public
-Version:4.12
+Crumbs: %ROOT%
+Title:Title:Google VR クイックスタート
+Description:Google VR の設定および使用方法
+Type: quick start
 SkillLevel:Intermediate
-parent:Platforms/GoogleVR
-type:quick start
-type:landing
-tags:VR
+Version:4.16
+Parent:Platforms/GoogleVR
+Order:2
 tags:Google VR
+Checkpoint:1
 topic-image:Platforms\GoogleVR\GoogleVR_Cardboard_Topic_Image.png
+
+![](Google_Cardboard_Headset.png)
 
 このクイックスタートでは UE4 プロジェクトを Google VR で使用するための設定方法を説明します。
 
+[region:note]
+Google のマニュアルに Daydream の使用方法に関する詳細な説明があります。[Google Daydream Unreal 公式サイト](https://developers.google.com/vr/unreal/) のヘルプをご覧ください。
+[/region]
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -31,9 +36,7 @@ topic-image:Platforms\GoogleVR\GoogleVR_Cardboard_Topic_Image.png
 	[/PARAM]
 [/OBJECT]
 
-[region:note]
-Google では、Daydream の使用方法を詳しく説明しているマニュアルを提供しています。[Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) のヘルプサイトをご覧ください。
-[/region]
+
 
 
 

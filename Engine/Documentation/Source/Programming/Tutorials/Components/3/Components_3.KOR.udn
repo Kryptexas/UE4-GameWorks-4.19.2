@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3599948
 Availability: Public
 Title:3. 폰 무브먼트 컴포넌트의 작동방식 코딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -56,11 +56,17 @@ version:4.9
 
 	이 코드는 적합한 면을 미끄러져 다니며 월드를 부드럽게 움직이도록 **폰** 을 이동시킵니다. **폰** 에는 중력이 적용되지 않으며, 최대 속력은 초당 150 **언리얼 유닛** 으로 하드코딩되어 있습니다.
 
-	[REGION:note]이 TickComponent 함수는 **UPawnMovementComponent** 클래스에 제공되는 강력한 기능을 몇 가지 활용하고 있습니다.
-	<br>ConsumeInputVector 는 미동 입력을 저장하는 데 사용할 내장 변수 값을 보고 및 소거합니다.
-	<br>SafeMoveUpdatedComponent 는 **언리얼 엔진** 피직스를 사용하여 입체 장애물을 피해 **Pawn Movement Component** 를 이동시킵니다.
-	<br>SlideAlongSurface 는 이동하다가 충돌 발생시 그냥 제자리에 멈춰 벽이나 경사로에 "달라붙기" 보다는, 그 표면을 타고 부드럽게 미끄러지도록 하는 데 관련된 물리 계산 처리를 합니다.
-	<br>**Pawn Movement Components** 에는 설명할 만한 기능이 더 있지만, 이 튜토리얼 범위에는 필요치 않습니다. **Floating Pawn Movement**, **Spectator Pawn Movement**, **Character Movement Component** 같은 다른 클래스를 살펴보면 추가적인 용례나 개념을 찾아볼 수 있습니다.[/REGION]
+	[REGION:note]
+	이 TickComponent 함수는 **UPawnMovementComponent** 클래스에 제공되는 강력한 기능을 몇 가지 활용하고 있습니다.
+	
+	**ConsumeInputVector** 는 미동 입력을 저장하는 데 사용할 내장 변수 값을 보고 및 소거합니다.
+	
+	**SafeMoveUpdatedComponent** 는 **언리얼 엔진** 피직스를 사용하여 입체 장애물을 피해 **Pawn Movement Component** 를 이동시킵니다.
+	
+	**SlideAlongSurface** 는 이동하다가 충돌 발생시 그냥 제자리에 멈춰 벽이나 경사로에 "달라붙기" 보다는, 그 표면을 타고 부드럽게 미끄러지도록 하는 데 관련된 물리 계산 처리를 합니다.
+	
+	**Pawn Movement Components** 에는 설명할 만한 기능이 더 있지만, 이 튜토리얼 범위에는 필요치 않습니다. **Floating Pawn Movement**, **Spectator Pawn Movement**, **Character Movement Component** 같은 다른 클래스를 살펴보면 추가적인 용례나 개념을 찾아볼 수 있습니다.
+	[/REGION]
 
 ----
 

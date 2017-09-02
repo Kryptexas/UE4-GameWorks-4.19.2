@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Availability: Public
 Title:캐릭터 인코딩
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
@@ -148,11 +148,11 @@ UTF-8 혹은 디폴트 윈도우 인코딩 입니다. MSVC, Xbox360 컴파일러
 이들은 다음과 같은 UnStringConv.h 의 헬퍼 클래스를 사용합니다:
 
 
-* typedef TStringConversion<TCHAR,ANSICHAR,FANSIToTCHAR_Convert> FANSIToTCHAR;
-* typedef TStringConversion<ANSICHAR,TCHAR,FTCHARToANSI_Convert> FTCHARToANSI;
-* typedef TStringConversion<ANSICHAR,TCHAR,FTCHARToOEM_Convert> FTCHARToOEM;
-* typedef TStringConversion<ANSICHAR,TCHAR,FTCHARToUTF8_Convert> FTCHARToUTF8;
-* typedef TStringConversion<TCHAR,ANSICHAR,FUTF8ToTCHAR_Convert> FUTF8ToTCHAR;
+`* typedef TStringConversion<TCHAR,ANSICHAR,FANSIToTCHAR_Convert> FANSIToTCHAR;`
+* `typedef TStringConversion<ANSICHAR,TCHAR,FTCHARToANSI_Convert> FTCHARToANSI;`
+* `typedef TStringConversion<ANSICHAR,TCHAR,FTCHARToOEM_Convert> FTCHARToOEM;`
+* `typedef TStringConversion<ANSICHAR,TCHAR,FTCHARToUTF8_Convert> FTCHARToUTF8;`
+* `typedef TStringConversion<TCHAR,ANSICHAR,FUTF8ToTCHAR_Convert> FUTF8ToTCHAR;`
 
 
 또한 엄청나게 중요한 점은, TCHAR_TO_ANSI 를 사용할 때는 바이트 수와 TCHAR 스트링 길이가 같을 것이라고 가정해서는 안됩니다. 복수의 바이트 캐릭터 세트에서는 TCHAR 캐릭터 당 복수의 바이트가 필요할 수 있습니다. 만약 결과 스트링의 길이가 몇 바이트인지 알고자 한다면, 매크로 보다는 헬퍼 클래스를 사용해 주시기 바랍니다. 예를 들어:

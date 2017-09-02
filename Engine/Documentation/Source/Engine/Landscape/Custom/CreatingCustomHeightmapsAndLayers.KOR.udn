@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3347993
+﻿INTSourceChangelist:3548675
 Availability: Public
 Title:커스텀 하이트맵 및 레이어 제작 및 사용
 Crumbs:
@@ -11,6 +11,7 @@ SkillLevel:Intermediate
 related:Engine/Landscape/Editing
 related:Engine/Landscape/Editing/PaintMode
 related:Engine/Landscape/Creation
+tags:Landscape
 
 [TOC(start:2 end:3)]
 

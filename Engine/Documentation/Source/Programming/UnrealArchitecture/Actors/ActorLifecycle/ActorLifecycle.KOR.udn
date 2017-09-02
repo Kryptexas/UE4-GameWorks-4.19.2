@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title: 액터의 생명 주기
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Actors
@@ -89,7 +89,7 @@ version: 4.11
 * 액터의 수명 만료
 * 어플리케이션 종료 (모든 액터 소멸)
 
-어떻게 발생했는지와는 상관없이, 액터는 RF_PendingKill 마킹되어 다음 가비지 콜렉션 주기 동안 deallocate (할당 해제)됩니다. 또한 pending kill (킬 대기상태)를 수동 검사하기 보다는, 보다 깔끔한 FWeakObjectPtr<AActor> 사용을 추천합니다.
+어떻게 발생했는지와는 상관없이, 액터는 RF_PendingKill 마킹되어 다음 가비지 콜렉션 주기 동안 deallocate (할당 해제)됩니다. 또한 pending kill (킬 대기상태)를 수동 검사하기 보다는, 보다 깔끔한 `FWeakObjectPtr<AActor>` 사용을 추천합니다.
 
 **OnDestroy** 소멸시 - Destory (소멸)에 대한 구식(legacy) 반응입니다. 여기 있는 것들은 Level Transition (레벨 전환)이나 기타 게임 정리용 함수에 호출되는 EndPlay (플레이 종료)에 옮기는 것이 좋을 것입니다.
 

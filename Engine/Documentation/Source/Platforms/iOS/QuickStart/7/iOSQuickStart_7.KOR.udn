@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3482332
 Title:7. 디바이스에서 맵 테스트
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:언리얼 에디터에서 iOS 디바이스로 테스트용 맵을 실행시킵니다.
@@ -37,7 +37,34 @@ SkillLevel: Intermediate
 
 1. 툴바에서, **실행** 버튼 옆의 화살표를 클릭하여 **실행 옵션** 메뉴를 연 다음 iOS 디바이스를 선택합니다.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](launch_ios.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](launch_ios_Mac.png)
+	[/PARAM]
+	[/OBJECT]
+
 
 1. 현재 맵이 쿠킹 및 패키징된 다음 디바이스에 설치됩니다.
 

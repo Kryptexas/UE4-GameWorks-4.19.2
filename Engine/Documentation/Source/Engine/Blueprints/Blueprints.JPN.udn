@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3429238
 Availability:Public
 Title:ブループリント ビジュアル スクリプティング
 Crumbs: %ROOT%, Engine
-Description:ブループリントの使い方をみてきましょう。
+Description:ブループリントの使い方を説明します。
 version:4.9
 parent:%ROOT%
 order:5
@@ -194,7 +194,7 @@ UE4 を使う場合、ブループリントを使って定義したオブジェ�
 [/OBJECT]
 [/REGION]
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
+[DIR(output:"topic" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
 
 
 <!--

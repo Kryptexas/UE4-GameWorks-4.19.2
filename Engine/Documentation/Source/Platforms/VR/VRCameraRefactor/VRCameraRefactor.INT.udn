@@ -1,100 +1,77 @@
-Availability:Public
-Title:VR Camera Refactor
-Crumbs:%ROOT%, Platforms
-Description:Information covering the new VR camera setup.
-Navigation:platform
-Version:4.11
-Skilllevel:Intermediate
+Availability: Public
+Crumbs: %ROOT%
+Title: Attaching Items To the HMD
+Description:Information on attaching items to any HMD.
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
 parent:Platforms/VR
-type:overview
+Order: 4
+Tags:VR
 
 [TOC(start:2)]
 
-
-
-With the release of Unreal Engine 4.11 Virtual Reality(VR) cameras now work a bit different than in previous versions of UE4. 
-The biggest change is that objects will now follow the camera simply by making the camera the objects parent.
-This also means that you will no longer be required to offset tracking objects by the Head Mounted Display(HMD) transform.
-Components attached to the Camera Actor will now keep their position relative to the camera, making it easy to add a helmet, collision, or other primitives to the player. The attached renderable components will now also receive the same **late update** transforms used in low-latency rendering to keep them perfectly in-sync with HMD motion.
-In the following document, we will go over all you need to know about how these changes will affect your past that are upgraded as well as the effects on future UE4 projects.
-
-## VR Camera Setup in UE 4.11 and Later
-
-[region:note]
-Make sure to note that the Camera Manager no longer dictates when a camera should track the HMD, that is all set directly on the camera itself through the **Lock to HMD** option.
-[/region]
-
-If you are creating a new VR project using UE 4.11 or later, the camera will already be setup to be in sync with the HMD as this functionality is now enabled by default. 
-However if you wish to disable this all you will need to do  is select the **Camera** in your **Player Blueprint** and then in the **Details** panel under the **Camera** 
-section uncheck the **Lock to HMD** option which you can see highlighted in the image below.
-
- ![](VR_Camera_Refactor_00.png)
-
-
-## Upgrading Previous VR Cameras to 4.11
-
-If you are upgrading your UE4's project from a previous release to the 4.11 release there are a few things you will need to do to ensure that your previous VR camera setup will work with the new 4.11 changes. 
-Depending on how your Camera is created and setup you will need to ensure that either of the following changes are made in order to get your VR camera working correctly. 
-
-### Base Camera Component
-
-In the case of a bare Camera Component, the camera transform is the HMD offset and a "base" will be required to move the player's head through a scene.
- If you see your VR camera on the ground after migrating to 4.11 you will need to insert a new scene transform to set the placement of the camera base as detailed in the image below.
-
- ![](VR_Camera_Refactor_01.png)
-
-
-### Camera Actor Component
-
-In the case of a Camera Actor, a base scene transform automatically gets inserted as a parent to the actor's own Camera Component giving it a complete transform chain as detailed in the image below. 
-
- ![](VR_Camera_Refactor_02.png)
-
-
+No matter which Head Mounted Display (HMD) you are developing for Unreal Engine 4 (UE4) offers a unified approach to attaching items to the HMD. Not only will this unified approach work with any HMD, the items that are attached will move perfectly in-sync with the HMD. In the following document, we will go over all you need to know about attaching items to the HMD.
 
 [region:note]
 Now if you want to get the position of the player in the world you can just get the Camera Actor's position.
 [/region]
 
 
-## Setting up objects to follow the HMD
+## Setting Up Objects To Follow The HMD
 
-Setting up 3D Mesh, Particle Effects, or UI elements so that they can follow the movement of the HMD can be accomplished in the following few steps.
+You can setup a Static Mesh, Particle Effect, UI elements and many more items to follow the movment of the HMD by doing the following. 
 
-1. First open up your Character Blueprint and then navigate to the **Viewport** tab of the Blueprint Editor.
+1. First open up your Pawn Blueprint and navigate to the **Viewport** tab.
 
-	![](VR_Follow_HMD_Setup_00.png)
+	[REGION:lightbox]
+	[![](VR_Follow_HMD_Setup_00.png)(w:737)](VR_Follow_HMD_Setup_00.png)
+	[/REGION]
 
-1. Next from the **Component** tab, click on the **Add Component** option and then input the word **Cube** into the search box then click on the **Cube** mesh that is displayed to add it as a component
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1.  From the **Component** tab, click on  **Add Component** and then input the word **Cube** into the search box clicking on the **Cube** mesh that is displayed to add it as a component
 	
-	![](VR_Follow_HMD_Setup_01.png)
+	[REGION:lightbox]
+	[![](VR_Follow_HMD_Setup_01.png)(w:737)](VR_Follow_HMD_Setup_01.png)
+	[/REGION]
 
-1. With the Cube Static Mesh now added, select the Cube Static Mesh and then drag it onto the camera so that camera is now the parent of them mesh.
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. Select the Cube Static Mesh and drag it onto the Camera so that the Cmera is now the parent of the Cube Static Mesh.
 
 	![](VR_Follow_HMD_Setup_02.png)
 
-1. Now compile your Blueprint and then launch your project using the VR preview option from inside the UE4 editor. 
-When you put an HMD on then move your head around the Cube you attached will now accurately follow your head movements like in the video below.
+1. Now compile your Blueprint and then launch your project using the VR preview option from inside the UE4 editor. When you put an HMD on then move your head around the Cube you attached will now accurately follow your head movements like in the video below.
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	xzdA-JU3-js
-	[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		5brQDHHFR0w
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 	[/OBJECT]
 
-## HMD and Player Position
+## HMD and Player World Position
 
-One of the other advantages the new camera refactor gives you is the ability to quickly get the world location of the camera / HMD by getting the location of the Camera Component. 
-In the image below you can see an example of this in action.
+You can also quickly get the exact world location player and their HMD by getting the location of the Camera Component using the following Blueprint setup.
 
 ![](VR_Get_Player_Location_00.png)
 
 In the above image whenever a user presses the T key on the keyboard the X, Y and Z position of the Camera in the world will then be output to the screen and log window.
 
-
+![](VR_Follow_HMD_Setup_03.png)

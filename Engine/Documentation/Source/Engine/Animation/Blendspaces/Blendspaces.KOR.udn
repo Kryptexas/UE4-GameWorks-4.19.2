@@ -1,21 +1,23 @@
-﻿INTSourceChangelist:3429233
-Availability:Public
+﻿INTSourceChangelist:3477699
+Availability: Docs
+Crumbs: %ROOT%
 Title: 블렌드 스페이스
-Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Blend Space, 블렌드 스페이스는 여러 입력값에 따라 몇 개의 애니메이션도 서로 블렌딩할 수 있게 만들어 주는 애셋입니다.
-Related: Engine/Animation/AnimBlueprints
-Related: Engine/Content/FBX/Animations
-Related: Engine/Animation/AnimMontage
-Related: Engine\Animation\AnimHowTo\BlendSpace
-Related: Engine/Animation/NodeReference/Blend
-Related: Engine/Animation/StateMachines
-Related: Engine/Animation/AnimBlueprints/AnimGraph
-version: 4.15
-tags:Assets
-topic-image:Engine/Animation/Overview/BlendSpaceTopic.png
+Type: Landing
+Version: 4.16
+Parent: Engine/Animation
+Order: 1
+tags:Blend Space
+tags:Animation Blending
+tags:Animation
+topic-image:BlendTopic.png
+
+[REGION:banner]
+![](BlendBanner.png)
+[/REGION]
 
 [EXCERPT:Intro]
-**블렌드 스페이스** (Blend Space) 는 애님그래프(AnimGraph) 에서 샘플링할 수 있는 특수 애셋으로, 두 입력값에 따라 
+**블렌드 스페이스** (Blend Space) 는 **애님 그래프** 에서 샘플링할 수 있는 특수 애셋으로, 두 입력값에 따라 
 애니메이션을 블렌딩시켜 주는 것입니다. 하나의 입력에 따라 두 애니메이션을 섞는 단순 블렌딩은 
 [애니메이션 블루프린트](Engine/Animation/AnimBlueprints) 에서 쓸 수 있는 표준 [블렌드 노드](Engine/Animation/NodeReference/Blend) 를 사용하면 됩니다. 
 블렌드 스페이스를 통해 (현재는 둘로 제한되어 있지만) 

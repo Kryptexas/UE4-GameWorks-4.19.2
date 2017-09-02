@@ -41,7 +41,7 @@ Memory was allocated from the allocator as the elements were added.  Add and Emp
 * Add will copy (or move) an instance of the element type into the array.
 * Emplace will use the arguments you give it to construct a new instance of the element type.
 
-So in the case of our TArray<FString>, Add will create a temporary FString from the string literal and then move the contents of that temporary into a new FString inside the container, whereas Emplace will just create its FString directly using the string literal.  The end result is the same, but Emplace avoids creating a temporary, which is often undesirable for non-trivial value types like FString.  Push can also be used as a synonym for Add.
+So in the case of our `TArray<FString>`, Add will create a temporary FString from the string literal and then move the contents of that temporary into a new FString inside the container, whereas Emplace will just create its FString directly using the string literal.  The end result is the same, but Emplace avoids creating a temporary, which is often undesirable for non-trivial value types like FString.  Push can also be used as a synonym for Add.
 
 In general, Emplace is better than Add, in that it avoids unnecessary temporaries being created at the call site which are then copied or moved into the container.  As a rule of thumb, use Add for trivial types and Emplace otherwise.  Emplace should never be less efficient than Add, but sometimes Add may read better.
 
@@ -109,7 +109,7 @@ Arrays can be sorted simply by calling the **Sort** function:
 	StrArr.Sort();
 	// StrArr == ["!","Brave","Hello","of","Tomorrow","World"]
 
-Here, the values are sorted by means of the element type's operator<.  In FString's case, this is a case-insensitive lexicographical comparison.  A binary predicate can also be provided to provide different ordering semantics, e.g.:
+Here, the values are sorted by means of the element type's `operator<`.  In FString's case, this is a case-insensitive lexicographical comparison.  A binary predicate can also be provided to provide different ordering semantics, e.g.:
 
 	StrArr.Sort([](const FString& A, const FString& B) {
 		return A.Len() < B.Len();
@@ -407,7 +407,7 @@ Arrays can be compared using the operator== and operator!=.  The order of the el
 
 TArray has functions which support a binary heap data structure.  A heap is a type of binary tree in which any parent node is equivalent to or ordered before all of its child nodes.  When implemented as an array, the root node of the tree is at element 0 and the indices of the left and right child nodes of a node at index N are 2N+1 and 2N+2 respectively.  The children are not in any particular order with respect to one another.
 
-Any existing array can be turned into a heap by calling the **Heapify** function.  This is overloaded to take a predicate or not, where the non-predicated version will use the element type's operator< to determine ordering:
+Any existing array can be turned into a heap by calling the **Heapify** function.  This is overloaded to take a predicate or not, where the non-predicated version will use the element type's `operator<` to determine ordering:
 
 	TArray<int32> HeapArr;
 	for (int32 Val = 10; Val != 0; --Val)
@@ -455,7 +455,7 @@ The **HeapPop** and **HeapPopDiscard** functions are used to remove the top node
 
 It should be noted that HeapPush, HeapPop, HeapPopDiscard and HeapRemoveAt should only be called when the structure is already a valid heap, e.g. after a Heapify() call, any other heap operation, or by manually manipulating the array into a heap.
 
-Also, each of these functions, including Heapify, can take an optional binary predicate to determine the order of the node elements in the heap.  When using a predicate, the same predicate should be used across all heap operations to maintain the correct structure.  When no predicate is specified, the heap operations use the element type's operator< to determine order.
+Also, each of these functions, including Heapify, can take an optional binary predicate to determine the order of the node elements in the heap.  When using a predicate, the same predicate should be used across all heap operations to maintain the correct structure.  When no predicate is specified, the heap operations use the element type's `operator<` to determine order.
 
 Finally, the top node of the heap can be inspected using **HeapTop**, without changing the array:
 
@@ -596,7 +596,7 @@ Use of any of the Uninitialized or Zeroed functions should be treated with cauti
 
 ## Misc
 
-The **BulkSerialize** function is a serialization function which can be used as an alternative operator<< in order to serialize the array as a block of raw bytes instead of doing per-element serialization.  This can be a performance win when your element type is trivial, like a built-in type or a plain data struct.
+The **BulkSerialize** function is a serialization function which can be used as an alternative `operator<<` in order to serialize the array as a block of raw bytes instead of doing per-element serialization.  This can be a performance win when your element type is trivial, like a built-in type or a plain data struct.
 
 The **CountBytes** and **GetAllocatedSize** functions are used to estimate how much memory is currently being utilized by the array.  CountBytes takes an FArchive and GetAllocatedSize can be called directly.  They are typically used for stats reporting.
 

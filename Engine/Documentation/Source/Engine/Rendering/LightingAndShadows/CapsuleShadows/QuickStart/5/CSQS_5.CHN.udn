@@ -1,31 +1,30 @@
-﻿INTSourceChangelist:0
-Availability:docs
-Title:5 - On Your Own!
-Crumbs:%ROOT%, Engine
-Description:
+﻿INTSourceChangelist:3454749
+Availability:Public
+Title:5 - 自由发挥！
+Crumbs:
+Description:该步骤包含可对实例场景进行的额外操作，以及更多文档的链接。
 SkillLevel:Intermediate
-Version:4.14
+Version:4.15
 checkpoint: capsuleshadowsqs
 parent:Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart
-type:multi-step
+type:quick start
 order:5
+tags:Lighting
  
-[NAV]
+[Nav]
 
-Now that you have created a sample Shadow Phsyics Asset for Capsule Shadowing you can try some of the following on your own: 
+为胶囊体阴影创建了胶囊体物理资源范例后，现在可以自行尝试以下操作： 
 
-* Try using some different lighting angles or time-of-day setups for mid-day, dusk, or evening. 
-* Adjust the **Light Source Angle** of your Directional Light to soften your Capsule Shadow in areas that are directly lit. 
-* Add some closed off areas with doorways and windows or similar to a cave opening to get contrasting light that gives some directionality for the light source for use with Capsule Indirect Shadows.
-* Use the setting for **Capsule Indirect Shadow Min Visibility** in your Character's Details Panel to blend the soft shadow's intensity with your environment.
-* Add some additional capsule bodies for the arms of your character for shadowing when near wall surfaces, like with a cover system.
+* 尝试使用不同的灯光角度，或每天不同时段的情况，如正午、黄昏，或夜晚等。 
+* 调整定向光照的 **光源角度（Light Source Angle）**，柔化直接光照区域中的胶囊体阴影，使角色混入周边阴影中。 
+* 增添一些带门和窗户的封闭区域（或类似带洞口的洞穴之类的场景），在启用 **Capsule Indirect Shadow** 后获取对比光照，为光源增添方向性。
+* 使用角色的 Details 面板中的 **Capsule Indirect Shadow Min Visibility** 设置将柔和阴影的强度和环境混合起来。
+* 为角色的手臂增加一些额外的胶囊体形体，使其在靠近墙面时投射下阴影，如覆盖系统或角色呈俯卧状时的效果。
 
-For more information on topics covered in this quick start guide and across the entire editor, see the [Unreal Enditor Manual](https://docs.unrealengine.com/latest/INT/Engine/index.html).
+如需了解此快速入门指南中各要点的详细内容，请查阅 [虚幻编辑器手册](https://docs.unrealengine.com/latest/INT/Engine/index.html)。
 
-* For more information about Capsule Shadows, see [Capsule Shadows Overview](Engine/Rendering/LightingAndShadows/CapsuleShadows/Overview).
-* For more information on the Physics Asset Tool, see [Physics Asset Tool (PhAT)](https://docs.unrealengine.com/latest/INT/Engine/Physics/PhAT/).
-* For more information on Lighting, see [Lighting the Environment](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/).
+* 如需了解胶囊体阴影的内容，请查阅 [](Engine/Rendering/LightingAndShadows/CapsuleShadows/Overview)。
+* 如需了解物理资源工具的内容，请查阅 [物理资源工具（PhAT）](https://docs.unrealengine.com/latest/INT/Engine/Physics/PhAT/)。
+* 如需了解光照的内容，请查阅 [光照环境](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/)。
 
-
-
-[NAV]
+[Nav]

@@ -1,222 +1,184 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3514120
 Availability: Public
-Title:블루프린트에서 액터 스폰/소멸
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/SpawnAndDestroyActors
-Description:언리얼 엔진 4 에서 블루프린트를 통해 액터를 스폰/소멸시키는 법에 대한 비법입니다.
-Version: 4.9
-SkillLevel:Intermediate
-type:how-to
+Title: 블루프린트로 액터 스폰 및 소멸
+Description: 여기서는 블루프린트를 사용하여 버튼을 한 번 누르면 오브젝트를 스폰, 두 번 누르면 소멸시키도록 하겠습니다.
+Type: how-to
+SkillLevel: Beginner
+Version: 4.16	
+Parent: Gameplay/HowTo/SpawnAndDestroyActors
+Order: 1
+Tags:Blueprints
+Tags:Basics
+Tags:Getting Started
+Related: Engine/Blueprints
 
-[TOC (start:2)]
+제작중인 게임 유형과 관계 없시 종종 원래 레벨에 배치하지는 않았지만 실행시간에 무언가 나타나게 하고 싶은 경우가 있습니다.
+월드에 오브젝트를 "스폰"(spawn)시킨다는 개념은 물론 게임플레이 도중(이든 아니든) 스폰된 오브젝트를 "소멸"(destroy)시킨다는 개념 역시 [블루프린트 비주얼 스크립트](Engine/Blueprints) 로 가능합니다.
 
- 여기서는 **블루프린트** 에서 액터를 스폰시키고 그 위치를 정의하는 법에 대해 배워보겠습니다. 스폰된 액터를 소멸시키는 법에 대해서도 알아봅니다.
+ 여기서는 버튼을 누르면 [액터](Engine/Actors) 를 스폰시키고, 캐릭터에 붙인 다음, 버튼을 두 번째 누르면 [변수](Engine/Blueprints/UserGuide/Variables) 레퍼런스를 사용하여 소멸시킵니다.
 
-## 액터 스폰
+![](HeroImage.png)
 
-키를 누르면 레벨에 액터를 스폰시키는 방법은 아래와 같습니다.
+## 단계
 
-1.  아무 프로젝트나 열고, 에디터 안에서 **블루프린트** 버튼 - **레벨 블루프린트 열기** 를 누릅니다.
+[REGION:note]
+여기서는 **블루프린트 삼인칭 템플릿** 에 **시작용 콘텐츠** 를 포함시켜 사용하고 있습니다.
+[/REGION]
 
-	[REGION:raw]
-	![](GHT1_1.png)
-	[/REGION]
+1.	프로젝트 안의 **메인 툴바** 에서 **블루프린트** 버튼을 클릭하고 **레벨 블루프린트 열기** 를 선택합니다.
 
-1.  **블루프린트 에디터** 창이 (아래와 같이) 열립니다.
-	
+	![](SpawnDestroy_01.png)
+
+	[](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 는 각 레벨에 고유한 특수 블루프린트 유형으로, 레벨 전반적인 글로벌 그래프 역할을 합니다.
+
+1.	그래프에 우클릭하고 **Spawn Actor from Class** 노드를 검색 추가합니다.
+
+	![](SpawnDestroy_02.png)
+
+	그러면 스폰시키고자 하는 클래스( 또는 오브젝트 유형 따위)를 지정할 수 있습니다.
+
+1.	**SpawnActor** 노드의 **Class** 섹션에서 **Blueprint_Effect_Fire** 클래스를 선택합니다.
+
+	![](SpawnDestroy_03.png)
+
+	프로젝트를 생성할 때 포함시킨 **시작용 콘텐츠** 의 일부분으로 생성된 블루프린트 클래스입니다.
+
+1.	그래프에 우클릭하고 **F** Keyboard Event 를 검색 추가합니다.
+
+	![](SpawnDestroy_04.png)
+
+	화염 이펙트의 스폰과 소멸에 이 키를 사용합니다.
+
+1.	그래프에 다시 우클릭하고 **Flip Flop** 노드를 검색 추가합니다.
+
+	![](SpawnDestroy_05.png)
+
+	이 노드는 처음 들어설 때 **A** 핀을 실행하고 두 번째 들어설 때 **B** 핀을 실행하는 스위치 역할을 합니다.
+	B 핀을 실행한 이후, 다음 번 들어설 때 다시 A 핀을 실행하는 식으로, "flip-flop" 은 A 와 B 핀을 번갈아 선택합니다.
+
+1.	**F** 노드의 **Pressed** 핀을 좌클릭으로 끌어 **Flip Flop** 및 **Spawn Actor** 노드에 연결합니다.
+
+	![](SpawnDestroy_06.png)
+
+	이렇게 하면 (F 를 눌렀을 때) Blueprint Fire 이펙트를 스폰시키는 Spawn Actor 노드 호출을 실행할 수 있습니다.
+
+1.	그래프에 우클릭하고 **Destroy Actor** 노드를 검색 추가합니다.
+
+	![](SpawnDestroy_07.png)
+
+	이 노드로 소멸시킬 액터를 지정할 수 있습니다.
+
+1.	**Flip Flop** 노드의 **B** 핀을 **Destroy Actor** 노드에 연결합니다.
+
+	![](SpawnDestroy_08.png)
+
+	**F** 를 두 번째 누르면, **Flip Flop** 의 **B** 핀이 호출되어 **Destroy Actor** 노드를 실행합니다.
+	Destroy Actor 에는 **Target** 입력 핀이 있어, 노드에게 무엇을 소멸시킬지 알려줍니다.
+	기본적으로 **Self** 설정되어 있으며 이 경우 널 포인터, 즉 레벨 블루프린트 자체는 소멸시킬 수 없으니 무엇을 소멸시킬지 명확하지 않다는 뜻입니다.
+	이 Destroy Actor 노드가 캐릭터 블루프린트 안에 있고 타겟을 Self 로 한다면, 캐릭터가 소멸될 것입니다.
+
+	이 경우 Destroy Actor 노드에게 무엇을 소멸시킬지 알려줘야 합니다 (우리 Blueprint Fire 이펙트입니다).
+	그러기 위해 스폰했던 Blueprint Fire 이펙트로의 레퍼런스를 만들어야 합니다.
+
+1.	**Spawn Actor** 노드의 **Return Value** 에 우클릭하고 **변수로 승격** 을 선택합니다. 
+
+	![](SpawnDestroy_09.png)
+
+	**Return Value** 가 여기서 바로 "스폰하고자 하는 것" 이며 이에 대한 레퍼런스를 저장하여 나중에 소멸시키고자 하는 것입니다.
+
+1.	변수의 **디테일** 패널에서 이름을 **CurrentFlames** 처럼 짓습니다.
+
+	![](SpawnDestroy_10.png)
+
+1.	**내 블루프린트** 패널에서 **변수** 아래 **Ctrl** 키를 누른 상태로 **CurrentFlames** 변수를 그래프에 끌어 놓고 **Destroy Actor** 의 **Target** 에 연결합니다. 
+
+	![](SpawnDestroy_11.png)
+
+	이제 Destroy Actor 노드더러 우리 변수 레퍼런스가 앞서 만든 Blueprint Fire 이펙트를 타겟으로 삼으라 하는 것입니다.
+
+1.	그래프에 우클릭하고 **Get Player Character** 노드를 검색 추가합니다.
+
+	![](SpawnDestroy_12.png)
+
+	이렇게 하면 지정된 플레이어 캐릭터 위치를 찾아 그에 관한 정보에 접근하여 얻을 수 있게 됩니다.
+
+1.	**Get Player Character** 의 **Return Value** 를 끌어 놓고 **Get Actor Transform** 노드를 검색 추가합니다.
+
+	![](SpawnDestroy_13.png)
+
+	그러면 플레이어 캐릭터의 **위치**, **회전**, **스케일** 정보를 알 수 있고, 이를 사용하여 Blueprint Fire 이펙트의 스폰 위치를 정할 수 있습니다.
+
+1.	**Get Actor Transform** 의 **Return Value** 를 **Spawn Actor** 의 **Spawn Transform** 에 연결합니다.
+
 	[REGION:lightbox]
-	[![](Engine\Blueprints\UserGuide\Types\LevelBlueprint\level_blueprint_editor.png)](Engine\Blueprints\UserGuide\Types\LevelBlueprint\level_blueprint_editor.png)
+	[![](SpawnDestroy_14.png)](SpawnDestroy_14.png)
 	[/REGION]
 
-	_이미지를 클릭하면 원래 크기로 보입니다._
+	_이미지를 클릭하면 원본을 확인합니다._
 
-	액터를 스폰하기 위해서는, **Spawn Actor from Class** (클래스에서 액터 스폰) 노드를 사용해야 합니다. 이 예제에서는 **레벨 블루프린트** 를 사용하고 있습니다만, **Spawn Actor from Class** 노드는 대부분의 **블루프린트** 에서 아래와 같이 **팔레트** 창에서 찾을 수 있습니다.
+	이 시점에서 그래프가 거의 완성되어 **F** 키를 누르면 플레이어 위치를 변수에 저장하고 거기에 Blueprint Fire 를 스폰하도록 지정했습니다.
+	**F** 를 두 번째 누르면, 생성했던 변수(, 즉 화염 이펙트)를 소멸시킵니다. 마지막으로 할 작업은 화염 이펙트를 플레이어에 붙이는 것입니다.
+	현재 화염 이펙트는 플레이어 위치에 스폰되지만, 플레이어가 이동해도 화염은 스폰된 자리에 머무릅니다.
 
-1.  그래프 아무데나 **우클릭** 한 다음 맥락 메뉴에서 **Spawn Actor from Class** 노드를 검색하여 추가합니다.
+1.	**Set** 노드의 레퍼런스 핀을 좌클릭으로 끌어 놓고 **AttachToActor** 노드를 추가합니다.
 
-	![](GHT1_5.png)
+	![](SpawnDestroy_15.png)
 
-1.  그래프에 **Spawn Actor from Class** (줄여서 **SpawnActor**) 노드가 추가됩니다.
+	이 노드를 통해 화염 이펙트를 다른 액터, 이 경우 플레이어 캐릭터에 붙일 수 있습니다.
 
-	![](GHT1_4.png)
+1.	**Get Player Character** 노드를 사용하여 아래와 같이 붙이고, **Location Rule** 및 **Rotation Rule** 을 **Snape to Target** 으로 설정합니다. 
 
-	**Spawn Actor from Class** 노드는 (**Class** 입력을 통해 지정되는) **Actor Class** 를 받은 다음 그 클래스의 인스턴스를 월드에 스폰 시도합니다. **Spawn Transform** 입력을 사용하여 월드에 액터의 스폰 위치를 (초기 방향도 같이) 정의합니다. 그 위치가 콜리전이 있는 무언가에 막힌 경우, 액터는 **Spawn Even if Colliding** (충돌한다 해도 스폰) 입력이 **True** 설정되지 않은 이상 스폰에 실패합니다. 
-
-	**Spawn Actor** 노드의 각 핀에 대한 설명은 다음과 같습니다.
-
-	![](GHT1_6.png)
-
-	| 번호 | 설명 |
-	| ------- | ------------ |
-	| **Execution Input (1)** | 실행 입력으로, 이를 통해 노드가 발동되어 액터가 스폰됩니다. |
-	| **Class (2)** | 월드에 인스턴스를 스폰시키고자 하는 **액터 클래스** 입니다 (필수 항목입니다). |
-	| **Spawn Transform (3)** | 월드에 액터의 위치와 방향을 잡는 데 사용되는 트랜스폼 정보를 받습니다. |
-	| **Spawn Even If Colliding (4)** | 스폰 위치가 무언가에 막혀있어도 액터를 스폰시킬지 결정합니다. |
-	| **Execution Output (5)** | 실행 출력으로, 액터 스폰 다음에 오는 스크립트로 인도합니다. |
-	| **Return Value (6)** | 월드에 스폰된 새 액터 인스턴스를 출력합니다. |
-
-1.  **클래스** 드롭다운 메뉴를 클릭한 다음 스폰하고자 하는 액터 목록에서 액터를 선택합니다.
-
-	![](GHT1_7.png)
-
-1.  스폰하고자 하는 액터를 선택한 이후, 노드가 업데이트되어 새 핀이 추가됩니다.
-
-	![](GHT1_8.png)
-
-	**Instigator** 는 옵션으로, 스폰된 액터가 입힌 대미지를 유발시킨 폰을 말합니다.
-
-1.  **Spawn Transform** 핀을 **좌클릭** 한 다음 왼쪽으로 끌어놓고, 맥락 메뉴에서 **Get Actor Transform** 을 검색하여 추가합니다. 
-
-	![](GHT1_9.png)
-
-	**Get Actor Transform** 노드는 **Spawn Actor** 에게 스폰하고자 하는 새 액터를 어디에 스폰시킬지 알려줍니다.
-
-1.  **Get Actor Transform** 핀을 **좌클릭** 으로 끌어 놓은 다음, 맥락 메뉴에서 **Get Player Character** 를 검색하여 추가합니다. 
-
-	![](GHT1_10.png)
-
-	이제 Get the Player Character, 플레이어 캐릭터를 구한 다음 그 트랜스폼 정보를 구해 **Spawn Transform** 에 할당하라는 것입니다.
-
-1.  그래프 아무데나 **우클릭** 한 다음, 맥락 메뉴에서 **F** Key Event 를 검색하여 추가합니다.
-
-	![](GHT1_11.png)	
-
-1.  **Pressed** 핀을 **SpawnActor** 노드의 **Execute Input** 핀에 연결합니다.
-
-	![](GHT1_12.png)
-
-	이제 **F** 키가 눌리면 **SpawnActor** 를 실행하여 플레이어 캐릭터의 트랜스폼 위치에 액터를 스폰하라는 것입니다.
-
-1.  **컴파일** 버튼을 클릭한 다음 **블루프린트** 를 닫습니다.
-
-	컴파일 전: 
-	
-	![](GHT1_13.png)
-
-	컴파일 성공 이후: 
-
-	![](GHT1_14.png)
-
-	녹색 체크 표시가 보이지 않는다면, 모든 노드가 연결되어 있는지, **Actor Class** 가 **SpawnActor** 노드에 지정되어 있는지 점검하세요.
-
-1.  주 창에서 **플레이** 버튼을 눌러 에디터에서 플레이합니다.
-
-	[REGION:raw]
-	![](GHT1_15.png)
-	[/REGION]
-
-	**F** 키를 누를 때마다 선택한 액터가 월드 내 플레이어 캐릭터 위치에 스폰될 것입니다.
-
-이 예제는 키 누름을 통해 액터를 스폰시키는 방법에 대해 설명하고 있으나, **이벤트** 를 몇 개든지 사용해서 **SpawnActor** 노드를 실행시킬 수 있습니다.
-
-**블루프린트** 작업 관련 상세 정보는 [](Engine/Blueprints/UserGuide) 문서를 참고하세요.
-
-## 스폰 지점 설정
-
-특정 위치에 액터를 스폰하고자 하는 경우, 트랜스폼을 수동 설정하거나 다른 액터의 트랜스폼을 레퍼런싱하는 방법으로 가능합니다.
-
-아래 예제는 트랜스폼을 수동 설정하는 방법과 스폰 지점으로 사용할 액터의 트랜스폼을 레퍼런싱하는 방법에 대해서도 보여줍니다.
-
-1.  아무 프로젝트나 열고, 에디터 안에서 **블루프린트** 버튼을 클릭한 다음 **레벨 블루프린트 열기** 를 누릅니다.
-
-	[REGION:raw]
-	![](GHT1_1.png)
-	[/REGION]
-
-1.	그래프 창에서 **우클릭** 한 다음 **Spawn Actor from Class** 노드를 검색하여 추가합니다.
-
-	![](GHT1_5.png)
-
-1.	**SpawnActor** 노드에서 **Class** 드롭다운을 선택한 다음 스폰시킬 액터를 선택합니다.
-
-	![](GHT1_7.png)
-
-1.	**레벨 블루프린트** 창을 최소화시킵니다.
-
-1.  메인 에디터 창에서 **Modes** 아래 **Target** 을 검색한 다음 **타겟 포인트** 를 레벨에 끌어 놓습니다.
-
-	[REGION:raw]
-	![](GHT1_16.png)
-	[/REGION]
-
-1.  **레벨 블루프린트** 창으로 돌아와서 그래프에 **우클릭** 한 다음 **Add Reference to TargetPoint** (타겟 포인트로의 레퍼런스 추가)를 선택합니다.
-
-	![](GHT1_17.png)
-
-1.  새로 추가된 노드의 출력 핀을 **좌클릭** 으로 끌어 놓은 다음 **Get Actor Transform** 을 검색하여 추가합니다. 
-
-	![](GHT1_18.png)
-
-1.  **Get Actor Transform** 노드의 **Return Value** 핀을 **Spawn Transform** 의 입력 핀에 연결합니다.
-
-1.	그래프에 **우클릭** 한 다음 **F** Key Event 를 검색하여 추가하고, **Pressed** 에서 **SpawnActor** 로 연결합니다. 
-
-	![](GHT1_19.png)
-
-	**SpawnActor** 노드 실행을 위해 키 눌림 이벤트를 사용했지만, 방법은 아무렇게나 해도 됩니다.
-
-1.	**컴파일** 후 **블루프린트** 를 닫고 에디터에서 플레이하면, 타겟 포인트에 액터가 스폰되는 것을 볼 수 있습니다.
-
-액터 레퍼런싱을 통해 스폰 지점을 지정하는 것에 추가로, **SpawnActor** 에 대한 **Spawn Transform** 을 수동으로 입력할 수도 있습니다. 그 방법은:
-
-1.	**SpawnActor** 노드의 **Spawn Transform** 핀을 끌어 놓은 다음 **Make Transform** 을 선택합니다. 
-
-	![](GHT1_21.png)
-
-1.	그러면 **Make Transform** 노드가 생성되어, 거기에 **위치**, **회전**, **스케일** 을 수동 입력할 수 있습니다.
-
-	![](GHT1_22.png)
-
-## 스폰된 액터 소멸
-
-액터를 스폰하고나서 액터를 소멸시키고 싶다고 쳐 봅시다 (예를 들어, 플레이어가 액터를 죽였거나, 액터를 픽업으로 집어들었거나 말이지요).
-
-**레벨 블루프린트** 에서 스폰된 액터를 소멸시키는 방법은 아래와 같습니다.
-
-1.  아무 프로젝트나 열고, 에디터 안에서 **블루프린트** 버튼을 클릭한 다음 **레벨 블루프린트 열기** 를 누릅니다.  
-
-	[REGION:raw]
-	![](GHT1_1.png)
-	[/REGION]
-
-1.	그래프 창에서 **우클릭** 한 다음 **Spawn Actor from Class** 노드를 검색하여 추가합니다.
-
-	![](GHT1_5.png)
-
-1.	**SpawnActor** 노드에서 **Class** 드롭다운 메뉴를 클릭한 다음 스폰시킬 액터를 선택합니다.
-
-	![](GHT1_7.png)
-
-1.	**Spawn Transform** 핀을 **좌클릭** 으로 끌어 놓은 다음 **Get Actor Transform** 노드를 추가합니다.
-
-1.	**Get Actor Transform** 노드를 **좌클릭** 으로 끌어 놓은 다음 **Get Player Character** 노드를 추가합니다.
-
-1.	그래프의 빈 곳에 **우클릭** 한 다음 **F** Key Event 노드를 검색하여 추가한 다음 **SpawnActor** 노드에 연결합니다.
-
-	![](GHT1_12.png)
-
-1.	**SpawnActor** 의 **Execute Out** 핀을 **좌클릭** 으로 끌어 놓은 다음 **Delay** 노드를 추가합니다.
-
-1. **Delay** 노드에서 기간을 **3** 으로 설정합니다 (이 기간만큼 대기했다가 액터를 소멸시킵니다).
-
-1. **SpawnActor** 의 **Return Value** 를 **좌클릭** 으로 끌어 놓은 다음 **Destroy Actor** 노드를 추가한 뒤 아래와 같이 연결합니다.
-	
 	[REGION:lightbox]
-	[![](GHT1_20.png)(w:740)](GHT1_20.png)
+	[![](SpawnDestroy_16.png)](SpawnDestroy_16.png)
 	[/REGION]
 
-	_이미지를 클릭하면 원래 크기로 보입니다._
+	_이미지를 클릭하면 원본을 확인합니다._
 
-1.	**컴파일** 후 **블루프린트** 를 닫고서 에디터에서 플레이하면, 플레이어 위치에서 액터가 스폰된 다음 3 초 뒤 소멸되는 것을 볼 수 있습니다.
+	여기서 화염 이펙트에 대한 레퍼런스 변수를 플레이어 캐릭터에 붙이는데, 그 위치와 회전은 플레이어 캐릭터에 끌어 붙이도록 하고 있습니다.
 
-**SpawnActor** 노드를 실행하여 액터를 스폰시키는 것과 마찬가지로, 액터 소멸 역시 필요에 따라 여러가지 다양한 유형의 이벤트로 발동시킬 수 있습니다.
+1.	**컴파일** 버튼을 눌러 블루프린트를 컴파일합니다.
 
-**블루프린트** 작업 관련 상세 정보는 [](Engine/Blueprints/UserGuide) 문서를 참고하세요.
+	![](SpawnDestroy_17.png)
 
+1.	메인 레벨 에디터 창으로 돌아와 **메인 툴바** 에서 **플레이** 버튼을 클릭하여 에디터 안에서 플레이합니다.
 
+	![](SpawnDestroy_18.png)
+	
 
+## 최종 결과
 
+에디터에서 플레이할 때, **F** 키를 누르면 화염 이펙트가 스폰되어 플레이어 캐릭터에 붙습니다.
+화염이 플레이어에 붙어있는 동안 **F** 키를 누르면 이펙트가 소멸되고, **F** 키를 다시 누르면 다시 스폰됩니다.
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	uEzFpMt6mxo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 
+다른 접근법 한 가지는 Blueprint Fire 이펙트 안에 들어있는 파티클 이펙트를 **Activate** / **Deactivate** 시키는 것입니다.
 
+[REGION:lightbox]
+[![](AlternativeMethod.png)](AlternativeMethod.png)
+[/REGION]
 
+_이미지를 클릭하면 원본을 확인합니다._
+
+위 예제에서, **Event BeginPlay** 노드를 사용하여 게임 시작 시 Blueprint Fire 를 스폰하고 플레이어 캐릭터에 붙입니다.
+또 게임 시작 시 파티클 이펙트 비활성화 및 그에 연관된 사운드를 페이드 아웃 시킵니다.
+**F** 를 누르면, Blueprint Fire 이펙트가 이미 (활성화만 안되었다 뿐) 스폰되어 있기 때문에, 그냥 활성화만 시켜주고 오디오 페이드 인을 해주면 됩니다.
+**F** 를 두 번째 누르면, 이펙트를 소멸시키는 대신 비활성화 및 사운드 페이드 아웃을 해줍니다.
 

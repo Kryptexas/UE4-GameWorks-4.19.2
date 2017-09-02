@@ -3,14 +3,15 @@ Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Title: Fonts 
 Description: Landing page for all the documentation relating to Fonts.
 Type: Landing
-Version:4.15
+Version:4.17
 Parent: Engine/UMG/UserGuide
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/UMG/UserGuide/WidgetTypeReference
-Order:1
+Order:6
 Tags: UMG UI Designer
 Tags: Fonts
+Topic-image:Engine/UMG/UserGuide/FontsTopic.png
 
 [REGION:fullwidth raw]
 ![](FontLandingBanner.png)

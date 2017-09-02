@@ -1,18 +1,16 @@
-Title:Google VR Development	
-Crumbs:%ROOT%, Platforms
-Description:
-Availability:Public
-Navigation:platform
-Platform:GoogleVR
-Version: 4.12
-type:landing
-parent:Platforms/VR
-tags:VR
+Availability: Docs
+Crumbs: %ROOT%
+Title: Google VR Development	
+Description:Information on using UE4 to develop for Google VR.
+Type: Landing
+Version:4.17
+Parent: Platforms/VR
+Order: 1
 tags:Google VR
-tags:Platform
 prereq: Platforms/Android/GettingStarted/
 social-image:googlevr_social.png
 topic-image:GoogleVR_Topic_Image.png
+
 
 ![](googlevr_social.png)
 
@@ -33,4 +31,9 @@ Google Daydream allows you to enable certain rendering optimizations and use Mot
 [DIR(output:"topic" type:"overview" parent:"Platforms/GoogleVR")]
 
 
- 
+## How To
+
+ The Google VR How - To's will walk you through how to build a wide range different task with Google VR.
+
+[DIR(output:"topic" type:"how-to" parent:"Platforms/GoogleVR")]
+

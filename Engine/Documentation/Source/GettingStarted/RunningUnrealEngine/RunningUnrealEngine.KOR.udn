@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3531730
 Availability:Public
 Title:언리얼 엔진 실행하기
 Crumbs: %ROOT%, GettingStarted
@@ -321,9 +321,7 @@ _클릭하면 원래 크기 이미지로 볼 수 있습니다:_
 
 ## 쿠킹된 게임 실행시키기
 
-[INCLUDE:Engine/Basics/Projects/Packaging#runcooked]
-
-쿠킹된 게임 빌드 패키징 및 실행 방법 관련 상세 정보는 [](Engine/Basics/Projects/Packaging) 에 있습니다.
+쿠킹된 게임 빌드 패키징 및 실행 방법 관련 정보는 [](Engine/Basics/Projects/Packaging) 에 있습니다.
 
 ## 유용한 게임내 명령
 

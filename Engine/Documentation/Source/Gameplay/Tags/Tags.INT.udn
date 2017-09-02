@@ -4,7 +4,7 @@ Crumbs: %ROOT%
 Description: Gameplay Tags can be used to identify, categorize, match, and filter objects.
 version: 4.15
 skilllevel:Intermediate
-Parent:Engine/Gameplay
+Parent:Gameplay
 Order:
 type:overview
 tags:Gameplay

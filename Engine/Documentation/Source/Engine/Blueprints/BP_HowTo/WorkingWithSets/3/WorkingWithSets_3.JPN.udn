@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3413822
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:3 - Blueprint Set の Intersection を実行する
 Description:2 つの Blueprint Set で Intersect を実行し、Resultant Set で結果を表示する方法
 Crumbs:%ROOT%

@@ -1,9 +1,17 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Slots
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:An overview of how slots are used in UMG.
-Version: 4.9
-tags:UMG UI Designer
+Description:An overview of how slots are used in UMG.  
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:8
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/SlotTopic.png
+
+
+
 
 [TOC(start:2 end:2)]
 

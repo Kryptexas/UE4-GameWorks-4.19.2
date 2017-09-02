@@ -1,9 +1,18 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3530743
 Availability:Public
 Title: 프로퍼티
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
 Description:게임플레이 클래스에 대한 프로퍼티 생성 및 구현 관련 참고서입니다.
-Version: 4.12
+type:reference
+skilllevel:beginner
+parent:Programming/UnrealArchitecture
+Version: 4.16
+tags:variable
+tags:UPROPERTY
+tags:UENUM
+tags:enum
+tags:bitmask
+tags:bitfield
 
 ## 프로퍼티 선언
 

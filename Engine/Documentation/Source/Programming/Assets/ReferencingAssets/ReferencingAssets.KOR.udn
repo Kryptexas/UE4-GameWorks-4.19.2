@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3606403
 Title: 애셋 레퍼런싱
 Crumbs:
 Description:
@@ -48,28 +48,28 @@ UPROPERTY 선언은 예전의 강 레퍼런스 예제에서도 똑같이 나타�
 
 ## 간접 프로퍼티 레퍼런싱
 
-애셋 로드 시점을 쉽게 제어할 수 있는 방법은 TAssetPtr 을 사용하는 것입니다. 디자이너의 경우, 직접 프로퍼티 레퍼런스인 것처럼 작업할 수 있습니다. 하지만 직접 포인터 레퍼런스 대신, 애셋의 로드 여부에 대한 안전 검사가 가능한 템플릿 코드와 함께 프로퍼티가 스트링으로 저장됩니다. 참고로 TAssetPtr 을 사용하려면 애셋을 수동으로 로드해야 합니다. 템플릿으로 된 LoadObject<>() 메소드나 StaticLoadObject() 나 FStreamingManager 를 사용하여 오브젝트를 로드할 수 있습니다 (상세 정보는 [](Programming/Assets/AsyncLoading) 문서를 참고하세요). 처음 두 메소드는 애셋을 동기식으로 로드하여 프레임 속도가 출렁일 수 있으니, 게임플레이에 영향을 끼치지 않을 것이 확실한 것에만 사용해야 합니다.
+애셋 로드 시점을 쉽게 제어할 수 있는 방법은 TSoftObjectPtr 을 사용하는 것입니다. 디자이너의 경우, 직접 프로퍼티 레퍼런스인 것처럼 작업할 수 있습니다. 하지만 직접 포인터 레퍼런스 대신, 애셋의 로드 여부에 대한 안전 검사가 가능한 템플릿 코드와 함께 프로퍼티가 스트링으로 저장됩니다. 참고로 TSoftObjectPtr 을 사용하려면 애셋을 수동으로 로드해야 합니다. 템플릿으로 된 `LoadObject<>()` 메소드나 StaticLoadObject() 나 FStreamingManager 를 사용하여 오브젝트를 로드할 수 있습니다 (상세 정보는 [](Programming/Assets/AsyncLoading) 문서를 참고하세요). 처음 두 메소드는 애셋을 동기식으로 로드하여 프레임 속도가 출렁일 수 있으니, 게임플레이에 영향을 끼치지 않을 것이 확실한 것에만 사용해야 합니다.
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Building)
-	TAssetPtr<UStaticMesh> BaseMesh;
+	TSoftObjectPtr<UStaticMesh> BaseMesh;
 
 	UStaticMesh* GetLazyLoadedMesh()
 	{
 		if (BaseMesh.IsPending())
 		{
-			const FStringAssetReference& AssetRef = BaseMesh.ToStringReference();
+			const FSoftObjectPath& AssetRef = BaseMesh.ToStringReference();
 			BaseMesh = Cast< UStaticMesh>(Streamable.SynchronousLoad(AssetRef));
 		}
 		return BaseMesh.Get();
 	}
 
-위 코드는 UStaticMesh 의 TAssetPtr 을 사용하여 실행시간에 메시를 지연시켜 로드하고 있습니다. 애셋은 오브젝트의 로드 여부를 검사합니다. 로드되지 않은 경우, FStreamingManager 를 사용한 동기성 로드가 일어납니다. 아니면 TAssetPtr 안의 UStaticMesh 포인터가 호출자에게 반환됩니다.
+위 코드는 UStaticMesh 의 TSoftObjectPtr 을 사용하여 실행시간에 메시를 지연시켜 로드하고 있습니다. 애셋은 오브젝트의 로드 여부를 검사합니다. 로드되지 않은 경우, FStreamingManager 를 사용한 동기성 로드가 일어납니다. 아니면 TSoftObjectPtr 안의 UStaticMesh 포인터가 호출자에게 반환됩니다.
 
-UClass 를 유예식으로 로드하려는 경우, TAssetSubclassOf 템플릿 유형 클래스 전용 버전을 대체하여 TAssetPtr 과 같은 접근법을 사용할 수 있습니다. 이 함수는 지정된 애셋을 레퍼런싱하는 것과 같은 역할을 하지만, 인스턴스 대신 애셋에 대한 UClass 를 레퍼런싱합니다.
+UClass 를 유예식으로 로드하려는 경우, TAssetSubclassOf 템플릿 유형 클래스 전용 버전을 대체하여 TSoftClassPtr 과 같은 접근법을 사용할 수 있습니다. 이 함수는 지정된 애셋을 레퍼런싱하는 것과 같은 역할을 하지만, 인스턴스 대신 애셋에 대한 UClass 를 레퍼런싱합니다.
 
 ## 오브젝트 검색/로드
 
-지금까지의 예제는 모두 UPROPERTY 기반이었습니다. 하지만 실행시간에 스트링을 만들어 그 오브젝트로의 레퍼런스를 구하려면 어떻게 해야 할까요? 두 가지 방법이 있습니다. 이미 생성 또는 로드된 UObject 만 사용하려는 경우, FindObject<>() 가 맞습니다. 이미 로드되어 있지 않은 오브젝트를 로드하려면, LoadObject<>() 가 맞습니다. 참고로 LoadObject<>() 는 내부적으로 FindObject 와 동일한 역할을 하므로, 오브젝트를 먼저 검색한 다음 로드할 필요가 없습니다. 각 함수의 사용 예는 다음과 같습니다.
+지금까지의 예제는 모두 UPROPERTY 기반이었습니다. 하지만 실행시간에 스트링을 만들어 그 오브젝트로의 레퍼런스를 구하려면 어떻게 해야 할까요? 두 가지 방법이 있습니다. 이미 생성 또는 로드된 UObject 만 사용하려는 경우, `FindObject<>()` 가 맞습니다. 이미 로드되어 있지 않은 오브젝트를 로드하려면, `LoadObject<>()` 가 맞습니다. 참고로 `LoadObject<>()` 는 내부적으로 FindObject 와 동일한 역할을 하므로, 오브젝트를 먼저 검색한 다음 로드할 필요가 없습니다. 각 함수의 사용 예는 다음과 같습니다.
 
 	AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestName);
 	GridTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), NULL, LOAD_None, NULL);

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3599948
 Availability: Public
 Title: 4.4.6 - Jump End -> Idle 트랜지션 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
@@ -34,9 +34,9 @@ Version: 4.15
 
 1.	그래프에 **우클릭** 하고 **TimeRemaining for 'FPP_JumpEnd'** 노드를 검색 추가합니다.
 
-1.	**Time Remaining** 출력 핀을 끌어놓고 **맥락 메뉴** 를 사용해서 **<= (float)** 노드를 추가합니다.
+1.	**Time Remaining** 출력 핀을 끌어놓고 **맥락 메뉴** 를 사용해서 `**<= (float)**` 노드를 추가합니다.
 
-1.	**<= (float)** 노드의 다른 출력 칸에 0.1 을 입력한 다음 그 노드의 불리언 출력을 **Result** 노드의 **Can Enter Transition** 입력 핀에 연결합니다.
+1.	`**<= (float)**` 노드의 다른 출력 칸에 0.1 을 입력한 다음 그 노드의 불리언 출력을 **Result** 노드의 **Can Enter Transition** 입력 핀에 연결합니다.
 
 	![](TimeRemaining.png)
 

@@ -1,19 +1,22 @@
-﻿INTSourceChangelist:3481084
-Availability: Public
-Title: 스켈레탈 메시 에디터
+﻿INTSourceChangelist:3484673
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Title: 스켈레탈 메시 에디터
 Description:언리얼 엔진 4 의 스켈레탈 메시 에디터의 핵심 기능 개요입니다.
-version: 4.14
-Related: Engine\Animation\Persona\Modes\Skeleton
-Related: Engine\Animation\Persona\Modes\Animation
-Related: Engine\Animation\Persona\Modes\Graph
-Related: Engine/Content/FBX/SkeletalMeshes
-type:landing
-topic-image:skelMeshEditor_topic.png
+Type: Landing
+version: 4.16
+Parent: Engine/Animation/Persona/Modes
+Order: 1
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
 tags:Tools
+topic-image:skelMeshEditor_topic.png
+
+[REGION:banner]
+![](SkeletalMeshEditorBanner.png)
+[/REGION]
+
 
 [EXCERPT:Overview]
 **콘텐츠 브라우저** (또는 **에디터 툴바**) 안에서 **스켈레탈 메시** 애셋을 열 때마다, **스켈레탈 메시 에디터** 가 열립니다.
@@ -22,11 +25,13 @@ tags:Tools
 
 [/EXCERPT:Overview]
 
+스켈레탈 메시 에디터 유저 인터페이스에 대한 분석은 아래 각 섹션을 참고해 주세요:
+
 [REGION:fullwidth]
 ![](SkeletalMeshEditor.png)
 [/REGION]
 
-스켈레탈 메시 에디터 유저 인터페이스에 대한 분석은 아래 각 섹션을 참고해 주세요:
+
 
 ## 1. 툴바
 
@@ -47,5 +52,7 @@ tags:Tools
 ## 4. 모프 타겟 프리뷰
 
 모프 타겟 프리뷰 탭에서는 현재 스켈레탈 메시에 사용할 수 있는 [모프 타겟](Engine/Animation/Persona/MorphTargetPreviewer) (또는 블렌드 스페이스) 미리보기가 가능합니다.
+
+또 이 섹션에 있는 [프리뷰 세팅](Engine\Animation\Persona\PreviewSettings) 탭에서 프리뷰로 사용할 **애니메이션 모드** 또는 **애니메이션** 과 같은 뷰포트 세팅 정의, 프리뷰에 사용되는 **스켈레탈 메시** 전환, 적용되는 뷰포트 라이팅 및 포스트 프로세스 세팅 정의를 통해 세팅에 다양한 라이팅을 적용하여 미리볼 수 있습니다.
 
 

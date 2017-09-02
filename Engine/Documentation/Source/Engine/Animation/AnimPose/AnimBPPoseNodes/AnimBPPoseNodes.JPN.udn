@@ -1,18 +1,27 @@
-﻿INTSourceChangelist:3273300
-Availability:Public
-Title:AnimGraph Pose ノード
+﻿INTSourceChangelist:3505632
+Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation
+Title:AnimGraph Pose ノード
 Description:Pose アセット、Animation ブループリント、および Pose ノードを使って、ランタイムにカーブで操作するアニメーションについて説明します。
+Type:Reference
+Version:4.16
+Parent:Engine/Animation
+Order:1
+topic-image:PoseNodeTopic.png
 Related:Engine\Animation\AnimHowTo\CreatePoseAsset
 Related:Engine\Animation\Persona\AnimCurves
 Related:Engine\Animation\Sequences\Curves
 Related:Engine\Animation\AnimBlueprints
 Related:Engine\Animation\NodeReference\SkeletalControls
-version:4.14
+Tags:Animation
+Tags:Animation Blueprint
+Tags:Animation Blending
 
-[Pose アセット](Engine\Animation\AnimPose) は、**Animation ブループリント** でランタイムに操作できます。**AnimGraph** は、数種類の Pose ノードをサポートしているからです。 
+<!-- Page refactored and split off into two pages, no longer needed
 
 [TOC (start:2 end:2)]
+
+[Pose アセット](Engine\Animation\AnimPose) は、**Animation ブループリント** でランタイムに操作できます。**AnimGraph** は、数種類の Pose ノードをサポートしているからです。 
 
 ## Pose by Name ノードと Pose Blender ノード
 
@@ -24,16 +33,23 @@ version:4.14
 以下の例では、プレイヤーが近づくと **Pose アセット** を使って笑い (Smile)、プレイヤーが離れると眉をひそめる (Flown) 顔があります。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-d3oGXxq2ekw
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	d3oGXxq2ekw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 Animation ブループリント内のステートマシンは、3 種類のステートでセットアップされます。 
 
@@ -54,7 +70,7 @@ Pose Blender (以下) を使わずに、AnimSequence を直接 Final Animation P
 
 ![](NoCurveData.png)
 
-**右クリック** で表示されるコンテキスト メニューを使って Pose Blender ノードを **Pose by Name** に変換することもできます (逆に Pose by Name を Pose Blender ノードに変換することも可能)。 
+**右クリック** で表示されるコンテキスト メニューを使って Pose Blender ノードを Pose by Name に変換することもできます (逆に Pose by Name を Pose Blender ノードに変換することも可能)。 
 
 ![](PoseByName.png)
 
@@ -77,15 +93,21 @@ Animation ブループリントの AnimGraph 内には、サンプル ポーズ�
 例えば、以下のクリップでは、肩を腕のボーンの動きに相対的に動かすために鎖骨のポーズが使われています。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-tJSYgPmzoKc
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	tJSYgPmzoKc
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 これを達成するために、**RBF (Radial Basis Function)** がターゲット ボーンの方向に基づいた操作値を補間します。 
@@ -115,18 +137,28 @@ tJSYgPmzoKc
 -->
 
 以下のアンリアル エンジンのライブストリームのアニメーションのトピックで **Pose Driver** のサンプルをご覧いただくこともできます。
- 
+
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-h2egrj1pXzw
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	h2egrj1pXzw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+ 
+
+ -->
+
 
 
 

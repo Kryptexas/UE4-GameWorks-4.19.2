@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3372845
+﻿INTSourceChangelist:3606403
 Availability:NoPublish
 Title:BuildGraph の定義済みタスク
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks
 Description:これはプロシージャルに生成されるマークダウン ページです。
-version:4.16
+version:4.18
 parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
 
 ### AgeStore
@@ -45,14 +45,16 @@ parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
 
 UnrealBuildTool でターゲットをコンパイルします。
 
-|               |                           |          |                                                                                   |
-| ------------- | ------------------------- | -------- | --------------------------------------------------------------------------------- |
-| Target        | String                    | Required | コンパイルするターゲット                                                             |
-| Configuration | UnrealTargetConfiguration | Required | コンパイルするコンフィギュレーション                                                      |
-| Platform      | UnrealTargetPlatform      | Required | コンパイル対象のプラットフォーム                                                       |
-| Arguments     | String                    | Optional | UnrealBuildTool の追加の引数                                          |
-| Tag           | Tag List                  | Optional | タスクのビルド生成物に適用するタグ                                  |
-| If            | Condition                 | Optional | このタスクを実行するか否かです。この条件式が、 false になると無視されます。 |
+|                       |                           |          |                                                                                   |
+| --------------------- | ------------------------- | -------- | --------------------------------------------------------------------------------- |
+| Target                | String                    | Required | コンパイルするターゲット                                                             |
+| Configuration         | UnrealTargetConfiguration | Required | コンパイルするコンフィギュレーション                                                      |
+| Platform              | UnrealTargetPlatform      | Required | コンパイル対象のプラットフォーム                                                       |
+| Arguments             | String                    | Optional | UnrealBuildTool の追加の引数                                          |
+| AllowXGE              | Boolean                   | Optional | コンパイルに XGE の使用を認めるか                                        |
+| AllowParallelExecutor | Boolean                   | Optional | コンパイルに並列 executor の使用を認めるか                     |
+| Tag                   | Tag List                  | Optional | タスクのビルド生成物に適用するタグ                                  |
+| If                    | Condition                 | Optional | このタスクを実行するか否かです。この条件式が、 false になると無視されます。 |
 
 ### Cook
 
@@ -161,17 +163,18 @@ C# のプロジェクト ファイルやその依存関係をコンパイルし�
 
 与えられたバージョン情報でローカルのバージョン ファイル (Engine/Source/Runtime/Launch/Resources/Version.h, Engine/Build/Build.version, およびEngine/Source/Programs/DotNETCommon/Metadata.cs) を更新します。
 
-|                  |           |          |                                                                                                                           |
-| ---------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Change           | Int32     | Required | バージョン ファイルに設定するチェンジリスト                                                                                |
-| CompatibleChange | Int32     | Optional | バージョン ファイルに設定するエンジン互換性のチェンジリスト                                                              |
-| Branch           | String    | Required | ブランチの文字列                                                                                                         |
-| Build            | String    | Optional | ビルド バージョンの文字列                                                                                                  |
-| Licensee         | Boolean   | Optional | IS_LICENSEE_VERSION フラグを true に設定するか否か。                                                                       |
-| Promoted         | Boolean   | Optional | ENGINE_IS_PROMOTED_BUILD フラグを true に設定するか否か。                                                                  |
-| SkipWrite        | Boolean   | Optional | 設定されると、実際にはファイルに書き込まず、更新されるバージョン ファイルを戻します。ローカルのビルドに役立ちます。 |
-| Tag              | Tag List  | Optional | タスクのビルド生成物に適用するタグ                                                                          |
-| If               | Condition | Optional | このタスクを実行するか否かです。この条件式が、 false になると無視されます。                                         |
+|                  |           |          |                                                                                                                                                                  |
+| ---------------- | --------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Change           | Int32     | Required | バージョン ファイルに設定するチェンジリスト                                                                                                                       |
+| CompatibleChange | Int32     | Optional | | バージョン ファイルに設定するエンジン互換性のチェンジリスト                                                                                                     |
+| Branch           | String    | Required | | ブランチの文字列                                                                                                                                                |
+| Build            | String    | Optional | | ビルド バージョンの文字列                                                                                                                                         |
+| Licensee         | Boolean   | IS_LICENSEE_VERSION フラグを true に設定するか否か。                                                                                                              |
+| Promoted         | Boolean   | Optional | ENGINE_IS_PROMOTED_BUILD フラグを true に設定するか否か。                                                                                                         |
+| SkipHeader       | Boolean   | Optional | 設定されると Version.h は更新せず、データ ファイルだけを更新します (例、 Build.version、 Metadata.cs).エディタは build.version からランタイムにビルドのチェンジリストを読み込むことができます。 |
+| SkipWrite        | Boolean   | Optional | 設定されると、実際にはファイルに書き込まず、更新されるバージョン ファイルを戻します。ローカルのビルドに役立ちます。                                        |
+| Tag              | Tag List  | Optional | タスクのビルド生成物に適用するタグ                                                                                                                 |
+| If               | Condition | Optional | このタスクを実行するか否かです。この条件式が、 false になると無視されます。                                                                                |
 
 ### Sign
 

@@ -1,21 +1,24 @@
 Availability: Public
-Title:Animation & Animation Blending
+Title:Blending Animations & Properties
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Illustrates how you can apply animation to a Skeletal Mesh Actor in Sequencer and blend animations. 
-Version: 4.15
+Description:Illustrates how you can apply animation to a Skeletal Mesh Actor in Sequencer and blend animations as well as blend property values. 
+Type: how-to
 SkillLevel: Intermediate
-parent:Engine/Sequencer/HowTo
-order:1
-checkpoint: editorqs
+Version: 4.17
+Parent: Engine/Sequencer/HowTo
+Order: 1
+Tags: Sequencer
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
-tags:Sequencer
 
 When creating cinematic sequences, there may be times where you want to have a character in your scene move around or perform some kind of animation.
-In **Sequencer**, this can be done by adding a Skeletal Mesh Actor to a Level Sequence then adding an Animation sub-track and specifying the animation that you want the Actor to perform.
-Repeating this process and adding different kinds of animations for your Actor to perform is what can bring your characters to life in your cinematic sequences!
+In **Sequencer**, this is done by adding a Skeletal Mesh Actor to a Level Sequence then adding an Animation sub-track and specifying the animation that you want the Actor to perform.
+Sequencer enables you to crossfade and blend animations (as well as property values) automatically by dragging and dropping a property tracksonto an existing property track. 
+When doing so, an automatic blend is applied which you can tune and tweak with easing properties or by defining your own custom curve asset. 
 
-Here in this guide, we will create a small scene that has a character start out walking and blend from a walk into a jump animation. 
+In this guide, we create a sample sequence of animations where a character blends from a walk into a jump and back to a walk again. 
+
+![](AnimationBlending.png)(w:720 h:480)
 
 ## Steps
 
@@ -31,7 +34,7 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 
 	![](CharacterAnim_02.png)
 
-1.	With the **SK_Mannequin** asset still selected, click the **Add** button in Sequencer to add it to your Level Sequence. 
+1.	With the **SK_Mannequin** asset still selected, click the **Track** button in Sequencer to add it to your Level Sequence. 
 
 	![](CharacterAnim_03.png)
 
@@ -39,63 +42,102 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 
 	![](CharacterAnim_04.png)
 
-1.	Expand **Animation**, then drag the **Timeline** to the **30** frame mark. 
+1.	Scrub the timeline to **30** and click the **Animation** button and add the **ThirdPersonJump_Start** animation. 
 
 	![](CharacterAnim_05.png)
 
-1.	Click the **Animation** button again and add the **ThirdPersonJump_Start** animation. 
+1.	Left-click and drag the **ThirdPersonJump_Start** animation in the tracks window onto the **ThirdPersonWalk** back to frame **25**. 
 
 	![](CharacterAnim_06.png)
 
-	If you play the animation now, you may notice a pop between the two animations. 
-
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	oHjDpYPAdCo
-	[/PARAMLITERAL]
-	[/OBJECT]
-
-	When adding animations, you can use the weight value to blend between multiple animations, which is how we will address the pop between animations. 
-
-1.	Drag the **ThirdPersonJump_Start** animation below and under the walk animation, back to frame **25** of the sequence. 
+1.	Add the **ThirdPersonJump_Loop** at frame **39** then drag it onto **ThirPersonJump_start** and crossfade it starting at frame **34**. 
 
 	![](CharacterAnim_07.png)
 
-1.	Expand both sub-animation tracks and click the **add key** button on the walk track with a value of **1.0** and **0.0** for the jump start animation. 
+1.	Add the **ThirdPersonJump_End** animation and crossfade it **2** frames. 
 
 	![](CharacterAnim_08.png)
 
-	This will effectively turn off the playback of the jump start animation since its weighted value is 0.0. 
-
-1.	Scrub to frame **30** and add keys for both animations of **0.0** and **1.0** for the walk and jump animations, respectively. 
+1.	Add the **ThirdPersonWalk** and crossfrade it for **3** frames. 
 
 	![](CharacterAnim_09.png)
 
-	This will effectively blend in the jump start animation and blend out the walk animation. 
+1.	At the start of one of the crossfades, right-click on the up triangle icon to bring up the **Easing Curve** options. 
 
-1.	Click the **Preview Play** button to see the animation blending. 
+	![](CharacterAnim_10.png)
+
+1.	Under the **Options** section, select any of the desired **Easing** options to define how the curve is performed. 
+
+	![](CharacterAnim_11.png)
+
+	Alternatively, you can change the **Method** to **Curve Asset**. 
+
+	![](CharacterAnim_12.png)
+
+	When doing so, the **Option** section will enable you to define which custom **Curve** asset you want to use. 
+
+	![](CharacterAnim_13.png)
+
+1.	Scrub the timeline through the sequence to see the blending or click the **Preview Play** button. 
 
 
 ## End Result
 
-Your sequence now includes a Skeletal Mesh with multiple animations which blend together smoothly instead of popping between animations. 
+Your sequence now includes a Skeletal Mesh with multiple animations that smoothly blend together with easing options available that you can use to tune the blend. 
 
 [OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+ZV_jKfrmVM0
+[/PARAMLITERAL]
 [PARAMLITERAL:width]
-640
+100
 [/PARAMLITERAL]
 [PARAMLITERAL:height]
-360
+56.25
 [/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-kVotxriT1Y4
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
 [/PARAMLITERAL]
 [/OBJECT]
 
-You could continue with this example by adding in the jump loop and jump end animations and blend them in so the character jumps and lands. 
+Another method of animation blending can be performed using the **Weight** sub-tracks on an animation track. 
+
+Below, we have one animation with a Weight value of **1.0** and another animation with a Weight value of **0.0**. 
+
+![](CharacterAnim_14.png)
+
+We then scrub the timeline ahead and reverse the Weight values for each which produces an interpolation between the two values causing the animations to blend.
+
+![](CharacterAnim_15.png)
+
+### More on Blending
+
+Blending is not restricted to animations, any 2D/3D transforms, vectors, colors, or floats can also be automatically blended. 
+
+By default, transform, vector, colors and similar tracks are set to **Infinite** which means the property value is persistant throughout the sequence. 
+By turning this option off and using property **Sections**, you can blend those Sections together. In the example video below, we blend the color of a light over time within Sequencer using a similar approach to this guide. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+w9j6RaMG9Nc
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+

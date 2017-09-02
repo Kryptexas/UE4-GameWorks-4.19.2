@@ -122,6 +122,7 @@ order:3
 		Features
 	[/PARAM]
 	[PARAM:links]
+		* [](Engine\Animation\AnimModifiers "%Engine\Animation\AnimModifiers:description%")
 		* [](Engine\Animation\AnimPose "%Engine\Animation\AnimPose:description%")
 		* [](Engine/Animation/Persona/BoneManipulation "%Engine/Animation/Persona/BoneManipulation:description%")
 		* [](Engine/Animation/AnimationBlending "%Engine/Animation/AnimationBlending:description%")

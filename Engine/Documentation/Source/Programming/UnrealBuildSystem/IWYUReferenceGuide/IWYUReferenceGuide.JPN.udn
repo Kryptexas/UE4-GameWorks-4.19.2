@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3356804
+﻿INTSourceChangelist:3518154
 Availability:Public
 Title:IWYU リファレンス ガイド
 Crumbs:
@@ -125,3 +125,4 @@ IWYU モードを有効にするには、モジュールを必ず IWYU 規則で
 1.	各ヘッダ ファイルの先頭に `CoreMinimal.h` をインクルードします。
 1.	すべてのソース ファイルに、要求されるすべての依存がインクルードされているかどうかを検証するために、PCH ファイルを無効にして通常モードでゲーム プロジェクトをコンパイルしてください。
 1.	`Runtime\Engine\Classes\Engine\Engine.h` で定義される **UEngine** または **GEngine** にアクセスする必要がある場合は、`#include Engine/Engine.h` を使います (`Runtime\Engine\Public\Engine.h` にあるモノリシック ヘッダ ファイルとは異なります)。
+1.	コンパイラが認識しないクラスを使用すると、何をインクルードすべきが分からなくなり、ヘッダ ファイルが見つからないことがあります。正しくコンパイルされた IWYU 以外のコードから変換する場合は特に当てはまります。[API Documentation](API) でクラスを参照すると、ページの下に必要なモジュールとヘッダ ファイルがあります。

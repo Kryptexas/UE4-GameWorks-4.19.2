@@ -1,31 +1,34 @@
-﻿INTSourceChangelist:0
-Availability:Public
-Title:Modify Curve
+﻿INTSourceChangelist:3491718
+Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes the Modify Curve node which can be used to modify animation curves with arbitrary logic inside Animation Graphs. 
-Related: Engine/Animation/Sequences/Curves
-Related: Engine/Animation/NodeReference/SkeletalControls
-Related: Engine/Animation/AnimBlueprints
-Related: Engine/Animation/AnimBlueprints/AnimGraph
-Related: Engine/Animation/StateMachines
-version: 4.15
-type:reference
-topic-image:ModifyCurveNode.png
+Title:修改曲线（Modify Curve）
+Description:说明 Modify Curve 节点。该节点可用于在动画图表中用任意逻辑修改动画曲线。 
+Type:Reference
+Version:4.16
+Parent:Engine/Animation/NodeReference/SkeletalControls
+Order:1
 tags:Animation
 tags:Animation Blueprint
 tags:Animation Curves
 tags:Skeletal Controls
+Related:Engine/Animation/Sequences/Curves
+Related:Engine/Animation/NodeReference/SkeletalControls
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Animation/AnimBlueprints/AnimGraph
+Related:Engine/Animation/StateMachines
+topic-image:ModifyCurveNode.png
 
+<!--WB: Do need a TOC for this?-->
 
-The **Modify Curve** control can be used to expose [Animation Curve](Engine/Animation/Sequences/Curves) data which can be modified using arbitrary logic to enable more dynamically-driven animations. 
+**Modify Curve** 控制可用于公开 [动画曲线](Engine/Animation/Sequences/Curves) 数据。该数据可使用任意逻辑进行修改，使动画更为动态。 
 
 ![](ModifyCurveNode.png)
 
-Below, the Modify Curve node is used to drive a curve called **Eye Glow Intensity** where the bear's eyes glow brighter over time. 
+以下视频中，Modify Curve 曲线用去驱动名为 **Eye Glow Intensity** 的曲线，使熊的眼睛随时间而跳动和发光。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
-	tYN-osmLeKE
+	lU_hG0rIGLY
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
 	100
@@ -41,14 +44,22 @@ Below, the Modify Curve node is used to drive a curve called **Eye Glow Intensit
 	[/PARAMLITERAL]
 [/OBJECT]
 
-Inside the [](Engine/Animation/AnimBlueprints/AnimGraph) of your [](Engine/Animation/AnimBlueprints), **Right-click** and search for and add the **Modify Curve** node
+将此节点添加至 [](Engine/Animation/AnimBlueprints) 的 [](Engine/Animation/AnimBlueprints/AnimGraph) 的步骤： 
 
-Once added, **Right-click** on the node and select **Add Curve Pin** and any associated curves you wish to modify. 
+1. 在 **AnimGraph** 中 **单击右键**，搜索并添加 **Modify Curve** 节点。
 
-![](AddCurvePin.png)
+1. 完成添加后，右键点击节点并选择 **Add Curve Pin** 和希望修改的相关曲线。 
 
-Pins can be removed by **Right-clicking** on the node again and selecting **Remove Curve Pin** or by **Right-clicking** on the pin itself and selecting **Remove This Curve Pin**.
+	![](AddCurvePin.png)
 
-With the exposed float pin, you can define any logic you wish to drive the value (the logic below adjusts the glow of our bear's eyes over time).
+浮点引脚公开后，即可定义用于驱动值的逻辑（下图的逻辑使用时间 SIN 乘以一个系数值，驱动 Eye Glow Intensity）。
 
 ![](CurveLogic.png)
+
+
+从 Modify Curve 节点移除引脚的方法： 
+
+* 再次在节点上点击右键并选择 **Remove Curve Pin** 或右键点击引脚并选择 **Remove This Curve Pin**。
+
+	![](RemovePin.png)
+

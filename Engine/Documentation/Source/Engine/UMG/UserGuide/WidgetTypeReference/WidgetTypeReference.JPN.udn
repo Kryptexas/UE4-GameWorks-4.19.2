@@ -1,10 +1,15 @@
-﻿INTSourceChangelist:3372539
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:Widget タイプのリファレンス
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG で利用可能なウィジェット タイプのリファレンスです。
-version:4.15
-tags:UMG UI Designer
+Type:Reference
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:3
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-image:Engine/UMG/UserGuide/WidgetTypeRefTopic.png
 
 [TOC(start:2 end:2)]
 

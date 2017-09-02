@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3455315
-Availability:Public
+﻿Availability:Public
 Title:背景のライティング
 Crumbs: %ROOT%, Engine
 Description:ライティングとシャドウイング ジオメトリの使用方法、グローバル イルミネーションの使用方法、リフレクションの設定方法
@@ -68,7 +67,7 @@ type:landing
 %Engine/Rendering/LightingAndShadows/IndirectLightingCache:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:Topic%
-<!--%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%-->
+%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%
 [/REGION]
 
 

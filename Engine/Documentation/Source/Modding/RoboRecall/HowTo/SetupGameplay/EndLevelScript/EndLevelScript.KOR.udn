@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3487380
 Availability:Public
 Title:5. 레벨 완료 스크립트
 Crumbs:
@@ -42,7 +42,7 @@ checkpoint:mod_gameplay
 
 	![](controller.png)
 
-1. ReturnToHub 이벤트의 실행 출력을 끌어 놓고 **execute Console Command** 를 선택합니다. **Command** 프로퍼티에 _open hub_evn_ 을 입력합니다. 그러면 Hub 레벨을 여는 명령을 전송합니다. **Specific Player** 입력을 형변환 노드의 **As Player Controller** 출력에 연결합니다.
+1. ReturnToHub 이벤트의 실행 출력을 끌어 놓고 **execute Console Command** 를 선택합니다. **Command** 프로퍼티에 _open hub_env_ 을 입력합니다. 그러면 Hub 레벨을 여는 명령을 전송합니다. **Specific Player** 입력을 형변환 노드의 **As Player Controller** 출력에 연결합니다.
 
 	[OBJECT:Snippet]
 		[PARAMLITERAL:id]

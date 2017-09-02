@@ -1,394 +1,349 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Crumbs:
-Title: Cloth Properties Reference
-Description: A reference page for the available properties used with Cloth asset configuration.
+﻿INTSourceChangelist:3590438
+Availability:Public
+Crumbs:%ROOT%
+Title:クロス ツールのプロパティ リファレンス
+Description:クロス ツールで利用可能なプロパティのリファレンス ページ
 Type:reference
-Version:4.16
-Parent:Engine/Physics
+Version:4.17
+Parent:Engine/Physics/Cloth
 Related:Engine/Physics/Cloth/Overview
 Order:2
 Tags:Physics
 Tags:Cloth
 
 
+[VAR:spacer]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[VAR:spacer3]![](%ROOT%/spacer.png)(w:100 convert:false)[/VAR]
+[VAR:spacer4]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		Cloth2
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Section Selection
-	[/PARAM]
-	[PARAM:content]
-		%C2%
-	[/PARAM]
-[/OBJECT]
+[TOC(start:2 end:2)]
 
-[VAR:C2]
+**Cloth Paint Tools (クロスのペイント ツール)** には、特定のクロス シミュレーションを可能にする多くのオプションとプロパティがあります。以下では、クロス アセット作成時に使用するメニュー オプションと、 
+レンダリング メッシュにクロスの値をペイントする様々なペイント ツールの選択時に使う [Cloth Paint (クロス ペイント)] パネルの詳細
+について説明します。
+
+
+## クロス アセットの作成メニュー
+
+このセクションでは、Cloth アセットをレンダリング メッシュの作成および適用に使用可能なプロパティと設定の詳細について説明します。
+
+### セクション選択
+
+**Section Selection (セクション選択)** では、レンダリング メッシュの様々なマテリアル エレメントを選択して Cloth アセットを作成し、適用することができます。このメニューでは、選択したメッシュの LOD とマテリアル セクションを特定し、レンダリング メッシュの Cloth アセットを作成し、 
+そのクロス アセットを選択したセクションに適用し、後で必要に応じて取り除くことができます。 
+
+![](SectionSelection.png)
 
 [REGION:raw]
-![](SectionSelectionMenu.png)
+| プロパティ | %spacer% | 説明 |
+| --- | --- | --- |
+| **LOD Section Selection** || 使用する LOD レベル名と Cloth アセットを作成するセクション。 |
+| **Apply Clothing Asset** || 選択したセクションに適用する Cloth アセットを選択します。 |
+| **Remove Clothing Asset** || 現在割り当てられている Cloth アセットを取り除きます。 |
+| [REGION:tablesection] Create Clothing Asset from Section [/REGION] || 選択したセクションをシミュレーション メッシュとして使って新規 Cloth アセットを作成します。 [INCLUDE:#createclothsection] |
+| [REGION:tablesection] Create Clothing Asset from LOD Section [/REGION] || 選択したセクションからクロスのシミュレーション メッシュを作成し、その LOD を、既存の Cloth アセットに追加します。 [INCLUDE:#createclothsectionlod] |
 [/REGION]
 
-The **Section Selection** enables you to select specific Material Elements of your mesh in the Skeletal Mesh Editor's viewport. In this mode, you are able to create, assign, and remove any 
-cloth assets for this mesh. 
 
-[REGION:simpletable]
-| Property | Description |
-| --- | --- |
-| Apply Clothing Asset | Select an available clothing asset to apply to the selected section. |
-| Remove Clothing Asset | Remove the currently assigned clothing asset. |
-| Create Clothing Asset from Section | Create a clothing asset from the selected section. [INCLUDE:#createclothsection] |
-[/REGION]
 
-[/VAR]
-
-<!--- Section Selection excerpts --- 
+<!---
 
 [EXCERPT:createclothsection]
-| Property | Description |
-| --- | --- |
-| [REGION:tablesection] Basic [/REGION] ||
-| Asset Name | Set the name for the cloth asset that will be created. |
-| Remove From Mesh | Whether or not to leave this section behind (if driving a mesh with itself). Enable this if driving a high-poly mesh with a low poly.|
-| [REGION:tablesection] Collision [/REGION] ||
-| Physics Asset | The Physics Asset to extract collisions from. This will only extract spheres and sphyls, since this is what the simulation currently supports. |
-| [REGION:tablesection] Auto Fix[/REGION] ||
-| Try Auto Fix |  |
-| Auto Fix Threshold |  |
-| Simulated Particle Max Distance | The max distance to simulate the particles for the cloth solver. |
+![](CreateClothSection.png)(w:350)
+| --- | --- | --- |
+| [REGION:tablesection] Basic [/REGION] |||
+| **Asset Name** || クロス セクション アセットに入力した名前。 |
+| **Remove from Mesh** || このセクションを残すかどうかです (メッシュそのものを操作する場合)。これを有効にすると、高ポリゴン メッシュを低ポリゴン メッシュで操作します。 |
+| [REGION:tablesection] Collision [/REGION] |||
+| **Physics Asset** || コリジョンを抽出する Physics アセットです。これは Sphere と Sphylls をエクスポートしますが、最高 32 の 凸 面 (または 5 つのボックス) をサポートします。 |
+|| %spacer4% |||
+<!---| [REGION:tablesection] Auto Fix [/REGION] |||--->
+<!---| **Try Auto Fix** ||  |--->
+<!---| **Auto Fix Threshold** ||  |--->
+<!---| **Simulated Particle Max Distance** ||  |--->
 [/EXCERPT:createclothsection]
 
---- End Section Selection Excerpts --->
+[EXCERPT:createclothsectionLOD]
+![](CreateClothLODSection.png)(w:350)
+| --- | --- | --- |
+| [REGION:tablesection] Target [/REGION] |||
+| **Target Asset** || これは LOD をインポートするときのターゲット アセットです。 |
+| **LOD Index** || [INCLUDE:#lodindex] |
+| **Remap Parameters** || 再インポートする場合、古い LOD パラメータを新しい LOD メッシュにマッピングします。新しい LOD を追加する場合、前の LOD からパラメータをマッピングします。 |
+| [REGION:tablesection] Basic [/REGION] |||
+| **Remove from Mesh** || このセクションを残すかどうかです (メッシュそのものを操作する場合)。高ポリゴン メッシュを低ポリゴン メッシュで操作する場合にこれを有効にします。 |
+|| %spacer4% |||
+[/EXCERPT:createclothsectionLOD]
+
+[EXCERPT:lodindex]
+| --- | --- |
+| **Replace LOD** |選択した Cloth アセットの LOD0 と このセクションとを置き換えます。 |
+| **Add LOD** | 選択したセクションを使って新規 LOD として追加します。 |
+[/EXCERPT:lodindex]
 
 
+--->
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		Cloth1
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Cloth Paint
-	[/PARAM]
-	[PARAM:content]
-		%C1%
-	[/PARAM]
-[/OBJECT]
 
-[VAR:C1]
+## Cloth Paint パネル
+
+**[Cloth Paint (クロス ペイント)]** パネルには、すべての Cloth アセット、マスク、クロスの反応を設定するパラメータ、およびクロスの値をペイントするときに使うツールもあります。 
 
 ![](ClothPaintPanel.png)
 
-The **Cloth Paint** properties enable you to define how you paint weights on the cloth asset you've selected. These weights determine how the **Cloth Configuration Properties** use 
-these values to applie cloth simulations to your mesh.
+### アセット
 
+**[Assets]** ウィンドウには、レンダリング メッシュに割り当てられる作成した Cloth アセットが表示され、APEX (.apx または .apb) ファイルをインポートすることが可能になります。 
+メッシュに対して作成された利用可能な LOD から選択して、パラメータ値をコピーすることができます。
 
-[REGION:simpletable]
-| Property | Description  |
-| --- | --- |
-| Enable Paint Tools  | This enables the tools needed to paint your cloth values. |
-| [REGION:tablesection] Assets [/REGION] ||
-| Asset LOD | Selection box for the available levels of detail (LOD) where you can paint or create a mask. |
-| New Mask | Enables you to create a mask for the selected asset and available level of detail. |
-| [REGION:tablesection] Mask [/REGION] ||
-| Mask Context Menu | Available options for the asset mask. |
-| Set Target | Selects the available targets that you can apply the mask to. [INCLUDE:#settarget] |
-| Move Up | Moves the mask selection up in the Mask list. |
-| Move Down | Moves the mask selection down in the Mask list. |
-| Delete | Removes the selected mask from the list. |
-| Apply | Applies the mask to the physical mesh. |
-| [REGION:tablesection] Brush [/REGION] ||
-| Radius | Sets the radius that will be used for the painting brush. |
-| Strength | Sets the strength of the rush when painting between 0 - 1, with 0 being off and 1 being fully on. |
-| Falloff | Sets the amount of falloff around the edge of the brush to apply between 0 - 1, with 0 being no falloff and 1 being a lot of falloff. |
-| Enable Brush Flow | Enables the continuous 'flow' where paint is applied from the brush every tick. |
-| Ignore Back-Facing | Whether the back-facing triangles should be ignored. |
-| [REGION:tablesection] View [/REGION] ||
-| Color View Mode | Selection used to display the Vertex Colors view modes. [INCLUDE:#colorview] |
-| [REGION:tablesection] Cloth Painting [/REGION] ||
-| Painting Property | Sets the current clothing property which should be visualized and painted. [INCLUDE:#paintingproperty]|
-| Paint Tool | Select which type of paint tool to use. [INCLUDE:#brush] [INCLUDE:#gradient]|
-[/REGION]
+![](Assets.png)
 
-[/VAR]
-
-
-
-<!--- Cloth Paint panel excerpts --- 
-
-[EXCERPT:settarget]
-| Property | Description |
-| --- | --- |
-| None | No assigned mask target will be used. |
-| Max Distance | A mask used to store the Max Distance for your cloth asset. |
-| Backstop Distance | A mask used to store the Backstop Distance for your cloth asset.  |
-| Backstop Radius | A mask used to store the Backstop Radius for your cloth asset. |
-[/EXCERPT:settarget]
-
-[EXCERPT:colorview]
-| Property | Description |
-| --- | --- |
-| Off  | Normal view mode (Vertex Color visualization is off). | 
-| RGB Channels | Visualize the RGB color channels. | 
-| Alpha Channel | Visualize the Alpha channel. | 
-| Red Channel | Visualize the Red color channel.  | 
-| Green Channel | Visualize the Red color channel. |
-| Blue Channel | Visualize the Red color channel. | 
-[/EXCERPT:colorview]
-
-[EXCERPT:paintingproperty]
-| Property | Description |
-| --- | --- |
-| Max Distances | Selects the Max Distances property to be visualized and painted. | 
-| Backstop Distances  | Selects the Backstop Distances property to be visualized and painted. | 
-| Backstop Radius | Selects the Backstop Radius property to be visualized and painted. | 
-[/EXCERPT:paintingproperty]
-
-[EXCERPT:paintingproperty]
-| Property | Description |
-| --- | --- |
-| Max Distances | Selects the Max Distances property to be visualized and painted. | 
-| Backstop Distances  | Selects the Backstop Distances property to be visualized and painted. | 
-| Backstop Radius | Selects the Backstop Radius property to be visualized and painted. | 
-[/EXCERPT:paintingproperty]
-
-[EXCERPT:brush]
-| Property | Description |
-| --- | --- |
-| Brush | Enables you to directly paint the meshes vertices. | 
-| Paint Value | The value to paint for the currently selected Painting Property. |
-[/EXCERPT:brush]
-
-[EXCERPT:gradient]
-| Property | Description |
-| --- | --- |
-| Gradient | Enables you to create a gradient between two sets of vertices. | 
-| Gradient Start Value | Sets the value of (green) points defined at the start of the gradient. |
-| Gradient End Value | Sets the value of (red) point defined at the end of the gradient. |
-| Use Regular Brush for Gradient | Toggle for using the regular brush size for painting the Start and End points of the gradient. |
-[/EXCERPT:gradient]
-
-End Cloth Paint panel excerpts --->
-
-
-
-
-
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		Cloth3
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Cloth Configuration Properties
-	[/PARAM]
-	[PARAM:content]
-		%C3%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:C3]
-
-
-![](ClothingProperties.png)
-
-In the **Asset Details** panel under the **Clothing** section, you can define the various properties of your clothing that is assigned to the mesh's Material Elements. These properties
-define how your cloth will react so that you can have different types of cloth that act like silk, burlap, rubber, etc.
-
-[REGION:simpletable]
-| Property  | Description |
-| --- | --- |
-| [REGION:tablesection] Mesh Clothing Assets [/REGION] ||
-| Name | The name given to the the created or imported Cloth asset. |
-| Details | Specific details about the cloth asset, such as the number of vertices simulating, fixed vertices, bones, etc. |
-| [REGION:tablesection] Cloth Config [/REGION] ||
-| Wind Method | A selection for how wind should be processed. [INLCUDE:#windmethod] |
-| Vertical Constraint Config | Constraint data used for vertical constraints. [INCLUDE:#constrconfig] |
-| Horizontal Constraint Config | Constraint data used for horizontal constraints. [INCLUDE:#constrconfig] |
-| Bend Constraint Config | Constraint data used for bend constraints. [INCLUDE:#constrconfig] |
-| Shear Constraint Config | Constraint data used for shear constraints. [INCLUDE:#constrconfig] |
-| Self Collision Radius | Size of the self collision spheres centered on each vertice.  |
-| Self Collision Stiffness | The stiffness of the spring force that will resolve self collisions. |
-| Damping | The damping of particle motions per-axis (XYZ).  |
-| Friction | The friction of the surface when colliding. |
-| Wind Drag Coefficient | Drag coefficient for wind calculations. Higher values mean that wind has more lateral effect on the cloth. |
-| Wind Lift Coefficient | Lift coefficient for wind calculations. Higher values make cloth rise easier in the wind. |
-| Linear Drag | Drag that is applied to linear particle movement per-axis (XYZ). |
-| Angular Drag | Drag that is applied to angular particle movement. Higher values should limit material bending (per-axis XYZ). |
-| Linear Inertia Scale | Scale for linear particle inertia. This controls how much movement should translate to linear motion per-axis (XYZ). |
-| Angular Inertia Scale | Scale for angular particle inertia. This controls how much movement should translate to angular motion per-axis (XYZ). |
-| Centrifugal Inertia Scale | Scale for centrifugal inertia. This controls how much movement should translate to angular motion per-axis (XYZ). |
-| Solver Frequency | The frequency of the position solver. Lower values will lead to stretchier, bouncier cloth. |
-| Stiffness Frequency | The frequency stiffness calculation. Lower values will degrade stiffness of constraints. |
-| Gravity Scale | The scale of gravity's effect on particles. |
-| Tether Stiffness | The scale for stiffness of particle tethers between each other. |
-| Tether Limit | The scale for the limit of particle tethers. This controls how far they can separate. |
-| Collision Thickness | This adjusts the thickness of the cloth, used to adjust collisions.  |
-| [REGION:tablesection] Import [/REGION] ||
-| Imported File Path | If using APEX Cloth (.apx/apb) assets from an imported file, this will be the original file location path.  |
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | --- | --- |
+| **Name** || 物理メッシュの LOD セクションに対して作成した Cloth アセット名。 |
+| **Import Apex File** || クロス ツールを使用するために変換される APEX (.apx または .apb) ファイルをインポートすることができます。 |
+| **Level of Detail (LOD) Selection** || パラメータを設定、値をペイント、または値をコピーする LOD メッシュを選択することができます。 |
 [/REGION]
 
 
-[/VAR]
+### マスク
 
-<!--- Asset Details: Cloth excerpts --- 
+**[Masks]** ウィンドウは、ペイントしたクロス値に対して作成されたパラメータ セットを表示します。これらには、Cloth アセットと合わせて使用するターゲット値を割り当てることができます。 
+
+![](Masks.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | --- | --- |
+| **Name** || このパラメータ セットに対するターゲット設定と共にマスクに与えられる名前。 [INCLUDE:#masksettings]  |
+| **Add Mask** || 新規マスクを利用可能なマスク パラメータのリストに追加します。 |
+[/REGION]
+
+
+
+<!---
+[INCLUDE:#masksettings]
+
+[EXCERPT:masksettings]
+| --- | --- | --- |
+| [REGION:tablesection] 右クリックのメニュー設定 [/REGION] |||
+| [REGION:tablesection] 設定ターゲット [/REGION] |||
+| **None** || このパラメータ セットに対してターゲットは設定されていません。 |
+| **Max Distance** || クロスのシミュレーション パーティクルがアニメートされた位置から移動できる最長距離です。 |
+| **Backstop Distance** || クロスのシミュレーション パーティクルの動きを制限するために使われる Max Distance からの距離のオフセットです。 |
+| **Backstop Radius** || Max Distance と交差する場合に、クロスのシミュレーション パーティクルがそのエリアに入るのを防ぐ半径です。 |
+| [REGION:tablesection] アクション [/REGION] |||
+| **Move Up** || マスクをリストで 1 スロット上方に移動します。 |
+| **Move Down** || マスクをリストで 1 スロット下方に移動します。 |
+| **Delete** || 選択したマスクをリストから削除します。 |
+| **Apply** || マスクを物理メッシュに適用します。 |
+[/EXCERPT:masksettings]
+
+--->
+
+
+### Config
+
+**[Config]** プロパティでは、クロスの反応を調整し、麻、ゴムなど様々なマテリアルをシミュレーションできるようにします。
+
+![](Config.png)
+
+[REGION:raw]
+| プロパティ | %spacer3% | 説明 |
+| --- | --- | --- |
+| **Physics Asset** || シミュレーションを構築する場合に、コリジョンを抽出する Physics アセットです。 |
+| **Wind Method** || どのように風を処理するかです。Accurate は抗力と揚力を使ってクロスが異なる反応をするようにします。Legacy は類似の力を抗力と揚力なしで (APEX と同様に) すべてのクロスに適用します。 [INCLUDE:#windmethod] |
+| **Vertical Constraint Config** || 頂点のコンストレイントに使うコンストレイント データです。 [INCLUDE:#constraintgconfig] |
+| **Horizontal Constraint Config** || 水平のコンストレイントのためのコンストレイント データです。 [INCLUDE:#constraintgconfig] |
+| **Bend Constraint Config** || 曲げのコンストレイントのためのコンストレイント データです。[INCLUDE:#constraintgconfig] |
+| **Shear Constraint Config** || シア (せん断) コンストレイントのためのコンストレイント データです。 [INCLUDE:#constraintgconfig] |
+| **Self Collision Radius** || 各頂点を中心とするセルフ コリジョンの球体のサイズです。 |
+| **Self Collision Stiffness** || セルフ コリジョンを解決するスプリング力の剛性です。 |
+| **Self Collision Cull State** || セルフ コリジョンのためのカリング チェックの半径で使用するスケールです。このチェックの半径内のセルフ コリジョン ボディが他にあればカリングされます。これは高解像度メッシュのパフォーマンスを、クロス内で衝突するボディ数を減らすことで改善します。これを減らすとパフォーマンスに負の影響を及ぼします。 |
+| **Damping** || 軸毎のパーティクル モーションの減衰です。 |
+| **Friction** || 衝突時の表面の摩擦です。 |
+| **Wind Drag Coefficient** || 風の計算の抵抗係数です。この場合、値が高くなると風はクロスに対して一段と横方向に作用します。 |
+| **Wind Lift Coefficient** || 風の計算の揚力係数です。値が高くなると、風に吹かれてクロスがより簡単に上がるようになります。 |
+| **Linear Drag** || 軸毎の線形のパーティクルの動きに適用される抗力です。 |
+| **Angular Drag** || パーティクルの回転運動に対する抵抗です。この場合、値が大きくなるほど、マテリアルの曲げの制限が強くなります (軸毎) 。 |
+| **Linear Inertia Scale** || 線形のパーティクルの慣性に対するスケールです。どれくらいの動きを直線運動に変換するかです (軸毎)。 |
+| **Angular Inertia Scale** || パーティクルの回転運動の慣性のスケールです。どれくらいの運動が回転運動に変換されるかです (軸毎)。 |
+| **Centrifugal Inertia Scale** || 遠心力のあるパーティクルの慣性のスケールです。どれくらいの運きを回転運動に変換するかです (軸毎)。 |
+| **Solver Frequency** || 位置ソルバーの頻度。値が低いほど、伸縮性があり、弾性があるクロスになります。 |
+| **Stiffness Frequency** || 剛性の計算頻度。値が低くなるほど、コンストレイントの剛性が劣化します。 |
+| **Gravity Scale** || クロスのパーティクル シミュレーションに対する重力スケールの効果です。 |
+| **Tether Stiffness** || パーティクル同士をつなげる剛性のスケールです。 |
+| **Tether Limit** || パーティクルをつなげる制限のスケールです (パーティクルがどれくらい離れることができるか)。 |
+| **Collision Thickness** || シミュレートしたクロスの厚さ、でコリジョンを調整するために使用します。 |
+[/REGION]
+
+
+
+
+
+<!---
+[INCLUDE:#constraintgconfig]
+
+[EXCERPT:constraintgconfig]
+| --- | --- | --- |
+| **Stiffness** || ノード間でこのコンストレイントがどれくらい剛性が強いかです。必要な位置にどれくらい近く追随するかに影響を及ぼします。 |
+| **Stiffness Multiplier** || 使用する **Stiffness** 値に影響を与える乗数です。 |
+| **Stretch Limit** || このコンストレイントをどれくらい伸縮できるかのハードリミットです。 |
+| **Compression Limit** || このコンストレイントをどれくらい圧縮できるかのハードリミットです。 |
+[/EXCERPT:constraintgconfig]
 
 [EXCERPT:windmethod]
-| Property | Description |
-| --- | --- |
-| Legacy | This mode uses accelerations modified directly by the simulation with no regard for drag or lift. |
-| Accurate| Use the updated wind calculation for NvCloth based solver, taking into account drag and lift. This will require those properties to be correctly set in the clothing configuration. |
+| --- | --- | --- |
+| **Legacy** || 抗力や揚力を考慮せずにシミュレーションによって直接加速が変更される場合、Legacy の風のモードを使用します。 |
+<!--- | **Accurate** ||  | --->
 [/EXCERPT:windmethod]
 
-[EXCERPT:constrconfig]
-| Property | Description |
-| --- | --- |
-| Stiffness | How stiff this constraint is. This affects how closely it will follow the desired position. |
-| Stiffness Multiplier | A multiplier that affects the value set for **Stiffness**. |
-| Stretch Limit | The hard limit on how far this constraint can stretch. |
-| Compression Limit | The hard limit on how far this constraint can compress. |
-[/EXCERPT:constrconfig]
-
---- End Asset Details Cloth Excerpts --->
+--->
 
 
 
+### インポート
 
+**[Import]** オプションは、任意の [インポートされた APEX ファイル](#アセット) のファイル パスを表示します。
 
+![](Import.png)
 
-
-
-
-
-Availability: Public
-Title:Physics Simulation
-Crumbs: %ROOT%, Engine
-Description:Subsystem used to calculate collision and simulate physical actors.
-Version: 4.16
-parent:Engine
-order:8
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[REGION:banner]
-![Physics](physics_landing_banner.png)
+[REGION:raw]
+| プロパティ | %spacer2% | 説明 |
+| --- | --- | --- |
+| **Imported File Path** || このアセットが、ファイルからインポートされると、これがオリジナルのパスになります。 |
 [/REGION]
 
-[EXCERPT:Intro]
-Unreal Engine 4 uses the PhysX 3.3 physics engine to drive its physical simulation calculations and perform all collision calculations. PhysX provides the ability to perform accurate collision detection as well as simulate physical interactions between objects within the world. Having physics in your game will help improve the immersion value of every scene, as it helps players believe that they are interacting with the scene and that the scene is responding back in some way or another.
-[/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:links]
-		* [Collision Responses](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
-		* [Collision Reference](Engine/Physics/Collision/Reference "%Engine/Physics/Collision/Reference:description%")
-		* [Physics Constraints User Guide](Engine/Physics/Constraints/ConstraintsUserGuide "%Engine/Physics/Constraints/ConstraintsUserGuide:description%")
-		* [](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
-		* [](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
-		* [](Engine/Physics/Tracing "%Engine/Physics/Tracing:description%")
-		* [Damping and Friction](Engine/Physics/Constraints/DampingAndFriction "%Engine/Physics/Constraints/DampingAndFriction:description%")
-	[/PARAM]
-[/OBJECT]
+### クロスのペイント
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vehicle_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Clothing Tools
-	[/PARAM]
-	[PARAM:links]
-		* [Clothing Tool Overview](Engine/Physics/Cloth/Overview "%Engine/Physics/Cloth/Overview:description%")
-	[/PARAM]
-[/OBJECT]
+**[Cloth Painting]** セクションでは、ブラシ、グラデーション、スムーズ、フィルなどの様々なツールを選択することができます。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vehicle_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Vehicles
-	[/PARAM]
-	[PARAM:links]
-		* [Vehicle User Guide](Engine/Physics/Vehicles/VehicleUserGuide "%Engine/Physics/Vehicles/VehicleUserGuide:description%")
-		* [Vehicle Content Creation Guide](Engine/Physics/Vehicles/VehcileContentCreation "%Engine/Physics/Vehicles/VehcileContentCreation:description%")
-		* [Advanced Vehicle Template](Engine/Physics/Vehicles/DoubleWishboneVehicle "%Engine/Physics/Vehicles/DoubleWishboneVehicle:description%")
-		* [Vehicle API Reference](API:AWheeledVehicle)
-	[/PARAM]
-[/OBJECT]
+こうしたプロパティを入力する前に、まず [アセット](#アセット) ウィンドウから Cloth アセットを選び、**[Enable Paint Tools]** ボタンをクリックします。.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Content Creation
-	[/PARAM]
-	[PARAM:links]
-		* [Physics Bodies](Engine/Physics/PhysicsBodies "%Engine/Physics/PhysicsBodies:description%")
-		* [Complex Vs. Simple Collision](Engine/Physics/SimpleVsComplex "%Engine/Physics/SimpleVsComplex:description%")
-		* [Physical Materials](Engine/Physics/PhysicalMaterials "%Engine/Physics/PhysicalMaterials:description%")
-		* [PhAT User Guide and Reference](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
-	[/PARAM]
-[/OBJECT]
+![](Enable.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Links
-	[/PARAM]
-	[PARAM:links]
-		* [Static Mesh Editor](Engine/Content/Types/StaticMeshes/Editor "%Engine/Physics/PhAT:description%")
-		* [FBX Pipeline: Static Meshes](Engine/Content/FBX/StaticMeshes "%Engine/Physics/PhAT:description%")
-	[/PARAM]
-[/OBJECT]
+クロス値をペイントするときに使用するツールのタイプです。
+
+* [ブラシ](#ブラシ)
+* [グラデーション](#グラデーション)
+* [スムーズ](#スムーズ)
+* [フィル](#フィル)
+
+
+#### ブラシ 
+
+**Brush** ツールを使うと、Cloth アセットをドラッグしながら半径と強度の値をクロスにペイントすることができます。
+
+![](Brush.png)
+
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | --- | --- |
+| [REGION:tablesection] View [/REGION] |||
+| **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
+| **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。  |
+| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
+| **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
+| **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |
+| [REGION:tablesection] Tool Settings [/REGION] |||
+| **Paint Value** || このパラメータに対して、メッシュにペイントする値。 |
+| [REGION:tablesection] Brush [/REGION] |||
+| **Radius** || ペイントに使用するブラシの半径。 |
+| **Strength** || ブラシの強度 (0.0 - 1.0)。 |
+| **Falloff** || 適用するフォールオフの量 (0.0 - 1.0)。 |
+| **Enable Brush Flow** || ティック毎にブラシからペイントが継続的に適用されるフロー ペイントを有効にします。 |
+| **Ignore back-facing** || ペイント時に裏面のトライアングルを無視するかどうかです。 |
+[/REGION]
+
+#### グラデーション 
+
+**Gradient** ツールを使うと選択したクロスの値一式の間で、少しづつブレンドしてペイントすることができます。 
+
+![](Gradient.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | --- | --- |
+| [REGION:tablesection] View [/REGION] |||
+| **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
+| **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。 |
+| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
+| **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
+| **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |
+| [REGION:tablesection] Tool Settings [/REGION] |||
+| **Gradient Start Value** || 開始点でのグラデーションの値。 |
+| **Gradient End Value** || 終了点でのグラデーションの値。 |
+| **Use Regular Brush** || ポイントではなくブラシを使って選択したポイントをペイントします。 |
+| [REGION:tablesection] Brush [/REGION] |||
+| **Radius** || ペイントに使用するブラシの半径。 |
+| **Strength** || ブラシの強度 (0.0 - 1.0)。 |
+| **Falloff** || 適用するフォールオフの量 (0.0 - 1.0)。 |
+| **Enable Brush Flow** || ティック毎にブラシからペイントが継続的に適用されるフロー ペイントを有効にします。 |
+| **Ignore back-facing** || ペイント時に裏面のトライアングルを無視するかどうかです。 |
+[/REGION]
+
+
+#### スムーズ 
+
+**Smooth** ツールを使うと、ペイントしたクロスの値の間でコントラストをぼかす、すなわち和らげることができます。 
+
+![](Smooth.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | --- | --- |
+| [REGION:tablesection] View [/REGION] |||
+| **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
+| **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。 |
+| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
+| **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
+| **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |
+| [REGION:tablesection] Tool Settings [/REGION] |||
+| **Strength** || ペイント時のスムージング (ブラー) の強度。 |
+| [REGION:tablesection] Brush [/REGION] |||
+| **Radius** || ペイントに使用するブラシの半径。 |
+| **Strength** || ブラシの強度 (0.0 - 1.0)。 |
+| **Falloff** || 適用するフォールオフの量 (0.0 - 1.0)。 |
+| **Enable Brush Flow** || ティック毎にブラシからペイントが継続的に適用されるフロー ペイントを有効にします。 |
+| **Ignore back-facing** || ペイント時に裏面のトライアングルを無視するかどうかです。 |
+[/REGION]
+
+
+#### フィル 
+
+**Fill** ツールを使うと、類似の値を持つエリアを、他の値で置き換えることができます。 
+
+![](Fill.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | --- | --- |
+| [REGION:tablesection] View [/REGION] |||
+| **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
+| **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。 |
+| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
+| **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
+| **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |
+| [REGION:tablesection] Tool Settings [/REGION] |||
+| **Threshold** || サンプリングした頂点がオリジナルの頂点のこの範囲内に存在しなくなるまで、フィルを続けるフィル操作のしきい値です。 |
+| **Fill Value** || すべての選択した頂点をフィルする値。 |
+| [REGION:tablesection] Brush [/REGION] |||
+| **Radius** || ペイントに使用するブラシの半径。 |
+| **Strength** || ブラシの強度 (0.0 - 1.0)。 |
+| **Falloff** || 適用するフォールオフの量 (0.0 - 1.0)。 |
+| **Enable Brush Flow** || ティック毎にブラシからペイントが継続的に適用されるフロー ペイントを有効にします。 |
+| **Ignore back-facing** || ペイント時に裏面のトライアングルを無視するかどうかです。 |
+[/REGION]
+
+
 
 
 

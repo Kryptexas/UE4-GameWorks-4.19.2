@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2701255
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでアクタをレプリケートする
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking/ReplicateActor
@@ -7,6 +7,7 @@ Related:Engine/Blueprints
 Related:Resources/ContentExamples/Networking
 Version:4.9
 SkillLevel:Advanced
+type:how-to
 
 [TOC (start:2 end:2)]
 

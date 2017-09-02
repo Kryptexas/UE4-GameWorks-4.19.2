@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
+﻿INTSourceChangelist:3482403
+Availability:Public
 Crumbs: %ROOT%
-Title: Ramp
-Description: This is an overview of the Ramp painting tool.
-Type: Overview
+Title:斜坡
+Description:斜坡绘制工具总览。
+Type:Overview
 SkillLevel:Beginner
 Version:4.16
 Parent:Engine/Landscape/Editing/SculptMode
@@ -13,10 +13,10 @@ Topic-image:Ramp_topic.png
 
 [TOC(start:2 end:2)]
 
-The **Ramp** tool enables you to select two locations on your Landscape and create a flat ramp between the two points, with a falloff you specify for the sides. 
+使用 **斜坡（Ramp）** 工具可在地形上选择两个位置并在两个点之间创建一个平板斜坡，并在侧边指定衰减。 
 
 
-## Using the Ramp Tool
+## 使用斜坡工具
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -37,32 +37,32 @@ The **Ramp** tool enables you to select two locations on your Landscape and crea
 [/OBJECT]
 
 
-1. In the Landscape tool, in the **Sculpt** mode, select the **Ramp** tool. 
+1. 在 Landscape 工具的 **Sculpt** 模式中选择 **Ramp** 工具。 
 
 	![](RampSelection.png)(w:400)
 
-1. In the viewport on your Landscape, **Left-click** and drag or simply Left-click in two different places to mark the beginning and end points of the ramp. 
+1. 在地形的视口中，**点击左键** 并进行拖动，或在两个不同位置上点击左键即可标出斜坡的开始和结束点。 
 	
 	![](1.png)(w:500)
 
 	[REGION:tip]
-	If you change your mind about adding a ramp after starting to set the beginning and end points, you can click **Reset** to clear them.
+	设置开始和结束点之后，如需放弃创建斜坡，点击 **Reset** 即可将其清除。
 	[/REGION]
 
-1. Select either marker and adjust its position. In this case, it has been moved along the Z-axis above the Landscape surface.
+1. 选择任意一个标志并调整其位置。在此例中，它在地形表面之上沿 Z 轴移动。
 
 	![](2.png)(w:500)
 
-1. When you're satisfied with the position, click the **Add Ramp** button in the Tool Settings to create the ramp. 
+1. 选择好位置后，点击 Tool Settings 中的 **Add Ramp** 按钮即可创建斜坡。 
 
 	![](3.png)(w:400)
 
-	Now, you'll have a ramp that has been sculpted into your heightmap.
+	现在，您的高度图中便拥有了一个斜坡。
 
 	![](4.png)(w:500)
 
 
-## Tool Settings
+## 工具设置
 
 [REGION:imagetable]
 | ![Ramp Tool](Landscape_Ramp.png)(h:75) | ![](RampToolProperties.png)(h:120) |
@@ -71,8 +71,8 @@ The **Ramp** tool enables you to select two locations on your Landscape and crea
 [/REGION]
 
 
-| **Property** | **Description** |
+| **属性** | **描述** |
 | ------------ | --------------- |
-| **Ramp Width** | Sets the width of the ramp. |
-| **Side Falloff** | Sets the edge falloff on the sides of the ramp where it merges inot the rest of the landscape. This falloff gives a softness to the edge flow on these sides. A setting of **0** means no falloff; a setting of **1** means all falloff and no flat surface for the ramp. |
+| **Ramp Width** | 设置斜坡的宽度。|
+| **Side Falloff** | 在斜坡的侧边设置边缘衰减，使其融入整体地形。此衰减将为侧边的边缘流增添一些柔度。数值 **0** 意味着不存在衰减，数值 **1** 意味着斜坡不存在平坦表面，全为衰减。|
 

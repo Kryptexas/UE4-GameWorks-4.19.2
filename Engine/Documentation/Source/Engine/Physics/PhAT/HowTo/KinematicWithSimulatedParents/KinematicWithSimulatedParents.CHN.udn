@@ -1,92 +1,90 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Using Kinematic Bodies with Simulated Parents
+﻿INTSourceChangelist:3574744
+Availability:Public
+Title:结合模拟父项使用运动学形体
 Crumbs: %ROOT%, Engine
-Description:This how-to covers setting up kinematic physics bodies with simulated parents.
+Description:此指南说明如何用模拟父项设置运动学物理形体。
 parent:Engine/Physics/PhAT/HowTo
 order:1
-Version: 4.16
+Version:4.16
 skilllevel:Intermediate
 topic-image:KinematicHowTo_04.png
 checkpoint: editorqs
-Related: Engine/Physics/PhAT
-Related: Engine/Physics/PhAT/Reference
+Related:Engine/Physics/PhAT
+Related:Engine/Physics/PhAT/Reference
 type:how-to
 tags:Physics
 tags:Kinematic
 tags:PhAT
 
-The [](Engine/Physics/PhAT) provides several different ways in which you can simulate physics bodies including the ability to have kinematic physics bodies with simulated parents. 
-This enables you to define child bodies that can be driven by animation data while the parents of those bodies are driven by physics simulation data. 
-This can be useful if you have a character hanging from a ledge playing a hanging idle or traversing across a ledge but what them to react to impulses like falling rocks or other debris and generate a physics based reaction. 
+[](Engine/Physics/PhAT) 提供了多种对物理形体进行模拟的方式，运动学物理形体结合模拟父项也是其中之一。这使用户能够对由动画数据驱动的子形体进行定义，而这些形体的父项则由物理模拟数据所驱动。这种技术十分实用于这类情况：设置角色吊在边缘或沿边缘攀行，对滚落的岩石或其他废墟作出反应，生成基于物理的反应动作。 
 
-In this How-to, we use kinematic bodies with simulated parents to generate the effect of a character hanging from a ledge while the rest of the body is simulated with physics. 
+在此指南中，我们使用带模拟父项的运动学形体生成角色悬吊在边缘的效果，而身体的其他部分则由物理进行模拟。 
 
 ![](EndResultImage.png)
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this guide, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+在此指南中，我们使用的是启用了 **Starter Content** 的 **Blueprint Third Person 模板** 项目。 
 [/REGION]
 
-1.  In your project in the **Content/Mannequin/Character/Mesh** folder, open the **SK_Mannequin_PhysicsAsset**. 
+1. 在项目的 **Content/Mannequin/Character/Mesh** 文件夹中，打开 **SK_Mannequin_PhysicsAsset**。 
 
 	![](KinematicHowTo_01.png)
 
-1.	In the **Hierarchy** window, click the **All Bones** drop-down and change it to **Bones With Bodies**. 
+1.	在 **Hierarchy** 窗口中，点击 **All Bones** 下拉菜单并将其改为 **Bones With Bodies**。 
 
 	![](KinematicHowTo_02.png)
 
-	This will filter the hierarchy to only show bones with bodies and make it easier to select the bones you want to manipulate. 
+	这将过滤层级仅显示形体的骨骼，易于选择需要进行操作的骨骼。 
 
-1.	In the hierarchy list, hold **Ctrl** and select both the **hand_l** and **hand_r** bones, then in the **Details** panel, change the **Physics Type** to **Kinematic**. 
+1.	在层级列表中，长按 **Ctrl** 并选择 **hand_l** 和 **hand_r** 骨骼，然后在 **Details** 面板中将 **Physics Type** 改为 **Kinematic**。 
 
 	![](KinematicHowTo_03.png)
 
-	By setting these bones to Kinematic, they will not simulate physics and will follow any animation data. 
+	将这些骨骼设为 Kinematic 后，它们将不再模拟物理，而是跟随动画数据。 
 
-	Alternatively, you can **Right-click** bones in the hierarchy list and set their **Physics Type** from the roll-out menu. 
+	另一种方法是 **右键点击** 层级列表中的骨骼，并在滚出菜单中设置其 **Physics Type**。 
 
 	![](KinematicHowTo_04.png)
 
-	This option enables you to set the **Physics Type** property for children bodies below the current bone. 
+	此选项可用于设置当前骨骼下子形体的 **Physics Type** 属性。 
 
-1.	Click on an empty space within the viewport to deselect all bones, then in the **Details** panel, change the **Physics Update Mode** to **Component Transform is Kinematic**. 
+1.	点击视口中的空白位置取消选择所有骨骼，然后在 **Details** 面板中将 **Physics Update Mode** 改为 **Component Transform is Kinematic**。 
 
 	![](KinematicHowTo_05.png)
 
-	This option determines whether the simulation of the root body updates component transform or is kinematic. 
+	此选项决定根形体的模拟是更新组件变形，或是动态学。 
 
-1.	From the toolbar, click the **Simulate** button. 
+1.	点击工具栏中的 **Simulate** 按钮。 
 
 	![](KinematicHowTo_06.png)
 
-	The character in the viewport will slump over and appear to be hanging by their hands. 
+	视口中的角色将呈蜷曲状，体现出用手臂悬吊的动作。 
 
 	![](KinematicHowTo_07.png)
 
-1.	From the toolbar, click the **Animation** selection icon, then select the **ThirdPersonJump_Loop** animation. 
+1.	点击工具栏中的 **Animation** 选项图标，然后选择 **ThirdPersonJump_Loop** 动画。 
 
 	![](KinematicHowTo_08.png)
 
-	The hands (because they are set to kinematic) will follow the animation data contained within the ThirdPersonJump_Loop motion. 
+	角色双手将跟随 ThirdPersonJump_Loop 运动中包含的动画数据来移动（因为它们已被设为运动学）。 
 
 	![](KinematicHowTo_09.png)
 
-1.	From the Main Editor window, drag the **SK_Mannequin_PhysicsAsset** into the level and in the **Details** panel, set **Physics Transform Update Mode** to **Component Transform is Kinematic**. 
+1.	在主编辑器窗口中将 **SK_Mannequin_PhysicsAsset** 拖入关卡，然后在 **Details** 面板中将 **Physics Transform Update Mode** 设为 **Component Transform is Kinematic**。 
 
 	![](KinematicHowTo_10.png)
 
-1.	Select the **SkeletalMeshComponent**, then change **Animation Mode** to **Use Animation Asset** and **Anim to Play** to **ThirdPersonJump_Loop**. 
+1.	选择 **SkeletalMeshComponent**，然后将 **Animation Mode** 改为 **Use Animation Asset**、**Anim to Play** 改为 **ThirdPersonJump_Loop**。 
 
 	![](KinematicHowTo_11.png)
 
-1.	Click the **Play** button from the toolbar to play in the editor. 
+1.	在工具栏中点击 **Play** 按钮即可在编辑器中进行游戏。 
 
-## End Result
+## 最终结果
 
-Below we've placed the character near a ledge when we run and bump into it, it reacts to physics while the hands appear slightly fixed. 
+以下视频中可以看到，我们在墙边缘放置了一个角色，操纵另一个角色撞向悬吊的角色时它会对物理形成响应，而双手则较为固定。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -106,7 +104,7 @@ Below we've placed the character near a ledge when we run and bump into it, it r
 	[/PARAMLITERAL]
 [/OBJECT]
 
-While the animation we used above not ideal, below we apply the same concept to an animation of a character hanging and traversing a ledge. 
+上方视频中使用的动画效果并不理想，以下视频中我们将相同的概念应用到了角色悬吊和攀行墙沿的动画上。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -126,7 +124,7 @@ While the animation we used above not ideal, below we apply the same concept to 
 	[/PARAMLITERAL]
 [/OBJECT]
 
-The arms and head are set to Kinematic (denoted below with Gold Boxes) while the rest is being simulated. 
+手臂和头部设为 Kinematic（金色框表示），而其他身体部位仍为模拟。 
 
 ![](ExampleSetup.png)
 

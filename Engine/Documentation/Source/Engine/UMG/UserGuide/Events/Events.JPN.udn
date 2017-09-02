@@ -1,10 +1,17 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:イベント
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:UMG でイベントを使用するためのガイド 
-version:4.9
-tags:UMG UI Designer
+Description:UMG でイベントを使用するためのガイド
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:5
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/EventsTopic.png
+
+
 
 **UMG** で **Event** を呼び出すには、以下で説明するようにいくつかの方法があります。 
 

@@ -5,6 +5,7 @@ Description: Get a general overview of the variables and execution flow of the B
 version: 4.12
 parent:Engine/Blueprints
 tags:Blueprints
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -73,8 +74,6 @@ Arrays and structures are collections of multiple data types. They are available
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
-<!--
-
 ## Advanced Containers
 
 As of Unreal Engine, version 4.15, Blueprint Sets and Maps have both been added to the Blueprint Application Programming Interface (API). Although these containers offer some exciting opportunities for developers to get creative with how they store and access data, these
@@ -88,6 +87,3 @@ with your in-game data.
 ### Blueprint Sets
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Blueprint Set")]
-
--->
-

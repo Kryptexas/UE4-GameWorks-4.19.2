@@ -118,7 +118,7 @@ During the next frame, the SEditableText will read from the Model's data. In the
 ### Attributes and Arguments
 
 Using a delegate is not always desirable. Depending on the use case, the arguments to Slate widgets may need to be constant values or functions.
-We encapsulate this notion via the **TAttribute< T >** class. An attribute can be set to a constant or to a delegate.
+We encapsulate this notion via the `TAttribute< T >` class. An attribute can be set to a constant or to a delegate.
 
 ## Performance Considerations
 

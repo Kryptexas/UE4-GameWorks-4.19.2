@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2750779
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:Spawn モジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Spawn モジュールは、エミッタ―パーティクルの数および割合に影響を与えます。
 Version:4.9
+tags:Particles
 
 
 **Spawn** モジュールは、エミッタ―パーティクルの数および割合に影響を与えます。
@@ -19,7 +20,7 @@ Version:4.9
 |**Unit Scalar** | 移動距離に適用するスカラーを表す浮動小数点値。SpawnPerUnit から受け取る値はこの値によって除算され、1 単位あたりのパーティクル量を示します。
 |**Spawn Per Unit** | 1 単位あたりにスポーンされるパーティクルの量を示すフロート分布。値は EmitterTime を使用して取得します。|
 |**Ignore Spawn Rate When Moving** | _true_ の場合、エミッタが移動していない時にデフォルトのスポーン速度を処理します。エミッタの移動時は、デフォルトのスポーン速度の処理をスキップします。_false_ の場合、 _Process Spawn Rate_ 設定へ戻ります。|
-|**Movement Tolerance** | _Ignore Spawn Rate When Moving_ フラグに関する浮動小数点値で、移動または停滞の許容誤差を表します。例えば、(DistanceMoved < (UnitScalar * MovementTolerance)) は移動していないとみなされます。|
+|**Movement Tolerance** |  _Ignore Spawn Rate When Moving_ フラグに関する浮動小数点値で、移動または停滞の許容誤差を表します。例えば、(`DistanceMoved < (UnitScalar * MovementTolerance)`) は移動していないとみなされます。|
 |**Max Frame Distance** | 単一フレームの最大移動距離です。単一フレームでパーティクルがこの距離を超えて移動した場合、パーティクルはエミットされません。0 のまま放置されると、このチェックは実行されません。これはオブジェクトの移動処理に実用的です。|
 |**Ignore Movement Along X** | _true_ の場合、移動の X コンポーネントは無視されます。|
 |**Ignore Movement Along Y** | _true_ の場合、移動の Y コンポーネントは無視されます。|

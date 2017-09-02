@@ -1,13 +1,18 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:アンカー
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:アンカーを使用して、様々なアスペクト比に基づき UI ウィジェットを固定位置に保ちます。 
+Description:アンカーは、様々なアスペクト比に基づき UI ウィジェットを固定位置に保ちます。 
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide/DPIScaling
 Related:Engine/Blueprints
-version:4.9
-tags:UMG UI Designer
+Order:1
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/AnchorsTopic.png
 
 
 [TOC(start:2 end:2)]

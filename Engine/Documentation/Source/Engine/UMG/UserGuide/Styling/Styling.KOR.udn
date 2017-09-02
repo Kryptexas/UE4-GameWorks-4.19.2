@@ -1,11 +1,19 @@
-﻿INTSourceChangelist:3244089
-Availability:Public
+﻿INTSourceChangelist:3612551
+Availability: Public
+Crumbs: %ROOT%
 Title: 스타일링
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 에서 위젯 블루프린트의 스타일링 안내서입니다.
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related: Engine\UMG\UserGuide\Slots
 Related: Engine\UMG\UserGuide\WidgetTypeReference
-tags:UMG UI Designer
+Order:9
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/StylingTopic.png
+
+
 
 
 [REGION:fullwidth raw]

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3188564
+﻿INTSourceChangelist:3483116
 Title:Android OpenGL ES 3.1 モバイル レンダラー
 Description:UE4 Android プロジェクトをOpenGL ES 3.1 モバイル レンダラーで使用するための設定方法
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/OpenGLES31MobileRenderer/
 Availability:Public
-Version:4.12
+version:4.16
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
@@ -24,35 +24,17 @@ Related:Programming/Development/BuildingUnrealEngine
 
 UE4 エディタでの OpenGL ES 3.1 の表示をプレビューするには、まず最初に以下の手順に従ってエディタ プレビューを有効にします。
 
-1. **メイン ツールバー** の **[Edit (編集)]** オプションから **[Editor Preferences (エディタの環境設定)]** オプションを選びます。
-
-	![](OGL3_01.png)
-
-1. **[General (一般)]** セクションの **[Experimental (実験)]** カテゴリの **[Rendering (レンダリング)]** セクションを開きます。**[Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor (エディタで Metal/Vulkan/High-end モバイルのプレビュー レンダリング レベルを有効をする)]** の横のチェックボックスをクリックすると、OpenGL ES 3.1 をプレビューするオプションが有効になります。 
+1. **メインツールバー** の **[Settings (設定)]** オプションをクリックして **[Preview Rendering Level (レンダリング レベルをプレビュー)]** オプションから **[High-End Mobile / Metal]** オプション、最後に **[High-End Mobile]** を選択します。
 
 	[REGION:lightbox]
-	[![](Platforms\Android\VulkanMobileRenderer\VMP_03.png)(w:447 h:308)](Platforms\Android\VulkanMobileRenderer\VMP_03.png)
+	[![](OGL3_10.png)(w:391)](OGL3_10.png)
 	[/REGION]
 
 	[REGION:caption]
 	クリックしてフルサイズで表示
 	[/REGION]
 
-	[region:note]
-	UE4 エディタで Metal/Vulkan/High-End をプレビューする方法については、[エディタで Vulkan プレビュー レンダリングを有効にする](Platforms/Android/VulkanMobileRenderer/#VulkanMobilePreviewRenderを有効にする) をご覧ください。
-	[/region]
-
-1. **メインツールバー** の **[Settings (設定)]** オプションをクリックして **[Preview Rendering Level (レンダリング レベルをプレビュー)]** オプションから **[High-End Mobile / Metal]** オプションを選択します。
-
-	[REGION:lightbox]
-	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)(w:391)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)
-	[/REGION]
-
-	[REGION:caption]
-	クリックしてフルサイズで表示
-	[/REGION]
-
-1. UE4 エディタ ビューポートの右下隅をみると、OpenGL ES 3.1 の機能セットを使ってレベルのプレビューが可能なことを示す **Feature Level:ES3_1 というテキストが表示されているはずです。
+1. シェーダーが再コンパイルされると、OpenGL ES 3.1 の機能セットを使ってレベルのプレビューが可能なことを示す **Feature Level:ES3_1 というテキストが UE4 エディタ ビューポートの右下隅に表示されているはずです。
 
 	[REGION:lightbox]
 	[![](OGL3_02.png)(w:404)](OGL3_02.png)
@@ -64,7 +46,7 @@ UE4 エディタでの OpenGL ES 3.1 の表示をプレビューするには、�
 
 ## OpenGL ES 3.1 Support で UE4 プロジェクトを設定する
 
-UE4 Android プロジェクトで OpenGL ES 3.1 を使用するには、お持ちの UE4 プロジェクトに以下のオプション セットがついている必要があります。
+UE4 Android プロジェクトで OpenGL ES 3.1 を使用するには、UE4 プロジェクトに以下のオプション セットが必要です。
 
 [region:warning]
 OpenGL ES 3.1 Support は、Github からダウンロードおよびコンパイルしたコード ベースのプロジェクト上でのみ使用可能です。ご注意ください。詳細は [アンリアル エンジンのソースコードをダウンロードする](GettingStarted/DownloadingUnrealEngine) を参照してください。
@@ -84,7 +66,7 @@ OpenGL ES 3.1 Support は、Github からダウンロードおよびコンパイ
 	クリックしてフルサイズで表示
 	[/REGION]
 
-1. **[APKPackaging]** セクションで **[Minimum SDK (最低限の SDK)]** と **[Target SDK (ターゲットの SDK)] を **「21」** に設定します。
+1. **[APKPackaging]** セクションで **[Minimum SDK (最低限の SDK)]** と **[Target SDK (ターゲットの SDK)]** を **「21」** に設定します。
 
 	[REGION:lightbox]
 	[![](OGL3_04.png)(w:639 h:385)](OGL3_04.png)

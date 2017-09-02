@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Blueprint Maps
-Description:Creating and editing Map containers, an advanced container type, in Blueprints, including an overview of this container's properties.
+﻿INTSourceChangelist:3489715
+Availability:Public
+Title:蓝图 Map
+Description:在蓝图中创建和编辑高级容器类 Map 容器，包括此容器的属性总览。
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/Scripting
 Order:1
-version: 4.15
+version:4.15
 tags:Blueprint Map
 tags:Blueprints
 topic-image:maps_topicImage.png
 SkillLevel:Advanced
+Related:Programming/UnrealArchitecture/TMap
 
 [TOC(start:1 end:2)]
 
@@ -17,186 +18,183 @@ SkillLevel:Advanced
 ![](maps_topicBanner.png)
 [/REGION]
 
-With the release of Unreal Engine, version 4.15, the **Map** container type has been added to the [Blueprint Application Programming Interface (API)](https://docs.unrealengine.com/latest/INT/BlueprintAPI/) in Unreal Engine 4 (UE4). 
-If you're unfamiliar with the term "container"; think of a storage box, where you label items and place them inside of the box for immediate (or later) use. If you've used Arrays to store and work with collections of items, you've 
-already started using Blueprint containers in UE4. For example, when using Arrays to store items for later use, the item's label is its place in the array. Maps are similar to arrays in that they both use a label to indicate where 
-the item is located in the container, however, labels for Maps are different from those used for Arrays. When using Arrays, the label is the item's sequential index in the container, whereas, when using Maps, the label is a key that's 
-associated with the item in the container. Having the ability to associate items in a container with their respective keys, enables developers to harness Maps in creative ways, making Maps a great addition to the Blueprint API.
+虚幻引擎4.15版本发布后，**Map** 容器类已被加入 [蓝图应用程序编程接口（API）](https://docs.unrealengine.com/latest/INT/BlueprintAPI/)。 
+如您不了解“容器”，可将其想象为一个储物盒。您可将项目进行标记并放置在盒中以便立即（或之后）使用。如您已使用 Array 存储并使用项目集，则意味着其实您已经开始使用 UE4 中的蓝图容器。举例而言，使用 Array 存储项目以便之后使用的时候，项目的标签便是其在 Array 中的位置。Map 和 Array 相似，两者均使用标签说明 
+项目在容器中的位置，然而 Map 的标签与 Array 的标签有所不同。使用 Array 时，标签是容器中项目的顺序索引；而使用 Map 时，标签是容器中与项目相关的一个键。能够将容器中的项目与其相应的键关联起来后，开发者便能够用创意的方式处理 Map，使其成为蓝图 API 的极大补充。
 
-Blueprint Maps are a wonderful addition to the Blueprint API because, after Arrays, they're a popular container in UE4. The reason that Maps are so popular is due to the fact that developers can efficiently lookup and retrieve items 
-with the use of associated keys. Much like Arrays and Sets, Blueprint Maps have a variety of uses when developing a game. 
+蓝图 Map 是对蓝图 API 的极佳补充，因为它是 Array 之后 UE4 中又一个广泛使用的容器。Map 如此流行的原因是因为开发者能使用关联键有效查找和检索项目。与 Array 和 Set 相似，开发游戏时蓝图 Map 有诸多用途。 
 
-As you read through this page, you'll learn how to create and edit Blueprint Maps. You'll also learn about the properties of Maps, which are being included to help you get the most out of using Maps in your game projects. 
+通读此页后，您将了解到如何创建和编辑蓝图 Map。您还将了解到 Map 的属性，它们将助您在游戏项目中充分发挥 Map 的优势。 
 
 [REGION:note]
 
-For illustrative purposes, we're using a **Blank Blueprint Project** (with highlighted settings) to show you how to create and edit Blueprint Maps.
+为便于说明，我们使用一个 **空白蓝图项目**（带下图中框中的设置）为您展示如何创建和编辑蓝图 Map。
 
 [REGION:lightbox]
 	[![](sampleProject.png)(w:370)](sampleProject.png)  
 [/REGION]
 
 [REGION:caption]
-Click for full image.
+点击查看全图。
 [/REGION]
 
 [/REGION]
 
-## Creating Maps
+## 创建 Map
 
-To create a new Blueprint Map, follow these steps.
+根据以下步骤即可新建蓝图 Map。
 
-1.	If you don't have a Blueprint Class to work from, go ahead and **Add** a new Blueprint Class to your project.
+1.	如无可用蓝图类，需要为项目 **添加** 一个新的蓝图类。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step1.png)(w:600)](creatingMaps_Step1.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1.	Now, select **Actor** from the list of classes being shown in the **Pick Parent Class** menu.
+1.	然后从 **Pick Parent Class** 菜单中选中 **Actor**。
 
 	![](creatingMaps_Step2.png)
 
-1.	After naming your Actor class, go ahead and open the newly created Actor class by double-clicking on the Actor, which is located inside of the **Content Browser**.
+1.	为 Actor 类命名后，在 **Content Browser** 中双击将新建的 Actor 类打开。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step3.png)(w:600)](creatingMaps_Step3.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1.	To begin editing the Actor's Blueprint script, select the **Event Graph** tab.
+1.	选择 **Event Graph** 标签，开始编辑 Actor 的蓝图脚本。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step4.png)(w:600)](creatingMaps_Step4.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1.	With the Actor's **Event Graph** open, hover your mouse cursor over the **Variables** submenu to reveal the **+ Variable** button.
+1.	Actor 的 **事件图表** 打开后，将鼠标指针悬停在 **Variables** 子菜单上，显示 **+ Variable** 按钮。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step5.png)(w:600)](creatingMaps_Step5.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1.	Now, create a new **String** variable, naming it `MyStringIntegerMap`.
+1.	新建一个 **字符串** 变量，将其命名为 `MyStringIntegerMap`。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step6.png)(w:600)](creatingMaps_Step6.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
 	[REGION:note]
-	Although the variable's name may seem a bit pedantic, it's worthwhile to note that the variable name, specifically `MyStringIntegerMap`, informs you that your Map will have a String-type key associated with an Integer-type value.
+	虽然变量的命名看似有些老学究，但重点是变量命名，尤其是 `MyStringIntegerMap` 可告知用户 Map 将拥有一个与整数类值关联的字符串类键。
 	[/REGION]
 
-1.	Currently, `MyStringIntegerMap` is a single **String** variable. To begin turning `MyStringIntegerMap` into  **Map** container, click on the **Variable Type** button, which is on the right side of the **Variable Type** label inside of the Actor's **Details Panel**.
+1.	当前 `MyStringIntegerMap` 是一个单一 **字符串** 变量。点击 **Variable Type** 按钮即可开始将 `MyStringIntegerMap` 装入 **Map** 容器。此按钮位于 Actor 的 **Details** 面板中 **Variable Type** 标签的右侧。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step7.png)(w:600)](creatingMaps_Step7.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1.	At this point, a drop down menu will appear, showing you four container options. Select the following option to convert `MyStringIntegerMap` into a Blueprint Map:
+1.	此时将出现一个下拉菜单，显示 4 个容器选项。选择以下选项将 `MyStringIntegerMap` 转为蓝图 Map：
 
 	![](creatingMaps_Step8.png)
 
-Go ahead and inspect the **Variable Type** for `MyStringIntegerMap`, verifying that the Map's key-type is a **String**, and that the value-type is an **Integer**.
+检查 `MyStringIntegerMap` 的 **变量类型**，确认 Map 的键类型是 **String**，值类型为 **Integer**。
 
 ![](creatingMaps_Step9.png)
 
-## Editing Maps
+## 编辑 Map
 
-Before you can edit a newly created Map, you'll need to compile the Blueprint encapsulating the Map variable container.
+编辑新建的 Map 之前，需要编译封装 Map 变量容器的蓝图。
 
 [REGION:lightbox]
 	[![](creatingMaps_Step10.png)(w:600)](creatingMaps_Step10.png)
 [/REGION]
 
 [REGION:caption]
-Click for full image.
+点击查看全图。
 [/REGION]
 
-1.	To edit `MyStringIntegerMap`, click the Blueprint's **Compile** button.
+1.	点击蓝图的 **Compile** 按钮编辑 `MyStringIntegerMap`。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step11.png)(w:600)](creatingMaps_Step11.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1.	After compiling the Blueprint, you'll notice that the Map's **Default Value** (located in the **Details** panel) shows that `MyStringIntegerMap` is empty.
+1.	编译蓝图后，Map 的 **Default Value**（位于 **Details** 面板中）显示 `MyStringIntegerMap` 为空。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step12.png)(w:600)](creatingMaps_Step12.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1.	To add a new key-value pair to `MyStringIntegerMap`, click the **+** button, located next to **0 Map elements** in the **Default Value** menu of the **Details** panel.
+1.	点击 **+** 按钮即可将新键值对添加到 `MyStringIntegerMap`，此按钮位于 **Details** 面板 **Default Value** 菜单中 **0 Map elements** 旁。
 
 	![](creatingMaps_Step13.png)
 
-1.	Go ahead and click the **+** button once again.
+1.	再次点击 **+** 按钮。
 
 	![](creatingMaps_Step14.png)
 
 	[REGION:warning]
-	Unreal Editor will emit a warning if you try to add a key to the Blueprint Map before updating a new key-value pair's default key.  
+	如在更新新键值对的默认键之前尝试将键添加到到蓝图 Map，虚幻编辑器将发出警告。  
 	![](Step14_Warning.png)
 	[/REGION]
 
-1.	Add three key-value pairs to `MyStringIntegerMap`, matching them with the following image:
+1.	将 3 个键值对添加到 `MyStringIntegerMap`，使其与下图匹配：
 
 	![](creatingMaps_Step15.png)
 
-1.	Now, add one more key-value pair, naming the key `Banana`.
+1.	现在多添加一个键值对，将键命名为 `Banana`。
 
 	![](creatingMaps_Step16.png)
 
 	[REGION:warning]
-	Unreal Editor will emit a warning if you try to add a duplicate key into a Blueprint Map. Although duplicate values are allowed, you cannot have duplicate keys.
+	如尝试将重复的键添加到蓝图 Map，虚幻编辑器将发出警告。虽然允许重复值，但不允许重复键。
 	![](Step16_Warning.png)
 	[/REGION]
 
-1.	With the aforementioned warning in mind, go ahead and name the fourth key `Date`, setting its value to 2.
+1.	了解之前提及的警告，将第四个键命名为 `Date`，并将值设为 2。
 
 ![](creatingMaps_Step17.png)
 
-Excellent work! You've just created a new Blueprint Map, having added and edited four key-value pairs.
+干得漂亮！您便已经新建了一个蓝图 Map，添加并编辑了四个键值对。
 
 
 
-## Container Properties
+## 容器属性
 
-If you want to get started with using Blueprint Map containers in UE4, please refer to the following property list.
+如果想开始了解在 UE4 中使用蓝图 Map 容器，请参考以下属性列表。
 
-*	Keys in a Map must be unique.
-*	All keys in a Map must be defined (initialized).
-*	Currently, only single key-value pairs are supported in Blueprint Maps.
-*	Adding, removing, and finding values, using their associated keys in a Map, are fast operations.
-*	Currently, Map values are immutable, which means that they cannot be modified after they have been created.
-*	Although key-types may differ from value-types, all keys and values in a Map are homogeneous (of the same type). In other words, if a particular Map's key is specified as a String-type with its value specified as an Integer-type, then all subsequent keys will be Strings, and all subsequent values will be Integers.
+*	Map 中的键必须独一无二。
+*	Map 中的所有键必须被定义（设定初值）。
+*	当前蓝图 Map 中只支持单一键值对。
+*	使用 Map 中相关联的键添加、移除和寻找值运算速度极快。
+*	当前 Map 值为不可变，意味着它们创建后便不能进行修改。
+*	虽然不同值类的键类可能不同，但一个 Map 中所有键和值均为齐次（类型相同）。换言之，如果一个特定 Map 的键被指定为字符串类，其值被指定为整数类；那么随后所有的键均为字符串，随后所有的值均为整数。
 
-Now that you know how to create and edit Map containers in Blueprints, check out the [](Engine/Blueprints/UserGuide/Maps/MapNodes) reference guide to learn more about the Blueprint Map Node Interface.
+学习到如何在蓝图中创建和编辑 Map 容器后，即可查阅 [](Engine/Blueprints/UserGuide/Maps/MapNodes) 参考指南，了解蓝图 Map 节点接口的详细内容。

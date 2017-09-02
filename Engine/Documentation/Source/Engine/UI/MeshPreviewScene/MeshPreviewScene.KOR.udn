@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3277768
+﻿INTSourceChangelist:3482378
 Availability:Public
 Title: 메시 프리뷰 씬
 Crumbs: %ROOT%, Engine
@@ -74,19 +74,19 @@ tags:User Interface
 1. **씬 프로파일 세팅** 옆 드롭다운 메뉴에서 프로파일을 선택합니다.
 
 	[REGION:lightbox]
-	[![](RemoveProfileSelection.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileSelection.png)(w:350)](RemoveProfileSelection.png) 
 	[/REGION]
 
 2. **프로파일 제거** 버튼을 클릭하여 현재 선택된 프로파일을 영구 삭제합니다.
 
 	[REGION:lightbox]
-	[![](RemoveProfileButton.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileButton.png)(w:350)](RemoveProfileButton.png) 
 	[/REGION]
 
 3. 이제 그 프로파일이 제거되어 기본 프로파일과 기존에 구성해 둔 다른 프로파일만 남은 것이 보일 것입니다.
 
 	[REGION:lightbox]
-	[![](RemoveProfileSelection1.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileSelection1.png)(w:350)](RemoveProfileSelection1.png) 
 	[/REGION]
 
 

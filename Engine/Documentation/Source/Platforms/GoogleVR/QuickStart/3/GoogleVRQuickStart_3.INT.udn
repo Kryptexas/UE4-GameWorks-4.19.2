@@ -4,13 +4,13 @@ Crumbs:%ROOT%, Platforms/GoogleVR
 Description:Packing and deploying a UE4 project that can be used with Google VR
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.16
+Version:4.17
 Parent:Platforms/GoogleVR/QuickStart
 order:3
 type:multi-step
 tags:VR
 tags:Google VR
-
+Checkpoint: GoogleVRQS
 [NAV]
 
 In this section of the Google VR Quick Start, we will go over what you have to do to package your UE4 project so that it will run on a Google VR device.
@@ -19,11 +19,13 @@ In this section of the Google VR Quick Start, we will go over what you have to d
 Before going any further make sure that the Smartphone used for testing has been plugged into your development PC via a USB cable and make also make sure that ADB can see your phone as an authorized device. If you are unsure how to do or are having problems getting ADB to see your device, check out the following page for more information [Android How - To Set Up Your Android Device](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/).
 [/region]
 
-1. To start the packing process, go to the **Main Toolbar** and from the **File** menu go to **Package Project** > **Android** > **Android (ATC)**.
+## Steps
+
+1. To start the packing process, go to the **Main Toolbar** and from the **File** menu go to **Package Project** > **Android** > **Android (ASTC)**.
 
     ![](GVRQS_Package_Project_00.png)
 
-1. Once Android(ATC) has been selected, you will be presented with a Windows dialogue box. From this dialogue press, the **Make New Folder** option and call the folder **Androids_Builds**. Once the folder has been created, press the **Okay** button to begin the packing process.
+1. Once Android(ASTC) has been selected, you will be presented with a Windows dialogue box. From this dialogue press, the **Make New Folder** option and call the folder **Androids_Builds**. Once the folder has been created, press the **Okay** button to begin the packing process.
 
     ![](GVRQS_Package_Project_Location_00.png)
 
@@ -72,5 +74,9 @@ Before going any further make sure that the Smartphone used for testing has been
 
     From the displayed menu, you can scan the QR code that is on the side of your VR device, and that will make sure UE4 outputs an image that is compatible with your VR device.
     [/region]
+
+## End Result
+
+When completed you will be able to view the UE4 project using Google VR.
 
 [NAV]

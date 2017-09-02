@@ -1,20 +1,26 @@
-﻿INTSourceChangelist:2680935
+﻿INTSourceChangelist:3599948
 Availability:Public
+Crumbs: %ROOT%
 Title:Panini プロジェクション
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:透視投影をすると FOV の広いビューの側面に生じるジオメトリ歪みを修正するための 3D プロジェクション
-
+Type:Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:7
+Tags:Post Process
+Topic-image:PaniniProjection_Topic.png
 
 ## コンフィギュレーション
 
-アンリアル エンジン 4 は、透視投影を使用するデフォルト設定になっています。ただし、この投影モデルはFOV が広いと
-ジオメトリに歪みが生じてしまいます。この例は、インスタンスが球であり FOV = 120 なので、
-非常に分かりやすいです。
+アンリアル エンジン 4 は、透視投影を使用するデフォルト設定になっています。ただし、この投影モデルは FOV が広いと
+ジオメトリに歪みが生じてしまいます。インスタンスが FOV = 120 の球である以下の例では、
+それが非常によく表れています。
 
 ![](qagame_fov120.png)
 
-そこでアンリアル エンジンは、Panini プロジェクションでこの問題を修正するために
-ポストプロセス パスをオプションで提供します。透視投影を使うべきところで Panini プロジェクションを使用して
+そこでアンリアル エンジンでは、オプションでポストプロセス パスを提供し、
+Panini プロジェクションを使って問題を修正します。透視投影を使うべきところで Panini プロジェクションを使用して
 レンダリングしたピクセルを動かすというのが、このポスト プロセスの考え方です。設定手順は以下の通りです。 
 setting up r.Upscale.Panini.D > 0.このポストプロセス エフェクトはアップスケーリング パスで処理されます。つまり、r.ScreenPercentage != 100 または r.Upscale.Panini.D > 0 の場合に、
 このパスが使われるということです。このパラメータの詳細について記載されているリンクを
@@ -22,9 +28,9 @@ setting up r.Upscale.Panini.D > 0.このポストプロセス エフェクトは
 
 ![](qagame_fov120_panini.png)
 
-r.Upscale.Panini.D > 0 の場合、直接エフェクトが強調されます。そして、このパラメータ以外でも方法があります。 
+r.Upscale.Panini.D > 0 の場合、直接エフェクトが強調されます。ただし、このパラメータ以外でも方法があります。 
 r.Upscale.Panini.S もハードウェア圧縮で線形補完します。角にある球が楕円状になってしまう場合は、
-このパラメータで調整することも可能です。ただし、r.Upscale.Panini.S < 0 の場合は、
+このパラメータで調整することも可能です。ただし、`r.Upscale.Panini.S < 0` の場合は、
 レンダリングされていない黒いピクセルが開始として角に表示されます。
 
 ![](qagame_fov120_vertical_compression.png)

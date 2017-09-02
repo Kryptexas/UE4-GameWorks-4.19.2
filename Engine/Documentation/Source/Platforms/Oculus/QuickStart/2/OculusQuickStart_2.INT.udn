@@ -1,27 +1,31 @@
-Title:2. Install the Oculus Runtime
-Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:Download the needed software for running games on the Oculus Rift
-Availability:Public
-Version: 4.9
-SkillLevel: Intermediate
+Availability: Public
+Crumbs: %ROOT%
+Title: 2. Install the Oculus Runtime
+Description: Download the needed software for running UE4 projects on the Oculus Rift.
+Type: quick start
+SkillLevel: Beginner
+Version: 4.17
+Parent: Platforms/Oculus
+Order: 2
+Checkpoint: RIFTQS
 
 [VAR:Steps]
 [OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Oculus/QuickStart/1 "%Platforms/Oculus/QuickStart/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/Oculus/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Oculus/QuickStart/3 "%Platforms/Oculus/QuickStart/3:title%")
-	[/PARAM]
+    [PARAM:previous]
+        [Previous Step](Platforms/Oculus/QuickStart/1 "%Platforms/Oculus/QuickStart/1:title%")
+    [/PARAM]
+    [PARAM:current]
+    [/PARAM]
+    [PARAM:home]
+        [Quick Start Home](Platforms/Oculus/QuickStart)
+    [/PARAM]
+    [PARAM:next]
+        [Next Step](Platforms/Oculus/QuickStart/3 "%Platforms/Oculus/QuickStart/3:title%")
+    [/PARAM]
 [/OBJECT]
 [/VAR]
 
-In this section we will go over how to install the Oculus runtimes as well as how to resolve any issues that might come up during the install process.
+In this section, we will go over how to install the Oculus runtimes as well as how to resolve any issues that might come up during the install process.
 
 [region:note]
 You will need to be connected to the internet for 30 to 60 minutes while the Oculus runtimes are installing.
@@ -31,33 +35,14 @@ You will need to be connected to the internet for 30 to 60 minutes while the Ocu
 
 1. Once the Oculus Rift runtimes have finished downloading, locate the **OculusSetup.exe** and double - click on it to begin the install.
 
-	![](RIft_EXE_Download_00.png)
+    ![](RIft_EXE_Download_00.png)
 
-1. Once the Oculus Rift installer has opened, press the **Let's Go** button to begin the install.
+1. Press the **Let's Go** button to begin the install and then follow the provided directions.
 
-	![](Rift_Install_Start_00.png)
+    ![](Rift_Install_Start_00.png)
 
-1. If you agree with the privacy policy and terms of service press the **Agree** button to move on to the next install step.
+1. During the install process, you will be asked to install device software from Oculus VR, LLC. When this is displayed, press the **Install** button to continue the installation. 
 
-	![](Rift_TC_00.png)
-
-1. Read the Health & Safety Warning message and if you agree to it, click on the **I Understand** button to be taken to the next install step.
-
-	![](Rift_Health_Safety_Warning_00.png)
-
-1. Press the **Install Now** button to install the Oculus runtimes on your C: drive. 
-
-	![](Rift_Install_Now.png)
-	[region:note]
-	If you do not have room on your C drive or you want to change the location of the install, press the **Change Drive** button to change which hard drive the Oculus runtimes will be installed to.
-	[/region]
-
-1. The Oculus Rift runtimes will now be downloaded and installed to your PC.
-
-	![](Rift_Installing_Progress_00.png)
-
-1. During the install process you will be asked to install device software from Oculus VR, LLC. When this is displayed, press the **Install** button to continue the installation. 
-
-	![](Rift_Device_Software_Install_00.png)
+    ![](Rift_Device_Software_Install_00.png)
 
 %Steps%

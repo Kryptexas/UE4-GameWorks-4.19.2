@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3413822
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Blueprint Set ノード
 Description:Blueprint Set を使った作業時のノード インターフェースの概要
 Crumbs:%ROOT%
@@ -12,7 +12,7 @@ Type:reference
 Related:Programming/UnrealArchitecture/TSet
 
 Set のノード インターフェースにより、ブループリントで作業するデベロッパーは、 
-Set へのアイテムの追加、Set のクリア、Set に格納されたアイテムの検索、Set の長さチェック機能が使えるようになりまうｓ。 
+Set へのアイテムの追加、Set のクリア、Set に格納されたアイテムの検索、Set の長さチェック機能が使えるようになります。 
 以下のガイドでは、アンリアル エンジン 4 (UE4) の Blueprint Set を構築する各種ノードの詳細を説明しています。
 
 | ノード                                                           | 説明                                                          |

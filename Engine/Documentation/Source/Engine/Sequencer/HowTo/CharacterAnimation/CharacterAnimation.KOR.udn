@@ -1,22 +1,25 @@
-﻿INTSourceChangelist:3439587
+﻿INTSourceChangelist:3602938
 Availability: Public
 Title:애니메이션 및 애니메이션 블렌딩
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:시퀀서에서 스켈레탈 메시 액터에 애니메이션을 적용하고 애니메이션을 블렌딩하는 방법을 알아봅니다.
-Version: 4.15
+Type: how-to
 SkillLevel: Intermediate
-parent:Engine/Sequencer/HowTo
-order:1
-checkpoint: editorqs
+Version: 4.15
+Parent: Engine/Sequencer/HowTo
+Order: 1
+Tags: Sequencer
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
-tags:Sequencer
+
 
 시네마틱 시퀀스 제작시, 씬에 있는 캐릭터가 돌아다니거나 어떤 애니메이션을 적용하고픈 경우가 있습니다.
 그 방법은 **시퀀서** 에서 레벨 시퀀스에 스켈레탈 메시 액터를 추가한 뒤 애니메이션 서브 트랙을 추가하고 액터에게 시키고자 하는 애니메이션을 지정해 주면 됩니다.
 이 과정을 반복하여 액터에 시키고자 하는 애니메이션을 여럿 추가해 주면 시네마틱 시퀀스의 캐릭터에 생동감을 불어넣을 수 있습니다.
 
 여기 이 가이드에서는, 걷기로 시작해서 점프 애니메이션으로 블렌딩되는 캐릭터가 있는 작은 씬을 만들어 보겠습니다.
+
+![](AnimationBlending.png)(w:720 h:480)
 
 ## 단계
 
@@ -51,17 +54,23 @@ tags:Sequencer
 	이제 애니메이션을 재생하면, 두 애니메이션 사이에 튀는 부분이 보일 것입니다.
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	oHjDpYPAdCo
 	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 	[/OBJECT]
-
+	
 	애니메이션을 추가할 때, 웨이트 (가중치) 값을 사용하여 다수의 애니메이션을 블렌딩할 수 있는데, 이렇게 해서 애니메이션 사이의 튀는 현상을 처리해 줄 것입니다.
 
 1.	아래 **ThirdPersonJump_Start** 애니메이션을 끌어 걷기 애니메이션 아래, 시퀀스의 **25** 프레임 뒤로 갑니다.
@@ -88,14 +97,20 @@ tags:Sequencer
 이제 시퀀스에 다수의 애니메이션이 튀지 않고 부드럽게 블렌딩되는 스켈레탈 메시가 생겼습니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
 [PARAMLITERAL:videoid]
 kVotxriT1Y4
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
 [/PARAMLITERAL]
 [/OBJECT]
 

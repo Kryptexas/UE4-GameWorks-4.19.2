@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3432707
+﻿INTSourceChangelist:3602897
 Title:구글 VR 개발
 Crumbs:%ROOT%, Platforms
 Description:
 Availability:Public
 Navigation:platform
 Platform:GoogleVR
-Version: 4.12
+Version: 4.17
 type:landing
 parent:Platforms/VR
 tags:VR
@@ -29,9 +29,14 @@ GoogleVR 퀵스타트는 PC 와 안드로이드 기반 스마트폰에서 UE4 �
 
 ## 구글 VR 데이드림
 
-Daydream (데이드림)은 구글 VR 의 일부로, 몇 가지 렌더링 최적화 기능 및 모션 콘트롤러 사용을 지원합니다.
+Google Daydream (데이드림)은 Google VR SDK 를 통해 데이드림 디바이스를 타겟으로 할 때 특정 렌더링 최적화 및 모션 컨트롤러를 사용할 수 있도록 해줍니다.
 
 [DIR(output:"topic" type:"overview" parent:"Platforms/GoogleVR")]
 
 
- 
+## 안내서
+
+ Google VR 로 여러가지 폭넓은 분야의 작업을 하는 법을 안내해 드리는 안내서입니다.
+
+[DIR(output:"topic" type:"how-to" parent:"Platforms/GoogleVR")]
+

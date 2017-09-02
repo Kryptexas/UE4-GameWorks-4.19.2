@@ -1,23 +1,26 @@
-﻿INTSourceChangelist:3441237
-Availability:Public
-Title: 블렌드 스페이스 편집
+﻿INTSourceChangelist:3477699
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Title: 블렌드 스페이스 편집
 Description:블렌드 스페이스 애셋을 구동시키는 파라미터 편집 및 구성 방법 개요입니다.
+Type: Reference
+version: 4.16
+Parent: Engine/Animation/Blendspaces
+Order: 1
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:editblendspacetopic.png
 Related: Engine\Animation\AnimHowTo\BlendSpace
 Related: Engine\Animation\Blendspaces\Creation
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/AnimGraph
-version: 4.15
-type:reference
-topic-image:editblendspacetopic.png
-tags:Animation
-tags:Animation Blueprint
-tags:Blend Space
-
-[](Engine\Animation\Blendspaces\Creation) 및 애셋을 연 후, 블렌딩을 구동시킬 프로퍼티 정의는 물론 샘플링해 오고자 하는 애니메이션을 지정해 줘야 합니다.
 
 [TOC(start:2 end:2)]
+
+[블렌드 스페이스 생성](Engine\Animation\Blendspaces\Creation) 및 애셋을 연 이후, **축 세팅** (또는 블렌딩을 구동하는 프로퍼티) 정의는 물론 **샘플 포즈** 로 사용할 애니메이션을 정의해 줘야 합니다.
+그 두 요소를 정의한 이후에는, **블렌드 스페이스 애셋 디테일** 패널에서 프로퍼티를 변경하여 블렌드 스페이스를 추가 조정할 수 있습니다.
 
 ## 축 세팅
 
@@ -25,7 +28,7 @@ tags:Blend Space
 
 ![](AxisSettings.png)
 
-일반적인 블렌드 스페이스 애셋의 경우, **Horizontal Axis** (가로 축)과 **Vertical Axis** (세로 축)을 입력으로, 블렌드 스페이스 1D 는 가로 축만 사용하도록 정의하면 됩니다.
+일반적인 [블렌드 스페이스](Engine\Animation\AnimHowTo\BlendSpace) 애셋의 경우, **Horizontal Axis** (가로 축)과 **Vertical Axis** (세로 축)을 입력으로, 블렌드 스페이스 1D 는 가로 축만 사용하도록 정의하면 됩니다.
 
 어느 축이든, 정의할 수 있는 프로퍼티는 같습니다:
 
@@ -182,11 +185,10 @@ Axis Settings (축 세팅) 및 Sample Pose (샘플 포즈) 정의가 블렌드 �
 
 이 섹션에서는 블렌드 스페이스에서 발동시킬 [애니메이션 노티파이](Engine/Animation/Sequences/Notifies) 를 결정하는 모드를 정의합니다.
 
-노티파이 트리거 모드는 다음과 같습니다:
-
-* **All Animations** - 모든 노티파이 이벤트가 발동됩니다.
-* **Highest Weighted Animation** - 최고 웨이트 애니메이션 - 가중치가 가장 높은 애니메이션에서만 노티파이 이벤트가 발동됩니다.
-* **None** - 어떤 애니메이션에서도 노티파이 이벤트가 발동되지 않습니다.
+|---|---|
+|**All Animations**|모든 노티파이 이벤트가 발동됩니다.|
+|**Highest Weighted Animation**|최고 웨이트 애니메이션 - 가중치가 가장 높은 애니메이션에서만 노티파이 이벤트가 발동됩니다.|
+|**None**|어떤 애니메이션에서도 노티파이 이벤트가 발동되지 않습니다.|
 
 ### 메타 데이터
 
@@ -196,4 +198,5 @@ Axis Settings (축 세팅) 및 Sample Pose (샘플 포즈) 정의가 블렌드 �
 
 이 섹션에서는 
 **콘텐츠 브라우저** 에서 나타나는 애셋 썸네일 안의 시점을 조절할 수 있습니다.
+
 

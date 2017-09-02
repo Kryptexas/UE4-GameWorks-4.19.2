@@ -1,10 +1,17 @@
-﻿INTSourceChangelist:3244089
-Availability:Public
+﻿INTSourceChangelist:3612551
+Availability: Public
+Crumbs: %ROOT%
 Title: 위젯 만들기
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:게임에서 위젯 블루프린트를 만들고 표시하는 법입니다.
-version: 4.9
-tags:UMG UI Designer
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:2
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-image:Engine/UMG/UserGuide/CreateWidgetTopic.png
+
 
 **위젯 블루프린트** 를 만들고 배치한 이후 게임에서 표시되도록 하기 위해서는, 다른 (**레벨 블루프린트** 또는 **캐릭터 블루프린트** 등의) 블루프린트에서 **Create Widget** 과 **Add to Viewport** 노드를 사용하여 호출해 줘야 합니다.
 

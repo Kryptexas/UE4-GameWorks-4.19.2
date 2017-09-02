@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3484694
+﻿INTSourceChangelist:3575019
 Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Title:リターゲット マネージャ
@@ -129,3 +129,4 @@ Humanoid Rig を割り当てたら、リグのノードと同じ (または類�
 以下では、デフォルト ポーズと、Pose アセット内のポーズから選択された Retargeted Base Pose が表示されています。 
 
 ![](DefaultPose.png)(w:540)![](NewRetargetPose.png)(w:540)
+

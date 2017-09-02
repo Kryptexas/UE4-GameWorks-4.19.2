@@ -124,3 +124,4 @@ If you want your game to opt-in to IWYU, there are a few tips to keep in mind:
 1.	Include `CoreMinimal.h` at the top of each header file.
 1.	To verify that all of your source files include all of their required dependencies, compile your game project in non-unity mode with PCH files disabled.
 1.	If you need to access **UEngine** or **GEngine**, which are defined in `Runtime\Engine\Classes\Engine\Engine.h`, you can `#include Engine/Engine.h` (distinguishing from the monolithic header file, which is located at `Runtime\Engine\Public\Engine.h`).
+1.	If you use a class that the compiler doesn't recognize, and don't know what you need to include may be missing the header file. This is especially the case if you are converting from non-IWYU code that compiled correctly. You can look up the class in the [API Documentation](API), and find the necessary modules and header files at the bottom of the page.

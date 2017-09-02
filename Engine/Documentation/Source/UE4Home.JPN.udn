@@ -1,19 +1,20 @@
-﻿INTSourceChangelist:2986723
+﻿INTSourceChangelist:3505571
 Availability:Public
 Title:アンリアル エンジン 4 のドキュメント
 Crumbs:
 Description:アンリアル エンジン 4 を使いこなすためのリソース完全版
 Navigation:home
 social-image:home_social.png
+type:landing
 
 [PUBLISH:Rocket]
 ## 検索
 
 [REGION:frontpage]
 	[OBJECT:SearchBox]
-		[PARAM:path]
-		[RELATIVE:Search]
-		[/PARAM]
+		[PARAMLITERAL:path]
+		https://www.unrealengine.com/bing-search
+		[/PARAMLITERAL]
 		[PARAMLITERAL:placeholder]
 		検索したい言葉を入力してください
 		[/PARAMLITERAL]
@@ -58,6 +59,12 @@ social-image:home_social.png
 		[PARAMLITERAL:terms]
 			UMG UI
 		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			シーケンサー
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			VR
+		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 
@@ -65,7 +72,7 @@ social-image:home_social.png
 
 [/PUBLISH:Rocket]
 
-[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%")]
+[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%" type:"landing")]
 
 <!--
 [REGION:frontpage]

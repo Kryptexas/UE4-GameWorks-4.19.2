@@ -47,7 +47,7 @@ Sends a request to begin uploading a replay stream.
 
 #### Response
 
-Expects a response of type `FNetworkReplayStartUploadingResponse`, which contains JSON data with the string "sessionId" defined. This value will be used as the **Session Name** in future communication from the HTTP Streamer. If the optional <Session Name Override> was provided, the returned "sessionId", and thus the ultimate <Session Name>, should be the same value. This is the game's way of demanding the session name.
+Expects a response of type `FNetworkReplayStartUploadingResponse`, which contains JSON data with the string "sessionId" defined. This value will be used as the **Session Name** in future communication from the HTTP Streamer. If the optional `<Session Name Override>` was provided, the returned "sessionId", and thus the ultimate `<Session Name>`, should be the same value. This is the game's way of demanding the session name.
 
 | Name | Type | Content |
 | --- | --- | --- |
@@ -444,7 +444,7 @@ Expects a response with content in the form of a JSON-formatted string.
 | replays | Array | Contains elements which consist of all the other fields in this table. |
 | AppName | String | The **Replay Version AppString** that was sent when the replay was uploaded. Should match the parameter you sent with the request. |
 | SessionName | String | The name (GUID) of the replay. |
-| FriendlyName | String | The <Platform Friendly Name> that was provided when the replay was uploaded. |
+| FriendlyName | String | The `<Platform Friendly Name>` that was provided when the replay was uploaded. |
 | Timestamp | DateTime | The time and date associated with the replay (i.e. when this game happened). |
 | SizeInBytes | Integer | Total size, in bytes, of the replay. |
 | DemoTimeInMs | Integer | Running length, in MS, of the replay. |
@@ -488,7 +488,7 @@ Expects a response with content as a JSON-formatted string containing a list of 
 | replays | Array | Contains elements which consist of all the other fields in this table. |
 | AppName | String | The **Replay Version AppString** that was sent when the replay was uploaded. |
 | SessionName | String | The name (GUID) of the replay. |
-| FriendlyName | String | The <Platform Friendly Name> that was provided when the replay was uploaded. |
+| FriendlyName | String | The `<Platform Friendly Name>` that was provided when the replay was uploaded. |
 | Timestamp | DateTime | The time and date associated with the replay (i.e. when this game happened). |
 | SizeInBytes | Integer | Total size, in bytes, of the replay. |
 | DemoTimeInMs | Integer | Running length, in MS, of the replay. |

@@ -1,8 +1,8 @@
 Availability:Public
 Title:2. Gear VR Project Setup
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
-Description:How to setup your C++ based UE4 project to be used with the Gear VR Headset.
-Version: 4.16
+Description:How to setup your UE4 project to be used with the Gear VR Headset.
+Version: 4.17
 Skilllevel: Intermediate
 tags:VR
 tags:GearVR
@@ -13,107 +13,91 @@ Checkpoint:GearVRQS
 
 [nav]
 
+In the following part of the Gear VR Quick Start, we will go over setting up an Unreal Engine 4 (UE4) project so that it can be used with the Gear VR HMD.
+
 ## Steps
 
-1. Once the project has finished being created and compiled, Visual Studio will automatically open (if already installed) along with the editor.
+1. Once the UE4 Editor has loaded, go to the **Main Toolbar** and select **Edit** > **Plugins** to open up the Plugin Menu. From the Plugin Menu, choose the **Virtuality Reality** section and make sure that the **OculusVR** Plugin is enabled.
 
-	![](GVR_Editor_Opened.png)
+    [REGION:lightbox]
+    [![](GVR_Plugin_Options_Toggle.png)(w:703)](GVR_Plugin_Options_Toggle.png)
+    [/REGION]
 
-	[region:note]
-	If you are using Unreal Engine 4.8 or later and a Blueprint based project, Visual Studio will not open up as it is not needed. 
-	[/region]
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Windows** tab and select the **Plugins** menu. 
-	
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		eo79kj2i2bc
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+    [region:note]
+    In previous versions of UE4 Gear VR had its own plugin that needed to be enabled. If you are not able to use Gear VR with the version of UE4 you are using, make sure to check the VR plugins section and enable the Gear VR plugin if it is available.
+    [/REGION]
 
-1. From the **Plugins** menu, go to the **Head Mounted Displays** section, **disable** the **Oculus** option, and **enable** the **Gear VR** option. Then, click the **Restart Now** button to re-start the editor so the changes can take place. 
+1. For any UE4 project to run when it is deployed to a device, you will need to have at least one level saved. To keep the current level go to the **Toolbar** and press the **Save** icon to save the current level, giving it a name of **GearVRQSMap**.
 
-	![](GVR_Plugin_Options_Toggle.png)
+    [REGION:lightbox]
+    [![](GVR_QS_Saved_Map.png)(w:299)](GVR_QS_Saved_Map.png)
+    [/REGION]
 
-1. Once the Editor has re-started, select **Edit** from the **Main Toolbar**, select **Project Settings** and click the **Configure Now** button for Android support in the **APKPacking** section.
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		If_vSzD5h3w
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+1. Next, from the Main Menu go to, **Edit** > **Project Settings** and then under **Project** in the **Maps & Modes** section under **Default Maps** input the map that was just saved in the **Editor Start Up** and **Game Default Map**.
 
-1. Next, change the **Minimum SDK Version** and the **Target SDK Version** from **9** to **19**. 
+    [REGION:lightbox]
+    [![](GVR_QS_Default_Maps.png)(w:546)](GVR_QS_Default_Maps.png)
+    [/REGION]
 
-	![](GVR_Android_SDK_Version.png)
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-1. Next, scroll down till you see the **Configure the Android Manifest for deployment to Gear VR** checkbox and enable it. 
+1. Now, go to **Engine** > **Input** and in the **Mobile** section, set the **Default Touch Interface** to **None** by clicking on the Default Touch Interface input box and selecting **None** from the drop down.
 
-	[Region:note]
-	This step is of vital importance as without this on your project will not be able to run on the Gear VR Headset.
-	[/region]
+    [REGION:lightbox]
+    [![](GVR_QS_Remove_Touch.png)(w:546)](GVR_QS_Remove_Touch.png)
+    [/REGION]
 
-	![](GVR_Deployment_Checkbox.png)
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-1. Next, under the **Android SDK** section, fill-in the location of the required Android SDK files on your development PC. 
-	You can find the needed folders in the location where you installed the Tegra files. 
-	
-	[Region:note]
-	If you have already installed CodeWorks for Android 1R6, this information should be already filled in for you. The only reason that you should change something here is if the information is missing or pointing to the wrong location.
-	[/region]
+1. Then in **Platforms** under **Android** go to the **ApkPackaging** section and press the **Configure Now** button then set the following settings:
 
-	![](GVR_Android_SDK_Setup.png)
+    [REGION:lightbox]
+    [![](GVR_Android_SDK_Version.png)(w:546)](GVR_Android_SDK_Version.png)
+    [/REGION]
 
-1. Finally, under **File** > **Package Project** > **Packing Settings**, un-check **Full Rebuild** to help speed up iteration times. 
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-	[Region:note]
-	Remember to **Re-Enable** this option when your project is ready for its final publish to ensure that your project will work as intended on the Gear VR Headset. 
-	[/region]
+    * **Minimum SDK Version:** 19
+    * **Target SDK Version:** 19
+    * **Enable FullScreen Immersive on KitKat and above devices:** True 
 
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		29oB5aowElQ
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+1. Next, go to the **Advanced APKPackaging** section and enable the, **Configure the AndroidManifest for deployment to GearVR** check mark box.
+
+    [REGION:lightbox]
+    [![](GVR_Deployment_Checkbox.png)(w:546)](GVR_Deployment_Checkbox.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Now, click on the **Android SDK** section and make sure that Android SDK tools that are needed to build your project point to the correct folder on your PC. 
+    
+    [REGION:lightbox]
+    [![](GVR_Android_SDK_Setup.png)(w:546)](GVR_Android_SDK_Setup.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
 
 [nav]
 
 ## End Result
-When completed you will now have a UE4 project that is ready to be built, deployed and viewed on your Samsung Galaxy smartphone.
+
+When completed you will now have a UE4 project that is ready to be deployed and viewed with your Gear VR HMD.

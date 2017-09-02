@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3599948
 Availability:Docs
 Title:マテリアル式のテクニカル ガイド
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -8,13 +8,13 @@ tags:Rendering
 
 [TOC (start:2 end:3)]
 
-UE4 でマテリアル式を新規作成する方法は単純です。例として、MaterialExpressionSquare を 2 乗するマテリアル式を新規作成します。UE4 では、マテリアル式はすべて `MaterialExpressions.cpp` で実装されることに注意してください。
+UE4 ではマテリアル式の新規作成方法が単純明快です。例として、MaterialExpressionSquare を 2 乗するマテリアル式を新規作成してみましょう。UE4 では、マテリアル式はすべて `MaterialExpressions.cpp` で実装されることに注意してください。
 
 
 
 ## 宣言
 
-まず、 MaterialExpression から派生した新しいタイプで、エンジン スクリプト ファイルを追加します。表現式の入力と仮想関数を宣言します。例えば:<br> 
+まず、 MaterialExpression から派生した新しいタイプで、エンジン スクリプト ファイルを追加します。表現式の入力と仮想関数を宣言します。以下のようにしてみましょう。 
 
 	MaterialExpressionSquare.h
 
@@ -64,7 +64,7 @@ UE4 でマテリアル式を新規作成する方法は単純です。例とし�
 		MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	}
 
-`Compile()` は `FMaterialCompiler` 上で適切な関数を呼び出します。このケースでは、既存のコンパイラ機能 (`Mul`) を使って Square を実装することができますが、カスタム仕様の表現式よってはマテリアル コンパイラ機能を追加する必要があるかもしれません。
+`Compile()` は `FMaterialCompiler` 上で適切な関数を呼び出します。このケースでは、既存のコンパイラ機能 (`Mul`) で Square の実装が可能ですが、カスタム仕様の表現式よってはマテリアル コンパイラ機能の追加が必要な場合があります。
 
 	int32 UMaterialExpressionSquare::Compile(FMaterialCompiler* Compiler)
 	{
@@ -80,7 +80,7 @@ UE4 でマテリアル式を新規作成する方法は単純です。例とし�
 	   }
 	}
 
-`GetCaption()` は、マテリアル エディタ グラフでノードのキャプションとして表示するためにテキストを返します。
+`GetCaption()` は、マテリアル エディタ グラフでノード キャプションとして表示するためのテキストを返します。
 
 	FString UMaterialExpressionSquare::GetCaption() const
 	{

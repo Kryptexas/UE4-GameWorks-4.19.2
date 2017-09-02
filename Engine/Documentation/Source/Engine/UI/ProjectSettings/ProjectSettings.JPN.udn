@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:プロジェクト設定
 Crumbs:%ROOT%, Engine, Engine/UI
-Description:現行プロジェクト固有のオプションを設定するダイアログ
+Description:現行プロジェクトのオプションを設定するダイアログ
 Version:4.9
 
 [VAR:Topic]
@@ -45,7 +45,33 @@ Version:4.9
 [/VAR]
 
 [REGION:fullwidth]
-![](project_settings.png)
+	[OBJECT:ToggleButtonContent]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		windows
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:content]
+		![](project_settings.png)
+		[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		mac
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:content]
+		![](project_settings_Mac.png)
+		[/PARAM]
+	[/OBJECT]
 [/REGION]
 
 [TOC (start:2)]
@@ -71,7 +97,7 @@ Version:4.9
 
 ## カテゴリとセクション
 
-**Project Settings** エディタは関連オプションの様々なカテゴリやセクションに分けることができます。カテゴリは 
+**Project Settings** エディタは関連オプションの様々なカテゴリやセクションに分けることができます。カテゴリは、 
 見出しとして表示され、それぞれのセクションはエディタでセクションのオプションを開く 
 ハイパーリンクとして表示されます。
 
@@ -88,7 +114,7 @@ Version:4.9
 | ![](button_import.png) | コンフィギュレーション ファイル (`.ini`) へ保存された値をロードし、現在の値と置換します。 |
 
 
-### プロジェクトのカテゴリ
+### プロジェクト カテゴリ
 
 プロジェクトの動作を表すオプションがあります。 
 
@@ -110,7 +136,7 @@ Version:4.9
 | ------- | ----------- |
 | **AI System** | AI システムの基本的オプションがあります。 |
 | **Animation** | エディタで使用するアニメーションの設定があります。 |
-| **Audio** | デフォルトの設定ととクオリティ レベルを追加するためのオプションがあります。  |
+| **Audio** | デフォルトの設定とクオリティ レベルを追加するためのオプションがあります。  |
 | **Collision** | 様々なコリジョンを設定し、変更することができます。 |
 | **Console** | コンソール向けの独自のインゲームの入力を設定することができます。 |
 | **Cooker** | 様々なクッカ設定のオプションがあります。テクスチャの圧縮品質などを処理します。 |

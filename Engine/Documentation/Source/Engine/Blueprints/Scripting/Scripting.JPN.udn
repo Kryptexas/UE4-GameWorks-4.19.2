@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3393423
+﻿INTSourceChangelist:3489715
 Availability:Public
 Title:スクリプト処理の基礎
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,6 +6,7 @@ Description:ブループリント ビジュアル スクリプティング シ�
 version:4.12
 parent:Engine/Blueprints
 tags:Blueprints
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -74,8 +75,6 @@ tags:Blueprints
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
-<!--
-
 ## 詳細なコンテナ
 
 アンリアル エンジン 4.15 では、Blueprint Application Programming Interface (API) にBlueprint Set と Map の両方が追加されました。Set と Map というコンテナによりデベロッパーはクリエイティブにデータの格納およびアクセスができるようになります。
@@ -89,6 +88,3 @@ tags:Blueprints
 ### Blueprint Set
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Blueprint Set")]
-
--->
-

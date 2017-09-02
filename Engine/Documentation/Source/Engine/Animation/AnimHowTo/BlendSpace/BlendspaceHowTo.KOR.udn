@@ -1,17 +1,21 @@
-﻿INTSourceChangelist:3441237
-Availability:Public
-Title:보행이동 기반 블렌딩
+﻿INTSourceChangelist:3477699
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Title:보행이동 기반 블렌딩
 Description:캐릭터의 걷기에서 달리기 애니메이션 블렌딩에 블렌드 스페이스를 사용하는 예제입니다.
-version: 4.15
+Type: how-to
 skilllevel: Intermediate
-type:how-to
+version: 4.16
+Parent: Engine\Animation\AnimHowTo
+Order: 1
 tags:Animation
 tags:Blend Space
+topic-image:BlendSpaceTopicCompact.png
 Related: Engine/Animation/Blendspaces
 Related: Engine/Animation/AimOffset
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/Skeleton
+
 
 [블렌드 스페이스](Engine/Animation/Blendspaces) 는 **애님 그래프** 에서 샘플링 가능한 특수 애셋으로, 두 입력 값에 따라 애니메이션 블렌딩이 가능합니다. 
 단일 입력에 따른 두 애니메이션 사이의 단순 블렌딩은 애니메이션 블루프린트에서 사용할 수 있는 표준 [블렌드 모드](Engine/Animation/NodeReference/Blend) 중 하나를 사용하여 가능합니다. 
@@ -190,6 +194,7 @@ Animation Starter Pack 은 에픽 런처의 **마켓플레이스** 에서 무료
 
 
 	
+
 
 
 

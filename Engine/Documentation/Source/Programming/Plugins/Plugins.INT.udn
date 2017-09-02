@@ -2,7 +2,7 @@ Availability:Public
 Title:Plugins
 Crumbs:
 Description:How to create Unreal Engine plugins.
-Version: 4.9
+Version: 4.16
 Parent:Programming/UnrealArchitecture/Reference
 
 [TOC(start:2)]
@@ -192,22 +192,30 @@ Plugin descriptors are in the Json ([JavaScript Object Notation](http://www.json
 
 ### Descriptor File Example
 
-This example plugin descriptor is from the **UObjectPlugin** [downloadable example](#PluginExamples) above.
+This example plugin descriptor is from the **UObjectPlugin** [example](#PluginExamples) above.
 
 	{
 		"FileVersion" : 3,
-
-		"FriendlyName" : "UObject Example Plugin",
 		"Version" : 1,
-		"FriendlyVersion" : "1.0",
-		"Description" : "An example of a plugin which declares its own UObject type. This can be used as a starting point when creating your own plugin.",
-		"Category" : "Programming Examples.Plugins",
-	
+		"VersionName" : "1.0",
+		"FriendlyName" : "UObject Example Plugin",
+		"Description" : "An example of a plugin which declares its own UObject type.  This can be used as a starting point when creating your own plugin.",
+		"Category" : "Examples",
+		"CreatedBy" : "Epic Games, Inc.",
+		"CreatedByURL" : "http://epicgames.com",
+		"DocsURL" : "",
+		"MarketplaceURL" : "",
+		"SupportURL" : "",
+		"EnabledByDefault" : true,
+		"CanContainContent" : false,
+		"IsBetaVersion" : false,
+		"Installed" : false,
 		"Modules" :
 		[
 			{
 				"Name" : "UObjectPlugin",
-				"Type" : "Developer"
+				"Type" : "Developer",
+				"LoadingPhase" : "Default"
 			}
 		]
 	}
@@ -226,8 +234,12 @@ This example plugin descriptor is from the **UObjectPlugin** [downloadable examp
 | **CreatedBy**						| _Optional_	| The individual or company name that created this plugin. This may be displayed in the plugin UI or in other locations. |
 | **CreatedByURL**					| _Optional_	| A web link to the individual or company that created this plugin. If specified, the editor UI may display a hyperlink that allows the user to browse to this web page. |
 | **DocsURL**						| _Optional_	| A web link to the plugin's documentation. If specified, the editor's plugin browser will display a hyperlink that allows the user to browse to this web page. |
+| **MarketplaceURL**				| _Optional_	| A link to the plugin's Marketplace page. If specified, the editor's plugin browser will display a hyperlink that allows the user to browse to this web page. |
 | **SupportURL**					| _Optional_	| Link to the support page for the plugin. Will be shown on the editor's plugin browser if specified. |
-| **CanContainContent**				| _Optional_	| When specified and set to **true**, enables Content support for this plugin. The default setting is **false**. See the section on [Content in Plugins](#ContentInPlugins) for more info. | 
+| **EnabledByDefault**				| _Optional_	| If set to true, this plugin will be enabled by default when it is present. |
+| **CanContainContent**				| _Optional_	| When specified and set to **true**, enables Content support for this plugin. The default setting is **false**. See the section on [Content in Plugins](#ContentInPlugins) for more info. |
+| **IsBetaVersion**					| _Optional_	| Marks the content as a beta version. In the list of Plugins, "Version" will be replaced with "BETA Version" for this entry. |
+| **Installed**						| _Optional_	| If set to `true`, the Plugin will be listed under the "Installed" section in the list of Plugins, instead of the "Project" or "Built-in" sections. |
 | **Modules**						| _Optional_	| For plugins that contain source code (and binaries), this is the list of modules that should be loaded at startup. See below for more info. |
 
 
@@ -238,6 +250,7 @@ For plugins that contain code, the descriptor file will contain at least one mod
 	{
 		"Name" : "UObjectPlugin",
 		"Type" : "Developer"
+		"LoadingPhase" : "Default"
 	}
 
 | Field name				| Info			| Description |

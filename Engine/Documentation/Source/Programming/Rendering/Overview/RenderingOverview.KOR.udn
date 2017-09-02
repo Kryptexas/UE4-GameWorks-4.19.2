@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:그래픽 프로그래밍 개요
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -207,4 +207,4 @@ RHI 는 플랫폼 전용 그래픽 API 위의 얇은 레이어입니다. UE4 의
 * RHISetRasterizerState
 * RHISetBoundShaderState 에 의해 설정된 셰이더 종속성
 
-다른 모든 스테이트는 디폴트인 것으로 간주됩니다 (연관된 TStaticState 에 정의된 대로입니다. 예를 들어 디폴트 스텐실 스테이트는 RHISetStencilState(TStaticStencilState<>::GetRHI()) 에 의해 설정됩니다).
+다른 모든 스테이트는 디폴트인 것으로 간주됩니다 (연관된 TStaticState 에 정의된 대로입니다. 예를 들어 디폴트 스텐실 스테이트는 `RHISetStencilState(TStaticStencilState<>::GetRHI())` 에 의해 설정됩니다).

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Availability: Public
 Title:눈 예제
 Crumbs:%ROOT%, Resources, Resources/Showcases/Effects
@@ -52,7 +52,7 @@ Version: 4.9
 눈보라 파티클 시스템은 낮은 속도의 Velocity Grid 를 활용하여 볼륨에 들어오는 눈송이의 속도를 늦추기도 합니다. 이러한 둔화 효과는 파티클에 무언가 끌리는 느낌을 내기도 하고, 충돌 처리에도 도움을 주어, 뭔가 딱딱한 느낌을 배제시킬 수 있습니다. 벡터 필드는 캐스케이드의 뷰포트 메뉴에서 _뷰 > 벡터 필드_ 를 통해 쉽게 시각화시켜 볼 수 있습니다.
 
 ![](ShowVectorFields.png)
-<br>_노랑 박스는 벡터 필드를 나타내는 반면, 빨강 선은 볼륨 내 각 위치에서의 벡터를 나타냅니다._
+[REGION:caption]노랑 박스는 벡터 필드를 나타내는 반면, 빨강 선은 볼륨 내 각 위치에서의 벡터를 나타냅니다.[/REGION]
 
 [REGION:tip]
 	_Collision (Scene Depth)_ 모듈을 사용중이라면, **Radius Bias** 프로퍼티를 사용하여 파티클이 표면을 "미끄러지는 것처럼" 보이도록 만들 수 있습니다. 눈보라 파티클 시스템이 표면 근처에서 공기의 영향을 받는 듯한 착시 효과를 내기 위해 이러한 팁이 사용되었습니다.

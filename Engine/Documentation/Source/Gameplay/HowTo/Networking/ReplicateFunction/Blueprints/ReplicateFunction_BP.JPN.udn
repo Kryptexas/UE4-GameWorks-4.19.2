@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2701304
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントで関数をレプリケーションする方法
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateFunction
@@ -7,12 +7,13 @@ Related:Engine/Blueprints
 Related:Resources/ContentExamples/Networking
 Version:4.9
 SkillLevel:Advanced
+type:how-to
 
 [TOC (start:2 end:2)]
 
 **レプリケート関数** のセットアップ方法と様々な形式の使用方法を紹介します。 
 
-レプリケート関数は、主に以下の 3 種類に分類されます。**Multicast** 、 **Run on Server** 、 **Run on owning Client** です。Multicast 関数は、サーバー上で呼び出されて、そこで実行され、その後自動でクライアント側に送られます。Server 関数はクライアントによって呼び出され、サーバー上でのみ実行されます。Client 関数はサーバーで呼び出され、所有しているクライアント上でのみ実行されます。
+レプリケート関数は、主に以下の 3 種類に分類されます。**Multicast** 、 **Run on Server** 、 **Run on owning Client** です。Multicast 関数は、実行され、その後自動でクライアント側に順送りされると、サーバー上で呼び出されます。Server 関数はクライアントによって呼び出され、サーバー上でのみ実行されます。Client 関数はサーバーで呼び出され、所有しているクライアント上でのみ実行されます。
 
 ## Multicast
 
@@ -25,8 +26,8 @@ SkillLevel:Advanced
 	[REGION:raw]
 	![](HowTo2.png)
 	[/REGION]
-	[REGION:tip]
 
+	[REGION:tip]
 	**[Advanced Settings]** オプションで、マルチプレイヤー用に生成されたウィンドウのサイズを変更することができます。 
 	[/REGION]
 
@@ -43,9 +44,9 @@ SkillLevel:Advanced
 1.	**コンパイル** および **保存** をしたら、ブループリントを終了し、 **[Play]** ボタンをクリックしてエディタで再生します。 
 
 1.	ゲーム内で [Server] というウィンドウを探して、ジャンプするために **スペース バー** を押します。 
-		
+
 	![](HowTo4.png)
-	
+
 	スポーンされたエフェクトが見えるのはこのサーバー ウィンドウのみで、その他のプレイヤーからは見えません。 
 
 	他のプレイヤーでジャンプを試みる場合、他のプレイヤーは炎のエフェクトをローカルにのみスポーンし、それ以外のプレイヤーはエフェクトがスポーンされたことに気づきません。 
@@ -93,6 +94,7 @@ SkillLevel:Advanced
 1.	**MulticastSpawn** Custom Event を選択し、**Replicates** ドロップダウン オプションを **Run on Server** に変更します。 
 
 	![](HowTo8.png)
+
 	整合を取るために **Graph Node** の名前を **Run On Server** に変更します。 
 
 1.	**コンパイル** および **保存** をしたら、ブループリントを終了し、 **[Play]** ボタンをクリックしてエディタで再生します。 
@@ -117,6 +119,7 @@ SkillLevel:Advanced
 
 	すべてのクライアント上でも見えるようにアクタをレプリケートする設定にしたので、サーバー側のスクリプトを部分的に実行するようにサーバーに実際にメッセージを送りました。
 
+
 ## Run On Owning Client
 
 _このセクションでも、引き続き **Multicast Replication** からのサンプルを使用します。_
@@ -135,7 +138,7 @@ _このセクションでも、引き続き **Multicast Replication** からの�
 
 	![](HowTo12.png)
 
-	この変数を **Replicated** に設定しておけば、接続先のマシンにネットワーク経由で確実にレプリケートされます。これを使って、マルチプレイヤー ゲームでキャラクターがトリガー ボリュームへ入った時にアイテムを拾い、トリガー ボリュームを去る時にアイテムを取り除くシミュレーションを行ってみます。 
+	この変数を **Replicated** に設定しておけば、接続先のマシンにネットワーク経由で確実にレプリケートされます。これを使って、マルチプレイヤー ゲームでキャラクターがトリガー ボリュームへ入った時にアイテムを拾い、トリガー ボリュームを去る時にアイテムを取り除くシミュレーションを行ってみます。
 1.	**Print String** ノードに接続されている **P** Key Event を追加し、 **Control** を押しながら **Inventory** 変数へドラッグして、以下のように接続します。 
 
 	![](HowTo13.png)

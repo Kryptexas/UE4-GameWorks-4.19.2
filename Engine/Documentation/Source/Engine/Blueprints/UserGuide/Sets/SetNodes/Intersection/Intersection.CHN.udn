@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Intersection
-Description:Takes the intersection of two Sets, assigning the intersection to a resultant Set.
-Crumbs:
+Description:获取两个 Set 的交集，将差指定到一个结果 Set。
+Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
-Version: 4.15
+Order:6
+Version:4.15
 Tags:Blueprints
 Type:reference
 
@@ -13,20 +13,21 @@ Type:reference
 
 ![](Set_IntersectionNode.png)
 
-The **Intersection** node takes the intersection of items found in two Sets, assigning the intersection to a Resultant Set, with the result containing items in Set A that also belong to Set B. 
-Visually, the intersection of Set A and Set B looks like the following diagram, where the intersection of Set A and Set B contains only those items that are common to both Sets.
+**Intersection** 节点将获取两个 Set 中找到的项目之间的交集，将交集指定到一个结果 Set。此 Set 将包含 Set A 中同属于 Set B 的项目。从视觉上而言，Set A 和 Set B 之间的交集与以下图表相似，Set A 和 Set B 的交集只包含同属于两个 Set 的项目。
 
+[REGION:raw]
 ![](Set_IntersectionDiagram.png)
+[/REGION]
 
-For illustrative purposes, let's say that you have two string type Sets, Set A and Set B, both of which are defined below.
+为便于展示，假定用户有两个字符串类型的 Set：Set A 和 Set B，两者定义如下。
 
 	Set A = {"Item 1", "Item 2", "Item 3", "Item 4", "Item 5"}
 	Set B = {"Item 4", "Item 5", "Item 6", "Item 7", "Item 8"}
 
-The following table shows you the result, which contains the intersection of Set A and Set B (symbolically represented as **A &#x2229; B**).
+下表展示的结果包含了 Set A 和 Set B 的交互（以 **A &#x2229; B** 来表示）。
 
 | --------- | --------- | -------------------------------- |
-| **Set A** | **Set B** | **Resultant Set (A &#x2229; B)** |
+| **Set A** | **Set B** | **结果 Set（A &#x2229; B）** |
 | `Item 1` | `Item 4`  | `Item 4`                        |
 | `Item 2` | `Item 5`  | `Item 5`                        |
 | `Item 3` | `Item 6`  |                                  |
@@ -34,28 +35,28 @@ The following table shows you the result, which contains the intersection of Set
 | `Item 5` | `Item 8`  |                                  |
 
 [REGION:note]
-When intersecting a Set with an Empty Set, use the [](Engine/Blueprints/UserGuide/Sets/SetNodes/Clear) node.
+但一个 Set 和一个空白 Set 相交时，将使用 [](Engine/Blueprints/UserGuide/Sets/SetNodes/Clear) 节点。
 [/REGION]
 
-##Inputs
+## 输入
 
-| Pin Location                    | Name        | Description                 |
+| 引脚位置                    | 名称        | 描述                 |
 | ------------------------------- | ----------- | --------------------------- |
-| ![](Set_IntersectionNode_1.png) |  (In) Exec  | Input execution pin.        |
-| ![](Set_IntersectionNode_2.png) |  A          | One Set to intersect.       |
-| ![](Set_IntersectionNode_3.png) |  B          | The other Set to intersect. |
+| ![](Set_IntersectionNode_1.png) |  (In) Exec  | 输入执行引脚。        |
+| ![](Set_IntersectionNode_2.png) |  A          | 相交的一个 Set。       |
+| ![](Set_IntersectionNode_3.png) |  B          | 相交的另一个 Set。 |
 
-##Outputs
+## 输出
 
-| Pin Location                    | Name        | Description                                    |
+| 引脚位置                    | 名称        | 描述                                    |
 | ------------------------------- | ----------- | ---------------------------------------------- |
-| ![](Set_IntersectionNode_4.png) |  (Out) Exec | Output execution pin.                          |
-| ![](Set_IntersectionNode_5.png) |  Result     | The Set containing the resultant intersection. |
+| ![](Set_IntersectionNode_4.png) |  (Out) Exec | 输出执行引脚。                          |
+| ![](Set_IntersectionNode_5.png) |  Result     | 包含交集结果的 Set。 |
 
-##Example Usage
+## 使用范例
 
 ![](Set_IntersectionUsage.png)
 
-#### Footnote
+#### 脚注
 
-Symbolically, this operation is represented as A &#x2229; B = { x | x &isin; A  &and;  x &isin; B }, wherein this node is performing a logical AND operation between elements in Set A and elements in Set B.
+此运算为 A &#x2229; B = { x | x &isin; A  &and;  x &isin; B }，此节点将在 Set A 中的元素和 Set B 中的元素之间执行逻辑与运算。

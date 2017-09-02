@@ -118,7 +118,7 @@ You want to either set Collision Enabled to No Collision on the Actor, or add co
 [EXCERPT:ShadowCasterUsingBoundsScale]
 **Actor casts dynamic shadows and has a BoundsScale greater than 1! This will have a large performance hit**
 
-Serious performance warning... either reduce BoundsScale to be <= 1 or remove dynamic shadows...
+Serious performance warning... either reduce BoundsScale to be less than or equal to 1 or remove dynamic shadows...
 [/EXCERPT:ShadowCasterUsingBoundsScale]
 
 (#InvalidTrace)

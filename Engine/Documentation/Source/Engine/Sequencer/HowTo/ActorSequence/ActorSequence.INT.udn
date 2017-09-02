@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Title:Using Embedded Sequencer Animations in Blueprints
 Description:Describes how you can embed Sequences within Actor Blueprints using an Actor Sequence Component.

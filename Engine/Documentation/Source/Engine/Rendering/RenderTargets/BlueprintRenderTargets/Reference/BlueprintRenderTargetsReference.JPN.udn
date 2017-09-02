@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3264165
+﻿INTSourceChangelist:3580824
 availability:Public
 title:ブループリントとレンダー ターゲットのリファレンス
 description:ブループリントとレンダー ターゲットのプロパティと説明の一覧
-crumbs:%ROOT%, Engine, Engine/Rendering, Engine/Rendering/RenderTargets, Engine/Rendering/RenderTargets/BlueprintRenderTargets
+crumbs:%ROOT%,
 version:4.13
-type:reference
+Type:reference
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
 order:2
-Navigation:Reference
 tags:Render Targets
 tags:Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Reference.png
@@ -28,10 +27,10 @@ DrawMaterialtoRenderTarget は簡素化版なので、可能な限り Begin/EndD
 
 | プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D のリファレンス|
-|Canvas| キャンバスへのリファレンス|
-|Size| レンダー ターゲットのサイズ|
-|Context| レンダー ターゲットの Context Structure を描画|
+|**Texture Render Target**| Texture render target 2D のリファレンスです。|
+|**Canvas**| キャンバスへのリファレンスです。|
+|**Size**| レンダー ターゲットのサイズです。|
+|**Context**| レンダー ターゲットの Context Structure を描画します。|
 
 ## End Draw Canvas to Render Target
 
@@ -41,7 +40,7 @@ DrawMaterialtoRenderTarget は簡素化版なので、可能な限り Begin/EndD
 
 | プロパティ | 説明 |
 |----------|-----------------|
-|Context| レンダー ターゲットの Context Structure を描画|
+|**Context**| レンダー ターゲットの Context Structure を描画します。|
 
 
 ## Clear Render Target 2D
@@ -52,8 +51,8 @@ DrawMaterialtoRenderTarget は簡素化版なので、可能な限り Begin/EndD
 
 | プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D のリファレンス|
-|Clear Color|所定の Clear Color で指定されたレンダー ターゲットをクリアします。|
+|**Texture Render Target**| Texture render target 2D のリファレンスです。|
+|**Clear Color**| 所定の Clear Color で指定されたレンダー ターゲットをクリアします。|
 
 
 ## Create Render Target 2D
@@ -64,9 +63,9 @@ DrawMaterialtoRenderTarget は簡素化版なので、可能な限り Begin/EndD
 
 | プロパティ | 説明 |
 |----------|-----------------|
-|Width| レンダー ターゲットの幅|
-|Height| レンダー ターゲットの高さ|
-|Return Value| Texture render target 2D のリファレンス|
+|**Width**| レンダー ターゲットの幅です。|
+|**Height**| レンダー ターゲットの高さです。|
+|**Return Value**| Texture render target 2D のリファレンスです。|
 
 ## Draw Material to Render Target
 
@@ -77,8 +76,8 @@ DrawMaterialtoRenderTarget は簡素化版なので、可能な限り Begin/EndD
 
 | プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D のリファレンス|
-|Material| レンダー ターゲットの結果の格納先となるマテリアル|
+|**Texture Render Target**| Texture render target 2D のリファレンスです。|
+|**Material**| レンダー ターゲットの結果の格納先となるマテリアルです。|
 
 ## Export Render Target
 
@@ -88,9 +87,9 @@ DrawMaterialtoRenderTarget は簡素化版なので、可能な限り Begin/EndD
 
 | プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D のリファレンス|
-|File Path| レンダー ターゲットの保存先へのパス|
-|File Name| 保存されたレンダー ターゲットに付ける名前|
+|**Texture Render Target**| Texture render target 2D のリファレンスです。|
+|**File Path**| レンダー ターゲットの保存先へのパスです。|
+|**File Name**| 保存されたレンダー ターゲットに付ける名前です。|
 
 
 

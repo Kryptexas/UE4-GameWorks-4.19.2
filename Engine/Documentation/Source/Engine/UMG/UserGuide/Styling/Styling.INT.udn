@@ -1,10 +1,18 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Styling
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:A guide to stylizing Widget Blueprints in UMG. 
+Description: A guide to stylizing Widget Blueprints in UMG. 
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related: Engine\UMG\UserGuide\Slots
 Related: Engine\UMG\UserGuide\WidgetTypeReference
-tags:UMG UI Designer
+Order:9
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/StylingTopic.png
+
+
 
 
 [REGION:fullwidth raw]

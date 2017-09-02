@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3200408
+﻿INTSourceChangelist:3579346
 Availability:Public
-TItle:Ansel プラグインの概要
-Description:ゲームの拡張画像をキャプチャーし、共有するための Nvidia の Ansel のインゲームのフォトグラフィー ツールの UE4 への統合の概要です。
+TItle:NVIDIA Ansel プラグインの概要
+Description:ゲームの拡張画像をキャプチャーし、共有するための NVIDIA の Ansel のインゲームのフォトグラフィー ツールの UE4 への統合の概要です。
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:1
@@ -12,9 +12,9 @@ version:4.14
 topic-image:Engine/Plugins/Ansel/Ansel_topic.png
 
 [EXCERPT:intro]
-Nvidia の Ansel 技術を使うと、PC ゲーマーはゲーム内の画像を簡単にキャプチャーし、共有することができます。Ansel UE4 のプラグインは迅速かつ簡単にご利用のゲームに統合することができます。
+NVIDIA の Ansel 技術を使うと、PC ゲーマーはゲーム内の画像を簡単にキャプチャーし、共有することができます。Ansel UE4 のプラグインは迅速かつ簡単にご利用のゲームに統合することができます。
 
-Ansel のエンドユーザー向け概要は、 [Nvidia の Ansel サイト](http://www.geforce.com/hardware/technology/ansel) でご覧いただけます。
+Ansel のエンドユーザー向け概要は、 [NVIDIA の Ansel サイト](http://www.geforce.com/hardware/technology/ansel) でご覧いただけます。
 
 UE4 で利用可能な Ansel 機能は以下の通りです。
 
@@ -30,7 +30,7 @@ UE4 で利用可能な Ansel 機能は以下の通りです。
 | アンリアル エンジンのバージョン | 4.14 以降 |
 | オペレーティング システム | Microsoft Windows |
 | GPU | NVIDIA GTX 780 以上 [REGION:none]互換性リスト一式を、 [Ansel がサポートする GPU のページ](http://www.geforce.com/hardware/technology/ansel/supported-gpus) でご覧いただけます。[/REGION] |
-| ディスプレイ ドライバ | Nvidia Geforce 372.90 以上|
+| ディスプレイ ドライバ | NVIDIA GeForce 372.90 以上|
 [/EXCERPT:intro]
 
 ## ゲームで Ansel Photography を有効にする
@@ -41,7 +41,7 @@ UE4 で利用可能な Ansel 機能は以下の通りです。
 
 	![](Settings_Menu.png)
 
-1.	**[Photography]** カテゴリを選んで、**[Nvidia Ansel Photography Plugin]** を探します。_Enabled_ オプションを切り替えます。
+1.	**[Photography]** カテゴリを選んで、**[NVIDIA Ansel Photography Plugin]** を探します。_Enabled_ オプションを切り替えます。
 
 	![](Plugin_Enabled.png)
 

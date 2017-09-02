@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3454520
 Availability:Public
 Title:アンリアル ゲーム プロジェクト
 Crumbs: %ROOT%, Engine
@@ -77,7 +77,7 @@ order:8
 		![](%ROOT%/related_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Related Topics
+		関連トピック
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

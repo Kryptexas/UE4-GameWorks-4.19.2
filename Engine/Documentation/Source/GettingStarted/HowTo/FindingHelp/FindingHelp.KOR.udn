@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482370
+﻿INTSourceChangelist:3521730
 Availability:Public
 Title:도움말 & 답변 찾기
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -126,7 +126,7 @@ mac
 | 옵션 | 설명 |
 | ------- | ------ |
 | **문서...** | [공식 문서](#외부도움말:문서) 메인 페이지로 이동합니다. |
-| **API 레퍼런스...** | 엔진 클래스 및 함수에 대한 로우 레벨 인덱스인 **UE4 API 문서** 를 엽니다. |
+| **API 레퍼런스...** | 엔진 클래스 및 함수에 대한 로우 레벨 인덱스인 [UE4 API 문서](https://docs.unrealengine.com/latest/INT/API/index.html) 를 엽니다. |
 | **튜토리얼** | [에디터내 튜토리얼](#에디터내튜토리얼) 을 엽니다. |
 | **Forums...** | [공식 언리얼 엔진 4 Forums](#외부도움말:forums) 문서로 이동합니다. |
 | **Answer Hub...** | [Answer Hub](#외부도움말:answerhub) 메인 페이지로 이동합니다. |

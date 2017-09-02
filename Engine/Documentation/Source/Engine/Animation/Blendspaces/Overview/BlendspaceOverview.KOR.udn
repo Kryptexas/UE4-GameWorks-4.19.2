@@ -1,19 +1,22 @@
-﻿INTSourceChangelist:3441237
-Availability:Docs
-Title: 블렌드 스페이스 개요
+﻿INTSourceChangelist:3477699
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation
+Title: 블렌드 스페이스 개요
 Description:블렌드 스페이스 애셋 사용 방법 및 여러가지 블렌드 스페이스 애셋 유형에 대한 설명입니다.
+Type: Overview
+SkillLevel: Intermediate
+Version: 4.16
+Parent: Engine/Animation
+Order: 1
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:blendspacetopic.png
 Related: Engine\Animation\AnimHowTo\BlendSpace
 Related: Engine/Animation/Blendspaces/Editor
 Related: Engine/Animation/Blendspaces/UserGuide
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
-version: 4.15
-type:overview
-topic-image:blendspacetopic.png
-tags:Animation
-tags:Animation Blueprint
-tags:Blend Space
 
 [TOC (start:2 end:2)]
 

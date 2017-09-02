@@ -50,7 +50,7 @@ FName (such as **IsValidObjectName()**) check the validity of FNames for particu
 
 The == operator can be used to compare two FNames, and returns true or false.  Rather than doing string comparisons, this compares the values in Index, which is a significant CPU savings.
 
-**FName::Compare** can also be used to compare two FNames, and it will return < 0 if this < Other, 0 if this == Other, and > 0 if this > Other.
+**FName::Compare** can also be used to compare two FNames, and it will return less than 0 if this less than Other, 0 if this equal to Other, and greater than 0 if this greater than Other.
 
 	CompareFloat = TestFName.Compare(OtherFName); 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3599948
 Availability: Public
 Title:사운드 액터 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -101,7 +101,7 @@ Attenuation 관련 추가 정보는, [디스턴스 모델 감쇠](Engine/Audio/D
 | **Spatialize** | 공간화 - 소스를 3D 공간에 위치시킵니다. |
 | **Distance Algorithm** | 거리 알고리즘 - 감쇠 모델에 사용할 거리 알고리즘에 대한 볼륨 유형입니다. |
 | **Attenuation Shape** | 감쇠 모양 - 볼륨 감쇠 모양입니다. |
-| **Radius** | 반경 - 볼륨의 전체적인 크기입니다. <BR> 기본 모양은 **구체** 입니다. 이 옵션은 선택된 **감쇠 모양** 에 따라 바뀝니다. |
+| **Radius** | 반경 - 볼륨의 전체적인 크기입니다. 기본 모양은 **구체** 입니다. 이 옵션은 선택된 **감쇠 모양** 에 따라 바뀝니다. |
 | **Falloff Distance** | 저하 거리 - 이 거리에 걸쳐 저하가 일어납니다. |
 | **Non-Spatialized Radius** | 비공간화 반경 - 사운드 소스를 공간화된 것으로 간주하기 시작할 거리입니다. |
 | **Attenuate with LPF** | LPF 로 감쇠 - 로우 패스 필터를 통한 감쇠를 켭니다. |

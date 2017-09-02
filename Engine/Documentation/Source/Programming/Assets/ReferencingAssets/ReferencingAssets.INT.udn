@@ -47,7 +47,7 @@ The declaration of the UPROPERTY appears the same as the previous hard reference
 
 ## Indirect Property Reference
 
-One easy way to control when an asset is loaded is to use a TSoftObjectPtr. To the designer, they can work with it just like the direct property reference. However, instead of a direct pointer reference, the property is stored as a string with template code to enable safe checking of whether the asset has been loaded yet or not. Use the IsPending() method to check if the asset is ready to be accessed or not. Note that using TSoftObjectPtr requires you to manually load the asset when you want to use it. You can use the templated LoadObject<>() method, StaticLoadObject(), or the FStreamingManager to load your object (see [](Programming/Assets/AsyncLoading) for more information). The first two methods load the asset synchronously which can cause frame rate spikes, so should only be used if you know it won't affect the gameplay.
+One easy way to control when an asset is loaded is to use a TSoftObjectPtr. To the designer, they can work with it just like the direct property reference. However, instead of a direct pointer reference, the property is stored as a string with template code to enable safe checking of whether the asset has been loaded yet or not. Use the IsPending() method to check if the asset is ready to be accessed or not. Note that using TSoftObjectPtr requires you to manually load the asset when you want to use it. You can use the templated `LoadObject<>()` method, StaticLoadObject(), or the FStreamingManager to load your object (see [](Programming/Assets/AsyncLoading) for more information). The first two methods load the asset synchronously which can cause frame rate spikes, so should only be used if you know it won't affect the gameplay.
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Building)
 	TSoftObjectPtr<UStaticMesh> BaseMesh;
@@ -68,7 +68,7 @@ If you want to defer loading a UClass, you use the same approach as the TSoftObj
 
 ## Find/Load Object
 
-So far these examples have all been UPROPERTY based. However, what if you want to build a string at runtime and use that to get a reference to an object? There are two options that you can use. If you want to use the UObject only if it has already been loaded or created, then the right choice is FindObject<>(). If you want to load the object if it is not already loaded, then using LoadObject<>() is the right choice. Note that LoadObject<>() does the equivalent of FindObject under the covers, so it's not necessary to try to find the object first and then load it. Here are some examples of using each function.
+So far these examples have all been UPROPERTY based. However, what if you want to build a string at runtime and use that to get a reference to an object? There are two options that you can use. If you want to use the UObject only if it has already been loaded or created, then the right choice is `FindObject<>()`. If you want to load the object if it is not already loaded, then using `LoadObject<>()` is the right choice. Note that `LoadObject<>()` does the equivalent of FindObject under the covers, so it's not necessary to try to find the object first and then load it. Here are some examples of using each function.
 
 	AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestName);
 	GridTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), NULL, LOAD_None, NULL);

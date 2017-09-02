@@ -1,10 +1,20 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:Widget ブループリント
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:Widget ブループリントの作成方法と Widget ブループリント インターフェースの概要
-Version:4.9
-tags:UMG UI Designer
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:1
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-image:Engine/UMG/UserGuide/WidgetBlueprintTopic.png
+
+
+
+
 
 Unreal Motion Graphics (UMG) で作業を開始するためには、まず以下のように **Widget ブループリント** を作成する必要があります。 
 

@@ -110,7 +110,7 @@ Note that the circle size might not always match to the actual effect as the imp
 | **Occlusion** | Controls how much the blurred geometry extends beyond its usual silhouette and its opacity. A value of 0.18 gives a fairly natural occlusion result. A value of 0.4 may be necessary to solve layer color leaking issues. Very small values (less than 0.18) generally result in negating the blur effect, though can work well when objects are very near to the camera. [INCLUDE:#Occlusion] |
 | **Color Threshold** | Controls the threshold where adaptive DoF switches to using full-resolution based on color. Smaller values cause more of the scene to use full-resolution processing. |
 | **Size Threshold** | Controls the threshold where adaptive DoF switches to using full-resolution based on size. Larger values cause more of the scene to use full-resolution processing. |
-| **Sky Distance** | Artificial distance to allow the skybox to be in focus (e.g. 200000), <=0 to switch the feature off, only for GaussianDOF, can cost performance. |
+| **Sky Distance** | Artificial distance to allow the skybox to be in focus (e.g. 200000), `<=0` to switch the feature off, only for GaussianDOF, can cost performance. |
 
 <!--
 [EXCERPT:FocalDistance]

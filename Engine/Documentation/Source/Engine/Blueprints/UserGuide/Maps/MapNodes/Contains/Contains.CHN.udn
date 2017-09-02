@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Contains
-Description:This node checks to see if a key exists in a provided Map.
-Crumbs:
+Description:此节点检查是否提供的 Map 中有键存在。
+Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Maps/MapNodes
 Order:3
-Version: 4.15
+Version:4.15
 Tags:Blueprints
 Type:reference
 
@@ -13,21 +13,21 @@ Type:reference
 
 ![](Map_ContainsNode.png)
 
-The **Contains** node, using a provided key, searches a Map for an associated item, returning true if the Map contains the item, confirming the key's existence.
+**Contains** 节点使用一个提供的键在 Map 中搜索关联的项，如果 Map 包含该项则返回 true，确认键存在。
 
-##Inputs
+## 输入
 
-| Pin Location                | Name          | Description                               |
+| 引脚位置                | 名称          | 描述                               |
 | --------------------------- | ------------- | ----------------------------------------- |
-| ![](Map_ContainsNode_1.png) |  Target Map   | The Map that you want to search.          |
-| ![](Map_ContainsNode_2.png) |  Key          | The key that you're using for the search. |
+| ![](Map_ContainsNode_1.png) |  Target Map   | 需要进行搜索的 Map。          |
+| ![](Map_ContainsNode_2.png) |  Key          | 用于搜索的键。 |
 
-##Outputs
+## 输出
 
-| Pin Location                | Name                  | Description                                                                                                                                                           |
+| 引脚位置                | 名称                  | 描述                                                                                                                                                           |
 | --------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ![](Map_ContainsNode_3.png) |  Boolean Return Value | If the node finds the item in the Map, the node returns true. Otherwise, if the node returns false, there is no item contained in the Map that uses the provided key. |
+| ![](Map_ContainsNode_3.png) |  Boolean Return Value | 如节点在 Map 中找到项目，节点将返回 true。如果节点返回 false，使用提供的键的 Map 则不包含项目。 |
 
-##Example Usage
+## 使用范例
 
 ![](Map_ContainsUsage.png)

@@ -25,7 +25,7 @@ The **Retarget Manager** within the **Skeleton Editor** can be used to manage yo
 
 Since retargeting uses a [Skeleton](Engine/Animation/Skeleton) asset and the Skeleton has its original proportions defined by the Skeletal Mesh for which it was initially created, it follows that one-directional retargeting will work smoothly in most cases. 
 However, there will often come times when you will have special animations that are built just for the variant versions. 
-For example, suppose you have multiple characters that share the same Skeleton asset (a base character, a short character and a tall character) and you have a special animation that was created just for the tall version of the character.
+For example, suppose you have multiple characters that share the same Skeleton asset (a base character, a short character, and a tall character) and you have a special animation that was created just for the tall version of the character.
 
 If you imported this new tall-only animation in, you would still need to use the same Skeleton asset as before, which was created from the base version of the character. 
 This will cause the new animation's proportions to be distorted. 
@@ -128,3 +128,4 @@ After selecting a pose from the Pose Asset to use, clicking the **Import** butto
 Below (left) our default pose is shown and (right) our Retargeted Base Pose selected from a pose within our Pose Asset is shown. 
 
 ![](DefaultPose.png)(w:540)![](NewRetargetPose.png)(w:540)
+

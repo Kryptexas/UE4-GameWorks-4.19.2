@@ -1,46 +1,17 @@
-Availability:Public
-Title:UMG Best Practices
-Crumbs:%ROOT%, Engine\UMG\UserGuide
-Description:Tips and Tricks for working with Unreal Motion Graphics.
-version: 4.10
-parent:Engine/UMG	
-order:2
-type:how-to
-tags:UMG UI Designer
+Availability: Public
+Crumbs: %ROOT%
+Title: UMG Best Practices
+Description:Tips and Tricks for working with Unreal Motion Graphics. 
+Type:how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:4
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-Image:BestPractices_topic.png
 
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](Engine\UMG\UserGuide\BestPractices\BestPractices_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\UMG\UserGuide\BestPractices:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\UMG\UserGuide\BestPractices:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\UMG\UserGuide\BestPractices]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-	![](Engine\UMG\UserGuide\BestPractices\BestPractices_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\UMG\UserGuide\BestPractices:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\UMG\UserGuide\BestPractices:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\UMG\UserGuide\BestPractices]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

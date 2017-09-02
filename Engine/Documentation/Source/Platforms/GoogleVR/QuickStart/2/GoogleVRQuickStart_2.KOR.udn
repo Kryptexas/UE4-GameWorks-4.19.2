@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3556577
 Availability:Public
 Title:2. 구글 VR 프로젝트 구성
 Crumbs:%ROOT%, Platforms/GoogleVR
@@ -145,7 +145,7 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
 
     [/region]
 
-1. **Android SDK** (안드로이드 SDK) 섹션의 **SDKConfig** (SDK 환경설정) 섹션 아래 **SDK API Level** 을 **matchndk** 로 설정합니다. 그리고 **NDK API Level** 을 **android-24** 로 설정하여 프로젝트가 가장 최신의 안드로이드 SDK 로 컴파일되도록 합니다.
+1. **Android SDK** (안드로이드 SDK) 섹션의 **SDKConfig** (SDK 환경설정) 섹션 아래 **SDK API Level** 을 **android-24** 로, **NDK API Level** 을 ** android-19 ** 로 설정하여 프로젝트가 가장 최신의 안드로이드 SDK 로 컴파일되도록 합니다.
 
     ![](GVRQS_Android_SDK_Options_00.png)
 

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2697179
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでアクタを参照する
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/ReferenceAssets
 Description:ブループリントでアクタを参照するための操作ガイド 
 Version:4.9
 SkillLevel:Advanced
+type:how-to
 
 [TOC (start:2)]
 
@@ -21,7 +22,7 @@ SkillLevel:Advanced
 	ここでは、**Box Trigger** アクタをドラッグしました。 
 
 	[REGION:note]
-	アクタのタイプについての詳細は [](Engine/Actors/Types) のドキュメントを参照してください。
+	アクタの種類についての詳細は [](Engine/Actors/Types) のドキュメントを参照してください。
 	[/REGION]
 
 1.	レベルでアクタを選択した状態でメインツールバーから **[ブループリント]** ボタンをクリックします。次に **[Open Level Blueprint]** をクリックします。 
@@ -93,7 +94,7 @@ SkillLevel:Advanced
 
 	![](GHT5B_10.png)
 
-	この変数に **Target Blueprint** と名前を付けました。火花エフェクトを無効にするために get する際に、ブループリントのプロパティにアクセスできることがわかります。 
+	この変数に **Target Blueprint** と名前を付けました。火花エフェクトを無効にするために取得する際に、ブループリントのプロパティにアクセスできることがわかります。 
 
 1.	次に、グラフを接続してゲーム開始後 2 秒で火花エフェクトを無効にします。 
 
@@ -125,14 +126,14 @@ SkillLevel:Advanced
 
 	![](GHT5B_16.png)
 
-	ドロップダウン メニューを使用してターゲット アクタを選択、またはスポイトツールを使用し、シーン内のターゲット アクタを選択できます。 
+	ドロップダウン メニューを使用してターゲット アクタを選択、または スポイトツール を使用し、シーン内のターゲット アクタを選択できます。 
 
 	![](GHT5B_17.png)
 
 1.	ターゲット アクタを設定した状態でエディタで **再生** すると、2 秒後に火花エフェクトが無効になります。 
 
 	[REGION:note]
-	ダイレクト ブループリント通信の使用に関する詳細は、[](Engine/Blueprints/UserGuide/BlueprintComms) と [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) をご覧ください。
+	ダイレクト ブループリント通信 の使用に関する詳細は、[](Engine/Blueprints/UserGuide/BlueprintComms) と [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) をご覧ください。
 	[/REGION]
 
 
@@ -181,7 +182,7 @@ SkillLevel:Advanced
 	この例の手順に従った場合、**F** キーを押せば炎のエフェクトを無効にできるはずです。 
 
 	[REGION:note]
-	アクタのキャストに関する詳しい情報は、[ブループリント タイプにキャストする](Engine/Blueprints/UserGuide/BlueprintComms) と [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) をご覧ください。
+	アクタのキャスト に関する詳しい情報は、[ブループリント タイプにキャストする](Engine/Blueprints/UserGuide/BlueprintComms) と [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) をご覧ください。
 	[/REGION]
 
 

@@ -1,23 +1,32 @@
-﻿INTSourceChangelist:3014703
+﻿INTSourceChangelist:3530743
 Availability:Public
-Title:Properties
+Title:プロパティ
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
-Description:ゲームプレイ クラス用関数の作成および実装に関する参照ページ
-Version:4.12
+Description:ゲームプレイ クラスのプロパティの作成および実装に関するリファレンス
+type:reference
+skilllevel:beginner
+parent:Programming/UnrealArchitecture
+Version:4.16
+tags:variable
+tags:UPROPERTY
+tags:UENUM
+tags:enum
+tags:bitmask
+tags:bitfield
 
-## プロパティ宣言
+## プロパティの宣言
 
 プロパティは標準の C++ 変数記法を使って宣言され、プロパティ メタデータと変数指定子を定義する UPROPERTY マクロが先にきます。
 
 	UPROPERTY([specifier, specifier, ...], [meta(key=value, key=value, ...)])
 	Type VariableName;
 
-## 主要なデータタイプ
+## 主要なデータ型
 
 ### 整数
-整数データ タイプの規約は、ビット サイズの前に「int」あるいは「uint」をつけることです。
+整数データ型の規則では、ビット サイズの前に「int」あるいは「uint」をつけます。
 
-| 変数タイプ | 説明 |
+| 変数の型 | 説明 |
 | ------------| -------------|
 | **uint8**	 | 8-bit  符号なし|
 | **uint16**	| 16-bit 符号なし|
@@ -29,13 +38,13 @@ Version:4.12
 | int64 | 64-bit 符号付き|
 
 #### As Bitmasks
-Integer プロパティが bitmast としてエディタに公開できるようになりました。Integer プロパティを bitmask としてマークするには、以下のようにメタ セクションに "bitmask" を追加します。
+Integer プロパティが bitmask としてエディタに公開できるようになりました。Integer プロパティを bitmask としてマークするには、以下のようにメタ セクションに "bitmask" を追加します。
 
 	UPROPERTY(EditAnywhere, Meta = (Bitmask))
 	int32 BasicBits;
 
-このメタデータ タグを追加すると、個々にオンオフの切り替えが可能な一般名の付いたフラグ ("Flag 1"、"Flag 2"、"Flag 3" など) としてドロップダウン リストで 
-integer プロパティが編集可能になります。
+このメタ タグを追加すると、個々にオンオフの切り替えが可能な一般名の付いたフラグ ("Flag 1"、"Flag 2"、"Flag 3" など) のドロップダウン リストとして 
+integer が編集可能になります。
 
 ![](GenericBitmask.png)
 
@@ -54,35 +63,35 @@ UENUM が作成されたら、"BitmaskEnum" メタ タグで参照すること�
 	UPROPERTY(EditAnywhere, Meta = (Bitmask, BitmaskEnum = "EColorBits"))
 	int32 ColorFlags;
 
-この変更に伴い、ドロップダウン ボックスにリストされた bitflag は列挙されたクラス エントリの名前を値を受け取ります。この例では、ECB_Red が値 0 です。 
+この変更に伴い、ドロップダウン ボックスにリストされた bitflag は列挙されたクラス エントリの名前と値を受け取ります。この例では、ECB_Red が値 0 です。 
 つまり、チェックされていると、bit 0 (ColorFlags に 1 を追加) がアクティベートされます。ECB_Green は bit 1 (ColorFlags に 2 を追加) に相当し、 
 ECB_Blue は bit 2 (ColorFlags に 4 を追加) に相当します。
 
 ![](CustomBitmask.png)
 
-[REGION:note]列挙されたタイプにはエントリを 32 以上含むことができますが、最初の 32 値のみがプロパティ エディタ UI の bitmask association で表示されます。 
-同様に、明確な値エントリが受け取られたら、0 から 31 の明確な値をもつエントリはドロップダウンには含まれません。[/REGION]
+[REGION:note]列挙型には 32 を超えるエントリを含むことができますが、最初の 32 値のみがプロパティ エディタ UI の bitmask association で 
+表示されます。同様に、明示的な値エントリが受け取られたら、0 から 31 の明示的な値をもつエントリはドロップダウンには含まれません。[/REGION]
 
-### 浮動小数点タイプ
-アンリアルでは、標準の C++ 浮動小数点タイプであるフロート型と double 型 が使用されています。
+### 浮動小数点型
+アンリアルでは、標準の C++ 浮動小数点型である float 型と double 型が使用されています。
 
-### Boolean タイプ
-Boolean タイプは、 C++ bool キーワードで、あるいはビットフィールドとして表現されます。
+### Boolean 型
+Boolean 型は、 C++ bool キーワードで、あるいはビットフィールドとして表現されます。
 
 	uint32 bIsHungry :1;
 	bool bIsThirsty;
 
-### Strings
+### 文字列
 アンリアル エンジン 4 は、主要な 3 種類の文字列をサポートしています。
-* FString は「dynamic array」文字列タイプの典型といえます。
-* FName は、グローバル文字列表のコピー不可能な大文字・小文字を区別しない文字列へのリファレンスです。FString より小さく、より効率よく受け渡しができますが、操作は難しくなります。
-* FText は、ローカリゼーションに対処するために作成された更に剛健な文字列表現です。
+* FString は「動的文字型配列」の文字列型の典型といえます。
+* FName は、グローバル文字列表の変更不可能な大文字・小文字を区別しない文字列への参照です。FString より小さく、より効率よく受け渡しができますが、操作は難しくなります。
+* FText は、ローカリゼーションに対処するために作成された更に堅牢な文字列表現です。
 
-使用する場合はたいてい、アンリアルはキャラクターの TCHAR タイプに依存します。TEXT() マクロは TCHAR リテラルを表すために利用できます。
+使用する場合はたいてい、アンリアルは文字で TCHAR 型に依存します。TEXT() マクロは TCHAR リテラルを表すために利用できます。
 
 	MyDogPtr->DogName = FName(TEXT("Samson Aloysius"));
 
-いつ使用するのか、どのように機能するのかなど、3 つの文字列タイプの詳細は [文字列の取り扱い](Programming/UnrealArchitecture/StringHandling) を参照してください。
+いつ使用するのか、どのように機能するのかなど、3 つの文字列型の詳細は [文字列の取り扱いのドキュメント](Programming/UnrealArchitecture/StringHandling) を参照してください。
 
 ## プロパティ指定子
 

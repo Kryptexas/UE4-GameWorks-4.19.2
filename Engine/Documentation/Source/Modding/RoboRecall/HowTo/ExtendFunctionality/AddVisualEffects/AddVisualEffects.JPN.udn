@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3487380
 Availability:Public
 Title:6.視覚効果を加える
 Crumbs:%ROOT%
@@ -52,7 +52,7 @@ checkpoint:mod_extend
 
 1. このノードの出力実行ピンから **Spawn Sound at Location** ノードを追加します。
 
-1. その **Sound** を `GrendaeExplosion_C_Cue` に設定します。
+1. その **Sound** を `GrenadeExplosion_C_Cue` に設定します。
 
 	![image alt text](image_7.png)(w:662 h:242 convert:false)
 

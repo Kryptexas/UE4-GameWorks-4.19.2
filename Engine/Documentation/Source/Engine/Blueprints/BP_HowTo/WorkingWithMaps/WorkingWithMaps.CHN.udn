@@ -1,43 +1,44 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Working with Maps
-Description:Learn how to work with Maps in Blueprints.
+﻿INTSourceChangelist:3489715
+Availability:Public
+Title:使用 Map 
+Description:学习如何在蓝图中使用 Map。
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/Scripting
 Order:3
-Version: 4.15
+Version:4.15
 Tags:Blueprint Map
 Tags:Blueprints
 Type:how-to
 Skilllevel:Advanced
 Checkpoint:HowToWorkWithMaps
 Topic-image:workingWithMaps_topicImage.png
+Related:Programming/UnrealArchitecture/TMap
 
 [REGION:imagetable]
 ![](workingWithMaps_topicBanner.png)  
-_At the end of this tutorial, you'll gain experience working with Maps on Unreal Engine 4 (UE4)._
+_完成此教程后，您将获得在虚幻引擎4（UE4）中使用 Map 的经验。_
 [/REGION]
 
-After [](Engine/Blueprints/UserGuide/Arrays), there's a good reason why Blueprint Maps are so popular. They support efficient lookups and retrievals of values with the use of associated keys.
+在[](Engine/Blueprints/UserGuide/Arrays)之后，蓝图 Map 如此受欢迎有其内在原因。因为它支持利用关联键进行高效的值查找和检索。
 
-## Goal
+## 目标
 
-This guide teaches you how to set up and work with a Blueprint Map.
+此指南将指导您设置并使用蓝图 Map。
 
-## Objectives
+## 目的
 
-After working through this tutorial, you'll know the following:
+在此教程的学习中您将了解以下内容：
 
-* How to create and edit Maps in the Blueprint scripting environment.
-* How to query and display items being contained in a Blueprint Map.
-* How to perform basic operations on Blueprint Maps.
+* 如何在蓝图脚本编辑环境下创建和编辑 Map。
+* 如何查询并显示蓝图 Map 中包含的项目。
+* 如何在蓝图 Map 上执行基本操作。
 
 [OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

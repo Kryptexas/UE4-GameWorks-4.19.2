@@ -1,155 +1,164 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Using Embedded Sequencer Animations in Blueprints
+﻿INTSourceChangelist:3477716
+Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Describes how you can embed Sequences within Actor Blueprints using an Actor Sequence Component.
-Version: 4.15
-SkillLevel: Advanced
+Title:在蓝图中使用嵌入的 Sequencer 动画
+Description:说明如何使用 Actor 序列组件在 Actor 蓝图中嵌入序列。
+Type: how-to
+SkillLevel:Advanced
+Version:4.16
 parent:Engine/Sequencer/HowTo
 order:1
-checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine/Sequencer/ReferenceEditor
-Related: Engine/Blueprints
 tags:Sequencer
-type:how-to
+topic-image:ActorSequenceTopicCompact.png
+Related:Engine/Sequencer/Overview
+Related:Engine/Sequencer/ReferenceEditor
+Related:Engine/Blueprints
+
 
 [REGION:warning]
-This is an experimental feature that is currently undergoing development. Some aspects may not work as expected or may change in future revisions.
+这是尚处于开发阶段的实验性功能。一些方面可能无法正常使用，或会在未来版本中被修改。
 [/REGION]
 
-When working with and creating [Sequences](Engine/Sequencer/Overview), there may be situations where you want to reuse the functionality of a Sequence in other places or instances. 
-With the **Actor Sequence Plugin** and **Actor Sequence Component**, it is possible to embed Sequences directly into an Actor [Blueprint](Engine/Blueprints). 
-This enables reuse of Sequences by binding the animations to the Blueprint instance and triggering them automatically or through the **Event Graph** of the Blueprint. 
-Additionally, you can add an Actor Sequence Component to any Actor in the world to add animations to a single instance of an Actor. 
+使用并创建 [序列](Engine/Sequencer/Overview) 时，有时可能需要在其他地方或实例中重复使用序列的功能。 
+借助 **Actor 序列插件** 和 **Actor 序列组件** 便可将序列直接嵌入 Actor [蓝图](Engine/Blueprints)。 
+将动画绑定到蓝图实例并自动触发或通过蓝图的 **事件图表** 触发，即可重复使用序列。 
+此外还可为世界场景中的任意 Actor 添加 Actor 序列组件，将动画添加到 Actor 的单一实例。 
 
-In this how-to guide, you'll create a Blueprint with an embedded Sequence that animates and changes the color of a Spot Light over time. 
+在此指南中，我们将创建一个带嵌入序列的蓝图，随时间设置聚光源颜色的动画并对其进行变更。 
 
 ![](EndResult.png)
 
-The Blueprint can then be placed in any level or duplicated and the embedded Sequence will play automatically when called. 
+蓝图即可放置在让任意关卡中或进行复制，嵌入的序列则会在调用时自动播放。 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to guide, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+在此指南中，我们使用的是启用了 **Starter Content** 的 **Blueprint Third Person Template** 项目。 
 [/REGION]
 
-1.	With your project open, from the **Edit** menu select **Plugins**. 
+1.	项目打开后，从 **Edit** 菜单中选择 **Plugins**。 
 
 	![](ActorSequence01.png)
 
-1.	From the **Plugins** menu, under **Built-in**, enable the **Actor Sequence Editor** option and restart the editor when prompted. 
+1.	从 **Plugins** 菜单的 **Built-in** 下启用 **Actor Sequence Editor** 选项，并在弹出提示后重启编辑器。 
 
 	![](ActorSequence02.png)
 
-1.	Create a new **Blueprint** of the **Actor** type can call it **Light_BP**. 
+	[REGION:note]
+	启用 Actor 序列编辑器时可能出现 **Experimental** 确认对话窗口，点击 **Yes** 继续。 
+	[/REGION]
+
+1.	创建一个 **Actor** 类的新 **蓝图**，将其命名为 **Light_BP**。 
 
 	![](ActorSequence03.png)
 
-1.	Inside the **Light_BP**, click **Add Component** and add a **Spot Light**. 
+1.	在 **Light_BP** 中点击 **Add Component** 并添加一个 **Spot Light**。 
 
 	![](ActorSequence04.png)
 
-1.	In the **Details** panel for the **Spot Light**, change the **Rotation** value for **Y** to **-60**. 
+1.	在 **Spot Light** 的 **Details** 面板中将 **Y** 轴的 **Rotation** 值改为 **-60**。 
 
 	![](ActorSequence05.png)
 
-	This will rotate and angle the light slightly downward in the viewport. 
+	这将使光线在视口中旋转，角度稍微朝下。 
 
-1.	Add another **Component** of the **Static Mesh** type, then in the **Details** panel set the mesh to **Floor_400x400** with its **Location** set to **-180x-180x-100**.
+1.	添加另一个 **Static Mesh** 类型的 **组件**，然后在 **Details** 面板中将网格体设为 **Floor_400x400**，**Location** 设为 **-180 (X), -180 (Y), -100 (Z)**。
 
 	![](ActorSequence06.png)
 
-	We will use this mesh as a temporary way to see the effects of our Sequence a little later in the guide and will delete it once we are done. 
+	我们将用这个地板网格体使光线在地面上反射，并看到 Sequencer 驱动参数变化的效果。 
 
-1.	Add another **Component** of the **Actor Sequence** type. 
+1.	添加另一个 **Actor Sequence** 类型的 **组件**。 
 
 	![](ActorSequence07.png)
 
-1.	In the **Details** panel for the **Actor Sequence**, set **Loop Indefinitely**, **Random Start Time** and **Auto Play**, then click **Open in Tab**. 
+1.	在 **Actor Sequence** 的 **Details** 面板中，设置 **Loop Indefinitely**、**Random Start Time** 和 **Auto Play**，然后点击 **Open in Tab**。 
 
 	![](ActorSequence08.png)
 
-	For this example we will automatically trigger and play the Sequence, however, you can also call this to play from the **Event Graph**. 
+	点击 **Open in Tab** 后，**Sequencer 编辑器** 将在蓝图中打开。
+	 
+	![](SequencerWindow.png)
 
-1.	In the **Sequencer** tab, click **Add** then under **Component** select **SpotLight**. 
+	在此例中将自动触发并播放序列，也可从 **事件图表** 中进行调用播放。 
+
+1.	在 **Sequencer** 标签中，点击 **Add**，然后在 **Component** 下选择 **SpotLight**。 
 
 	![](ActorSequence09.png)
 
-1.	On the **SpotLight** track, click the **Track** button and select **Transform**. 
+1.	在 **SpotLight** 轨迹上点击 **Track** 按钮并选择 **Transform**。 
 
 	![](ActorSequence10.png)
 
-1.	Click the **Track** button again for the **SpotLight** track and add the **Light Color** track. 
+1.	再次点击 **SpotLight** 轨迹的 **Track** 按钮并添加 **Light Color** 轨迹。 
 
 	![](ActorSequence11.png)
 
-1.	For the **Transform** track under **Rotation**, click the **+** icon for the **Z** value to add a key of **0** at frame **0**. 
+1.	在 **Transform** 轨迹的 **Rotation** 下，点击 **Z** 轴值的 **+** 图表在第 **0** 帧处添加一个 **0** 键。 
 
 	![](ActorSequence12.png)
 
-1.	Select the key that was added, then press the **4** key to change the interpolation type to **Linear**. 
+1.	选中添加的键，然后按下 **4** 键将内插类型改为 **线性**。 
 
 	![](ActorSequence13.png)
 
-	You can change the type of interpolation with the number keys or by **Right-clicking** on the keyframe and selecting your interpolation method. 
+	可通过数字键修改内插类型，也可右键点击关键帧选择内插方法。 
 
-1.	Add a key at **2.00** for the **Z** value of **Rotation** set to **-180.0** and change the interpolation to **Linear** by pressing **4** on the key. 
+1.	在 **2.00** 处添加一个键，将 **Rotation** 的 **Z** 轴值设为 **-180.0**，并在键上按下 **4** 将内插改为 **线性**。 
 
 	![](ActorSequence14.png)
 
-1.	Add a key at **4.00** for the **Z** value of **Rotation** set to **-360.0** and change the interpolation to **Linear** by pressing **4** on the key. 
+1.	在 **4.00** 处添加一个键，将 **Rotation** 的 **Z** 轴值设为 **-360.0**，并在键上按下 **4** 将内插改为 **线性**。 
 
 	![](ActorSequence15.png)
 
-	You can also move the red **End Marker** back to **4.00** so the Sequence ends where it began. 
+	也可将红色 **结束标记** 移回 **4.00**，使序列在其开始处结束。 
 
-1.	For the **Light Color** track, click the **+** button to add a key at frame **0**. 
+1.	在 **Light Color** 轨迹上点击 **+** 按钮在第 **0** 帧处添加一个键。 
 
 	![](ActorSequence16.png)
 
-1.	Add a key at **1.00** for **Red** with a value of **0.0**. 
+1.	为 **Red** 在 **1.00** 处添加一个键，值设为 **0.0**。 
 
 	![](ActorSequence17.png)
 
-1.	Add a key at **2.00** for **Green** with a value of **0.0**. 
+1.	为 **Green** 在 **2.00** 处添加一个键，值设为 **0.0**。 
 
 	![](ActorSequence18.png)
 
-1.	Add keys at **3.00** for **Blue** with a value of **0.0**, and both **Red** and **Green** at **1.0**. 
+1.	为 **Blue** 在 **3.00** 处添加一个键，值设为 **0.0**；**Red** 和 **Green** 的值则设为 **1.0**。 
 
 	![](ActorSequence19.png)
 
-1.	Add a key at **4.00** for **Blue** with a value of **1.0**. 
+1.	为 **Blue** 在 **4.00** 处添加一个键，值设为 **1.0**。 
 
 	![](ActorSequence20.png)
 
-	This will cause the light to go from white to various colors before returning back to white at the end of the Sequence. 
+	这会使光线从白色变为各种颜色，然后在序列末尾重新变为白色。 
 
-1.	In the **Components** window, select and **Delete* the **StaticMesh** floor. 
+1.	在 **Components** 窗口中，选择并 **删除** **StaticMesh** 地面。 
 
 	![](ActorSequence21.png)
 
-	Now that our light is set up, we no longer need this mesh as a way to preview the light in the viewport. 
+	光照设置完成后，我们便不再需要这个网格体作为一种在视口中预览光照的方式。 
 
-1.	In the Main Level Editor Viewport, select the floor, then while holding **Alt** drag up a copy of the floor to create a roof encapsulating the level. 
+1.	在主关卡编辑器视口中，选择地面，然后长按 **Alt** 拖起一个地面的副本，创建出封闭关卡的屋顶。 
 
 	![](ActorSequence22.png)
 
-1.	From the **Content Browser**, drag and place instances of the **Light_BP** in the level (you can also press **E** and rotate them if desired). 
+1.	在 **Content Browser** 中，在关卡中拖动并放置 **Light_BP** 实例（如有需要可以按下 **E** 并进行旋转）。 
 
 	![](ActorSequence23.png)
 
-1.	From the **Build** drop-down menu, select **Build Lighting Only** to rebuild the lighting in the level. 
+1.	从 **Build** 下拉菜单中选择 **Build Lighting Only** 重新构建关卡中的光照。 
 
 	![](ActorSequence24.png)
 
-1.	Click the **Play** button to play in the editor. 
+1.	点击 **Play** 按钮在编辑器中进行游戏。 
 
-## End Result
+## 最终结果
 
-When you play in the level, you will see that the lights you placed start rotating and changing colors playing the embedded Sequence. 
+在关卡中进行游戏时，您将看到播放嵌入的序列时放置的光照会开始旋转并变换色彩。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -169,15 +178,16 @@ When you play in the level, you will see that the lights you placed start rotati
 	[/PARAMLITERAL]
 [/OBJECT]
 
-Since the Sequence is embedded withing the Actor Blueprint, it has no dependencies and can play in any level or can be duplicated without any issues. 
+因为序列嵌入在 Actor 蓝图中，它并不存在依赖性，因此可在任意关卡中播放，或毫无障碍地进行复制。 
 
-In our example we've set the Sequence to **Auto Play**, however, you can also use the **Event Graph** to script when the Sequence should Play. 
+在我们的实例中序列已设为 **Auto Play**，然而您也可以使用 **事件图表** 编写脚本，设定序列播放的时机。 
 
 ![](EventGraphPlayScript.png)
 
-Above, upon **Event BeginPlay** we have allowed the Actor to receive input from a **Player Controller**. 
-When the **P** key is pressed, we take the **Actor Sequence Component** and get the **Sequence Player** which allows us to make a call to the function **Play** to start playing the Sequence. 
-You can use any method you desire to make the call to the Play function if you prefer not to have the Sequence Auto Play upon level load. 
+上图中，我们已根据 **Event BeginPlay** 允许 Actor 从 **Player Controller** 获取输入。 
+**P** 键按下时，我们接收 **Actor 序列组件** 并获得 **Sequence Player**（它将调用函数 **Play** 开始播放序列）。 
+如果不希望序列在关卡加载时自动播放，可使用任意方法调用 Play 函数。 
+
 
 
 

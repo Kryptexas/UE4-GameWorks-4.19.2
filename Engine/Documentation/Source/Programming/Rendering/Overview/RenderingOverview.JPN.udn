@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2872097
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:グラフィック プログラミングの概要
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:グラフィックス プログラミングにおけるレンダリング システムとシェーダ ライティングの使用方法
 Version:4.9
 Order:0
+tags:Rendering
 
 
-## はじめよう
+## 作業を開始する
 
 アンリアル エンジン 4 (UE4) にはレンダリング コードが数多くあるため、概要を把握するのは大変です。コードを使った読み取りは、新規フレームがレンダリング スレッド上でレンダリングされる FDeferredShadingSceneRenderer::Render から開始するのが良いでしょう。profilegpu コマンドを実行し、描画イベントを調べるのも便利です。Visual Studio で描画イベントに対して **[Find in Files (ファイルを検索)]** を実行して、対応する C++ インプリメンテーションを検索します。
 
@@ -46,7 +47,7 @@ Order:0
 |**-featureleveles31** | 実験的です。エディタで起動すると無視されるので、Editor Preferences/Experimental/Rendering で有効にしておく必要があります。 |
 |**-ddc=noshared**|ネットワーク上の (共有の) 派生データのキャッシュを使用しないようにします。シェーダー キャッシュの問題をデバッグする場合に便利です。|
 
-##モジュール
+## モジュール
 
 モジュール内に存在するレンダリング コードは、非モノリシック ビルド用に dll にコンパイルされます。そのため、アプリケーション全体を再度リンクする必要がなくなり、コード変更のレンダリング時のイタレーションが速くなります。レンダラのモジュールはエンジンへの呼び戻しが多いのでエンジンに依存します。ただし、エンジンがレンダラの中でコードの呼び出しが必要な場合、通常は IRendererModule か FSceneInterface のインターフェース経由で行われます。
 
@@ -122,7 +123,7 @@ FPrimitiveSceneProxy は、コンポーネントの種類によってサブク�
 |関数| 説明|
 |--|--|
 |GetViewRelevance| フレームの最初に InitViews から呼び出され、エントリされる FPrimitiveViewRelevance を返します。|
-|DrawDynamicElements| プロキシが関連しているすべてのパスにあるプロキシを描画するために呼び出されます。動的に関連性があることをプロキシが示した場合のみ、呼び出されます。|
+|DrawDynamicElements| プロキシが関連しているすべてのパスにあるプロキシを描画するために呼び出されます。動的に関連性があることをプロキシが示した場合のみ呼び出されます。|
 |DrawStaticElements| プリミティブがゲーム スレッド上にアタッチされると、プロキシに対してスタティックメッシュ エレメントをサブミットするために呼び出されます。静的に関連性があることをプロキシが示した場合のみ、呼び出されます。|
 
 #### シーン レンダリングの順序
@@ -135,7 +136,7 @@ FPrimitiveViewRelevance は、エフェクト (従ってパス) とプリミテ�
 さらに FPrimitiveViewRelevance は、プリミティブが bStaticRelevance や bDynamicRelevance で動的または静的レンダリング パスを使う必要があるかどうかを示します。
 #### 描画ポリシー
 
-描画ポリシーには、パス専用シェーダーでメッシュをレンダリングするためのロジックが含まれます。メッシュタイプの取得には FVertexFactory インターフェースを、マテリアルの詳細の抽出には FMaterial インターフェースを使用します。詳細レベルで、メッシュ マテリアル シェーダーと頂点ファクトリを受け取り、頂点ファクトリのバッファを Rendering Hardware Interface (RHI) に結合し、メッシュ マテリアル シェーダーを RHI に結合し、適切なシェーダー パラメータを設定し、 RHI ドロー コールを発行します。
+描画ポリシーには、パス専用シェーダーでメッシュをレンダリングするためのロジックが含まれます。メッシュタイプの取得には FVertexFactory インターフェースを、マテリアルの詳細の抽出には FMaterial インターフェースを使用します。詳細レベルで、メッシュ マテリアル シェーダーセットと頂点ファクトリを受け取り、頂点ファクトリのバッファを Rendering Hardware Interface (RHI) に結合し、メッシュ マテリアル シェーダーを RHI に結合し、適切なシェーダー パラメータを設定し、 RHI ドロー コールを発行します。
 #### 描画ポリシー メソッド
 
 |関数| 説明|
@@ -206,4 +207,4 @@ RHI は、プラットフォーム専用のグラフィック API 上の薄い�
 * RHISetRasterizerState
 * RHISetBoundShaderState で設定されるシェーダーの依存
 
-その他のすべてのステートはデフォルト状態を想定します (例えば、関連する TStaticState で定義されているようにデフォルトのステンシル ステートは RHISetStencilState(TStaticStencilState<>::GetRHI() で設定されます)。
+その他のすべてのステートはデフォルト状態を想定します (例えば、関連する TStaticState で定義されているようにデフォルトのステンシル ステートは `RHISetStencilState(TStaticStencilState<>::GetRHI())` で設定されます)。

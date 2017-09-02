@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3477716
-Availability:Docs
+﻿INTSourceChangelist:3533392
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Title:ブループリントで埋め込んだシーケンサー アニメーションを使用する
 Description:Actor Sequence コンポーネントを使って Actor ブループリント内にシーケンスを埋め込む方法を説明します。

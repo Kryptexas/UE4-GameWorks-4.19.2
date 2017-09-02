@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Title:Network Profiler
 Availability:Public
 Crumbs:
@@ -18,11 +18,11 @@ Network Profiler を使用する前に、分析するために何らかのデー
 
 * netprofile disable: 現在記録中の場合、記録を停止します。
 
-データ ファイルは <project directory>/Saved/Profiling/<project name>-<timestamp>.nprof に保存されます。同じフォルダに NetworkProfiling.tmp という名前のファイルがある場合、これはエンジンがデータ収集中に使う単なるテンポラリ ファイルです。現在のプロファイリング セッションが停止したら、このファイルは上のスキームに従い、名前変更されます。これで、スタンドアロン ツールで開けるようになります。
+データ ファイルは `<project directory>/Saved/Profiling/<project name>-<timestamp>.nprof` に保存されます。同じフォルダに NetworkProfiling.tmp という名前のファイルがある場合、これはエンジンがデータ収集中に使う単なるテンポラリ ファイルです。現在のプロファイリング セッションが停止したら、このファイルは上のスキームに従い、名前変更されます。これで、スタンドアロン ツールで開けるようになります。
 
 ## Network Profiler のアプリケーションでプロファイル セッションを見る
 
-Network Profiler は、<UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe にあるスタンドアロンのアプリケーションです。
+Network Profiler は、`<UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe` にあるスタンドアロンのアプリケーションです。
 
 ウィンドウ上部で [Open File] ボタンをクリックして.nprof ファイルを選択し、中に入っているデータを見ます。
 

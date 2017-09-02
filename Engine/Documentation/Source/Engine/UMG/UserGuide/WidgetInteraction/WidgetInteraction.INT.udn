@@ -1,12 +1,19 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Widget Interaction Component
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Outlines how to use the Widget Interaction Component to interact with 3D Widgets.
-Version: 4.13
+Description: Outlines how to use the Widget Interaction Component to interact with 3D Widgets. 
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related: Engine/UMG/UserGuide
 Related: Engine/Blueprints
 Related: Engine/Components/Widget
-tags:UMG UI Designer
+Order:10
+Tags:UMG UI Designer
+Topic-Image:WidgetInteractionBanner.png
+
+
 
 [REGION:warning]
 This feature is considered experimental and some aspects may not work as expected and may change in future updates. 

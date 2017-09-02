@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3206329
+﻿INTSourceChangelist:3579346
 Availability:Public
 TItle:Ansel 캡처 테스팅
-Description:게임에서 향상된 이미지를 캡처하고 공유할 수 있도록 해주는 Nvidia Ansel 인게임 포토그라피 툴의 언리얼 엔진 4 통합에 대한 개요입니다.
+Description:게임에서 향상된 이미지를 캡처하고 공유할 수 있도록 해주는 NVIDIA Ansel 인게임 포토그라피 툴의 언리얼 엔진 4 통합에 대한 개요입니다.
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:1
@@ -11,7 +11,7 @@ tags:Ansel
 version:4.14
 topic-image:Ansel_Testing_Topic.png
 
-**게임에 Nvidia Ansel Photography 플러그인을 테스트하는 방법은 다음과 같습니다:**
+**게임에 NVIDIA Ansel Photography 플러그인을 테스트하는 방법은 다음과 같습니다:**
 
 1. NvCameraConfiguration.exe 어플리케이션을 실행시키고 **NvCamera Status** 가 _Enable_ (기본값) 설정되어 있는지 확인합니다.
 

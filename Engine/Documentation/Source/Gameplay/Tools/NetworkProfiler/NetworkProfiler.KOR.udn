@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Title:네트워크 프로파일러
 Availability:Public
 Crumbs:
@@ -18,11 +18,11 @@ Description:실행시간에 캡처한 네트워크 트래픽 및 퍼포먼스 �
 
 * netprofile disable: 현재 기록중이면 기록을 중지합니다.
 
-데이터는 <project directory>/Saved/Profiling/<project name>-<timestamp>.nprof 에 저장됩니다. 이 폴더에 NetworkProfiling.tmp 라는 파일이 보일 수 있는데, 엔진이 데이터 수집 도중 사용한 임시 파일일 뿐입니다. 현재 프로파일링 세션이 중지되면, 이 파일의 이름이 위 이름 규칙에 맞게 변경된 뒤 독립형 툴에서 열 수 있는 상태가 됩니다.
+데이터는 `<project directory>/Saved/Profiling/<project name>-<timestamp>.nprof` 에 저장됩니다. 이 폴더에 NetworkProfiling.tmp 라는 파일이 보일 수 있는데, 엔진이 데이터 수집 도중 사용한 임시 파일일 뿐입니다. 현재 프로파일링 세션이 중지되면, 이 파일의 이름이 위 이름 규칙에 맞게 변경된 뒤 독립형 툴에서 열 수 있는 상태가 됩니다.
 
 ## 네트워크 프로파일러 어플리케이션에서 프로파일 세션 보기
 
-네트워크 프로파일러는 <UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe 에 위치한 독립형 어플리케이션입니다.
+네트워크 프로파일러는 `<UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe` 에 위치한 독립형 어플리케이션입니다.
 
 창 상단에 "Open File" 버튼을 클릭한 뒤 .nprof 파일을 선택하면 그 안에 들어있는 데이터를 볼 수 있습니다.
 

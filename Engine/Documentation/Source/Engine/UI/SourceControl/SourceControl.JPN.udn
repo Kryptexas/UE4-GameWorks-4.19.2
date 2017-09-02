@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3477895
+﻿INTSourceChangelist:3489755
 Availability:Public
 Title:ソースコントロール
 Crumbs: %ROOT%
@@ -58,10 +58,9 @@ topic-image:SourceControlTopic.png
 
 
 [REGION:imagetable]
-| ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![NotInDepot.png](NotInDepot.png)(w:178) | ![NotHeadRevision.png](NotHeadRevision.png)(w:178) 
+| ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![NotInTheDepot.png](NotInTheDepot.png)(w:178) | ![NotHeadRevision.png](NotHeadRevision.png)(w:178) 
 | --- | --- | --- | --- | --- |
 | 自分がチェックアウト | 他のユーザーがチェックアウト | 追加するためにマーク付けされたもの | デポにありません | ソースコントロールに新しいバージョンのファイルがあります
-
 [/REGION]
 
 ## ソースコントロールのアクション

@@ -1,43 +1,41 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 6 - On Your Own!
-Crumbs:
-Description:Do some exercises on your own.
-Version: 4.14
+﻿INTSourceChangelist:3457813
+Availability:Public
+Title:6 - 自由发挥！
+Crumbs:%ROOT%
+Description:自由发挥进行练习。
+Version:4.14
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
-order: 6
+order:6
 tags:Linux
 SkillLevel:Intermediate 
 Checkpoint:AndroidOnLinuxQS
+Contributor:yaakuro
 
 [nav]
 
-Developing mobile games requires a high degree of attention, especially when it comes to device compatibility, mobile performance, and space limitations. 
-Applying best practices while you're designing mobile games will help you effectively refine your mobile game development skills. 
-After designing mobile content using the best practices you've just learned, learn how to preview and deploy your mobile game using an alternative deployment method. 
-Finally, at the end of this page, we've added a couple of exercises to help you practice your newly acquired mobile development skills.
+开发移动游戏需要特别注意，尤其是设备兼容性、移动设备性能和空间限制方面。设计移动游戏时使用最佳方法将有效提升您的开发技巧。使用学习到的最佳方法设计内容后，需要学习如何使用另一种部署方法预览并部署移动游戏。在此页的最后我们添加了一些练习，助您实践新获得的移动开发技巧。
 
-##Learning Some Best Practices
+## 学习一些最佳方法
 
-Now that you know how to create, package, and deploy a template mobile UE4 project for your Android device; it's a good time to consider device compatibility, mobile performance, and APK best practices that could impact your ability to create mobile games from UE4 on Linux. 
+了解如何创建、打包和部署 Android 设备的移动 UE4 项目模板后，即可考虑设备兼容性、移动设备性能和 APK 最佳方法，这些因素将对在 Linux 上用 UE4 开发移动游戏产生影响。 
 
-####Android Device Compatibitiliy
+####Android 设备兼容性
 
 * [](Platforms\Android\DeviceCompatibility) 
 * [](Platforms\DeviceProfiles)
 
-####Mobile Performance
+####移动性能
 
 * [](Platforms\Mobile\Performance)
 
-####Reducing APK Package Sizes
+####控制 APK 包的容量
 
-There are times when you'll need to limit the size of your mobile game due to limitations imposed by targetted hardware or software platforms. If you encounter a situation where you need to reduce the size of your mobile game, you may need to reduce the size of your **Android Application Package** (APK), which is a custom file format that the Android operating system uses to package mobile applications for distribution. Check out the [Reducing APK Package Size Reference Page](Platforms/Android/ReducingAPKSize), where you'll learn ways to reduce the size of your packaged game.
+有时您需要控制移动游戏的容量，满足目标硬件或软件平台的限制。如果需要缩减移动项目的容量，则需要缩减 **Android 应用程序包**（APK）的容量。这种自定义文件格式是 Android 操作系统用于打包移动应用程序进行发布的格式。查阅 [缩减 APK 包大小参考页面](Platforms/Android/ReducingAPKSize)，学习缩减打包游戏的大小。
 
-##Designing Mobile Content
+##设计移动内容
 
-If you want to harness what you've learned about mobile game development with UE4 on Linux, you'll want to design game content that'll take advantage of your device's available rendering capabilities. Go head and checkout the following reference information:
+如果希望利用学习到的内容在 Linux 上用 UE4 进行游戏开发，则需要设计利用设备可用渲染能力的游戏内容。请阅读以下参考信息：
 
 * [](Platforms\Mobile\Content) 
 * [](Platforms\Mobile\Lighting) 
@@ -45,19 +43,19 @@ If you want to harness what you've learned about mobile game development with UE
 * [](Platforms\Mobile\PostProcessEffects) 
 * [](Platforms\Mobile\Textures)
 
-##Previewing your Mobile Game
+##预览移动游戏
 
-Prior to deploying your mobile game to an Android device, you might want to preview your game inside of the Editor. Read through our [](Platforms\Mobile\Previewer) Overview Page to learn how to preview your mobile game inside of the Editor.
+将移动游戏部署到 Android 设备之前，可以在编辑器中预览游戏。阅读 [](Platforms\Mobile\Previewer) 总览页面，学习如何在编辑器中预览移动游戏。
 
-##Deploying Over a Wireless Network
+##通过无线网络进行部署
 
-At this point, you've learned some best practices for designing mobile game content, you've previewed your mobile game with the Editor, and you're ready to deploy your game onto an Android device. Up till now, you've learned how to deploy your game over a USB connection. However, if you'd like to deploy your game over a wireless network, please read through our [Gear VR Debugging Reference Page](Platforms/GearVR/Debugging) to learm more about deploying a UE4 project to an Android device over your wireless network.
+此时，您已学习到设计移动游戏内容的一些最佳方法、已通过编辑器预览移动游戏，并且做好了通过无线网络将游戏部署到 Android 设备的准备。请阅读 [Gear VR 调试参考页面](Platforms/GearVR/Debugging)，了解通过无线网络将 UE4 项目部署到 Android 设备的更多内容。
 
-##Doing Some Exercises On Your Own
+##自由发挥练习
+ 
+如果希望继续练习移动游戏开发技巧，可进行自由发挥练习：
 
-If you want to continue testing your mobile game development skills, try out a couple of exercises on your own:
-
-* Create a new mobile project using something other than the Third Person template, subsequently trying to get your newly created project running on your Android device. 
-* Try packaging your project using different Android Texture formats, documenting which ones will work for your specific device.
+* 使用 Third Person 模板之外的内容创建新移动项目，然后让新建的项目在 Android 设备上运行。 
+* 尝试用不同的 Android 纹理格式为项目打包，根据兼容的特定设备进行记录。
 
 [nav]

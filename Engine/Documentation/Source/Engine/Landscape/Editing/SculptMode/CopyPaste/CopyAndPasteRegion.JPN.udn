@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
+﻿INTSoruceChangelist:3482403
+Availability:Public
 Crumbs: %ROOT%
-Title: Copy and Paste Region
-Description: This is an overview of the Copy and Paste Region tool.
-Type: Reference
+Title:Copy/Paste Region ツール
+Description:Copy/Paste Region ツールの概要です
+Type:Reference
 Version:4.16
 Parent:Engine/Landscape/Editing/SculptMode
-Order:11
+order:11
 Tags:Landscape
 tags:region
 Topic-image:CopyPaste_Topic.png
@@ -14,12 +14,12 @@ Topic-image:CopyPaste_Topic.png
 [TOC(start:2 end:2)]
 
 
-The **Copy/Paste** tool will copy the height data from one area of a Landscape to another area through the use of the gizmos. You can also import existing 
-heightmap data that can be pasted into the Landscape or export selected regions of your height data as it's own heightmap .raw file for use in an external
-program. 
+**Copy/Paste** ツールは、ギズモを使ってランドスケープのある領域から他の領域へハイト データをコピーします。既存ハイトマップをインポートしてランドスケープにペーストしたり、 
+ハイトマップの領域を選択し、それを独自のハイトマップの .raw ファイルとしてエクスポートして、
+外部プログラムで使用することもできます。 
 
 
-## Using the Copy/Paste Tool
+## Copy/Paste ツールの使用方法
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -40,13 +40,13 @@ program.
 [/OBJECT]
 
 
-In this demonstration, the gizmo is manually scaled to copy a region and then paste it in another location, and then the Region Selection is used to paint an area the gizmo can automatically scaled
-to fit so that it can be copy and pasted to another location.
+このデモでは、ギズモをマニュアルでスケールしてから領域をコピーし、別の位置にペーストします。
+そして、Region Selection がギズモを自動スケールして別の位置へコピー＆ペーストできるようにします。
 
-### Copy/Paste Gizmo
+### ギズモのコピー＆ペースト
 
-The Gizmo is used to capture the Landscape's height data that can then be used. This enables you to easily move parts of your Landscape, import height data from an existing heightmap, or to export 
-your height data to a heightmap file that can be used with an external program, like World Machine.
+ギズモを使ってキャプチャしたランドスケープの高さは、その後も使用することができます。こうすることで、ランドスケープを簡単に移動したり、既存ハイトマップからハイト データをインポートしたり、 
+既存のハイト データから World Machine など外部プログラムで使用できるハイトマップ ファイルにハイト データをエクスポートすることができます。
 
 [REGION:imagetable]
 | ![](gizmo1.png)(w:370) | ![](gizmo2.png)(w:370) | ![](gizmo3.png)(w:370) |
@@ -54,12 +54,12 @@ your height data to a heightmap file that can be used with an external program, 
 ||||
 [/REGION]
 
-In these examples, the gizmo bounds have been scaled around a painted region that is to be captured, then the gizmo is positioned to another part of the Landscape, and, lastly, it's pasted onto the existing Landscape. 
+これらの例では、キャプチャするペイント領域の周囲でギズモの境界をスケールし、次にギズモをランドスケープの別の部分に置き、最後に既存のランドスケープ上にペーストしています。 
 
-To learn how to use the gizmo, you can read about the [gizmo tool](Engine/Landscape/Editing/Gizmos/) here. 
+ギズモの使用方法については [ランドスケープ ギズモ](Engine/Landscape/Editing/Gizmos/) を参照してください。 
 
 
-## Tool Settings
+## ツール設定
 
 [REGION:imagetable]
 | ![Copy/Paste Tool](Landscape_CopyPaste.png)(h:75) | ![](RegionCopyAndPasteToolProperties.png)(h:250) |
@@ -68,40 +68,40 @@ To learn how to use the gizmo, you can read about the [gizmo tool](Engine/Landsc
 [/REGION]
 
 
-| **Property** | **Description** |
+| **プロパティ** | **説明** |
 | ------------ | --------------- |
-| **Copy Data to Gizmo** | Copies the data within the gizmo bounds to the gizmo taking into account any masking from the selected regions. |
-| **Fit Gizmo to Selected Regions** | Positions and resizes the gizmo so that it completely encompasses all region selections. |
-| **Fit Height Values to Gizmo** | Scales the data in the gizmo to fit the gizmo's Z-size. |
-| **Clear Gizmo Data** | Clears the gizmo of any copied data. |
-| **Tool Strength** | Strength of the tool. If you're using a pen/tablet with pressure-sensing, the pressure used affects the strength of the tool. |
-| **Paste Mode** | Whether the past will only raise, only lower, or both raise and lower.  [INCLUDE:#pastemode] |
-| **Gizmo Copy/Paste All Layers** | If set, copies and pastes all layers. Otherwise, it will only copy and paste the layer selected in the targets panel. |
-| **Snap Gizmo to Landscape Grid** | Makes sure the gizmo is snapped perfectly to the Landscape so that the sample points line up, which makes copy and pastes less blurry. Irrelevant if gizmo is scaled. |
-| **Use Smooth Gizmo Brush** | Smooth the edges of the gizmo data into the Landscape. Without this, the edges of the pasted data will be sharp. |
-| [REGION:tablesection] Advanced [/REGION] ||
-| **Gizmo Import/Export** | The available options that can be used when importing or exporting the selected region's heightmap. [INCLUDE:#importexport] |
+| **Copy Data to Gizmo** | マスクを考慮しながら、選択領域からギズモ境界内のデータをコピーします。 |
+| **Fit Gizmo to Selected Regions** | すべての領域選択が完全に入るように、ギズモを配置およびサイズ変更します。 |
+| **Fit Height Values to Gizmo** | ギズモの Z サイズにぴったり合うようにギズモ内のデータをスケールします。 |
+| **Clear Gizmo Data** | コピーしたデータのギズモをクリアします。 |
+| **Tool Strength** | ツールの強度です。圧力センサーのペン / タブレットを使う場合、使用する圧力がツールの強度に影響します。 |
+| **Paste Mode** | ペーストにより値が上がる、値が下がる、または上げ下げの両方が起こります。  [INCLUDE:#pastemode] |
+| **Gizmo Copy/Paste All Layers** | すべてのレイヤーのコピー＆ペーストを行います。設定しない場合、ターゲット パネルで選択したレイヤーのみをコピー＆ペーストします。 |
+| **Snap Gizmo to Landscape Grid** | ギズモがランドスケープにぴったり合わせてサンプリング ポイントを並べます。こうすることで、コピー＆ペースト処理でぼやけにくくなります。ギズモのスケールは関係ありません。 |
+| **Use Smooth Gizmo Brush** | ランドエスケープに送るギズモ データのエッジをスムーズにします。この処理をしないと、ペーストされたデータのエッジがギザギザになります。 |
+|[REGION:tablesection]高度なプロパティ[/REGION]||
+| **Gizmo Import/Export** | 選択した領域のハイトマップのインポート / エクスポート時に使用できるオプションです。 [INCLUDE:#importexport] |
 
 
 
 <!---
 [INCLUDE:#importexport]
 [EXCERPT:pastemode]
-| Selection | Description |
+| 選択 | 説明 |
 | --- | --- |
-| **Both** | The paste will raise and lower values where the data would be. |
-| **Raise** | The paste may only raise values and pastes where the data would be. Any areas below the heightmap are left unchanged. This is good for copying and pasting mountains. |
-| **Lower** | The paste may only lower values and pastes where the data would be. Any areas above the heightmap are left unchanged. This is good for copying and pasting valleys or pits. |
+| **Both** | データの値を上げ下げしてペーストを実行します。 |
+| **Raise** |データの値を上げてペーストを実行します。ハイトマップより下の領域は変更されません。山のコピー＆ペーストに適しています。 |
+| **Lower** | データの値を下げてペーストを実行します。ハイトマップより上の領域は変更されません。谷や穴のコピー＆ペーストに適しています。
 [/EXCERPT:pastemode]
 
 [EXCERPT:importexport]
-| Selection | Description |
+| 選択 | 説明 |
 | --- | --- |
-| **Heightmap** | Set the import file path for the heightmap file you want to import.  |
-| **Heightmap Size** | The size of the heightmap data that is being imported. This property should not have to be adjusted. |
-| [REGION:tablesection] Layers [/REGION] ||
-| **Layer Filename** | Set the import file path for the heightmap data used for painted layers. |
-| **Layer Name** | Set the name of the imported heightmap layer. |
+| **Heightmap** | インポートするハイトマップ ファイルのインポート ファイル パスを設定します。  |
+| **Heightmap Size** | インポートするハイトマップのサイズです。このプロパティの調節は必要ありません。 |
+| [REGION:tablesection] レイヤー [/REGION] ||
+| **Layer Filename** | ペイントされたレイヤーに使うハイトマップ データのインポート ファイル パスを設定します。 |
+| **Layer Name** | インポートされたハイトマップ レイヤー名を設定します。 |
 [/EXCERPT:importexport]
 
 --->

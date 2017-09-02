@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3478246
-Availability:Docs
+﻿INTSourceChangelist:3490639
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Title:Look At
 Description:Look At 制御を使用して、トレースするボーンまたは他のボーンに追随するボーンを指定することができます。 
@@ -15,8 +15,6 @@ Related:Engine/Animation/NodeReference/SkeletalControls
 Related:Engine/Animation/AnimBlueprints/AnimGraph
 Related:Engine/Animation/StateMachines
 Related:Engine/Animation/AnimBlueprints
-
-<!--WB:Is a TOC needed for this?-->
 
 **Look At** スケルタル コントロール ノードを使用して、スケルトンの他のボーンに追随するボーンを指定することができます。 
 

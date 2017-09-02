@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3565221
 Availability: Public
 Title: 윈도우에서 iOS 용 빌드
 Crumbs:%ROOT%, Platforms
@@ -11,6 +11,7 @@ parent:Platforms/iOS
 tags:Mobile
 tags:iOS
 prereq:Platforms/iOS/QuickStart
+related:Platforms/iOS/GettingStarted
 
 iOS 용 빌드에는 맥이 필요하지만, 원격 컴파일 방법을 통하면 전체 팀원이 윈도우 머신을 써도 맥 하나만 있으면 iOS 빌드가 가능합니다.
 

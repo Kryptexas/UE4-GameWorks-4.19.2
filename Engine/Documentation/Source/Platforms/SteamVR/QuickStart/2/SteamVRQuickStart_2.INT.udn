@@ -1,28 +1,21 @@
-Title: 2. Setting up UE4 to work with SteamVR
-Crumbs:%ROOT%, Platforms
-Description: Setting up SteamVR and UE4 to work together
 Availability:Public
+Title: 2. Setting up UE4 to work with SteamVR
+Crumbs:%ROOT%, Platforms/SteamVR
+Description: Setting up SteamVR and UE4 to work together
 Navigation:platform
-Platform:SteamVR
+Version: 4.17
+Skilllevel: Beginner
+type:multi-step
+parent:Platforms/SteamVR/QuickStart
+order:2
+Checkpoint:SteamVRQS
+Tags: SteamVR
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Platforms/SteamVR/QuickStart/1 "%Platforms/SteamVR/QuickStart/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[SteamVR Quick Start Home](Platforms/SteamVR/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[nav]
 
 In the following section, we will go over how to setup a new Unreal Engine 4 (UE4) project to work with SteamVR.
+
+## Steps
 
 [region:note]
 If you have not done so already, make sure to run the SteamVR **Room Setup** to establish and calibrate the VR tracking area. 
@@ -31,81 +24,41 @@ Failing to do this could result in SteamVR and UE4 not working correctly togethe
 
 1. Create a new blank Blueprint base project with hardware set to **Mobile / Tablet**, graphics set to **Scalable 3D or 2D** and **No Starter Content**.
 
-	![](T_CreateNewProject.png)
+	[REGION:lightbox]
+	[![](T_CreateNewProject.png)(w:555)](T_CreateNewProject.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Once the project loads click on the small triangle next to the **Play** button and then from the menu that is displayed, select the **VR Preview** option. 
-	If your VR Headset is properly set up, you should now see the basic level being displayed and have the ability to rotate your head around in any direction when you put the HMD on.
 	
 	![](Check_VR_Working_00.png)
 
-	[region:tip]
-	If your can not get the HTC Vive HMD to work check the Plugins section to make sure that the Steam VR plug-in is enabled and if not click on the checkmark box next to **Enable** to enable it.
-	 ![](T_Enable_Steam_VR.png)
-	 If that still does not get your VR Headset to work with the VR Preview make sure to check out the [VR Documents](Platforms/VR) to ensure that nothing was missed during setup.
-	[/region]
+1. When the VR Preview launches, put on your HMD and you should now see the basic level being displayed and have the ability to rotate your head around in any direction when you put the HMD on like in the video below.
 
-1. With verification that the Head Mounted Display (HMD) is working, right - click inside of the **Content Browser** and select the **Blueprint Class** option from the **Create Basic Asset** section.
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		4xuNrwS3o-c
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
 
-	![](Create_New_BP.png)
+## End Result
 
-1. From the **Pick Parent Class** window that is displayed search for, create and name the following Blueprint nodes.
+When completed you will be able to view the UE4 project using SteamVR and the HTC Vive HMD.
 
-	![](Pick_Parent_Class_Window.png)
-
-	|Blueprint Node|Name to use|
-	|--------------|------|
-	|Game Mode|VR_GameMode|
-	|Pawn|VR_Pawn|
-
-	When completed you should have the following Blueprints in your Content Browser.
-
-	![](Creating_Required_BP_Nodes.png)
-
-1. Open **VR_GameMode** Blueprint and then under the **Classes** section change the **Default Pawn Class** to point to the **VR_Pawn** that was created.
-	
-	![](Setting_Up_Game_Mode.png)
-
-1. Under **World Settings** in the **Game Mode** section, change the **GameMode Override** to the **VR_GameMode**.
-
-	![](Adding_New_GameMode.png)
-
-1. Now open up the **VR_Pawn** Blueprint then click on the **Class Defaults** and in the **Details** panel under the **Camera** section set the **Base Eye Height** to **0.0**.
-
-	![](Set_Base_Eye_Height.png)
-
-1. From the **Components** tab, add the following Components to the **VR_Pawn** Blueprint.
-	|Component Name|Amount|
-	|-------|-----|
-	|Capsule| 1|
-	|Scene|1|
-	|Camera|1|
-	|SteamVRChaperone|1|
-
-	![](Adding_A_Camera.png)
-
-1. Select the **Capsule** Component and under the **Details** panel in the **Shape** section, change the **Capsule Half Height** to **96** and the Capsule Radius to **16**.
-
-	![](Capsule_Setup.png)
-
-1. Click on the **Camera** and then drag it on top of the **Scene** Component, making the Camera a child of the Scene Component.
-
-	![](Parenting_The_Camera.png)
-
-1. Select the new **Scene** Component and go to **Details** > **Transform** > **Location** and set the **Z** value to **-110** then make sure to **Compile** and **Save** the Blueprint.
-
-	![](Change_Scene_Height.png)
-
-1. Inside of the level, select the Static Mesh used for the floor and set the X, Y and Z location to **0,0,0**.
-
-	![](Move_Floor_Down.png)
-
-1. Launch the level using the **VR Preview** button, put your HMD on and then stand up and look around.
-When you look down at your feet, you should now feel as though the virtual floor that you are standing on matches up to the real world floor.
-
-[region:note]
-If it feels like you are too close or too far away from the virtual floor, open the  VR_Pawn Blueprint, select the Scene Component that the Camera is parented to and adjust the Z height value up or down till the floor feels like it is in the correct location for your height.
-[/region]
-
-
-%Steps%
+[nav]
 

@@ -57,10 +57,9 @@ The **Content Browser** will display special icons on the upper-right corner of 
 
 
 [REGION:imagetable]
-| ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![NotInDepot.png](NotInDepot.png)(w:178) | ![NotHeadRevision.png](NotHeadRevision.png)(w:178) 
+| ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![NotInTheDepot.png](NotInTheDepot.png)(w:178) | ![NotHeadRevision.png](NotHeadRevision.png)(w:178) 
 | --- | --- | --- | --- | --- |
 | Checked out by you | Checked out by another user | Marked for add | Not in depot | Newer version of file exists in source control
-
 [/REGION]
 
 ## Source Control Actions

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3429264
+﻿INTSourceChangelist:3610206
 Availability:Public
 Title:플러그인
 Crumbs:
 Description:언리얼 엔진 플러그인 제작법입니다.
-Version: 4.9
+Version: 4.16
 Parent:Programming/UnrealArchitecture/Reference
 
 [TOC(start:2)]
@@ -193,22 +193,30 @@ create a file called Config/FilterPlugin.ini in your plugin folder which lists a
 
 ### 설명 파일 포맷
 
-이 예제 플러그인 설명은 위의 **UObjectPlugin** [다운로드 가능 예제](#PluginExamples) 의 것입니다.
+이 예제 플러그인 설명은 위의 **UObjectPlugin** [예제](#PluginExamples) 에서 따온 것입니다.
 
 	{
 		"FileVersion" : 3,
-
-		"FriendlyName" : "UObject Example Plugin",
 		"Version" : 1,
-		"FriendlyVersion" : "1.0",
-		"Description" : "An example of a plugin which declares its own UObject type. This can be used as a starting point when creating your own plugin.",
-		"Category" : "Programming Examples.Plugins",
-	
+		"VersionName" : "1.0",
+		"FriendlyName" : "UObject Example Plugin",
+		"Description" : "An example of a plugin which declares its own UObject type.  This can be used as a starting point when creating your own plugin.",
+		"Category" : "Examples",
+		"CreatedBy" : "Epic Games, Inc.",
+		"CreatedByURL" : "http://epicgames.com",
+		"DocsURL" : "",
+		"MarketplaceURL" : "",
+		"SupportURL" : "",
+		"EnabledByDefault" : true,
+		"CanContainContent" : false,
+		"IsBetaVersion" : false,
+		"Installed" : false,
 		"Modules" :
 		[
 			{
 				"Name" : "UObjectPlugin",
-				"Type" : "Developer"
+				"Type" : "Developer",
+				"LoadingPhase" : "Default"
 			}
 		]
 	}
@@ -227,8 +235,12 @@ create a file called Config/FilterPlugin.ini in your plugin folder which lists a
 | **CreatedBy**						| _옵션_	| 이 플러그인을 만든 개인 또는 회사 이름입니다. 플러그인 UI 또는 다른 위치에 표시될 수 있습니다. |
 | **CreatedByURL**					| _옵션_	| 이 플러그인을 만든 개인 또는 회사 웹 링크입니다. 지정된 경우 사용자가 웹 페이지를 방문할 수 있도록 에디터 UI 에 링크가 표시됩니다. |
 | **DocsURL**						| _옵션_	| 플러그인 문서에 대한 웹 링크입니다. 지정된 경우 에디터의 플러그인 브라우저에 하이퍼링크가 표시되어 사용자가 이 웹 페이지를 볼 수 있게 될 것입니다. |
+| **MarketplaceURL**				| _옵션_	| 플러그인의 마켓플레이스 페이지 링크입니다. 지정된 경우, 에디터의 플러그인 브라우저에 하이퍼링크가 표시되어 사용자가 이 웹 페이지를 둘러볼 수 있습니다. |
 | **SupportURL**					| _옵션_	| 플러그인 기술지원 페이지 링크입니다. 지정된 경우 에디터의 플러그인 브라우저에 표시됩니다. |
-| **CanContainContent**				| _옵션_	| 지정되어 **true** 설정되면, 이 플러그인에 Content 가 지원됩니다. 기본 세팅은 **false** 입니다. 자세한 정보는 [플러그인의 콘텐츠](#ContentInPlugins) 부분을 참고하세요. | 
+| **EnabledByDefault**				| _옵션_	| true 면 이 플러그인이 존재하는 경우 자동으로 켜집니다. |
+| **CanContainContent**				| _옵션_	| **true** 로 설정된 경우, 이 플러그인의 콘텐츠 지원을 활성화시킵니다. 기본값은 **false** 입니다. 자세한 정보는 [플러그인의 콘텐츠](#플러그인의콘텐츠) 부분을 참고하세요.|
+| **IsBetaVersion**					| _옵션_	| 콘텐츠를 베타 버전으로 마킹합니다. 이 항목에 대해 플러그인 목록에서 "Version" 이 "BETA Version" 으로 대체됩니다. |
+| **Installed**						| _옵션_	| `true` 로 설정되면, 이 플러그인은 플러그인 목록의 "Project" 또는 "Built-in" 섹션이 아닌 "Installed" 섹션에 나타납니다. |
 | **Modules**						| _옵션_	| 소스 코드(와 바이너리)가 포함된 플러그인의 경우, 시작시 로드할 모듈 목록입니다. 자세한 정보는 아래를 참고하세요. |
 
 
@@ -239,6 +251,7 @@ create a file called Config/FilterPlugin.ini in your plugin folder which lists a
 	{
 		"Name" : "UObjectPlugin",
 		"Type" : "Developer"
+		"LoadingPhase" : "Default"
 	}
 
 | 필드명 | 정보 | 설명 |

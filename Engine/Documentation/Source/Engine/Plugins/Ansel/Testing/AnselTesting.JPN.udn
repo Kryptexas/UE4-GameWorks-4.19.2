@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3206329
+﻿INTSourceChangelist:3579346
 Availability:Public
-TItle:Ansel キャプチャーのテスト
+TItle:NVIDIA Ansel キャプチャー テスト
 Description:ゲームの拡張画像をキャプチャーし、共有するための Nvidia の Ansel のインゲームのフォトグラフィー ツールの UE4 への統合の概要です。
 Crumbs:
 Parent:Engine/Plugins/Ansel
@@ -11,7 +11,7 @@ tags:Ansel
 version:4.14
 topic-image:Ansel_Testing_Topic.png
 
-**Nvidia Ansel Photography プラグインをゲームでテストするには以下の手順に従います。**
+**NVIDIA Ansel Photography プラグインをゲームでテストするには以下の手順に従います。**
 
 1. NvCameraConfiguration.exe アプリケーションを実行し、**NvCamera Status** をデフォルトである _Enable_ に必ず設定してください。
 

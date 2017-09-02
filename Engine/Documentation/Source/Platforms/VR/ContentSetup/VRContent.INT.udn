@@ -1,12 +1,13 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title:Virtual Reality Best Practices
-Crumbs:
-Description:Information about developing for VR.
-Navigation:platform
-Version: 4.14
-parent:Platforms/VR
-type:overview
-tags:VR
+Description: Information about developing for VR.
+Type: Overview
+SkillLevel: Beginner
+Version:4.17
+Parent: Platforms/VR
+Order:4
+Tags:VR
 
 
 [TOC(start:2)]
@@ -19,7 +20,13 @@ developing content for your VR projects.
 When creating a new project for VR, whether the project is Blueprint based or C++ based, it is best to create a project that uses the **Mobile / Tablet** option 
 with **Scalable 3D or 2D** graphics and **No Starter Content** to ensure that your VR project will be running at frame right from the start. 
 
-![](VR_Project_Settings.png)
+[REGION:lightbox]
+[![](VR_Project_Settings.png)(w:400)](VR_Project_Settings.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
 
 ## VR .INI Settings
 
@@ -48,89 +55,6 @@ These . INIsettings, if used, should be added to your project's **Config\Default
 	r.rhicmdbypass=0
 	sg.EffectsQuality=2
 	sg.PostProcessQuality=0
-
-## VR Instanced Stereo
-
-With the release of UE 4.11, Instanced Stereo Rendering was introduced to help lessen the performance impact of VR in UE4. 
-The feature can be enabled by checking the **Instanced Stereo** option that can be found under **Edit > Project Settings > Rendering > VR**. 
-
-![](VR_ISR.png)
-
-After **Instanced Stereo** rendering has been enabled, it will require an engine restart, and shader recompile.
- The base pass, and early-z pass, works with static meshes, skeletal meshes, sprite particles, and mesh particles with the feature turned on (both serial and parallel rendering paths). 
- **Instanced Stereo** currently works on PC (DirectX) and PS4 with support for other platforms coming after the initial 4.11 release. 
- Here is a video showing Standard Stereo Rendering in VR, versus Instanced Stereo Rendering in VR. 
-
-[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	nmajnglJeyE
-	[/PARAMLITERAL]
-[/OBJECT]
-
-### VR Multiview Support for Mobile
-
-Certain (supported) mobile devices can now support VR Multiview. Mobile Multiview is similar to Instanced Stereo rendering that is available to desktop PC's, and works by providing an optimized path for Stereo Rendering on the mobile device's CPU. To enable this feature, you will need to do the following:
-
-[region:warning]
-Due to the experimental nature of this feature, it will only work on modern Mali-based GPUs. As this feature matures, and support for more mobile devices come online, this warning will be removed.
-[/region]
-
-1. From the Main Toolbar, go to **Edit** >  **Projects Settings**, to open the Editor's Project Settings.
-
-1. Then, go to **Engine** > **Rendering** > **VR**, and look for the **Mobile Multi-View (Experimental)** option. 
-
-1. Enable the Mobile Multi-View (Experimental) option by click on the checkmark box next to its name, and then restart Editor for the changes to take effect.
-
-    ![](VR_MobileMultiView.png)
-
-For this feature to work, you will need your Android build settings to be setup like the following:
-
-* Make sure that **Support OpenGL ES2** is enabled in the **Android** > **Build** section. 
-* Make sure that both **Mobile HDR** and **Instanced Stereo Rendering** are disabled.
-* Currently, Mobile Multiview will only work with modern Mali-based GPU's. 
-* If you package a project with this feature on, but don't have a compatible GPU, it will be disabled at runtime. 
-
-## VR Performance Profiling
-
-To track down assets that are too expensive for VR, you need to profile what your project is doing on the CPU and GPU as much as possible over the lifetime of your project. 
-
-* **GPU Profiling** - To activate the GPU profiler, all you need to do is press  **CTRL + SHIFT + ,(Comma Key)** together, while running your project. After the keys have been pressed, you will see a new window come up that should look similar to the image below. 
-	![](VR_GPU_Profiler.png)
-
-* **CPU Profiler** - Profiling what your project is doing on the CPU is a bit more involved than profiling for the GPU. To find out more on how to do this, please refer to the [Performance Profiler](https://docs.unrealengine.com/latest/INT/Engine/Performance/Profiler/index.html) documents. 
-
-## VR Forward Rendering
-
-![](Engine\Performance\ForwardRenderer\ForwardRenderingBanner.png)(w:840)
-
-[INCLUDE:Engine\Performance\ForwardRenderer#intro]
-
-[REGION:note]
-Please see the [](Engine\Performance\ForwardRenderer) documentation for more information on this feature. 
-[/REGION]
-
-## VR Post Process Settings
-
-Due to the demanding rendering requirements of VR, many of the advanced Post Processing features that are enabled by default should be disabled, or your project could suffer
- from performance problems. To accomplish this in your project, you will need to do the following.
-
- 1. Add a Post Process(PP) volume to your level if there is not one already there.
- 1. Select the PP volume, and in the **Post Process Volume** section, enable the **Unbound** option so that the settings in the PP volume will be applied to the entire level. 
-
-	![](VR_PP_Unbound.png)
-
- 1. Expand the **Settings** of the **Post Process Volume**, and then go through each section to disable any active PP settings by enabling that property; clicking on it, and then setting the value from the default (usually 1.0) to **0**, thus disabling the feature.
-	
-	![](VR_Disable_PP_Settings.png)
-	[region:note]
-	When doing this, you won't need to hit every section and set all of the properties to 0. Instead, first disable the really heavy hitting features like Lens Flares, Screen Space reflections, Temporal AA, SSAO, Bloom and anything else that might have an impact on performance.
-	[/region]
 
 ## VR World Scale
 
@@ -163,14 +87,15 @@ could end up having a very unpleasant VR experience.
 * You must maintain framerate, and ideally, a little bit of a buffer to make sure you're always over the HMD's native framerate.
 Low framerates are another trigger for Simulation Sickness, so make sure to optimize your project as much as possible. 
 The following table shows the various HMD's UE4 supports, and the target frame rates your VR project needs to run at on those devices.
-| HMD Device  | Target Frame Rate |
-| --- | --- |
-| DK1 | 60 FPS|
-| DK2 | 75 FPS|
-| Rift Retail | 90 FPS|
-| Vive | 90 FPS|
-| Gear VR | 60 FPS|
-| PSVR | Variable up to 120 FPS|
+
+	| HMD Device  | Target Frame Rate |
+	| --- | --- |
+	| DK1 | 60 FPS|
+	| DK2 | 75 FPS|
+	| Rift Retail | 90 FPS|
+	| Vive | 90 FPS|
+	| Gear VR | 60 FPS|
+	| PSVR | Variable up to 120 FPS|
 
 * Developers make the worst test subjects, because they are often used to using VR devices. Check your game as much as you can, with as many different people as you can, to make sure that you are not causing Simulation Sickness.
 * Avoid cinematic cameras, or anything that takes control of camera movements away from the player, as this tends to be the biggest culprit of your user having a bad VR experience.
@@ -190,6 +115,15 @@ In a seated experience, you will need to artificially raise the camera origin fo
 However, for a standing experience, you should make sure that the camera origin is at 0 (on the ground). 
 You can achieve either effects by attaching a camera component to a scene component at the base of the character (ground level), or by setting the Eye Height to half of the 
 (negative) Cylinder Height of the collision capsule on the character.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Standing VR Camera](VR_Standing_Experiance.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Seated VR Camera](VR_Seated_Experiance.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
 ## VR Character Settings
 
@@ -231,34 +165,38 @@ The VR camera needs to be positioned slightly lower than the base eye height to 
 Base Eye Height:|180 cm|160 cm|
 
 
-
 ## VR Content Considerations
 
 When creating VR content, remember that users can look at that content from multiple angles. Here are few things that you might 
 have done in the past, but need to avoid in VR:
 
-* **Scale** - The best thing to do about the scale of the objects in your VR world, is to mimic reality as closely as you can. 
-Making objects bigger or smaller than their real world counterparts could lead to confusion or Simulation Sickness.
+ * **Scale** - The best thing to do about the scale of the objects in your VR world, is to mimic reality as closely as you can. Making objects bigger or smaller than their real world counterparts could lead to confusion or Simulation Sickness.
 
-* **Missing Polygon Faces** - In standard games, it is often acceptable (and preferred) to remove polygon faces from objects that cannot be seen by the player. 
+ * **Missing Polygon Faces** - In standard games, it is often acceptable (and preferred) to remove polygon faces from objects that cannot be seen by the player. 
 However, in VR games, players have much more freedom to look around, and this practice can sometimes lead to players being able to see things that they're not supposed to see.
 
-* ** Which Type of Lighting to use** - You should always use **Static lighting** and **Lightmaps** when making a VR project... this is the cheapest option to render. 
+ * ** Which Type of Lighting to use** - You should always use **Static lighting** and **Lightmaps** when making a VR project... this is the cheapest option to render. 
 If you need to use dynamic lighting, make sure to limit the amount of dynamic lights to as few as possible, and make sure that they never touch one another. 
 If you have an outdoor scene, set your directional light to dynamic instead of stationary, and then turn on Cascaded Shadow Maps (CSM); adjusting the settings to be as simple as possible while still giving you shadows. 
 
-* ** VR & VFX** - Some VFX tricks, like using [SubUV Textures](https://docs.unrealengine.com/latest/INT/Engine/Rendering/ParticleSystems/Reference/Modules/SubUV/index.html) to simulate fire or smoke, do not hold up very well when viewed in VR. 
+ * ** VR & VFX** - Some VFX tricks, like using [SubUV Textures](https://docs.unrealengine.com/latest/INT/Engine/Rendering/ParticleSystems/Reference/Modules/SubUV/index.html) to simulate fire or smoke, do not hold up very well when viewed in VR. 
 In many cases you are going to need to use static meshes instead of 2D particles to simulate VFX's like explosions or smoke trails.  
 Near field effects, or effects that happen very close to the camera, work well in VR, but only when the effects are made up of Static Mesh particles.
 
-* **VR & Transparency** - In 3D graphics, rendering transparency is extremely costly, because transparency will generally have to be re-evaluated per-frame to ensure that nothing has changed. 
+ * **VR & Transparency** - In 3D graphics, rendering transparency is extremely costly, because transparency will generally have to be re-evaluated per-frame to ensure that nothing has changed. 
 Because of this re-evaluation, rendering Transparency in VR can be so costly, that its cost outweighs its benefits. 
 However, to get around this issue, you can use the **DitherTemporalAA** Material Function. 
 This Material Function will allow a Material to look like it is using transparency. Also, this will help you avoid common transparency issues, such as self-sorting.
 
-	![](VR_Dither_Trans_AA.png)
+	[REGION:lightbox]
+	[![](VR_Dither_Trans_AA.png)(w:500)](VR_Dither_Trans_AA.png)
+	[/REGION]
 
-* **Fake everything you can** - Finding clever ways to recreate expensive rendering options, like dynamic shadows or lighting, can be a huge win for hitting your performance goals in VR. 
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+ * **Fake everything you can** - Finding clever ways to recreate expensive rendering options, like dynamic shadows or lighting, can be a huge win for hitting your performance goals in VR. 
 In Showdown, having the characters cast dynamic shadows proved to be too expensive per-frame, which meant that dynamic shadows had to be cut from the project. 
 However, this made the characters look like they were floating while moving. 
 To fix this, fake blob shadows were introduced that could dynamically adjust their position and intensity based on how close the character was to an object in the world. 
@@ -271,7 +209,7 @@ This helped give the illusion that a character was casting shadows when they cam
 	[region:caption]
 	Click for full image.
 	[/region]
-
+<!--
 ## VR Blueprint Functions
  
  Throughout the Blueprint editor, you will find a number of different Blueprint nodes that can be used to interact with VR headsets and motion controllers. 
@@ -305,7 +243,7 @@ Set World to Meters Scale| Sets the World to Meters scale, which changes the sca
 |Get Tracking Space| Gets the tracking space (for example, sitting or standing), which determines the location of the origin.|
 |Get Valid Tracked Device Ids| Returns an array of the currently tracked device IDs.|
 |Set Tracking Space| Sets the tracking space (for example, sitting or standing), changing which space (tracked) positions are returned to.|
-
+-->
 ## Known VR Issues
 
 Due to the manner in which HMD's work, some art techniques that are staples of Video Game development, no longer have the impact that they once did. 

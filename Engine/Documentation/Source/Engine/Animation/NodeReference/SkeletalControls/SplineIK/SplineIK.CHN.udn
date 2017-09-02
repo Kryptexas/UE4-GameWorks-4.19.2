@@ -1,25 +1,27 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3473466
 Availability:Public
 Title:Spline IK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes how the Spline IK Solver node can be used for controlling character spines or bone chains within Animation Blueprints. 
-version: 4.16
-Related: Engine/Animation/NodeReference/SkeletalControls
-Related: Engine/Animation/AnimBlueprints
-Related: Engine/Animation/AnimBlueprints/AnimGraph
-Related: Engine/BlueprintSplines
-Related: Engine/Landscape/Editing/Splines
+Description:说明 Spline IK Solver 节点如何用于控制动画蓝图中角色的脊柱或骨骼链。 
+version:4.16
+Related:Engine/Animation/NodeReference/SkeletalControls
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Animation/AnimBlueprints/AnimGraph
+Related:Engine/BlueprintSplines
+Related:Engine/Landscape/Editing/Splines
 type:reference
 topic-image:SplineIKnode.png
 tags:Animation
 tags:Skeletal Controls
 tags:Animation Graph
 
-The **Spline IK** Skeletal Control Node can be used to specify a Bone to trace or follow another Bone in the Skeleton. 
+**Spline IK ** 控制节点可将特定的骨骼链作为 **控制点（Control Points）** 约束到动画蓝图中的样条上。 
 
 ![](SplineIKnode.png)
 
-Below, we add the Spline IK node to our Animation Blueprint to control the character's spine. 
+控制点可由外部数值驱动，并拥有额外的 **Roll** 和 **Twist** 选项（以及 **Twist Blend** 选项）。 
+
+接下来我们在动画蓝图中添加 Spline IK 节点，控制角色的脊柱。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -39,42 +41,41 @@ Below, we add the Spline IK node to our Animation Blueprint to control the chara
 	[/PARAMLITERAL]
 [/OBJECT]
 
-The Spline IK control node constrains a chain of specified bones to a spline within an Animation Blueprint as **Control Points**. 
-Those Control Points can be driven by external values, with additional options for Roll and Twist (as well as Twist blending options). 
-See the table below for a full breakdown of the properties available for the Spline IK node. 
+请查阅下表中 Spline IK 节点可用属性的完整详解。 
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]**Parameters**[/REGION] ||
-| **Start Bone** | Name of the root bone from which the spline extends.|
-| **End Bone** | Name of the bone at the end of the spline chain (bones after this will not be altered by the controller). |
-| **Bone Axis** | Axis of the controlled bone (i.e the direction of the spline) to use as the direction for the curve. |
-| **Auto Calculate Spline** | Whether the number of points in the spline should be automatically generated. |
-| **Point Count** | The number of points in the spline if we are not auto-calculating. |
-| **(As Pin) Control Points** | Transforms applied to spline points. |
-| **(As Pin) Roll** | Overall roll of the spline, applied on top of other rotations along the direction of the spline. |
-| **(As Pin) Twist Start** | The twist of the start bone. Twist is interpolated along the spline according to Twist Blend. |
-| **(As Pin) Twist End** | The twist of the end bone. Twist is interpolated along the spline according to Twist Blend. |
-| **(As Pin) Stretch** | The maximum stretch allowed when fitting bones to the spline. 0.0 means bones do not stretch their length while 1.0 means bones stretch to the length of the spline.|
-| **(As Pin) Offset** | The distance along the spline from the start from which bones are constrained. |
-| [REGION:tablesection]**Twist Blend**[/REGION] ||
-| **Blend Option** | The type of [Animation Blending Mode](Engine/Animation/NonLinearBlends) used.  |
-| **Custom Curve** | Enables you to specify a Custom Blend option where you specify the curve. |
-| **Blend Time** | The duration of the blend. |
-| [REGION:tablesection]**Settings**[/REGION] ||
-| **Alpha** | Current strength of the skeletal control. |
-| **Alpha Scale Bias** | Defines the minimum and maximum scale bais for the Alpha property.  |
-| [REGION:tablesection]**Performance**[/REGION] ||
-| **LOD Threshold** | Max LOD that this node is allowed to run. |
+| [REGION:tablesection]**参数**[/REGION] ||
+| **Start Bone** | 样条开始延展的根骨骼名。|
+| **End Bone** | 样条链末端的骨骼名（此骨骼之后的骨骼不由控制器修改）。|
+| **Bone Axis** | 受控骨骼的轴（例如样条的方向），用作曲线的方向。|
+| **Auto Calculate Spline** | 样条中点的数量是否自动生成。|
+| **Point Count** | 样条中的点数量（如未自动进行计算）。|
+| **(As Pin) Control Points** | 应用到样条点的变形。|
+| **(As Pin) Roll** | 样条整体绕 Z 轴的旋转，沿样条方向应用到其他旋转之上。|
+| **(As Pin) Twist Start** | 起始骨骼的扭曲。扭曲根据扭曲混合（Twist Blend）沿样条插值。|
+| **(As Pin) Twist End** | 末端骨骼的扭曲。扭曲根据扭曲混合（Twist Blend）沿样条插值。|
+| **(As Pin) Stretch** | 将骨骼匹配到样条时所允许的最大拉伸数。数值为 0.0 则意味着骨架长度不拉伸，而数值为 1.0 则意味着骨骼将拉伸至样条的长度。|
+| **(As Pin) Offset** | 从初始到受约束骨骼沿样条的距离。|
+| [REGION:tablesection]**扭曲混合**[/REGION] ||
+| **Blend Option** | 使用的 [动画混合模式](Engine/Animation/NonLinearBlends) 类型。|
+| **Custom Curve** | 使用户指定一个自定义混合选项，对曲线进行指定。|
+| **Blend Time** | 混合的时长。|
+| [REGION:tablesection]**设置**[/REGION] ||
+| **Alpha** | 当前骨架控制的强度。|
+| **Alpha Scale Bias** | 定义 Alpha 属性的最小和最大比例偏差。|
+| [REGION:tablesection]**性能**[/REGION] ||
+| **LOD Threshold** | 此节点允许运行的最大 LOD 数量。|
 
-The following table outlines the pins that are enabled by default on the Spline IK node. 
+下表列出了 Spline IK 节点上默认启动的引脚。 
 
-| Pin | Description |
+| 引脚 | 描述 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Component Pose** | The incoming pose. |
-| **Alpha** | The current strength of the control. |
+| [REGION:tablesection]**输入引脚**[/REGION] ||
+| **Component Pose** | 引入的姿态。|
+| **Alpha** | 当前的控制强度。|
 
-Any of the properties denoted with **(As pin)** can be exposed on the node by checking their corresponding checkbox. 
+勾选带 **(As pin)** 标记属性相应的勾选框后，即可在节点上公开。 
+
 
 

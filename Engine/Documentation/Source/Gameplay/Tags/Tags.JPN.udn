@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3484974
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:Gameplay Tag
 Crumbs: %ROOT%
 Description:Gameplay Tag を使ってオブジェクトを特定、分類、マッチング、フィルタリングすることができます。
 version:4.15
 skilllevel:Intermediate
-Parent:Engine/Gameplay
+Parent:Gameplay
 Order:
 type:overview
 tags:Gameplay

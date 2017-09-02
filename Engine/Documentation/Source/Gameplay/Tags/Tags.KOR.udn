@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3484974
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:게임플레이 태그
 Crumbs: %ROOT%
 Description: 게임플레이 태그는 오브젝트 식별, 분류, 일치, 필터링에 사용 가능합니다.
 version: 4.15
 skilllevel:Intermediate
-Parent:Engine/Gameplay
+Parent:Gameplay
 Order:
 type:overview
 tags:Gameplay

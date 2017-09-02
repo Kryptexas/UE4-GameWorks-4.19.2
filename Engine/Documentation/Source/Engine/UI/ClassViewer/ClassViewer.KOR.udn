@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:클래스 뷰어
 Crumbs: %ROOT%, Engine, Engine/UI
@@ -106,9 +106,39 @@ Version: 4.9
 
 |클래스 유형|옵션|설명|
 |----------|-------|-----------|
-|**블루프린트 클래스**|**블루프린트 생성...**<br>**블루프린트 편집...**<br>**콘텐츠 브라우저에서 찾기**|선택된 블루프린트를 부모로 하는 블루프린트를 새로 만듭니다.<br>선택된 블루프린트를 [블루프린트 에디터](Engine/Blueprints) 에서 엽니다.<br>블루프린트 액터를 [콘텐츠 브라우저](Engine/Content/Browser) 에서 찾습니다.|
-|**코드 클래스**|**블루프린트 생성...**<br>**C++ 헤더 파일 열기...**<br>**새 C++ 클래스 생성...**|선택된 블루프린트를 부모로 하는 블루프린트를 새로 만듭니다.<br>클래스의 헤더 파일을 Visual Studio 에서 엽니다.<br>[](Programming\Development\ManagingGameCode\CppClassWizard) 를 열어 선택된 클래스를 부모 클래스로 하는 클래스를 새로 만듭니다. |
+|**블루프린트 클래스**|[INCLUDE:#bpclassoptions]|[INCLUDE:#bpclassoptiondesc]|
+|**코드 클래스**|[INCLUDE:#codeclassoptions]|[INCLUDE:#codeclassoptiondesc]|
 
+<!--
+[EXCERPT:BPClassOptions]
+[REGION:plain_list]
+* **블루프린트 생성...**
+* **블루프린트 편집...**
+* **콘텐츠 브라우저에서 찾기**
+[/REGION]
+[/EXCERPT:BPClassOptions]
+[EXCERPT:BPClassOptionDesc]
+[REGION:plain_list]
+* 선택된 블루프린트를 부모로 하는 블루프린트를 새로 만듭니다.
+* 선택된 블루프린트를 [블루프린트 에디터](Engine/Blueprints) 에서 엽니다.
+* 블루프린트 액터를 [콘텐츠 브라우저](Engine/Content/Browser) 에서 찾습니다.
+[/REGION]
+[/EXCERPT:BPClassOptionDesc]
+[EXCERPT:CodeClassOptions]
+[REGION:plain_list]
+* **블루프린트 생성...**
+* **C++ 헤더 파일 열기...**
+* **새 C++ 클래스 생성...**
+[/REGION]
+[/EXCERPT:CodeClassOptions]
+[EXCERPT:CodeClassOptionDesc]
+[REGION:plain_list]
+* 선택된 블루프린트를 부모로 하는 블루프린트를 새로 만듭니다.
+* 클래스의 헤더 파일을 Visual Studio 에서 엽니다.
+* [](Programming\Development\ManagingGameCode\CppClassWizard) 를 열어 선택된 클래스를 부모 클래스로 하는 클래스를 새로 만듭니다. 
+[/REGION]
+[/EXCERPT:CodeClassOptionDesc]
+-->
 
 ## 드래그 & 드롭
 블루프린트 클래스 액터를 뷰포트에 드롭하면 액터가 씬에 추가됩니다. 클래스를 드래그할 때 어떤 클래스가 잡혔는지 마우스에 표시됩니다. 한 번에 하나의 클래스만 드래그할 수 있습니다.

@@ -1,6 +1,6 @@
 Availability:Public
-TItle:Nvidia Ansel Photography Plugin
-Description:Integration of Nvidia's Ansel in-game photography tool that enables capturing and sharing enhanced images from games
+TItle:NVIDIA Ansel Photography Plugin
+Description:Integration of NVIDIA's Ansel in-game photography tool that enables capturing and sharing enhanced images from games.
 Crumbs:
 Parent:Engine/Plugins
 Order:1

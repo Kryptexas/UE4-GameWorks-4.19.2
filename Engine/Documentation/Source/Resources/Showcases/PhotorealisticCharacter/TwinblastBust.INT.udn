@@ -278,7 +278,7 @@ Due to the complexity of the eye shader and our recommendation that you use it a
 |**Sclera inner color**| This is the color of the sclera where it meets the iris.|n/a|
 |**Sclera outer color**| This is the color of the sclera at the outer edge of the eye.| n/a|
 |**SecondaryEnvBalance**|This controls how much the [Secondary Environment](#eyeshadersecondaryenvironment) is visible on the surface of the eye.|0.00 - 0.03|
-|**SecondaryEnvRotationAxis**|Since the [Secondary Environment](#eyeshadersecondaryenvironment) is a faked reflection, it must be manually rotated around the eye. This property controls the axis about which it will rotate.| <0.0, 0.0, 1.0> (Z-Axis)|
+|**SecondaryEnvRotationAxis**|Since the [Secondary Environment](#eyeshadersecondaryenvironment) is a faked reflection, it must be manually rotated around the eye. This property controls the axis about which it will rotate.| [0.0, 0.0, 1.0] (Z-Axis)|
 |[REGION:tablesection]Scalar Parameter Values[/REGION]|||
 |**Depth Scale**|This controls the depth of the refraction of the iris underneath the cornea. |1.0-1.4|
 |**Flatten Normal**|This value controls how much flattening of the eye's normal map is taking place, focused particularly on the sclera.|0.9 - 1.1|

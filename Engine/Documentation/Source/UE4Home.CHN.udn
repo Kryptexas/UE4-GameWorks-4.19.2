@@ -12,9 +12,9 @@ type:landing
 
 [REGION:frontpage]
 	[OBJECT:SearchBox]
-		[PARAM:path]
-		[RELATIVE:Search]
-		[/PARAM]
+		[PARAMLITERAL:path]
+		https://www.unrealengine.com/bing-search
+		[/PARAMLITERAL]
 		[PARAMLITERAL:placeholder]
 		需要帮助吗？可以通过搜索文档来查找主题。
 		[/PARAMLITERAL]

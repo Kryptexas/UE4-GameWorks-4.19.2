@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3603049
 Availability:Public
 Title: 애니메이션 포즈 애셋
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:가중치를 입힌 커브 데이터를 통해 애니메이션을 구동시키는 데 사용할 수 있는 애니메이션 포즈 애셋에 대한 설명입니다.
 Related: Engine\Animation\Persona\AnimCurves
 Related: Engine\Animation\AnimBlueprints
+Related: Engine\Animation\AnimHowTo\CurveDrivenAnimation
 version: 4.14
 tags:Assets
 topic-image:AnimationPoseAssets_topic.png
@@ -41,42 +42,55 @@ topic-image:AnimationPoseAssets_topic.png
 예를 들어, 아래에서는 커브 데이터로 구동되어 캐릭터가 걸어가는 듯한 동작을 만들었습니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
 [PARAMLITERAL:videoid]
 7PRGvePzB2g
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
 [/PARAMLITERAL]
 [/OBJECT]
 
 아래 비디오에서 보듯 이 프로세스를 얼굴 애니메이션을 만드는 데도 사용할 수 있습니다.
 
 [OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+UdmU7zMN4tE
+[/PARAMLITERAL]
 [PARAMLITERAL:width]
-640
+100
 [/PARAMLITERAL]
 [PARAMLITERAL:height]
-360
+56.25
 [/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-Z_EO1wfHfMs
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
 [/PARAMLITERAL]
 [/OBJECT]
 
 위에서, 다양한 포즈용 커브 데이터가 포함된 애니메이션 시퀀스가 있습니다.
-그리고 그 애니메이션 시퀀스에서 **포즈 애셋** 을 생성하여 각 커브/포즈에 대해 접근합니다 (얼굴에 미소짓도록 하는 방법을 보여드리기 위해 **R_smile_pose** 과 **L_smile_pose** 를 분리했습니다).
-다음으로, 기본 베이스 포즈에서 애니메이션 시퀀스를 새로 만들고, 그 시퀀스에 커브를 둘 (두 개의 스마일 포즈를) 추가했습니다.
-마지막으로, 애니메이션 중간에 걸친 가중치 값을 새로 추가하여 얼굴 미소 표정을 만들 수 있었습니다.
+
+[REGION:note]
+위 예제는 실험단계 **Facial Animation Bulk Importer** (얼굴 애니메이션 대량 임포터) 플러그인을 사용하여 (FBX 의) 얼굴 애니메이션 커브 테이블을 사운드 웨이브로 임포트한 것입니다.
+[/REGION]
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		시작하기
+		필독
 	[/PARAM]
 	[PARAM:links]
 		[REGION:topics fourth]
@@ -95,47 +109,13 @@ Z_EO1wfHfMs
 		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine\Animation\AnimHowTo\CreatePoseAsset:title%
+		%Engine/Animation/AnimHowTo/CreatePoseAsset:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine\Animation\AnimHowTo\CreatePoseAsset:description%
+		%Engine/Animation/AnimHowTo/CreatePoseAsset:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimHowTo\CreatePoseAsset]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](topic_howto.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimHowTo\CurveDrivenAnimation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimHowTo\CurveDrivenAnimation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimHowTo\CurveDrivenAnimation]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](topic_animbp.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimPose\AnimBPPoseNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimPose\AnimBPPoseNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimPose\AnimBPPoseNodes]
+		[RELATIVE:Engine/Animation/AnimHowTo/CreatePoseAsset]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:Topic]
@@ -153,6 +133,40 @@ Z_EO1wfHfMs
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine\Animation\AnimPose\AdditivePA]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Engine\Animation\AnimPose\PoseBlenderNode\PoseNodeTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimPose\PoseBlenderNode:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimPose\PoseBlenderNode:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimPose\PoseBlenderNode]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Engine\Animation\AnimPose\PoseDriverNode\PoseDriveTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimPose\PoseDriverNode:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimPose\PoseDriverNode:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimPose\PoseDriverNode]
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Topics]

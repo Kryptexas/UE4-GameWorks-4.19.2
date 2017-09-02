@@ -1,10 +1,18 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:プロパティのバインディング
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 内でプロパティをバインドする方法 
-Version:4.9
-tags:UMG UI Designer
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:7
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/PropertyBindingTopic.png
+
+
+
 
 [TOC(start:2 end:2)]
 

@@ -4,7 +4,7 @@ Availability:Public
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
-Version: 4.9
+Version: 4.17
 prereq: Engine\Blueprints\GettingStarted
 Crumbs:%ROOT%, Platforms
 type:landing
@@ -14,9 +14,35 @@ tags:GearVR
 tags:Platform
 Topic-image:SamsungGearVRDevelopment_topic.png
 
+
+## Prerequisites 
+
+[DIR(end:"1" output:"topic" type:"reference" tags:"Basics" parent:"Platforms/GearVR")]
+
+
+## Quick Start
+
+[DIR(end:"1" output:"topic" type:"quick start" parent:"Platforms/GearVR")]
+
+## Best Practices
+
+[DIR(end:"1" output:"topic" type:"reference" tags:"GearVR" parent:"Platforms/GearVR")]
+
+## How To
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
+
+## Gear VR Command Reference
+
+
+
+## Gear VR Profiling & Performance
+
+
+<!--
 ## Starting Out
 
-[DIR(output:"listbutton" type:"quick start" parent:"Platforms/GearVR")]
+
 
 ## GearVR Topics
 
@@ -36,3 +62,4 @@ rNjDsNYvgfk
 [/PARAMLITERAL]
 [/OBJECT]
 
+-->

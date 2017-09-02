@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title: 코딩 표준
 Crumbs:%ROOT%, Programming, Programming\Development
@@ -490,7 +490,7 @@ Enum 클래스는 항상 일반 Enum 이든 UENUM 이든 구식 네임스페이�
 			Thing2
 		};
 
-이들은 uint8 기반인 한 UPROPERTY 로 지원되기도 하며, 구형 TEnumAsByte<> 우회법을 대체합니다:
+이들은 uint8 기반인 한 UPROPERTY 로 지원되기도 하며, 구형 `TEnumAsByte<>` 우회법을 대체합니다:
 
 		// Old property
 		UPROPERTY()

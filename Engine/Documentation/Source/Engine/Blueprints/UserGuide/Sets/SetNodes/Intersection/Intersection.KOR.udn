@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3413822
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Intersection
 Description:두 세트의 교집합을 구해 결과 세트에 할당합니다.
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
+Order:6
 Version: 4.15
 Tags:Blueprints
 Type:reference

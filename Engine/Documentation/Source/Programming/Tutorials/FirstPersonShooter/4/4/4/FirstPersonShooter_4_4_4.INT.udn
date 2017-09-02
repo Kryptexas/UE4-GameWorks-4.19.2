@@ -33,9 +33,9 @@ During this step, we're going to set your jump start to jump loop transition.
 
 1.	Right-click in the graph, search for and select the **TimeRemaining for 'FPP_JumpStart'** node.
 
-1.	Drag off the **Time Remaining** output pin and add a **<= (float)** node using the **Context Menu**.
+1.	Drag off the **Time Remaining** output pin and add a `<= (float)` node using the **Context Menu**.
 
-1.	Enter 0.1 in the other output field on the **<= (float)** node and then wire the Boolean outputpin from that node to the **Can Enter Transition** input pin of the **Result** node.
+1.	Enter 0.1 in the other output field on the `<= (float)` node and then wire the Boolean outputpin from that node to the **Can Enter Transition** input pin of the **Result** node.
 
 	![](TimeRemaining.png)
 

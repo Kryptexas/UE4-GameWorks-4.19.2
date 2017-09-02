@@ -1,47 +1,48 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Android On Linux Quick Start
-Crumbs:
-Description:Learn how to create, deploy, and package games to Android from Linux.
+﻿INTSourceChangelist:3457813
+Availability:Public
+Title:Linux 系统 Android 快速入门
+Crumbs:%ROOT%
+Description:学习在 Linux 系统上创建、部署和打包 Android 游戏。
 Platform:Linux
-Version: 4.14
+Version:4.14
 type:quick start
 parent:Platforms/Linux
-order: 5
+order:5
 tags:Linux
 SkillLevel:Intermediate
 prereq:GettingStarted/RecommendedSpecifications
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 topic-image:androidLinuxQS_topic.png
 Checkpoint:AndroidOnLinuxQS
+Contributor:yaakuro
 
 [REGION:imagetable]
 ![](DeployedAndroidGame_Linux.png)(w:900)  
-_At the end of this tutorial, you'll create, deploy, and package a game onto your Android device from Linux on Unreal Engine 4 (UE4)._
+_阅读完此教程后，您将能够在 Linux 系统上使用虚幻引擎 4（UE4）创建、部署和打包 Android 平台的游戏。_
 [/REGION]
 
-If you're a developer looking to create and distribute games on Android devices from Linux; you've landed on the right page. 
+如您是在 Linux 上开发并发行 Android 平台游戏的开发者，本页面便是您的指路明灯。 
 
-## Goal
+## 目标
 
-This guide teaches you how to configure an Android device with UE4 on Linux, ultimately showing you how to deploy and package mobile games on Android from Linux.
+此指南将指导您在 Linux 上对 Android 设备进行配置，满足使用 UE4 开发的要求。然后说明如何从 Linux 将移动游戏部署并打包到 Android。
 
-## Objectives
+## 目的
 
-After working through this tutorial, you'll know the following: 
+在此教程的学习中您将了解以下内容： 
 
-* How to install and set up the Android SDK for mobile game development with UE4 on Linux. 
-* How to enable an Android's development environment. 
-* How to create an Android mobile game project in UE4. 
-* How to deploy a level onto your Android device from UE4. 
-* How to package your mobile game for distribution (release). 
+* 如何在 Linux 系统中安装并设置 Android SDK，以便用 UE4 进行移动游戏开发。 
+* 如何启用 Android 的开发环境。 
+* 如何在 UE4 中创建 Android 移动游戏项目。 
+* 如何从 UE4 部署关卡到 Android 设备上。 
+* 如何打包移动游戏进行发行（发布）。 
 
 [OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -55,5 +56,5 @@ After working through this tutorial, you'll know the following:
 [/REGION]
 
 [REGION:quote]
-Thanks to our community of talented contributors, we've successfully added Android support for Linux on UE4.
+感谢社区中热心网友的帮助，我们已成功为 UE4 增加 Linux 系统的 Android 开发支持。
 [/REGION]
