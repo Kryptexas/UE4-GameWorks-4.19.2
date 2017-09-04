@@ -241,5 +241,5 @@ private:
 	void ToggleCurveTypeMenuCallback(FAnimCurveBaseInterface* Curve);
 
 	/** Handle smart names getting removed (and regenerate widgets) */
-	void HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids);
+	void HandleSmartNamesChange(const FName& InContainerName);
 };

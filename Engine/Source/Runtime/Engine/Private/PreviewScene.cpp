@@ -214,3 +214,9 @@ void FPreviewScene::SaveSettings(const TCHAR* Section)
 {
 	GConfig->SetRotator( Section, TEXT("LightDir"), GetLightDirection(), GEditorPerProjectIni );
 }
+
+FLinearColor FPreviewScene::GetBackgroundColor() const
+{
+	FLinearColor BackgroundColor = FColor(55, 55, 55);
+	return BackgroundColor;
+}

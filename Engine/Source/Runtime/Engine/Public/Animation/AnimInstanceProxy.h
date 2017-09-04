@@ -538,7 +538,7 @@ protected:
 	/** 
 	 * Recalculate required curve list for animation - if you call RecalcRequiredBones, this should already happen
 	 */
-	void RecalcRequiredCurves(bool bDisableAnimCurves);
+	void RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption);
 
 	/** Update the material parameters of the supplied component from this instance */
 	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);

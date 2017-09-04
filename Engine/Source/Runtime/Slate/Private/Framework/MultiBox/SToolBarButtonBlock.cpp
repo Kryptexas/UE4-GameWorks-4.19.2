@@ -221,11 +221,13 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	if( UserInterfaceType == EUserInterfaceActionType::Button )
 	{
 		FName BlockStyle = EMultiBlockLocation::ToName(ISlateStyle::Join( StyleName, ".Button" ), BlockLocation);
+		FName ButtonPadding = ISlateStyle::Join(StyleName, ".SToolBarButtonBlock.Button.Padding");
+
 		ChildSlot
 		[
 			// Create a button
 			SNew( SButton )
-				.ContentPadding(0)
+				.ContentPadding(StyleSet->GetMargin(ButtonPadding) )
 
 				// Use the tool bar item style for this button
 				.ButtonStyle( StyleSet, BlockStyle )

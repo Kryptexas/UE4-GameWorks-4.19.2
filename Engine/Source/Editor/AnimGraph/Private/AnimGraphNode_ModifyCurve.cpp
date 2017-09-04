@@ -41,21 +41,14 @@ TArray<FName> UAnimGraphNode_ModifyCurve::GetCurvesToAdd() const
 	const FSmartNameMapping* Mapping = GetAnimBlueprint()->TargetSkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 	if (Mapping)
 	{
-		TArray<SmartName::UID_Type> UidList;
-		Mapping->FillUidArray(UidList);
+		Mapping->FillNameArray(CurvesToAdd);
 
-		// Iterate through all curves..
-		for (SmartName::UID_Type Uid : UidList)
+		for (FName ExistingCurveName : Node.CurveNames)
 		{
-			FSmartName SmartName;
-			Mapping->FindSmartNameByUID(Uid, SmartName);
-
-			// Don't offer curves we already have
-			if (!Node.CurveNames.Contains(SmartName.DisplayName))
-			{
-				CurvesToAdd.Add(SmartName.DisplayName);
-			}
+			CurvesToAdd.RemoveSingleSwap(ExistingCurveName, false);
 		}
+
+		CurvesToAdd.Sort();
 	}
 
 	return CurvesToAdd;

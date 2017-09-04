@@ -15,6 +15,8 @@
 class SKELETONEDITOR_API FSkeletonTreeItem : public ISkeletonTreeItem
 {
 public:
+	SKELETON_TREE_ITEM_TYPE(FSkeletonTreeItem, ISkeletonTreeItem)
+
 	friend class FSkeletonTreeBuilder;
 
 	FSkeletonTreeItem(const TSharedRef<class ISkeletonTree>& InSkeletonTree)
@@ -35,14 +37,22 @@ public:
 	virtual void HandleDragEnter(const FDragDropEvent& DragDropEvent) override {}
 	virtual void HandleDragLeave(const FDragDropEvent& DragDropEvent) override {}
 	virtual FReply HandleDrop(const FDragDropEvent& DragDropEvent) override { return FReply::Unhandled(); }
+	virtual TSharedPtr<ISkeletonTreeItem> GetParent() const override { return Parent.Pin(); }
+	virtual void SetParent(TSharedPtr<ISkeletonTreeItem> InParent) override { Parent = InParent; }
 	virtual TArray<TSharedPtr<ISkeletonTreeItem>>& GetChildren() override { return Children; }
 	virtual TArray<TSharedPtr<ISkeletonTreeItem>>& GetFilteredChildren() override { return FilteredChildren; }
 	virtual TSharedRef<class ISkeletonTree> GetSkeletonTree() const override { return SkeletonTreePtr.Pin().ToSharedRef(); }
 	virtual TSharedRef<class IEditableSkeleton> GetEditableSkeleton() const override { return GetSkeletonTree()->GetEditableSkeleton(); }
 	virtual ESkeletonTreeFilterResult GetFilterResult() const override { return FilterResult; }
 	virtual void SetFilterResult(ESkeletonTreeFilterResult InResult) override { FilterResult = InResult; }
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return FReply::Unhandled(); }
+	virtual UObject* GetObject() const override { return nullptr; }
+	virtual bool IsInitiallyExpanded() const override { return true; }
 
 protected:
+	/** The parent of this item */
+	TWeakPtr<ISkeletonTreeItem> Parent;
+
 	/** The children of this item */
 	TArray<TSharedPtr<ISkeletonTreeItem>> Children;
 

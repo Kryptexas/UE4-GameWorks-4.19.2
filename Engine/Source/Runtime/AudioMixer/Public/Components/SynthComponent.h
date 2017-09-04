@@ -7,6 +7,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Engine/EngineTypes.h"
 #include "Sound/SoundWaveProcedural.h"
+#include "AudioMixerTypes.h"
 
 #include "SynthComponent.generated.h"
 
@@ -25,11 +26,15 @@ class AUDIOMIXER_API USynthSound : public USoundWaveProcedural
 
 	void Init(USynthComponent* INSynthComponent, const int32 InNumChannels);
 
+	/** Begin USoundWave */
 	virtual bool OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
+	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
+	/** End USoundWave */
 
 protected:
 	USynthComponent* OwningSynthComponent;
-	TArray<int16> GeneratedPCMData;
+	TArray<float> FloatBuffer;
+	bool bAudioMixer;
 };
 
 UCLASS(ClassGroup = Synth, hidecategories = (Object, ActorComponent, Physics, Rendering, Mobility, LOD))
@@ -141,10 +146,10 @@ protected:
 	virtual void OnStop() {}
 
 	// Called when more audio is needed to be generated
-	virtual void OnGenerateAudio(TArray<float>& OutAudio) PURE_VIRTUAL(USynthComponent::OnGenerateAudio,);
+	virtual void OnGenerateAudio(float* OutAudio, int32 NumSamples) PURE_VIRTUAL(USynthComponent::OnGenerateAudio,);
 
 	// Called by procedural sound wave
-	void OnGeneratePCMAudio(TArray<int16>& GeneratedPCMData);
+	void OnGeneratePCMAudio(float* GeneratedPCMData, int32 NumSamples);
 
 	// Gets the audio device associated with this synth component
 	FAudioDevice* GetAudioDevice() { return AudioComponent->GetAudioDevice(); }
@@ -161,8 +166,6 @@ private:
 	UAudioComponent* AudioComponent;
 
 	void PumpPendingMessages();
-
-	TArray<float> AudioFloatData;
 
 #if SYNTH_GENERATOR_TEST_TONE
 	Audio::FSineOsc TestSineLeft;

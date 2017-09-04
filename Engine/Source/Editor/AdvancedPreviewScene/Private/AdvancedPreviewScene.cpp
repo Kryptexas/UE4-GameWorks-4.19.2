@@ -206,6 +206,12 @@ void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpd
 	CurrentRotationSpeed = Profile.RotationSpeed;
 }
 
+FLinearColor FAdvancedPreviewScene::GetBackgroundColor() const
+{
+	FLinearColor Color = DefaultSettings->Profiles[CurrentProfileIndex].EnvironmentColor;
+	return Color * DefaultSettings->Profiles[CurrentProfileIndex].EnvironmentIntensity;
+}
+
 void FAdvancedPreviewScene::SetFloorOffset(const float InFloorOffset)
 {
 	FTransform FloorTransform(FRotator(0, 0, 0), FVector(0, 0, -(InFloorOffset)), FVector(4.0f, 4.0f, 1.0f));

@@ -15,22 +15,8 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PreviewScene.h"
+#include "ScopedSlowTask.h"
 #include "SkinnedBoneTriangleCache.h"
-
-void FPhysAssetCreateParams::Initialize()
-{
-	MinBoneSize = 20.0f;
-	MinWeldSize = KINDA_SMALL_NUMBER;
-	GeomType = EFG_Sphyl;
-	VertWeight = EVW_DominantWeight;
-	bAutoOrientToBone = true;
-	bCreateJoints = true;
-	bWalkPastSmall = true;
-	bBodyForAll = false;
-	AngularConstraintMode = ACM_Limited;
-	HullAccuracy = 0.5;
-	MaxHullVerts = 16;
-}
 
 namespace FPhysicsAssetUtils
 {
@@ -38,7 +24,7 @@ namespace FPhysicsAssetUtils
 	static const float	MinPrimSize = 0.5f;
 
 	// Forward declarations
-	bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info, const FSkinnedBoneTriangleCache& TriangleCache);
+	bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, const FPhysAssetCreateParams& Params, const FBoneVertInfo& Info, const FSkinnedBoneTriangleCache& TriangleCache);
 
 /** Returns INDEX_NONE if no children in the visual asset or if more than one parent */
 static int32 GetChildIndex(int32 BoneIndex, USkeletalMesh* SkelMesh, const TArray<FBoneVertInfo>& Infos)
@@ -128,7 +114,7 @@ void AddInfoToParentInfo(const FTransform& LocalToParentTM, const FBoneVertInfo&
 	}
 }
 
-bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, const FSkinnedBoneTriangleCache& TriangleCache)
+bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, const FPhysAssetCreateParams& Params, const FSkinnedBoneTriangleCache& TriangleCache)
 {
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 
@@ -201,6 +187,9 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 		}
 	}
 
+	FScopedSlowTask SlowTask((float)NumBones * 2);
+	SlowTask.MakeDialog();
+
 	// Finally, iterate through all the bones and create bodies when needed
 	for (int32 BoneIndex = 0; BoneIndex < NumBones; BoneIndex++)
 	{
@@ -227,6 +216,9 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 		{
 			// Go ahead and make this bone physical.
 			FName BoneName = SkelMesh->RefSkeleton.GetBoneName(BoneIndex);
+
+			SlowTask.EnterProgressFrame(1.0f, FText::Format(NSLOCTEXT("PhysicsAssetEditor", "ResetCollsionStepInfo", "Generating collision for {0}"), FText::FromName(BoneName)));
+
 			int32 NewBodyIndex = CreateNewBody(PhysicsAsset, BoneName);
 			UBodySetup* NewBodySetup = PhysicsAsset->SkeletalBodySetups[NewBodyIndex];
 			check(NewBodySetup->BoneName == BoneName);
@@ -325,6 +317,9 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 	for(int32 BodyIdx = 0; BodyIdx < NumBodies; ++BodyIdx)
 	{
 		FBodyInstance* BodyInstance = Bodies[BodyIdx];
+
+		SlowTask.EnterProgressFrame(1.0f, FText::Format(NSLOCTEXT("PhysicsAssetEditor", "ResetCollsionStepInfoOverlaps", "Fixing overlaps for {0}"), FText::FromName(BodyInstance->BodySetup->BoneName)));
+
 		FTransform BodyTM = BodyInstance->GetUnrealWorldTransform();
 
 		for(int32 OtherBodyIdx = BodyIdx + 1; OtherBodyIdx < NumBodies; ++OtherBodyIdx)
@@ -341,7 +336,7 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 	return NumBodies > 0;
 }
 
-bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage, bool bSetToMesh /*= true*/)
+bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, const FPhysAssetCreateParams& Params, FText& OutErrorMessage, bool bSetToMesh /*= true*/)
 {
 	PhysicsAsset->PreviewSkeletalMesh = SkelMesh;
 
@@ -358,9 +353,10 @@ bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh
 	if (!bSuccess)
 	{
 		// try lower minimum bone size 
-		Params.MinBoneSize = 1.f;
+		FPhysAssetCreateParams LocalParams = Params;
+		LocalParams.MinBoneSize = 1.f;
 
-		bSuccess = CreateFromSkeletalMeshInternal(PhysicsAsset, SkelMesh, Params, TriangleCache);
+		bSuccess = CreateFromSkeletalMeshInternal(PhysicsAsset, SkelMesh, LocalParams, TriangleCache);
 
 		if(!bSuccess)
 		{
@@ -443,7 +439,7 @@ FVector ComputeEigenVector(const FMatrix& A)
 	return Bk.GetSafeNormal();
 }
 
-bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info, const FSkinnedBoneTriangleCache& TriangleCache)
+bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, const FPhysAssetCreateParams& Params, const FBoneVertInfo& Info, const FSkinnedBoneTriangleCache& TriangleCache)
 {
 #if WITH_EDITOR
 	if (Params.GeomType != EFG_MultiConvexHull)	//multi convex hull can fail so wait to clear it
@@ -550,14 +546,21 @@ bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, in
 	}
 	else if (Params.GeomType == EFG_MultiConvexHull)
 	{
-#if WITH_EDITOR
-		bs->RemoveSimpleCollision();
-#endif
 		TArray<FVector> Verts;
 		TArray<uint32> Indices;
 		TriangleCache.GetVerticesAndIndicesForBone(BoneIndex, Verts, Indices);
 
-		DecomposeMeshToHulls(bs, Verts, Indices, Params.HullAccuracy, Params.MaxHullVerts);
+		if (Verts.Num())
+		{
+			DecomposeMeshToHulls(bs, Verts, Indices, Params.HullAccuracy, Params.MaxHullVerts);
+		}
+		else
+		{
+			FMessageLog EditorErrors("EditorErrors");
+			EditorErrors.Warning(NSLOCTEXT("PhysicsAssetUtils", "ConvexNoPositions", "Unable to create a convex hull for the given bone as there are no vertices associated with the bone."));
+			EditorErrors.Open();
+			return false;
+		}
 	}
 	else if (Params.GeomType == EFG_Sphyl)
 	{
@@ -596,7 +599,7 @@ bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, in
 	return true;
 }
 
-bool CreateCollisionFromBone(UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info)
+bool CreateCollisionFromBone(UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, const FPhysAssetCreateParams& Params, const FBoneVertInfo& Info)
 {
 	check(skelMesh);
 
@@ -610,7 +613,7 @@ bool CreateCollisionFromBone(UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bone
 	return CreateCollisionFromBoneInternal(bs, skelMesh, BoneIndex, Params, Info, TriangleCache);
 }
 
-bool CreateCollisionFromBones(UBodySetup* bs, USkeletalMesh* skelMesh, const TArray<int32>& BoneIndices, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info)
+bool CreateCollisionFromBones(UBodySetup* bs, USkeletalMesh* skelMesh, const TArray<int32>& BoneIndices, const FPhysAssetCreateParams& Params, const FBoneVertInfo& Info)
 {
 	check(skelMesh);
 

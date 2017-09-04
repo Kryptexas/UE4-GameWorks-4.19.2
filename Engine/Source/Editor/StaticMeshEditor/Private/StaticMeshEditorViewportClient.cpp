@@ -126,7 +126,7 @@ struct HSMECollisionProxy : public HHitProxy
 		HHitProxy(HPP_UI),
 		PrimData(InPrimData) {}
 
-	HSMECollisionProxy(EKCollisionPrimitiveType InPrimType, int32 InPrimIndex) :
+	HSMECollisionProxy(EAggCollisionShape::Type InPrimType, int32 InPrimIndex) :
 		HHitProxy(HPP_UI),
 		PrimData(InPrimType, InPrimIndex) {}
 };
@@ -465,7 +465,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 		for (int32 i = 0; i < AggGeom->SphereElems.Num(); ++i)
 		{
-			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Sphere, i);
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(EAggCollisionShape::Sphere, i);
 			PDI->SetHitProxy(HitProxy);
 
 			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
@@ -478,7 +478,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 		for (int32 i = 0; i < AggGeom->BoxElems.Num(); ++i)
 		{
-			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Box, i);
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(EAggCollisionShape::Box, i);
 			PDI->SetHitProxy(HitProxy);
 
 			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
@@ -491,7 +491,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 		for (int32 i = 0; i < AggGeom->SphylElems.Num(); ++i)
 		{
-			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Sphyl, i);
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(EAggCollisionShape::Sphyl, i);
 			PDI->SetHitProxy(HitProxy);
 
 			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
@@ -504,7 +504,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 		for (int32 i = 0; i < AggGeom->ConvexElems.Num(); ++i)
 		{
-			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Convex, i);
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(EAggCollisionShape::Convex, i);
 			PDI->SetHitProxy(HitProxy);
 
 			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;

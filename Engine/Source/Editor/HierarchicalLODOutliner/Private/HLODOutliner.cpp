@@ -1633,6 +1633,8 @@ namespace HLODOutliner
 		// Request treeview UI item to refresh
 		TreeView->RequestTreeRefresh();
 		
+		DestroySelectionActors();
+
 		// Just finished refreshing
 		bNeedsRefresh = false;
 	}

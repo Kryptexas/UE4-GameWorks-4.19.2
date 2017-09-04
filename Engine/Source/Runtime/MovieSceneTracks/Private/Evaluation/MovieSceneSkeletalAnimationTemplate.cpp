@@ -86,8 +86,12 @@ struct FPreAnimatedAnimationTokenProducer : IMovieScenePreAnimatedTokenProducer
 
 				// Reset the mesh component update flag and animation mode to what they were before we animated the object
 				Component->MeshComponentUpdateFlag = MeshComponentUpdateFlag;
-				Component->SetAnimationMode(AnimationMode);
-
+				if (Component->GetAnimationMode() != AnimationMode)
+				{
+					// this SetAnimationMode reinitializes even if the mode is same
+					// if we're using same anim blueprint, we don't want to keep reinitializing it. 
+					Component->SetAnimationMode(AnimationMode);
+				}
 			}
 
 			EMeshComponentUpdateFlag::Type MeshComponentUpdateFlag;

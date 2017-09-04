@@ -42,7 +42,10 @@ SClothPaintTab::~SClothPaintTab()
 {
 	if(ISkeletalMeshEditor* SkeletalMeshEditor = static_cast<ISkeletalMeshEditor*>(HostingApp.Pin().Get()))
 	{
-		SkeletalMeshEditor->GetAssetEditorModeManager()->ActivateDefaultMode();
+		if(FAssetEditorModeManager* ModeManager = SkeletalMeshEditor->GetAssetEditorModeManager())
+		{
+			ModeManager->ActivateDefaultMode();
+		}
 	}
 }
 
@@ -111,53 +114,23 @@ void SClothPaintTab::Construct(const FArguments& InArgs)
 		[
 			DetailsView->AsShared()
 		];
-
-		ContentBox->AddSlot()
-		.Padding(10.0f)
-		.AutoHeight()
-		[
-			SNew(SCheckBox)
-			.Type(ESlateCheckBoxType::ToggleButton)
-			.IsChecked_Lambda([=]() { return bPaintModeEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;  })
-			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState) { bPaintModeEnabled = (NewState == ECheckBoxState::Checked); UpdatePaintTools(); })
-			.Style(&FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >("ToggleButtonCheckbox"))
-			[
-				SNew(SBox)
-				.MinDesiredHeight(25.0f)
-				.MinDesiredWidth(100.0f)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
-				[
-					SNew(SVerticalBox)							
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0f, 4.0f)
-					[
-						SNew(SHorizontalBox)						
-						+SHorizontalBox::Slot()
-						.HAlign(HAlign_Center)
-						[
-							SNew(SImage)
-							.Image(TexturePaintIcon.GetIcon())
-						]
-						
-					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Enable Paint Tools"))
-					]
-				]
-			]
-		];
 	}
 }
 
 void SClothPaintTab::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+}
+
+void SClothPaintTab::TogglePaintMode()
+{
+	bPaintModeEnabled = !bPaintModeEnabled;
+	UpdatePaintTools();
+}
+
+bool SClothPaintTab::IsPaintModeActive() const
+{
+	return bPaintModeEnabled;
 }
 
 void SClothPaintTab::UpdatePaintTools()

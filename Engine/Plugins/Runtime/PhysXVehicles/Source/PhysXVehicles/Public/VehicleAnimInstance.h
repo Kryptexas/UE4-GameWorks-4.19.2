@@ -20,8 +20,6 @@ struct FWheelAnimData
 	FVector LocOffset;
 };
 
-class UWheeledVehicleMovementComponent;
-
  /** Proxy override for this UAnimInstance-derived class */
 USTRUCT()
 struct PHYSXVEHICLES_API FVehicleAnimInstanceProxy : public FAnimInstanceProxy

@@ -46,6 +46,12 @@ public:
 	UPROPERTY(Category=LODActor, VisibleAnywhere)
 	TArray<UObject*> SubObjects;
 
+#if WITH_EDITORONLY_DATA
+	/** Assets which have become stale and might get deleted (depends on undo/redo behaviour) */
+	UPROPERTY(transient)
+	TArray<UObject*> PreviousSubObjects;
+#endif // WITH_EDITORONLY_DATA
+
 	//~ Begin AActor Interface
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
@@ -136,6 +142,9 @@ public:
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void Serialize(FArchive& Ar) override;
+
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
+	virtual void BeginDestroy() override;
 #endif // WITH_EDITOR	
 	//~ End UObject Interface.		
 protected:

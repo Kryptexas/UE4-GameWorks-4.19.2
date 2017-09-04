@@ -86,6 +86,10 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundClass"))
 	FSoftObjectPath VoiPSoundClass;
 
+	/** The amount of audio to send to reverb submixes if no reverb send is setup for the source through attenuation settings. Only used in audio mixer. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", AdvancedDisplay, meta = (ClampMin = 0.0, ClampMax = 1.0))
+	float DefaultReverbSendLevel;
+
 	UPROPERTY(config, EditAnywhere, Category="Audio", AdvancedDisplay, meta=(ClampMin=0.1,ClampMax=1.5))
 	float LowPassFilterResonance;
 

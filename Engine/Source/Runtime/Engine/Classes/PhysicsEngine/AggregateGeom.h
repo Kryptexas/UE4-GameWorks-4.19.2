@@ -55,7 +55,7 @@ struct ENGINE_API FKAggregateGeom
 		return SphereElems.Num() + SphylElems.Num() + BoxElems.Num() + ConvexElems.Num();
 	}
 
-	int32 GetElementCount(int32 Type) const;
+	int32 GetElementCount(EAggCollisionShape::Type Type) const;
 
 	void EmptyElements()
 	{

@@ -680,7 +680,7 @@ struct FPhysSceneShaderInfo
 #endif
 
 /** Enum to indicate types of simple shapes */
-enum EKCollisionPrimitiveType
+enum DEPRECATED(4.17, "Please use EAggCollisionShape::Type") EKCollisionPrimitiveType
 {
 	KPT_Sphere = 0,
 	KPT_Box,

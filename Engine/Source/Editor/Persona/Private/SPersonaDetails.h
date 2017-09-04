@@ -12,6 +12,12 @@ class SPersonaDetails : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS(SPersonaDetails) {}
 
+	/** Optional content to display above the details panel */
+	SLATE_ARGUMENT(TSharedPtr<SWidget>, TopContent)
+
+	/** Optional content to display below the details panel */
+	SLATE_ARGUMENT(TSharedPtr<SWidget>, BottomContent)
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);

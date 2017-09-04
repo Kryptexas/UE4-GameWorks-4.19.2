@@ -216,18 +216,11 @@ public:
 
 protected:
 	template <typename DataType>
-	void VerifyCurveNames(USkeleton* Skeleton, const FName& NameContainer, TArray<DataType>& CurveList)
+	void VerifyCurveNames(USkeleton& Skeleton, const FName& NameContainer, TArray<DataType>& CurveList)
 	{
-		USkeleton* MySkeleton = GetSkeleton();
-
-		if (MySkeleton)
+		for (DataType& Curve : CurveList)
 		{
-			// since this is verify function that makes sure it exists after loaded
-			// we should add it if it doesn't exist
-			for (DataType& Curve : CurveList)
-			{
-				MySkeleton->VerifySmartName(NameContainer, Curve.Name);
-			}
+			Skeleton.VerifySmartName(NameContainer, Curve.Name);
 		}
 	}
 };

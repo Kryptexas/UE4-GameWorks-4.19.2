@@ -12,6 +12,7 @@
 #include "Animation/AnimNode_SubInput.h"
 #include "PropertyCustomizationHelpers.h"
 #include "ScopedTransaction.h"
+#include "AnimationGraphSchema.h"
 
 #define LOCTEXT_NAMESPACE "SubInstanceNode"
 
@@ -115,6 +116,9 @@ void UAnimGraphNode_SubInstance::ReallocatePinsDuringReconstruction(TArray<UEdGr
 	// Need the schema to extract pin types
 	const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
 
+	// Default anim schema for util funcions
+	const UAnimationGraphSchema* AnimGraphDefaultSchema = GetDefault<UAnimationGraphSchema>();
+
 	bool bShowPose = false;
 
 	// Scan the target class for a sub input node, we only want to show the pose input if
@@ -196,6 +200,15 @@ void UAnimGraphNode_SubInstance::ReallocatePinsDuringReconstruction(TArray<UEdGr
 	{
 		KnownExposableProperties.Remove(RemovedPropertyName);
 		ExposedPropertyNames.Remove(RemovedPropertyName);
+	}
+
+	// Make sure that any old pins that linked to properties are told not to be orphans
+	for(UEdGraphPin* OldPin : OldPins)
+	{
+		if(OldPin && !AnimGraphDefaultSchema->IsPosePin(OldPin->PinType))
+		{
+			OldPin->bSavePinIfOrphaned = false;
+		}
 	}
 
 }

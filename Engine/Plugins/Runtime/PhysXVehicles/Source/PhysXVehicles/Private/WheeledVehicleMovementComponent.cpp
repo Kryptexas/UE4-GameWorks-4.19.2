@@ -80,16 +80,13 @@ void PTireShader(const void* shaderData, const PxF32 tireFriction,
 	tireLongForceMag = Output.LongForce;
 	tireLatForceMag = Output.LatForce;
 	
-	if ( /*Wheel->bDebugWheels*/true )
-	{
-		Wheel->DebugLongSlip = longSlip;
-		Wheel->DebugLatSlip = latSlip;
-		Wheel->DebugNormalizedTireLoad = normalisedTireLoad;
-		Wheel->DebugTireLoad = tireLoad;
-		Wheel->DebugWheelTorque = wheelTorque;
-		Wheel->DebugLongForce = tireLongForceMag;
-		Wheel->DebugLatForce = tireLatForceMag;
-	}
+	Wheel->DebugLongSlip = longSlip;
+	Wheel->DebugLatSlip = latSlip;
+	Wheel->DebugNormalizedTireLoad = normalisedTireLoad;
+	Wheel->DebugTireLoad = tireLoad;
+	Wheel->DebugWheelTorque = wheelTorque;
+	Wheel->DebugLongForce = tireLongForceMag;
+	Wheel->DebugLatForce = tireLatForceMag;
 }
 
 UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)

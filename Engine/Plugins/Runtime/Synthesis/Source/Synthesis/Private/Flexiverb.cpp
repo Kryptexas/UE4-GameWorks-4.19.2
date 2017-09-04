@@ -79,8 +79,9 @@ namespace Audio
 	}
 
 	void FFlexiverb::UpdateComplexity(const int32 Complexity)
-	{	
-		DelayLines.Init(FDelayAPF(), Complexity);
+	{
+		ScatteringMatrixLength = Complexity * 2 + 1;
+		DelayLines.Init(FDelayAPF(), ScatteringMatrixLength);
 		int32 Index = 0;
 		for (FDelayAPF& Delay : DelayLines)
 		{
@@ -88,9 +89,9 @@ namespace Audio
 			Delay.SetDelaySamples(DelayLineSampleLengths[Index++]);
 		}
 
-		DampeningArray.Init(FOnePoleLPF(), Complexity);
+		DampeningArray.Init(FOnePoleLPF(), ScatteringMatrixLength);
 
-		ScatteringMatrixLength = Complexity;
+		
 	}
 
 	void FFlexiverb::ProcessAudioFrame(const float* InBuffer, const int32 InChannels, float* OutBuffer, const int32 OutChannels)

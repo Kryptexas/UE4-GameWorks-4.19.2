@@ -220,7 +220,7 @@ public:
 
 	/** Removes all Animation Curve Data from the given Animation Sequence (Raw Animation Curves [Names] may not be removed from the Skeleton) */
 	UFUNCTION(BlueprintCallable, Category = "AnimationBlueprintLibrary|Curves")
-	static void RemoveAllCurveData(UAnimSequence* AnimationSequence, bool bRemoveNamesFromSkeleton = false);
+	static void RemoveAllCurveData(UAnimSequence* AnimationSequence);
 
 	/** Adds a Transformation Key to the specified Animation Curve inside of the given Animation Sequence */
 	UFUNCTION(BlueprintCallable, Category = "AnimationBlueprintLibrary|Curves")

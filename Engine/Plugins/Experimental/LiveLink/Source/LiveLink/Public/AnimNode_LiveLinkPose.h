@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNodeBase.h"
-#include "AnimGraphNode_Base.h"
 #include "LiveLinkRetargetAsset.h"
 
 class ILiveLinkClient;
@@ -43,19 +42,4 @@ struct LIVELINK_API FAnimNode_LiveLinkPose : public FAnimNode_Base
 private:
 
 	ILiveLinkClient* LiveLinkClient;
-};
-
-UCLASS()
-class UAnimGraphNode_LiveLinkPose : public UAnimGraphNode_Base
-{
-	GENERATED_UCLASS_BODY()
-
-	UPROPERTY(EditAnywhere, Category = Settings)
-	FAnimNode_LiveLinkPose Node;
-
-	// UEdGraphNode interface
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FText GetTooltipText() const override;
-	virtual FText GetMenuCategory() const;
-	// End of UEdGraphNode
 };

@@ -203,15 +203,22 @@ TSharedRef<SWidget> FAnimationAssetBrowserSummoner::CreateTabBody(const FWorkflo
 /////////////////////////////////////////////////////
 // FPreviewViewportSummoner
 
-FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, const TSharedPtr<FBlueprintEditor>& InBlueprintEditor, FOnViewportCreated InOnViewportCreated, bool bInShowTimeline, bool bInShowStats)
+FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const FPersonaViewportArgs& InArgs)
 	: FWorkflowTabFactory(FPersonaTabs::PreviewViewportID, InHostingApp)
-	, SkeletonTree(InSkeletonTree)
-	, PreviewScene(InPreviewScene)
-	, OnPostUndo(InOnPostUndo)
-	, BlueprintEditor(InBlueprintEditor)
-	, OnViewportCreated(InOnViewportCreated)
-	, bShowTimeline(bInShowTimeline)
-	, bShowStats(bInShowStats)
+	, SkeletonTree(InArgs.SkeletonTree)
+	, PreviewScene(InArgs.PreviewScene)
+	, OnPostUndo(InArgs.OnPostUndo)
+	, BlueprintEditor(InArgs.BlueprintEditor)
+	, OnViewportCreated(InArgs.OnViewportCreated)
+	, Extenders(InArgs.Extenders)
+	, bShowShowMenu(InArgs.bShowShowMenu)
+	, bShowLODMenu(InArgs.bShowLODMenu)
+	, bShowPlaySpeedMenu(InArgs.bShowPlaySpeedMenu)
+	, bShowTimeline(InArgs.bShowTimeline)
+	, bShowStats(InArgs.bShowStats)
+	, bAlwaysShowTransformToolbar(InArgs.bAlwaysShowTransformToolbar)
+	, bShowFloorOptions(InArgs.bShowFloorOptions)
+	, bShowTurnTable(InArgs.bShowTurnTable)
 {
 	TabLabel = LOCTEXT("ViewportTabTitle", "Viewport");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
@@ -228,8 +235,15 @@ TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSp
 		.BlueprintEditor(BlueprintEditor.Pin())
 		.OnInvokeTab(FOnInvokeTab::CreateSP(HostingApp.Pin().Get(), &FAssetEditorToolkit::InvokeTab))
 		.AddMetaData<FTagMetaData>(TEXT("Persona.Viewport"))
+		.Extenders(Extenders)
+		.ShowShowMenu(bShowShowMenu)
+		.ShowLODMenu(bShowLODMenu)
+		.ShowPlaySpeedMenu(bShowPlaySpeedMenu)
 		.ShowTimeline(bShowTimeline)
-		.ShowStats(bShowStats);
+		.ShowStats(bShowStats)
+		.AlwaysShowTransformToolbar(bAlwaysShowTransformToolbar)
+		.ShowFloorOptions(bShowFloorOptions)
+		.ShowTurnTable(bShowTurnTable);
 
 	OnViewportCreated.ExecuteIfBound(NewViewport);
 

@@ -18,17 +18,17 @@ void SEditorViewportViewMenu::Construct( const FArguments& InArgs, TSharedRef<SE
 		SEditorViewportToolbarMenu::FArguments()
 			.ParentToolBar( InParentToolBar)
 			.Cursor( EMouseCursor::Default )
-			.Label( this, &SEditorViewportViewMenu::GetViewMenuLabel )
-			.LabelIcon( this, &SEditorViewportViewMenu::GetViewMenuLabelIcon )
+			.Label_Static( &SEditorViewportViewMenu::GetViewMenuLabel, Viewport)
+			.LabelIcon( this, &SEditorViewportViewMenu::GetViewMenuLabelBrush)
 			.OnGetMenuContent( this, &SEditorViewportViewMenu::GenerateViewMenuContent )
 	);
 		
 }
 
-FText SEditorViewportViewMenu::GetViewMenuLabel() const
+FText SEditorViewportViewMenu::GetViewMenuLabel(TWeakPtr<SEditorViewport> InViewport)
 {
 	FText Label = LOCTEXT("ViewMenuTitle_Default", "View");
-	TSharedPtr< SEditorViewport > PinnedViewport = Viewport.Pin();
+	TSharedPtr< SEditorViewport > PinnedViewport = InViewport.Pin();
 	if( PinnedViewport.IsValid() )
 	{
 		switch( PinnedViewport->GetViewportClient()->GetViewMode() )
@@ -128,10 +128,15 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 	return Label;
 }
 
-const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
+const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelBrush() const
+{
+	return GetViewMenuLabelIcon(Viewport).GetIcon();
+}
+
+FSlateIcon SEditorViewportViewMenu::GetViewMenuLabelIcon(TWeakPtr<SEditorViewport> InViewport)
 {
 	FName Icon = NAME_None;
-	TSharedPtr< SEditorViewport > PinnedViewport = Viewport.Pin();
+	TSharedPtr< SEditorViewport > PinnedViewport = InViewport.Pin();
 	if( PinnedViewport.IsValid() )
 	{
 		static FName WireframeIcon( "EditorViewport.WireframeMode" );
@@ -254,17 +259,23 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 		}
 	}
 
-	return FEditorStyle::GetBrush( Icon );
+	return FSlateIcon( "EditorStyle", Icon );
 }
-
 
 TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 {
-	const FEditorViewportCommands& BaseViewportActions = FEditorViewportCommands::Get();
-
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 
-	FMenuBuilder ViewMenuBuilder( bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtenders );
+	FMenuBuilder ViewMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtenders);
+
+	GenerateViewMenu(ViewMenuBuilder, ParentToolBar);
+
+	return ViewMenuBuilder.MakeWidget();
+}
+
+void SEditorViewportViewMenu::GenerateViewMenu(FMenuBuilder& ViewMenuBuilder, TWeakPtr<SViewportToolBar> ParentToolBar )
+{
+	const FEditorViewportCommands& BaseViewportActions = FEditorViewportCommands::Get();
 	{
 		// View modes
 		{
@@ -282,7 +293,7 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 			{
 				struct Local
 				{
-					static void BuildOptimizationMenu( FMenuBuilder& Menu, TWeakPtr< SViewportToolBar > ParentToolBar )
+					static void BuildOptimizationMenu( FMenuBuilder& Menu, TWeakPtr< SViewportToolBar > InParentToolBar )
 					{
 						const FEditorViewportCommands& BaseViewportCommands = FEditorViewportCommands::Get();
 						Menu.AddMenuEntry( BaseViewportCommands.LightComplexityMode, NAME_None, LOCTEXT("LightComplexityViewModeDisplayName", "Light Complexity") );
@@ -302,20 +313,20 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 						Menu.AddMenuEntry( BaseViewportCommands.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
 
 						Menu.BeginSection("TextureStreaming", LOCTEXT("TextureStreamingHeader", "Texture Streaming Accuracy") );
-						if ( AllowDebugViewShaderMode(DVSM_PrimitiveDistanceAccuracy) && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_PrimitiveDistanceAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_PrimitiveDistanceAccuracy) && (!InParentToolBar.IsValid() || InParentToolBar.Pin()->IsViewModeSupported(VMI_PrimitiveDistanceAccuracy)) )
 						{
 							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccPrimitiveDistanceMode, NAME_None, LOCTEXT("TexStreamAccPrimitiveDistanceViewModeDisplayName", "Primitive Distance") );
 						}
-						if ( AllowDebugViewShaderMode(DVSM_MeshUVDensityAccuracy) && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_MeshUVDensityAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_MeshUVDensityAccuracy) && (!InParentToolBar.IsValid() || InParentToolBar.Pin()->IsViewModeSupported(VMI_MeshUVDensityAccuracy)) )
 						{
 							Menu.AddMenuEntry(BaseViewportCommands.TexStreamAccMeshUVDensityMode, NAME_None, LOCTEXT("TexStreamAccMeshUVDensityViewModeDisplayName", "Mesh UV Densities"));
 						}
 						// TexCoordScale accuracy viewmode requires shaders that are only built in the TextureStreamingBuild, which requires the new metrics to be enabled.
-						if ( AllowDebugViewShaderMode(DVSM_MaterialTextureScaleAccuracy) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0 && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_MaterialTextureScaleAccuracy) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0 && (!InParentToolBar.IsValid() || InParentToolBar.Pin()->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
 						{
 							Menu.AddMenuEntry(BaseViewportCommands.TexStreamAccMaterialTextureScaleMode, NAME_None, LOCTEXT("TexStreamAccMaterialTextureScaleViewModeDisplayName", "Material Texture Scales"));
 						}
-						if ( AllowDebugViewShaderMode(DVSM_RequiredTextureResolution) && (!ParentToolBar.IsValid() || ParentToolBar.Pin()->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
+						if ( AllowDebugViewShaderMode(DVSM_RequiredTextureResolution) && (!InParentToolBar.IsValid() || InParentToolBar.Pin()->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
 						{
 							Menu.AddMenuEntry(BaseViewportCommands.RequiredTextureResolutionMode, NAME_None, LOCTEXT("RequiredTextureResolutionModeDisplayName", "Required Texture Resolution"));
 						}
@@ -355,9 +366,6 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 			ViewMenuBuilder.EndSection();
 		}
 	}
-
-	return ViewMenuBuilder.MakeWidget();
-	
 }
 
 #undef LOCTEXT_NAMESPACE

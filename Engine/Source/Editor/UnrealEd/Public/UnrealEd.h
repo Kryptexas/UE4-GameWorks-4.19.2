@@ -220,7 +220,7 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Classes/Exporters/ObjectExporterT3D.h"
 #include "Classes/Commandlets/ParticleSystemAuditCommandlet.h"
 #include "Classes/Preferences/PersonaOptions.h"
-#include "Classes/Preferences/PhATSimOptions.h"
+#include "Classes/Preferences/PhysicsAssetEditorOptions.h"
 #include "Classes/Commandlets/PkgInfoCommandlet.h"
 #include "Classes/Exporters/PolysExporterOBJ.h"
 #include "Classes/Exporters/PolysExporterT3D.h"

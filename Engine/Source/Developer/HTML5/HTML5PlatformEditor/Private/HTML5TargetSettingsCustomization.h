@@ -7,6 +7,7 @@
 #include "Misc/Attribute.h"
 #include "Input/Reply.h"
 #include "IDetailCustomization.h"
+#include "TargetPlatformAudioCustomization.h"
 
 class IPropertyHandle;
 class SEditableTextBox;
@@ -30,4 +31,7 @@ public:
 
 private:
 	FHTML5TargetSettingsCustomization();
+
+	//Audio plugin widget builder:
+	FAudioPluginWidgetManager AudioPluginWidgetManager;
 };

@@ -497,6 +497,12 @@ struct FAnimWeight
 	{
 		return (InWeight >= (1.f - ZERO_ANIMWEIGHT_THRESH));
 	}
+
+	/** Get a small relevant weight for ticking */
+	static FORCEINLINE float GetSmallestRelevantWeight()
+	{
+		return 2.f * ZERO_ANIMWEIGHT_THRESH;
+	}
 };
 
 /** 

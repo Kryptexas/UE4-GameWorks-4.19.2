@@ -97,12 +97,20 @@ namespace Audio
 	{
 		// To figure out the output device info, attempt to init at 7.1, and 48k.
 		// SDL_OpenAudioDevice will attempt open the audio device with that spec but return what it actually used. We'll report that in OutInfo
-
+		FAudioPlatformSettings PlatformSettings = GetPlatformSettings();
 		SDL_AudioSpec DesiredSpec;
-		DesiredSpec.freq = 48000;
+		DesiredSpec.freq = PlatformSettings.SampleRate;
+
+		// HTML5 supports s16 format only
+#if PLATFORM_HTML5
+		DesiredSpec.format = AUDIO_S16;
+		DesiredSpec.channels = 2;
+#else
 		DesiredSpec.format = AUDIO_F32;
 		DesiredSpec.channels = 6;
-		DesiredSpec.samples = 1024;
+#endif
+		
+		DesiredSpec.samples = PlatformSettings.CallbackBufferFrameSize;
 		DesiredSpec.callback = OnBufferEnd;
 		DesiredSpec.userdata = (void*)this;
 
@@ -134,7 +142,13 @@ namespace Audio
 		OutInfo.DeviceId = DeviceName;
 		OutInfo.Name = OutInfo.DeviceId;
 		OutInfo.SampleRate = ActualSpec.freq;
+		
+		// HTML5 supports s16 format only
+#if PLATFORM_HTML5
+		OutInfo.Format = EAudioMixerStreamDataFormat::Int16;
+#else
 		OutInfo.Format = EAudioMixerStreamDataFormat::Float;
+#endif
 		OutInfo.NumChannels = ActualSpec.channels;
 
 		// Assume default channel map order, SDL doesn't support us querying it directly
@@ -176,7 +190,12 @@ namespace Audio
 			return false;
 		}
 
+		// HTML5 supports s16 format only
+#if PLATFORM_HTML5
+		AudioSpecPrefered.format = AUDIO_S16;
+#else
 		AudioSpecPrefered.format = AUDIO_F32;
+#endif
 		AudioSpecPrefered.freq = Params.SampleRate;
 		AudioSpecPrefered.channels = AudioStreamInfo.DeviceInfo.NumChannels;
 		AudioSpecPrefered.samples = OpenStreamParams.NumFrames;
@@ -203,7 +222,11 @@ namespace Audio
 		check(AudioSpecReceived.samples == OpenStreamParams.NumFrames);
 
 		// Compute the expected output byte length
+#if PLATFORM_HTML5
+		OutputBufferByteLength = OpenStreamParams.NumFrames * AudioStreamInfo.DeviceInfo.NumChannels * sizeof(int16);
+#else
 		OutputBufferByteLength = OpenStreamParams.NumFrames * AudioStreamInfo.DeviceInfo.NumChannels * sizeof(float);
+#endif
 		check(OutputBufferByteLength == AudioSpecReceived.size);
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Open;
@@ -283,6 +306,11 @@ namespace Audio
 
 	void FMixerPlatformSDL::HandleOnBufferEnd(uint8* InOutputBuffer, int32 InOutputBufferByteLength)
 	{
+		if (!bIsDeviceInitialized)
+		{
+			return;
+		}
+
 		OutputBuffer = InOutputBuffer;
 		check(InOutputBufferByteLength == OutputBufferByteLength);
 
@@ -357,8 +385,16 @@ namespace Audio
 
 	FAudioPlatformSettings FMixerPlatformSDL::GetPlatformSettings() const
 	{
+#if PLATFORM_LINUX
 		return FAudioPlatformSettings::GetPlatformSettings(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"));
+#else
+		// On HTML5 and Windows, use default parameters.
+		FAudioPlatformSettings Settings;
+		Settings.SampleRate = 48000;
+		Settings.MaxChannels = 0;
+		Settings.NumBuffers = 2;
+		Settings.CallbackBufferFrameSize = 1024;
+		return Settings;
+#endif
 	}
-
-
 }

@@ -67,7 +67,7 @@ void FClothPaintTool_Brush::PaintAction(FPerVertexPaintActionArgs& InArgs, int32
 
 			float Value = SharedPainter->GetPropertyValue(VertexIndex);
 			const float BrushRadius = BrushSettings->GetBrushRadius();
-			MeshPaintHelpers::ApplyBrushToVertex(Position, InverseBrushMatrix, BrushRadius * BrushRadius, BrushSettings->BrushFalloffAmount, Settings->PaintValue, Value);
+			MeshPaintHelpers::ApplyBrushToVertex(Position, InverseBrushMatrix, BrushRadius, BrushSettings->BrushFalloffAmount, BrushSettings->BrushStrength, Settings->PaintValue, Value);
 			SharedPainter->SetPropertyValue(VertexIndex, Value);
 		}
 	}
@@ -135,27 +135,27 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 	
 	const FMatrix ComponentToWorldMatrix = InComponent->GetComponentTransform().ToMatrixWithScale();
 	
+	for (const int32& Index : GradientStartIndices)
+	{
+		FVector Vertex;
+		InAdapter->GetVertexPosition(Index, Vertex);
+
+		const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
+		PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize * 2.0f, SDPG_World);
+	}
+	
+	for (const int32& Index : GradientEndIndices)
+	{
+		FVector Vertex;
+		InAdapter->GetVertexPosition(Index, Vertex);
+
+		const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
+		PDI->DrawPoint(WorldPositionVertex, FLinearColor::Red, VertexPointSize * 2.0f, SDPG_World);
+	}
+	
+	
 	for (const MeshPaintHelpers::FPaintRay& PaintRay : PaintRays)
 	{
-		for (const int32& Index : GradientStartIndices)
-		{
-			FVector Vertex;
-			InAdapter->GetVertexPosition(Index, Vertex);
-
-			const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
-			PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize * 2.0f, SDPG_World);
-		}
-	
-		for (const int32& Index : GradientEndIndices)
-		{
-			FVector Vertex;
-			InAdapter->GetVertexPosition(Index, Vertex);
-
-			const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
-			PDI->DrawPoint(WorldPositionVertex, FLinearColor::Red, VertexPointSize * 2.0f, SDPG_World);
-		}
-	
-	
 		const FHitResult& HitResult = SharedPainter->GetHitResult(PaintRay.RayStart, PaintRay.RayDirection);
 		if (HitResult.Component == InComponent)
 		{

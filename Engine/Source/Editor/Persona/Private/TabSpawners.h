@@ -242,7 +242,7 @@ private:
 
 struct FPreviewViewportSummoner : public FWorkflowTabFactory
 {
-	FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, const TSharedPtr<FBlueprintEditor>& InBlueprintEditor, FOnViewportCreated InOnViewportCreated, bool bShowTimeline, bool bInShowStats);
+	FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const FPersonaViewportArgs& InArgs);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -251,8 +251,15 @@ struct FPreviewViewportSummoner : public FWorkflowTabFactory
 	FSimpleMulticastDelegate& OnPostUndo;
 	TWeakPtr<FBlueprintEditor> BlueprintEditor;
 	FOnViewportCreated OnViewportCreated;
+	TSharedPtr<FExtender> Extenders;
+	bool bShowShowMenu;
+	bool bShowLODMenu;
+	bool bShowPlaySpeedMenu;
 	bool bShowTimeline;
 	bool bShowStats;
+	bool bAlwaysShowTransformToolbar;
+	bool bShowFloorOptions;
+	bool bShowTurnTable;
 };
 
 /////////////////////////////////////////////////////

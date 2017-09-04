@@ -9,11 +9,13 @@
 #include "EditorUndoClient.h"
 #include "IDetailsView.h"
 #include "ISkeletonEditor.h"
+#include "ArrayView.h"
 
 class IPersonaToolkit;
 class IPersonaViewport;
 class ISkeletonTree;
 class USkeleton;
+class ISkeletonTreeItem;
 
 namespace SkeletonEditorModes
 {
@@ -77,6 +79,8 @@ public:
 	void HandleObjectsSelected(const TArray<UObject*>& InObjects);
 
 	void HandleObjectSelected(UObject* InObject);
+
+	void HandleSelectionChanged(const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type InSelectInfo);
 
 	void HandleDetailsCreated(const TSharedRef<class IDetailsView>& InDetailsView);
 

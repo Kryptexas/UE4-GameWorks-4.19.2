@@ -27,7 +27,7 @@ enum EMontagePreviewType
 
 /** Proxy override for this UAnimInstance-derived class */
 USTRUCT()
-struct FAnimPreviewInstanceProxy : public FAnimSingleNodeInstanceProxy
+struct ANIMGRAPH_API FAnimPreviewInstanceProxy : public FAnimSingleNodeInstanceProxy
 {
 	GENERATED_BODY()
 

@@ -61,6 +61,8 @@
 
 #include "AnimGraphNode_AimOffsetLookAt.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
+#include "Algo/Transform.h"
+#include "ISkeletonTreeItem.h"
 
 #define LOCTEXT_NAMESPACE "AnimationBlueprintEditor"
 
@@ -202,13 +204,14 @@ void FAnimationBlueprintEditor::InitAnimationBlueprintEditor(const EToolkitMode:
 	PersonaToolkit = PersonaModule.CreatePersonaToolkit(InAnimBlueprint);
 
 	PersonaToolkit->GetPreviewScene()->SetDefaultAnimationMode(EPreviewSceneDefaultAnimationMode::AnimationBlueprint);
+	PersonaToolkit->GetPreviewScene()->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateSP(this, &FAnimationBlueprintEditor::HandlePreviewMeshChanged));
 
 	TSharedRef<IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(InAnimBlueprint);
 	AssetFamily->RecordAssetOpened(FAssetData(InAnimBlueprint));
 
 	// create the skeleton tree
-	FSkeletonTreeArgs SkeletonTreeArgs(OnPostUndo);
-	SkeletonTreeArgs.OnObjectSelected = FOnObjectSelected::CreateSP(this, &FAnimationBlueprintEditor::HandleObjectSelected);
+	FSkeletonTreeArgs SkeletonTreeArgs;
+	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateSP(this, &FAnimationBlueprintEditor::HandleSelectionChanged);
 	SkeletonTreeArgs.PreviewScene = GetPreviewScene();
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
@@ -1323,6 +1326,13 @@ void FAnimationBlueprintEditor::HandleObjectSelected(UObject* InObject)
 	SetDetailObject(InObject);
 }
 
+void FAnimationBlueprintEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type InSelectInfo)
+{
+	TArray<UObject*> Objects;
+	Algo::TransformIf(InSelectedItems, Objects, [](const TSharedPtr<ISkeletonTreeItem>& InItem) { return InItem->GetObject() != nullptr; }, [](const TSharedPtr<ISkeletonTreeItem>& InItem) { return InItem->GetObject(); });
+	SetDetailObjects(Objects);
+}
+
 UObject* FAnimationBlueprintEditor::HandleGetObject()
 {
 	return GetEditingObject();
@@ -1454,6 +1464,15 @@ void FAnimationBlueprintEditor::HandleSetObjectBeingDebugged(UObject* InObject)
 		// Clear the copy-pose component and set us back to 'normal'
 		GetPreviewScene()->ShowDefaultMode();
 		GetPreviewScene()->GetPreviewMeshComponent()->PreviewInstance->SetDebugSkeletalMeshComponent(nullptr);
+	}
+}
+
+void FAnimationBlueprintEditor::HandlePreviewMeshChanged(USkeletalMesh* OldPreviewMesh, USkeletalMesh* NewPreviewMesh)
+{
+	UObject* Object = GetBlueprintObj()->GetObjectBeingDebugged();
+	if(Object)
+	{
+		HandleSetObjectBeingDebugged(Object);
 	}
 }
 

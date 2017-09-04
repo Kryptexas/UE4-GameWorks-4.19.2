@@ -73,11 +73,11 @@ public:
 	}
 
 	/** Value of the gradient at the start points */
-	UPROPERTY(EditAnywhere, Category = ToolSettings)
+	UPROPERTY(EditAnywhere, Category = ToolSettings, meta=(UIMin=0, UIMax=100, ClampMin=0, ClampMax=100000))
 	float GradientStartValue;
 
 	/** Value of the gradient at the end points */
-	UPROPERTY(EditAnywhere, Category = ToolSettings)
+	UPROPERTY(EditAnywhere, Category = ToolSettings, meta=(UIMin=0, UIMax=100, ClampMin=0, ClampMax=100000))
 	float GradientEndValue;
 
 	/** Enables the painting of selected points using a brush rather than just a point */

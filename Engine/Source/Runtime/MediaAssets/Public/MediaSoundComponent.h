@@ -91,7 +91,7 @@ protected:
 	//~ USynthComponent interface
 
 	virtual void Init(const int32 SampleRate) override;
-	virtual void OnGenerateAudio(TArray<float>& OutAudio) override;
+	virtual void OnGenerateAudio(float* OutAudio, int32 NumSamples) override;
 
 private:
 

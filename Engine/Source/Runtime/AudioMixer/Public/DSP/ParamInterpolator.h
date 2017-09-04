@@ -6,36 +6,58 @@
 
 namespace Audio
 {
-
-	/**
-	* FParamInterpolator
-	* Simple parameter interpolator which interpolates to target values
-	* in the given the required number of update ticks.
-	*/
-	class FParamInterpolator
+	class FParam
 	{
 	public:
+		FParam()
+			: CurrentValue(0.0f)
+			, StartingValue(0.0f)
+			, TargetValue(0.0f)
+			, DeltaValue(0.0f)
+		{}
 
-		FParamInterpolator();
-		virtual ~FParamInterpolator();
+		// Set the parameter value to the given target value over the given interpolation frames.
+		FORCEINLINE void SetValue(const float InValue, const int32 InNumInterpFrames = 0)
+		{
+			TargetValue = InValue;
+			if (InNumInterpFrames == 0)
+			{
+				StartingValue = TargetValue;
+				CurrentValue = TargetValue;
+				DeltaValue = 0.0f;
+			}
+			else
+			{
+				DeltaValue = (InValue - CurrentValue) / InNumInterpFrames;
+				StartingValue = CurrentValue;
+			}
+		}
 
-		/** Initialize the value. */
-		void InitValue(const float InValue);
+		// Resets the delta value back to 0.0. To be called at beginning of callback render.
+		FORCEINLINE void Reset()
+		{
+			DeltaValue = 0.0f;
+			CurrentValue = TargetValue;
+		}
 
-		/** Set the target value to interpolate to in the given number of update ticks. */
-		void SetValue(const float InValue, const uint32 InNumInterpolationTicks);
+		// Updates the parameter, assumes called in one of the frames.
+		FORCEINLINE float Update()
+		{
+			CurrentValue += DeltaValue;
+			return CurrentValue;
+		}
 
-		/** Returns the current value without updating the tick. */
-		float GetValue() const;
+		// Returns the current value, but does not update the value
+		FORCEINLINE float GetValue() const
+		{
+			return CurrentValue;
+		}
 
-		/** Functor operator to generate new output value. */
-		virtual float operator()();
-
-	protected:
-		float StartValue;
-		float EndValue;
-		float CurrentTick;
-		float NumTicksToNewValue;
+	private:
+		float CurrentValue;
+		float StartingValue;
+		float TargetValue;
+		float DeltaValue;
 	};
 
 }

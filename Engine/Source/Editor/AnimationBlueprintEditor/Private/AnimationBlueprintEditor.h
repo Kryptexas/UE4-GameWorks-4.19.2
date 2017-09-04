@@ -9,6 +9,7 @@
 #include "GraphEditor.h"
 #include "BlueprintEditor.h"
 #include "IAnimationBlueprintEditor.h"
+#include "ArrayView.h"
 
 class IPersonaToolkit;
 class IPersonaViewport;
@@ -17,6 +18,7 @@ class UAnimBlueprint;
 class UAnimGraphNode_Base;
 class UEdGraph;
 class USkeletalMesh;
+class ISkeletonTreeItem;
 
 struct FAnimationBlueprintEditorModes
 {
@@ -109,6 +111,7 @@ public:
 	/** Handle general object selection */
 	void HandleObjectsSelected(const TArray<UObject*>& InObjects);
 	void HandleObjectSelected(UObject* InObject);
+	void HandleSelectionChanged(const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type InSelectInfo);
 
 	/** Get the object to be displayed in the asset properties */
 	UObject* HandleGetObject();
@@ -250,6 +253,9 @@ private:
 
 	/** Handle a pin's default value changing be propagating it to the preview */
 	void HandlePinDefaultValueChanged(UEdGraphPin* InPinThatChanged);
+
+	/** Handle the preview mesh changing (so we can re-hook debug anim links etc.) */
+	void HandlePreviewMeshChanged(USkeletalMesh* OldPreviewMesh, USkeletalMesh* NewPreviewMesh);
 
 	/** The extender to pass to the level editor to extend it's window menu */
 	TSharedPtr<FExtender> MenuExtender;

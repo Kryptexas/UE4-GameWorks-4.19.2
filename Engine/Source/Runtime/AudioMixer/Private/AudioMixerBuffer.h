@@ -59,6 +59,7 @@ namespace Audio
 		void EnsureHeaderParseTaskFinished();
 
 		float GetSampleRate() const { return SampleRate; }
+		int32 GetNumChannels() const { return NumChannels; }
 		void InitSampleRate(const float InSampleRate) { SampleRate = InSampleRate; }
 
 	private:

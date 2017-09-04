@@ -73,10 +73,6 @@ public class Launch : ModuleRules
 				DynamicallyLoadedModuleNames.Add("D3D11RHI");
 				DynamicallyLoadedModuleNames.Add("XAudio2");
 				DynamicallyLoadedModuleNames.Add("AudioMixerXAudio2");
-				if (Target.Platform == UnrealTargetPlatform.Win64)
-				{
-					DynamicallyLoadedModuleNames.Add("AudioMixerSDL");
-				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -232,7 +228,8 @@ public class Launch : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.HTML5 )
 		{
 			PrivateDependencyModuleNames.Add("ALAudio");
-			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
+            PrivateDependencyModuleNames.Add("AudioMixerSDL");
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
 		}
 
 		// @todo ps4 clang bug: this works around a PS4/clang compiler bug (optimizations)

@@ -63,6 +63,7 @@ protected:
 private:
 	TWeakObjectPtr<UAnimInstance> AnimInstancePtr;
 	int32 MontageInstanceID;
+	uint32 bInterruptedCalledBeforeBlendingOut : 1;
 
 	bool IsNotifyValid(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload) const;
 	void UnbindDelegates();

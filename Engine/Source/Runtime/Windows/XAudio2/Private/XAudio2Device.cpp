@@ -62,10 +62,6 @@ const float* FXAudioDeviceProperties::OutputMixMatrix = NULL;
 XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
-#if PLATFORM_WINDOWS
-FMMNotificationClient* FXAudioDeviceProperties::NotificationClient = nullptr;
-#endif
-
 /*------------------------------------------------------------------------------------
 	FAudioDevice Interface.
 ------------------------------------------------------------------------------------*/
@@ -291,6 +287,34 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
+	// If the audio device changed, we need to tear down and restart the audio engine state
+	if (DeviceProperties->DidAudioDeviceChange())
+	{
+		// Flush stops all sources so sources can be safely deleted below.
+		Flush(nullptr);
+
+		// Remove the effects manager
+		if (Effects)
+		{
+			delete Effects;
+			Effects = nullptr;
+		}
+	
+		// Teardown hardware
+		TeardownHardware();
+		
+		// Restart the hardware
+		InitializeHardware();
+
+		// Recreate the effects manager
+		Effects = CreateEffectsManager();
+
+		// Now reset and restart the sound source objects
+		FreeSources.Reset();
+		Sources.Reset();
+
+		InitSoundSources();
+	}
 }
 
 void FXAudio2Device::UpdateAudioClock()

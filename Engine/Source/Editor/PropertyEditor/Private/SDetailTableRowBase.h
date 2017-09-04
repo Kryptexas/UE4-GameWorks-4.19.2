@@ -24,7 +24,7 @@ public:
 	{
 		if( OwnerTreeNode.IsValid() && MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && !StaticCastSharedRef<STableViewBase>( OwnerTablePtr.Pin()->AsWidget() )->IsRightClickScrolling() )
 		{
-			FMenuBuilder MenuBuilder( true, NULL );
+			FMenuBuilder MenuBuilder( true, nullptr, nullptr, true );
 
 			FDetailNodeList VisibleChildren;
 			OwnerTreeNode.Pin()->GetChildren( VisibleChildren );

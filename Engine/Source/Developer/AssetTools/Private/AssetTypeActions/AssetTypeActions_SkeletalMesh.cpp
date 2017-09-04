@@ -22,7 +22,7 @@
 #include "AssetTools.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
-#include "Editor/PhAT/Public/PhATModule.h"
+#include "Editor/PhysicsAssetEditor/Public/PhysicsAssetEditorModule.h"
 #include "PersonaModule.h"
 #include "ContentBrowserModule.h"
 #include "AnimationEditorUtils.h"
@@ -34,6 +34,7 @@
 #include "ISkeletalMeshEditorModule.h"
 #include "ApexClothingUtils.h"
 #include "Algo/Transform.h"
+#include "Factories/PhysicsAssetFactory.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -593,13 +594,25 @@ void FAssetTypeActions_SkeletalMesh::GetPhysicsAssetMenu(FMenuBuilder& MenuBuild
 
 void FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset(TArray<TWeakObjectPtr<USkeletalMesh>> Objects, bool bSetAssetToMesh)
 {
+	TArray<UObject*> CreatedObjects;
+
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
 		auto Object = (*ObjIt).Get();
 		if ( Object )
 		{
-			CreatePhysicsAssetFromMesh(Object, bSetAssetToMesh);
+			if(UObject* PhysicsAsset = UPhysicsAssetFactory::CreatePhysicsAssetFromMesh(NAME_None, nullptr, Object, bSetAssetToMesh))
+			{
+				CreatedObjects.Add(PhysicsAsset);
+			}
 		}
+	}
+
+	if(CreatedObjects.Num() > 0)
+	{
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+		ContentBrowserModule.Get().SyncBrowserToAssets(CreatedObjects);
+		FAssetEditorManager::Get().OpenEditorForAssets(CreatedObjects);
 	}
 }
 
@@ -744,65 +757,6 @@ void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder,
 			FCanExecuteAction()
 			)
 		);
-}
-
-void FAssetTypeActions_SkeletalMesh::CreatePhysicsAssetFromMesh(USkeletalMesh* SkelMesh, bool bSetToMesh) const
-{
-	// Get a unique package and asset name
-	FString Name;
-	FString PackageName;
-	CreateUniqueAssetName(SkelMesh->GetOutermost()->GetName(), TEXT("_Physics"), PackageName, Name);
-
-	// Then find/create it.
-	UPackage* Package = CreatePackage(NULL, *PackageName);
-	if ( !ensure(Package) )
-	{
-		// There was a problem creating the package
-		return;
-	}
-
-	IPhATModule* PhATModule = &FModuleManager::LoadModuleChecked<IPhATModule>( "PhAT" );
-	FPhysAssetCreateParams NewBodyData;
-	EAppReturnType::Type NewBodyResponse;
-
-	// Now show the 'asset creation' options dialog
-	PhATModule->OpenNewBodyDlg(&NewBodyData, &NewBodyResponse);
-	bool bWasOkClicked = (NewBodyResponse == EAppReturnType::Ok);
-
-	if( bWasOkClicked )
-	{			
-		UPhysicsAsset* NewAsset = NewObject<UPhysicsAsset>(Package, *Name, RF_Public | RF_Standalone | RF_Transactional);
-		if(NewAsset)
-		{
-			// Do automatic asset generation.
-			FText ErrorMessage;
-			bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewAsset, SkelMesh, NewBodyData, ErrorMessage, bSetToMesh);
-			if(bSuccess)
-			{
-				NewAsset->MarkPackageDirty();
-				PhATModule->CreatePhAT(EToolkitMode::Standalone, TSharedPtr<IToolkitHost>(), NewAsset);
-
-				// Notify the asset registry
-				FAssetRegistryModule::AssetCreated(NewAsset);
-
-				if(bSetToMesh)
-				{
-					// auto-link source skelmesh to the new physasset and recreate physics state if needed
-					RefreshSkelMeshOnPhysicsAssetChange(SkelMesh);
-					SkelMesh->MarkPackageDirty();
-				}
-			}
-			else
-			{
-				FMessageDialog::Open(EAppMsgType::Ok, ErrorMessage);
-				NewAsset->ClearFlags( RF_Public| RF_Standalone );
-			}
-		}
-		else
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("CreatePhysicsAsset", "CreatePhysicsAssetFailed", "Failed to create new Physics Asset.") );
-		}
-	}
 }
 
 void FAssetTypeActions_SkeletalMesh::AssignSkeletonToMesh(USkeletalMesh* SkelMesh) const

@@ -1773,7 +1773,6 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 				else
 				{
 					FPhysAssetCreateParams NewBodyData;
-					NewBodyData.Initialize();
 					FText CreationErrorMessage;
 					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage);
 					if (!bSuccess)

@@ -27,10 +27,17 @@ FString FBuildVersion::GetDefaultFileName()
 
 FString FBuildVersion::GetFileNameForCurrentExecutable()
 {
+	FString AppExecutableName = FPlatformProcess::ExecutableName();
+#if PLATFORM_WINDOWS
+	if(AppExecutableName.EndsWith(TEXT("-Cmd")))
+	{
+		AppExecutableName = AppExecutableName.Left(AppExecutableName.Len() - 4);
+	}
+#endif
 #if IS_PROGRAM || IS_MONOLITHIC
-	return FPaths::ProjectDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory() / FPlatformProcess::ExecutableName() + TEXT(".version");
+	return FPaths::ProjectDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory() / AppExecutableName + TEXT(".version");
 #else
-	return FPaths::EngineDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory() / FPlatformProcess::ExecutableName() + TEXT(".version");
+	return FPaths::EngineDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory() / AppExecutableName + TEXT(".version");
 #endif
 }
 

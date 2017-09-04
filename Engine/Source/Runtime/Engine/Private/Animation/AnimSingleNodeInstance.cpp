@@ -89,6 +89,11 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	}
 }
 
+UAnimationAsset* UAnimSingleNodeInstance::GetAnimationAsset() const
+{
+	return CurrentAsset;
+}
+
 void UAnimSingleNodeInstance::SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero)
 {
 	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetPreviewCurveOverride(PoseName, Value, bRemoveIfZero);

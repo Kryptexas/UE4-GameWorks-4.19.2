@@ -656,13 +656,13 @@ bool FStaticMeshEditor::IsPrimValid(const FPrimData& InPrimData) const
 
 		switch (InPrimData.PrimType)
 		{
-		case KPT_Sphere:
+		case EAggCollisionShape::Sphere:
 			return AggGeom->SphereElems.IsValidIndex(InPrimData.PrimIndex);
-		case KPT_Box:
+		case EAggCollisionShape::Box:
 			return AggGeom->BoxElems.IsValidIndex(InPrimData.PrimIndex);
-		case KPT_Sphyl:
+		case EAggCollisionShape::Sphyl:
 			return AggGeom->SphylElems.IsValidIndex(InPrimData.PrimIndex);
-		case KPT_Convex:
+		case EAggCollisionShape::Convex:
 			return AggGeom->ConvexElems.IsValidIndex(InPrimData.PrimIndex);
 		}
 	}
@@ -740,25 +740,25 @@ void FStaticMeshEditor::DuplicateSelectedPrims(const FVector* InOffset)
 			check(IsPrimValid(PrimData));
 			switch (PrimData.PrimType)
 			{
-			case KPT_Sphere:
+			case EAggCollisionShape::Sphere:
 				{					
 					const FKSphereElem SphereElem = AggGeom->SphereElems[PrimData.PrimIndex];
 					PrimData.PrimIndex = AggGeom->SphereElems.Add(SphereElem);
 				}
 				break;
-			case KPT_Box:
+			case EAggCollisionShape::Box:
 				{
 					const FKBoxElem BoxElem = AggGeom->BoxElems[PrimData.PrimIndex];
 					PrimData.PrimIndex = AggGeom->BoxElems.Add(BoxElem);
 				}
 				break;
-			case KPT_Sphyl:
+			case EAggCollisionShape::Sphyl:
 				{
 					const FKSphylElem SphylElem = AggGeom->SphylElems[PrimData.PrimIndex];
 					PrimData.PrimIndex = AggGeom->SphylElems.Add(SphylElem);
 				}
 				break;
-			case KPT_Convex:
+			case EAggCollisionShape::Convex:
 				{
 					const FKConvexElem ConvexElem = AggGeom->ConvexElems[PrimData.PrimIndex];
 					PrimData.PrimIndex = AggGeom->ConvexElems.Add(ConvexElem);
@@ -865,16 +865,16 @@ void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
 		check(IsPrimValid(PrimData));
 		switch (PrimData.PrimType)
 		{
-		case KPT_Sphere:
+		case EAggCollisionShape::Sphere:
 			AggGeom->SphereElems[PrimData.PrimIndex].ScaleElem(SimplePrimitiveScaleSpeedFactor * ModifiedScale, MinPrimSize);
 			break;
-		case KPT_Box:
+		case EAggCollisionShape::Box:
 			AggGeom->BoxElems[PrimData.PrimIndex].ScaleElem(SimplePrimitiveScaleSpeedFactor * ModifiedScale, MinPrimSize);
 			break;
-		case KPT_Sphyl:
+		case EAggCollisionShape::Sphyl:
 			AggGeom->SphylElems[PrimData.PrimIndex].ScaleElem(SimplePrimitiveScaleSpeedFactor * ModifiedScale, MinPrimSize);
 			break;
-		case KPT_Convex:
+		case EAggCollisionShape::Convex:
 			AggGeom->ConvexElems[PrimData.PrimIndex].ScaleElem(ModifiedScale, MinPrimSize);
 			break;
 		}
@@ -899,16 +899,16 @@ bool FStaticMeshEditor::CalcSelectedPrimsAABB(FBox &OutBox) const
 		check(IsPrimValid(PrimData));
 		switch (PrimData.PrimType)
 		{
-		case KPT_Sphere:
+		case EAggCollisionShape::Sphere:
 			OutBox += AggGeom->SphereElems[PrimData.PrimIndex].CalcAABB(FTransform::Identity, 1.f);
 			break;
-		case KPT_Box:
+		case EAggCollisionShape::Box:
 			OutBox += AggGeom->BoxElems[PrimData.PrimIndex].CalcAABB(FTransform::Identity, 1.f);
 			break;
-		case KPT_Sphyl:
+		case EAggCollisionShape::Sphyl:
 			OutBox += AggGeom->SphylElems[PrimData.PrimIndex].CalcAABB(FTransform::Identity, 1.f);
 			break;
-		case KPT_Convex:
+		case EAggCollisionShape::Convex:
 			OutBox += AggGeom->ConvexElems[PrimData.PrimIndex].CalcAABB(FTransform::Identity, FVector(1.f));
 			break;
 		}
@@ -929,16 +929,16 @@ bool FStaticMeshEditor::GetLastSelectedPrimTransform(FTransform& OutTransform) c
 		check(IsPrimValid(PrimData));
 		switch (PrimData.PrimType)
 		{
-		case KPT_Sphere:
+		case EAggCollisionShape::Sphere:
 			OutTransform = AggGeom->SphereElems[PrimData.PrimIndex].GetTransform();
 			break;
-		case KPT_Box:
+		case EAggCollisionShape::Box:
 			OutTransform = AggGeom->BoxElems[PrimData.PrimIndex].GetTransform();
 			break;
-		case KPT_Sphyl:
+		case EAggCollisionShape::Sphyl:
 			OutTransform = AggGeom->SphylElems[PrimData.PrimIndex].GetTransform();
 			break;
-		case KPT_Convex:
+		case EAggCollisionShape::Convex:
 			OutTransform = AggGeom->ConvexElems[PrimData.PrimIndex].GetTransform();
 			break;
 		}
@@ -955,13 +955,13 @@ FTransform FStaticMeshEditor::GetPrimTransform(const FPrimData& InPrimData) cons
 	check(IsPrimValid(InPrimData));
 	switch (InPrimData.PrimType)
 	{
-	case KPT_Sphere:
+	case EAggCollisionShape::Sphere:
 		return AggGeom->SphereElems[InPrimData.PrimIndex].GetTransform();
-	case KPT_Box:
+	case EAggCollisionShape::Box:
 		return AggGeom->BoxElems[InPrimData.PrimIndex].GetTransform();
-	case KPT_Sphyl:
+	case EAggCollisionShape::Sphyl:
 		return AggGeom->SphylElems[InPrimData.PrimIndex].GetTransform();
-	case KPT_Convex:
+	case EAggCollisionShape::Convex:
 		return AggGeom->ConvexElems[InPrimData.PrimIndex].GetTransform();
 	}
 	return FTransform::Identity;
@@ -976,16 +976,16 @@ void FStaticMeshEditor::SetPrimTransform(const FPrimData& InPrimData, const FTra
 	check(IsPrimValid(InPrimData));
 	switch (InPrimData.PrimType)
 	{
-	case KPT_Sphere:
+	case EAggCollisionShape::Sphere:
 		AggGeom->SphereElems[InPrimData.PrimIndex].SetTransform(InPrimTransform);
 		break;
-	case KPT_Box:
+	case EAggCollisionShape::Box:
 		AggGeom->BoxElems[InPrimData.PrimIndex].SetTransform(InPrimTransform);
 		break;
-	case KPT_Sphyl:
+	case EAggCollisionShape::Sphyl:
 		AggGeom->SphylElems[InPrimData.PrimIndex].SetTransform(InPrimTransform);
 		break;
-	case KPT_Convex:
+	case EAggCollisionShape::Convex:
 		AggGeom->ConvexElems[InPrimData.PrimIndex].SetTransform(InPrimTransform);
 		break;
 	}
@@ -1003,7 +1003,7 @@ bool FStaticMeshEditor::OverlapsExistingPrim(const FPrimData& InPrimData) const
 	check(IsPrimValid(InPrimData));
 	switch (InPrimData.PrimType)
 	{
-	case KPT_Sphere:
+	case EAggCollisionShape::Sphere:
 		{
 			const FKSphereElem InSphereElem = AggGeom->SphereElems[InPrimData.PrimIndex];
 			const FTransform InElemTM = InSphereElem.GetTransform();
@@ -1023,7 +1023,7 @@ bool FStaticMeshEditor::OverlapsExistingPrim(const FPrimData& InPrimData) const
 			}
 		}
 		break;
-	case KPT_Box:
+	case EAggCollisionShape::Box:
 		{
 			const FKBoxElem InBoxElem = AggGeom->BoxElems[InPrimData.PrimIndex];
 			const FTransform InElemTM = InBoxElem.GetTransform();
@@ -1043,7 +1043,7 @@ bool FStaticMeshEditor::OverlapsExistingPrim(const FPrimData& InPrimData) const
 			}
 		}
 		break;
-	case KPT_Sphyl:
+	case EAggCollisionShape::Sphyl:
 		{
 			const FKSphylElem InSphylElem = AggGeom->SphylElems[InPrimData.PrimIndex];
 			const FTransform InElemTM = InSphylElem.GetTransform();
@@ -1063,7 +1063,7 @@ bool FStaticMeshEditor::OverlapsExistingPrim(const FPrimData& InPrimData) const
 			}
 		}
 		break;
-	case KPT_Convex:
+	case EAggCollisionShape::Convex:
 		{
 			const FKConvexElem InConvexElem = AggGeom->ConvexElems[InPrimData.PrimIndex];
 			const FTransform InElemTM = InConvexElem.GetTransform();
@@ -1288,7 +1288,7 @@ void FStaticMeshEditor::GenerateKDop(const FVector* Directions, uint32 NumDirect
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("KDop Collision"));
 		}
-		const FPrimData PrimData = FPrimData(KPT_Convex, PrimIndex);
+		const FPrimData PrimData = FPrimData(EAggCollisionShape::Convex, PrimIndex);
 		ClearSelectedPrims();
 		AddSelectedPrim(PrimData, true);
 		// Don't 'nudge' KDop prims, as they are fitted specifically around the geometry
@@ -1308,7 +1308,7 @@ void FStaticMeshEditor::OnCollisionBox()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Box Collision"));
 		}
-		const FPrimData PrimData = FPrimData(KPT_Box, PrimIndex);
+		const FPrimData PrimData = FPrimData(EAggCollisionShape::Box, PrimIndex);
 		ClearSelectedPrims();
 		AddSelectedPrim(PrimData, true);
 		while( OverlapsExistingPrim(PrimData) )
@@ -1331,7 +1331,7 @@ void FStaticMeshEditor::OnCollisionSphere()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Sphere Collision"));
 		}
-		const FPrimData PrimData = FPrimData(KPT_Sphere, PrimIndex);
+		const FPrimData PrimData = FPrimData(EAggCollisionShape::Sphere, PrimIndex);
 		ClearSelectedPrims();
 		AddSelectedPrim(PrimData, true);
 		while( OverlapsExistingPrim(PrimData) )
@@ -1354,7 +1354,7 @@ void FStaticMeshEditor::OnCollisionSphyl()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Capsule Collision"));
 		}
-		const FPrimData PrimData = FPrimData(KPT_Sphyl, PrimIndex);
+		const FPrimData PrimData = FPrimData(EAggCollisionShape::Sphyl, PrimIndex);
 		ClearSelectedPrims();
 		AddSelectedPrim(PrimData, true);
 		while( OverlapsExistingPrim(PrimData) )
@@ -1470,7 +1470,7 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 				FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
 				for (int32 i = 0; i < NumBoxElems; ++i)
 				{
-					AddSelectedPrim(FPrimData(KPT_Convex, (AggGeom->ConvexElems.Num() - (i+1))), false);
+					AddSelectedPrim(FPrimData(EAggCollisionShape::Convex, (AggGeom->ConvexElems.Num() - (i+1))), false);
 				}
 
 				RefreshCollisionChange(*StaticMesh);
@@ -1825,16 +1825,16 @@ void FStaticMeshEditor::DeleteSelectedPrims()
 			check(IsPrimValid(PrimData));
 			switch (PrimData.PrimType)
 			{
-			case KPT_Sphere:
+			case EAggCollisionShape::Sphere:
 				AggGeom->SphereElems.RemoveAt(PrimData.PrimIndex);
 				break;
-			case KPT_Box:
+			case EAggCollisionShape::Box:
 				AggGeom->BoxElems.RemoveAt(PrimData.PrimIndex);
 				break;
-			case KPT_Sphyl:
+			case EAggCollisionShape::Sphyl:
 				AggGeom->SphylElems.RemoveAt(PrimData.PrimIndex);
 				break;
-			case KPT_Convex:
+			case EAggCollisionShape::Convex:
 				AggGeom->ConvexElems.RemoveAt(PrimData.PrimIndex);
 				break;
 			}

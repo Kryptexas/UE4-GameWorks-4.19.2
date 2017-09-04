@@ -52,6 +52,7 @@ public class DetailCustomizations : ModuleRules
                 "SkeletonEditor",
                 "LevelSequence",
                 "AdvancedPreviewScene",
+                "AudioSettingsEditor",
             }
 		);
 

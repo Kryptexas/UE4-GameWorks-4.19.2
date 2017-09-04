@@ -159,15 +159,17 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IProper
 		.EditCondition(GetIsAttenuationEnabledAttribute(), nullptr);
 
 	// Get the attenuation category directly here otherwise our category is going to be incorrect for the following custom rows (e.g. "Vector" vs "Attenuation")
-	FText CategoryText = NSLOCTEXT("AttenuationSettings", "RadiusLabel", "AttenuationDistance");
+	FText CategoryText = NSLOCTEXT("AttenuationSettings", "AttenuationDistanceLabel", "AttenuationDistance");
 	FName AttenuationCategoryFName(*CategoryText.ToString());
 	IDetailCategoryBuilder& AttenuationCategory = LayoutBuilder.EditCategory(AttenuationCategoryFName);
 
-	AttenuationCategory.AddCustomRow(NSLOCTEXT("AttenuationSettings", "RadiusLabel", "Inner Radius"))
+	const FText RadiusLabel(NSLOCTEXT("AttenuationSettings", "RadiusLabel", "Inner Radius"));
+
+	AttenuationCategory.AddCustomRow(RadiusLabel)
 		.NameContent()
 		[
 			SNew(STextBlock)
-				.Text(NSLOCTEXT("AttenuationSettings", "RadiusLabel", "Inner Radius"))
+				.Text(RadiusLabel)
 				.ToolTipText(NSLOCTEXT("AttenuationSettings", "RadiusToolTip", "The radius that defines when sound attenuation begins (or when a custom attenuation curve begins). Sounds played at a distance less than this will not be attenuated."))
 				.Font(StructCustomizationUtils.GetRegularFont())
 				.IsEnabled(GetIsAttenuationEnabledAttribute())

@@ -26,6 +26,7 @@ class ANIMGRAPH_API UAnimGraphNode_StateMachineBase : public UAnimGraphNode_Base
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PostPlacedNewNode() override;
 	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual void JumpToDefinition() const override;
 	virtual void DestroyNode() override;
 	virtual void PostPasteNode() override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;

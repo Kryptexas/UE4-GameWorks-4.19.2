@@ -54,9 +54,6 @@ private:
 
 	// Helper functions
 private:
-	/** Creates a physics asset based on the mesh */
-	void CreatePhysicsAssetFromMesh(USkeletalMesh* SkelMesh, bool bSetToMesh) const;
-
 	/** Assigns a skeleton to the mesh */
 	void AssignSkeletonToMesh(USkeletalMesh* SkelMesh) const;
 

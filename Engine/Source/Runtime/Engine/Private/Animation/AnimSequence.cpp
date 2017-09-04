@@ -543,22 +543,16 @@ void UAnimSequence::PostLoad()
 		}
 	}
 
-	USkeleton* CurrentSkeleton = GetSkeleton();
-
-	if (CurrentSkeleton)
+	if (USkeleton* CurrentSkeleton = GetSkeleton())
 	{
-		VerifyCurveNames<FFloatCurve>(CurrentSkeleton, USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
+		VerifyCurveNames<FFloatCurve>(*CurrentSkeleton, USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
+
+#if WITH_EDITOR
+		VerifyCurveNames<FTransformCurve>(*CurrentSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
+#endif
 	}
 
 #if WITH_EDITOR
-	if (CurrentSkeleton)
-	{
-		// Get the name mapping object for curves
-		for(FTransformCurve& Curve : RawCurveData.TransformCurves)
-		{
-			CurrentSkeleton->VerifySmartName(USkeleton::AnimTrackCurveMappingName, Curve.Name);
-		}
-	}
 
 	// Compressed curve flags are not authoritative (they come from the DDC). Keep them up to date with
 	// actual anim flags 
@@ -2069,7 +2063,8 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, bool bAllowAl
 void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FAnimCompressContext> CompressContext)
 {
 #if WITH_EDITOR
-	if (GetSkeleton() == nullptr)
+	USkeleton* CurrentSkeleton = GetSkeleton();
+	if (CurrentSkeleton == nullptr)
 	{
 		bUseRawDataOnly = true;
 		return;
@@ -2098,7 +2093,7 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 	const bool bDoCompressionInPlace = FUObjectThreadContext::Get().IsRoutingPostLoad;
 
 	// Need to make sure this is up to date.
-	VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
+	VerifyCurveNames<FFloatCurve>(*CurrentSkeleton, USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
 
 	if (bAsyncCompression)
 	{
@@ -2121,6 +2116,12 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 			if (AnimCompressor->CanBuild())
 			{
 				GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			}
+			else
+			{
+				// If we dont perform compression we need to clean this up
+				delete AnimCompressor;
+				AnimCompressor = nullptr;
 			}
 		}
 
@@ -2231,15 +2232,18 @@ void UAnimSequence::SerializeCompressedData(FArchive& Ar, bool bDDCData)
 
 		if (Ar.IsLoading())
 		{
-			VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
-			bUseRawDataOnly = !IsCompressedDataValid();
-			ensureMsgf(!bUseRawDataOnly, TEXT("Anim Compression failed for Sequence '%s' Guid:%s CompressedDebugData:\n\tOriginal Anim:%s\n\tAdditiveSetting:%i\n\tCompression Scheme:%s\n\tRawDataGuid:%s"),
-				*GetFullName(),
-				*RawDataGuid.ToString(),
-				*DebugData.FullName,
-				DebugData.AdditiveSetting,
-				*DebugData.CompressionSchemeName,
-				*DebugData.RawDataGuid.ToString());
+			if(USkeleton* CurrentSkeleton = GetSkeleton())
+			{
+				VerifyCurveNames<FFloatCurve>(*CurrentSkeleton, USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
+				bUseRawDataOnly = !IsCompressedDataValid();
+				ensureMsgf(!bUseRawDataOnly, TEXT("Anim Compression failed for Sequence '%s' Guid:%s CompressedDebugData:\n\tOriginal Anim:%s\n\tAdditiveSetting:%i\n\tCompression Scheme:%s\n\tRawDataGuid:%s"),
+					*GetFullName(),
+					*RawDataGuid.ToString(),
+					*DebugData.FullName,
+					DebugData.AdditiveSetting,
+					*DebugData.CompressionSchemeName,
+					*DebugData.RawDataGuid.ToString());
+			}
 		}
 	}
 #endif
@@ -2367,7 +2371,7 @@ public:
 			RequiredBoneIndexArray[BoneIndex] = BoneIndex;
 		}
 
-		RequiredBones.InitializeTo(RequiredBoneIndexArray, false, *MySkeleton);
+		RequiredBones.InitializeTo(RequiredBoneIndexArray, FCurveEvaluationOption(true), *MySkeleton);
 	}
 
 };
@@ -2461,18 +2465,17 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 		return; // Nothing to do
 	}
 
+	USkeleton* MySkeleton = GetSkeleton();
+	check(MySkeleton);
+
 	if (RefPoseSeq && RefPoseSeq->HasAnyFlags(EObjectFlags::RF_NeedPostLoad))
 	{
-		RefPoseSeq->VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, RefPoseSeq->RawCurveData.FloatCurves);
+		RefPoseSeq->VerifyCurveNames<FFloatCurve>(*MySkeleton, USkeleton::AnimCurveMappingName, RefPoseSeq->RawCurveData.FloatCurves);
 	}
 
 	FMemMark Mark(FMemStack::Get());
 
 	FByFramePoseEvalContext EvalContext(this);
-
-	USkeleton* MySkeleton = GetSkeleton();
-	check(MySkeleton);
-
 
 	//New raw data
 	FRawCurveTracks NewCurveTracks;
@@ -4201,7 +4204,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 		if(!NameMapping)
 		{
 			// if no name mapping is found but curve exists, we should verify curve namex
-			VerifyCurveNames<FTransformCurve>(CurSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
+			VerifyCurveNames<FTransformCurve>(*CurSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
 			NameMapping = CurSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 		}
 		

@@ -10,6 +10,7 @@
 #include "AnimationStateMachineGraph.h"
 #include "AnimationStateMachineSchema.h"
 #include "AnimGraphNode_StateMachine.h"
+#include "Kismet2/KismetEditorUtilities.h"
 
 /////////////////////////////////////////////////////
 // FAnimStateMachineNodeNameValidator
@@ -122,6 +123,14 @@ UObject* UAnimGraphNode_StateMachineBase::GetJumpTargetForDoubleClick() const
 {
 	// Open the state machine graph
 	return EditorStateMachineGraph;
+}
+
+void UAnimGraphNode_StateMachineBase::JumpToDefinition() const
+{
+	if (UObject* HyperlinkTarget = GetJumpTargetForDoubleClick())
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+	}
 }
 
 void UAnimGraphNode_StateMachineBase::DestroyNode()

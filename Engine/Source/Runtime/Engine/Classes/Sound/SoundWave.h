@@ -14,6 +14,7 @@
 #include "Sound/SoundBase.h"
 #include "Serialization/BulkData.h"
 #include "Sound/SoundGroups.h"
+#include "AudioMixerTypes.h"
 
 #include "SoundWave.generated.h"
 
@@ -139,6 +140,9 @@ class ENGINE_API USoundWave : public USoundBase
 
 	/** Set to true for programmatically-generated, streamed audio. */
 	uint32 bProcedural:1;
+
+	/** Set to true of this is a bus sound source. This will result in the sound wave not generating audio for itself, but generate audio through instances. Used only in audio mixer. */
+	uint32 bIsBus:1;
 
 	/** Set to true for procedural waves that can be processed asynchronously. */
 	uint32 bCanProcessAsync:1;
@@ -350,15 +354,20 @@ public:
 	FWaveInstance* HandleStart( FActiveSound& ActiveSound, const UPTRINT WaveInstanceHash ) const;
 
 	/** 
-	 * This is only for DTYPE_Procedural audio. Override this function.
-	 *  Put SamplesNeeded PCM samples into Buffer. If put less,
-	 *  silence will be filled in at the end of the buffer. If you
-	 *  put more, data will be truncated.
-	 *  Please note that "samples" means individual channels, not
-	 *  sample frames! If you have stereo data and SamplesNeeded
-	 *  is 1, you're writing two SWORDs, not four!
+	 * This is only used for DTYPE_Procedural audio. It's recommended to use USynthComponent base class
+	 * for procedurally generated sound vs overriding this function. If a new component is not feasible,
+	 * consider using USoundWaveProcedural base class vs USoundWave base class since as it implements
+	 * GeneratePCMData for you and you only need to return PCM data.
 	 */
 	virtual int32 GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded) { ensure(false); return 0; }
+
+	/** 
+	* Return the format of the generated PCM data type. Used in audio mixer to allow generating float buffers and avoid unnecessary format conversions. 
+	* This feature is only supported in audio mixer. If your procedural sound wave needs to be used in both audio mixer and old audio engine,
+	* it's best to generate int16 data as old audio engine only supports int16 formats. Or check at runtime if the audio mixer is enabled.
+	* Audio mixer will convert from int16 to float internally.
+	*/
+	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const { return Audio::EAudioMixerStreamDataFormat::Int16; }
 
 	/** 
 	 * Gets the compressed data size from derived data cache for the specified format

@@ -284,7 +284,7 @@ private:
 	void CreateNewNameEntry(const FText& CommittedText, ETextCommit::Type CommitType);
 
 	/** Handle smart name (i.e. curve) removal */
-	void HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids);
+	void HandleSmartNamesChange(const FName& InContainerName);
 
 	/** Get the SmartNameMapping for anim curves */
 	const struct FSmartNameMapping* GetAnimCurveMapping();
@@ -338,5 +338,5 @@ private:
 	void ApplyCurveBoneLinks(class UEditorAnimCurveBoneLinks* EditorObj);
 
 	/** Delegate handle for HandleSmartNameRemoved callback */
-	FDelegateHandle SmartNameRemovedHandle;
+	FDelegateHandle SmartNameChangedHandle;
 };

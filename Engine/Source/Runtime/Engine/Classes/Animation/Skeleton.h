@@ -440,17 +440,13 @@ public:
 	ENGINE_API void RemoveSmartnameAndModify(FName ContainerName, SmartName::UID_Type Uid);
 
 	// Removes smartnames from the specified container and modifies the skeleton
-	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<SmartName::UID_Type>& Uids);
+	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<FName>& Names);
 #endif// WITH_EDITOR
 
 	// quick wrapper function for Find UID by name, if not found, it will return SmartName::MaxUID
 	ENGINE_API SmartName::UID_Type GetUIDByName(const FName& ContainerName, const FName& Name) const;
 	ENGINE_API bool GetSmartNameByUID(const FName& ContainerName, SmartName::UID_Type UID, FSmartName& OutSmartName);
 	ENGINE_API bool GetSmartNameByName(const FName& ContainerName, const FName& InName, FSmartName& OutSmartName);
-
-	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
-	// return bool - Whether a name was added (false if already present)
-	ENGINE_API bool RenameSmartName(FName ContainerName, const SmartName::UID_Type& Uid, FName NewName);
 
 	// Get or add a smartname container with the given name
 	ENGINE_API const FSmartNameMapping* GetSmartNameContainer(const FName& ContainerName) const;
@@ -815,7 +811,7 @@ public:
 	static const FString AnimNotifyTagDelimiter;
 
 	// Asset registry information for animation curves
-	ENGINE_API static const FName CurveTag;
+	ENGINE_API static const FName CurveNameTag;
 	ENGINE_API static const FString CurveTagDelimiter;
 
 	// rig Configs

@@ -36,7 +36,13 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, const FAnimat
 	PreviewScenePtr = InRequiredArgs.PreviewScene;
 	TabBodyPtr = InRequiredArgs.TabBody;
 	AssetEditorToolkitPtr = InRequiredArgs.AssetEditorToolkit;
+	Extenders = InArgs._Extenders;
+	bShowShowMenu = InArgs._ShowShowMenu;
+	bShowLODMenu = InArgs._ShowLODMenu;
+	bShowPlaySpeedMenu = InArgs._ShowPlaySpeedMenu;
 	bShowStats = InArgs._ShowStats;
+	bShowFloorOptions = InArgs._ShowFloorOptions;
+	bShowTurnTable = InArgs._ShowTurnTable;
 
 	InRequiredArgs.OnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SAnimationEditorViewport::OnUndoRedo));
 
@@ -65,7 +71,13 @@ TSharedRef<FEditorViewportClient> SAnimationEditorViewport::MakeEditorViewportCl
 TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 {
 	return SNew(SAnimViewportToolBar, TabBodyPtr.Pin(), SharedThis(this))
-		.Cursor(EMouseCursor::Default);
+		.Cursor(EMouseCursor::Default)
+		.Extenders(Extenders)
+		.ShowShowMenu(bShowShowMenu)
+		.ShowLODMenu(bShowLODMenu)
+		.ShowPlaySpeedMenu(bShowPlaySpeedMenu)
+		.ShowFloorOptions(bShowFloorOptions)
+		.ShowTurnTable(bShowTurnTable);
 }
 
 void SAnimationEditorViewport::OnUndoRedo()
@@ -78,105 +90,6 @@ void SAnimationEditorViewport::OnFocusViewportToSelection()
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
-
-//////////////////////////////////////////////////////////////////////////
-// 
-/** //@TODO MODES: Simple text entry popup used it to get 3 vector position*/
-
-class STranslationInputWindow : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS( STranslationInputWindow )
-		: _X_Value(0.0f)
-		, _Y_Value(0.0f)
-		, _Z_Value(0.0f)
-	{}
-
-
-	SLATE_ARGUMENT( float, X_Value )
-	SLATE_ARGUMENT( float, Y_Value )
-	SLATE_ARGUMENT( float, Z_Value )
-	SLATE_EVENT( FOnTextCommitted, OnXModified )
-	SLATE_EVENT( FOnTextCommitted, OnYModified )
-	SLATE_EVENT( FOnTextCommitted, OnZModified )
-	SLATE_END_ARGS()
-
-	void Construct( const FArguments& InArgs )
-	{
-		FString XString = FString::Printf(TEXT("%0.2f"), InArgs._X_Value);
-		FString YString = FString::Printf(TEXT("%0.2f"), InArgs._Y_Value);
-		FString ZString = FString::Printf(TEXT("%0.2f"), InArgs._Z_Value);
-
-		this->ChildSlot
-		[
-			SNew(SBorder)
-			. BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
-			. Padding(10)
-			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(NSLOCTEXT("AnimationEditorViewport", "XValueLabel", "X:"))
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SEditableTextBox)
-						.MinDesiredWidth(10.0f)
-						.Text( FText::FromString(XString) )
-						.OnTextCommitted( InArgs._OnXModified )
-					]
-				]
-
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(NSLOCTEXT("AnimationEditorViewport", "YValueLabel", "Y:"))
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SEditableTextBox)
-						.MinDesiredWidth(10.0f)
-						.Text( FText::FromString(YString) )
-						.OnTextCommitted( InArgs._OnYModified )
-					]
-				]
-
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(NSLOCTEXT("AnimationEditorViewport", "ZValueLabel", "Z: "))
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SEditableTextBox)
-						.MinDesiredWidth(10.0f)
-						.Text( FText::FromString(ZString) )
-						.OnTextCommitted( InArgs._OnZModified )
-					]
-				]
-			]
-		];
-	}
-};
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationEditorViewportTabBody
@@ -201,6 +114,11 @@ SAnimationEditorViewportTabBody::~SAnimationEditorViewportTabBody()
 
 bool SAnimationEditorViewportTabBody::CanUseGizmos() const
 {
+	if (bAlwaysShowTransformToolbar)
+	{
+		return true;
+	}
+
 	class UDebugSkelMeshComponent* Component = GetPreviewScene()->GetPreviewMeshComponent();
 
 	if (Component != NULL)
@@ -249,15 +167,9 @@ FText SAnimationEditorViewportTabBody::GetDisplayString() const
 		{
 			return FText::Format(LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromName(TargetSkeletonName));
 		}
-		else
-		{
-			return LOCTEXT("NothingToPlay", "Nothing to play");
-		}
 	}
-	else
-	{
-		return FText::Format(LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromName(TargetSkeletonName));
-	}
+
+	return FText();
 }
 
 TSharedRef<IPersonaViewportState> SAnimationEditorViewportTabBody::SaveState() const
@@ -307,6 +219,7 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 	AssetEditorToolkitPtr = InAssetEditorToolkit;
 	BlueprintEditorPtr = InArgs._BlueprintEditor;
 	bShowTimeline = InArgs._ShowTimeline;
+	bAlwaysShowTransformToolbar = InArgs._AlwaysShowTransformToolbar;
 	OnInvokeTab = InArgs._OnInvokeTab;
 
 	// register delegates for change notifications
@@ -328,7 +241,13 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 	FAnimationEditorViewportRequiredArgs ViewportArgs(InSkeletonTree, InPreviewScene, SharedThis(this), InAssetEditorToolkit, InOnUndoRedo);
 
 	ViewportWidget = SNew(SAnimationEditorViewport, ViewportArgs)
-		.ShowStats(InArgs._ShowStats);
+		.Extenders(InArgs._Extenders)
+		.ShowShowMenu(InArgs._ShowShowMenu)
+		.ShowLODMenu(InArgs._ShowLODMenu)
+		.ShowPlaySpeedMenu(InArgs._ShowPlaySpeedMenu)
+		.ShowStats(InArgs._ShowStats)
+		.ShowFloorOptions(InArgs._ShowFloorOptions)
+		.ShowTurnTable(InArgs._ShowTurnTable);
 
 	TSharedPtr<SVerticalBox> ViewportContainer = nullptr;
 	this->ChildSlot
@@ -1168,7 +1087,7 @@ void SAnimationEditorViewportTabBody::UseInGameBound()
 bool SAnimationEditorViewportTabBody::CanUseInGameBound() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-	return PreviewComponent != NULL;
+	return PreviewComponent != NULL && IsShowBoundEnabled();
 }
 
 bool SAnimationEditorViewportTabBody::IsUsingInGameBound() const
@@ -1383,31 +1302,6 @@ void SAnimationEditorViewportTabBody::OnLODModelChanged()
 	}
 }
 
-FLinearColor SAnimationEditorViewportTabBody::GetViewportBackgroundColor() const
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	return AnimViewportClient->GetBackgroundColor();
-}
-
-void SAnimationEditorViewportTabBody::SetViewportBackgroundColor(FLinearColor InColor)
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->SetBackgroundColor( InColor );
-}
-
-float SAnimationEditorViewportTabBody::GetBackgroundBrightness() const
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	return AnimViewportClient->GetBrightnessValue();
-}
-
-void SAnimationEditorViewportTabBody::SetBackgroundBrightness(float Value)
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->SetBrightnessValue(Value);
-	RefreshViewport();
-}
-
 TSharedRef<FAnimationViewportClient> SAnimationEditorViewportTabBody::GetAnimationViewportClient() const
 {
 	return StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
@@ -1488,7 +1382,7 @@ void SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion()
 
 	if (PreviewComponent)
 	{
-		PreviewComponent->bPreviewRootMotion = !PreviewComponent->bPreviewRootMotion;
+		PreviewComponent->SetPreviewRootMotion(!PreviewComponent->GetPreviewRootMotion());
 	}
 }
 
@@ -1498,7 +1392,7 @@ bool SAnimationEditorViewportTabBody::IsPreviewingRootMotion() const
 
 	if (PreviewComponent)
 	{
-		return PreviewComponent->bPreviewRootMotion;
+		return PreviewComponent->GetPreviewRootMotion();
 	}
 	return false;
 }

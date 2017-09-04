@@ -197,7 +197,7 @@ struct ENGINE_API FBodyInstance
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
 	 *	Is INDEX_NONE if a single body component
 	 */
-	int16 InstanceBodyIndex;
+	int32 InstanceBodyIndex;
 
 	/** When we are a body within a SkeletalMeshComponent, we cache the index of the bone we represent, to speed up sync'ing physics to anim. */
 	int16 InstanceBoneIndex;
@@ -805,10 +805,10 @@ public:
 	bool IsValidBodyInstance() const;
 
 	/** Get current transform in world space from physics body. */
-	FTransform GetUnrealWorldTransform(bool bWithProjection = true) const;
+	FTransform GetUnrealWorldTransform(bool bWithProjection = true, bool bForceGlobalPose = false) const;
 
 	/** Get current transform in world space from physics body. */
-	FTransform GetUnrealWorldTransform_AssumesLocked(bool bWithProjection = true) const;
+	FTransform GetUnrealWorldTransform_AssumesLocked(bool bWithProjection = true, bool bForceGlobalPose = false) const;
 
 	/**
 	 *	Move the physics body to a new pose.

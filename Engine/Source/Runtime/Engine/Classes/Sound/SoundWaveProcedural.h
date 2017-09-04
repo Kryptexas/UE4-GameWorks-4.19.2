@@ -76,4 +76,7 @@ public:
 
 	/** Called when GeneratePCMData is called but not enough data is available. Allows more data to be added, and will try again */
 	FOnSoundWaveProceduralUnderflow OnSoundWaveProceduralUnderflow;
+
+	/** Size in bytes of a single sample of audio in the procedural audio buffer. */
+	int32 SampleByteSize;
 };

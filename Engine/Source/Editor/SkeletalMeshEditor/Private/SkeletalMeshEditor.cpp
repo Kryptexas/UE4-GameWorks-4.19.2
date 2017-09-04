@@ -32,6 +32,8 @@
 #include "Application/SlateApplication.h"
 #include "EditorViewportClient.h"
 #include "Settings/EditorExperimentalSettings.h"
+#include "Algo/Transform.h"
+#include "ISkeletonTreeItem.h"
 
 const FName SkeletalMeshEditorAppIdentifier = FName(TEXT("SkeletalMeshEditorApp"));
 
@@ -93,8 +95,8 @@ void FSkeletalMeshEditor::InitSkeletalMeshEditor(const EToolkitMode::Type Mode, 
 
 	TSharedPtr<IPersonaPreviewScene> PreviewScene = PersonaToolkit->GetPreviewScene();
 
-	FSkeletonTreeArgs SkeletonTreeArgs(OnPostUndo);
-	SkeletonTreeArgs.OnObjectSelected = FOnObjectSelected::CreateSP(this, &FSkeletalMeshEditor::HandleObjectSelected);
+	FSkeletonTreeArgs SkeletonTreeArgs;
+	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateSP(this, &FSkeletalMeshEditor::HandleSelectionChanged);
 	SkeletonTreeArgs.PreviewScene = PreviewScene;
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
@@ -295,8 +297,8 @@ void FSkeletalMeshEditor::FillMeshClickMenu(FMenuBuilder& MenuBuilder, HActor* H
 		Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &FSkeletalMeshEditor::CanApplyClothing, LodIndex, SectionIndex);
 
 		MenuBuilder.AddSubMenu(
-			LOCTEXT("MeshClickMenu_AssetApplyMenu", "Apply Clothing Asset..."),
-			LOCTEXT("MeshClickMenu_AssetApplyMenu_ToolTip", "Select a clothing asset to apply to the selected section."),
+			LOCTEXT("MeshClickMenu_AssetApplyMenu", "Apply Clothing Data..."),
+			LOCTEXT("MeshClickMenu_AssetApplyMenu_ToolTip", "Select clothing data to apply to the selected section."),
 			FNewMenuDelegate::CreateSP(this, &FSkeletalMeshEditor::FillApplyClothingAssetMenu, LodIndex, SectionIndex),
 			Action,
 			TEXT(""),
@@ -307,41 +309,34 @@ void FSkeletalMeshEditor::FillMeshClickMenu(FMenuBuilder& MenuBuilder, HActor* H
 		Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &FSkeletalMeshEditor::CanRemoveClothing, LodIndex, SectionIndex);
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("MeshClickMenu_RemoveClothing", "Remove Clothing Asset"),
-			LOCTEXT("MeshClickMenu_RemoveClothing_ToolTip", "Remove the currently assigned clothing asset."),
+			LOCTEXT("MeshClickMenu_RemoveClothing", "Remove Clothing Data"),
+			LOCTEXT("MeshClickMenu_RemoveClothing_ToolTip", "Remove the currently assigned clothing data."),
 			FSlateIcon(),
 			Action
 			);
+			
+		Action.ExecuteAction = FExecuteAction();
+		Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &FSkeletalMeshEditor::CanCreateClothing, LodIndex, SectionIndex);
 
-		const UEditorExperimentalSettings* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>(UEditorExperimentalSettings::StaticClass());
-
-		if(ExperimentalSettings && ExperimentalSettings->bClothingTools)
-		{
-			Action.ExecuteAction = FExecuteAction();
-			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &FSkeletalMeshEditor::CanCreateClothing, LodIndex, SectionIndex);
-
-			MenuBuilder.AddSubMenu(
-				LOCTEXT("MeshClickMenu_CreateClothing_Label", "Create Clothing Asset from Section"),
-				LOCTEXT("MeshClickMenu_CreateClothing_ToolTip", "Create a new clothing asset using the selected section as a simulation mesh"),
-				FNewMenuDelegate::CreateSP(this, &FSkeletalMeshEditor::FillCreateClothingMenu, LodIndex, SectionIndex),
-				Action,
-				TEXT(""),
-				EUserInterfaceActionType::Button
-				);
-
-			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &FSkeletalMeshEditor::CanCreateClothingLod, LodIndex, SectionIndex);
-
-			MenuBuilder.AddSubMenu(
-				LOCTEXT("MeshClickMenu_CreateClothingNewLod_Label", "Create Clothing LOD from Section"),
-				LOCTEXT("MeshClickMenu_CreateClothingNewLod_ToolTip", "Create a clothing simulation mesh from the selected section and add it as a LOD to an existing clothing asset."),
-				FNewMenuDelegate::CreateSP(this, &FSkeletalMeshEditor::FillCreateClothingLodMenu, LodIndex, SectionIndex),
-				Action,
-				TEXT(""),
-				EUserInterfaceActionType::Button
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("MeshClickMenu_CreateClothing_Label", "Create Clothing Data from Section"),
+			LOCTEXT("MeshClickMenu_CreateClothing_ToolTip", "Create a new clothing data using the selected section as a simulation mesh"),
+			FNewMenuDelegate::CreateSP(this, &FSkeletalMeshEditor::FillCreateClothingMenu, LodIndex, SectionIndex),
+			Action,
+			TEXT(""),
+			EUserInterfaceActionType::Button
 			);
 
-		}
+		Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &FSkeletalMeshEditor::CanCreateClothingLod, LodIndex, SectionIndex);
 
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("MeshClickMenu_CreateClothingNewLod_Label", "Create Clothing LOD from Section"),
+			LOCTEXT("MeshClickMenu_CreateClothingNewLod_ToolTip", "Create a clothing simulation mesh from the selected section and add it as a LOD to existing clothing data."),
+			FNewMenuDelegate::CreateSP(this, &FSkeletalMeshEditor::FillCreateClothingLodMenu, LodIndex, SectionIndex),
+			Action,
+			TEXT(""),
+			EUserInterfaceActionType::Button
+		);
 	}
 	MenuBuilder.EndSection();
 }
@@ -590,6 +585,16 @@ void FSkeletalMeshEditor::HandleObjectSelected(UObject* InObject)
 	}
 }
 
+void FSkeletalMeshEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type InSelectInfo)
+{
+	if (DetailsView.IsValid())
+	{
+		TArray<UObject*> Objects;
+		Algo::TransformIf(InSelectedItems, Objects, [](const TSharedPtr<ISkeletonTreeItem>& InItem) { return InItem->GetObject() != nullptr; }, [](const TSharedPtr<ISkeletonTreeItem>& InItem) { return InItem->GetObject(); });
+		DetailsView->SetObjects(Objects);
+	}
+}
+
 void FSkeletalMeshEditor::PostUndo(bool bSuccess)
 {
 	OnPostUndo.Broadcast();
@@ -655,6 +660,12 @@ void FSkeletalMeshEditor::HandleMeshClick(HActor* HitProxy, const FViewportClick
 	if(Mesh)
 	{
 		Mesh->SelectedEditorSection = HitProxy->SectionIndex;
+	}
+
+	USkeletalMeshComponent* Component = GetPersonaToolkit()->GetPreviewMeshComponent();
+	if (Component)
+	{
+		Component->PushSelectionToProxy();
 	}
 
 	if(Click.GetKey() == EKeys::RightMouseButton)

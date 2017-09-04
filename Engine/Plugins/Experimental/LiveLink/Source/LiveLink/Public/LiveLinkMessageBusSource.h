@@ -13,7 +13,7 @@ struct FLiveLinkSubjectFrameMessage;
 struct FLiveLinkHeartbeatMessage;
 struct FLiveLinkClearSubject;
 
-class FLiveLinkMessageBusSource : public ILiveLinkSource
+class LIVELINK_API FLiveLinkMessageBusSource : public ILiveLinkSource
 {
 public:
 

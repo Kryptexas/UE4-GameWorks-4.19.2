@@ -1289,6 +1289,7 @@ void FBodyInstanceCustomizationHelper::UpdateFilters()
 
 			if(ObjectsCustomized[i]->IsA(USkeletalMeshComponent::StaticClass()))
 			{
+				bDisplayMass = false;
 				bDisplayAsyncScene = false;
 			}
 		}
@@ -1603,10 +1604,10 @@ EVisibility FBodyInstanceCustomizationHelper::IsDOFMode(EDOFMode::Type Mode) con
 
 void FBodyInstanceCustomizationHelper::AddMassInKg(IDetailCategoryBuilder& PhysicsCategory, TSharedRef<IPropertyHandle> BodyInstanceHandler)
 {
+	MassInKgOverrideHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKgOverride)).ToSharedRef();
+
 	if (bDisplayMass)
 	{
-		MassInKgOverrideHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKgOverride)).ToSharedRef();
-		
 		PhysicsCategory.AddProperty(MassInKgOverrideHandle).CustomWidget()
 		.NameContent()
 		[
@@ -1625,6 +1626,10 @@ void FBodyInstanceCustomizationHelper::AddMassInKg(IDetailCategoryBuilder& Physi
 				.OnValueCommitted(this, &FBodyInstanceCustomizationHelper::OnSetBodyMass)
 			]
 		];
+	}
+	else
+	{
+		MassInKgOverrideHandle->MarkHiddenByCustomization();
 	}
 }
 

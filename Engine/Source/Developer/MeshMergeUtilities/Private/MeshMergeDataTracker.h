@@ -120,6 +120,11 @@ public:
 	/** Iterates over LOD indices for mesh */
 	TConstLODIndexIterator GetLODIndexIterator() const;
 
+	/** Add number of lightmap pixels used for one of the Meshes */
+	void AddLightMapPixels(int32 Pixels);
+	/** Returns the texture dimension required to distribute all of the lightmap pixels */
+	int32 GetLightMapDimension() const;
+
 	/** Returns whether or not any raw mesh entry contains vertex colors for the specified LOD index */
 	bool DoesLODContainVertexColors(int32 LODIndex) const;
 	/** Returns whether or not any raw mesh entry contains texture coordinates for the specified UV channel and LOD index */
@@ -147,6 +152,7 @@ protected:
 	bool bOcuppiedUVChannels[MAX_STATIC_MESH_LODS][MAX_MESH_TEXTURE_COORDS];
 	/** First available UV channel across all RawMesh entries */
 	int32 AvailableLightMapUVChannel;
+	int32 SummedLightMapPixels;
 
 	/** Remapping pairs for each mesh and LOD index combination */
 	TMultiMap<FMeshLODKey, SectionRemapPair> UniqueSectionIndexPerLOD;

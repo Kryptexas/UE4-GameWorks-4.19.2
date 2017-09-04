@@ -9,146 +9,8 @@
 #include "AudioMixerBuffer.h"
 #include "Async/Async.h"
 
-// Toggles using futures for audio tasks
-#define AUDIO_DECODE_USE_FUTURES 0
-
 namespace Audio
 {
-
-#if AUDIO_DECODE_USE_FUTURES
-
-	class FDecodeHandleBase : public IAudioTask
-	{
-	public:
-		FDecodeHandleBase()
-			: bFinished(false)
-		{}
-
-		virtual ~FDecodeHandleBase()
-		{
-			EnsureCompletion();
-		}
-
-		virtual bool IsDone() const override
-		{
-			return bFinished;
-		}
-
-		virtual void EnsureCompletion() override
-		{
-			Future.Get();
-		}
-
-	protected:
-		FThreadSafeBool bFinished;
-		TFuture<void> Future;
-	};
-
-	class FHeaderDecodeHandle : public FDecodeHandleBase
-	{
-	public:
-		virtual EAudioTaskType GetType() const override { return EAudioTaskType::Header; }
-
-		void Decode(const FHeaderParseAudioTaskData& InJobData)
-		{
-			TFunction<void()> Func = [this, InJobData]()
-			{
-				InJobData.MixerBuffer->ReadCompressedInfo(InJobData.SoundWave);
-				bFinished = true;
-			};
-
-			Future = Async(EAsyncExecution::TaskGraph, Func);
-		}
-	};
-
-	class FProceduralDecodeHandle : public FDecodeHandleBase
-	{
-	public:
-		virtual EAudioTaskType GetType() const override { return EAudioTaskType::Procedural; }
-
-		void Decode(const FProceduralAudioTaskData& InJobData)
-		{
-			TFunction<void()> Func = [this, InJobData]()
-			{
-				Result.NumBytesWritten = InJobData.ProceduralSoundWave->GeneratePCMData(InJobData.AudioData, InJobData.MaxAudioDataSamples);
-				bFinished = true;
-			};
-
-			Future = Async(EAsyncExecution::TaskGraph, Func);
-		}
-
-		virtual void GetResult(FProceduralAudioTaskResults& OutResult) override
-		{
-			EnsureCompletion();
-			OutResult = Result;
-		}
-
-	private:
-		FProceduralAudioTaskResults Result;
-	};
-
-	class FDecodeHandle : public FDecodeHandleBase
-	{
-	public:
-		virtual EAudioTaskType GetType() const override { return EAudioTaskType::Decode; }
-
-		void Decode(const FDecodeAudioTaskData& InJobData)
-		{
-
-			TFunction<void()> Func = [this, InJobData]()
-			{
-				// skip the first buffer if we've already decoded them
-				if (InJobData.bSkipFirstBuffer)
-				{
-#if PLATFORM_ANDROID
-					// Only skip one buffer on Android
-					InJobData.MixerBuffer->ReadCompressedData(InJobData.AudioData, InJobData.NumFramesToDecode, InJobData.bLoopingMode);
-#else
-					// If we're using cached data we need to skip the first two reads from the data
-					InJobData.MixerBuffer->ReadCompressedData(InJobData.AudioData, InJobData.NumFramesToDecode, InJobData.bLoopingMode);
-					InJobData.MixerBuffer->ReadCompressedData(InJobData.AudioData, InJobData.NumFramesToDecode, InJobData.bLoopingMode);
-#endif
-				}
-
-				Result.bLooped = InJobData.MixerBuffer->ReadCompressedData(InJobData.AudioData, InJobData.NumFramesToDecode, InJobData.bLoopingMode);
-				bFinished = true;
-			};
-
-			Future = Async(EAsyncExecution::TaskGraph, Func);
-		}
-
-		virtual void GetResult(FDecodeAudioTaskResults& OutResult) override
-		{
-			EnsureCompletion();
-			OutResult = Result;
-		}
-
-	private:
-		FDecodeAudioTaskResults Result;
-	};
-
-	IAudioTask* CreateAudioTask(const FProceduralAudioTaskData& InJobData)
-	{
-		FProceduralDecodeHandle* NewTask = new FProceduralDecodeHandle();
-		NewTask->Decode(InJobData);
-		return NewTask;
-	}
-
-	IAudioTask* CreateAudioTask(const FHeaderParseAudioTaskData& InJobData)
-	{
-		FHeaderDecodeHandle* NewTask = new FHeaderDecodeHandle();
-		NewTask->Decode(InJobData);
-		return NewTask;
-	}
-
-	IAudioTask* CreateAudioTask(const FDecodeAudioTaskData& InJobData)
-	{
-		FDecodeHandle* NewTask = new FDecodeHandle();
-		NewTask->Decode(InJobData);
-		return NewTask;
-	}
-
-#else // #if AUDIO_DECODE_USE_FUTURES
 
 class FAsyncDecodeWorker : public FNonAbandonableTask
 {
@@ -174,13 +36,46 @@ public:
 	{
 	}
 
+	~FAsyncDecodeWorker()
+	{
+	}
+
 	void DoWork()
 	{
 		switch (TaskType)
 		{
 			case EAudioTaskType::Procedural:
 			{
-				ProceduralResult.NumBytesWritten = ProceduralTaskData.ProceduralSoundWave->GeneratePCMData(ProceduralTaskData.AudioData, ProceduralTaskData.MaxAudioDataSamples);
+				// If we're not a float format, we need to convert the format to float
+				const EAudioMixerStreamDataFormat::Type FormatType = ProceduralTaskData.ProceduralSoundWave->GetGeneratedPCMDataFormat();
+				if (FormatType != EAudioMixerStreamDataFormat::Float)
+				{
+					check(FormatType == EAudioMixerStreamDataFormat::Int16);
+
+					int32 NumChannels = ProceduralTaskData.NumChannels;
+					int32 ByteSize = NumChannels * ProceduralTaskData.NumSamples * sizeof(int16);
+
+					TArray<uint8> DecodeBuffer;
+					DecodeBuffer.AddUninitialized(ByteSize);
+
+					const int32 NumBytesWritten = ProceduralTaskData.ProceduralSoundWave->GeneratePCMData(DecodeBuffer.GetData(), ProceduralTaskData.NumSamples);
+
+					check(NumBytesWritten <= ByteSize);
+
+					ProceduralResult.NumSamplesWritten = NumBytesWritten / sizeof(int16);
+
+					// Convert the buffer to float
+					int16* DecodedBufferPtr = (int16*)DecodeBuffer.GetData();
+					for (int32 SampleIndex = 0; SampleIndex < ProceduralResult.NumSamplesWritten; ++SampleIndex)
+					{
+						ProceduralTaskData.AudioData[SampleIndex] = (float)(DecodedBufferPtr[SampleIndex]) / 32768.0f;
+					}
+				}
+				else
+				{
+					const int32 NumBytesWritten = ProceduralTaskData.ProceduralSoundWave->GeneratePCMData((uint8*)ProceduralTaskData.AudioData, ProceduralTaskData.NumSamples);
+					ProceduralResult.NumSamplesWritten = NumBytesWritten / sizeof(float);
+				}
 			}
 			break;
 
@@ -192,20 +87,38 @@ public:
 
 			case EAudioTaskType::Decode:
 			{
+				int32 NumChannels = DecodeTaskData.MixerBuffer->GetNumChannels();
+				int32 ByteSize = NumChannels * DecodeTaskData.NumFramesToDecode * sizeof(int16);
+
+				// Create a buffer to decode into that's of the appropriate size
+				TArray<uint8> DecodeBuffer;
+				DecodeBuffer.AddUninitialized(ByteSize);
+
 				// skip the first buffer if we've already decoded them
 				if (DecodeTaskData.bSkipFirstBuffer)
 				{
 #if PLATFORM_ANDROID
 					// Only skip one buffer on Android
-					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeBuffer.GetData(), DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
 #else // #if PLATFORM_ANDROID
 					// If we're using cached data we need to skip the first two reads from the data
-					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
-					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeBuffer.GetData(), DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeBuffer.GetData(), DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
 #endif // #else // #if PLATFORM_ANDROID
 				}
 
-				DecodeResult.bLooped = DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+				DecodeResult.bLooped = DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeBuffer.GetData(), DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+
+				// Convert the decoded PCM data into a float buffer while still in the async task
+				int32 SampleIndex = 0;
+				int16* DecodedBufferPtr = (int16*)DecodeBuffer.GetData();
+				for (int32 Frame = 0; Frame < DecodeTaskData.NumFramesToDecode; ++Frame)
+				{
+					for (int32 Channel = 0; Channel < NumChannels; ++Channel, ++SampleIndex)
+					{
+						DecodeTaskData.AudioData[SampleIndex] = (float)(DecodedBufferPtr[SampleIndex]) / 32768.0f;
+					}
+				}
 			}
 			break;
 		}
@@ -337,7 +250,5 @@ IAudioTask* CreateAudioTask(const FDecodeAudioTaskData& InJobData)
 {
 	return new FDecodeHandle(InJobData);
 }
-
-#endif // #else // #if AUDIO_DECODE_USE_FUTURES
 
 }

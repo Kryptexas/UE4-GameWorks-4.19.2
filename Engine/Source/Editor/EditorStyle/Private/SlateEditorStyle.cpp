@@ -1999,6 +1999,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("FoliageEditToolBar.SToolBarButtonBlock.Padding", FMargin(0.f));
 		Set("FoliageEditToolBar.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
 		Set("FoliageEditToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(10.0f, 6.f));
+		Set("FoliageEditToolBar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f));
 		Set("FoliageEditToolBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground);
 
 		Set("FoliageEditToolBar.Block.IndentedPadding", FMargin(18.0f, 2.0f, 4.0f, 4.0f));
@@ -2248,6 +2249,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ToolBar.SToolBarButtonBlock.Padding", FMargin(4.0f));
 		Set( "ToolBar.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
 		Set( "ToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
+		Set( "ToolBar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f) );
 		Set( "ToolBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Set( "ToolBar.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -2370,6 +2372,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Menu.SToolBarButtonBlock.Padding", FMargin(4.0f));
 		Set( "Menu.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
 		Set( "Menu.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
+		Set( "Menu.SToolBarButtonBlock.Button.Padding", FMargin(0.0f));
 		Set( "Menu.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Set( "Menu.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -2379,12 +2382,14 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Menu.Separator.Padding", FMargin( 0.5f ) );
 
 		Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Set( "Menu.Label.Padding", FMargin(0.0f, 0.0f, 0.0f, 0.0f) );
+		Set( "Menu.Label.ContentPadding", FMargin(10.0f, 2.0f) );
 		Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Set( "Menu.Heading", FTextBlockStyle(NormalText)
-			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) )
-			.SetColorAndOpacity( FLinearColor( 0.4f, 0.4, 0.4f, 1.0f ) ) );
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 8))
+			.SetColorAndOpacity(FLinearColor(0.4f, 0.4, 0.4f, 1.0f)));
 
 		/* Set images for various SCheckBox states associated with menu check box items... */
 		const FCheckBoxStyle BasicMenuCheckBoxStyle = FCheckBoxStyle()
@@ -2459,6 +2464,9 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		/* The style of a menu bar button when it has a sub menu open */
 		Set( "Menu.Button.SubMenuOpen", new BORDER_BRUSH( "Common/Selection", FMargin(4.f/16.f), FLinearColor(0.10f, 0.10f, 0.10f) ) );
+
+		/* The style of a menu bar button when it has a sub menu closed */
+		Set("Menu.Button.SubMenuClosed", new FSlateNoResource());
 	}
 
 	// ViewportLayoutToolbar
@@ -2484,6 +2492,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		Set( "ViewportLayoutToolbar.SToolBarButtonBlock.Padding", FMargin(4.0f) );
 		Set( "ViewportLayoutToolbar.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
+		Set( "ViewportLayoutToolbar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f) );
 		Set( "ViewportLayoutToolbar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 		}
 
@@ -2566,6 +2575,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "NotificationBar.Button.Checked_Pressed", new BOX_BRUSH( "Common/RoundedSelection_16x",  4.0f/16.0f, SelectionColor ) );
 
 		Set( "NotificationBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(4.0f) );
+		Set( "NotificationBar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f) );
 		Set( "NotificationBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 	}
 
@@ -2579,12 +2589,17 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ViewportMenu.SToolBarButtonBlock.Padding", FMargin(0));
 		Set( "ViewportMenu.SToolBarCheckComboButtonBlock.Padding", FMargin(0));
 		Set( "ViewportMenu.SToolBarButtonBlock.CheckBox.Padding", FMargin(4.0f) );
+		Set( "ViewportMenu.SToolBarButtonBlock.Button.Padding", FMargin(3.0f) );
 		Set( "ViewportMenu.SToolBarComboButtonBlock.ComboButton.Color", FLinearColor(0.f,0.f,0.f,0.75f) );
 
 		Set( "ViewportMenu.Separator", new BOX_BRUSH( "Old/Button", 8.0f/32.0f, FLinearColor::Transparent ) );
 		Set( "ViewportMenu.Separator.Padding", FMargin( 100.0f ) );
 
-		Set( "ViewportMenu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Bold", 9) ) );
+		Set( "ViewportMenu.Label", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 9))
+			.SetColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f)));
+		Set( "ViewportMenu.Label.Padding", FMargin(0.0f, 0.0f, 3.0f, 0.0f) );
+		Set( "ViewportMenu.Label.ContentPadding", FMargin(5.0f, 2.0f) );
 		Set( "ViewportMenu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9) ) );
 		Set( "ViewportMenu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8) ) );
 
@@ -2593,7 +2608,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		Set( "ViewportMenu.Heading.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "ViewportMenu.Heading.ColorAndOpacity", FLinearColor( 0.4f, 0.4, 0.4f, 1.0f ) );
-	
+
 		const FCheckBoxStyle ViewportMenuCheckBoxCheckBoxStyle = FCheckBoxStyle()
 			.SetUncheckedImage(			IMAGE_BRUSH( "Common/SmallCheckBox", Icon14x14 ) )
 			.SetUncheckedPressedImage(	IMAGE_BRUSH( "Common/SmallCheckBox_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) )
@@ -2678,15 +2693,10 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		/* ... and add new style */
 		Set( "ViewportMenu.ToggleButton.End", ViewportMenuToggleEndButtonStyle );
 
-		const FMargin NormalPadding = FMargin(4.0f,4.0f,4.0f,4.0f);
-		const FMargin PressedPadding = FMargin(4.0f,4.0f,4.0f,4.0f);
-
 		const FButtonStyle ViewportMenuButton = FButtonStyle(Button)
 			.SetNormal ( BOX_BRUSH( *SmallRoundedButton, 7.0f/16.0f, NormalColor))
 			.SetPressed( BOX_BRUSH( *SmallRoundedButton, 7.0f/16.0f, PressedColor ) )
-			.SetHovered( BOX_BRUSH( *SmallRoundedButton, 7.0f/16.0f, PressedColor ) )
-			.SetPressedPadding(PressedPadding)
-			.SetNormalPadding(NormalPadding);
+			.SetHovered( BOX_BRUSH( *SmallRoundedButton, 7.0f/16.0f, PressedColor ) );
 
 		Set( "ViewportMenu.Button", ViewportMenuButton );
 
@@ -2707,6 +2717,12 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetPressed( BOX_BRUSH( *SmallRoundedButtonEnd, 7.0f/16.0f, PressedColor ) )
 			.SetHovered( BOX_BRUSH( *SmallRoundedButtonEnd, 7.0f/16.0f, PressedColor ) )
 			);
+
+		/* The style of a menu bar button when it has a sub menu open */
+		Set("ViewportMenu.Button.SubMenuOpen", new FSlateNoResource());
+
+		/* The style of a menu bar button when it has a sub menu closed */
+		Set("ViewportMenu.Button.SubMenuClosed", new FSlateNoResource());
 	}
 
 	// Viewport actor preview's pin/unpin buttons
@@ -4961,7 +4977,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		/* ... and set new style */
 		Set( "LevelViewportToolBar.CheckBoxButton", EditorViewportToolBarButton );
 
-		Set( "EditorViewportToolBar.MenuDropdown", new IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) );
+		Set( "EditorViewportToolBar.MenuDropdown", new IMAGE_BRUSH( "Common/ComboArrow", Icon8x8, FLinearColor(0.0f, 0.0f, 0.0f) ) );
 		Set( "LevelViewportToolBar.Maximize.Normal", new IMAGE_BRUSH( "Old/LevelViewportToolBar/Maximized_Unchecked", Icon16x16 ) );
 		Set( "LevelViewportToolBar.Maximize.Checked", new IMAGE_BRUSH( "Old/LevelViewportToolBar/Maximized_Checked", Icon16x16 ) );
 		Set( "LevelViewportToolBar.RestoreFromImmersive.Normal", new IMAGE_BRUSH( "Icons/icon_RestoreFromImmersive_16px", Icon16x16 ) );
@@ -5055,6 +5071,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "EditorModesToolbar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 		Set( "EditorModesToolbar.SToolBarButtonBlock.Padding", FMargin( 1.0f, 0.0f, 0.0f, 0 ) );
 		Set( "EditorModesToolbar.SToolBarButtonBlock.CheckBox.Padding", FMargin( 6.0f, 4.0f, 6.0f, 6.0f ) );
+		Set( "EditorModesToolbar.SToolBarButtonBlock.Button.Padding", FMargin( 0.0f ) );
 		Set( "EditorModesToolbar.SToolBarCheckComboButtonBlock.Padding", FMargin( 0 ) );
 
 		Set( "EditorModesToolbar.Block.IndentedPadding", FMargin( 0 ) );
@@ -6631,85 +6648,195 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set("RichCurveEditor.StraightenTangents.Small", new IMAGE_BRUSH("Icons/icon_CurveEditor_Straighten_40x", Icon20x20));
 	}
 
-	// PhAT
+	// PhysicsAssetEditor
 	{
-		Set( "PhAT.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
-		Set( "PhAT.Tabs.Hierarchy", new IMAGE_BRUSH( "/Icons/levels_16x", Icon16x16 ) );
+		Set( "PhysicsAssetEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
+		Set( "PhysicsAssetEditor.Tabs.Hierarchy", new IMAGE_BRUSH( "/Icons/levels_16x", Icon16x16 ) );
+		Set( "PhysicsAssetEditor.Tabs.Profiles", new IMAGE_BRUSH( "/PhysicsAssetEditor/icon_ProfilesTab_16x", Icon16x16 ) );
+		Set( "PhysicsAssetEditor.Tabs.Graph", new IMAGE_BRUSH( "/PhysicsAssetEditor/icon_GraphTab_16x", Icon16x16 ) );
+		Set( "PhysicsAssetEditor.Tabs.Tools", new IMAGE_BRUSH( "/PhysicsAssetEditor/icon_ToolsTab_16x", Icon16x16 ) );
 
-		Set( "PhAT.EditingMode_Body", new IMAGE_BRUSH( "/Icons/icon_PHatMode_Body_40x", Icon40x40) );
-		Set( "PhAT.EditingMode_Constraint", new IMAGE_BRUSH( "/Icons/icon_PHatMode_Joint_40x", Icon40x40) );
+		Set( "PhysicsAssetEditor.EditingMode_Body", new IMAGE_BRUSH( "/PhysicsAssetEditor/icon_PHatMode_Body_40x", Icon40x40) );
+		Set( "PhysicsAssetEditor.EditingMode_Constraint", new IMAGE_BRUSH( "/PhysicsAssetEditor/icon_PHatMode_Joint_40x", Icon40x40) );
 
-		Set( "PhAT.EditingMode_Body.Small", new IMAGE_BRUSH( "/Icons/icon_PHatMode_Body_40x", Icon20x20) );
-		Set( "PhAT.EditingMode_Constraint.Small", new IMAGE_BRUSH( "/Icons/icon_PHatMode_Joint_40x", Icon20x20) );
+		Set( "PhysicsAssetEditor.EditingMode_Body.Small", new IMAGE_BRUSH( "/PhysicsAssetEditor/icon_PHatMode_Body_40x", Icon20x20) );
+		Set( "PhysicsAssetEditor.EditingMode_Constraint.Small", new IMAGE_BRUSH( "/PhysicsAssetEditor/icon_PHatMode_Joint_40x", Icon20x20) );
 
-		Set( "PhAT.SimulationNormal", new IMAGE_BRUSH( "Icons/icon_PhAT_PlaySim_40x", Icon40x40 ) );
-		Set( "PhAT.SimulationNoGravity", new IMAGE_BRUSH( "Icons/icon_PhAT_PlaySimNoGravity_40x", Icon40x40 ) );
-		Set( "PhAT.ToggleSelectedSimulation", new IMAGE_BRUSH( "Icons/icon_PhAT_PlaySimSelected_40x", Icon40x40 ) );
-		Set( "PhAT.Undo", new IMAGE_BRUSH( "Icons/icon_Generic_Undo_40x", Icon40x40 ) );
-		Set( "PhAT.Redo", new IMAGE_BRUSH( "Icons/icon_Generic_Redo_40x", Icon40x40 ) );
-		Set( "PhAT.ChangeDefaultMesh", new IMAGE_BRUSH( "Icons/icon_PhAT_Mesh_40x", Icon40x40 ) );
-		Set( "PhAT.ResetEntireAsset", new IMAGE_BRUSH( "Icons/icon_PhAT_ResetAsset_40x", Icon40x40 ) );
-		Set( "PhAT.RestetBoneCollision", new IMAGE_BRUSH( "Icons/icon_PhAT_ResetCollision_40x", Icon40x40 ) );
-		Set( "PhAT.ApplyPhysicalMaterial", new IMAGE_BRUSH( "Icons/icon_PhAT_PhysMat_40x", Icon40x40 ) );
-		Set( "PhAT.CopyJointSettings", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyJoints_40x", Icon40x40 ) );
-		Set( "PhAT.PlayAnimation", new IMAGE_BRUSH( "Icons/icon_PhAT_Play_40x", Icon40x40 ) );
-		Set( "PhAT.PhATTranslationMode", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon40x40 ) );
-		Set( "PhAT.PhATRotationMode", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon40x40 ) );
-		Set( "PhAT.PhATScaleMode", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon40x40 ) );
-		Set( "PhAT.Snap", new IMAGE_BRUSH( "Icons/icon_PhAT_Snap_40x", Icon40x40 ) );
-		Set( "PhAT.CopyProperties", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyProperties_40x", Icon40x40 ) );
-		Set( "PhAT.DisableCollision", new IMAGE_BRUSH( "Icons/icon_PhAT_DisableCollision_40x", Icon40x40 ) );
-		Set( "PhAT.EnableCollision", new IMAGE_BRUSH( "Icons/icon_PhAT_EnableCollision_40x", Icon40x40 ) );
-		Set( "PhAT.WeldToBody", new IMAGE_BRUSH( "Icons/icon_PhAT_Weld_40x", Icon40x40 ) );
-		Set( "PhAT.AddNewBody", new IMAGE_BRUSH( "Icons/icon_PhAT_NewBody_40x", Icon40x40 ) );
-		Set( "PhAT.AddSphere", new IMAGE_BRUSH( "Icons/icon_PhAT_Sphere_40x", Icon40x40 ) );
-		Set( "PhAT.AddSphyl", new IMAGE_BRUSH( "Icons/icon_PhAT_Sphyl_40x", Icon40x40 ) );
-		Set( "PhAT.AddBox", new IMAGE_BRUSH( "Icons/icon_PhAT_Box_40x", Icon40x40 ) );
-		Set( "PhAT.DeletePrimitive", new IMAGE_BRUSH( "Icons/icon_PhAT_DeletePrimitive_40x", Icon40x40 ) );
-		Set( "PhAT.DuplicatePrimitive", new IMAGE_BRUSH( "Icons/icon_PhAT_DupePrim_40x", Icon40x40 ) );
-		Set( "PhAT.ResetConstraint", new IMAGE_BRUSH( "Icons/icon_PhAT_ResetConstraint_40x", Icon40x40 ) );
-		Set( "PhAT.SnapConstraint", new IMAGE_BRUSH( "Icons/icon_PhAT_SnapConstraint_40x", Icon40x40 ) );
-		Set( "PhAT.SnapAllConstraints", new IMAGE_BRUSH( "Icons/icon_PhAT_SnapAll_40x", Icon40x40 ) );
-		Set( "PhAT.ConvertToBallAndSocket", new IMAGE_BRUSH( "Icons/icon_PhAT_Ball_40x", Icon40x40 ) );
-		Set( "PhAT.ConvertToHinge", new IMAGE_BRUSH( "Icons/icon_PhAT_Hinge_40x", Icon40x40 ) );
-		Set( "PhAT.ConvertToPrismatic", new IMAGE_BRUSH( "Icons/icon_PhAT_Prismatic_40x", Icon40x40 ) );
-		Set( "PhAT.ConvertToSkeletal", new IMAGE_BRUSH( "Icons/icon_PhAT_Skeletal_40x", Icon40x40 ) );
-		Set( "PhAT.DeleteConstraint", new IMAGE_BRUSH( "Icons/icon_PhAT_DeleteConstraint_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.SimulationNoGravity", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_PlaySimNoGravity_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.SelectedSimulation", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_PlaySimSelected_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.SimulationAll", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_PlaySim_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.Undo", new IMAGE_BRUSH( "Icons/icon_Generic_Undo_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.Redo", new IMAGE_BRUSH( "Icons/icon_Generic_Redo_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.ChangeDefaultMesh", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Mesh_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.ApplyPhysicalMaterial", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_PhysMat_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.CopyJointSettings", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_CopyJoints_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.PlayAnimation", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Play_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.PhATTranslationMode", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.PhATRotationMode", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.PhATScaleMode", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.Snap", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Snap_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.CopyProperties", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_CopyProperties_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.DisableCollision", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DisableCollision_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.EnableCollision", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_EnableCollision_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.DisableCollisionAll", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DisableCollision_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.EnableCollisionAll", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_EnableCollision_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.WeldToBody", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Weld_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.AddNewBody", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_NewBody_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.AddSphere", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Sphere_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.AddSphyl", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Sphyl_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.AddBox", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Box_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.DeletePrimitive", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DeletePrimitive_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.DuplicatePrimitive", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DupePrim_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.ResetConstraint", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_ResetConstraint_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.SnapConstraint", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_SnapConstraint_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.SnapAllConstraints", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_SnapAll_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.ConvertToBallAndSocket", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Ball_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.ConvertToHinge", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Hinge_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.ConvertToPrismatic", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Prismatic_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.ConvertToSkeletal", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Skeletal_40x", Icon40x40 ) );
+		Set( "PhysicsAssetEditor.DeleteConstraint", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DeleteConstraint_40x", Icon40x40 ) );
 
-		Set("PhAT.SimulationNormal.Small", new IMAGE_BRUSH("Icons/icon_PhAT_PlaySim_40x", Icon20x20));
-		Set("PhAT.SimulationNoGravity.Small", new IMAGE_BRUSH("Icons/icon_PhAT_PlaySimNoGravity_40x", Icon20x20));
-		Set("PhAT.ToggleSelectedSimulation.Small", new IMAGE_BRUSH("Icons/icon_PhAT_PlaySimSelected_40x", Icon20x20));
-		Set( "PhAT.ToggleSimulation.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_PlaySim_40x", Icon20x20 ) );
-		Set( "PhAT.Undo.Small", new IMAGE_BRUSH( "Icons/icon_Generic_Undo_40x", Icon20x20 ) );
-		Set( "PhAT.Redo.Small", new IMAGE_BRUSH( "Icons/icon_Generic_Redo_40x", Icon20x20 ) );
-		Set( "PhAT.ChangeDefaultMesh.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Mesh_40x", Icon20x20 ) );
-		Set( "PhAT.ResetEntireAsset.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_ResetAsset_40x", Icon20x20 ) );
-		Set( "PhAT.RestetBoneCollision.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_ResetCollision_40x", Icon20x20 ) );
-		Set( "PhAT.ApplyPhysicalMaterial.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_PhysMat_40x", Icon20x20 ) );
-		Set( "PhAT.CopyJointSettings.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyJoints_40x", Icon20x20 ) );
-		Set( "PhAT.PlayAnimation.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Play_40x", Icon20x20 ) );
-		Set( "PhAT.PhATTranslationMode.Small", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon20x20 ) );
-		Set( "PhAT.PhATRotationMode.Small", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon20x20 ) );
-		Set( "PhAT.PhATScaleMode.Small", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon20x20 ) );
-		Set( "PhAT.Snap.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Snap_40x", Icon20x20 ) );
-		Set( "PhAT.CopyProperties.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyProperties_40x", Icon20x20 ) );
-		Set( "PhAT.DisableCollision.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_DisableCollision_40x", Icon20x20 ) );
-		Set( "PhAT.EnableCollision.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_EnableCollision_40x", Icon20x20 ) );
-		Set( "PhAT.WeldToBody.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Weld_40x", Icon20x20 ) );
-		Set( "PhAT.AddNewBody.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_NewBody_40x", Icon20x20 ) );
-		Set( "PhAT.AddSphere.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Sphere_40x", Icon20x20 ) );
-		Set( "PhAT.AddSphyl.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Sphyl_40x", Icon20x20 ) );
-		Set( "PhAT.AddBox.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Box_40x", Icon20x20 ) );
-		Set( "PhAT.DeletePrimitive.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_DeletePrimitive_40x", Icon20x20 ) );
-		Set( "PhAT.DuplicatePrimitive.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_DupePrim_40x", Icon20x20 ) );
-		Set( "PhAT.ResetConstraint.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_ResetConstraint_40x", Icon20x20 ) );
-		Set( "PhAT.SnapConstraint.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_SnapConstraint_40x", Icon20x20 ) );
-		Set( "PhAT.SnapAllConstraints.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_SnapAll_40x", Icon20x20 ) );
-		Set( "PhAT.ConvertToBallAndSocket.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Ball_40x", Icon20x20 ) );
-		Set( "PhAT.ConvertToHinge.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Hinge_40x", Icon20x20 ) );
-		Set( "PhAT.ConvertToPrismatic.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Prismatic_40x", Icon20x20 ) );
-		Set( "PhAT.ConvertToSkeletal.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Skeletal_40x", Icon20x20 ) );
-		Set( "PhAT.DeleteConstraint.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_DeleteConstraint_40x", Icon20x20 ) );
+		Set("PhysicsAssetEditor.SimulationNoGravity.Small", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_PlaySimNoGravity_40x", Icon20x20));
+		Set("PhysicsAssetEditor.SelectedSimulation.Small", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_PlaySimSelected_40x", Icon20x20));
+		Set( "PhysicsAssetEditor.SimulationAll.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_PlaySim_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.Undo.Small", new IMAGE_BRUSH( "Icons/icon_Generic_Undo_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.Redo.Small", new IMAGE_BRUSH( "Icons/icon_Generic_Redo_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ChangeDefaultMesh.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Mesh_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ResetEntireAsset.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_ResetAsset_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ResetBoneCollision.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_ResetCollision_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ApplyPhysicalMaterial.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_PhysMat_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.CopyJointSettings.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_CopyJoints_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.PlayAnimation.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Play_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.PhATTranslationMode.Small", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.PhATRotationMode.Small", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.PhATScaleMode.Small", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.Snap.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Snap_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.CopyProperties.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_CopyProperties_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.DisableCollision.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DisableCollision_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.EnableCollision.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_EnableCollision_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.DisableCollisionAll.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DisableCollision_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.EnableCollisionAll.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_EnableCollision_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.WeldToBody.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Weld_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.AddNewBody.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_NewBody_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.AddSphere.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Sphere_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.AddSphyl.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Sphyl_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.AddBox.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Box_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.DeletePrimitive.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DeletePrimitive_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.DuplicatePrimitive.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DupePrim_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ResetConstraint.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_ResetConstraint_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.SnapConstraint.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_SnapConstraint_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.SnapAllConstraints.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_SnapAll_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ConvertToBallAndSocket.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Ball_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ConvertToHinge.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Hinge_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ConvertToPrismatic.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Prismatic_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.ConvertToSkeletal.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_Skeletal_40x", Icon20x20 ) );
+		Set( "PhysicsAssetEditor.DeleteConstraint.Small", new IMAGE_BRUSH( "PhysicsAssetEditor/icon_PhAT_DeleteConstraint_40x", Icon20x20 ) );
+
+		Set("PhysicsAssetEditor.NewPhysicalAnimationProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_NewBody_40x", Icon20x20));
+		Set("PhysicsAssetEditor.DeleteCurrentPhysicalAnimationProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_DeletePrimitive_40x", Icon20x20));
+		Set("PhysicsAssetEditor.AddBodyToPhysicalAnimationProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_NewBody_40x", Icon20x20));
+		Set("PhysicsAssetEditor.RemoveBodyFromPhysicalAnimationProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_DeletePrimitive_40x", Icon20x20));
+		Set("PhysicsAssetEditor.NewConstraintProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PHatMode_Joint_40x", Icon20x20));
+		Set("PhysicsAssetEditor.DeleteCurrentConstraintProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_DeleteConstraint_40x", Icon20x20));
+		Set("PhysicsAssetEditor.AddConstraintToCurrentConstraintProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PHatMode_Joint_40x", Icon20x20));
+		Set("PhysicsAssetEditor.RemoveConstraintFromCurrentConstraintProfile", new IMAGE_BRUSH("PhysicsAssetEditor/icon_PhAT_DeleteConstraint_40x", Icon20x20));
+
+		Set("PhysicsAssetEditor.Tree.Body", new IMAGE_BRUSH("PhysicsAssetEditor/Body_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.KinematicBody", new IMAGE_BRUSH("PhysicsAssetEditor/KinematicBody_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.EmptyBody", new IMAGE_BRUSH("PhysicsAssetEditor/EmptyBody_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.Bone", new IMAGE_BRUSH("PhysicsAssetEditor/Bone_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.Sphere", new IMAGE_BRUSH("PhysicsAssetEditor/Sphere_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.Sphyl", new IMAGE_BRUSH("PhysicsAssetEditor/Sphyl_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.Box", new IMAGE_BRUSH("PhysicsAssetEditor/Box_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.Convex", new IMAGE_BRUSH("PhysicsAssetEditor/Convex_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Tree.Constraint", new IMAGE_BRUSH("PhysicsAssetEditor/Constraint_16x", Icon16x16));
+
+		Set("PhysicsAssetEditor.Tree.Font", TTF_CORE_FONT("Fonts/Roboto-Regular", 10));
+
+		Set("PhysicsAssetEditor.Graph.TextStyle", FTextBlockStyle(NormalText)
+			.SetColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f))
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 8)));
+
+		Set("PhysicsAssetEditor.Graph.NodeBody", new BOX_BRUSH("PhysicsAssetEditor/NodeBody", FMargin(4.f / 64.f, 4.f / 64.f, 4.f / 64.f, 4.f / 64.f)));
+		Set("PhysicsAssetEditor.Graph.NodeIcon", new IMAGE_BRUSH("PhysicsAssetEditor/Bone_16x", Icon16x16));
+		Set("PhysicsAssetEditor.Graph.Pin.Background", new IMAGE_BRUSH("PhysicsAssetEditor/NodePin", Icon10x10));
+		Set("PhysicsAssetEditor.Graph.Pin.BackgroundHovered", new IMAGE_BRUSH("PhysicsAssetEditor/NodePinHoverCue", Icon10x10));
+		Set("PhysicsAssetEditor.Graph.Node.ShadowSelected", new BOX_BRUSH( "PhysicsAssetEditor/PhysicsNode_shadow_selected", FMargin(18.0f/64.0f) ) );
+		Set("PhysicsAssetEditor.Graph.Node.Shadow", new BOX_BRUSH( "Graph/RegularNode_shadow", FMargin(18.0f/64.0f) ) );
+
+		FEditableTextBoxStyle EditableTextBlock = FEditableTextBoxStyle()
+			.SetFont(NormalText.Font)
+			.SetBackgroundImageNormal(BOX_BRUSH("Common/TextBox", FMargin(4.0f / 16.0f)))
+			.SetBackgroundImageHovered(BOX_BRUSH("Common/TextBox_Hovered", FMargin(4.0f / 16.0f)))
+			.SetBackgroundImageFocused(BOX_BRUSH("Common/TextBox_Hovered", FMargin(4.0f / 16.0f)))
+			.SetBackgroundImageReadOnly(BOX_BRUSH("Common/TextBox_ReadOnly", FMargin(4.0f / 16.0f)));
+
+		Set("PhysicsAssetEditor.Profiles.EditableTextBoxStyle", EditableTextBlock);
+
+		Set("PhysicsAssetEditor.Profiles.Font", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 11))
+			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f))
+			.SetHighlightColor(FLinearColor(1.0f, 1.0f, 1.0f))
+			.SetShadowOffset(FVector2D(1, 1))
+			.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f)));
+
+		Set("PhysicsAssetEditor.Tools.Font", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 11))
+			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f))
+			.SetHighlightColor(FLinearColor(1.0f, 1.0f, 1.0f))
+			.SetShadowOffset(FVector2D(1, 1))
+			.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f)));
+
+		FLinearColor Red = FLinearColor::Red;
+		FLinearColor Red_Selected = FLinearColor::Red.Desaturate(0.75f);
+		FLinearColor Red_Pressed = FLinearColor::Red.Desaturate(0.5f);
+
+		const FCheckBoxStyle RedRadioButtonStyle = FCheckBoxStyle()
+			.SetUncheckedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Red ) )
+			.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Red ) )
+			.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Red ) )
+			.SetCheckedImage( IMAGE_BRUSH( "Common/RadioButton_Selected_16x", Icon16x16, Red ) )
+			.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Selected_16x", Icon16x16, Red_Selected ) )
+			.SetCheckedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Red_Pressed ) )
+			.SetUndeterminedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Red ) )
+			.SetUndeterminedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Red_Selected ) )
+			.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Red_Pressed ) );
+
+		Set( "PhysicsAssetEditor.RadioButtons.Red", RedRadioButtonStyle );
+
+		FLinearColor Green = FLinearColor::Green;
+		FLinearColor Green_Selected = FLinearColor::Green.Desaturate(0.75f);
+		FLinearColor Green_Pressed = FLinearColor::Green.Desaturate(0.5f);
+
+		const FCheckBoxStyle GreenRadioButtonStyle = FCheckBoxStyle()
+			.SetUncheckedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Green ) )
+			.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Green ) )
+			.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Green ) )
+			.SetCheckedImage( IMAGE_BRUSH( "Common/RadioButton_Selected_16x", Icon16x16, Green ) )
+			.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Selected_16x", Icon16x16, Green_Selected ) )
+			.SetCheckedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Green_Pressed ) )
+			.SetUndeterminedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Green ) )
+			.SetUndeterminedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Green_Selected ) )
+			.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Green_Pressed ) );
+
+		Set( "PhysicsAssetEditor.RadioButtons.Green", GreenRadioButtonStyle );
+
+		FLinearColor Blue = FLinearColor::Blue;
+		FLinearColor Blue_Selected = FLinearColor::Blue.Desaturate(0.75f);
+		FLinearColor Blue_Pressed = FLinearColor::Blue.Desaturate(0.5f);
+
+		const FCheckBoxStyle BlueRadioButtonStyle = FCheckBoxStyle()
+			.SetUncheckedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Blue ) )
+			.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Blue ) )
+			.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Blue ) )
+			.SetCheckedImage( IMAGE_BRUSH( "Common/RadioButton_Selected_16x", Icon16x16, Blue ) )
+			.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Selected_16x", Icon16x16, Blue_Selected ) )
+			.SetCheckedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Blue_Pressed ) )
+			.SetUndeterminedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Blue ) )
+			.SetUndeterminedHoveredImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Blue_Selected ) )
+			.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/RadioButton_Unselected_16x", Icon16x16, Blue_Pressed ) );
+
+		Set( "PhysicsAssetEditor.RadioButtons.Blue", BlueRadioButtonStyle );
 	}
 #endif // WITH_EDITOR
 }

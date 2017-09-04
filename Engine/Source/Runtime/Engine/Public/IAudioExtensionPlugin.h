@@ -12,6 +12,41 @@
 
 class FAudioDevice;
 
+enum class EAudioPlatform : uint8
+{
+	Windows,
+	Mac,
+	Linux,
+	IOS,
+	Android,
+	XboxOne,
+	Playstation4,
+	Switch,
+	HTML5,
+	Unknown
+};
+
+/**
+* Enumeration of audio plugin types
+*
+*/
+enum class EAudioPlugin : uint8
+{
+	SPATIALIZATION = 0,
+	REVERB = 1,
+	OCCLUSION = 2
+};
+
+class IAudioSpatialization;
+class IAudioOcclusion;
+class IAudioReverb;
+class IAudioPluginListener;
+
+typedef TSharedPtr<IAudioSpatialization, ESPMode::ThreadSafe> TAudioSpatializationPtr;
+typedef TSharedPtr<IAudioOcclusion, ESPMode::ThreadSafe> TAudioOcclusionPtr;
+typedef TSharedPtr<IAudioReverb, ESPMode::ThreadSafe> TAudioReverbPtr;
+typedef TSharedPtr<IAudioPluginListener, ESPMode::ThreadSafe> TAudioPluginListenerPtr;
+
 /**
 * FSpatializationParams
 * Struct for retrieving parameters needed for computing spatialization and occlusion plugins.
@@ -54,6 +89,35 @@ struct FSpatializationParams
 	{}
 };
 
+struct FAudioPluginInitializationParams
+{
+	//Maximum number of sources that can play simultaneously.
+	uint32 NumSources;
+
+	//Number of output channels.
+	uint32 NumOutputChannels;
+
+	//Sample rate.
+	uint32 SampleRate;
+
+	//Buffer length used for each callback.
+	uint32 BufferLength;
+
+	//Pointer to audio device owning this audio plugin.
+	//IMPORTANT: This will be deprecated once the AudioMixer
+	//           is taken out of the experimental branch.
+	FAudioDevice* AudioDevicePtr;
+
+	FAudioPluginInitializationParams()
+		: NumSources(0)
+		, NumOutputChannels(0)
+		, SampleRate(0)
+		, BufferLength(0)
+		, AudioDevicePtr(nullptr)
+	{}
+
+};
+
 struct FAudioPluginSourceInputData
 {
 	// The ID of the source voice
@@ -85,6 +149,89 @@ class ENGINE_API USpatializationPluginSourceSettingsBase : public UObject
 	GENERATED_BODY()
 };
 
+
+/************************************************************************/
+/* IAudioPluginFactory                                             */
+/* This interface is inherited by spatialization, reverb and occlusion  */
+/* plugins to describe specifics of a plugin such as platform support,  */
+/* and display names.                                                   */
+/************************************************************************/
+class IAudioPluginFactory
+{
+public:
+	/*
+	* Returns human-readable string representing the display name of this plugin.
+	* This is the name that will be used in settings and .ini files.
+	* If multiple IAudioPlugin implementations are found that return identical strings here,
+	* The first one of these loaded will be used.
+	*
+	* @return FString of the display name of this plugin.
+	*/
+	virtual FString GetDisplayName()
+	{
+		static FString DisplayName = FString(TEXT("Generic Audio Plugin"));
+		return DisplayName;
+	}
+
+	/*
+	* Returns whether this plugin supports use on the specified platform.
+	* @param Platform an enumerated platform (i.e. Windows, Playstation4, etc.)
+	* @return true if this plugin supports use on Platform, false otherwise.
+	*/
+	virtual bool SupportsPlatform(EAudioPlatform Platform) = 0;
+
+	/*
+	* Returns whether this plugin sends audio to an external renderer.
+	* if this returns true, the audio engine will not mix the result of the audio process callback
+	* from the plugin into the audio output.
+	*
+	* @return true only if the plugin will handle sending audio to the DAC itself.
+	*/
+	virtual bool IsExternalSend()
+	{
+		return false;
+	}
+};
+
+/************************************************************************/
+/* IAudioSpatializationFactory                                          */
+/* Implement this modular feature to make your Spatialialization plugin */
+/* visible to the engine.                                               */
+/************************************************************************/
+class IAudioSpatializationFactory : public IAudioPluginFactory, public IModularFeature
+{
+public:
+	/** Virtual destructor */
+	virtual ~IAudioSpatializationFactory()
+	{
+	}
+
+	// IModularFeature
+	static FName GetModularFeatureName()
+	{
+		static FName AudioExtFeatureName = FName(TEXT("AudioSpatializationPlugin"));
+		return AudioExtFeatureName;
+	}
+
+	/* Begin IAudioPluginWithMetadata implementation */
+	virtual FString GetDisplayName() override
+	{
+		static FString DisplayName = FString(TEXT("Generic Audio Spatialization Plugin"));
+		return DisplayName;
+	}
+	/* End IAudioPluginWithMetadata implementation */
+
+	/**
+	* @return a new instance of your spatialization plugin, owned by a shared pointer.
+	*/
+	virtual TAudioSpatializationPtr CreateNewSpatializationPlugin(FAudioDevice* OwningDevice) = 0;
+
+	/*
+	* @return true if this plugin uses a custom setting.
+	*/
+	virtual bool HasCustomSpatializationSetting() const { return false; }
+};
+
 /**
 * IAudioSpatialization
 *
@@ -94,11 +241,23 @@ class ENGINE_API USpatializationPluginSourceSettingsBase : public UObject
 * the effect is updated in the audio engine update loop with new position information.
 *
 */
-class IAudioSpatialization
+class IAudioSpatialization 
 {
 public:
 	/** Virtual destructor */
 	virtual ~IAudioSpatialization()
+	{
+	}
+
+	/**
+	* Shuts down the audio plugin.
+	*
+	*/
+	virtual void Shutdown()
+	{
+	}
+
+	virtual void OnDeviceShutdown(FAudioDevice* AudioDevice)
 	{
 	}
 
@@ -142,6 +301,11 @@ public:
 	{
 	}
 
+	/** Called when all sources have finished processing. */
+	virtual void OnAllSourcesProcessed()
+	{
+	}
+
 	/** Returns whether or not the spatialization effect has been initialized */
 	virtual bool IsSpatializationEffectInitialized() const
 	{
@@ -149,7 +313,7 @@ public:
 	}
 
 	/** Initializes the spatialization plugin with the given buffer length. */
-	virtual void Initialize(const uint32 SampleRate, const uint32 NumSources, const uint32 OutputBufferLength)
+	virtual void Initialize(const FAudioPluginInitializationParams InitializationParams)
 	{
 	}
 
@@ -173,6 +337,38 @@ class ENGINE_API UOcclusionPluginSourceSettingsBase : public UObject
 	GENERATED_BODY()
 };
 
+/************************************************************************/
+/* IAudioOcclusionFactory                                               */
+/*                                                                      */
+/************************************************************************/
+class IAudioOcclusionFactory : public IAudioPluginFactory, public IModularFeature
+{
+public:
+	/** Virtual destructor */
+	virtual ~IAudioOcclusionFactory()
+	{
+	}
+
+	// IModularFeature
+	static FName GetModularFeatureName()
+	{
+		static FName AudioExtFeatureName = FName(TEXT("AudioOcclusionPlugin"));
+		return AudioExtFeatureName;
+	}
+
+	/* Begin IAudioPluginWithMetadata implementation */
+	virtual FString GetDisplayName() override
+	{
+		static FString DisplayName = FString(TEXT("Generic Audio Occlusion Plugin"));
+		return DisplayName;
+	}
+	/* End IAudioPluginWithMetadata implementation */
+
+	virtual TAudioOcclusionPtr CreateNewOcclusionPlugin(FAudioDevice* OwningDevice) = 0;
+
+	virtual bool HasCustomOcclusionSetting() const { return false; }
+};
+
 class IAudioOcclusion
 {
 public:
@@ -182,7 +378,7 @@ public:
 	}
 
 	/** Initialize the occlusion plugin with the same rate and number of sources. */
-	virtual void Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize)
+	virtual void Initialize(const FAudioPluginInitializationParams InitializationParams)
 	{
 	}
 
@@ -209,6 +405,34 @@ class ENGINE_API UReverbPluginSourceSettingsBase : public UObject
 	GENERATED_BODY()
 };
  
+class IAudioReverbFactory : public IAudioPluginFactory, public IModularFeature
+{
+public:
+	/** Virtual destructor */
+	virtual ~IAudioReverbFactory()
+	{
+	}
+
+	// IModularFeature
+	static FName GetModularFeatureName()
+	{
+		static FName AudioExtFeatureName = FName(TEXT("AudioReverbPlugin"));
+		return AudioExtFeatureName;
+	}
+
+	/* Begin IAudioPluginWithMetadata implementation */
+	virtual FString GetDisplayName() override
+	{
+		static FString DisplayName = FString(TEXT("Generic Audio Reverb Plugin"));
+		return DisplayName;
+	}
+	/* End IAudioPluginWithMetadata implementation */
+
+	virtual TAudioReverbPtr CreateNewReverbPlugin(FAudioDevice* OwningDevice) = 0;
+
+	virtual bool HasCustomReverbSetting() const { return false; }
+};
+
 class IAudioReverb
 {
 public:
@@ -218,7 +442,19 @@ public:
 	}
 
 	/** Initialize the reverb plugin with the same rate and number of sources. */
-	virtual void Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize)
+	virtual void Initialize(const FAudioPluginInitializationParams InitializationParams)
+	{
+	}
+
+	/**
+	* Shuts down the audio plugin.
+	*
+	*/
+	virtual void Shutdown()
+	{
+	}
+
+	virtual void OnDeviceShutdown(FAudioDevice* AudioDevice)
 	{
 	}
 
@@ -236,76 +472,17 @@ public:
 	}
 };
 
-/** Override this and create it to receive listener changes. */
-class IAudioListenerObserver
+/************************************************************************/
+/* IAudioPluginListener                                                 */
+/* Implementations of this interface can receive updates about the      */
+/* audio listener's position in the game world, as well as other data.  */
+/* to use this, register a ListenerObserver to an audio device using    */
+/* FAudioDevice::RegisterPluginListener().                              */
+/************************************************************************/
+class IAudioPluginListener
 {
 public:
-	virtual ~IAudioListenerObserver()
-	{
-	}
-
-	// Called when the listener is updated on the given audio device.
-	virtual void OnListenerUpdated(FAudioDevice* AudioDevice, UWorld* ListenerWorld, const int32 ViewportIndex, const FTransform& ListenerTransform, const float InDeltaSeconds) = 0;
-	virtual void OnListenerShutdown(FAudioDevice* AudioDevice) = 0;
-};
-
-typedef TSharedPtr<IAudioSpatialization, ESPMode::ThreadSafe> TAudioSpatializationPtr;
-typedef TSharedPtr<IAudioOcclusion, ESPMode::ThreadSafe> TAudioOcclusionPtr;
-typedef TSharedPtr<IAudioReverb, ESPMode::ThreadSafe> TAudioReverbPtr;
-typedef TSharedPtr<IAudioListenerObserver, ESPMode::ThreadSafe> TAudioListenerObserverPtr;
-
-/**
-* The public interface of an audio plugin. Plugins that extend core features of the audio engine.
-*/
-class IAudioPlugin : public IModuleInterface, public IModularFeature
-{
-public:
-	// IModularFeature
-	static FName GetModularFeatureName()
-	{
-		static FName AudioExtFeatureName = FName(TEXT("AudioPlugin"));
-		return AudioExtFeatureName;
-	}
-
-	// IModuleInterface
-	virtual void StartupModule() override
-	{
-		IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
-	}
-
-	/**
-	* Singleton-like access to IAudioExtensionPlugin
-	*
-	* @return Returns IAudioExtensionPlugin singleton instance, loading the module on demand if needed
-	*/
-	static inline IAudioPlugin& Get()
-	{
-		return FModuleManager::LoadModuleChecked<IAudioPlugin>("AudioPlugin");
-	}
-
-	/**
-	* Checks to see if this module is loaded and ready.  It is only valid to call Get() if IsAvailable() returns true.
-	*
-	* @return True if the module is loaded and ready to use
-	*/
-	static inline bool IsAvailable()
-	{
-		return FModuleManager::Get().IsModuleLoaded("AudioPlugin");
-	}
-
-	/**
-	* Initializes the audio plugin.
-	*
-	*/
-	virtual void Initialize()
-	{
-	}
-
-	/**
-	* Shuts down the audio plugin.
-	*
-	*/
-	virtual void Shutdown()
+	virtual ~IAudioPluginListener()
 	{
 	}
 
@@ -313,58 +490,20 @@ public:
 	{
 	}
 
-	virtual bool ImplementsSpatialization() const
+	//This function is called when a game world initializes a listener with an audio device this
+	//IAudioPluginListener is registered to. Please note that it is possible to miss this event
+	//if you register this IAudioPluginListener after the listener is initialized.
+	virtual void OnListenerInitialize(FAudioDevice* AudioDevice, UWorld* ListenerWorld)
 	{
-		return false;
 	}
 
-	virtual bool HasCustomSpatializationSetting() const
+	// Called when the listener is updated on the given audio device.
+	virtual void OnListenerUpdated(FAudioDevice* AudioDevice, const int32 ViewportIndex, const FTransform& ListenerTransform, const float InDeltaSeconds)
 	{
-		return false;
 	}
 
-	virtual bool ImplementsOcclusion() const
+	//Called when the listener is shutdown.
+	virtual void OnListenerShutdown(FAudioDevice* AudioDevice)
 	{
-		return false;
-	}
-
-	virtual bool HasCustomOcclusionSetting() const
-	{
-		return false;
-	}
-
-	virtual bool ImplementsReverb() const
-	{
-		return false;
-	}
-
-	virtual bool HasCustomReverbSetting() const
-	{
-		return false;
-	}
-
-	virtual bool SupportsMultipleAudioDevices() const
-	{
-		return true;
-	}
-
-	virtual TAudioSpatializationPtr CreateSpatializationInterface(class FAudioDevice* AudioDevice)
-	{
-		return nullptr;
-	}
-
-	virtual TAudioOcclusionPtr CreateOcclusionInterface(class FAudioDevice* AudioDevice)
-	{
-		return nullptr;
-	}
-
-	virtual TAudioReverbPtr CreateReverbInterface(class FAudioDevice* AudioDevice)
-	{
-		return nullptr;
-	}
-
-	virtual TAudioListenerObserverPtr CreateListenerObserverInterface(class FAudioDevice* AudioDevice)
-	{
-		return nullptr;
 	}
 };

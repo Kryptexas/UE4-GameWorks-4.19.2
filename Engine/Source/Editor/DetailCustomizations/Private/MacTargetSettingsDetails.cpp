@@ -258,6 +258,8 @@ void FMacTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			.OnPostExternalImageCopy(FOnPostExternalImageCopy::CreateSP(this, &FMacTargetSettingsDetails::HandlePostExternalIconCopy))
 		]
 	];
+
+	AudioPluginWidgetManager.BuildAudioCategory(DetailBuilder, EAudioPlatform::Mac);
 }
 
 

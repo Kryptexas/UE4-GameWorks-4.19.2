@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
 #include "ShaderFormatsPropertyDetails.h"
+#include "TargetPlatformAudioCustomization.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;
@@ -54,4 +55,7 @@ private:
 	
 	/** Reference to the shader version property warning text box. */
 	TSharedPtr< SErrorText > ShaderVersionWarningTextBox;
+
+	/** Widget for platform specific audio plugins. */
+	FAudioPluginWidgetManager AudioPluginWidgetManager;
 };

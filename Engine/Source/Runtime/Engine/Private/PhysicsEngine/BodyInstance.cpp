@@ -70,18 +70,20 @@ int32 FillInlinePxShapeArray_AssumesLocked(FInlinePxShapeArray& Array, const phy
 	return NumShapes;
 }
 
-PxTransform GetPxTransform_AssumesLocked(const PxRigidActor* PRigidActor)
+PxTransform GetPxTransform_AssumesLocked(const PxRigidActor* PRigidActor, bool bForceGlobalPose = false)
 {
-
-	if (const PxRigidDynamic* PRigidDynamic = PRigidActor->is<PxRigidDynamic>())
+	if (!bForceGlobalPose)
 	{
-		PxTransform Transform;
-
-		// getKinematicTarget will do checks to ensure the Body is both kinematic and
-		// that the kinematic target has been set.
-		if (PRigidDynamic->getKinematicTarget(Transform))
+		if (const PxRigidDynamic* const PRigidDynamic = PRigidActor->is<PxRigidDynamic>())
 		{
-			return Transform;
+		    PxTransform Transform;
+    
+		    // getKinematicTarget will do checks to ensure the Body is both kinematic and
+		    // that the kinematic target has been set.
+		    if (PRigidDynamic->getKinematicTarget(Transform))
+		    {
+			    return Transform;
+		    }
 		}
 	}
 
@@ -2697,13 +2699,13 @@ bool FBodyInstance::IsValidBodyInstance() const
 }
 
 template <bool NeedsLock>
-FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance, bool bWithProjection)
+FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance, bool bWithProjection, bool bGlobalPose)
 {
 	FTransform WorldTM = FTransform::Identity;
 #if WITH_PHYSX
 	FPhysXSupport<NeedsLock>::ExecuteOnPxRigidActorReadOnly(BodyInstance, [&](const PxRigidActor* PActor)
 	{
-		PxTransform PTM = GetPxTransform_AssumesLocked(PActor);
+		PxTransform PTM = GetPxTransform_AssumesLocked(PActor, bGlobalPose);
 		WorldTM = P2UTransform(PTM);
 
 		if(bWithProjection)
@@ -2716,15 +2718,15 @@ FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance, bool bW
 	return WorldTM;
 }
 
-FTransform FBodyInstance::GetUnrealWorldTransform(bool bWithProjection /* = true*/) const
+FTransform FBodyInstance::GetUnrealWorldTransform(bool bWithProjection /* = true*/, bool bForceGlobalPose /* = true*/) const
 {
-	return GetUnrealWorldTransformImp<true>(this, bWithProjection);
+	return GetUnrealWorldTransformImp<true>(this, bWithProjection, bForceGlobalPose);
 }
 
 
-FTransform FBodyInstance::GetUnrealWorldTransform_AssumesLocked(bool bWithProjection /* = true*/) const
+FTransform FBodyInstance::GetUnrealWorldTransform_AssumesLocked(bool bWithProjection /* = true*/, bool bForceGlobalPose /* = true*/) const
 {
-	return GetUnrealWorldTransformImp<false>(this, bWithProjection);
+	return GetUnrealWorldTransformImp<false>(this, bWithProjection, bForceGlobalPose);
 }
 
 void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportType Teleport)

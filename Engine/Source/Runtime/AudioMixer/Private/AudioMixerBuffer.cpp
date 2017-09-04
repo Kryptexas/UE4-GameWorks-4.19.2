@@ -235,7 +235,7 @@ namespace Audio
 
 			case DTYPE_Procedural:
 			{
-				// Always create a new buffer for procedural buffers
+				// Always create a new buffer for procedural or bus buffers
 				Buffer = FMixerBuffer::CreateProceduralBuffer(Mixer, InWave);
 			}
 			break;
@@ -248,7 +248,6 @@ namespace Audio
 			break;
 
 			case DTYPE_Native:
-			case DTYPE_Xenon:
 			{
 				if (InWave->ResourceID)
 				{

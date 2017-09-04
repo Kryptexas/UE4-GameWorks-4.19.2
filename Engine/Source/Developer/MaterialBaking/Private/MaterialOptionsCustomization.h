@@ -20,6 +20,7 @@ protected:
 protected:
 	/** Property restriction instance used for limiting EMaterialProperty selection */
 	TSharedPtr<FPropertyRestriction> PropertyRestriction;
+	class UMaterialOptions* CurrentOptions;
 };
 
 /** Detail customization for UMaterialOptions */

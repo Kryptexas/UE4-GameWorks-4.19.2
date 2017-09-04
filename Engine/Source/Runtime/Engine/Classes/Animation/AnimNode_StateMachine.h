@@ -130,6 +130,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bSkipFirstUpdateTransition;
 
+	// Reinitialize the state machine if we have become relevant to the graph
+	// after not being ticked on the previous frame(s)
+	UPROPERTY(EditAnywhere, Category = Settings)
+	bool bReinitializeOnBecomingRelevant;
+
 public:
 
 	int32 GetCurrentState() const
@@ -190,6 +195,7 @@ public:
 	FAnimNode_StateMachine()
 		: MaxTransitionsPerFrame(3)
 		, bSkipFirstUpdateTransition(true)
+		, bReinitializeOnBecomingRelevant(true)
 		, PRIVATE_MachineDescription(NULL)
 		, CurrentState(INDEX_NONE)
 		, bFirstUpdate(true)

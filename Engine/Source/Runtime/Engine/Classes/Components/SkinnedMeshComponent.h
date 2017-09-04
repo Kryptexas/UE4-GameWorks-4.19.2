@@ -430,7 +430,7 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="bCastCapsuleIndirectShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
 	float CapsuleIndirectShadowMinVisibility;
 
-	/** CPU skinning rendering - only for previewing in Persona and conversion tools */
+	/** Whether or not to CPU skin this component, requires render data refresh after changing */
 	UPROPERTY(transient)
 	uint32 bCPUSkinning : 1;
 

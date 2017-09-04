@@ -108,7 +108,7 @@ void FClothingPaintEditMode::Exit()
 
 	if(PersonaToolkit.IsValid())
 	{
-		if(USkeletalMesh* SkelMesh = PersonaToolkit->GetPreviewMesh())
+		if(USkeletalMesh* SkelMesh = PersonaToolkit.Pin()->GetPreviewMesh())
 		{
 			for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
 			{

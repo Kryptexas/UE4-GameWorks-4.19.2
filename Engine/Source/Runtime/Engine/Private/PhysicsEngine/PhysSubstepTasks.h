@@ -75,7 +75,7 @@ struct FKinematicTarget
 	FKinematicTarget(FBodyInstance* Body, const FTransform& TM) :
 		BodyInstance(Body),
 		TargetTM(TM),
-		OriginalTM(Body->GetUnrealWorldTransform_AssumesLocked())
+		OriginalTM(Body->GetUnrealWorldTransform(true, true))
 	{
 	}
 

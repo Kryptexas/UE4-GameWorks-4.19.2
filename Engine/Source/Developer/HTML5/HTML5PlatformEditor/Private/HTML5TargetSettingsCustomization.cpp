@@ -45,6 +45,8 @@ void FHTML5TargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	}
 
 	SETUP_SOURCEONLY_PROP(EnableIndexedDB, EmscriptenCategory);
+
+	AudioPluginWidgetManager.BuildAudioCategory(DetailLayout, EAudioPlatform::HTML5);
 }
 
 //////////////////////////////////////////////////////////////////////////

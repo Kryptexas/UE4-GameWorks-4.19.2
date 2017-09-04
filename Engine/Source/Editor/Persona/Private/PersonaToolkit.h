@@ -11,6 +11,8 @@ class FAnimationEditorPreviewScene;
 class UAnimationAsset;
 class UAnimBlueprint;
 class USkeletalMesh;
+class UPhysicsAsset;
+struct FPersonaToolkitArgs;
 
 class FPersonaToolkit : public IPersonaToolkit, public TSharedFromThis<FPersonaToolkit>
 {
@@ -23,9 +25,10 @@ public:
 	void Initialize(UAnimationAsset* InAnimationAsset);
 	void Initialize(USkeletalMesh* InSkeletalMesh);
 	void Initialize(UAnimBlueprint* InAnimBlueprint);
+	void Initialize(UPhysicsAsset* InPhysicsAsset);
 
 	/** Optionally create a preview scene - note: creates an editable skeleton */
-	void CreatePreviewScene();
+	void CreatePreviewScene(const FPersonaToolkitArgs& PersonaToolkitArgs);
 
 	/** IPersonaToolkit interface */
 	virtual class USkeleton* GetSkeleton() const override;
@@ -56,6 +59,9 @@ private:
 
 	/** the animation asset we are editing */
 	UAnimationAsset* AnimationAsset;
+
+	/** the physics asset we are editing */
+	UPhysicsAsset* PhysicsAsset;
 
 	/** Preview scene for the editor */
 	TSharedPtr<FAnimationEditorPreviewScene> PreviewScene;

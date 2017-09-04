@@ -23,7 +23,7 @@ void SViewportToolBarIconMenu::Construct( const FArguments& InArgs )
 	[
 		SNew(SButton)
 		.ButtonStyle( FEditorStyle::Get(), ButtonStyle )
-		.ContentPadding( FMargin( 5.0f, 0.0f ) )
+		.ContentPadding( FMargin( 5.0f, 2.0f ) )
 		.OnClicked(this, &SViewportToolBarIconMenu::OnMenuClicked)
 		[
 			SNew(SHorizontalBox)

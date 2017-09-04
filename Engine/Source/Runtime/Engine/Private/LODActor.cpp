@@ -21,6 +21,7 @@
 #include "Editor.h"
 
 #include "HierarchicalLODUtilitiesModule.h"
+#include "ObjectTools.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "LODActor"
@@ -536,6 +537,8 @@ void ALODActor::SetIsDirty(const bool bNewState)
 		{
 			GEditor->BroadcastHLODActorMarkedDirty(this);
 		}
+		PreviousSubObjects.Append(SubObjects);
+		SubObjects.Empty();
 #endif // WITH_EDITOR
 	}	
 	else
@@ -638,7 +641,7 @@ void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 		SetIsDirty(false);
 
 		ensure(StaticMeshComponent->GetStaticMesh() == InStaticMesh);
-		if (InStaticMesh->RenderData && InStaticMesh->RenderData->LODResources.Num() > 0)
+		if (InStaticMesh && InStaticMesh->RenderData && InStaticMesh->RenderData->LODResources.Num() > 0)
 		{
 			NumTrianglesInMergedMesh = InStaticMesh->RenderData->LODResources[0].GetNumTriangles();
 		}
@@ -768,10 +771,33 @@ void ALODActor::Serialize(FArchive& Ar)
 
 	bRequiresLODScreenSizeConversion = Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::LODsUseResolutionIndependentScreenSize;
 }
+
+void ALODActor::PreSave(const class ITargetPlatform* TargetPlatform)
+{
+	AActor::PreSave(TargetPlatform);
+	if (PreviousSubObjects.Num())
+	{
+		PreviousSubObjects.RemoveAll([](const UObject* Object) -> bool { return Object == nullptr; });
+		ObjectTools::DeleteObjectsUnchecked(PreviousSubObjects);
+		PreviousSubObjects.Empty();
+	}
+}
+
+void ALODActor::BeginDestroy()
+{
+	AActor::BeginDestroy();
+	if (PreviousSubObjects.Num())
+	{
+		for (UObject* Object : PreviousSubObjects)
+		{
+			if (Object)
+			{
+				Object->MarkPendingKill();
+			}
+		}
+		PreviousSubObjects.Empty();
+	}
+}
+
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-// AHLODMeshCullingVolume
-
-
 #undef LOCTEXT_NAMESPACE

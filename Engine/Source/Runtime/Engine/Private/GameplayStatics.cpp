@@ -964,7 +964,7 @@ void UGameplayStatics::SetGlobalListenerFocusParameters(const UObject* WorldCont
 	}
 }
 
-void UGameplayStatics::PlaySound2D(const UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
+void UGameplayStatics::PlaySound2D(const UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings, AActor* OwningActor)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -993,6 +993,8 @@ void UGameplayStatics::PlaySound2D(const UObject* WorldContextObject, class USou
 		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 		NewActiveSound.Priority = Sound->Priority;
 		NewActiveSound.SubtitlePriority = Sound->GetSubtitlePriority();
+
+		NewActiveSound.SetOwner(OwningActor);
 
 		AudioDevice->AddNewActiveSound(NewActiveSound);
 	}
@@ -1051,7 +1053,7 @@ UAudioComponent* UGameplayStatics::SpawnSound2D(const UObject* WorldContextObjec
 	return AudioComponent;
 }
 
-void UGameplayStatics::PlaySoundAtLocation(const UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings, class USoundConcurrency* ConcurrencySettings)
+void UGameplayStatics::PlaySoundAtLocation(const UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings, class USoundConcurrency* ConcurrencySettings, AActor* OwningActor)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -1066,7 +1068,7 @@ void UGameplayStatics::PlaySoundAtLocation(const UObject* WorldContextObject, cl
 
 	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
-		AudioDevice->PlaySoundAtLocation(Sound, ThisWorld, VolumeMultiplier, PitchMultiplier, StartTime, Location, Rotation, AttenuationSettings, ConcurrencySettings);
+		AudioDevice->PlaySoundAtLocation(Sound, ThisWorld, VolumeMultiplier, PitchMultiplier, StartTime, Location, Rotation, AttenuationSettings, ConcurrencySettings, nullptr, OwningActor);
 	}
 }
 

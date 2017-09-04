@@ -1621,17 +1621,17 @@ float FKAggregateGeom::GetVolume(const FVector& Scale) const
 	return Volume;
 }
 
-int32 FKAggregateGeom::GetElementCount(int32 Type) const
+int32 FKAggregateGeom::GetElementCount(EAggCollisionShape::Type Type) const
 {
 	switch (Type)
 	{
-	case KPT_Box:
+	case EAggCollisionShape::Box:
 		return BoxElems.Num();
-	case KPT_Convex:
+	case EAggCollisionShape::Convex:
 		return ConvexElems.Num();
-	case KPT_Sphyl:
+	case EAggCollisionShape::Sphyl:
 		return SphylElems.Num();
-	case KPT_Sphere:
+	case EAggCollisionShape::Sphere:
 		return SphereElems.Num();
 	default:
 		return 0;

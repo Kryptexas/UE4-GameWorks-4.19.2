@@ -25,7 +25,7 @@ FBoneContainer::FBoneContainer()
 	PoseToSkeletonBoneIndexArray.Empty();
 }
 
-FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset)
+FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, const FCurveEvaluationOption& CurveEvalOption, UObject& InAsset)
 : BoneIndicesArray(InRequiredBoneIndexArray)
 , Asset(&InAsset)
 , AssetSkeletalMesh(NULL)
@@ -35,15 +35,15 @@ FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndex
 , bUseRAWData(false)
 , bUseSourceData(false)
 {
-	Initialize(bDisableAnimCurves);
+	Initialize(CurveEvalOption);
 }
 
-void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset)
+void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, const FCurveEvaluationOption& CurveEvalOption, UObject& InAsset)
 {
 	BoneIndicesArray = InRequiredBoneIndexArray;
 	Asset = &InAsset;
 
-	Initialize(bDisableAnimCurves);
+	Initialize(CurveEvalOption);
 }
 
 struct FBoneContainerScratchArea : public TThreadSingleton<FBoneContainerScratchArea>
@@ -51,7 +51,7 @@ struct FBoneContainerScratchArea : public TThreadSingleton<FBoneContainerScratch
 	TArray<int32> MeshIndexToCompactPoseIndex;
 };
 
-void FBoneContainer::Initialize(bool bDisableAnimCurves)
+void FBoneContainer::Initialize(const FCurveEvaluationOption& CurveEvalOption)
 {
 	RefSkeleton = NULL;
 	UObject* AssetObj = Asset.Get();
@@ -182,12 +182,12 @@ void FBoneContainer::Initialize(bool bDisableAnimCurves)
 	}
 
 	// cache required curve UID list according to new bone sets
-	CacheRequiredAnimCurveUids(bDisableAnimCurves);
+	CacheRequiredAnimCurveUids(CurveEvalOption);
 }
 
-void FBoneContainer::CacheRequiredAnimCurveUids(bool bDisableAnimCurves)
+void FBoneContainer::CacheRequiredAnimCurveUids(const FCurveEvaluationOption& CurveEvalOption)
 {
-	if (!bDisableAnimCurves && AssetSkeleton.IsValid())
+	if (CurveEvalOption.bAllowCurveEvaluation && AssetSkeleton.IsValid())
 	{
 		// this is placeholder. In the future, this will change to work with linked joint of curve meta data
 		// anim curve name Uids; For now it adds all of them
@@ -205,26 +205,42 @@ void FBoneContainer::CacheRequiredAnimCurveUids(bool bDisableAnimCurves)
 			{
 				for (int32 CurveNameIndex = CurveNames.Num() - 1; CurveNameIndex >=0 ; --CurveNameIndex)
 				{
-					const FCurveMetaData* CurveMetaData = Mapping->GetCurveMetaData(CurveNames[CurveNameIndex]);
-					if (CurveMetaData && CurveMetaData->LinkedBones.Num() > 0)
+					const FName& CurveName = CurveNames[CurveNameIndex];
+					if (CurveEvalOption.DisallowedList && CurveEvalOption.DisallowedList->Contains(CurveName))
 					{
-						bool bRemove = true;
-						for (int32 LinkedBoneIndex = 0; LinkedBoneIndex < CurveMetaData->LinkedBones.Num(); ++LinkedBoneIndex)
+						//remove the UID
+						AnimCurveNameUids.RemoveAt(CurveNameIndex);
+					}
+					else
+					{
+						const FCurveMetaData* CurveMetaData = Mapping->GetCurveMetaData(CurveNames[CurveNameIndex]);
+						if (CurveMetaData)
 						{
-							const FBoneReference& BoneReference = CurveMetaData->LinkedBones[LinkedBoneIndex];
-							// we want to make sure all the joints are removed from RequiredBones before removing this UID
-							if (BoneReference.GetCompactPoseIndex(*this) != INDEX_NONE)
+							if (CurveMetaData->MaxLOD < CurveEvalOption.LODIndex)
 							{
-								// still has some joint that matters, do not remove
-								bRemove = false;
-								break;
+								AnimCurveNameUids.RemoveAt(CurveNameIndex);
 							}
-						}
+							else if (CurveMetaData->LinkedBones.Num() > 0)
+							{
+								bool bRemove = true;
+								for (int32 LinkedBoneIndex = 0; LinkedBoneIndex < CurveMetaData->LinkedBones.Num(); ++LinkedBoneIndex)
+								{
+									const FBoneReference& BoneReference = CurveMetaData->LinkedBones[LinkedBoneIndex];
+									// we want to make sure all the joints are removed from RequiredBones before removing this UID
+									if (BoneReference.GetCompactPoseIndex(*this) != INDEX_NONE)
+									{
+										// still has some joint that matters, do not remove
+										bRemove = false;
+										break;
+									}
+								}
 
-						if (bRemove)
-						{
-							//remove the UID
-							AnimCurveNameUids.RemoveAt(CurveNameIndex);
+								if (bRemove)
+								{
+									//remove the UID
+									AnimCurveNameUids.RemoveAt(CurveNameIndex);
+								}
+							}
 						}
 					}
 				}

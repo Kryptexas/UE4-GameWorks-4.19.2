@@ -10,6 +10,7 @@
 #include "Widgets/Views/STableRow.h"
 #include "IDetailCustomization.h"
 #include "ShaderFormatsPropertyDetails.h"
+#include "TargetPlatformAudioCustomization.h"
 
 class FMonitoredProcess;
 class IDetailLayoutBuilder;
@@ -225,4 +226,6 @@ private:
 
 	/** Reference to the os version property warning text box. */
 	TSharedPtr< SErrorText > GLVersionWarningTextBox;
+	/** Structure used to manage audio plugin platform settings */
+	FAudioPluginWidgetManager AudioPluginWidgetManager;
 };

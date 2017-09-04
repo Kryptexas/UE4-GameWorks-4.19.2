@@ -649,7 +649,7 @@ void SClothAssetSelector::Construct(const FArguments& InArgs, USkeletalMesh* InM
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("AssetExpander_Title", "Assets"))
+					.Text(LOCTEXT("AssetExpander_Title", "Clothing Data"))
 					.Font(FEditorStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
 					.ShadowOffset(FVector2D(1.0f, 1.0f))
 				]

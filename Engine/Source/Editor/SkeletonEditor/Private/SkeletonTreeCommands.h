@@ -48,6 +48,9 @@ public:
 	/** Flatten hierarchy on filter */
 	TSharedPtr< FUICommandInfo > FilteringFlattensHierarchy;
 
+	/** Hide parents on filter */
+	TSharedPtr< FUICommandInfo > HideParentsWhenFiltering;
+
 	/** Add a socket to the skeleton */
 	TSharedPtr< FUICommandInfo > AddSocket;
 

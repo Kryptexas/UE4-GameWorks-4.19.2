@@ -12,6 +12,7 @@
 #include "ISkeletonTreeItem.h"
 #include "SkeletonTreeItem.h"
 #include "IEditableSkeleton.h"
+#include "BoneProxy.h"
 
 class SInlineEditableTextBlock;
 
@@ -20,22 +21,23 @@ class FSkeletonTreeVirtualBoneItem : public FSkeletonTreeItem
 public:
 	SKELETON_TREE_ITEM_TYPE(FSkeletonTreeVirtualBoneItem, FSkeletonTreeItem)
 
-	FSkeletonTreeVirtualBoneItem(const FName& InBoneName, const TSharedRef<class ISkeletonTree>& InSkeletonTree)
-		: FSkeletonTreeItem(InSkeletonTree)
-		, BoneName(InBoneName)
-	{}
+	FSkeletonTreeVirtualBoneItem(const FName& InBoneName, const TSharedRef<class ISkeletonTree>& InSkeletonTree);
+	~FSkeletonTreeVirtualBoneItem();
 
 	/** Builds the table row widget to display this info */
-	virtual TSharedRef<ITableRow> MakeTreeRowWidget(const TSharedRef<STableViewBase>& InOwnerTable, const TAttribute<FText>& InFilterText) override;
 	virtual void GenerateWidgetForNameColumn(TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected) override;
 	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
 	virtual FName GetRowItemName() const override { return BoneName; }
 
 	virtual void RequestRename() override;
 	virtual void OnItemDoubleClicked() override;
+	virtual UObject* GetObject() const override { return BoneProxy; }
 
 	/** Return socket name as FText for display in skeleton tree */
 	FText GetVirtualBoneNameAsText() const { return FText::FromName(BoneName); }
+
+	/** Enable and disable the bone proxy ticking */
+	void EnableBoneProxyTick(bool bEnable);
 
 private:
 	/** Called when we are about to rename a virtual bone */
@@ -75,4 +77,7 @@ private:
 	/** Delegate for when the context menu requests a rename */
 	DECLARE_DELEGATE(FOnRenameRequested);
 	FOnRenameRequested OnRenameRequested;
+
+	/** Bone proxy used for debug display */
+	UBoneProxy* BoneProxy;
 };

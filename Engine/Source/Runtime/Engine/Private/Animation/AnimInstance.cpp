@@ -473,7 +473,8 @@ void UAnimInstance::PostUpdateAnimation()
 
 	Proxy.PostUpdate(this);
 
-	FRootMotionMovementParams& ExtractedRootMotion = Proxy.GetExtractedRootMotion();
+	ExtractedRootMotion.Accumulate(Proxy.GetExtractedRootMotion());
+	Proxy.GetExtractedRootMotion().Clear();
 
 	// blend in any montage-blended root motion that we now have correct weights for
 	for(const FQueuedRootMotionBlend& RootMotionBlend : RootMotionBlendQueue)
@@ -1011,9 +1012,9 @@ void UAnimInstance::RecalcRequiredBones()
 	}
 }
 
-void UAnimInstance::RecalcRequiredCurves(bool bDisableAnimCurves)
+void UAnimInstance::RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption)
 {
-	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves(bDisableAnimCurves);
+	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves(CurveEvalOption);
 }
 
 void UAnimInstance::Serialize(FArchive& Ar)
@@ -1162,12 +1163,15 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	SCOPE_CYCLE_COUNTER(STAT_UpdateCurves);
 
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 
 	//Track material params we set last time round so we can clear them if they aren't set again.
 	MaterialParamatersToClear.Reset();
 	for(auto Iter = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].CreateConstIterator(); Iter; ++Iter)
 	{
-		if(Iter.Value() != 0.0f)
+		// when reset, we go back to default value
+		float DefaultValue = SkelMeshComp->GetScalarParameterDefaultValue(Iter.Key());
+		if(Iter.Value() != DefaultValue)
 		{
 			MaterialParamatersToClear.Add(Iter.Key());
 		}
@@ -1193,7 +1197,6 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
 	//	 - When clear, we have to make sure to add directly to the material curve list because 
 	//   - sometimes they don't have the flag anymore, so we can't just call AddCurveValue
-	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
@@ -1437,7 +1440,7 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 			FRootMotionMovementParams* RootMotionParams = nullptr;
 			if (bExtractRootMotion)
 			{
-				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion() : &LocalExtractedRootMotion;
+				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &ExtractedRootMotion : &LocalExtractedRootMotion;
 			}
 
 			MontageInstance->MontageSync_PreUpdate();
@@ -2391,13 +2394,13 @@ FRootMotionMovementParams UAnimInstance::ConsumeExtractedRootMotion(float Alpha)
 	}
 	else if (Alpha > (1.f - ZERO_ANIMWEIGHT_THRESH))
 	{
-		FRootMotionMovementParams RootMotion = GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion();
-		GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion().Clear();
+		FRootMotionMovementParams RootMotion = ExtractedRootMotion;
+		ExtractedRootMotion.Clear();
 		return RootMotion;
 	}
 	else
 	{
-		return GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion().ConsumeRootMotion(Alpha);
+		return ExtractedRootMotion.ConsumeRootMotion(Alpha);
 	}
 }
 

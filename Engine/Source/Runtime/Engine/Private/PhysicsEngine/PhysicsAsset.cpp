@@ -15,6 +15,10 @@
 #include "Logging/MessageLog.h"
 #include "UObjectIterator.h"
 
+#if WITH_EDITOR
+#include "Misc/MessageDialog.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "PhysicsAsset"
 
 ///////////////////////////////////////	
@@ -260,6 +264,21 @@ void UPhysicsAsset::DisableCollision(int32 BodyIndexA, int32 BodyIndexB)
 	}
 
 	CollisionDisableTable.Add(Key, 0);
+}
+
+bool UPhysicsAsset::IsCollisionEnabled(int32 BodyIndexA, int32 BodyIndexB) const
+{
+	if(BodyIndexA == BodyIndexB)
+	{
+		return false;
+	}
+
+	if(CollisionDisableTable.Find(FRigidBodyIndexPair(BodyIndexA, BodyIndexB)))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTransform& LocalToWorld) const
@@ -757,6 +776,47 @@ void UPhysicsAsset::RefreshPhysicsAssetChange() const
 		}
 	}
 }
+
+USkeletalMesh* UPhysicsAsset::GetPreviewMesh() const
+{
+	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
+	if(!PreviewMesh)
+	{
+		// if preview mesh isn't loaded, see if we have set
+		FSoftObjectPath PreviewMeshStringRef = PreviewSkeletalMesh.ToSoftObjectPath();
+		// load it since now is the time to load
+		if(!PreviewMeshStringRef.ToString().IsEmpty())
+		{
+			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), nullptr, *PreviewMeshStringRef.ToString(), nullptr, LOAD_None, nullptr));
+		}
+	}
+
+	return PreviewMesh;
+}
+
+void UPhysicsAsset::SetPreviewMesh(USkeletalMesh* PreviewMesh)
+{
+	if(PreviewMesh)
+	{
+		// See if any bones are missing from the skeletal mesh we are trying to use
+		// @todo Could do more here - check for bone lengths etc. Maybe modify asset?
+		for (int32 i = 0; i < SkeletalBodySetups.Num(); ++i)
+		{
+			FName BodyName = SkeletalBodySetups[i]->BoneName;
+			int32 BoneIndex = PreviewMesh->RefSkeleton.FindBoneIndex(BodyName);
+			if (BoneIndex == INDEX_NONE)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok,
+					FText::Format( LOCTEXT("BoneMissingFromSkelMesh", "The SkeletalMesh is missing bone '{0}' needed by this PhysicsAsset."), FText::FromName(BodyName) ));
+				return;
+			}
+		}
+	}
+
+	Modify();
+	PreviewSkeletalMesh = PreviewMesh;
+}
+
 #endif
 
 void UPhysicsAsset::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)

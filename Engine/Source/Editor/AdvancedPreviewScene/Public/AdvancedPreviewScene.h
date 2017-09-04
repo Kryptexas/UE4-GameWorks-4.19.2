@@ -30,6 +30,10 @@ public:
 
 	void UpdateScene(FPreviewSceneProfile& Profile, bool bUpdateSkyLight = true, bool bUpdateEnvironment = true, bool bUpdatePostProcessing = true, bool bUpdateDirectionalLight = true);
 
+	/** Begin FPreviewScene */
+	virtual FLinearColor GetBackgroundColor() const override;
+	/** End FPreviewScene */
+
 	/* Begin FTickableEditorObject */
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override;

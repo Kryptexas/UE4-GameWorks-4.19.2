@@ -25,10 +25,7 @@ namespace Audio {
 		{
 			Unknown,
 			Float,
-			Double,
 			Int16,
-			Int24,
-			Int32,
 			Unsupported
 		};
 	}

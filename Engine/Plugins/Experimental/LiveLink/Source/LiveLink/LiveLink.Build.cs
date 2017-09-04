@@ -2,34 +2,25 @@
 
 namespace UnrealBuildTool.Rules
 {
-	public class LiveLink : ModuleRules
-	{
-		public LiveLink(ReadOnlyTargetRules Target) : base(Target)
+    public class LiveLink : ModuleRules
+    {
+        public LiveLink(ReadOnlyTargetRules Target) : base(Target)
         {
-			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"Core",
-					"CoreUObject",
-                    "UnrealEd",
-                    "Engine",
-                    "Projects",
+            PrivateDependencyModuleNames.AddRange(
+            new string[]
+            {
+                "Core",
+                "CoreUObject",
+                "Engine",
+                "Projects",
 
-                    "WorkspaceMenuStructure",
-                    "EditorStyle",
-                    "SlateCore",
-                    "Slate",
-                    "InputCore",
+                "Messaging",
+                "LiveLinkInterface",
+                "LiveLinkMessageBusFramework",
+            }
+            );
 
-                    "Messaging",
-                    "LiveLinkInterface",
-					"LiveLinkMessageBusFramework",
-                    "BlueprintGraph",
-                    "AnimGraph",
-                }
-			); 
-
-			PrivateIncludePaths.Add("/LiveLink/Private");
-		}
-	}
+            PrivateIncludePaths.Add("/LiveLink/Private");
+        }
+    }
 }

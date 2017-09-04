@@ -10,7 +10,7 @@ class FClothPainterCommands : public TCommands<FClothPainterCommands>
 {
 public:
 	FClothPainterCommands()
-		: TCommands<FClothPainterCommands>(TEXT("ClothPainter"), NSLOCTEXT("Contexts", "ClothPainter", "Cloth Painter"), NAME_None, FEditorStyle::GetStyleSetName())
+		: TCommands<FClothPainterCommands>(TEXT("ClothPainterTools"), NSLOCTEXT("Contexts", "ClothPainter", "Cloth Painter"), NAME_None, FEditorStyle::GetStyleSetName())
 	{
 
 	}
@@ -19,4 +19,5 @@ public:
 	static const FClothPainterCommands& Get();
 
 	/** Clothing commands */
+	TSharedPtr<FUICommandInfo> TogglePaintMode;
 };

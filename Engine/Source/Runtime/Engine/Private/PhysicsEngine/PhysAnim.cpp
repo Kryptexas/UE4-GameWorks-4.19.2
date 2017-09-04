@@ -185,8 +185,8 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 		FTransform TM;
 	};
 
-#define DEPERCATED_PHYSBLEND_UPDATES_PHYSX 0	//If you really need the old behavior of physics blending set this to 1. Note this is inefficient and doesn't lead to good results. Please use UPhysicalAnimationComponent
-#if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
+#define DEPRECATED_PHYSBLEND_UPDATES_PHYSX 0	//If you really need the old behavior of physics blending set this to 1. Note this is inefficient and doesn't lead to good results. Please use UPhysicalAnimationComponent
+#if DEPRECATED_PHYSBLEND_UPDATES_PHYSX
 	TArray<FBodyTMPair, TMemStackAllocator<alignof(FBodyTMPair)>> PendingBodyTMs;
 #endif
 
@@ -208,7 +208,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 			// See if this is a physics bone..
 			int32 BodyIndex = PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
 			// need to update back to physX so that physX knows where it was after blending
-#if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
+#if DEPRECATED_PHYSBLEND_UPDATES_PHYSX
 			bool bUpdatePhysics = false;
 #endif
 			FBodyInstance* PhysicsAssetBodyInstance = nullptr;
@@ -277,7 +277,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 							bSetParentScale = true;
 						}
 
-						#if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
+						#if DEPRECATED_PHYSBLEND_UPDATES_PHYSX
 						if (UsePhysWeight < 1.f)
 						{
 							bUpdatePhysics = true;
@@ -313,7 +313,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 					EditableComponentSpaceTransforms[BoneIndex] = Bodies[BodyIndex]->GetUnrealWorldTransform_AssumesLocked().GetRelativeTransform(NewComponentToWorld);
 				}
 			}
-#if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
+#if DEPRECATED_PHYSBLEND_UPDATES_PHYSX
 			if (bUpdatePhysics && PhysicsAssetBodyInstance)
 			{
 				//This is extremely inefficient. We need to obtain a write lock which will block other threads from blending
@@ -327,7 +327,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 
 #if WITH_PHYSX
 	}	//end scope for read lock
-#if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
+#if DEPRECATED_PHYSBLEND_UPDATES_PHYSX
 	if(PendingBodyTMs.Num() && CVarPhysicsAnimBlendUpdatesPhysX.GetValueOnAnyThread())
 	{
 		//This is extremely inefficient. We need to obtain a write lock which will block other threads from blending

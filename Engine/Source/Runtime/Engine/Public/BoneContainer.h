@@ -34,6 +34,22 @@ struct FVirtualBoneCompactPoseData
 };
 
 /**
+ * This is curve evaluation options for bone container
+ */
+struct FCurveEvaluationOption
+{
+	bool bAllowCurveEvaluation;
+	const TArray<FName>* DisallowedList;
+	int32 LODIndex;
+	
+	FCurveEvaluationOption(bool bInAllowCurveEvaluation = true, const TArray<FName>* InDisallowedList = nullptr, int32 InLODIndex = 0)
+		: bAllowCurveEvaluation(bInAllowCurveEvaluation)
+		, DisallowedList(InDisallowedList)
+		, LODIndex(InLODIndex)
+	{
+	}
+};
+/**
 * This is a native transient structure.
 * Contains:
 * - BoneIndicesArray: Array of RequiredBoneIndices for Current Asset. In increasing order. Mapping to current Array of Transforms (Pose).
@@ -93,10 +109,10 @@ public:
 
 	FBoneContainer();
 
-	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset);
+	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, const FCurveEvaluationOption& CurveEvalOption, UObject& InAsset);
 
 	/** Initialize BoneContainer to a new Asset, RequiredBonesArray and RefPoseArray. */
-	void InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset);
+	void InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, const FCurveEvaluationOption& CurveEvalOption, UObject& InAsset);
 
 	/** Returns true if FBoneContainer is Valid. Needs an Asset, a RefPoseArray, and a RequiredBonesArray. */
 	const bool IsValid() const
@@ -309,11 +325,11 @@ public:
 	}
 
 	/** Cache required Anim Curve Uids */
-	void CacheRequiredAnimCurveUids(bool bDisableAnimCurves);
+	void CacheRequiredAnimCurveUids(const FCurveEvaluationOption& CurveEvalOption);
 
 private:
 	/** Initialize FBoneContainer. */
-	void Initialize(bool bDisableAnimCurves);
+	void Initialize(const FCurveEvaluationOption& CurveEvalOption);
 
 	/** Cache remapping data if current Asset is a SkeletalMesh, with all compatible Skeletons. */
 	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton);

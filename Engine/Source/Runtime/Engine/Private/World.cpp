@@ -90,6 +90,10 @@
 	#include "Editor/UnrealEdTypes.h"
 	#include "Settings/LevelEditorPlaySettings.h"
 	#include "HierarchicalLOD.h"
+	#include "IHierarchicalLODUtilities.h"
+	#include "HierarchicalLODUtilitiesModule.h"
+	#include "ObjectTools.h"
+	#include "Engine/LODActor.h"
 #endif
 
 
@@ -464,6 +468,15 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 	// Make sure our legacy lightmap data is initialized so it can be renamed
 	PersistentLevel->HandleLegacyMapBuildData();
 
+	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+	UPackage* OldHLODPackage = nullptr;	
+	// See if any LODActors were found in the level, and if so retrieve the HLOD Package
+	if (PersistentLevel->Actors.ContainsByPredicate([](const AActor* Actor) { return Actor != nullptr && Actor->IsA<ALODActor>(); }))
+	{
+		OldHLODPackage = Utilities->CreateOrRetrieveLevelHLODPackage(PersistentLevel);
+	}
+
 	if (bShouldFail)
 	{
 		return false;
@@ -565,6 +578,30 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 		// Set the PKG_ContainsMap flag in the new package
 		NewPackage->ThisContainsMap();
 	}
+
+	// Move over HLOD assets to new _HLOD Package
+	if (OldHLODPackage)
+	{
+		UPackage* NewHLODPackage = Utilities->CreateOrRetrieveLevelHLODPackage(PersistentLevel);
+		TArray<UObject*> Objects;
+		// Retrieve all of the HLOD objects 
+		ForEachObjectWithOuter(OldHLODPackage, [&Objects](UObject* Obj)
+		{
+			if (ObjectTools::IsObjectBrowsable(Obj))
+			{
+				Objects.Add(Obj);
+			}
+		});
+		// Rename them 'into' the new HLOD package
+		for (UObject* Object : Objects)
+		{
+			Object->Rename(*Object->GetName(), NewHLODPackage);
+		}
+		// Delete the old HLOD package
+		TArray<UObject*> DeleteObjects = { Cast<UObject>(OldHLODPackage) };
+		ObjectTools::DeleteObjectsUnchecked(DeleteObjects);
+	}
+	
 
 	return true;
 }

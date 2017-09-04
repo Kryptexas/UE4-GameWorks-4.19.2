@@ -6,6 +6,8 @@
 #include "Misc/Attribute.h"
 #include "Input/Reply.h"
 #include "IDetailCustomization.h"
+#include "PropertyHandle.h"
+#include "TargetPlatformAudioCustomization.h"
 
 class IDetailLayoutBuilder;
 
@@ -82,5 +84,6 @@ private:
 	// Is the App ID string writable?
 	TAttribute<bool> SetupForGooglePlayAttribute;
 
+	FAudioPluginWidgetManager AudioPluginWidgetManager;
  	IDetailLayoutBuilder* SavedLayoutBuilder;
 };

@@ -18,6 +18,8 @@
 #include "IAssetFamily.h"
 #include "PersonaCommonCommands.h"
 #include "IEditableSkeleton.h"
+#include "ISkeletonTreeItem.h"
+#include "Algo/Transform.h"
 
 const FName SkeletonEditorAppIdentifier = FName(TEXT("SkeletonEditorApp"));
 
@@ -78,8 +80,8 @@ void FSkeletonEditor::InitSkeletonEditor(const EToolkitMode::Type Mode, const TS
 	TSharedRef<IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(InSkeleton);
 	AssetFamily->RecordAssetOpened(FAssetData(InSkeleton));
 
-	FSkeletonTreeArgs SkeletonTreeArgs(OnPostUndo);
-	SkeletonTreeArgs.OnObjectSelected = FOnObjectSelected::CreateSP(this, &FSkeletonEditor::HandleObjectSelected);
+	FSkeletonTreeArgs SkeletonTreeArgs;
+	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateSP(this, &FSkeletonEditor::HandleSelectionChanged);
 	SkeletonTreeArgs.PreviewScene = PersonaToolkit->GetPreviewScene();
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
@@ -244,6 +246,16 @@ void FSkeletonEditor::HandleObjectSelected(UObject* InObject)
 	if (DetailsView.IsValid())
 	{
 		DetailsView->SetObject(InObject);
+	}
+}
+
+void FSkeletonEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type InSelectInfo)
+{
+	if (DetailsView.IsValid())
+	{
+		TArray<UObject*> Objects;
+		Algo::TransformIf(InSelectedItems, Objects, [](const TSharedPtr<ISkeletonTreeItem>& InItem) { return InItem->GetObject() != nullptr; }, [](const TSharedPtr<ISkeletonTreeItem>& InItem) { return InItem->GetObject(); });
+		DetailsView->SetObjects(Objects);
 	}
 }
 

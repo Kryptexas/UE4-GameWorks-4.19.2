@@ -22,6 +22,8 @@
 #include "ISkeletonTreeBuilder.h"
 #include "ISkeletonTreeItem.h"
 #include "SkeletonTreeBuilder.h"
+#include "SSearchBox.h"
+#include "EditorUndoClient.h"
 
 class FMenuBuilder;
 class FSkeletonTreeAttachedAssetItem;
@@ -39,7 +41,8 @@ struct FNotificationInfo;
 //////////////////////////////////////////////////////////////////////////
 // SSkeletonTree
 
-class SSkeletonTree : public ISkeletonTree
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+class SSkeletonTree : public ISkeletonTree, public FEditorUndoClient
 {
 public:
 	SLATE_BEGIN_ARGS( SSkeletonTree )
@@ -63,13 +66,18 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef<FEditableSkeleton>& InEditableSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs);
 
 	/** ISkeletonTree interface */
+	virtual void Refresh() override;
+	virtual void RefreshFilter() override;
 	virtual TSharedRef<class IEditableSkeleton> GetEditableSkeleton() const override { return EditableSkeleton.Pin().ToSharedRef(); }
 	virtual TSharedPtr<class IPersonaPreviewScene> GetPreviewScene() const override { return PreviewScene.Pin(); }
 	virtual void SetSkeletalMesh(USkeletalMesh* NewSkeletalMesh) override;
 	virtual void SetSelectedSocket(const struct FSelectedSocketInfo& InSocketInfo) override;
 	virtual void SetSelectedBone(const FName& InBoneName) override;
 	virtual void DeselectAll() override;
+	virtual TArray<TSharedPtr<ISkeletonTreeItem>> GetSelectedItems() const override { return SkeletonTreeView->GetSelectedItems(); }
+	virtual void SelectItemsBy(TFunctionRef<bool(const TSharedRef<ISkeletonTreeItem>&, bool&)> Predicate) const override;
 	virtual void DuplicateAndSelectSocket(const FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName = FName()) override;
+
 	virtual void RegisterOnObjectSelected(const FOnObjectSelected& Delegate) override
 	{
 		OnObjectSelectedMulticast.Add(Delegate);
@@ -80,8 +88,23 @@ public:
 		OnObjectSelectedMulticast.RemoveAll(Widget);
 	}
 
+	virtual FDelegateHandle RegisterOnSelectionChanged(const FOnSkeletonTreeSelectionChanged& Delegate) override
+	{
+		return OnSelectionChangedMulticast.Add(Delegate);
+	}
+
+	virtual void UnregisterOnSelectionChanged(FDelegateHandle DelegateHandle) override
+	{
+		OnSelectionChangedMulticast.Remove(DelegateHandle);
+	}
+
 	virtual UBlendProfile* GetSelectedBlendProfile() override;
 	virtual void AttachAssets(const TSharedRef<ISkeletonTreeItem>& TargetItem, const TArray<FAssetData>& AssetData) override;
+	virtual TSharedPtr<SWidget> GetSearchWidget() const override { return NameFilterBox; }
+
+	/** FEditorUndoClient interface */
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
 
 	/** Creates the tree control and then populates */
 	void CreateTreeColumns();
@@ -92,8 +115,8 @@ public:
 	/** Apply filtering to the tree */
 	void ApplyFilter();
 
-	/** This triggers a rebuild of the tree after undo to make the UI consistent with the real data */
-	void PostUndo();
+	/** Set the initial expansion state of the tree items */
+	void SetInitialExpansionState();
 
 	/** Utility function to print notifications to the user */
 	void NotifyUser( FNotificationInfo& NotificationInfo );
@@ -234,6 +257,9 @@ private:
 	/** Override OnKeyDown */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
+	/** Check whether we can delete all the selected sockets/assets */
+	bool CanDeleteSelectedRows() const;
+
 	/** Function to delete all the selected sockets/assets */
 	void OnDeleteSelectedRows();
 
@@ -262,7 +288,7 @@ private:
 	void HandleFocusCamera();
 
 	/** Handle filtering the tree  */
-	ESkeletonTreeFilterResult HandleFilterSkeletonTreeItem(const TSharedPtr<class ISkeletonTreeItem>& InItem);
+	ESkeletonTreeFilterResult HandleFilterSkeletonTreeItem(const FSkeletonTreeFilterArgs& InArgs, const TSharedPtr<class ISkeletonTreeItem>& InItem);
 
 	// Called when bone tree queries reference skeleton
 	const FReferenceSkeleton& OnGetReferenceSkeleton() const
@@ -320,7 +346,10 @@ private:
 	/** Last Cached Preview Mesh Component LOD */
 	int32 LastCachedLODForPreviewMeshComponent;
 
-	/** Delegate for when a socket is selected by clicking its hit point */
+	/** Delegate for when an item is selected */
+	FOnSkeletonTreeSelectionChangedMulticast OnSelectionChangedMulticast;
+
+	DEPRECATED(4.17, "Please use OnSelectionChangedMulticast")
 	FOnObjectSelectedMulticast OnObjectSelectedMulticast;
 
 	/** Selection recursion guard flags */
@@ -340,8 +369,24 @@ private:
 	/** Compiled filter search terms. */
 	TSharedPtr<class FTextFilterExpressionEvaluator> TextFilterPtr;
 
-	/** Proxy object used to display and edit bone transforms in details panels */
+	/** Proxy object used to display and edit bone transforms in details panels. Note this is only kept for backwards compatibility (used with OnObjectSelectedMulticast) */
 	class UBoneProxy* BoneProxy;
+
+	/** Whether to allow operations that modify the mesh */
+	bool bAllowMeshOperations;
+
+	/** Whether to allow operations that modify the mesh */
+	bool bAllowSkeletonOperations;
+
+	/** Extenders for menus */
+	TSharedPtr<FExtender> Extenders;
+
+	/** Delegate that allows custom filtering text to be shown on the filter button */
+	FOnGetFilterText OnGetFilterText;
+
+	/** The mode that this skeleton tree is in */
+	ESkeletonTreeMode Mode;
 
 	friend struct FScopedSavedSelection;
 }; 
+PRAGMA_ENABLE_DEPRECATION_WARNINGS

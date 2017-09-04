@@ -31,5 +31,5 @@ protected:
 	TSharedPtr<FClothPainter> ClothPainter;
 
 	class IPersonaPreviewScene* GetAnimPreviewScene() const;
-	class TSharedPtr<IPersonaToolkit> PersonaToolkit;
+	class TWeakPtr<IPersonaToolkit> PersonaToolkit;
 };

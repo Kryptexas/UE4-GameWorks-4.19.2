@@ -1045,6 +1045,13 @@ public:
 	/** Show or hide the widget. */
 	void ShowWidget(const bool bShow);
 
+	/**
+	 * Returns whether or not the flight camera is active
+	 *
+	 * @return true if the flight camera is active
+	 */
+	bool IsFlightCameraActive() const;
+
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();
@@ -1172,13 +1179,6 @@ protected:
 	 */
 	void OnChangeCameraSpeed( const struct FInputEventState& InputState );
 	
-	/**
-	 * Returns whether or not the flight camera is active
-	 *
-	 * @return true if the flight camera is active
-	 */
-	bool IsFlightCameraActive() const;
-
 	/**
 	 * Stops any mouse tracking
 	 */

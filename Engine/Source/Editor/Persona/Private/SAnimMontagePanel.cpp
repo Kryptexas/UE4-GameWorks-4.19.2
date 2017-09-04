@@ -376,6 +376,7 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 						.MinValue(0.0f)
 						.MaxValue(Montage->SequenceLength)
 						.Value(Section.GetTime())
+						.AllowSpin(true)
 						.OnValueCommitted_Lambda([this, SectionIndex](float InValue, ETextCommit::Type InCommitType)
 						{
 							if (Montage->CompositeSections.IsValidIndex(SectionIndex))
@@ -405,6 +406,7 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 						.MinValue(0)
 						.MaxValue(Montage->GetNumberOfFrames())
 						.Value(Montage->GetFrameAtTime(Section.GetTime()))
+						.AllowSpin(true)						
 						.OnValueCommitted_Lambda([this, SectionIndex](int32 InValue, ETextCommit::Type InCommitType)
 						{
 							if (Montage->CompositeSections.IsValidIndex(SectionIndex))

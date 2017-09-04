@@ -5568,7 +5568,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			}
 			else
 			{
-				Mesh.bUseSelectionOutline = false;
+				Mesh.bUseSelectionOutline = !bCanHighlightSelectedSections && bIsSelected;
 			}
 		#endif
 

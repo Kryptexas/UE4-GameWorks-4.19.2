@@ -269,7 +269,7 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 	FSoundSource::InitCommon();
 
 	// don't do anything if no volume! THIS APPEARS TO HAVE THE VOLUME IN TIME, CHECK HERE THOUGH IF ISSUES
-	if( InWaveInstance && ( InWaveInstance->Volume * InWaveInstance->VolumeMultiplier ) <= 0 )
+	if( InWaveInstance && ( InWaveInstance->GetActualVolume()) <= 0 )
 	{
 		return false;
 	}
@@ -424,7 +424,7 @@ void FSLESSoundSource::Update( void )
 
 	FSoundSource::UpdateCommon();
 	
-	float Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
+	float Volume = WaveInstance->GetActualVolume();
 	if (SetStereoBleed())
 	{
 		// Emulate the bleed to rear speakers followed by stereo fold down

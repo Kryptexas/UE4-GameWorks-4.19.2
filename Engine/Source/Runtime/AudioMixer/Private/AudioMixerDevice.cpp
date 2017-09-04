@@ -13,6 +13,7 @@
 #include "DSP/SinOsc.h"
 #include "UObject/UObjectIterator.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+#include "Misc/App.h"
 
 #if WITH_EDITOR
 #include "AudioEditorModule.h"
@@ -172,25 +173,32 @@ namespace Audio
 				AudioClock = 0.0;
 				AudioClockDelta = (double)OpenStreamParams.NumFrames / OpenStreamParams.SampleRate;
 
+				FAudioPluginInitializationParams PluginInitializationParams;
+				PluginInitializationParams.NumSources = MaxChannels;
+				PluginInitializationParams.SampleRate = SampleRate;
+				PluginInitializationParams.BufferLength = OpenStreamParams.NumFrames;
+				PluginInitializationParams.AudioDevicePtr = this;
 
 				// Initialize any plugins if they exist
 				if (SpatializationPluginInterface.IsValid())
 				{
-					SpatializationPluginInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
+					SpatializationPluginInterface->Initialize(PluginInitializationParams);
 				}
 
 				if (OcclusionInterface.IsValid())
 				{
-					OcclusionInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
+					OcclusionInterface->Initialize(PluginInitializationParams);
 				}
 
 				if (ReverbPluginInterface.IsValid())
 				{
-					ReverbPluginInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
+					ReverbPluginInterface->Initialize(PluginInitializationParams);
 				}
 
 				// Need to set these up before we start the audio stream.
 				InitSoundSubmixes();
+
+				AudioMixerPlatform->PostInitializeHardware();
 
 				// Start streaming audio
 				return AudioMixerPlatform->StartAudioStream();
@@ -221,7 +229,7 @@ namespace Audio
 		{
 			SourceManager.Update();
 
-			AudioMixerPlatform->UnRegisterDeviceChangedListener();
+			AudioMixerPlatform->UnregisterDeviceChangedListener();
 			AudioMixerPlatform->StopAudioStream();
 			AudioMixerPlatform->CloseAudioStream();
 			AudioMixerPlatform->TeardownHardware();
@@ -244,6 +252,18 @@ namespace Audio
 
 			// Audio rendering was suspended in CheckAudioDeviceChange if it changed.
 			AudioMixerPlatform->ResumePlaybackOnNewDevice();
+		}
+
+		// Update the master volume
+		if (IsAudioDeviceMuted())
+		{
+			AudioMixerPlatform->SetMasterVolume(0.0f);
+		}
+		else
+		{
+			float MasterVolume = GetPlatformAudioHeadroom();
+			MasterVolume *= GetTransientMasterVolume();
+			AudioMixerPlatform->SetMasterVolume(MasterVolume);
 		}
 	}
 
@@ -314,10 +334,12 @@ namespace Audio
 
 	void FMixerDevice::ResumeContext()
 	{
+        AudioMixerPlatform->ResumeContext();
 	}
 
 	void FMixerDevice::SuspendContext()
 	{
+        AudioMixerPlatform->SuspendContext();
 	}
 
 	void FMixerDevice::EnableDebugAudioOutput()
@@ -327,9 +349,10 @@ namespace Audio
 
 	bool FMixerDevice::OnProcessAudioStream(AlignedFloatBuffer& Output)
 	{
-// Turn on to only hear PIE audio
-#if 0
-		if (IsMainAudioDevice())
+#if WITH_EDITOR
+		// Turn on to only hear PIE audio
+		bool bBypassMainAudioDevice = FParse::Param(FCommandLine::Get(), TEXT("AudioPIEOnly"));
+		if (bBypassMainAudioDevice && IsMainAudioDevice())
 		{
 			return true;
 		}
@@ -469,7 +492,8 @@ namespace Audio
 
 		// Reset existing submixes if they exist
 		Submixes.Reset();
-		// Make sure all submixs are registered but not initialized
+
+		// Make sure all submixes are registered but not initialized
 		for (TObjectIterator<USoundSubmix> It; It; ++It)
 		{
 			RegisterSoundSubmix(*It, false);
@@ -505,7 +529,7 @@ namespace Audio
 			SubmixInstance->Init(SoundSubmix);
 		}
 	}
-
+	
  	FAudioPlatformSettings FMixerDevice::GetPlatformSettings() const
  	{
 		FAudioPlatformSettings Settings = AudioMixerPlatform->GetPlatformSettings();
@@ -717,12 +741,21 @@ namespace Audio
 		return *MixerSubmix;		
 	}
 
-	FMixerSourceVoice* FMixerDevice::GetMixerSourceVoice(const FWaveInstance* InWaveInstance, ISourceBufferQueueListener* InBufferQueueListener, bool bUseHRTFSpatialization)
+	FMixerSourceVoice* FMixerDevice::GetMixerSourceVoice()
 	{
-		// Create a new mixer source voice using our source manager
-		FMixerSourceVoice* NewMixerSourceVoice = new FMixerSourceVoice(this, &SourceManager);
+		FMixerSourceVoice* Voice = nullptr;
+		if (!SourceVoices.Dequeue(Voice))
+		{
+			Voice = new FMixerSourceVoice();
+		}
 
-		return NewMixerSourceVoice;
+		Voice->Reset(this);
+		return Voice;
+	}
+
+	void FMixerDevice::ReleaseMixerSourceVoice(FMixerSourceVoice* InSourceVoice)
+	{
+		SourceVoices.Enqueue(InSourceVoice);
 	}
 
 	int32 FMixerDevice::GetNumSources() const

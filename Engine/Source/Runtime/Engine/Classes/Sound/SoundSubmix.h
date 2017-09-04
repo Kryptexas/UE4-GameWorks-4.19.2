@@ -27,7 +27,6 @@ struct ENGINE_API FSoundSubmixSendInfo
 	USoundSubmix* SoundSubmix;
 };
 
-
 #if WITH_EDITOR
 
 /** Interface for sound submix graph interaction with the AudioEditor module. */
@@ -67,7 +66,6 @@ protected:
 	virtual FString GetDesc() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
-
 	//~ End UObject Interface.
 
 public:

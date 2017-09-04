@@ -24,16 +24,19 @@ namespace SteamAudio
 		TArray<float> OutArray;
 	};
 
+	/************************************************************************/
+	/* FPhononSpatialization                                                */
+	/* Spatialization plugin using Steam Audio's HRTF spatialization library*/
+	/************************************************************************/
 	class FPhononSpatialization : public IAudioSpatialization
 	{
 	public:
 		FPhononSpatialization();
 		~FPhononSpatialization();
 
-		virtual void Initialize(const uint32 SampleRate, const uint32 NumSources, const uint32 OutputBufferLength) override;
+		virtual void Initialize(const FAudioPluginInitializationParams InitializationParams) override;
 		virtual bool IsSpatializationEffectInitialized() const override;
-		virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId,
-			USpatializationPluginSourceSettingsBase* InSettings) override;
+		virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, USpatializationPluginSourceSettingsBase* InSettings) override;
 		virtual void OnReleaseSource(const uint32 SourceId) override;
 		virtual void ProcessAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData) override;
 

@@ -377,7 +377,7 @@ class SYNTHESIS_API UModularSynthComponent : public USynthComponent
 	virtual void Init(const int32 SampleRate) override;
 
 	// Called to generate more audio
-	virtual void OnGenerateAudio(TArray<float>& OutAudio) override;
+	virtual void OnGenerateAudio(float* OutAudio, int32 NumSamples) override;
 
 public:
 

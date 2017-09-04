@@ -138,7 +138,7 @@ class UBodySetup : public UObject
 	FName BoneName;
 
 	/** 
-	 *	If Unfixed it will use physics. If fixed, it will use kinematic. Default will inherit from OwnerComponent's behavior.
+	 *	If simulated it will use physics, if kinematic it will not be affected by physics, but can interact with physically simulated bodies. Default will inherit from OwnerComponent's behavior.
 	 */
 	UPROPERTY(EditAnywhere, Category=Physics)
 	TEnumAsByte<EPhysicsType> PhysicsType;

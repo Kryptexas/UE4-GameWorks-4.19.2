@@ -650,9 +650,10 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 	if( !WaveInstance->bIsFinished )
 	{
 		// Propagate properties and add WaveInstance to outgoing array of FWaveInstances.
-		WaveInstance->Volume = ParseParams.Volume * Volume;
-		WaveInstance->VolumeMultiplier = ParseParams.VolumeMultiplier;
-		WaveInstance->VolumeApp = ParseParams.VolumeApp;
+		WaveInstance->SetVolume(ParseParams.Volume * Volume);
+		WaveInstance->SetVolumeMultiplier(ParseParams.VolumeMultiplier);
+		WaveInstance->SetDistanceAttenuation(ParseParams.DistanceAttenuation);
+		WaveInstance->SetVolumeApp(ParseParams.VolumeApp);
 		WaveInstance->Pitch = ParseParams.Pitch * Pitch;
 		WaveInstance->bEnableLowPassFilter = ParseParams.bEnableLowPassFilter;
 		WaveInstance->bIsOccluded = ParseParams.bIsOccluded;
@@ -683,7 +684,8 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		{
 			FSoundClassProperties* SoundClassProperties = AudioDevice->GetSoundClassCurrentProperties(ParseParams.SoundClass);
 			// Use values from "parsed/ propagated" sound class properties
-			WaveInstance->VolumeMultiplier *= SoundClassProperties->Volume;
+			float VolumeMultiplier = WaveInstance->GetVolumeMultiplier();
+			WaveInstance->SetVolumeMultiplier(VolumeMultiplier* SoundClassProperties->Volume);
 			WaveInstance->Pitch *= SoundClassProperties->Pitch;
 			//TODO: Add in HighFrequencyGainMultiplier property to sound classes
 
@@ -702,7 +704,8 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 
 			if (SoundClassProperties->bApplyAmbientVolumes)
 			{
-				WaveInstance->VolumeMultiplier *= ParseParams.InteriorVolumeMultiplier;
+				VolumeMultiplier = WaveInstance->GetVolumeMultiplier();
+				WaveInstance->SetVolumeMultiplier(VolumeMultiplier * ParseParams.InteriorVolumeMultiplier);
 				WaveInstance->RadioFilterVolume *= ParseParams.InteriorVolumeMultiplier;
 				WaveInstance->RadioFilterVolumeThreshold *= ParseParams.InteriorVolumeMultiplier;
 			}
@@ -748,7 +751,8 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		// If we're normalizing 3d stereo spatialized sounds, we need to scale by -6 dB
 		if (WaveInstance->bUseSpatialization && ParseParams.bApplyNormalizationToStereoSounds && NumChannels == 2)
 		{
-			WaveInstance->Volume *= 0.5f;
+			float WaveInstanceVolume = WaveInstance->GetVolume();
+			WaveInstance->SetVolume(WaveInstanceVolume * 0.5f);
 		}
 
 		// Copy reverb send settings
@@ -761,6 +765,14 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		// Copy over the submix sends.
 		WaveInstance->SoundSubmix = ParseParams.SoundSubmix;
 		WaveInstance->SoundSubmixSends = ParseParams.SoundSubmixSends;
+
+		// Copy over the source bus send and data
+		if (!WaveInstance->ActiveSound->bIsPreviewSound)
+		{
+			WaveInstance->bOutputToBusOnly = ParseParams.bOutputToBusOnly;
+		}
+
+		WaveInstance->SoundSourceBusSends = ParseParams.SoundSourceBusSends;
 
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 		{
@@ -781,7 +793,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		// That needs to change in the future, because there are still reasons a sound (and thus its subtitle) may not play.
 		// But for now at least that makes it possible handle virtualizing properly.
 		bool bHasSubtitles = ActiveSound.bHandleSubtitles && (ActiveSound.bHasExternalSubtitles || (Subtitles.Num() > 0));
-		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || ((bVirtualizeWhenSilent || bHasSubtitles) && AudioDevice->VirtualSoundsEnabled()))
+		if (WaveInstance->GetVolumeWithDistanceAttenuation() > KINDA_SMALL_NUMBER || ((bVirtualizeWhenSilent || bHasSubtitles) && AudioDevice->VirtualSoundsEnabled()))
 		{
 			bAddedWaveInstance = true;
 			WaveInstances.Add(WaveInstance);

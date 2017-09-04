@@ -37,6 +37,7 @@ public:
 	virtual USkeletalMeshSocket* DuplicateSocket(const FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName, USkeletalMesh* InSkeletalMesh) override;
 	virtual int32 ValidatePreviewAttachedObjects() override;
 	virtual int32 DeleteAnimNotifies(const TArray<FName>& InSelectedNotifyNames) override;
+	virtual void AddNotify(FName NewName) override;
 	virtual int32 RenameNotify(const FName& NewName, const FName& OldName) override;
 	virtual void GetCompatibleAnimSequences(TArray<struct FAssetData>& OutAssets) override;
 	virtual void RenameSocket(const FName& OldSocketName, const FName& NewSocketName, USkeletalMesh* InSkeletalMesh) override;
@@ -46,10 +47,9 @@ public:
 	virtual void RenameVirtualBone(const FName& OriginalName, const FName& InVBName) override;
 	virtual bool AddSmartname(const FName& InContainerName, const FName& InNewName, FSmartName& OutSmartName) override;
 	virtual void RenameSmartname(const FName& InContainerName, SmartName::UID_Type InNameUid, const FName& InNewName) override;
-	virtual void RemoveSmartname(const FName& InContainerName, SmartName::UID_Type InNameUid) override;
-	virtual void RemoveSmartnamesAndFixupAnimations(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids) override;
+	virtual void RemoveSmartnamesAndFixupAnimations(const FName& InContainerName, const TArray<FName>& InNames) override;
 	virtual void SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial) override;
-	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks) override;
+	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks, uint8 InMaxLOD) override;
 	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) override;
 	virtual void LoadAdditionalPreviewSkeletalMeshes() override;
 	virtual void SetAdditionalPreviewSkeletalMeshes(class UDataAsset* InPreviewCollectionAsset) override;
@@ -68,8 +68,8 @@ public:
 	virtual void DeleteSlotName(const FName& InSlotName) override;
 	virtual void DeleteSlotGroup(const FName& InGroupName) override;
 	virtual void RenameSlotName(const FName& InOldSlotName, const FName& InNewSlotName) override;
-	virtual FDelegateHandle RegisterOnSmartNameRemoved(const FOnSmartNameRemoved::FDelegate& InOnSmartNameRemoved) override;
-	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) override;
+	virtual FDelegateHandle RegisterOnSmartNameChanged(const FOnSmartNameChanged::FDelegate& InOnSmartNameChanged) override;
+	virtual void UnregisterOnSmartNameChanged(FDelegateHandle InHandle) override;
 	virtual void RegisterOnNotifiesChanged(const FSimpleMulticastDelegate::FDelegate& InDelegate);
 	virtual void UnregisterOnNotifiesChanged(void* Thing);
 	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) override;
@@ -143,6 +143,9 @@ private:
 	/** Helper function for deleting attached objects */
 	void DeleteAttachedObjects(FPreviewAssetAttachContainer& AttachedAssets, TSharedPtr<class IPersonaPreviewScene> InPreviewScene);
 
+	/** Helper function for finding animations that use certain curves */
+	void GetAssetsContainingCurves(const FName& InContainerName, const TArray<FName>& InNames, TArray<FAssetData>& OutAssets) const;
+
 private:
 	/** The skeleton we are editing */
 	class USkeleton* Skeleton;
@@ -157,7 +160,7 @@ private:
 	FSimpleMulticastDelegate OnTreeRefresh;
 
 	/** Delegate called when a smart name is removed */
-	FOnSmartNameRemoved OnSmartNameRemoved;
+	FOnSmartNameChanged OnSmartNameChanged;
 
 	/** Delegate called when notifies are modified */
 	FSimpleMulticastDelegate OnNotifiesChanged;

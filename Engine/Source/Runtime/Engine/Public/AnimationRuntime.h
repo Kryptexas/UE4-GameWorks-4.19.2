@@ -295,11 +295,20 @@ public:
 	/** Accumulate Additive Pose based on AdditiveType*/
 	static void AccumulateAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight, enum EAdditiveAnimationType AdditiveType);
 
+private:
 	/** Accumulates weighted AdditivePose to BasePose. Rotations are NOT normalized. */
-	static void AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight);
+	static void AccumulateLocalSpaceAdditivePoseInternal(FCompactPose& BasePose, const FCompactPose& AdditivePose, float Weight);
 
 	/** Accumulate a MeshSpaceRotation Additive pose to a local pose. Rotations are NOT normalized */
-	static void AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight);
+	static void AccumulateMeshSpaceRotationAdditiveToLocalPoseInternal(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, float Weight);
+public:
+
+	/** Accumulates weighted AdditivePose to BasePose. Rotations are NOT normalized. */
+	static void AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight) { AccumulateAdditivePose(BasePose, AdditivePose, BaseCurve, AdditiveCurve, Weight, EAdditiveAnimationType::AAT_LocalSpaceBase); }
+
+	/** Accumulate a MeshSpaceRotation Additive pose to a local pose. Rotations are NOT normalized */
+	static void AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight) { AccumulateAdditivePose(BasePose, MeshSpaceRotationAdditive, BaseCurve, AdditiveCurve, Weight, EAdditiveAnimationType::AAT_RotationOffsetMeshSpace); }
+
 
 	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
 	* @param A : In/Out FCompactPose.

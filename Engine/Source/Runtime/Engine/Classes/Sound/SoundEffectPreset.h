@@ -25,8 +25,10 @@ public:
 	virtual FSoundEffectBase* CreateNewEffect() const PURE_VIRTUAL(USoundEffectPreset::CreateNewEffect, return nullptr;);
 	virtual bool HasAssetActions() const { return true; }
 	virtual void Init() PURE_VIRTUAL(USoundEffectPreset::Init, ); 
+	virtual void OnInit() {};
 	virtual FColor GetPresetColor() const { return FColor(200.0f, 100.0f, 100.0f); }
 
+	void EffectCommand(TFunction<void()> Command);
 	void Update();
 	void AddEffectInstance(FSoundEffectBase* InSource);
 	void RemoveEffectInstance(FSoundEffectBase* InSource);

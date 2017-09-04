@@ -10,6 +10,7 @@
 #include "IAnimationEditor.h"
 #include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
+#include "ArrayView.h"
 
 struct FAssetData;
 class FMenuBuilder;
@@ -21,6 +22,7 @@ class ISkeletonTree;
 class UAnimationAsset;
 class USkeletalMeshComponent;
 class UAnimSequence;
+class ISkeletonTreeItem;
 
 namespace AnimationEditorModes
 {
@@ -94,6 +96,8 @@ public:
 	void HandleOpenNewAsset(UObject* InNewAsset);
 
 	void HandleAnimationSequenceBrowserCreated(const TSharedRef<class IAnimationSequenceBrowser>& InSequenceBrowser);
+
+	void HandleSelectionChanged(const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type InSelectInfo);
 
 	void HandleObjectSelected(UObject* InObject);
 

@@ -143,7 +143,6 @@ void FMaterialBakingModule::BakeMaterials(const TArray<FMaterialData*>& Material
 
 			FMeshMaterialRenderItem RenderItem(CurrentMaterialSettings, CurrentMeshSettings, MaterialPropertiesToBakeOut[0]);
 			FCanvas::FCanvasSortElement& SortElement = Canvas.GetSortElement(Canvas.TopDepthSortKey());
-			SortElement.RenderBatchArray.Add(&RenderItem);
 
 			for (int32 PropertyIndex = 0; PropertyIndex < NumPropertiesToRender; ++PropertyIndex)
 			{
@@ -170,16 +169,21 @@ void FMaterialBakingModule::BakeMaterials(const TArray<FMaterialData*>& Material
 							RenderItem.GenerateRenderData();
 						}
 
+						Canvas.SetRenderTargetRect(FIntRect(0, 0, RenderTarget->GetSurfaceWidth(), RenderTarget->GetSurfaceHeight()));
+						Canvas.SetBaseTransform(Canvas.CalcBaseTransform2D(RenderTarget->GetSurfaceWidth(), RenderTarget->GetSurfaceHeight()));
 						PreviousRenderTarget = RenderTarget;
 					}
 
 					// Clear canvas before rendering
 					Canvas.Clear(RenderTarget->ClearColor);
 
+					SortElement.RenderBatchArray.Add(&RenderItem);
+
 					// Do rendering
 					Canvas.Flush_GameThread();
 					FlushRenderingCommands();
 
+					SortElement.RenderBatchArray.Empty();
 					ReadTextureOutput(RenderTargetResource, Property, CurrentOutput);
 					FMaterialBakingHelpers::PerformUVBorderSmear(CurrentOutput.PropertyData[Property], RenderTarget->GetSurfaceWidth(), RenderTarget->GetSurfaceHeight(), Property == MP_Normal);
 #if WITH_EDITOR
@@ -199,8 +203,6 @@ void FMaterialBakingModule::BakeMaterials(const TArray<FMaterialData*>& Material
 				}
 #endif // WITH_EDITOR
 			}
-
-			SortElement.RenderBatchArray.Empty();
 		}
 	}
 

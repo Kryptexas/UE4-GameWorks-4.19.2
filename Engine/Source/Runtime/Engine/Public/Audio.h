@@ -13,13 +13,19 @@
 #include "Sound/SoundSubmix.h"
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundEffectSource.h"
+#include "Sound/SoundSourceBusSend.h"
 #include "IAudioExtensionPlugin.h"
+#include "AudioPluginUtilities.h"
 
 class FAudioDevice;
 class USoundNode;
 class USoundWave;
+class USoundClass;
+class USoundSubmix;
+class USoundSourceBus;
 struct FActiveSound;
 struct FWaveInstance;
+struct FSoundSourceBusSendInfo;
 
 //#include "Sound/SoundConcurrency.h"
 
@@ -227,24 +233,9 @@ private:
 	TArray<FNotifyBufferDetails> Notifies;
 };
 
-
-/**
-* Enumeration of audio plugin types
-*
-*/
-struct EAudioPlugin
-{
-	enum Type
-	{
-		SPATIALIZATION,
-		REVERB,
-		OCCLUSION
-	};
-};
-
 /** Queries if a plugin of the given type is enabled. */
-ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType);
-ENGINE_API bool DoesAudioPluginHaveCustomSettings(EAudioPlugin::Type PluginType);
+ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin PluginType);
+ENGINE_API bool DoesAudioPluginHaveCustomSettings(EAudioPlugin PluginType);
 
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
@@ -256,16 +247,19 @@ struct ENGINE_API FWaveInstance
 	static uint32 TypeHashCounter;
 
 	/** Wave data */
-	class USoundWave* WaveData;
+	USoundWave* WaveData;
 
 	/** Sound class */
-	class USoundClass* SoundClass;
+	USoundClass* SoundClass;
 
-	/** Sound submix */
-	class USoundSubmix* SoundSubmix;
+	/** Sound submix object to send audio to for mixing in audio mixer.  */
+	USoundSubmix* SoundSubmix;
 
 	/** Sound submix sends */
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
+
+	/** The sound sourcebus sends. */
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends;
 
 	/** Sound effect chain */
 	USoundEffectSourcePresetChain* SourceEffectChain;
@@ -276,14 +270,21 @@ struct ENGINE_API FWaveInstance
 	/** Active Sound this wave instance belongs to */
 	struct FActiveSound* ActiveSound;
 
+private:
+
 	/** Current volume */
 	float Volume;
+
+	/** Volume attenuation due to distance. */
+	float DistanceAttenuation;
 
 	/** Current volume multiplier - used to zero the volume without stopping the source */
 	float VolumeMultiplier;
 
 	/** The volume of the wave instance due to application volume or tab-state */
 	float VolumeApp;
+
+public:
 
 	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
 	float Priority;
@@ -308,6 +309,9 @@ struct ENGINE_API FWaveInstance
 
 	/** An offset/seek time to play this wave instance. */
 	float StartTime;
+
+	/** Whether or not to only output this wave instances audio to buses only. Audio mixer only. */
+	uint32 bOutputToBusOnly:1;
 
 	/** Set to true if the sound nodes state that the radio filter should be applied */
 	uint32 bApplyRadioFilter:1;
@@ -444,8 +448,23 @@ struct ENGINE_API FWaveInstance
 	/** Returns the actual volume the wave instance will play at */
 	bool ShouldStopDueToMaxConcurrency() const;
 
+	/** Setters for various volume values on wave instances. */
+	void SetVolume(const float InVolume) { Volume = InVolume; }
+	void SetDistanceAttenuation(const float InDistanceAttenuation) { DistanceAttenuation = InDistanceAttenuation; }
+	void SetVolumeApp(const float InVolumeApp) { VolumeApp = InVolumeApp; }
+	void SetVolumeMultiplier(const float InVolumeMultiplier) { VolumeMultiplier = InVolumeMultiplier; }
+
+	/** Returns the volume multiplier on the wave instance. */
+	float GetVolumeMultiplier() const { return VolumeMultiplier; }
+
 	/** Returns the actual volume the wave instance will play at, including all gain stages. */
 	float GetActualVolume() const;
+
+	/** Returns the volume of the sound including distance attenuation. */
+	float GetVolumeWithDistanceAttenuation() const;
+
+	/** Returns the distance attenuation of the source voice. */
+	float GetDistanceAttenuation() const;
 
 	/** Returns the volume of the wave instance (ignoring application muting) */
 	float GetVolume() const;

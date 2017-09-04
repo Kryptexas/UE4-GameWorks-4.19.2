@@ -163,11 +163,14 @@ void FAnimSegment::GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionE
 		const float ValidPlayRate = GetValidPlayRate();
 		const float AbsValidPlayRate = FMath::Abs(ValidPlayRate);
 
+		const float StartTrackPositionForSegment = bTrackPlayingBackwards ? FMath::Min(StartTrackPosition, SegmentEndPos) : FMath::Max(StartTrackPosition, SegmentStartPos);
+		const float EndTrackPositionForSegment = bTrackPlayingBackwards ? FMath::Max(EndTrackPosition, SegmentStartPos) : FMath::Min(EndTrackPosition, SegmentEndPos);
+
 		// Get starting position, closest overlap.
-		float AnimStartPosition = ConvertTrackPosToAnimPos(bTrackPlayingBackwards ? FMath::Min(StartTrackPosition, SegmentEndPos) : FMath::Max(StartTrackPosition, SegmentStartPos));
+		float AnimStartPosition = ConvertTrackPosToAnimPos(StartTrackPositionForSegment);
 		AnimStartPosition = FMath::Clamp(AnimStartPosition, AnimStartTime, AnimEndTime);
 		//check( (AnimStartPosition >= AnimStartTime) && (AnimStartPosition <= AnimEndTime) );
-		float TrackTimeToGo = FMath::Abs(EndTrackPosition - StartTrackPosition);
+		float TrackTimeToGo = FMath::Abs(EndTrackPositionForSegment - StartTrackPositionForSegment);
 
 		// The track can be playing backwards and the animation can be playing backwards, so we
 		// need to combine to work out what direction we are traveling through the animation

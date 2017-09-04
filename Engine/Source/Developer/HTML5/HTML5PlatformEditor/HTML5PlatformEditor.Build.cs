@@ -27,6 +27,7 @@ public class HTML5PlatformEditor : ModuleRules
 				// WITH_EDITOR only?
 				"UnrealEd",
 				"DesktopPlatform",
+                "AudioSettingsEditor"
 			}
 		);
 

@@ -14,7 +14,14 @@ FModuleManifest::FModuleManifest()
 
 FString FModuleManifest::GetFileName(const FString& DirectoryName, bool bIsGameFolder)
 {
-	FString FileName = DirectoryName / FPlatformProcess::ExecutableName();
+	FString AppExecutableName = FPlatformProcess::ExecutableName();
+#if PLATFORM_WINDOWS
+	if (AppExecutableName.EndsWith(TEXT("-Cmd")))
+	{
+		AppExecutableName = AppExecutableName.Left(AppExecutableName.Len() - 4);
+	}
+#endif
+	FString FileName = DirectoryName / AppExecutableName;
 	if(FApp::GetBuildConfiguration() == EBuildConfigurations::DebugGame && bIsGameFolder)
 	{
 		FileName += FString::Printf(TEXT("-%s-DebugGame"), FPlatformProcess::GetBinariesSubdirectory());

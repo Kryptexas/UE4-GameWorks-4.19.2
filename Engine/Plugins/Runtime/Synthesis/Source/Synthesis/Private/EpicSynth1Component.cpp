@@ -603,9 +603,9 @@ void UModularSynthComponent::Init(const int32 SampleRate)
 	SetChorusEnabled(false);
 }
 
-void UModularSynthComponent::OnGenerateAudio(TArray<float>& OutAudio)
+void UModularSynthComponent::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 {
-	const int32 NumFrames = OutAudio.Num() / NumChannels;
+	const int32 NumFrames = NumSamples / NumChannels;
 
 	float LeftSample = 0.0f;
 	float RightSample = 0.0f;

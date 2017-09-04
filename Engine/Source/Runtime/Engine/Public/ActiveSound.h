@@ -11,12 +11,15 @@
 #include "Components/AudioComponent.h"
 #include "Sound/AudioVolume.h"
 #include "Sound/SoundSubmix.h"
+#include "Sound/SoundSourceBus.h"
 #include "AudioDevice.h"
 
 class FAudioDevice;
 class USoundBase;
 class USoundSubmix;
+class USoundSourceBus;
 struct FSoundSubmixSendInfo;
+struct FSoundSourceBusSendInfo;
 class USoundWave;
 struct FListener;
 
@@ -39,6 +42,9 @@ struct FSoundParseParameters
 	
 	// The volume product of the sound
 	float Volume;
+
+	// The attenuation of the sound due to distance attenuation
+	float DistanceAttenuation;
 
 	// A volume scalse on the sound specified by user
 	float VolumeMultiplier;
@@ -75,6 +81,9 @@ struct FSoundParseParameters
 
 	// The submix sends to use
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
+
+	// The source bus sends to use
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends;
 
 	// Reverb wet-level parameters
 	EReverbSendMethod ReverbSendMethod;
@@ -116,6 +125,9 @@ struct FSoundParseParameters
 	// The lowpass filter to apply if the sound is inside an ambient zone
 	float AmbientZoneFilterFrequency;
 
+	// Whether or not to ouput this audio to buses only
+	uint32 bOutputToBusOnly:1;
+
 	// Whether the sound should be spatialized
 	uint32 bUseSpatialization:1;
 
@@ -138,6 +150,7 @@ struct FSoundParseParameters
 		: SoundClass(nullptr)
 		, Velocity(ForceInit)
 		, Volume(1.f)
+		, DistanceAttenuation(1.f)
 		, VolumeMultiplier(1.f)
 		, VolumeApp(1.f)
 		, InteriorVolumeMultiplier(1.f)
@@ -163,6 +176,7 @@ struct FSoundParseParameters
 		, AttenuationHighpassFilterFrequency(MIN_FILTER_FREQUENCY)
 		, OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
 		, AmbientZoneFilterFrequency(MAX_FILTER_FREQUENCY)
+		, bOutputToBusOnly(false)
 		, bUseSpatialization(false)
 		, bLooping(false)
 		, bEnableLowPassFilter(false)
@@ -198,6 +212,7 @@ public:
 	uint64 GetAudioComponentID() const { return AudioComponentID; }
 	FName GetAudioComponentUserID() const { return AudioComponentUserID; }
 	void SetAudioComponent(UAudioComponent* Component);
+	void SetOwner(AActor* Owner);
 	FString GetAudioComponentName() const;
 	FString GetOwnerName() const;
 
@@ -243,6 +258,9 @@ private:
 
 	/** Optional override the submix sends for the sound. */
 	TArray<FSoundSubmixSendInfo> SoundSubmixSendsOverride;
+
+	/** Optional override for the source bus sends for the sound. */
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSendsOverride;
 
 public:
 	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
@@ -492,6 +510,9 @@ public:
 	/** Gets the sound submix sends to use for this sound instance. */
 	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
 
+	/** Gets the sound source bus sends to use for this sound instance. */
+	void GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const;
+
 	/* Determines which listener is the closest to the sound */
 	int32 FindClosestListener( const TArray<struct FListener>& InListeners ) const;
 	
@@ -515,6 +536,9 @@ public:
 
 	/** Sets the amount of audio from this active sound to send to the submix. */
 	void SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo);
+
+	/** Sets the amount of audio from this active sound to send to the source bus. */
+	void SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSendInfo);
 
 private:
 	

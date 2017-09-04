@@ -35,6 +35,9 @@
 #include "TabSpawners.h"
 #include "SInlineEditableTextBlock.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Modules/ModuleManager.h"
+#include "IEditableSkeleton.h"
+#include "ISkeletonEditorModule.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -3207,7 +3210,11 @@ void SAnimNotifyTrack::AddNewNotify(const FText& NewNotifyName, ETextCommit::Typ
 	{
 		const FScopedTransaction Transaction( LOCTEXT("AddNewNotifyEvent", "Add New Anim Notify") );
 		FName NewName = FName( *NewNotifyName.ToString() );
-		SeqSkeleton->AddNewAnimationNotify(NewName);
+
+		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+		TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(SeqSkeleton);
+
+		EditableSkeleton->AddNotify(NewName);
 
 		FBlueprintActionDatabase::Get().RefreshAssetActions(SeqSkeleton);
 
@@ -4877,6 +4884,11 @@ void SAnimNotifyPanel::OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyDat
 			if(InOutAllowedClassNames->Contains(TagValue))
 			{
 				FString GenClass = AssetData.GetTagValueRef<FString>(BPGenClassName);
+				const uint32 ClassFlags = AssetData.GetTagValueRef<uint32>("ClassFlags");
+				if (ClassFlags & CLASS_Abstract)
+				{
+					continue;
+				}
 
 				if(!OutNotifyData.Contains(AssetData))
 				{

@@ -10,6 +10,9 @@
 #include "Sound/SoundSubmix.h"
 #include "DSP/Dsp.h"
 #include "ScopeLock.h"
+#include "PhononPluginManager.h"
+
+#include "AudioDevice.h"
 
 namespace SteamAudio
 {
@@ -25,7 +28,8 @@ namespace SteamAudio
 		, ReverbConvolutionEffect(nullptr)
 		, AmbisonicsChannels(0)
 		, IndirectOutDeinterleaved(nullptr)
-		, SteamAudioModule(nullptr)
+		, CachedSpatializationMethod(EIplSpatializationMethod::PANNING)
+		, EnvironmentalCriticalSectionHandle(nullptr)
 	{
 		const int32 IndirectImpulseResponseOrder = GetDefault<USteamAudioSettings>()->IndirectImpulseResponseOrder;
 
@@ -108,13 +112,11 @@ namespace SteamAudio
 		}
 	}
 
-	void FPhononReverb::Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize)
+	void FPhononReverb::Initialize(const FAudioPluginInitializationParams InitializationParams)
 	{
-		SteamAudioModule = &FModuleManager::GetModuleChecked<FSteamAudioModule>("SteamAudio");
-
 		RenderingSettings.convolutionType = IPL_CONVOLUTIONTYPE_PHONON;
-		RenderingSettings.frameSize = FrameSize;
-		RenderingSettings.samplingRate = SampleRate;
+		RenderingSettings.frameSize = InitializationParams.BufferLength;
+		RenderingSettings.samplingRate = InitializationParams.SampleRate;
 
 		IPLHrtfParams HrtfParams;
 		HrtfParams.hrtfData = nullptr;
@@ -134,32 +136,34 @@ namespace SteamAudio
 
 		for (int32 i = 0; i < AmbisonicsChannels; ++i)
 		{
-			IndirectOutDeinterleaved[i] = new float[FrameSize];
+			IndirectOutDeinterleaved[i] = new float[InitializationParams.BufferLength];
 		}
 		IndirectIntermediateBuffer.format = IndirectOutputAudioFormat;
-		IndirectIntermediateBuffer.numSamples = FrameSize;
+		IndirectIntermediateBuffer.numSamples = InitializationParams.BufferLength;
 		IndirectIntermediateBuffer.interleavedBuffer = nullptr;
 		IndirectIntermediateBuffer.deinterleavedBuffer = IndirectOutDeinterleaved;
 
 		DryBuffer.format = ReverbInputAudioFormat;
-		DryBuffer.numSamples = FrameSize;
+		DryBuffer.numSamples = InitializationParams.BufferLength;
 		DryBuffer.interleavedBuffer = nullptr;
 		DryBuffer.deinterleavedBuffer = nullptr;
 
-		IndirectOutArray.SetNumZeroed(FrameSize * BinauralOutputAudioFormat.numSpeakers);
+		IndirectOutArray.SetNumZeroed(InitializationParams.BufferLength * BinauralOutputAudioFormat.numSpeakers);
 		IndirectOutBuffer.format = BinauralOutputAudioFormat;
-		IndirectOutBuffer.numSamples = FrameSize;
+		IndirectOutBuffer.numSamples = InitializationParams.BufferLength;
 		IndirectOutBuffer.interleavedBuffer = IndirectOutArray.GetData();
 		IndirectOutBuffer.deinterleavedBuffer = nullptr;
 
-		ReverbSources.SetNum(NumSources);
-		for (auto& ReverbSource : ReverbSources)
+		ReverbSources.SetNum(InitializationParams.NumSources);
+		for (FReverbSource& ReverbSource : ReverbSources)
 		{
 			ReverbSource.InBuffer.format = InputAudioFormat;
-			ReverbSource.InBuffer.numSamples = FrameSize;
+			ReverbSource.InBuffer.numSamples = InitializationParams.BufferLength;
 		}
 
 		ReverbIndirectContribution = 1.0f;
+
+		CachedSpatializationMethod = GetDefault<USteamAudioSettings>()->IndirectSpatializationMethod;
 	}
 
 	void FPhononReverb::OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UReverbPluginSourceSettingsBase* InSettings)
@@ -172,8 +176,8 @@ namespace SteamAudio
 
 		UE_LOG(LogSteamAudio, Log, TEXT("Creating reverb effect for %s"), *AudioComponentUserId.ToString().ToLower());
 
-		auto Settings = static_cast<UPhononReverbSourceSettings*>(InSettings);
-		auto& ReverbSource = ReverbSources[SourceId];
+		UPhononReverbSourceSettings* Settings = static_cast<UPhononReverbSourceSettings*>(InSettings);
+		FReverbSource& ReverbSource = ReverbSources[SourceId];
 
 		ReverbSource.IndirectContribution = Settings->IndirectContribution;
 
@@ -215,20 +219,20 @@ namespace SteamAudio
 
 	void FPhononReverb::ProcessSourceAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData)
 	{
-		if (!EnvironmentalRenderer)
+		if (!EnvironmentalRenderer || !EnvironmentalCriticalSectionHandle)
 		{
 			return;
 		}
 
-		FScopeLock EnvironmentLock(&SteamAudioModule->GetEnvironmentCriticalSection());
+		FScopeLock EnvironmentLock(EnvironmentalCriticalSectionHandle);
 
-		auto& ReverbSource = ReverbSources[InputData.SourceId];
-		auto Position = SteamAudio::UnrealToPhononIPLVector3(InputData.SpatializationParams->EmitterWorldPosition);
+		FReverbSource& ReverbSource = ReverbSources[InputData.SourceId];
+		IPLVector3 Position = SteamAudio::UnrealToPhononIPLVector3(InputData.SpatializationParams->EmitterWorldPosition);
 
 		if (ReverbSource.ConvolutionEffect)
 		{
 			ReverbSource.IndirectInArray.SetNumUninitialized(InputData.AudioBuffer->Num());
-			for (auto i = 0; i < InputData.AudioBuffer->Num(); ++i)
+			for (int32 i = 0; i < InputData.AudioBuffer->Num(); ++i)
 			{
 				ReverbSource.IndirectInArray[i] = (*InputData.AudioBuffer)[i] * ReverbSource.IndirectContribution;
 			}
@@ -240,12 +244,12 @@ namespace SteamAudio
 
 	void FPhononReverb::ProcessMixedAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData)
 	{
-		if (!EnvironmentalRenderer)
+		if (!EnvironmentalRenderer || !EnvironmentalCriticalSectionHandle)
 		{
 			return;
 		}
 
-		FScopeLock EnvironmentLock(&SteamAudioModule->GetEnvironmentCriticalSection());
+		FScopeLock EnvironmentLock(EnvironmentalCriticalSectionHandle);
 
 		if (IndirectOutBuffer.format.numSpeakers != OutData.NumChannels)
 		{
@@ -272,7 +276,7 @@ namespace SteamAudio
 		if (ReverbConvolutionEffect)
 		{
 			ReverbIndirectInArray.SetNumUninitialized(InData.AudioBuffer->Num());
-			for (auto i = 0; i < InData.AudioBuffer->Num(); ++i)
+			for (int32 i = 0; i < InData.AudioBuffer->Num(); ++i)
 			{
 				ReverbIndirectInArray[i] = (*InData.AudioBuffer)[i] * ReverbIndirectContribution;
 			}
@@ -283,7 +287,7 @@ namespace SteamAudio
 
 		iplGetMixedEnvironmentalAudio(EnvironmentalRenderer, ListenerPosition, ListenerForward, ListenerUp, IndirectIntermediateBuffer);
 
-		switch (GetDefault<USteamAudioSettings>()->IndirectSpatializationMethod)
+		switch (CachedSpatializationMethod)
 		{
 		case EIplSpatializationMethod::HRTF:
 			iplApplyAmbisonicsBinauralEffect(IndirectBinauralEffect, IndirectIntermediateBuffer, IndirectOutBuffer);
@@ -298,9 +302,9 @@ namespace SteamAudio
 
 	void FPhononReverb::CreateReverbEffect()
 	{
-		check(EnvironmentalRenderer);
+		check(EnvironmentalRenderer && EnvironmentalCriticalSectionHandle);
 
-		FScopeLock Lock(&SteamAudioModule->GetEnvironmentCriticalSection());
+		FScopeLock Lock(EnvironmentalCriticalSectionHandle);
 
 		ReverbIndirectContribution = GetDefault<USteamAudioSettings>()->IndirectContribution;
 		switch (GetDefault<USteamAudioSettings>()->ReverbSimulationType)
@@ -337,6 +341,11 @@ namespace SteamAudio
 	void FPhononReverb::SetEnvironmentalRenderer(IPLhandle InEnvironmentalRenderer)
 	{
 		EnvironmentalRenderer = InEnvironmentalRenderer;
+	}
+
+	void FPhononReverb::SetEnvironmentCriticalSection(FCriticalSection* CriticalSection)
+	{
+		EnvironmentalCriticalSectionHandle = CriticalSection;
 	}
 
 	//==============================================================================================================================================

@@ -9,6 +9,7 @@
 #include "EditorUndoClient.h"
 #include "Toolkits/IToolkitHost.h"
 #include "ISkeletalMeshEditor.h"
+#include "ArrayView.h"
 
 class IDetailsView;
 class IPersonaToolkit;
@@ -16,7 +17,7 @@ class IPersonaViewport;
 class ISkeletonTree;
 class USkeletalMesh;
 class UClothingAssetBase;
-
+class ISkeletonTreeItem;
 struct HActor;
 struct FViewportClick;
 struct FSkeletalMeshClothBuildParams;
@@ -92,6 +93,8 @@ private:
 	void HandleObjectsSelected(const TArray<UObject*>& InObjects);
 
 	void HandleObjectSelected(UObject* InObject);
+
+	void HandleSelectionChanged(const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type InSelectInfo);
 
 	void HandleReimportMesh();
 

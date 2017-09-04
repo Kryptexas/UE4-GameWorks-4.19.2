@@ -405,8 +405,8 @@ void FHierarchicalLODUtilities::DestroyClusterData(ALODActor* InActor)
 #if WITH_EDITOR
 			// Close possible open editors using this asset	
 			FAssetEditorManager::Get().CloseAllEditorsForAsset(AssetObject);
+			InActor->PreviousSubObjects.Add(AssetObject);
 #endif // WITH_EDITOR
-			AssetObject->ClearFlags(RF_AllFlags);
 		}
 	}
 

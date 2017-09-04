@@ -658,11 +658,11 @@ void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCo
 {
 	if (AdditiveType == AAT_RotationOffsetMeshSpace)
 	{
-		AccumulateMeshSpaceRotationAdditiveToLocalPose(BasePose, AdditivePose, BaseCurve, AdditiveCurve, Weight);
+		AccumulateMeshSpaceRotationAdditiveToLocalPoseInternal(BasePose, AdditivePose, Weight);
 	}
 	else
 	{
-		AccumulateLocalSpaceAdditivePose(BasePose, AdditivePose, BaseCurve, AdditiveCurve, Weight);
+		AccumulateLocalSpaceAdditivePoseInternal(BasePose, AdditivePose, Weight);
 	}
 
 	// if curve exists, accumulate with the weight, 
@@ -671,7 +671,7 @@ void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCo
 	BasePose.NormalizeRotations();
 }
 
-void FAnimationRuntime::AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight)
+void FAnimationRuntime::AccumulateLocalSpaceAdditivePoseInternal(FCompactPose& BasePose, const FCompactPose& AdditivePose, float Weight)
 {
 	if (FAnimWeight::IsRelevant(Weight))
 	{
@@ -697,7 +697,7 @@ void FAnimationRuntime::AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose,
 	}
 }
 
-void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight)
+void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPoseInternal(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, float Weight)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AccumulateMeshSpaceRotAdditiveToLocalPose);
 
@@ -707,7 +707,7 @@ void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactP
 		FAnimationRuntime::ConvertPoseToMeshRotation(BasePose);
 
 		// Add MeshSpaceRotAdditive to it
-		FAnimationRuntime::AccumulateLocalSpaceAdditivePose(BasePose, MeshSpaceRotationAdditive, BaseCurve, AdditiveCurve, Weight);
+		FAnimationRuntime::AccumulateLocalSpaceAdditivePoseInternal(BasePose, MeshSpaceRotationAdditive, Weight);
 
 		// Convert back to local space
 		FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(BasePose);

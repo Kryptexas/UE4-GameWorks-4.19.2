@@ -441,7 +441,7 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
 
 			// Also check if skeletal mesh has too many bones/chunk for GPU skinning.
-			const bool bIsCPUSkinned = SkelMeshResource->RequiresCPUSkinning(SceneFeatureLevel) || (GIsEditor && ShouldCPUSkin());
+			const bool bIsCPUSkinned = SkelMeshResource->RequiresCPUSkinning(SceneFeatureLevel) || ShouldCPUSkin();
 			if(bIsCPUSkinned)
 			{
 				MeshObject = ::new FSkeletalMeshObjectCPUSkin(this, SkelMeshResource, SceneFeatureLevel);
@@ -2445,10 +2445,11 @@ void USkinnedMeshComponent::GetCPUSkinnedVertices(TArray<FFinalSkinVertex>& OutV
 	FlushRenderingCommands();
 
 	check(MeshObject);
-
+	check(MeshObject->IsCPUSkinned());
+		
 	// Copy our vertices out. We know we are using CPU skinning now, so this cast is safe
 	OutVertices = static_cast<FSkeletalMeshObjectCPUSkin*>(MeshObject)->GetCachedFinalVertices();
-
+	
 	// switch skinning mode, LOD etc. back
 	bCPUSkinning = bCachedCPUSkinning;
 	ForcedLodModel = 0;

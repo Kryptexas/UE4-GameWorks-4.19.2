@@ -4,7 +4,7 @@
 #include "MeshMergeHelpers.h"
 
 FMeshMergeDataTracker::FMeshMergeDataTracker()
-	: AvailableLightMapUVChannel(INDEX_NONE)
+	: AvailableLightMapUVChannel(INDEX_NONE), SummedLightMapPixels(0)
 {
 	FMemory::Memzero(bWithVertexColors);
 	FMemory::Memzero(bOcuppiedUVChannels);
@@ -94,6 +94,16 @@ int32 FMeshMergeDataTracker::GetNumLODsForMergedMesh() const
 TConstLODIndexIterator FMeshMergeDataTracker::GetLODIndexIterator() const
 {
 	return LODIndices.CreateConstIterator();
+}
+
+void FMeshMergeDataTracker::AddLightMapPixels(int32 Dimension)
+{
+	SummedLightMapPixels += FMath::Max(Dimension, 0);
+}
+
+int32 FMeshMergeDataTracker::GetLightMapDimension() const
+{
+	return FMath::CeilToInt(FMath::Sqrt(SummedLightMapPixels));
 }
 
 bool FMeshMergeDataTracker::DoesLODContainVertexColors(int32 LODIndex) const

@@ -94,8 +94,6 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	WidgetMode = FWidget::WM_Rotate;
 	ModeTools->SetWidgetMode(WidgetMode);
 
-	SetSelectedBackgroundColor(ConfigOption->ViewportBackgroundColor, false);
-
 	EngineShowFlags.Game = 0;
 	EngineShowFlags.ScreenSpaceReflections = 1;
 	EngineShowFlags.AmbientOcclusion = 1;
@@ -173,56 +171,6 @@ FAnimationViewportClient::~FAnimationViewportClient()
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(nullptr);
 
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().RemoveAll(this);
-}
-
-FLinearColor FAnimationViewportClient::GetBackgroundColor() const
-{
-	return SelectedHSVColor.HSVToLinearRGB();
-}
-
-void FAnimationViewportClient::SetSelectedBackgroundColor(const FLinearColor& RGBColor, bool bSave/*=true*/)
-{
-	SelectedHSVColor = RGBColor.LinearRGBToHSV(); 
-
-	// save to config
-	if (bSave)
-	{
-		ConfigOption->SetViewportBackgroundColor(RGBColor);
-	}
-
-	// only consider V from HSV
-	// just inversing works against for mid range brightness
-	// V being from 0-0.3 (almost white), 0.31-1 (almost black)
-	if (SelectedHSVColor.B < 0.3f)
-	{
-		DrawHelper.GridColorAxis = FColor(230,230,230);
-		DrawHelper.GridColorMajor = FColor(180,180,180);
-		DrawHelper.GridColorMinor = FColor(128,128,128);
-	}
-	else
-	{
-		DrawHelper.GridColorAxis = FColor(20,20,20);
-		DrawHelper.GridColorMajor = FColor(60,60,60);
-		DrawHelper.GridColorMinor = FColor(128,128,128);
-	}
-
-	Invalidate();
-}
-
-void FAnimationViewportClient::SetBackgroundColor( FLinearColor InColor )
-{
-	SetSelectedBackgroundColor(InColor);
-}
-
-float FAnimationViewportClient::GetBrightnessValue() const
-{
-	return SelectedHSVColor.B;
-}
-
-void FAnimationViewportClient::SetBrightnessValue( float Value )
-{
-	SelectedHSVColor.B = Value;
-	SetSelectedBackgroundColor(SelectedHSVColor.HSVToLinearRGB());
 }
 
 void FAnimationViewportClient::OnToggleShowGrid()
@@ -394,8 +342,9 @@ void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* OldSkele
 		PreviewMeshComponent->TermArticulated();
 		PreviewMeshComponent->InitArticulated(GetWorld()->GetPhysicsScene());
 
-		// Set to block all to enable tracing.
-		PreviewMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+		// Set to PhysicsActor to enable tracing regardless of project overrides
+		static FName CollisionProfileName(TEXT("PhysicsActor"));
+		PreviewMeshComponent->SetCollisionProfileName(CollisionProfileName);
 	}
 
 	Invalidate();
@@ -491,7 +440,10 @@ void FAnimationViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 		{
 			// Allow edit modes (inc. skeletal control modes) to draw with the canvas, and collect on screen strings to draw later
 			TArray<FText> EditModeDebugText;
-			GetPersonaModeManager().GetOnScreenDebugInfo(EditModeDebugText);
+			if (GetPersonaModeManager())
+			{
+				GetPersonaModeManager()->GetOnScreenDebugInfo(EditModeDebugText);
+			}
 
 			// Draw Node info instead of mesh info if we have entries
 			DrawNodeDebugLines(EditModeDebugText, &Canvas, &View);
@@ -1006,16 +958,13 @@ void FAnimationViewportClient::DrawNodeDebugLines(TArray<FText>& Lines, FCanvas*
 
 void FAnimationViewportClient::TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge )
 {
-	if (ModeTools->StartTracking(this, Viewport) && bIsDraggingWidget)
-	{
-		Widget->SetSnapEnabled(true);
-	}
+	ModeTools->StartTracking(this, Viewport);
 }
 
 void FAnimationViewportClient::TrackingStopped() 
 {
 	ModeTools->EndTracking(this, Viewport);
-	Widget->SetSnapEnabled(false);
+
 	Invalidate();
 }
 
@@ -1492,10 +1441,13 @@ FSphere FAnimationViewportClient::GetCameraTarget()
 	PreviewMeshComponent->CalcBounds(PreviewMeshComponent->GetComponentTransform());
 
 	// give the editor mode a chance to give us a camera target
-	FSphere Target;
-	if (GetPersonaModeManager().GetCameraTarget(Target))
+	if (GetPersonaModeManager())
 	{
-		return Target;
+		FSphere Target;
+		if (GetPersonaModeManager()->GetCameraTarget(Target))
+		{
+			return Target;
+		}
 	}
 
 	FBoxSphereBounds Bounds = PreviewMeshComponent->CalcBounds(FTransform::Identity);
@@ -1569,7 +1521,17 @@ void FAnimationViewportClient::GetAllVertexIndicesUsedInSection(const FRawStatic
 
 bool FAnimationViewportClient::PreviewComponentSelectionOverride(const UPrimitiveComponent* InComponent) const
 {
-	return InComponent == GetPreviewScene()->GetPreviewMeshComponent();
+	if (InComponent == GetPreviewScene()->GetPreviewMeshComponent())
+	{
+		const USkeletalMeshComponent* Component = CastChecked<USkeletalMeshComponent>(InComponent);
+		USkeletalMesh* Mesh = Component->SkeletalMesh;
+		if (Mesh)
+		{
+			return (Mesh->SelectedEditorSection != INDEX_NONE);
+		}
+	}
+
+	return false;
 }
 
 FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() const
@@ -1866,9 +1828,9 @@ TSharedRef<FAnimationEditorPreviewScene> FAnimationViewportClient::GetAnimPrevie
 	return StaticCastSharedRef<FAnimationEditorPreviewScene>(GetPreviewScene());
 }
 
-IPersonaEditorModeManager& FAnimationViewportClient::GetPersonaModeManager() const
+IPersonaEditorModeManager* FAnimationViewportClient::GetPersonaModeManager() const
 {
-	return *static_cast<IPersonaEditorModeManager*>(ModeTools);
+	return static_cast<IPersonaEditorModeManager*>(ModeTools);
 }
 
 void FAnimationViewportClient::HandleInvalidateViews()

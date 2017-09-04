@@ -8,21 +8,39 @@
 #include "SkeletonTreeVirtualBoneItem.h"
 #include "Animation/DebugSkelMeshComponent.h"
 
-void FSkeletonTreeBuilderOutput::Add(const TSharedPtr<class ISkeletonTreeItem>& InItem, const FName& InParentName, const FName& InParentType)
+#define LOCTEXT_NAMESPACE "SkeletonTreeBuilder"
+
+void FSkeletonTreeBuilderOutput::Add(const TSharedPtr<class ISkeletonTreeItem>& InItem, const FName& InParentName, const FName& InParentType, bool bAddToHead)
 {
-	Add(InItem, InParentName, TArray<FName, TInlineAllocator<1>>({ InParentType }));
+	Add(InItem, InParentName, TArray<FName, TInlineAllocator<1>>({ InParentType }), bAddToHead);
 }
 
-void FSkeletonTreeBuilderOutput::Add(const TSharedPtr<class ISkeletonTreeItem>& InItem, const FName& InParentName, TArrayView<const FName> InParentTypes)
+void FSkeletonTreeBuilderOutput::Add(const TSharedPtr<class ISkeletonTreeItem>& InItem, const FName& InParentName, TArrayView<const FName> InParentTypes, bool bAddToHead)
 {
 	TSharedPtr<ISkeletonTreeItem> ParentItem = Find(InParentName, InParentTypes);
 	if (ParentItem.IsValid())
 	{
-		ParentItem->GetChildren().Add(InItem);
+		InItem->SetParent(ParentItem);
+
+		if (bAddToHead)
+		{
+			ParentItem->GetChildren().Insert(InItem, 0);
+		}
+		else
+		{
+			ParentItem->GetChildren().Add(InItem);
+		}
 	}
 	else
 	{
-		Items.Add(InItem);
+		if (bAddToHead)
+		{
+			Items.Insert(InItem, 0);
+		}
+		else
+		{
+			Items.Add(InItem);
+		}
 	}
 
 	LinearItems.Add(InItem);
@@ -56,18 +74,25 @@ TSharedPtr<class ISkeletonTreeItem> FSkeletonTreeBuilderOutput::Find(const FName
 	return nullptr;
 }
 
-FSkeletonTreeBuilder::FSkeletonTreeBuilder(const FSkeletonTreeBuilderArgs& InBuilderArgs, FOnFilterSkeletonTreeItem InOnFilterSkeletonTreeItem, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedPtr<class IPersonaPreviewScene>& InPreviewScene)
+FSkeletonTreeBuilder::FSkeletonTreeBuilder(const FSkeletonTreeBuilderArgs& InBuilderArgs)
 	: BuilderArgs(InBuilderArgs)
-	, OnFilterSkeletonTreeItem(InOnFilterSkeletonTreeItem)
-	, SkeletonTreePtr(InSkeletonTree)
-	, EditableSkeletonPtr(InSkeletonTree->GetEditableSkeleton())
-	, PreviewScenePtr(InPreviewScene)
 {
+}
+
+void FSkeletonTreeBuilder::Initialize(const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedPtr<class IPersonaPreviewScene>& InPreviewScene, FOnFilterSkeletonTreeItem InOnFilterSkeletonTreeItem)
+{
+	SkeletonTreePtr = InSkeletonTree;
+	EditableSkeletonPtr = InSkeletonTree->GetEditableSkeleton();
+	PreviewScenePtr = InPreviewScene;
+	OnFilterSkeletonTreeItem = InOnFilterSkeletonTreeItem;
 }
 
 void FSkeletonTreeBuilder::Build(FSkeletonTreeBuilderOutput& Output)
 {
-	AddBones(Output);
+	if(BuilderArgs.bShowBones)
+	{
+		AddBones(Output);
+	}
 
 	if (BuilderArgs.bShowSockets)
 	{
@@ -91,7 +116,7 @@ void FSkeletonTreeBuilder::Filter(const FSkeletonTreeFilterArgs& InArgs, const T
 
 	for (const TSharedPtr<ISkeletonTreeItem>& Item : InItems)
 	{
-		if (InArgs.bWillFilter && InArgs.bFlattenHierarchyOnFilter)
+		if (InArgs.TextFilter.IsValid() && InArgs.bFlattenHierarchyOnFilter)
 		{
 			FilterRecursive(InArgs, Item, OutFilteredItems);
 		}
@@ -114,9 +139,9 @@ ESkeletonTreeFilterResult FSkeletonTreeBuilder::FilterRecursive(const FSkeletonT
 
 	InItem->GetFilteredChildren().Empty();
 
-	if (InArgs.bWillFilter && InArgs.bFlattenHierarchyOnFilter)
+	if (InArgs.TextFilter.IsValid() && InArgs.bFlattenHierarchyOnFilter)
 	{
-		FilterResult = OnFilterSkeletonTreeItem.Execute(InItem);
+		FilterResult = FilterItem(InArgs, InItem);
 		InItem->SetFilterResult(FilterResult);
 
 		if (FilterResult != ESkeletonTreeFilterResult::Hidden)
@@ -146,7 +171,7 @@ ESkeletonTreeFilterResult FSkeletonTreeBuilder::FilterRecursive(const FSkeletonT
 			}
 		}
 
-		FilterResult = OnFilterSkeletonTreeItem.Execute(InItem);
+		FilterResult = FilterItem(InArgs, InItem);
 		if (DescendantsFilterResult > FilterResult)
 		{
 			FilterResult = ESkeletonTreeFilterResult::ShownDescendant;
@@ -156,6 +181,26 @@ ESkeletonTreeFilterResult FSkeletonTreeBuilder::FilterRecursive(const FSkeletonT
 	}
 
 	return FilterResult;
+}
+
+ESkeletonTreeFilterResult FSkeletonTreeBuilder::FilterItem(const FSkeletonTreeFilterArgs& InArgs, const TSharedPtr<class ISkeletonTreeItem>& InItem)
+{
+	return OnFilterSkeletonTreeItem.Execute(InArgs, InItem);
+}
+
+bool FSkeletonTreeBuilder::IsShowingBones() const
+{
+	return BuilderArgs.bShowBones;
+}
+
+bool FSkeletonTreeBuilder::IsShowingSockets() const
+{
+	return BuilderArgs.bShowSockets;
+}
+
+bool FSkeletonTreeBuilder::IsShowingAttachedAssets() const
+{
+	return BuilderArgs.bShowAttachedAssets;
 }
 
 void FSkeletonTreeBuilder::AddBones(FSkeletonTreeBuilderOutput& Output)
@@ -175,9 +220,6 @@ void FSkeletonTreeBuilder::AddBones(FSkeletonTreeBuilderOutput& Output)
 		}
 		TSharedRef<ISkeletonTreeItem> DisplayBone = CreateBoneTreeItem(BoneName);
 		Output.Add(DisplayBone, ParentName, FSkeletonTreeBoneItem::GetTypeId());
-
-		// @TODO: Persona2.0: Item expansion should be saved
-		//SkeletonTreeView->SetItemExpansion(DisplayBone, true);
 	}
 }
 
@@ -244,9 +286,6 @@ void FSkeletonTreeBuilder::AddSocketsFromData(const TArray< USkeletalMeshSocket*
 		}
 
 		Output.Add(CreateSocketTreeItem(Socket, ParentType, bIsCustomized), Socket->BoneName, FSkeletonTreeBoneItem::GetTypeId());
-
-		// @TODO: Persona2.0: Item expansion should be saved
-	//	SkeletonTreeView->SetItemExpansion(DisplaySocket, true);
 	}
 }
 
@@ -288,3 +327,5 @@ TSharedRef<class ISkeletonTreeItem> FSkeletonTreeBuilder::CreateVirtualBoneTreeI
 {
 	return MakeShareable(new FSkeletonTreeVirtualBoneItem(InBoneName, SkeletonTreePtr.Pin().ToSharedRef()));
 }
+
+#undef LOCTEXT_NAMESPACE

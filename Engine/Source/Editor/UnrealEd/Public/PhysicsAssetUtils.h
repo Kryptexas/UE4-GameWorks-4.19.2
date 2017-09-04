@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "SkeletalMeshTypes.h"
+#include "Engine/EngineTypes.h"
+#include "PhysicsAssetUtils.generated.h"
 
 class UBodySetup;
 class UPhysicsAsset;
@@ -11,37 +13,87 @@ class UPhysicsConstraintTemplate;
 class USkeletalMesh;
 class USkeletalMeshComponent;
 
+UENUM()
 enum EPhysAssetFitGeomType
 {
-	EFG_Box,
-	EFG_Sphyl,
-	EFG_Sphere,
-	EFG_SingleConvexHull,
-	EFG_MultiConvexHull
+	EFG_Box					UMETA(DisplayName="Box"),
+	EFG_Sphyl				UMETA(DisplayName="Capsule"),
+	EFG_Sphere				UMETA(DisplayName="Sphere"),
+	EFG_SingleConvexHull	UMETA(DisplayName="Single Convex Hull"),
+	EFG_MultiConvexHull		UMETA(DisplayName="Multi Convex Hull")
 };
 
+UENUM()
 enum EPhysAssetFitVertWeight
 {
-	EVW_AnyWeight,
-	EVW_DominantWeight
+	EVW_AnyWeight			UMETA(DisplayName="Any Weight"),
+	EVW_DominantWeight		UMETA(DisplayName="Dominant Weight"),
 };
 
 /** Parameters for PhysicsAsset creation */
+USTRUCT()
 struct FPhysAssetCreateParams
 {
-	float								MinBoneSize;
-	float								MinWeldSize;
-	EPhysAssetFitGeomType				GeomType;
-	EPhysAssetFitVertWeight				VertWeight;
-	bool								bAutoOrientToBone;
-	bool								bCreateJoints;
-	bool								bWalkPastSmall;
-	bool								bBodyForAll;
-	EAngularConstraintMotion			AngularConstraintMode;
-	float								HullAccuracy;
-	int32								MaxHullVerts;
+	GENERATED_BODY()
 
-	UNREALED_API void Initialize();
+	FPhysAssetCreateParams()
+	{
+		MinBoneSize = 20.0f;
+		MinWeldSize = KINDA_SMALL_NUMBER;
+		GeomType = EFG_Sphyl;
+		VertWeight = EVW_DominantWeight;
+		bAutoOrientToBone = true;
+		bCreateJoints = true;
+		bWalkPastSmall = true;
+		bBodyForAll = false;
+		AngularConstraintMode = ACM_Limited;
+		HullAccuracy = 0.5f;
+		MaxHullVerts = 16;
+	}
+
+	/** Bones that are shorter than this value will be ignored for body creation */
+	UPROPERTY(EditAnywhere, Category = "Body Creation")
+	float MinBoneSize;
+
+	/** Bones that are smaller than this value will be merged together for body creation */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
+	float MinWeldSize;
+
+	/** The geometry type that should be used when creating bodies */
+	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Primitive Type"))
+	TEnumAsByte<EPhysAssetFitGeomType> GeomType;
+
+	/** How vertices are mapped bones when approximating them with bodies */
+	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Vertex Weighting Type"))
+	TEnumAsByte<EPhysAssetFitVertWeight> VertWeight;
+
+	/** Whether to automatically orient the created bodies to their corresponding bones */
+	UPROPERTY(EditAnywhere, Category = "Body Creation")
+	bool bAutoOrientToBone;
+
+	/** Whether to create constraints between adjacent created bodies */
+	UPROPERTY(EditAnywhere, Category = "Constraint Creation")
+	bool bCreateJoints;
+
+	/** Whether to skip small bones entirely (rather than merge them with adjacent bones) */
+	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Walk Past Small Bones"))
+	bool bWalkPastSmall;
+
+	/** Forces creation of a body for each bone */
+	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Create Body for All Bones"))
+	bool bBodyForAll;
+
+	/** The type of angular constraint to create between bodies */
+	UPROPERTY(EditAnywhere, Category = "Constraint Creation", meta=(EditCondition="bCreateJoints"))
+	TEnumAsByte<EAngularConstraintMotion> AngularConstraintMode;
+
+	/** When creating convex hulls, the target accuracy of the created hull */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
+	float HullAccuracy;
+
+	/** When creating convex hulls, the maximum verts that should be created */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
+	int32 MaxHullVerts;
 };
 
 class UPhysicsAsset;
@@ -61,7 +113,7 @@ namespace FPhysicsAssetUtils
 	 * @param	OutErrorMessage		Additional error information
 	 * @param	bSetToMesh			Whether or not to apply the physics asset to SkelMesh immediately
 	 */
-	UNREALED_API bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage, bool bSetToMesh = true);
+	UNREALED_API bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, const FPhysAssetCreateParams& Params, FText& OutErrorMessage, bool bSetToMesh = true);
 
 	/** Replaces any collision already in the BodySetup with an auto-generated one using the parameters provided.
 	 * 
@@ -76,7 +128,7 @@ namespace FPhysicsAssetUtils
 	 * @param	Info				The vertices to create the collision for
 	 * @return  Returns true if successfully created collision from bone
 	 */
-	UNREALED_API bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info );
+	UNREALED_API bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, const FPhysAssetCreateParams& Params, const FBoneVertInfo& Info );
 
 	/** Replaces any collision already in the BodySetup with an auto-generated one using the parameters provided.
 	 * 

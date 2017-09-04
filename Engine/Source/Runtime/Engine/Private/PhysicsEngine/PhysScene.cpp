@@ -422,7 +422,7 @@ static FAutoConsoleCommandWithWorldAndArgs GSetPhysXTreeRebuildRate(TEXT("p.Phys
 );
 
 
-/** Exposes creation of physics-engine scene outside Engine (for use with PhAT for example). */
+/** Exposes creation of physics-engine scene outside Engine (for use with Physics Asset Editor for example). */
 FPhysScene::FPhysScene()
 {
 	LineBatcher = NULL;

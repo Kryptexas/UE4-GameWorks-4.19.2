@@ -61,7 +61,8 @@ public class UnrealEd : ModuleRules
 				"ViewportInteraction",
 				"VREditor",
 				"Persona",
-				"ClothingSystemEditorInterface",
+                "PhysicsAssetEditor",
+                "ClothingSystemEditorInterface",
 			}
 		);
 
@@ -185,7 +186,7 @@ public class UnrealEd : ModuleRules
 				"LevelEditor",
 				"PackagesDialog",
 				"Persona",
-				"PhAT",
+                "PhysicsAssetEditor",
 				"ProjectLauncher",
 				"DeviceManager",
 				"SettingsEditor",
@@ -263,12 +264,6 @@ public class UnrealEd : ModuleRules
 			PublicDependencyModuleNames.Add("XAudio2");
 			PublicDependencyModuleNames.Add("AudioMixerXAudio2");
 
-			// SDL ony has 64 bit binary
-			if (Target.Platform == UnrealTargetPlatform.Win64)
-			{
-				PublicDependencyModuleNames.Add("AudioMixerSDL");
-			}
-
 			AddEngineThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
@@ -280,6 +275,7 @@ public class UnrealEd : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			PublicDependencyModuleNames.Add("ALAudio");
+            PublicDependencyModuleNames.Add("AudioMixerSDL");
 		}
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,

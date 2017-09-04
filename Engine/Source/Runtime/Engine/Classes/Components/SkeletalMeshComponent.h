@@ -372,9 +372,19 @@ public:
 	uint32 bDisableClothSimulation:1;
 
 private:
-	/** Disable animation curves for this component. */
+	/** Disable animation curves for this component. If this is set true, no curves will be processed */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = SkeletalMesh)
-	uint32 bDisableAnimCurves : 1;
+	uint32 bAllowAnimCurveEvaluation : 1;
+
+	/** DEPRECATED. Use bAllowAnimCurveEvaluation instead */
+	DEPRECATED(4.18, "This property is deprecated. Please use bAllowAnimCurveEvaluatiuon instead. Note that the meaning is reversed.")	
+	UPROPERTY()
+	uint32 bDisableAnimCurves_DEPRECATED : 1;
+
+	/** You can choose to disable certain curves if you prefer. 
+	 * This is transient curves that will be ignored by animation system if you choose this */
+	UPROPERTY(transient)
+	TArray<FName> DisallowedAnimCurves;
 
 public:
 	/** can't collide with part of environment if total collision volumes exceed 16 capsules or 32 planes per convex */
@@ -742,11 +752,32 @@ public:
 	}
 #endif 
 
+	DEPRECATED(4.18, "This function is deprecated. Please use SetAllowAnimCurveEvaluation instead. Note that the meaning is reversed.")
 	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetDisableAnimCurves(bool bInDisableAnimCurves);
 
+	DEPRECATED(4.18, "This function is deprecated. Please use GetAllowedAnimCurveEvaluate instead. Note that the meaning is reversed.")
 	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
-	bool GetDisableAnimCurves() const { return bDisableAnimCurves; }
+	bool GetDisableAnimCurves() const { return !bAllowAnimCurveEvaluation; }
+
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void SetAllowAnimCurveEvaluation(bool bInAllow);
+
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	bool GetAllowedAnimCurveEvaluate() const { return bAllowAnimCurveEvaluation; }
+
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void AllowAnimCurveEvaluation(FName NameOfCurve, bool bAllow);
+
+	/** By reset, it will allow all the curves to be evaluated */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void ResetAllowedAnimCurveEvaluation();
+
+	/** resets, and then only allow the following list to be allowed/disallowed */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void SetAllowedAnimCurvesEvaluation(const TArray<FName>& List, bool bAllow);
+
+	const TArray<FName>& GetDisallowedAnimCurvesEvaluation() const { return DisallowedAnimCurves; }
 
 	/** We detach the Component once we are done playing it.
 	 *
@@ -1577,6 +1608,8 @@ protected:
 	bool NeedToSpawnAnimScriptInstance() const;
 	bool NeedToSpawnPostPhysicsInstance() const;
 
+	bool ShouldBlendPhysicsBones() const;
+
 private:
 
 	FSkeletalMeshComponentEndPhysicsTickFunction EndPhysicsTickFunction;
@@ -1595,7 +1628,6 @@ private:
 	*/
 	void FillComponentSpaceTransforms(const USkeletalMesh* InSkeletalMesh, const TArray<FTransform>& InBoneSpaceTransforms, TArray<FTransform>& OutComponentSpaceTransforms) const;
 
-	bool ShouldBlendPhysicsBones() const;
 	bool DoAnyPhysicsBodiesHaveWeight() const;
 
 	void ClearAnimScriptInstance();

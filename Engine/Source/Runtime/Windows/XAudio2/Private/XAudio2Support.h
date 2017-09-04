@@ -70,6 +70,10 @@ public:
 
 	HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR pwstrDeviceId) override
 	{
+		for (IDeviceChangedListener* Listener : Listeners)
+		{
+			Listener->OnDefaultDeviceChanged();
+		}
 		return S_OK;
 	}
 
@@ -753,7 +757,7 @@ struct FXAudioDeviceProperties final : public IDeviceChangedListener
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
 #if PLATFORM_WINDOWS
-	static FMMNotificationClient* NotificationClient;
+	FMMNotificationClient* NotificationClient;
 #endif
 
 	// For calculating speaker maps for 3d audio
@@ -781,15 +785,7 @@ struct FXAudioDeviceProperties final : public IDeviceChangedListener
 		, bAllowNewVoices(true)
 	{
 #if PLATFORM_WINDOWS
-		if (NotificationClient == nullptr)
-		{
-			NotificationClient = new FMMNotificationClient();
-	}
-		else
-		{
-			NotificationClient->AddRef();
-		}
-
+		NotificationClient = new FMMNotificationClient();
 		NotificationClient->RegisterDeviceChangedListener(this);
 #endif
 	}
@@ -797,8 +793,12 @@ struct FXAudioDeviceProperties final : public IDeviceChangedListener
 	virtual ~FXAudioDeviceProperties()
 	{
 #if PLATFORM_WINDOWS
-		NotificationClient->UnRegisterDeviceDeviceChangedListener(this);
-		NotificationClient->Release();
+		if (NotificationClient)
+		{
+			NotificationClient->UnRegisterDeviceDeviceChangedListener(this);
+			NotificationClient->Release();
+			NotificationClient = nullptr;
+		}
 #endif
 
 		// Make sure we've free'd all of our active voices at this point!
@@ -850,6 +850,14 @@ struct FXAudioDeviceProperties final : public IDeviceChangedListener
 			UE_LOG(LogAudio, Warning, TEXT("Current Audio Device with ID %s was removed. Shutting down audio device."), *DeviceID);
 		}
 #endif // XAUDIO_SUPPORTS_DEVICE_DETAILS
+	}
+
+	void OnDefaultDeviceChanged() override
+	{
+		bDeviceChanged = true;
+
+		// Immediately disallow new voices to be created
+		bAllowNewVoices = false;
 	}
 
 	bool DidAudioDeviceChange()

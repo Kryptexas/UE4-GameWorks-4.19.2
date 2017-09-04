@@ -23,7 +23,7 @@ struct FMovieSceneSkeletalAnimationParams
 	float GetSequenceLength() const { return Animation != nullptr ? Animation->SequenceLength : 0.f; }
 
 	/** The animation this section plays */
-	UPROPERTY(EditAnywhere, Category="Animation")
+	UPROPERTY(EditAnywhere, Category="Animation", meta=(AllowedClasses = "AnimSequence, AnimComposite"))
 	UAnimSequenceBase* Animation;
 
 	/** The offset into the beginning of the animation clip */

@@ -71,6 +71,7 @@
 #include "BlueprintEditorUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 IMPLEMENT_MODULE( FPersonaModule, Persona );
 
@@ -88,7 +89,7 @@ void FPersonaModule::StartupModule()
 	//Call this to make sure AnimGraph module is setup
 	FModuleManager::Get().LoadModuleChecked(TEXT("AnimGraph"));
 
-	// Make sure the advanced preview scene module is loaded
+	// Make sure the advanced preview scene module is loaded 
 	FModuleManager::Get().LoadModuleChecked("AdvancedPreviewScene");
 
 	// Load all blueprint animnotifies from asset registry so they are available from drop downs in anim segment detail views
@@ -169,7 +170,7 @@ static void SetupPersonaToolkit(const TSharedRef<FPersonaToolkit>& Toolkit, cons
 {
 	if (PersonaToolkitArgs.bCreatePreviewScene)
 	{
-		Toolkit->CreatePreviewScene();
+		Toolkit->CreatePreviewScene(PersonaToolkitArgs);
 	}
 }
 
@@ -217,6 +218,17 @@ TSharedRef<IPersonaToolkit> FPersonaModule::CreatePersonaToolkit(UAnimBlueprint*
 	return NewPersonaToolkit;
 }
 
+TSharedRef<IPersonaToolkit> FPersonaModule::CreatePersonaToolkit(UPhysicsAsset* InPhysicsAsset, const FPersonaToolkitArgs& PersonaToolkitArgs) const
+{
+	TSharedRef<FPersonaToolkit> NewPersonaToolkit(new FPersonaToolkit());
+
+	NewPersonaToolkit->Initialize(InPhysicsAsset);
+
+	SetupPersonaToolkit(NewPersonaToolkit, PersonaToolkitArgs);
+
+	return NewPersonaToolkit;
+}
+
 TSharedRef<class IAssetFamily> FPersonaModule::CreatePersonaAssetFamily(const UObject* InAsset) const
 {
 	return FPersonaAssetFamilyManager::Get().CreatePersonaAssetFamily(InAsset);
@@ -232,9 +244,9 @@ TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreateDetailsTabFactory(co
 	return MakeShareable(new FPersonaDetailsTabSummoner(InHostingApp, InOnDetailsCreated));
 }
 
-TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreatePersonaViewportTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo, const TSharedPtr<FBlueprintEditor>& InBlueprintEditor, FOnViewportCreated InOnViewportCreated, bool bInShowTimeline, bool bInShowStats) const
+TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreatePersonaViewportTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const FPersonaViewportArgs& InArgs) const
 {
-	return MakeShareable(new FPreviewViewportSummoner(InHostingApp, InSkeletonTree, InPreviewScene, OnPostUndo, InBlueprintEditor, InOnViewportCreated, bInShowTimeline, bInShowStats));
+	return MakeShareable(new FPreviewViewportSummoner(InHostingApp, InArgs));
 }
 
 TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreateAnimNotifiesTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnChangeAnimNotifies, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const
@@ -708,10 +720,13 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 		static void HandleApplyPreviewMesh(TSharedPtr<FNotificationHandler> InNotificationHandler, TWeakPtr<IPersonaToolkit> InWeakPersonaToolkit)
 		{
 			TSharedPtr<IPersonaToolkit> PinnedPersonaToolkit = InWeakPersonaToolkit.Pin();
-			PinnedPersonaToolkit->SetPreviewMesh(PinnedPersonaToolkit->GetPreviewScene()->GetPreviewMesh(), true);
-			if(InNotificationHandler->Notification.IsValid())
+			if(PinnedPersonaToolkit.IsValid())	// Toolkit can become invalid while the toast is open
 			{
-				InNotificationHandler->Notification->Fadeout();
+				PinnedPersonaToolkit->SetPreviewMesh(PinnedPersonaToolkit->GetPreviewScene()->GetPreviewMesh(), true);
+				if(InNotificationHandler->Notification.IsValid())
+				{
+					InNotificationHandler->Notification->Fadeout();
+				}
 			}
 		}
 
@@ -732,25 +747,28 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 					WeakPersonaToolkit.Pin()->SetPreviewMesh(Cast<USkeletalMesh>(AssetData.GetAsset()), false);
 				}
 
-				TSharedPtr<FNotificationHandler> NotificationHandler = MakeShared<FNotificationHandler>();
-
-				FNotificationInfo Info(LOCTEXT("PreviewMeshSetTemporarily", "Preview mesh set temporarily"));
-				Info.ExpireDuration = 10.0f;
-				Info.bUseLargeFont = true;
-				Info.ButtonDetails.Add(
-					FNotificationButtonInfo(
-						LOCTEXT("ApplyToAsset", "Apply To Asset"), 
-						LOCTEXT("ApplyToAssetToolTip", "The preview mesh has changed, but it will not be able to be saved until it is applied to the asset. Click here to make the change to the preview mesh persistent."),
-						FSimpleDelegate::CreateStatic(&FNotificationHandler::HandleApplyPreviewMesh, NotificationHandler, WeakPersonaToolkit),
-						SNotificationItem::CS_Success));
-
-				NotificationHandler->Notification = FSlateNotificationManager::Get().AddNotification(Info);
-				if (NotificationHandler->Notification.IsValid())
+				if(WeakPersonaToolkit.IsValid())	// SetPreviewMesh can invalidate the persona toolkit, so check it here before displaying toast
 				{
-					NotificationHandler->Notification->SetCompletionState(SNotificationItem::CS_Success);
-				}
+					TSharedPtr<FNotificationHandler> NotificationHandler = MakeShared<FNotificationHandler>();
 
-				FSlateApplication::Get().DismissAllMenus();
+					FNotificationInfo Info(LOCTEXT("PreviewMeshSetTemporarily", "Preview mesh set temporarily"));
+					Info.ExpireDuration = 10.0f;
+					Info.bUseLargeFont = true;
+					Info.ButtonDetails.Add(
+						FNotificationButtonInfo(
+							LOCTEXT("ApplyToAsset", "Apply To Asset"), 
+							LOCTEXT("ApplyToAssetToolTip", "The preview mesh has changed, but it will not be able to be saved until it is applied to the asset. Click here to make the change to the preview mesh persistent."),
+							FSimpleDelegate::CreateStatic(&FNotificationHandler::HandleApplyPreviewMesh, NotificationHandler, WeakPersonaToolkit),
+							SNotificationItem::CS_Success));
+
+					NotificationHandler->Notification = FSlateNotificationManager::Get().AddNotification(Info);
+					if (NotificationHandler->Notification.IsValid())
+					{
+						NotificationHandler->Notification->SetCompletionState(SNotificationItem::CS_Success);
+					}
+
+					FSlateApplication::Get().DismissAllMenus();
+				}
 			});
 			AssetPickerConfig.bAllowNullSelection = false;
 			AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
@@ -760,6 +778,11 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 			{
 				if (WeakPersonaToolkit.IsValid())
 				{
+					if(WeakPersonaToolkit.Pin()->GetContext() == UPhysicsAsset::StaticClass()->GetFName())
+					{
+						return false;
+					}
+
 					FString TagValue;
 					if (AssetData.GetTagValue("Skeleton", TagValue))
 					{
@@ -800,16 +823,22 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 
 void FPersonaModule::HandleNewAnimNotifyBlueprintCreated(UBlueprint* InBlueprint)
 {
-	UEdGraph* const NewGraph = FBlueprintEditorUtils::CreateNewGraph(InBlueprint, "Received_Notify", UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-	FBlueprintEditorUtils::AddFunctionGraph(InBlueprint, NewGraph, /*bIsUserCreated=*/ false, UAnimNotify::StaticClass());
-	InBlueprint->LastEditedDocuments.Add(NewGraph);
+	if (InBlueprint->BlueprintType == BPTYPE_Normal)
+	{
+		UEdGraph* const NewGraph = FBlueprintEditorUtils::CreateNewGraph(InBlueprint, "Received_Notify", UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+		FBlueprintEditorUtils::AddFunctionGraph(InBlueprint, NewGraph, /*bIsUserCreated=*/ false, UAnimNotify::StaticClass());
+		InBlueprint->LastEditedDocuments.Add(NewGraph);
+	}
 }
 
 void FPersonaModule::HandleNewAnimNotifyStateBlueprintCreated(UBlueprint* InBlueprint)
 {
-	UEdGraph* const NewGraph = FBlueprintEditorUtils::CreateNewGraph(InBlueprint, "Received_NotifyTick", UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-	FBlueprintEditorUtils::AddFunctionGraph(InBlueprint, NewGraph, /*bIsUserCreated=*/ false, UAnimNotifyState::StaticClass());
-	InBlueprint->LastEditedDocuments.Add(NewGraph);
+	if (InBlueprint->BlueprintType == BPTYPE_Normal)
+	{
+		UEdGraph* const NewGraph = FBlueprintEditorUtils::CreateNewGraph(InBlueprint, "Received_NotifyTick", UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+		FBlueprintEditorUtils::AddFunctionGraph(InBlueprint, NewGraph, /*bIsUserCreated=*/ false, UAnimNotifyState::StaticClass());
+		InBlueprint->LastEditedDocuments.Add(NewGraph);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

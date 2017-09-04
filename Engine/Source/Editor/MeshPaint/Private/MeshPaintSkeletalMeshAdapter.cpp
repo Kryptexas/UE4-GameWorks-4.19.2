@@ -198,7 +198,51 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::OnRemoved()
 
 bool FMeshPaintGeometryAdapterForSkeletalMeshes::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const
 {
-	return SkeletalMeshComponent->LineTraceComponent(OutHit, Start, End, Params);
+	const bool bHitBounds = FMath::LineSphereIntersection(Start, End.GetSafeNormal(), (End - Start).SizeSquared(), SkeletalMeshComponent->Bounds.Origin, SkeletalMeshComponent->Bounds.SphereRadius);
+	const bool bHitPhysicsBodies = SkeletalMeshComponent->LineTraceComponent(OutHit, Start, End, Params);
+
+	bool bHitTriangle = false;
+	if (bHitBounds && !bHitPhysicsBodies)
+	{
+		const int32 NumTriangles = MeshIndices.Num() / 3;
+		const FTransform& ComponentTransform = SkeletalMeshComponent->GetComponentTransform();
+		const FTransform InverseComponentTransform = ComponentTransform.Inverse();
+		const FVector LocalStart = InverseComponentTransform.TransformPosition(Start);
+		const FVector LocalEnd = InverseComponentTransform.TransformPosition(End);
+
+		float MinDistance = FLT_MAX;
+		FVector Intersect;
+		FVector Normal;
+
+		for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles; ++TriangleIndex)
+		{
+			FVector IntersectPoint;
+			FVector HitNormal;
+			bool bHit = FMath::SegmentTriangleIntersection(LocalStart, LocalEnd, MeshVertices[MeshIndices[(TriangleIndex * 3) + 0]], MeshVertices[MeshIndices[(TriangleIndex * 3) + 1]], MeshVertices[MeshIndices[(TriangleIndex * 3) + 2]], IntersectPoint, HitNormal);
+
+			if (bHit)
+			{
+				const float Distance = (LocalStart - IntersectPoint).SizeSquared();
+				if (Distance < MinDistance)
+				{
+					MinDistance = Distance;
+					Intersect = IntersectPoint;
+					Normal = HitNormal;
+				}
+			}
+		}
+
+		if (MinDistance != FLT_MAX)
+		{
+			OutHit.Component = SkeletalMeshComponent;
+			OutHit.Normal = Normal.GetSafeNormal();
+			OutHit.Location = ComponentTransform.TransformPosition(Intersect);
+			OutHit.bBlockingHit = true;
+			bHitTriangle = true;
+		}
+	}	
+
+	return bHitPhysicsBodies || bHitTriangle;
 }
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::QueryPaintableTextures(int32 MaterialIndex, int32& OutDefaultIndex, TArray<struct FPaintableTexture>& InOutTextureList)

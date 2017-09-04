@@ -128,7 +128,6 @@ public:
 	virtual ~FAnimationViewportClient();
 
 	// FEditorViewportClient interface
-	virtual FLinearColor GetBackgroundColor() const override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
@@ -381,8 +380,6 @@ private:
 
 private:
 
-	void SetSelectedBackgroundColor(const FLinearColor& RGBColor, bool bSave = true);
-
 	void SetCameraTargetLocation(const FSphere &BoundSphere, float DeltaSeconds);
 
 	/** Draws Mesh Bones in foreground **/
@@ -413,7 +410,7 @@ private:
 	TSharedRef<class FAnimationEditorPreviewScene> GetAnimPreviewScene() const;
 
 	/** Get the persona mode manager */
-	class IPersonaEditorModeManager& GetPersonaModeManager() const;
+	class IPersonaEditorModeManager* GetPersonaModeManager() const;
 
 	/** Invalidate this view in response to a preview scene change */
 	void HandleInvalidateViews();

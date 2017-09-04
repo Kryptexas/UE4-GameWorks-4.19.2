@@ -10,6 +10,8 @@
 #include "HAL/Runnable.h"
 #include "Stats/Stats.h"
 #include "Classes/Sound/AudioSettings.h"
+#include "Misc/SingleThreadRunnable.h"
+#include "DSP/ParamInterpolator.h"
 
 // defines used for AudioMixer.h
 #define AUDIO_PLATFORM_ERROR(INFO)			(OnAudioMixerPlatformError(INFO, FString(__FILE__), __LINE__))
@@ -302,7 +304,7 @@ namespace Audio
 	{
 	public:
 		virtual void RegisterDeviceChangedListener() {}
-		virtual void UnRegisterDeviceChangedListener() {}
+		virtual void UnregisterDeviceChangedListener() {}
 		virtual void OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) {}
 		virtual void OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) {}
 		virtual void OnDeviceAdded(const FString& DeviceId) {}
@@ -314,6 +316,7 @@ namespace Audio
 
 	/** Abstract interface for mixer platform. */
 	class AUDIOMIXER_API IAudioMixerPlatformInterface : public FRunnable,
+														public FSingleThreadRunnable,
 														public IAudioMixerDeviceChangedLister
 	{
 
@@ -408,6 +411,16 @@ namespace Audio
 		uint32 Run() override;
 		//~ End FRunnable
 
+		/**
+		*  FSingleThreadRunnable accessor for ticking this FRunnable when multi-threading is disabled.
+		*  @return FSingleThreadRunnable Interface for this FRunnable object.
+		*/
+		virtual class FSingleThreadRunnable* GetSingleThreadInterface() override { return this; }
+
+		//~ Begin FSingleThreadRunnable Interface
+		virtual void Tick() override;
+		//~ End FSingleThreadRunnable Interface
+
 		/** Constructor. */
 		IAudioMixerPlatformInterface();
 
@@ -420,8 +433,14 @@ namespace Audio
 		/** Start a fadeout. Prevents pops during shutdown. */
 		void FadeOut();
 
+		/** Sets the mater volume of the audio device. This attenuates all audio, used for muting, etc. */
+		void SetMasterVolume(const float InVolume);
+
 		/** Returns the last error generated. */
 		FString GetLastError() const { return LastError; }
+
+		/** This is called after InitializeHardware() is called. */
+		void PostInitializeHardware();
 
 	protected:
 		
@@ -445,7 +464,7 @@ namespace Audio
 		void StopGeneratingAudio();
 
 		/** Performs buffer fades for shutdown/startup of audio mixer. */
-		void PerformFades();
+		void ApplyMasterAttenuation();
 
 	protected:
 
@@ -483,6 +502,18 @@ namespace Audio
 		/** The number of mixer buffers to queue on the output source voice. */
 		int32 NumOutputBuffers;
 
+		/** The target master volume. */
+		float TargetMasterVolume;
+
+		/** The fade value. Used for fading in/out master audio. */
+		float FadeVolume;
+
+		/** The master volume of the audio device. */
+		FParam MasterVolumeParam;
+
+		/** Source param used to fade in and out audio device. */
+		FParam FadeParam;
+
 		/** String containing the last generated error. */
 		FString LastError;
 
@@ -492,11 +523,10 @@ namespace Audio
 		/** Flag if the audio device is in the process of changing. Prevents more buffers from being submitted to platform. */
 		FThreadSafeBool bAudioDeviceChanging;
 
-		FThreadSafeBool bFadingIn;
-		FThreadSafeBool bFadingOut;
+		FThreadSafeBool bPerformingFade;
 		FThreadSafeBool bFadedOut;
-		float FadeEnvelopeValue;
-
+		FThreadSafeBool bUpdateMasterVolume;
+		FThreadSafeBool bIsDeviceInitialized;
 	};
 
 

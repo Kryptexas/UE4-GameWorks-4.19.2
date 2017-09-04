@@ -8,6 +8,7 @@
 UPlayMontageCallbackProxy::UPlayMontageCallbackProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, MontageInstanceID(INDEX_NONE)
+	, bInterruptedCalledBeforeBlendingOut(false)
 {
 }
 
@@ -99,6 +100,7 @@ void UPlayMontageCallbackProxy::OnMontageBlendingOut(UAnimMontage* Montage, bool
 	if (bInterrupted)
 	{
 		OnInterrupted.Broadcast(NAME_None);
+		bInterruptedCalledBeforeBlendingOut = true;
 	}
 	else
 	{
@@ -111,6 +113,10 @@ void UPlayMontageCallbackProxy::OnMontageEnded(UAnimMontage* Montage, bool bInte
 	if (!bInterrupted)
 	{
 		OnCompleted.Broadcast(NAME_None);
+	}
+	else if (!bInterruptedCalledBeforeBlendingOut)
+	{
+		OnInterrupted.Broadcast(NAME_None);
 	}
 
 	UnbindDelegates();

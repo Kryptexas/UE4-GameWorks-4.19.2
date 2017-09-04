@@ -32,18 +32,43 @@ void USynthSound::Init(USynthComponent* InSynthComponent, int32 InNumChannels)
 	Duration = INDEFINITELY_LOOPING_DURATION;
 	bLooping = true;
 	SampleRate = InSynthComponent->GetAudioDevice()->SampleRate;
+	bAudioMixer = InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled();
 }
 
 bool USynthSound::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
-	GeneratedPCMData.Reset();
-	GeneratedPCMData.AddZeroed(NumSamples);
+	if (bAudioMixer)
+	{
+		// If running with audio mixer, the output audio buffer will be in floats already
+		OutAudio.Reset();
+		OutAudio.AddZeroed(NumSamples * sizeof(float));
 
-	OwningSynthComponent->OnGeneratePCMAudio(GeneratedPCMData);
+		OwningSynthComponent->OnGeneratePCMAudio((float*)OutAudio.GetData(), NumSamples);
+	}
+	else
+	{
+		// Use the float scratch buffer instead of the out buffer directly
+		FloatBuffer.Reset();
+		FloatBuffer.AddZeroed(NumSamples * sizeof(float));
+		
+		float* FloatBufferDataPtr = FloatBuffer.GetData();
+		OwningSynthComponent->OnGeneratePCMAudio(FloatBufferDataPtr, NumSamples);
 
-	OutAudio.Append((uint8*)GeneratedPCMData.GetData(), NumSamples * sizeof(int16));
+		// Convert the float buffer to int16 data
+		int16* OutAudioBuffer = (int16*)OutAudio.GetData();
+		for (int32 i = 0; i < NumSamples; ++i)
+		{
+			OutAudioBuffer[i] = (int16)(32767.0f * FloatBufferDataPtr[i]);
+		}
+	}
 
 	return true;
+}
+
+Audio::EAudioMixerStreamDataFormat::Type USynthSound::GetGeneratedPCMDataFormat() const 
+{ 
+	// Only audio mixer supports return float buffers
+	return bAudioMixer ? Audio::EAudioMixerStreamDataFormat::Float : Audio::EAudioMixerStreamDataFormat::Int16;
 }
 
 USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
@@ -219,52 +244,17 @@ void USynthComponent::PumpPendingMessages()
 	}
 }
 
-void USynthComponent::OnGeneratePCMAudio(TArray<int16>& GeneratedPCMData)
+void USynthComponent::OnGeneratePCMAudio(float* GeneratedPCMData, int32 NumSamples)
 {
 	PumpPendingMessages();
-	check(GeneratedPCMData.Num() > 0);
 
-	AudioFloatData.Reset();
-
-#if SYNTH_GENERATOR_TEST_TONE
-	if (NumChannels == 1)
-	{
-		for (int32 i = 0; i < SamplesNeeded; ++i)
-		{
-			const float SampleFloat = TestSineLeft.ProcessAudio();
-			const int16 SamplePCM = (int16)(32767.0f * SampleFloat);
-			AudioData.Add(SamplePCM);
-		}
-	}
-	else
-	{
-		for (int32 i = 0; i < SamplesNeeded; ++i)
-		{
-			float SampleFloat = TestSineLeft.ProcessAudio();
-			int16 SamplePCM = (int16)(32767.0f * SampleFloat);
-			AudioData.Add(SamplePCM);
-
-			SampleFloat = TestSineRight.ProcessAudio();
-			SamplePCM = (int16)(32767.0f * SampleFloat);
-			AudioData.Add(SamplePCM);
-		}
-	}
-#else
-	AudioFloatData.AddZeroed(GeneratedPCMData.Num());
+	check(NumSamples > 0);
 
 	// Only call into the synth if we're actually playing, otherwise, we'll write out zero's
 	if (bIsSynthPlaying)
 	{
-		this->OnGenerateAudio(AudioFloatData);
-
-		// Convert the float data to int16 data
-		const float* AudioFloatDataPtr = AudioFloatData.GetData();
-		for (int32 i = 0; i < GeneratedPCMData.Num(); ++i)
-		{
-			GeneratedPCMData[i] = (int16)(32767.0f * AudioFloatDataPtr[i]);
-		}
+		this->OnGenerateAudio(GeneratedPCMData, NumSamples);
 	}
-#endif
 }
 
 void USynthComponent::Start()

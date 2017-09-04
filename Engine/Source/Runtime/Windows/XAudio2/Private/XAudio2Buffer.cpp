@@ -580,7 +580,6 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::Init( FAudioDevice* AudioDevice, USoun
 		break;
 
 	case DTYPE_Native:
-	case DTYPE_Xenon:
 		// Upload entire wav to XAudio2
 		if( Wave->ResourceID )
 		{

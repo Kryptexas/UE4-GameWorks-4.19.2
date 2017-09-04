@@ -35,7 +35,7 @@
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
 const FString USkeleton::AnimNotifyTagDelimiter = TEXT(";");
 
-const FName USkeleton::CurveTag = FName(TEXT("CurveUIDList"));
+const FName USkeleton::CurveNameTag = FName(TEXT("CurveNameList"));
 const FString USkeleton::CurveTagDelimiter = TEXT(";");
 
 const FName USkeleton::RigTag = FName(TEXT("Rig"));
@@ -117,7 +117,11 @@ void USkeleton::PostLoad()
 	IncreaseAnimCurveUidVersion();
 
 	// refresh linked bone indices
-	SmartNames.InitializeCurveMetaData(this);
+	FSmartNameMapping* CurveMappingTable = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
+	if (CurveMappingTable)
+	{
+		CurveMappingTable->InitializeCurveMetaData(this);
+	}
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)
@@ -1192,27 +1196,17 @@ void USkeleton::RenameSlotName(const FName& OldName, const FName& NewName)
 
 bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewDisplayName, FSmartName& NewName)
 {
-	bool Successful = false;
-	FSmartNameMapping* RequestedMapping = GetOrAddSmartNameContainer(ContainerName);
-	if (RequestedMapping)
+	NewName.DisplayName = NewDisplayName;
+	const bool bAdded = VerifySmartNameInternal(ContainerName, NewName);
+
+	if(bAdded)
 	{
-		if (RequestedMapping->FindSmartName(NewDisplayName, NewName))
-		{
-			Successful = true;
-		}
-		else
-		{
-			// if it didn't find, mark modify
-			Modify(true);
-			if (RequestedMapping->FindOrAddSmartName(NewDisplayName, NewName))
-			{
-				Successful = true;
-				IncreaseAnimCurveUidVersion();
-			}
-		}
+		IncreaseAnimCurveUidVersion();
 	}
-	return Successful;
+
+	return bAdded;
 }
+
 bool USkeleton::RenameSmartnameAndModify(FName ContainerName, SmartName::UID_Type Uid, FName NewName)
 {
 	bool Successful = false;
@@ -1244,24 +1238,27 @@ void USkeleton::RemoveSmartnameAndModify(FName ContainerName, SmartName::UID_Typ
 	}
 }
 
-void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<SmartName::UID_Type>& Uids)
+void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<FName>& Names)
 {
 	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
 	{
 		bool bModified = false;
-		for (const SmartName::UID_Type& UID : Uids)
+		for (const FName CurveName : Names)
 		{
-			if (RequestedMapping->Exists(UID))
+			if (RequestedMapping->Exists(CurveName))
 			{
-				RequestedMapping->Remove(UID);
+				if (!bModified)
+				{
+					Modify();
+				}
+				RequestedMapping->Remove(CurveName);
 				bModified = true;
 			}
 		}
 
 		if (bModified)
 		{
-			Modify();
 			IncreaseAnimCurveUidVersion();
 		}
 	}
@@ -1321,75 +1318,27 @@ bool USkeleton::FillSmartNameByDisplayName(FSmartNameMapping* Mapping, const FNa
 	{
 		OutSmartName.DisplayName = DisplayName;
 
-#if WITH_EDITORONLY_DATA
-		// if same guid, this is same
-		if (SkeletonName.Guid == OutSmartName.Guid)
-		{
-			OutSmartName.UID = SkeletonName.UID;
-			return true;
-		}
-		// else, take Skeleton Guid, we don't allow same name with different Guid
-		else
-		{
-			OutSmartName.Guid = SkeletonName.Guid;
-			OutSmartName.UID = SkeletonName.UID;
-			return true;
-		}
-#else
 		// if not editor, we assume name is always correct
 		OutSmartName.UID = SkeletonName.UID;
 		return true;
-#endif // WITH_EDITORONLY_DATA
 	}
 
 	return false;
 }
-//@todo: this does prioritize name over UID since UID doesn't work well
-// until we have GUID, we'll prioritize name over UID
+
 bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName& InOutSmartName)
 {
 	FSmartNameMapping* Mapping = GetOrAddSmartNameContainer(ContainerName);
 	if (Mapping != nullptr)
 	{
-		// make a copy just in case we change by accident
-		FName DisplayName = InOutSmartName.DisplayName;
-
+		if (!Mapping->FindSmartName(InOutSmartName.DisplayName, InOutSmartName))
+		{
 #if WITH_EDITOR
-		// if I find the name, fill up the data
-		// look for same guid, the name might have been changed
-		if (Mapping->GetNameByGuid(InOutSmartName.Guid, DisplayName))
-		{
-			ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
+			Modify();
+#endif
+			InOutSmartName = Mapping->AddName(InOutSmartName.DisplayName);
+			return true;
 		}
-		else if (FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName) == false)
-		{
-			// look for same guid, the name might have been changed
-			if (Mapping->GetNameByGuid(InOutSmartName.Guid, DisplayName))
-			{
-				ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
-			}
-			else if (InOutSmartName.IsValid())
-			{
-				// this is only case where we add new one
-				Modify();
-				ensureAlways(Mapping->AddSmartName(InOutSmartName));
-				return true;
-			}
-			else
-			{
-				// this is only case where we add new one
-				Modify();
-				Mapping->FindOrAddSmartName(InOutSmartName.DisplayName, InOutSmartName);
-				return true;
-			}
-		}
-#else
-		// if cooking didn't save the skeleton package properly
-		// meaning it can be loaded by animations but not saved together
-		// then later on, it gets loaded, and it's saved with empty array
-		// so it can fail to load the name, so we'll have to add it manually
-		Mapping->FindOrAddSmartName(DisplayName, InOutSmartName.UID);
-#endif // WITH_EDITOR
 	}
 
 	return false;
@@ -1439,20 +1388,6 @@ void USkeleton::RegenerateVirtualBoneGuid()
 {
 	VirtualBoneGuid = FGuid::NewGuid();
 	check(VirtualBoneGuid.IsValid());
-}
-
-bool USkeleton::RenameSmartName(FName ContainerName, const SmartName::UID_Type& Uid, FName NewName)
-{
-	FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(ContainerName);
-	if (Mapping->Exists(Uid))
-	{
-		Modify();
-		IncreaseAnimCurveUidVersion();
-		Mapping->Rename(Uid, NewName);
-		return true;
-	}
-
-	return false;
 }
 
 void USkeleton::IncreaseAnimCurveUidVersion()

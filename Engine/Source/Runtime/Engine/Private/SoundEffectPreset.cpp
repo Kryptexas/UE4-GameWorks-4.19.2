@@ -13,6 +13,14 @@ USoundEffectPreset::USoundEffectPreset(const FObjectInitializer& ObjectInitializ
 	
 }
 
+void USoundEffectPreset::EffectCommand(TFunction<void()> Command)
+{
+	for (int32 i = 0; i < Instances.Num(); ++i)
+	{
+		Instances[i]->EffectCommand(Command);
+	}
+}
+
 void USoundEffectPreset::Update()
 {
 	for (int32 i = 0; i < Instances.Num(); ++i)
@@ -27,6 +35,9 @@ void USoundEffectPreset::AddEffectInstance(FSoundEffectBase* InSource)
 	{
 		bInitialized = true;
 		Init();
+
+		// Call the optional virtual function which subclasses can implement if they need initialization
+		OnInit();
 	}
 
 	Instances.AddUnique(InSource);

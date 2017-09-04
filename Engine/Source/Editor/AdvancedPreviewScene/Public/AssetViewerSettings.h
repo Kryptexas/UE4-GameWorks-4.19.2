@@ -32,6 +32,8 @@ struct FPreviewSceneProfile
 		SkyLightIntensity = 1.0f;
 		LightingRigRotation = 0.0f;
 		RotationSpeed = 2.0f;
+		EnvironmentIntensity = 1.0f;
+		EnvironmentColor = FLinearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		// Set up default cube map texture from editor/engine textures
 		EnvironmentCubeMap = nullptr;
 		EnvironmentCubeMapPath = TEXT("/Engine/EditorMaterials/AssetViewer/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1");
@@ -70,6 +72,14 @@ struct FPreviewSceneProfile
 	/** Toggle visibility of the floor mesh */
 	UPROPERTY(EditAnywhere, config, Category = Environment)
 	bool bShowFloor;
+
+	/** The environment color, used if Show Environment is false. */
+	UPROPERTY(EditAnywhere, config, Category = Environment, meta=(EditCondition="!bShowEnvironment"))
+	FLinearColor EnvironmentColor;
+	
+	/** The environment intensity (0.0 - 20.0), used if Show Environment is false. */
+	UPROPERTY(EditAnywhere, config, Category = Lighting, meta = (UIMin = "0.0", UIMax = "20.0", EditCondition="!bShowEnvironment"))
+	float EnvironmentIntensity;
 
 	/** Sets environment cube map used for sky lighting and reflections */
 	UPROPERTY(EditAnywhere, transient, Category = Environment)

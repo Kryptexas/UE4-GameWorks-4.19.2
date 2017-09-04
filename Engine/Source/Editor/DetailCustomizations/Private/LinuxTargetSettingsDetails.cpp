@@ -269,6 +269,7 @@ void FLinuxTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 		]
 	];
 
+	AudioPluginWidgetManager.BuildAudioCategory(DetailBuilder, EAudioPlatform::Linux);
 }
 
 

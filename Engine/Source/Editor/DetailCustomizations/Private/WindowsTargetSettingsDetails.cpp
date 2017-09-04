@@ -330,15 +330,15 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 					SNullWidget::NullWidget
 				]
 				.ContentPadding(FMargin(6.0f, 1.0f))
-					.MenuContent()
-					[
-						MakeAudioDeviceMenu(AudioDevicePropertyHandle)
-					]
+				.MenuContent()
+				[
+					MakeAudioDeviceMenu(AudioDevicePropertyHandle)
+				]
 				.ToolTipText(LOCTEXT("AudioDevicesButtonToolTip", "Pick from the list of available audio devices"))
 			]
 	];
+	AudioPluginWidgetManager.BuildAudioCategory(DetailBuilder, EAudioPlatform::Windows);
 }
-
 
 bool FWindowsTargetSettingsDetails::HandlePreExternalIconCopy(const FString& InChosenImage)
 {

@@ -173,18 +173,22 @@ void FActiveSound::SetAudioComponent(UAudioComponent* Component)
 	AudioComponentUserID = Component->GetAudioComponentUserID();
 	AudioComponentName = Component->GetFName();
 
-	if (Owner)
+	SetOwner(Owner);
+}
+
+void FActiveSound::SetOwner(AActor* Actor)
+{
+	if (Actor)
 	{
-		OwnerID = Owner->GetUniqueID();
-		OwnerName = Owner->GetFName();
+		OwnerID = Actor->GetUniqueID();
+		OwnerName = Actor->GetFName();
 	}
 	else
 	{
 		OwnerID = 0;
 		OwnerName = NAME_None;
 	}
-
-	}
+}
 
 FString FActiveSound::GetAudioComponentName() const
 {
@@ -225,16 +229,34 @@ USoundSubmix* FActiveSound::GetSoundSubmix() const
 
 void FActiveSound::SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo)
 {
-	for (int32 i = 0; i < SoundSubmixSendsOverride.Num(); ++i)
+	// Override send level if the submix send already included in active sound
+	for (FSoundSubmixSendInfo& Info : SoundSubmixSendsOverride)
 	{
-		if (SoundSubmixSendsOverride[i].SoundSubmix == SubmixSendInfo.SoundSubmix)
+		if (Info.SoundSubmix == SubmixSendInfo.SoundSubmix)
 		{
-			SoundSubmixSendsOverride[i].SendLevel = SubmixSendInfo.SendLevel;
+			Info.SendLevel = SubmixSendInfo.SendLevel;
 			return;
 		}
 	}
 
+	// Otherwise, add it to the submix send overrides
 	SoundSubmixSendsOverride.Add(SubmixSendInfo);
+}
+
+void FActiveSound::SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSendInfo)
+{
+	// Override send level if the source bus send is already included in active sound
+	for (FSoundSourceBusSendInfo& Info : SoundSourceBusSendsOverride)
+	{
+		if (Info.SoundSourceBus == SourceBusSendInfo.SoundSourceBus)
+		{
+			Info.SendLevel = SourceBusSendInfo.SendLevel;
+			return;
+		}
+	}
+
+	// Otherwise, add it to the source bus send overrides
+	SoundSourceBusSendsOverride.Add(SourceBusSendInfo);
 }
 
 void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const
@@ -245,14 +267,14 @@ void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) c
 		Sound->GetSoundSubmixSends(OutSends);
 
 		// Loop through the overrides, which may append or override the existing send
-		for (int32 i = 0; i < SoundSubmixSendsOverride.Num(); ++i)
+		for (const FSoundSubmixSendInfo& SendInfo : SoundSubmixSendsOverride)
 		{
 			bool bOverridden = false;
-			for (int32 j = 0; j < OutSends.Num(); ++j)
+			for (FSoundSubmixSendInfo& OutSendInfo : OutSends)
 			{
-				if (OutSends[j].SoundSubmix == SoundSubmixSendsOverride[j].SoundSubmix)
+				if (OutSendInfo.SoundSubmix == SendInfo.SoundSubmix)
 				{
-					OutSends[j].SendLevel = SoundSubmixSendsOverride[j].SendLevel;
+					OutSendInfo.SendLevel = SendInfo.SendLevel;
 					bOverridden = true;
 					break;
 				}
@@ -260,8 +282,36 @@ void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) c
 
 			if (!bOverridden)
 			{
-				// Append
-				OutSends.Add(SoundSubmixSendsOverride[i]);
+				OutSends.Add(SendInfo);
+			}
+		}
+	}
+}
+
+void FActiveSound::GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const
+{
+	if (Sound)
+	{
+		// Get the base sends
+		Sound->GetSoundSourceBusSends(OutSends);
+
+		// Loop through the overrides, which may append or override the existing send
+		for (const FSoundSourceBusSendInfo& SendInfo : SoundSourceBusSendsOverride)
+		{
+			bool bOverridden = false;
+			for (FSoundSourceBusSendInfo& OutSendInfo : OutSends)
+			{
+				if (OutSendInfo.SoundSourceBus == SendInfo.SoundSourceBus)
+				{
+					OutSendInfo.SendLevel = SendInfo.SendLevel;
+					bOverridden = true;
+					break;
+				}
+			}
+
+			if (!bOverridden)
+			{
+				OutSends.Add(SendInfo);
 			}
 		}
 	}
@@ -356,6 +406,9 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	ParseParams.SoundSubmix = GetSoundSubmix();
 	GetSoundSubmixSends(ParseParams.SoundSubmixSends);
 
+	ParseParams.bOutputToBusOnly = Sound->bOutputToBusOnly;
+	GetSoundSourceBusSends(ParseParams.SoundSourceBusSends);
+
 	// Set up the base source effect chain. 
 	ParseParams.SourceEffectChain = Sound->SourceEffectChain;
 
@@ -383,6 +436,12 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 		{
 			ApplyAttenuation(ParseParams, *ClosestListenerPtr);
 		}
+		else
+		{
+			// In the case of no attenuation settings, we still want to setup a default send reverb level
+			ParseParams.ReverbSendMethod = EReverbSendMethod::Manual;
+			ParseParams.ManualReverbSendLevel = AudioDevice->GetDefaultReverbSendLevel();
+		}
 
 		// if the closest listener is not the primary one, transform the sound transform so it's panned relative to primary listener position
 		if (ClosestListenerIndex != 0)
@@ -409,7 +468,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 			VolumeConcurrency = 0.0f;
 			for (const FWaveInstance* WaveInstance : ThisSoundsWaveInstances)
 			{
-				const float WaveInstanceVolume = WaveInstance->GetVolume();
+				const float WaveInstanceVolume = WaveInstance->GetVolumeWithDistanceAttenuation();
 				if (WaveInstanceVolume > VolumeConcurrency)
 				{
 					VolumeConcurrency = WaveInstanceVolume;
@@ -1032,18 +1091,20 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		}
 	}
 
-	// Attenuate the volume based on the model
+	// Attenuate the volume based on the model. Note we don't apply the distance attenuation immediately to the sound.
+	// The audio mixer applies distance-based attenuation as a separate stage to feed source audio through source effects and buses.
+	// The old audio engine will scale this together when the wave instance is queried for GetActualVolume.
 	if (Settings->bAttenuate)
 	{
 		if (Settings->AttenuationShape == EAttenuationShape::Sphere)
 		{
 			// Update attenuation data in-case it hasn't been updated
 			AudioDevice->GetAttenuationListenerData(ListenerData, SoundTransform, *Settings, &Listener.Transform);
-			Volume *= Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
+			ParseParams.DistanceAttenuation = Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
 		}
 		else
 		{
-			Volume *= Settings->Evaluate(SoundTransform, ListenerLocation, FocusDistanceScale);
+			ParseParams.DistanceAttenuation = Settings->Evaluate(SoundTransform, ListenerLocation, FocusDistanceScale);
 		}
 	}
 

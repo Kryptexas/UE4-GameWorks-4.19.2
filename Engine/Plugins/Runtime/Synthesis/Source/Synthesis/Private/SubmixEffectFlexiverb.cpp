@@ -45,9 +45,12 @@ void FSubmixEffectFlexiverb::OnProcessAudio(const FSoundEffectSubmixInputData& I
 
 	const float* InputBuffer = InData.AudioBuffer->GetData();
 	float* OutputBuffer = OutData.AudioBuffer->GetData();
-	for (int32 Sample = 0; Sample < OutData.AudioBuffer->Num(); Sample += OutData.NumChannels)
+
+	int32 InputBufferIndex = 0;
+	for (int32 OutputBufferIndex = 0; OutputBufferIndex < OutData.AudioBuffer->Num(); OutputBufferIndex += OutData.NumChannels)
 	{
-		Flexiverb.ProcessAudioFrame(&(InputBuffer[Sample]), InData.NumChannels, &(OutputBuffer[Sample]), OutData.NumChannels);
+		Flexiverb.ProcessAudioFrame(&(InputBuffer[InputBufferIndex]), InData.NumChannels, &(OutputBuffer[OutputBufferIndex]), OutData.NumChannels);
+		InputBuffer += InData.NumChannels;
 	}
 }
 

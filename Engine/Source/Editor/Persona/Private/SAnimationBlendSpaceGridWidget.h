@@ -55,6 +55,8 @@ protected:
 		PreDrag,
 		/** The user is dragging the selected sample. */
 		DragSample,
+		/** The user is dragging the preview pin */
+		DragPreview,
 		/** The user is setting the preview value */
 		Preview,
 		/** The user is dropping a new sample onto the grid */
@@ -178,6 +180,10 @@ protected:
 	void OnInputBoxValueCommited(const float NewValue, ETextCommit::Type CommitType, const int32 ParameterIndex);
 	void OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex, bool bIsInteractive);
 
+	/** Returns whether or not the sample tool tips should be visible */
+	EVisibility GetSampleToolTipVisibility() const;
+	EVisibility GetPreviewToolTipVisibility() const;
+
 	/** Updates the cached blend parameter data */
 	void UpdateCachedBlendParameterData();
 private:
@@ -285,4 +291,6 @@ private:
 
 	bool bStretchToFit;
 	FMargin GridRatioMargin;
+
+	bool bPreviewToolTipHidden;
 };

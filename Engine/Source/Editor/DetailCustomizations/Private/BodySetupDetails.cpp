@@ -100,42 +100,6 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		return bVisible;
 	};
 
-	auto AddProfileLambda = [ObjectsCustomizedLocal]() 
-	{
-		const FScopedTransaction Transaction(LOCTEXT("AddProfile", "Add Physical Animation Profile"));
-		bool bVisible = ObjectsCustomizedLocal.Num() > 0;
-		for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomizedLocal)
-		{
-			if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(WeakObj.Get()))
-			{
-				FName ProfileName = BS->GetCurrentPhysicalAnimationProfileName();
-				if (!BS->FindPhysicalAnimationProfile(ProfileName))
-				{
-					BS->CurrentPhysicalAnimationProfile = FPhysicalAnimationProfile();
-					BS->AddPhysicalAnimationProfile(ProfileName);
-				}
-			}
-		}
-
-		return FReply::Handled();;
-	};
-
-	auto DeleteProfileLambda = [ObjectsCustomizedLocal]()
-	{
-		const FScopedTransaction Transaction(LOCTEXT("RemoveProfile", "Remove Physical Animation Profile"));
-		bool bVisible = ObjectsCustomizedLocal.Num() > 0;
-		for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomizedLocal)
-		{
-			if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(WeakObj.Get()))
-			{
-				FName ProfileName = BS->GetCurrentPhysicalAnimationProfileName();
-				BS->RemovePhysicalAnimationProfile(ProfileName);
-			}
-		}
-
-		return FReply::Handled();;
-	};
-
 	TAttribute<EVisibility> PhysAnimVisible = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateLambda([PhysAnimEditable]()
 	{
 		return PhysAnimEditable() == true ? EVisibility::Visible : EVisibility::Collapsed;
@@ -146,71 +110,26 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		return PhysAnimEditable() == true ? EVisibility::Collapsed : EVisibility::Visible;
 	}));
 
-	TAttribute<bool> PhysAnimButtonEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([ObjectsCustomizedLocal]()
-	{
-		for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomizedLocal)
-		{
-			if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(WeakObj.Get()))
-			{
-				if (BS->GetCurrentPhysicalAnimationProfileName() == NAME_None)
-				{
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}));
-
-	auto CurrentProfileTextLambda = [ObjectsCustomizedLocal]() -> FText
-	{
-		for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomizedLocal)
-		{
-			if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(WeakObj.Get()))
-			{
-				return FText::FromName(BS->GetCurrentPhysicalAnimationProfileName());
-			}
-		}
-
-		return FText::FromName(NAME_None);
-	};
-
-	TAttribute<FText> CreateProfileLabel = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([CurrentProfileTextLambda]()
-	{
-		return FText::Format(LOCTEXT("CreatePhysAnimLabel", "Add to profile: <RichTextBlock.Bold>{0}</>"), CurrentProfileTextLambda());
-	}));
-
-	Cat.AddCustomRow(LOCTEXT("NewPhysAnim", "NewPhysicalAnimationProfile"))
-	.Visibility(NewPhysAnimButtonVisible)
+	Cat.AddCustomRow(LOCTEXT("Profile", "Physical Animation Profile"))
 	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.HAlign(HAlign_Center)
-		.Padding(0, 10, 0, 10)
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::Get().GetBrush("ToolPanel.DarkGroupBorder"))
+		.Padding(4.0f)
 		[
-			SNew(SBox)
-			.MinDesiredWidth(180)
-			.HeightOverride(32)
-			[
-				SNew(SButton)
-				.HAlign(HAlign_Center)
-				.IsEnabled(PhysAnimButtonEnabled)
-				.OnClicked_Lambda(AddProfileLambda)
-				[
-					SNew(SRichTextBlock)
-					.Text(CreateProfileLabel)
-					.DecoratorStyleSet(&FEditorStyle::Get())
-					.ToolTipText(LOCTEXT("NewPhysAnimButtonToolTip", "Add to current physical animation profile."))
-				]
-			]	
-		]
-		+ SVerticalBox::Slot()
-		.HAlign(HAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("NewPhysAnimLabel", "At least one body is not in the current physical animation profile."))
-			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.ToolTipText(LOCTEXT("NewPhysAnimLabelTooltip", "Could not found in the current physical animation profile."))
+			SNew(SRichTextBlock)
+			.DecoratorStyleSet(&FEditorStyle::Get())
+			.Text_Lambda([ObjectsCustomizedLocal]()
+			{
+				if (ObjectsCustomizedLocal.Num() > 0)
+				{
+					if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(ObjectsCustomizedLocal[0].Get()))
+					{
+						return FText::Format(LOCTEXT("ProfileFormat", "Current Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(BS->GetCurrentPhysicalAnimationProfileName()));
+					}
+				}
+
+				return FText();
+			})
 		]
 	];
 
@@ -229,36 +148,6 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 			.Visibility(PhysAnimVisible);
 		}
 	}
-
-	TAttribute<FText> DeleteProfileLabel = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([CurrentProfileTextLambda]()
-	{
-		return FText::Format(LOCTEXT("DeletePhysAnimLabel", "Remove from profile: <RichTextBlock.Bold>{0}</>"), CurrentProfileTextLambda());
-	}));
-
-	Cat.AddCustomRow(LOCTEXT("DeletePhysAnim", "DeletePhysicalAnimationProfile"))
-	.Visibility(PhysAnimVisible)
-	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.Padding(0, 10, 0, 10)
-		.HAlign(HAlign_Center)
-		[
-			SNew(SBox)
-			.MinDesiredWidth(180)
-			[
-				SNew(SButton)
-				.HAlign(HAlign_Center)
-				.OnClicked_Lambda(DeleteProfileLambda)
-				[
-					SNew(SRichTextBlock)
-					.Text(DeleteProfileLabel)
-					.DecoratorStyleSet(&FEditorStyle::Get())
-					.ToolTipText(LOCTEXT("DeletePhysAnimButtonToolTip", "Removes the selected body from the current physical animation profile."))
-				]
-			]
-		]
-		
-	];
 }
 
 #undef LOCTEXT_NAMESPACE

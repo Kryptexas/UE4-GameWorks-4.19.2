@@ -14,11 +14,15 @@ class USkeletalMeshSocket;
 /** Options for skeleton building */
 struct FSkeletonTreeBuilderArgs
 {
-	FSkeletonTreeBuilderArgs()
-		: bShowSockets(true)
-		, bShowAttachedAssets(true)
-		, bShowVirtualBones(true)
+	FSkeletonTreeBuilderArgs(bool bInShowBones = true, bool bInShowSockets = true, bool bInShowAttachedAssets = true, bool bInShowVirtualBones = true)
+		: bShowBones(bInShowBones)
+		, bShowSockets(bInShowSockets)
+		, bShowAttachedAssets(bInShowAttachedAssets)
+		, bShowVirtualBones(bInShowVirtualBones)
 	{}
+
+	/** Whether we should show bones */
+	bool bShowBones;
 
 	/** Whether we should show sockets */
 	bool bShowSockets;
@@ -52,19 +56,21 @@ enum class ESocketFilter : int32
 	Count
 };
 
-/** Delegate used to filter an item. */
-DECLARE_DELEGATE_RetVal_OneParam(ESkeletonTreeFilterResult, FOnFilterSkeletonTreeItem, const TSharedPtr<class ISkeletonTreeItem>& /*InItem*/);
-
 class SKELETONEDITOR_API FSkeletonTreeBuilder : public ISkeletonTreeBuilder
 {
 public:
-	FSkeletonTreeBuilder(const FSkeletonTreeBuilderArgs& InBuilderArgs, FOnFilterSkeletonTreeItem InOnFilterSkeletonTreeItem, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedPtr<class IPersonaPreviewScene>& InPreviewScene);
+	FSkeletonTreeBuilder(const FSkeletonTreeBuilderArgs& InBuilderArgs);
 
 	/** ISkeletonTreeBuilder interface */
+	virtual void Initialize(const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedPtr<class IPersonaPreviewScene>& InPreviewScene, FOnFilterSkeletonTreeItem InOnFilterSkeletonTreeItem) override;
 	virtual void Build(FSkeletonTreeBuilderOutput& Output) override;
 	virtual void Filter(const FSkeletonTreeFilterArgs& InArgs, const TArray<TSharedPtr<class ISkeletonTreeItem>>& InItems, TArray<TSharedPtr<class ISkeletonTreeItem>>& OutFilteredItems) override;
+	virtual ESkeletonTreeFilterResult FilterItem(const FSkeletonTreeFilterArgs& InArgs, const TSharedPtr<class ISkeletonTreeItem>& InItem) override;
+	virtual bool IsShowingBones() const override;
+	virtual bool IsShowingSockets() const override;
+	virtual bool IsShowingAttachedAssets() const override;
 
-private:
+protected:
 	/** Add Bones */
 	void AddBones(FSkeletonTreeBuilderOutput& Output);
 
@@ -94,7 +100,7 @@ private:
 	/** Helper function for filtering */
 	ESkeletonTreeFilterResult FilterRecursive(const FSkeletonTreeFilterArgs& InArgs, const TSharedPtr<ISkeletonTreeItem>& InItem, TArray<TSharedPtr<ISkeletonTreeItem>>& OutFilteredItems);
 
-private:
+protected:
 	/** Options for building */
 	FSkeletonTreeBuilderArgs BuilderArgs;
 

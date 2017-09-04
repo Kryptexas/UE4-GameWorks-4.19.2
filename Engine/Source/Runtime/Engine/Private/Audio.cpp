@@ -57,48 +57,47 @@ DEFINE_STAT(STAT_AudioGatherWaveInstances);
 DEFINE_STAT(STAT_AudioFindNearestLocation);
 
 
-bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType)
-{
-	TArray<IAudioPlugin *> AudioPlugin = IModularFeatures::Get().GetModularFeatureImplementations<IAudioPlugin>(IAudioPlugin::GetModularFeatureName());
-	if (AudioPlugin.Num() > 0)
-	{
-		if (PluginType == EAudioPlugin::SPATIALIZATION)
-		{
-			return AudioPlugin[0]->ImplementsSpatialization();
-		}
-		else if (PluginType == EAudioPlugin::REVERB)
-		{
-			return AudioPlugin[0]->ImplementsReverb();
-		}
-		else if (PluginType == EAudioPlugin::OCCLUSION)
-		{
-			return AudioPlugin[0]->ImplementsOcclusion();
-		}
-	}
 
-	return false;
+bool IsAudioPluginEnabled(EAudioPlugin PluginType)
+{
+	switch (PluginType)
+	{
+	case EAudioPlugin::SPATIALIZATION:
+		return AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform) != nullptr;
+		break;
+	case EAudioPlugin::REVERB:
+		return AudioPluginUtilities::GetDesiredReverbPlugin(AudioPluginUtilities::CurrentPlatform) != nullptr;
+		break;
+	case EAudioPlugin::OCCLUSION:
+		return AudioPluginUtilities::GetDesiredOcclusionPlugin(AudioPluginUtilities::CurrentPlatform) != nullptr;
+		break;
+	default:
+		return false;
+		break;
+	}
 }
 
-bool DoesAudioPluginHaveCustomSettings(EAudioPlugin::Type PluginType)
+bool DoesAudioPluginHaveCustomSettings(EAudioPlugin PluginType)
 {
-	TArray<IAudioPlugin *> AudioPlugin = IModularFeatures::Get().GetModularFeatureImplementations<IAudioPlugin>(IAudioPlugin::GetModularFeatureName());
-	if (AudioPlugin.Num() > 0)
+	if (PluginType == EAudioPlugin::SPATIALIZATION)
 	{
-		if (PluginType == EAudioPlugin::SPATIALIZATION)
-		{
-			return AudioPlugin[0]->HasCustomSpatializationSetting();
-		}
-		else if (PluginType == EAudioPlugin::REVERB)
-		{
-			return AudioPlugin[0]->HasCustomReverbSetting();
-		}
-		else if (PluginType == EAudioPlugin::OCCLUSION)
-		{
-			return AudioPlugin[0]->HasCustomOcclusionSetting();
-		}
+		IAudioSpatializationFactory* Factory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
+		return Factory && Factory->HasCustomSpatializationSetting();
 	}
-
-	return false;
+	else if (PluginType == EAudioPlugin::REVERB)
+	{
+		IAudioReverbFactory* Factory = AudioPluginUtilities::GetDesiredReverbPlugin(AudioPluginUtilities::CurrentPlatform);
+		return Factory && Factory->HasCustomReverbSetting();
+	}
+	else if (PluginType == EAudioPlugin::OCCLUSION)
+	{
+		IAudioOcclusionFactory* Factory = AudioPluginUtilities::GetDesiredOcclusionPlugin(AudioPluginUtilities::CurrentPlatform);
+		return Factory && Factory->HasCustomOcclusionSetting();
+	}
+	else
+	{
+		return false;
+	}
 }
 
 
@@ -694,8 +693,10 @@ uint32 FWaveInstance::TypeHashCounter = 0;
 FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	: WaveData(nullptr)
 	, SoundClass(nullptr)
+	, SoundSubmix(nullptr)
 	, ActiveSound(InActiveSound)
 	, Volume(0.0f)
+	, DistanceAttenuation(1.0f)
 	, VolumeMultiplier(1.0f)
 	, VolumeApp(1.0f)
 	, Priority(1.0f)
@@ -706,6 +707,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, LFEBleed(0.0f)
 	, LoopingMode(LOOP_Never)
 	, StartTime(-1.f)
+	, bOutputToBusOnly(false)
 	, bApplyRadioFilter(false)
 	, bIsStarted(false)
 	, bIsFinished(false)
@@ -804,12 +806,23 @@ void FWaveInstance::AddReferencedObjects( FReferenceCollector& Collector )
 float FWaveInstance::GetActualVolume() const
 {
 	// Include all volumes 
-	return GetVolume() * VolumeApp;
+	return GetVolume() * VolumeApp * DistanceAttenuation;
+}
+
+float FWaveInstance::GetDistanceAttenuation() const
+{
+	// Only includes volume attenuation due do distance
+	return DistanceAttenuation;
+}
+
+float FWaveInstance::GetVolumeWithDistanceAttenuation() const
+{
+	return GetVolume() * DistanceAttenuation;
 }
 
 float FWaveInstance::GetVolume() const
 {
-	// Include all volumes 
+	// Only includes non-attenuation and non-app volumes
 	return Volume * VolumeMultiplier;
 }
 
@@ -821,7 +834,7 @@ bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 float FWaveInstance::GetVolumeWeightedPriority() const
 {
 	// This will result in zero-volume sounds still able to be sorted due to priority but give non-zero volumes higher priority than 0 volumes
-	float ActualVolume = GetVolume();
+	float ActualVolume = GetVolumeWithDistanceAttenuation();
 	if (ActualVolume > 0.0f)
 	{
 		return ActualVolume * Priority;

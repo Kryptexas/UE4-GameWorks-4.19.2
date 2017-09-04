@@ -45,13 +45,15 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 
 	bPauseClothingSimulationWithAnim = false;
 	bPerformSingleClothingTick = false;
+
+	CachedClothBounds = FBoxSphereBounds(ForceInit);
 }
 
 FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBoxSphereBounds Result = Super::CalcBounds(LocalToWorld);
 
-	if (! IsUsingInGameBounds())
+	if (!IsUsingInGameBounds())
 	{
 		// extend bounds by required bones (respecting current LOD) but without root bone
 		if (GetNumComponentSpaceTransforms())
@@ -63,9 +65,17 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 				FBoneIndexType RequiredBoneIndex = RequiredBones[BoneIndex];
 				BoundingBox += GetBoneMatrix((int32)RequiredBoneIndex).GetOrigin();
 			}
+
 			Result = Result + FBoxSphereBounds(BoundingBox);
 		}
+
+		if ( SkeletalMesh )
+		{
+			Result = Result + SkeletalMesh->GetBounds();
+		}
 	}
+
+	Result = Result + CachedClothBounds;
 
 	return Result;
 }
@@ -141,7 +151,17 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 			SetRelativeTransform(CurrentTransform);
 		}
 	}
-	else
+}
+
+bool UDebugSkelMeshComponent::GetPreviewRootMotion() const
+{
+	return bPreviewRootMotion;
+}
+
+void UDebugSkelMeshComponent::SetPreviewRootMotion(bool bInPreviewRootMotion)
+{
+	bPreviewRootMotion = bInPreviewRootMotion;
+	if (!bPreviewRootMotion)
 	{
 		if (TurnTableMode == EPersonaTurnTableMode::Stopped)
 		{
@@ -265,6 +285,12 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 	{
 		AnimScriptInstance = PreviewInstance;
 		AnimScriptInstance->InitializeAnimation();
+	}
+	else
+	{
+		// Make sure we initialize the preview instance here, as we want the required bones to be up to date
+		// even if we arent using the instance right now.
+		PreviewInstance->InitializeAnimation();
 	}
 
 	if(PostProcessAnimInstance)
@@ -909,6 +935,7 @@ void UDebugSkelMeshComponent::RefreshSelectedClothingSkinnedPositions()
 				FClothLODData& LodData = ConcreteAsset->LodData[SelectedClothingLodForPainting];
 
 				FClothingSimulationBase::SkinPhysicsMesh(ConcreteAsset, LodData.PhysicalMeshData, FTransform::Identity, RefToLocals.GetData(), RefToLocals.Num(), SkinnedSelectedClothingPositions, SkinnedSelectedClothingNormals);
+				RebuildCachedClothBounds();
 			}
 		}
 	}
@@ -933,6 +960,18 @@ void UDebugSkelMeshComponent::GetUsedMaterials(TArray<UMaterialInterface *>& Out
 IClothingSimulation* UDebugSkelMeshComponent::GetMutableClothingSimulation()
 {
 	return ClothingSimulation;
+}
+
+void UDebugSkelMeshComponent::RebuildCachedClothBounds()
+{
+	FBox ClothBBox(ForceInit);
+	
+	for ( int32 Index = 0; Index < SkinnedSelectedClothingPositions.Num(); ++Index )
+	{
+		ClothBBox += SkinnedSelectedClothingPositions[Index];
+	}
+
+	CachedClothBounds = FBoxSphereBounds(ClothBBox);
 }
 
 FDebugSkelMeshSceneProxy::FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor /*= FColor::White*/) :

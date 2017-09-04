@@ -447,6 +447,7 @@ FEditorViewportClient::~FEditorViewportClient()
 	if (bOwnsModeTools)
 	{
 		delete ModeTools;
+		ModeTools = nullptr;
 	}
 }
 
@@ -3636,9 +3637,7 @@ void FEditorViewportClient::RenderDragTool(const FSceneView* View, FCanvas* Canv
 
 FLinearColor FEditorViewportClient::GetBackgroundColor() const
 {
-	FLinearColor BackgroundColor = FColor(55, 55, 55);
-
-	return BackgroundColor;
+	return PreviewScene ? PreviewScene->GetBackgroundColor() : FColor(55, 55, 55);
 }
 
 void FEditorViewportClient::SetCameraSetup(

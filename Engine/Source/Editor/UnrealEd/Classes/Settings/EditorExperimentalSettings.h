@@ -113,10 +113,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
 	bool bFacialAnimationImporter;
 
-	/** Enable experimental clothing tools (parameter painting and simulation configuration) found in the skeletal mesh editor */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
-	bool bClothingTools;
-
 	/** Allow animation blueprints to be recompiled while a PIE session is running */
 	UPROPERTY(EditAnywhere, config, Category = Tools)
 	bool bEnableLiveRecompilationOfAnimationBlueprints;

@@ -100,6 +100,11 @@ void USoundBase::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) con
 	OutSends = SoundSubmixSends;
 }
 
+void USoundBase::GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const
+{
+	OutSends = BusSends;
+}
+
 const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply()
 {
 	if (bOverrideConcurrency)

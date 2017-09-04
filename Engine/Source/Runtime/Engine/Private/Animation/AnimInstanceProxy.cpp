@@ -836,7 +836,7 @@ FAnimNode_Base* FAnimInstanceProxy::GetNodeFromIndexUntyped(int32 NodeIdx, UScri
 
 void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, UObject* Asset)
 {
-	RequiredBones.InitializeTo(Component->RequiredBones, Component->GetDisableAnimCurves(), *Asset);
+	RequiredBones.InitializeTo(Component->RequiredBones, FCurveEvaluationOption(Component->GetAllowedAnimCurveEvaluate(), &Component->GetDisallowedAnimCurvesEvaluation(), Component->PredictedLODLevel), *Asset);
 
 	// If there is a ref pose override, we want to replace ref pose in RequiredBones
 	const FSkelMeshRefPoseOverride* RefPoseOverride = Component->GetRefPoseOverride();
@@ -880,9 +880,9 @@ void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, 
 	bBoneCachesInvalidated = true;
 }
 
-void FAnimInstanceProxy::RecalcRequiredCurves(bool bDisableAnimCurves)
+void FAnimInstanceProxy::RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption)
 {
-	RequiredBones.CacheRequiredAnimCurveUids(bDisableAnimCurves);
+	RequiredBones.CacheRequiredAnimCurveUids(CurveEvalOption);
 }
 
 void FAnimInstanceProxy::UpdateAnimation()

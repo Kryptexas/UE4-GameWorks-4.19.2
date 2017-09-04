@@ -18,6 +18,7 @@
 #include "ISkeletonTree.h"
 #include "AnimationEditorPreviewScene.h"
 #include "SEditorViewport.h"
+#include "PersonaModule.h"
 
 class SAnimationEditorViewportTabBody;
 
@@ -49,10 +50,27 @@ class SAnimationEditorViewport : public SEditorViewport
 {
 public:
 	SLATE_BEGIN_ARGS(SAnimationEditorViewport) 
-		: _ShowStats(true)
+		: _ShowShowMenu(true)
+		, _ShowLODMenu(true)
+		, _ShowPlaySpeedMenu(true)
+		, _ShowStats(true)
+		, _ShowFloorOptions(true)
+		, _ShowTurnTable(true)
 	{}
 
+	SLATE_ARGUMENT(TSharedPtr<FExtender>, Extenders)
+
+	SLATE_ARGUMENT(bool, ShowShowMenu)
+
+	SLATE_ARGUMENT(bool, ShowLODMenu)
+
+	SLATE_ARGUMENT(bool, ShowPlaySpeedMenu)
+
 	SLATE_ARGUMENT(bool, ShowStats)
+
+	SLATE_ARGUMENT(bool, ShowFloorOptions)
+
+	SLATE_ARGUMENT(bool, ShowTurnTable)
 
 	SLATE_END_ARGS()
 
@@ -84,8 +102,26 @@ protected:
 	// The asset editor we are embedded in
 	TWeakPtr<class FAssetEditorToolkit> AssetEditorToolkitPtr;
 
+	/** Menu extenders */
+	TSharedPtr<FExtender> Extenders;
+
+	/** Whether to show the 'Show' menu */
+	bool bShowShowMenu;
+
+	/** Whether to show the 'LOD' menu */
+	bool bShowLODMenu;
+
+	/** Whether to show the 'Play Speed' menu */
+	bool bShowPlaySpeedMenu;
+
 	/** Whether we should show stats for this viewport */
 	bool bShowStats;
+
+	/** Whether to show options relating to floor height */
+	bool bShowFloorOptions;
+
+	/** Whether to show options relating to turntable */
+	bool bShowTurnTable;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -96,16 +132,37 @@ class SAnimationEditorViewportTabBody : public IPersonaViewport
 public:
 	SLATE_BEGIN_ARGS( SAnimationEditorViewportTabBody )
 		: _BlueprintEditor()
+		, _ShowShowMenu(true)
+		, _ShowLODMenu(true)
+		, _ShowPlaySpeedMenu(true)
 		, _ShowTimeline(true)
+		, _ShowStats(true)
+		, _AlwaysShowTransformToolbar(false)
+		, _ShowFloorOptions(true)
+		, _ShowTurnTable(true)
 		{}
 
 		SLATE_ARGUMENT(TWeakPtr<FBlueprintEditor>, BlueprintEditor)
 
 		SLATE_ARGUMENT(FOnInvokeTab, OnInvokeTab)
 
+		SLATE_ARGUMENT(TSharedPtr<FExtender>, Extenders)
+
+		SLATE_ARGUMENT(bool, ShowShowMenu)
+
+		SLATE_ARGUMENT(bool, ShowLODMenu)
+
+		SLATE_ARGUMENT(bool, ShowPlaySpeedMenu)
+
 		SLATE_ARGUMENT(bool, ShowTimeline)
 
 		SLATE_ARGUMENT(bool, ShowStats)
+
+		SLATE_ARGUMENT(bool, AlwaysShowTransformToolbar)
+
+		SLATE_ARGUMENT(bool, ShowFloorOptions)
+
+		SLATE_ARGUMENT(bool, ShowTurnTable)
 	SLATE_END_ARGS()
 public:
 
@@ -146,18 +203,6 @@ public:
 
 	/** Function to get anim viewport widget */
 	TSharedPtr<class SEditorViewport> GetViewportWidget() const { return ViewportWidget; }
-
-	/** Function to get viewport's current background color */
-	FLinearColor GetViewportBackgroundColor( ) const;
-
-	/** Function to set viewport's new background color */
-	void SetViewportBackgroundColor( FLinearColor InColor );
-
-	/** Function to get viewport's background color brightness */
-	float GetBackgroundBrightness( ) const;
-
-	/** Function to set viewport's background color brightness */
-	void SetBackgroundBrightness( float Value );
 
 	/** Function to check whether grid is displayed or not */
 	bool IsShowingGrid() const;
@@ -434,6 +479,9 @@ private:
 
 	/** Whether to show the timeline */
 	bool bShowTimeline;
+
+	/** Whether we should always show the transform toolbar for this viewport */
+	bool bAlwaysShowTransformToolbar;
 
 	/** Level viewport client */
 	TSharedPtr<FEditorViewportClient> LevelViewportClient;

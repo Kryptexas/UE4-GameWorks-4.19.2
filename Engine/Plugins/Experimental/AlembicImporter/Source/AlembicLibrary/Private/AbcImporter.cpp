@@ -93,9 +93,24 @@ void FAbcImporter::UpdateAssetImportData(UAbcAssetImportData* AssetImportData)
 
 void FAbcImporter::RetrieveAssetImportData(UAbcAssetImportData* AssetImportData)
 {
+	bool bAnySetForImport = false;
+
 	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
 	{
-		MeshObject->bShouldImport = AssetImportData->TrackNames.Contains(MeshObject->Name);
+		if (AssetImportData->TrackNames.Contains(MeshObject->Name))
+		{
+			MeshObject->bShouldImport = true;
+			bAnySetForImport = true;
+		}		
+	}
+
+	// If none were set to import, set all of them to import (probably different scene/setup)
+	if (!bAnySetForImport)
+	{
+		for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
+		{
+			MeshObject->bShouldImport = true;
+		}
 	}
 }
 

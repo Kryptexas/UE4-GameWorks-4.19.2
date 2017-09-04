@@ -59,14 +59,65 @@
 
 #include "BoneSelectionWidget.h"
 #include "BoneProxy.h"
+#include "SkeletonTreeSelection.h"
+#include "SGridPanel.h"
 
 #include "HAL/PlatformApplicationMisc.h"
+#include "STreeView.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 
 const FName	ISkeletonTree::Columns::Name("Name");
 const FName	ISkeletonTree::Columns::Retargeting("Retargeting");
 const FName ISkeletonTree::Columns::BlendProfile("BlendProfile");
+
+// This is mostly duplicated from SListView, to allow for us to avoid selecting collapsed items
+template <typename ItemType>
+class SSkeletonTreeView : public STreeView<ItemType>
+{
+public:
+	bool Private_CanItemBeSelected(ItemType InItem) const
+	{
+		return !(InItem->GetFilterResult() == ESkeletonTreeFilterResult::ShownDescendant && GetMutableDefault<UPersonaOptions>()->bHideParentsWhenFiltering);
+	}
+
+	virtual void Private_SelectRangeFromCurrentTo( ItemType InRangeSelectionEnd ) override
+	{
+		if ( this->SelectionMode.Get() == ESelectionMode::None )
+		{
+			return;
+		}
+
+		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
+
+		int32 RangeStartIndex = 0;
+		if( TListTypeTraits<ItemType>::IsPtrValid(this->RangeSelectionStart) )
+		{
+			RangeStartIndex = ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( this->RangeSelectionStart ) );
+		}
+
+		int32 RangeEndIndex = ItemsSourceRef.Find( InRangeSelectionEnd );
+
+		RangeStartIndex = FMath::Clamp(RangeStartIndex, 0, ItemsSourceRef.Num());
+		RangeEndIndex = FMath::Clamp(RangeEndIndex, 0, ItemsSourceRef.Num());
+
+		if (RangeEndIndex < RangeStartIndex)
+		{
+			Swap( RangeStartIndex, RangeEndIndex );
+		}
+
+		for( int32 ItemIndex = RangeStartIndex; ItemIndex <= RangeEndIndex; ++ItemIndex )
+		{
+			// check if this item can actually be selected
+			if(Private_CanItemBeSelected(ItemsSourceRef[ItemIndex]))
+			{
+				this->SelectedItems.Add( ItemsSourceRef[ItemIndex] );
+			}
+		}
+
+		this->InertialScrollManager.ClearScrollVelocity();
+	}
+};
 
 void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditableSkeleton>& InEditableSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs)
 {
@@ -80,31 +131,48 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 	EditableSkeleton = InEditableSkeleton;
 	PreviewScene = InSkeletonTreeArgs.PreviewScene;
 	IsEditable = InArgs._IsEditable;
-	Builder = InArgs._Builder;
+	Mode = InSkeletonTreeArgs.Mode;
+	bAllowMeshOperations = InSkeletonTreeArgs.bAllowMeshOperations;
+	bAllowSkeletonOperations = InSkeletonTreeArgs.bAllowSkeletonOperations;
+	Extenders = InSkeletonTreeArgs.Extenders;
+	OnGetFilterText = InSkeletonTreeArgs.OnGetFilterText;
+	Builder = InSkeletonTreeArgs.Builder;
 	if (!Builder.IsValid())
 	{
-		Builder = MakeShareable(new FSkeletonTreeBuilder(FSkeletonTreeBuilderArgs(), FOnFilterSkeletonTreeItem::CreateSP(this, &SSkeletonTree::HandleFilterSkeletonTreeItem), SharedThis(this), InSkeletonTreeArgs.PreviewScene));
+		Builder = MakeShareable(new FSkeletonTreeBuilder(FSkeletonTreeBuilderArgs()));
 	}
+
+	Builder->Initialize(SharedThis(this), InSkeletonTreeArgs.PreviewScene, FOnFilterSkeletonTreeItem::CreateSP(this, &SSkeletonTree::HandleFilterSkeletonTreeItem));
 
 	TextFilterPtr = MakeShareable(new FTextFilterExpressionEvaluator(ETextFilterExpressionEvaluatorMode::BasicString));
 
 	SetPreviewComponentSocketFilter();
 
 	// Register delegates
-	InSkeletonTreeArgs.OnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SSkeletonTree::PostUndo));
 
 	if(PreviewScene.IsValid())
 	{
 		PreviewScene.Pin()->RegisterOnLODChanged(FSimpleDelegate::CreateSP(this, &SSkeletonTree::OnLODSwitched));
 	}
 
-	InEditableSkeleton->RegisterOnSkeletonHierarchyChanged(USkeleton::FOnSkeletonHierarchyChanged::CreateSP(this, &SSkeletonTree::PostUndo));
+	InEditableSkeleton->RegisterOnSkeletonHierarchyChanged(USkeleton::FOnSkeletonHierarchyChanged::CreateSP(this, &SSkeletonTree::CreateTreeColumns));
 
-	RegisterOnObjectSelected(InSkeletonTreeArgs.OnObjectSelected);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	if(InSkeletonTreeArgs.OnObjectSelected.IsBound())
+	{
+		RegisterOnObjectSelected(InSkeletonTreeArgs.OnObjectSelected);
+	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+	if (InSkeletonTreeArgs.OnSelectionChanged.IsBound())
+	{
+		RegisterOnSelectionChanged(InSkeletonTreeArgs.OnSelectionChanged);
+	}
 
 	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage());
 	BoneProxy->AddToRoot();
 	BoneProxy->SkelMeshComponent = PreviewScene.IsValid() ? PreviewScene.Pin()->GetPreviewMeshComponent() : nullptr;
+	BoneProxy->bIsTickable = true;
 
 	// Register and bind all our menu commands
 	FSkeletonTreeCommands::Register();
@@ -112,77 +180,87 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 
 	this->ChildSlot
 	[
-		SNew( SVerticalBox )
+		SNew( SOverlay )
+		+SOverlay::Slot()
+		[
+			// Add a border if we are being used as a picker
+			SNew(SBorder)
+			.Visibility_Lambda([this](){ return Mode == ESkeletonTreeMode::Picker ? EVisibility::Visible: EVisibility::Collapsed; })
+			.BorderImage(FEditorStyle::Get().GetBrush("Menu.Background"))
+		]
+		+SOverlay::Slot()
+		[
+			SNew( SVerticalBox )
 		
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( FMargin( 0.0f, 0.0f, 0.0f, 4.0f ) )
-		[
-			SAssignNew( NameFilterBox, SSearchBox )
-			.SelectAllTextWhenFocused( true )
-			.OnTextChanged( this, &SSkeletonTree::OnFilterTextChanged )
-			.HintText( LOCTEXT( "SearchBoxHint", "Search Skeleton Tree...") )
-			.AddMetaData<FTagMetaData>(TEXT("SkelTree.Search"))
-		]
-
-		+ SVerticalBox::Slot()
-		.Padding( FMargin( 0.0f, 4.0f, 0.0f, 0.0f ) )
-		[
-			SAssignNew(TreeHolder, SOverlay)
-		]
-
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew( SHorizontalBox )
-
-			+ SHorizontalBox::Slot()
-			.Padding(0.0f, 0.0f, 2.0f, 0.0f)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left)
-			.FillWidth(1.0f)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding( FMargin( 0.0f, 0.0f, 0.0f, 4.0f ) )
 			[
-				SNew(SHorizontalBox)
-				
-				+ SHorizontalBox::Slot()
-				.Padding(0.0f, 0.0f, 2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					SAssignNew(BlendProfilePicker, SBlendProfilePicker, GetEditableSkeleton())
-					.Standalone(true)
-					.OnBlendProfileSelected(this, &SSkeletonTree::OnBlendProfileSelected)
-				]
+				SAssignNew( NameFilterBox, SSearchBox )
+				.SelectAllTextWhenFocused( true )
+				.OnTextChanged( this, &SSkeletonTree::OnFilterTextChanged )
+				.HintText( LOCTEXT( "SearchBoxHint", "Search Skeleton Tree...") )
+				.AddMetaData<FTagMetaData>(TEXT("SkelTree.Search"))
 			]
 
-			+ SHorizontalBox::Slot()
-			.Padding( 0.0f, 0.0f, 2.0f, 0.0f )
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Right)
-			.AutoWidth()
+			+ SVerticalBox::Slot()
+			.Padding( FMargin( 0.0f, 4.0f, 0.0f, 0.0f ) )
 			[
-				SAssignNew( FilterComboButton, SComboButton )
-				.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-				.ForegroundColor(this, &SSkeletonTree::GetFilterComboButtonForegroundColor)
-				.ContentPadding(0.0f)
-				.OnGetMenuContent( this, &SSkeletonTree::CreateFilterMenu )
-				.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of bones and sockets are shown, retargeting options" ) )
-				.AddMetaData<FTagMetaData>(TEXT("SkelTree.Bones"))
-				.ButtonContent()
+				SAssignNew(TreeHolder, SOverlay)
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew( SHorizontalBox )
+
+				+ SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, InSkeletonTreeArgs.bShowBlendProfiles ? 2.0f : 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
 				[
 					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
+					.Visibility(InSkeletonTreeArgs.bShowBlendProfiles ? EVisibility::Visible : EVisibility::Collapsed)
+					+ SHorizontalBox::Slot()
+					.Padding(0.0f, 0.0f, 2.0f, 0.0f)
 					.VAlign(VAlign_Center)
 					[
-						SNew(SImage).Image( FEditorStyle::GetBrush("GenericViewButton") )
+						SAssignNew(BlendProfilePicker, SBlendProfilePicker, GetEditableSkeleton())
+						.Standalone(true)
+						.OnBlendProfileSelected(this, &SSkeletonTree::OnBlendProfileSelected)
 					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(2, 0, 0, 0)
-					.VAlign(VAlign_Center)
+				]
+
+				+ SHorizontalBox::Slot()
+				.Padding( 0.0f, 0.0f, InSkeletonTreeArgs.bShowFilterMenu ? 2.0f : 0.0f, 0.0f )
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Right)
+				[
+					SAssignNew( FilterComboButton, SComboButton )
+					.Visibility(InSkeletonTreeArgs.bShowFilterMenu ? EVisibility::Visible : EVisibility::Collapsed)
+					.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+					.ForegroundColor(this, &SSkeletonTree::GetFilterComboButtonForegroundColor)
+					.ContentPadding(0.0f)
+					.OnGetMenuContent( this, &SSkeletonTree::CreateFilterMenu )
+					.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of tree items are shown, as well as other options" ) )
+					.AddMetaData<FTagMetaData>(TEXT("SkelTree.Bones"))
+					.ButtonContent()
 					[
-						SNew( STextBlock )
-						.Text( this, &SSkeletonTree::GetFilterMenuTitle )
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(SImage).Image( FEditorStyle::GetBrush("GenericViewButton") )
+						]
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(2, 0, 0, 0)
+						.VAlign(VAlign_Center)
+						[
+							SNew( STextBlock )
+							.Text( this, &SSkeletonTree::GetFilterMenuTitle )
+						]
 					]
 				]
 			]
@@ -191,9 +269,12 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 
 	CreateTreeColumns();
 
+	SetInitialExpansionState();
+
 	OnLODSwitched();
 }
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 SSkeletonTree::~SSkeletonTree()
 {
 	if (EditableSkeleton.IsValid())
@@ -207,6 +288,7 @@ SSkeletonTree::~SSkeletonTree()
 		BoneProxy = nullptr;
 	}
 }
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 void SSkeletonTree::BindCommands()
 {
@@ -296,6 +378,12 @@ void SSkeletonTree::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateLambda([]() { return GetDefault<UPersonaOptions>()->bFlattenSkeletonHierarchyWhenFiltering; }));
 
+	CommandList.MapAction(
+		MenuActions.HideParentsWhenFiltering,
+		FExecuteAction::CreateLambda([this]() { GetMutableDefault<UPersonaOptions>()->bHideParentsWhenFiltering = !GetDefault<UPersonaOptions>()->bHideParentsWhenFiltering; }),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([]() { return GetDefault<UPersonaOptions>()->bHideParentsWhenFiltering; }));
+
 	// Socket manipulation commands
 	CommandList.MapAction(
 		MenuActions.AddSocket,
@@ -313,7 +401,8 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.RemoveMeshSocket,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSelectedRows ) ); // Removing customization just deletes the mesh socket
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSelectedRows ),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanDeleteSelectedRows ) );
 
 	CommandList.MapAction(
 		MenuActions.PromoteSocketToSkeleton,
@@ -321,7 +410,8 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.DeleteSelectedRows,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSelectedRows ) );
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSelectedRows ),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanDeleteSelectedRows ));
 
 	CommandList.MapAction(
 		MenuActions.CopyBoneNames,
@@ -373,7 +463,7 @@ struct FScopedSavedSelection
 			TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = InSkeletonTree->SkeletonTreeView->GetSelectedItems();
 			for (const TSharedPtr<ISkeletonTreeItem>& SelectedItem : SelectedItems)
 			{
-				SavedSelections.Add({ SelectedItem->GetRowItemName(), SelectedItem->GetTypeName() });
+				SavedSelections.Add({ SelectedItem->GetRowItemName(), SelectedItem->GetTypeName(), SelectedItem->GetObject() });
 			}
 		}
 	}
@@ -389,7 +479,7 @@ struct FScopedSavedSelection
 				{
 					for (FSavedSelection& SavedSelection : SavedSelections)
 					{
-						if (Item->GetRowItemName() == SavedSelection.ItemName && Item->GetTypeName() == SavedSelection.ItemType)
+						if (Item->GetRowItemName() == SavedSelection.ItemName && Item->GetTypeName() == SavedSelection.ItemType && Item->GetObject() == SavedSelection.ItemObject)
 						{
 							SkeletonTree->SkeletonTreeView->SetItemSelection(Item, true);
 							break;
@@ -407,6 +497,9 @@ struct FScopedSavedSelection
 
 		/** Type of the selected item */
 		FName ItemType;
+
+		/** Object of selected item */
+		UObject* ItemObject;
 	};
 
 	TSharedPtr<SSkeletonTree> SkeletonTree;
@@ -416,7 +509,19 @@ struct FScopedSavedSelection
 
 void SSkeletonTree::CreateTreeColumns()
 {
-	TSharedRef<SHeaderRow> TreeHeaderRow = SNew(SHeaderRow)
+	auto HeaderVisibilityLambda = [this]()
+	{
+		if(Mode == ESkeletonTreeMode::Editor)
+		{
+			return bShowingAdvancedOptions || BlendProfilePicker->GetSelectedBlendProfileName() != NAME_None ? EVisibility::Visible : EVisibility::Collapsed;
+		}
+		
+		return  EVisibility::Collapsed; 
+	};
+		
+	TSharedRef<SHeaderRow> TreeHeaderRow = 
+		SNew(SHeaderRow)
+		.Visibility_Lambda(HeaderVisibilityLambda)
 		+ SHeaderRow::Column(ISkeletonTree::Columns::Name)
 		.DefaultLabel(LOCTEXT("SkeletonBoneNameLabel", "Name"))
 		.FillWidth(0.5f);
@@ -441,7 +546,7 @@ void SSkeletonTree::CreateTreeColumns()
 	{
 		FScopedSavedSelection ScopedSelection(SharedThis(this));
 
-		SkeletonTreeView = SNew(STreeView<TSharedPtr<ISkeletonTreeItem>>)
+		SkeletonTreeView = SNew(SSkeletonTreeView<TSharedPtr<ISkeletonTreeItem>>)
 		.TreeItemsSource(&FilteredItems)
 		.OnGenerateRow(this, &SSkeletonTree::MakeTreeRowWidget)
 		.OnGetChildren(this, &SSkeletonTree::GetFilteredChildren)
@@ -489,103 +594,45 @@ void SSkeletonTree::ApplyFilter()
 
 	FilteredItems.Empty();
 
-	FSkeletonTreeFilterArgs FilterArgs;
-	FilterArgs.bWillFilter = (!FilterText.IsEmpty());
+	FSkeletonTreeFilterArgs FilterArgs(!FilterText.IsEmpty() ? TextFilterPtr : nullptr);
 	FilterArgs.bFlattenHierarchyOnFilter = GetDefault<UPersonaOptions>()->bFlattenSkeletonHierarchyWhenFiltering;
 	Builder->Filter(FilterArgs, Items, FilteredItems);
 
-	for (TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
+	if(!FilterText.IsEmpty())
 	{
-		SkeletonTreeView->SetItemExpansion(Item, true);
+		for (TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
+		{
+			if (Item->GetFilterResult() > ESkeletonTreeFilterResult::Hidden)
+			{
+				SkeletonTreeView->SetItemExpansion(Item, true);
+			}
+		}
+	}
+	else
+	{
+		SetInitialExpansionState();
 	}
 
 	SkeletonTreeView->RequestTreeRefresh();
 }
 
-class FBoneTreeSelection
+void SSkeletonTree::SetInitialExpansionState()
 {
-public:
-	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems;
-
-	TArray<TSharedPtr<FSkeletonTreeBoneItem>> SelectedBones;
-	TArray<TSharedPtr<FSkeletonTreeSocketItem>> SelectedSockets;
-	TArray<TSharedPtr<FSkeletonTreeAttachedAssetItem>> SelectedAssets;
-	TArray<TSharedPtr<FSkeletonTreeVirtualBoneItem>> SelectedVirtualBones;
-
-	FBoneTreeSelection(TArray<TSharedPtr<ISkeletonTreeItem>> InSelectedItems) : SelectedItems(InSelectedItems)
+	for (TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
 	{
-		for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
-		{
-			TSharedPtr<ISkeletonTreeItem> Item = *(ItemIt);
-
-			if (Item->IsOfType<FSkeletonTreeBoneItem>())
-			{
-				SelectedBones.Add(StaticCastSharedPtr<FSkeletonTreeBoneItem>(Item));
-			}
-			else if (Item->IsOfType<FSkeletonTreeSocketItem>())
-			{
-				SelectedSockets.Add(StaticCastSharedPtr<FSkeletonTreeSocketItem>(Item));
-			}
-			else if (Item->IsOfType<FSkeletonTreeAttachedAssetItem>())
-			{
-				SelectedAssets.Add(StaticCastSharedPtr<FSkeletonTreeAttachedAssetItem>(Item));
-			}
-			else if (Item->IsOfType<FSkeletonTreeVirtualBoneItem>())
-			{
-				SelectedVirtualBones.Add(StaticCastSharedPtr<FSkeletonTreeVirtualBoneItem>(Item));
-			}
-		}
+		SkeletonTreeView->SetItemExpansion(Item, Item->IsInitiallyExpanded());
 	}
-
-	bool IsMultipleItemsSelected() const
-	{
-		return SelectedItems.Num() > 1;
-	}
-
-	bool IsSingleItemSelected() const
-	{
-		return SelectedItems.Num() == 1;
-	}
-
-	template<typename ItemType>
-	bool IsSingleOfTypeSelected() const
-	{
-		if(IsSingleItemSelected())
-		{
-			return SelectedItems[0]->IsOfType<ItemType>();
-		}
-		return false;
-	}
-
-	TSharedPtr<ISkeletonTreeItem> GetSingleSelectedItem()
-	{
-		check(IsSingleItemSelected());
-		return SelectedItems[0];
-	}
-
-	template<typename ItemType>
-	bool HasSelectedOfType() const
-	{
-		for (const TSharedPtr<ISkeletonTreeItem>& SelectedItem : SelectedItems)
-		{
-			if (SelectedItem->IsOfType<ItemType>())
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-};
+}
 
 TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 {
 	const FSkeletonTreeCommands& Actions = FSkeletonTreeCommands::Get();
 
-	FBoneTreeSelection BoneTreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection BoneTreeSelection(SelectedItems);
 
 	const bool CloseAfterSelection = true;
-	FMenuBuilder MenuBuilder( CloseAfterSelection, UICommandList );
+	FMenuBuilder MenuBuilder( CloseAfterSelection, UICommandList, Extenders );
 	{
 		if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeAttachedAssetItem>() || BoneTreeSelection.HasSelectedOfType<FSkeletonTreeSocketItem>() || BoneTreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>())
 		{
@@ -593,6 +640,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 			MenuBuilder.AddMenuEntry( Actions.DeleteSelectedRows );
 			MenuBuilder.EndSection();
 		}
+
 
 		const bool bNeedsBoneActionsHeading = BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>() || BoneTreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>();
 
@@ -606,7 +654,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 			MenuBuilder.AddMenuEntry(Actions.CopyBoneNames);
 			MenuBuilder.AddMenuEntry(Actions.ResetBoneTransforms);
 
-			if (BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>())
+			if (BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>() && bAllowSkeletonOperations)
 			{
 				MenuBuilder.AddMenuEntry(Actions.AddSocket);
 				MenuBuilder.AddMenuEntry(Actions.PasteSockets);
@@ -616,82 +664,91 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 
 		if (bNeedsBoneActionsHeading)
 		{
-			MenuBuilder.AddSubMenu(LOCTEXT("AddVirtualBone", "Add Virtual Bone"),
-				LOCTEXT("AddVirtualBone_ToolTip", "Adds a virtual bone to the skeleton."),
-				FNewMenuDelegate::CreateSP(this, &SSkeletonTree::FillVirtualBoneSubmenu, BoneTreeSelection.SelectedItems));
+			if (bAllowSkeletonOperations)
+			{
+				MenuBuilder.AddSubMenu(LOCTEXT("AddVirtualBone", "Add Virtual Bone"),
+					LOCTEXT("AddVirtualBone_ToolTip", "Adds a virtual bone to the skeleton."),
+					FNewMenuDelegate::CreateSP(this, &SSkeletonTree::FillVirtualBoneSubmenu, SelectedItems));
+			}
 
 			MenuBuilder.EndSection();
 		}
 
-		if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>())
+		if (bAllowSkeletonOperations)
 		{
-			UBlendProfile* const SelectedBlendProfile = BlendProfilePicker->GetSelectedBlendProfile();
-			if(SelectedBlendProfile && BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>())
+			if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>())
 			{
-				TSharedPtr<FSkeletonTreeBoneItem> BoneItem = BoneTreeSelection.SelectedBones[0];
-
-				FName BoneName = BoneItem->GetAttachName();
-				const USkeleton& Skeleton = GetEditableSkeletonInternal()->GetSkeleton();
-				int32 BoneIndex = Skeleton.GetReferenceSkeleton().FindBoneIndex(BoneName);
-
-				float CurrentBlendScale = SelectedBlendProfile->GetBoneBlendScale(BoneIndex);
-
-				MenuBuilder.BeginSection("SkeletonTreeBlendProfileScales", LOCTEXT("BlendProfileContextOptions", "Blend Profile"));
+				UBlendProfile* const SelectedBlendProfile = BlendProfilePicker->GetSelectedBlendProfile();
+				if(SelectedBlendProfile && BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>())
 				{
-					FUIAction RecursiveSetScales;
-					RecursiveSetScales.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonTree::RecursiveSetBlendProfileScales, CurrentBlendScale);
+					TSharedPtr<FSkeletonTreeBoneItem> BoneItem = BoneTreeSelection.GetSelectedItems<FSkeletonTreeBoneItem>()[0];
+
+					FName BoneName = BoneItem->GetAttachName();
+					const USkeleton& Skeleton = GetEditableSkeletonInternal()->GetSkeleton();
+					int32 BoneIndex = Skeleton.GetReferenceSkeleton().FindBoneIndex(BoneName);
+
+					float CurrentBlendScale = SelectedBlendProfile->GetBoneBlendScale(BoneIndex);
+
+					MenuBuilder.BeginSection("SkeletonTreeBlendProfileScales", LOCTEXT("BlendProfileContextOptions", "Blend Profile"));
+					{
+						FUIAction RecursiveSetScales;
+						RecursiveSetScales.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonTree::RecursiveSetBlendProfileScales, CurrentBlendScale);
 					
-					MenuBuilder.AddMenuEntry
-						(
-						FText::Format(LOCTEXT("RecursiveSetBlendScales_Label", "Recursively Set Blend Scales To {0}"), FText::AsNumber(CurrentBlendScale)),
-						LOCTEXT("RecursiveSetBlendScales_ToolTip", "Sets all child bones to use the same blend profile scale as the selected bone"),
-						FSlateIcon(),
-						RecursiveSetScales
-						);
+						MenuBuilder.AddMenuEntry
+							(
+							FText::Format(LOCTEXT("RecursiveSetBlendScales_Label", "Recursively Set Blend Scales To {0}"), FText::AsNumber(CurrentBlendScale)),
+							LOCTEXT("RecursiveSetBlendScales_ToolTip", "Sets all child bones to use the same blend profile scale as the selected bone"),
+							FSlateIcon(),
+							RecursiveSetScales
+							);
+					}
+					MenuBuilder.EndSection();
 				}
-				MenuBuilder.EndSection();
-			}
 
-			if(bShowingAdvancedOptions)
-			{
-				MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT("BoneTranslationRetargetingHeader", "Bone Translation Retargeting"));
+				if(bShowingAdvancedOptions)
 				{
-					FUIAction RecursiveRetargetingSkeletonAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
-					FUIAction RecursiveRetargetingAnimationAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
-					FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
-					FUIAction RecursiveRetargetingAnimationRelativeAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationRelative));
+					MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT("BoneTranslationRetargetingHeader", "Bone Translation Retargeting"));
+					{
+						FUIAction RecursiveRetargetingSkeletonAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
+						FUIAction RecursiveRetargetingAnimationAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
+						FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
+						FUIAction RecursiveRetargetingAnimationRelativeAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationRelative));
 
-					MenuBuilder.AddMenuEntry
-						(LOCTEXT("SetTranslationRetargetingSkeletonChildrenAction", "Recursively Set Translation Retargeting Skeleton")
-						, LOCTEXT("BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton.")
-						, FSlateIcon()
-						, RecursiveRetargetingSkeletonAction
-						);
+						MenuBuilder.AddMenuEntry
+							(LOCTEXT("SetTranslationRetargetingSkeletonChildrenAction", "Recursively Set Translation Retargeting Skeleton")
+							, LOCTEXT("BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton.")
+							, FSlateIcon()
+							, RecursiveRetargetingSkeletonAction
+							);
 
-					MenuBuilder.AddMenuEntry
-						(LOCTEXT("SetTranslationRetargetingAnimationChildrenAction", "Recursively Set Translation Retargeting Animation")
-						, LOCTEXT("BoneTranslationRetargetingAnimationToolTip", "Use translation from animation.")
-						, FSlateIcon()
-						, RecursiveRetargetingAnimationAction
-						);
+						MenuBuilder.AddMenuEntry
+							(LOCTEXT("SetTranslationRetargetingAnimationChildrenAction", "Recursively Set Translation Retargeting Animation")
+							, LOCTEXT("BoneTranslationRetargetingAnimationToolTip", "Use translation from animation.")
+							, FSlateIcon()
+							, RecursiveRetargetingAnimationAction
+							);
 
-					MenuBuilder.AddMenuEntry
-						(LOCTEXT("SetTranslationRetargetingAnimationScaledChildrenAction", "Recursively Set Translation Retargeting AnimationScaled")
-						, LOCTEXT("BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions.")
-						, FSlateIcon()
-						, RecursiveRetargetingAnimationScaledAction
-						);
+						MenuBuilder.AddMenuEntry
+							(LOCTEXT("SetTranslationRetargetingAnimationScaledChildrenAction", "Recursively Set Translation Retargeting AnimationScaled")
+							, LOCTEXT("BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions.")
+							, FSlateIcon()
+							, RecursiveRetargetingAnimationScaledAction
+							);
 
-					MenuBuilder.AddMenuEntry
-						(LOCTEXT("SetTranslationRetargetingAnimationRelativeChildrenAction", "Recursively Set Translation Retargeting AnimationRelative")
-						, LOCTEXT("BoneTranslationRetargetingAnimationRelativeToolTip", "Use relative translation from animation similar to an additive animation.")
-						, FSlateIcon()
-						, RecursiveRetargetingAnimationRelativeAction
-						);
+						MenuBuilder.AddMenuEntry
+							(LOCTEXT("SetTranslationRetargetingAnimationRelativeChildrenAction", "Recursively Set Translation Retargeting AnimationRelative")
+							, LOCTEXT("BoneTranslationRetargetingAnimationRelativeToolTip", "Use relative translation from animation similar to an additive animation.")
+							, FSlateIcon()
+							, RecursiveRetargetingAnimationRelativeAction
+							);
+					}
+					MenuBuilder.EndSection();
 				}
-				MenuBuilder.EndSection();
 			}
+		}
 
+		if(bAllowMeshOperations)
+		{
 			MenuBuilder.BeginSection("SkeletonTreeBoneReductionForLOD", LOCTEXT("BoneReductionHeader", "LOD Bone Reduction"));
 			{
 				MenuBuilder.AddSubMenu(
@@ -709,70 +766,80 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 			MenuBuilder.EndSection();
 		}
 
-		if (BoneTreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>())
+		if(bAllowSkeletonOperations)
 		{
-			MenuBuilder.BeginSection("SkeletonTreeVirtualBoneActions", LOCTEXT("VirtualBoneActions", "Selected Virtual Bone Actions"));
-
-			if (BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>())
+			if (BoneTreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>())
 			{
-				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameVirtualBone_Label", "Rename Virtual Bone"), LOCTEXT("RenameVirtualBone_Tooltip", "Rename this virtual bone"));
+				MenuBuilder.BeginSection("SkeletonTreeVirtualBoneActions", LOCTEXT("VirtualBoneActions", "Selected Virtual Bone Actions"));
+
+				if (BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>())
+				{
+					MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameVirtualBone_Label", "Rename Virtual Bone"), LOCTEXT("RenameVirtualBone_Tooltip", "Rename this virtual bone"));
+				}
+
+				MenuBuilder.EndSection();
 			}
+
+			if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeSocketItem>())
+			{
+				MenuBuilder.BeginSection("SkeletonTreeSocketsActions", LOCTEXT( "SocketActions", "Selected Socket Actions" ) );
+
+				MenuBuilder.AddMenuEntry( Actions.CopySockets );
+
+				if(BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>())
+				{
+					MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameSocket_Label", "Rename Socket"), LOCTEXT("RenameSocket_Tooltip", "Rename this socket") );
+
+					TSharedPtr<FSkeletonTreeSocketItem> SocketItem = BoneTreeSelection.GetSelectedItems<FSkeletonTreeSocketItem>()[0];
+
+					if (SocketItem->IsSocketCustomized() && SocketItem->GetParentType() == ESocketParentType::Mesh )
+					{
+						MenuBuilder.AddMenuEntry( Actions.RemoveMeshSocket );
+					}
+
+					// If the socket is on the skeleton, we have a valid mesh
+					// and there isn't one of the same name on the mesh, we can customize it
+					if (SocketItem->CanCustomizeSocket() )
+					{
+						if (SocketItem->GetParentType() == ESocketParentType::Skeleton )
+						{
+							MenuBuilder.AddMenuEntry( Actions.CreateMeshSocket );
+						}
+						else if (SocketItem->GetParentType() == ESocketParentType::Mesh )
+						{
+							// If a socket is on the mesh only, then offer to promote it to the skeleton
+							MenuBuilder.AddMenuEntry( Actions.PromoteSocketToSkeleton );
+						}
+					}
+				}
+
+				MenuBuilder.EndSection();
+			}
+		}
+
+		if (BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>() || BoneTreeSelection.HasSelectedOfType<FSkeletonTreeSocketItem>())
+		{
+			MenuBuilder.BeginSection("SkeletonTreeAttachedAssets", LOCTEXT( "AttachedAssetsActionsHeader", "Attached Assets Actions" ) );
+
+			if ( BoneTreeSelection.IsSingleItemSelected() )
+			{
+				MenuBuilder.AddSubMenu(	LOCTEXT( "AttachNewAsset", "Add Preview Asset" ),
+					LOCTEXT ( "AttachNewAsset_ToolTip", "Attaches an asset to this part of the skeleton. Assets can also be dragged onto the skeleton from a content browser to attach" ),
+					FNewMenuDelegate::CreateSP( this, &SSkeletonTree::FillAttachAssetSubmenu, BoneTreeSelection.GetSingleSelectedItem() ) );
+			}
+
+			FUIAction RemoveAllAttachedAssets = FUIAction(	FExecuteAction::CreateSP( this, &SSkeletonTree::OnRemoveAllAssets ),
+				FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanRemoveAllAssets ));
+
+			MenuBuilder.AddMenuEntry( LOCTEXT( "RemoveAllAttachedAssets", "Remove All Attached Assets" ),
+				LOCTEXT ( "RemoveAllAttachedAssets_ToolTip", "Removes all the attached assets from the skeleton and mesh." ),
+				FSlateIcon(), RemoveAllAttachedAssets );
 
 			MenuBuilder.EndSection();
 		}
 
-		if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeSocketItem>())
-		{
-			MenuBuilder.BeginSection("SkeletonTreeSocketsActions", LOCTEXT( "SocketActions", "Selected Socket Actions" ) );
-
-			MenuBuilder.AddMenuEntry( Actions.CopySockets );
-
-			if(BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>())
-			{
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameSocket_Label", "Rename Socket"), LOCTEXT("RenameSocket_Tooltip", "Rename this socket") );
-
-				TSharedPtr<FSkeletonTreeSocketItem> SocketItem = BoneTreeSelection.SelectedSockets[0];
-
-				if (SocketItem->IsSocketCustomized() && SocketItem->GetParentType() == ESocketParentType::Mesh )
-				{
-					MenuBuilder.AddMenuEntry( Actions.RemoveMeshSocket );
-				}
-
-				// If the socket is on the skeleton, we have a valid mesh
-				// and there isn't one of the same name on the mesh, we can customize it
-				if (SocketItem->CanCustomizeSocket() )
-				{
-					if (SocketItem->GetParentType() == ESocketParentType::Skeleton )
-					{
-						MenuBuilder.AddMenuEntry( Actions.CreateMeshSocket );
-					}
-					else if (SocketItem->GetParentType() == ESocketParentType::Mesh )
-					{
-						// If a socket is on the mesh only, then offer to promote it to the skeleton
-						MenuBuilder.AddMenuEntry( Actions.PromoteSocketToSkeleton );
-					}
-				}
-			}
-
-			MenuBuilder.EndSection();
-		}
-
-		MenuBuilder.BeginSection("SkeletonTreeAttachedAssets", LOCTEXT( "AttachedAssetsActionsHeader", "Attached Assets Actions" ) );
-
-		if ( BoneTreeSelection.IsSingleItemSelected() )
-		{
-			MenuBuilder.AddSubMenu(	LOCTEXT( "AttachNewAsset", "Add Preview Asset" ),
-				LOCTEXT ( "AttachNewAsset_ToolTip", "Attaches an asset to this part of the skeleton. Assets can also be dragged onto the skeleton from a content browser to attach" ),
-				FNewMenuDelegate::CreateSP( this, &SSkeletonTree::FillAttachAssetSubmenu, BoneTreeSelection.GetSingleSelectedItem() ) );
-		}
-
-		FUIAction RemoveAllAttachedAssets = FUIAction(	FExecuteAction::CreateSP( this, &SSkeletonTree::OnRemoveAllAssets ),
-			FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanRemoveAllAssets ));
-
-		MenuBuilder.AddMenuEntry( LOCTEXT( "RemoveAllAttachedAssets", "Remove All Attached Assets" ),
-			LOCTEXT ( "RemoveAllAttachedAssets_ToolTip", "Removes all the attached assets from the skeleton and mesh." ),
-			FSlateIcon(), RemoveAllAttachedAssets );
-
+		// Add an empty section so the menu can be extended when there are no optionally-added entries
+		MenuBuilder.BeginSection("SkeletonTreeContextMenu");
 		MenuBuilder.EndSection();
 	}
 
@@ -881,8 +948,9 @@ void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkele
 void SSkeletonTree::SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode)
 {
 	TArray<FName> BoneNames;
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-	for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : TreeSelection.SelectedBones)
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
+	for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : TreeSelection.GetSelectedItems<FSkeletonTreeBoneItem>())
 	{
 		BoneNames.Add(Item->GetRowItemName());
 	}
@@ -908,12 +976,13 @@ void SSkeletonTree::RemoveFromLOD(int32 LODIndex, bool bIncludeSelected, bool bI
 	const FText Message(LOCTEXT("RemoveBonesFromLODWarning", "This action can't be undone. Would you like to continue?"));
 	if (FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes)
 	{
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+		TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+		FSkeletonTreeSelection TreeSelection(SelectedItems);
 		const FReferenceSkeleton& RefSkeleton = GetEditableSkeletonInternal()->GetSkeleton().GetReferenceSkeleton();
 
 		TArray<FName> BonesToRemove;
 
-		for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : TreeSelection.SelectedBones)
+		for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : TreeSelection.GetSelectedItems<FSkeletonTreeBoneItem>())
 		{
 			FName BoneName = Item->GetRowItemName();
 			int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
@@ -960,13 +1029,14 @@ void SSkeletonTree::RemoveFromLOD(int32 LODIndex, bool bIncludeSelected, bool bI
 
 void SSkeletonTree::OnCopyBoneNames()
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-
-	if( TreeSelection.SelectedBones.Num() > 0 )
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
+	TArray<TSharedPtr<FSkeletonTreeBoneItem>> SelectedBones = TreeSelection.GetSelectedItems<FSkeletonTreeBoneItem>();
+	if( SelectedBones.Num() > 0 )
 	{
 		bool bFirst = true;
 		FString BoneNames;
-		for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : TreeSelection.SelectedBones)
+		for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : SelectedBones)
 		{
 			FName BoneName = Item->GetRowItemName();
 			if (!bFirst)
@@ -989,14 +1059,15 @@ void SSkeletonTree::OnResetBoneTransforms()
 		UAnimPreviewInstance* PreviewInstance = PreviewComponent->PreviewInstance;
 		check(PreviewInstance);
 
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-
-		if (TreeSelection.SelectedBones.Num() > 0)
+		TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+		FSkeletonTreeSelection TreeSelection(SelectedItems);
+		TArray<TSharedPtr<FSkeletonTreeBoneItem>> SelectedBones = TreeSelection.GetSelectedItems<FSkeletonTreeBoneItem>();
+		if (SelectedBones.Num() > 0)
 		{
 			bool bModified = false;
 			GEditor->BeginTransaction(LOCTEXT("SkeletonTree_ResetBoneTransforms", "Reset Bone Transforms"));
 
-			for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : TreeSelection.SelectedBones)
+			for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : SelectedBones)
 			{
 				FName BoneName = Item->GetRowItemName();
 				const FAnimNode_ModifyBone* ModifiedBone = PreviewInstance->FindModifiedBone(BoneName);
@@ -1020,14 +1091,15 @@ void SSkeletonTree::OnResetBoneTransforms()
 
 void SSkeletonTree::OnCopySockets() const
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-
-	int32 NumSocketsToCopy = TreeSelection.SelectedSockets.Num();
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
+	TArray<TSharedPtr<FSkeletonTreeSocketItem>> SelectedSockets = TreeSelection.GetSelectedItems<FSkeletonTreeSocketItem>();
+	int32 NumSocketsToCopy = SelectedSockets.Num();
 	if ( NumSocketsToCopy > 0 )
 	{
 		FString SocketsDataString;
 
-		for (const TSharedPtr<FSkeletonTreeSocketItem>& Item : TreeSelection.SelectedSockets)
+		for (const TSharedPtr<FSkeletonTreeSocketItem>& Item : SelectedSockets)
 		{
 			SocketsDataString += SerializeSocketToString(Item->GetSocket(), Item->GetParentType());
 		}
@@ -1054,7 +1126,8 @@ FString SSkeletonTree::SerializeSocketToString( USkeletalMeshSocket* Socket, ESo
 
 void SSkeletonTree::OnPasteSockets(bool bPasteToSelectedBone)
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
 	// Pasting sockets should only work if there is just one bone selected
 	if ( TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>() )
@@ -1070,7 +1143,8 @@ void SSkeletonTree::OnPasteSockets(bool bPasteToSelectedBone)
 void SSkeletonTree::OnAddSocket()
 {
 	// This adds a socket to the currently selected bone in the SKELETON, not the MESH.
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
 	// Can only add a socket to one bone
 	if (TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>())
@@ -1101,7 +1175,8 @@ void SSkeletonTree::OnCustomizeSocket()
 {
 	// This should only be called on a skeleton socket, it copies the 
 	// socket to the mesh so the user can edit it separately
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
 	if(TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>())
 	{
@@ -1116,7 +1191,8 @@ void SSkeletonTree::OnPromoteSocket()
 {
 	// This should only be called on a mesh socket, it copies the 
 	// socket to the skeleton so all meshes can use it
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
 	// Can only customize one socket (CreateContextMenu() should prevent this firing!)
 	if(TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>())
@@ -1185,13 +1261,15 @@ bool SSkeletonTree::CanRemoveAllAssets() const
 
 bool SSkeletonTree::CanRenameSelected() const
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
 	return TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>();
 }
 
 void SSkeletonTree::OnRenameSelected()
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
 	if(TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>())
 	{
@@ -1202,10 +1280,25 @@ void SSkeletonTree::OnRenameSelected()
 
 void SSkeletonTree::OnSelectionChanged(TSharedPtr<ISkeletonTreeItem> Selection, ESelectInfo::Type SelectInfo)
 {
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+
 	if( Selection.IsValid() )
 	{
+		// Disable bone proxy ticking on all bone/virtual bones
+		for (TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
+		{
+			if (Item->IsOfType<FSkeletonTreeBoneItem>())
+			{
+				StaticCastSharedPtr<FSkeletonTreeBoneItem>(Item)->EnableBoneProxyTick(false);
+			}
+			else if (Item->IsOfType<FSkeletonTreeVirtualBoneItem>())
+			{
+				StaticCastSharedPtr<FSkeletonTreeVirtualBoneItem>(Item)->EnableBoneProxyTick(false);
+			}
+		}
+
 		//Get all the selected items
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+		FSkeletonTreeSelection TreeSelection(SelectedItems);
 
 		if (GetPreviewScene().IsValid())
 		{
@@ -1213,23 +1306,37 @@ void SSkeletonTree::OnSelectionChanged(TSharedPtr<ISkeletonTreeItem> Selection, 
 			if (TreeSelection.SelectedItems.Num() > 0 && PreviewComponent)
 			{
 				// pick the first settable bone from the selection
-				for (auto ItemIt = TreeSelection.SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt)
+				for (TSharedPtr<ISkeletonTreeItem> Item : TreeSelection.SelectedItems)
 				{
-					TSharedPtr<ISkeletonTreeItem> Item = *(ItemIt);
-
-					// Test SelectInfo so we don't end up in an infinite loop due to delegates calling each other
-					if (SelectInfo != ESelectInfo::Direct && (Item->IsOfType<FSkeletonTreeBoneItem>() || Item->IsOfType<FSkeletonTreeVirtualBoneItem>()))
+					if((Item->IsOfType<FSkeletonTreeBoneItem>() || Item->IsOfType<FSkeletonTreeVirtualBoneItem>()))
 					{
-						FName BoneName = Item->GetRowItemName();
-
-						// Get bone index
-						int32 BoneIndex = PreviewComponent->GetBoneIndex(BoneName);
-						if (BoneIndex != INDEX_NONE)
+						// enable ticking on the selected bone proxies
+						if (Item->IsOfType<FSkeletonTreeBoneItem>())
 						{
-							GetPreviewScene()->SetSelectedBone(BoneName);
-							BoneProxy->BoneName = BoneName;
-							OnObjectSelectedMulticast.Broadcast(BoneProxy);
-							break;
+							StaticCastSharedPtr<FSkeletonTreeBoneItem>(Item)->EnableBoneProxyTick(true);
+						}
+						else if (Item->IsOfType<FSkeletonTreeVirtualBoneItem>())
+						{
+							StaticCastSharedPtr<FSkeletonTreeVirtualBoneItem>(Item)->EnableBoneProxyTick(true);
+						}
+
+						// Test SelectInfo so we don't end up in an infinite loop due to delegates calling each other
+						if (SelectInfo != ESelectInfo::Direct)
+						{
+							FName BoneName = Item->GetRowItemName();
+
+							// Get bone index
+							int32 BoneIndex = PreviewComponent->GetBoneIndex(BoneName);
+							if (BoneIndex != INDEX_NONE)
+							{
+								GetPreviewScene()->SetSelectedBone(BoneName);
+								BoneProxy->BoneName = BoneName;
+
+								PRAGMA_DISABLE_DEPRECATION_WARNINGS
+								OnObjectSelectedMulticast.Broadcast(BoneProxy);
+								PRAGMA_ENABLE_DEPRECATION_WARNINGS
+								break;
+							}
 						}
 					}
 					// Test SelectInfo so we don't end up in an infinite loop due to delegates calling each other
@@ -1240,13 +1347,17 @@ void SSkeletonTree::OnSelectionChanged(TSharedPtr<ISkeletonTreeItem> Selection, 
 						FSelectedSocketInfo SocketInfo(Socket, SocketItem->GetParentType() == ESocketParentType::Skeleton);
 						GetPreviewScene()->SetSelectedSocket(SocketInfo);
 
+						PRAGMA_DISABLE_DEPRECATION_WARNINGS
 						OnObjectSelectedMulticast.Broadcast(SocketInfo.Socket);
+						PRAGMA_ENABLE_DEPRECATION_WARNINGS
 					}
 					else if (Item->IsOfType<FSkeletonTreeAttachedAssetItem>())
 					{
 						GetPreviewScene()->DeselectAll();
 
+						PRAGMA_DISABLE_DEPRECATION_WARNINGS
 						OnObjectSelectedMulticast.Broadcast(nullptr);
+						PRAGMA_ENABLE_DEPRECATION_WARNINGS
 					}
 				}
 				PreviewComponent->PostInitMeshObject(PreviewComponent->MeshObject);
@@ -1261,8 +1372,13 @@ void SSkeletonTree::OnSelectionChanged(TSharedPtr<ISkeletonTreeItem> Selection, 
 			GetPreviewScene()->DeselectAll();
 		}
 
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		OnObjectSelectedMulticast.Broadcast(nullptr);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
+
+	TArrayView<TSharedPtr<ISkeletonTreeItem>> ArrayView(SelectedItems);
+	OnSelectionChangedMulticast.Broadcast(ArrayView, SelectInfo);
 }
 
 void SSkeletonTree::AttachAssets(const TSharedRef<ISkeletonTreeItem>& TargetItem, const TArray<FAssetData>& AssetData)
@@ -1321,9 +1437,15 @@ void SSkeletonTree::SetTreeItemExpansionRecursive(TSharedPtr< ISkeletonTreeItem 
 	}
 }
 
-void SSkeletonTree::PostUndo()
+void SSkeletonTree::PostUndo(bool bSuccess)
 {
 	// Rebuild the tree view whenever we undo a change to the skeleton
+	CreateTreeColumns();
+}
+
+void SSkeletonTree::PostRedo(bool bSuccess)
+{
+	// Rebuild the tree view whenever we redo a change to the skeleton
 	CreateTreeColumns();
 }
 
@@ -1331,6 +1453,16 @@ void SSkeletonTree::OnFilterTextChanged( const FText& SearchText )
 {
 	FilterText = SearchText;
 
+	ApplyFilter();
+}
+
+void SSkeletonTree::Refresh()
+{
+	CreateFromSkeleton();
+}
+
+void SSkeletonTree::RefreshFilter()
+{
 	ApplyFilter();
 }
 
@@ -1370,7 +1502,9 @@ void SSkeletonTree::SetSelectedSocket( const FSelectedSocketInfo& SocketInfo )
 			GetPreviewScene()->SetSelectedSocket(SocketInfo);
 		}
 
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		OnObjectSelectedMulticast.Broadcast(SocketInfo.Socket);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 }
 
@@ -1400,7 +1534,9 @@ void SSkeletonTree::SetSelectedBone( const FName& BoneName )
 		}
 
 		BoneProxy->BoneName = BoneName;
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		OnObjectSelectedMulticast.Broadcast(BoneProxy);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 }
 
@@ -1416,7 +1552,9 @@ void SSkeletonTree::DeselectAll()
 			GetPreviewScene()->DeselectAll();
 		}
 
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		OnObjectSelectedMulticast.Broadcast(nullptr);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 }
 
@@ -1434,34 +1572,44 @@ TSharedRef< SWidget > SSkeletonTree::CreateFilterMenu()
 	const FSkeletonTreeCommands& Actions = FSkeletonTreeCommands::Get();
 
 	const bool CloseAfterSelection = true;
-	FMenuBuilder MenuBuilder( CloseAfterSelection, UICommandList );
+	FMenuBuilder MenuBuilder( CloseAfterSelection, UICommandList, Extenders );
 
-	MenuBuilder.BeginSection("Bones", LOCTEXT("OptionsMenuHeading", "Options"));
+	MenuBuilder.BeginSection("FilterOptions", LOCTEXT("OptionsMenuHeading", "Options"));
 	{
-		MenuBuilder.AddMenuEntry(Actions.ShowRetargeting);
+		if(Builder->IsShowingBones() && bAllowSkeletonOperations)
+		{
+			MenuBuilder.AddMenuEntry(Actions.ShowRetargeting);
+		}
 		MenuBuilder.AddMenuEntry(Actions.FilteringFlattensHierarchy);
+		MenuBuilder.AddMenuEntry(Actions.HideParentsWhenFiltering);
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("Bones", LOCTEXT( "BonesMenuHeading", "Bones" ) );
+	if(Builder->IsShowingBones())
 	{
-		MenuBuilder.AddMenuEntry( Actions.ShowAllBones );
-		MenuBuilder.AddMenuEntry( Actions.ShowMeshBones );
-		MenuBuilder.AddMenuEntry(Actions.ShowLODBones);
-		MenuBuilder.AddMenuEntry( Actions.ShowWeightedBones );
-		MenuBuilder.AddMenuEntry( Actions.HideBones );
+		MenuBuilder.BeginSection("FilterBones", LOCTEXT( "BonesMenuHeading", "Bones" ) );
+		{
+			MenuBuilder.AddMenuEntry( Actions.ShowAllBones );
+			MenuBuilder.AddMenuEntry( Actions.ShowMeshBones );
+			MenuBuilder.AddMenuEntry( Actions.ShowLODBones);
+			MenuBuilder.AddMenuEntry( Actions.ShowWeightedBones );
+			MenuBuilder.AddMenuEntry( Actions.HideBones );
+		}
+		MenuBuilder.EndSection();
 	}
-	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("Sockets", LOCTEXT("SocketsMenuHeading", "Sockets"));
+	if(Builder->IsShowingSockets())
 	{
-		MenuBuilder.AddMenuEntry(Actions.ShowActiveSockets);
-		MenuBuilder.AddMenuEntry(Actions.ShowMeshSockets);
-		MenuBuilder.AddMenuEntry(Actions.ShowSkeletonSockets);
-		MenuBuilder.AddMenuEntry(Actions.ShowAllSockets);
-		MenuBuilder.AddMenuEntry(Actions.HideSockets);
+		MenuBuilder.BeginSection("FilterSockets", LOCTEXT("SocketsMenuHeading", "Sockets"));
+		{
+			MenuBuilder.AddMenuEntry(Actions.ShowActiveSockets);
+			MenuBuilder.AddMenuEntry(Actions.ShowMeshSockets);
+			MenuBuilder.AddMenuEntry(Actions.ShowSkeletonSockets);
+			MenuBuilder.AddMenuEntry(Actions.ShowAllSockets);
+			MenuBuilder.AddMenuEntry(Actions.HideSockets);
+		}
+		MenuBuilder.EndSection();
 	}
-	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
 }
@@ -1513,67 +1661,85 @@ bool SSkeletonTree::IsSocketFilter( ESocketFilter InSocketFilter ) const
 
 FText SSkeletonTree::GetFilterMenuTitle() const
 {
-	FText BoneFilterMenuText;
+	TArray<FText> FilterLabels;
 
-	switch ( BoneFilter )
+	if(Builder->IsShowingBones())	
 	{
-	case EBoneFilter::All:
-		BoneFilterMenuText = LOCTEXT( "BoneFilterMenuAll", "All Bones" );
-		break;
+		switch ( BoneFilter )
+		{
+		case EBoneFilter::All:
+			FilterLabels.Add(LOCTEXT( "BoneFilterMenuAll", "Bones" ));
+			break;
 
-	case EBoneFilter::Mesh:
-		BoneFilterMenuText = LOCTEXT( "BoneFilterMenuMesh", "Mesh Bones" );
-		break;
+		case EBoneFilter::Mesh:
+			FilterLabels.Add(LOCTEXT( "BoneFilterMenuMesh", "Mesh Bones" ));
+			break;
 
-	case EBoneFilter::LOD:
-		BoneFilterMenuText = LOCTEXT("BoneFilterMenuLOD", "LOD Bones");
-		break;
+		case EBoneFilter::LOD:
+			FilterLabels.Add(LOCTEXT("BoneFilterMenuLOD", "LOD Bones"));
+			break;
 
-	case EBoneFilter::Weighted:
-		BoneFilterMenuText = LOCTEXT( "BoneFilterMenuWeighted", "Weighted Bones" );
-		break;
+		case EBoneFilter::Weighted:
+			FilterLabels.Add(LOCTEXT( "BoneFilterMenuWeighted", "Weighted Bones" ));
+			break;
 
-	case EBoneFilter::None:
-		BoneFilterMenuText = LOCTEXT( "BoneFilterMenuHidden", "Bones Hidden" );
-		break;
+		case EBoneFilter::None:
+			break;
 
-	default:
-		// Unknown mode
-		check( 0 );
-		break;
+		default:
+			// Unknown mode
+			check(false);
+			break;
+		}
 	}
 
-	FText SocketFilterMenuText;
-
-	switch (SocketFilter)
+	if(Builder->IsShowingSockets())
 	{
-	case ESocketFilter::Active:
-		SocketFilterMenuText = LOCTEXT("SocketFilterMenuActive", "Active Sockets");
-		break;
+		switch (SocketFilter)
+		{
+		case ESocketFilter::Active:
+			FilterLabels.Add(LOCTEXT("SocketFilterMenuActive", "Active Sockets"));
+			break;
 
-	case ESocketFilter::Mesh:
-		SocketFilterMenuText = LOCTEXT("SocketFilterMenuMesh", "Mesh Sockets");
-		break;
+		case ESocketFilter::Mesh:
+			FilterLabels.Add(LOCTEXT("SocketFilterMenuMesh", "Mesh Sockets"));
+			break;
 
-	case ESocketFilter::Skeleton:
-		SocketFilterMenuText = LOCTEXT("SocketFilterMenuSkeleton", "Skeleton Sockets");
-		break;
+		case ESocketFilter::Skeleton:
+			FilterLabels.Add(LOCTEXT("SocketFilterMenuSkeleton", "Skeleton Sockets"));
+			break;
 
-	case ESocketFilter::All:
-		SocketFilterMenuText = LOCTEXT("SocketFilterMenuAll", "All Sockets");
-		break;
+		case ESocketFilter::All:
+			FilterLabels.Add(LOCTEXT("SocketFilterMenuAll", "All Sockets"));
+			break;
 
-	case ESocketFilter::None:
-		SocketFilterMenuText = LOCTEXT("SocketFilterMenuHidden", "Sockets Hidden");
-		break;
+		case ESocketFilter::None:
+			break;
 
-	default:
-		// Unknown mode
-		check(0);
-		break;
+		default:
+			// Unknown mode
+			check(false);
+			break;
+		}
 	}
 
-	return FText::Format(LOCTEXT("FilterMenuLabelFormat", "{0}, {1}"), BoneFilterMenuText, SocketFilterMenuText);
+	OnGetFilterText.ExecuteIfBound(FilterLabels);
+
+	FText Label;
+	if(FilterLabels.Num() > 0)
+	{
+		Label = FText::Format(LOCTEXT("FilterMenuLabelFormatStart", "{0}"), FilterLabels[0]);
+		for(int32 LabelIndex = 1; LabelIndex < FilterLabels.Num(); ++LabelIndex)
+		{
+			Label = FText::Format(LOCTEXT("FilterMenuLabelFormat", "{0}, {1}"), Label, FilterLabels[LabelIndex]);
+		}
+	}
+	else
+	{
+		Label = LOCTEXT("ShowingNoneLabel", "Filters");
+	}
+	
+	return Label;
 }
 
 bool SSkeletonTree::IsAddingSocketsAllowed() const
@@ -1598,17 +1764,25 @@ FReply SSkeletonTree::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& I
 	return FReply::Unhandled();
 }
 
+bool SSkeletonTree::CanDeleteSelectedRows() const
+{
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
+	return (TreeSelection.HasSelectedOfType<FSkeletonTreeAttachedAssetItem>() || TreeSelection.HasSelectedOfType<FSkeletonTreeSocketItem>() || TreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>());
+}
+
 void SSkeletonTree::OnDeleteSelectedRows()
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
 	if(TreeSelection.HasSelectedOfType<FSkeletonTreeAttachedAssetItem>() || TreeSelection.HasSelectedOfType<FSkeletonTreeSocketItem>() || TreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>())
 	{
 		FScopedTransaction Transaction( LOCTEXT( "SkeletonTreeDeleteSelected", "Delete selected sockets/meshes/bones from skeleton tree" ) );
 
-		DeleteAttachedAssets( TreeSelection.SelectedAssets );
-		DeleteSockets( TreeSelection.SelectedSockets );
-		DeleteVirtualBones( TreeSelection.SelectedVirtualBones );
+		DeleteAttachedAssets( TreeSelection.GetSelectedItems<FSkeletonTreeAttachedAssetItem>() );
+		DeleteSockets( TreeSelection.GetSelectedItems<FSkeletonTreeSocketItem>() );
+		DeleteVirtualBones( TreeSelection.GetSelectedItems<FSkeletonTreeVirtualBoneItem>() );
 
 		CreateFromSkeleton();
 	}
@@ -1692,9 +1866,10 @@ void SSkeletonTree::RecursiveSetBlendProfileScales(float InScaleToSet)
 	if(SelectedBlendProfile)
 	{
 		TArray<FName> BoneNames;
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+		TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+		FSkeletonTreeSelection TreeSelection(SelectedItems);
 
-		for(TSharedPtr<FSkeletonTreeBoneItem>& SelectedBone : TreeSelection.SelectedBones)
+		for(TSharedPtr<FSkeletonTreeBoneItem>& SelectedBone : TreeSelection.GetSelectedItems<FSkeletonTreeBoneItem>())
 		{
 			BoneNames.Add(SelectedBone->GetRowItemName());
 		}
@@ -1769,6 +1944,43 @@ void SSkeletonTree::OnLODSwitched()
 	}
 }
 
+void SSkeletonTree::SelectItemsBy(TFunctionRef<bool(const TSharedRef<ISkeletonTreeItem>&, bool&)> Predicate) const
+{
+	SkeletonTreeView->ClearSelection();
+
+	TSharedPtr<ISkeletonTreeItem> ScrollItem = nullptr;
+	for (const TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
+	{
+		bool bExpand = false;
+		if (Predicate(Item.ToSharedRef(), bExpand))
+		{
+			SkeletonTreeView->SetItemSelection(Item, true);
+			if (bExpand)
+			{
+				if(Item->GetChildren().Num() == 0)
+				{
+					// leaf nodes expand their parent
+					TSharedPtr<ISkeletonTreeItem> ParentItem = Item->GetParent();
+					if(ParentItem.IsValid())
+					{
+						SkeletonTreeView->SetItemExpansion(ParentItem, true);
+					}
+				}
+				else
+				{
+					SkeletonTreeView->SetItemExpansion(Item, true);
+				}
+			}
+			ScrollItem = Item;
+		}
+	}
+
+	if (ScrollItem.IsValid())
+	{
+		SkeletonTreeView->RequestScrollIntoView(ScrollItem);
+	}
+}
+
 void SSkeletonTree::DuplicateAndSelectSocket(const FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName /*= FName()*/)
 {
 	USkeletalMesh* SkeletalMesh = GetPreviewScene().IsValid() ? GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
@@ -1805,107 +2017,88 @@ void SSkeletonTree::HandleFocusCamera()
 	}
 }
 
-/** Filter utility class */
-class FSkeletonTreeFilterContext : public ITextFilterExpressionContext
-{
-public:
-	explicit FSkeletonTreeFilterContext(const FName& InName)
-		: Name(InName)
-	{
-	}
-
-	virtual bool TestBasicStringExpression(const FTextFilterString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const override
-	{
-		return TextFilterUtils::TestBasicStringExpression(Name.ToString(), InValue, InTextComparisonMode);
-	}
-
-	virtual bool TestComplexExpression(const FName& InKey, const FTextFilterString& InValue, const ETextFilterComparisonOperation InComparisonOperation, const ETextFilterTextComparisonMode InTextComparisonMode) const override
-	{
-		return false;
-	}
-
-private:
-	FName Name;
-};
-
-ESkeletonTreeFilterResult SSkeletonTree::HandleFilterSkeletonTreeItem(const TSharedPtr<class ISkeletonTreeItem>& InItem)
+ESkeletonTreeFilterResult SSkeletonTree::HandleFilterSkeletonTreeItem(const FSkeletonTreeFilterArgs& InArgs, const TSharedPtr<class ISkeletonTreeItem>& InItem)
 {
 	ESkeletonTreeFilterResult Result = ESkeletonTreeFilterResult::Shown;
 
-	if (!FilterText.IsEmpty())
+	if(InItem->IsOfType<FSkeletonTreeBoneItem>() || InItem->IsOfType<FSkeletonTreeSocketItem>() || InItem->IsOfType<FSkeletonTreeAttachedAssetItem>() || InItem->IsOfType<FSkeletonTreeVirtualBoneItem>())
 	{
-		if (TextFilterPtr->TestTextFilter(FSkeletonTreeFilterContext(InItem->GetRowItemName())))
-		{
-			Result = ESkeletonTreeFilterResult::ShownHighlighted;
-		}
-		else
-		{
-			Result = ESkeletonTreeFilterResult::Hidden;
-		}
-	}
 
-
-	if (InItem->IsOfType<FSkeletonTreeBoneItem>())
-	{
-		TSharedPtr<FSkeletonTreeBoneItem> BoneItem = StaticCastSharedPtr<FSkeletonTreeBoneItem>(InItem);
-
-		if (BoneFilter == EBoneFilter::None)
+		if (InArgs.TextFilter.IsValid())
 		{
-			Result = ESkeletonTreeFilterResult::Hidden;
-		}
-		else if (GetPreviewScene().IsValid())
-		{
-			UDebugSkelMeshComponent* PreviewMeshComponent = GetPreviewScene()->GetPreviewMeshComponent();
-			if (PreviewMeshComponent)
+			if (InArgs.TextFilter->TestTextFilter(FSkeletonTreeFilterContext(InItem->GetRowItemName())))
 			{
-				int32 BoneMeshIndex = PreviewMeshComponent->GetBoneIndex(BoneItem->GetRowItemName());
+				Result = ESkeletonTreeFilterResult::ShownHighlighted;
+			}
+			else
+			{
+				Result = ESkeletonTreeFilterResult::Hidden;
+			}
+		}
 
-				// Remove non-mesh bones if we're filtering
-				if ((BoneFilter == EBoneFilter::Mesh || BoneFilter == EBoneFilter::Weighted || BoneFilter == EBoneFilter::LOD) &&
-					BoneMeshIndex == INDEX_NONE)
-				{
-					Result = ESkeletonTreeFilterResult::Hidden;
-				}
 
-				// Remove non-vertex-weighted bones if we're filtering
-				if (BoneFilter == EBoneFilter::Weighted && !BoneItem->IsBoneWeighted(BoneMeshIndex, PreviewMeshComponent))
-				{
-					Result = ESkeletonTreeFilterResult::Hidden;
-				}
+		if (InItem->IsOfType<FSkeletonTreeBoneItem>())
+		{
+			TSharedPtr<FSkeletonTreeBoneItem> BoneItem = StaticCastSharedPtr<FSkeletonTreeBoneItem>(InItem);
 
-				// Remove non-vertex-weighted bones if we're filtering
-				if (BoneFilter == EBoneFilter::LOD && !BoneItem->IsBoneRequired(BoneMeshIndex, PreviewMeshComponent))
+			if (BoneFilter == EBoneFilter::None)
+			{
+				Result = ESkeletonTreeFilterResult::Hidden;
+			}
+			else if (GetPreviewScene().IsValid())
+			{
+				UDebugSkelMeshComponent* PreviewMeshComponent = GetPreviewScene()->GetPreviewMeshComponent();
+				if (PreviewMeshComponent)
 				{
-					Result = ESkeletonTreeFilterResult::Hidden;
+					int32 BoneMeshIndex = PreviewMeshComponent->GetBoneIndex(BoneItem->GetRowItemName());
+
+					// Remove non-mesh bones if we're filtering
+					if ((BoneFilter == EBoneFilter::Mesh || BoneFilter == EBoneFilter::Weighted || BoneFilter == EBoneFilter::LOD) &&
+						BoneMeshIndex == INDEX_NONE)
+					{
+						Result = ESkeletonTreeFilterResult::Hidden;
+					}
+
+					// Remove non-vertex-weighted bones if we're filtering
+					if (BoneFilter == EBoneFilter::Weighted && !BoneItem->IsBoneWeighted(BoneMeshIndex, PreviewMeshComponent))
+					{
+						Result = ESkeletonTreeFilterResult::Hidden;
+					}
+
+					// Remove non-vertex-weighted bones if we're filtering
+					if (BoneFilter == EBoneFilter::LOD && !BoneItem->IsBoneRequired(BoneMeshIndex, PreviewMeshComponent))
+					{
+						Result = ESkeletonTreeFilterResult::Hidden;
+					}
 				}
 			}
 		}
-	}
-	else if (InItem->IsOfType<FSkeletonTreeSocketItem>())
-	{
-		TSharedPtr<FSkeletonTreeSocketItem> SocketItem = StaticCastSharedPtr<FSkeletonTreeSocketItem>(InItem);
-
-		if (SocketFilter == ESocketFilter::None)
+		else if (InItem->IsOfType<FSkeletonTreeSocketItem>())
 		{
-			Result = ESkeletonTreeFilterResult::Hidden;
-		}
+			TSharedPtr<FSkeletonTreeSocketItem> SocketItem = StaticCastSharedPtr<FSkeletonTreeSocketItem>(InItem);
 
-		// Remove non-mesh sockets if we're filtering
-		if ((SocketFilter == ESocketFilter::Mesh || SocketFilter == ESocketFilter::None) && SocketItem->GetParentType() == ESocketParentType::Skeleton)
-		{
-			Result = ESkeletonTreeFilterResult::Hidden;
-		}
+			if (SocketFilter == ESocketFilter::None)
+			{
+				Result = ESkeletonTreeFilterResult::Hidden;
+			}
 
-		// Remove non-skeleton sockets if we're filtering
-		if ((SocketFilter == ESocketFilter::Skeleton || SocketFilter == ESocketFilter::None) && SocketItem->GetParentType() == ESocketParentType::Mesh)
-		{
-			Result = ESkeletonTreeFilterResult::Hidden;
-		}
+			// Remove non-mesh sockets if we're filtering
+			if ((SocketFilter == ESocketFilter::Mesh || SocketFilter == ESocketFilter::None) && SocketItem->GetParentType() == ESocketParentType::Skeleton)
+			{
+				Result = ESkeletonTreeFilterResult::Hidden;
+			}
 
-		if (SocketFilter == ESocketFilter::Active && SocketItem->GetParentType() == ESocketParentType::Skeleton && SocketItem->IsSocketCustomized())
-		{
-			// Don't add the skeleton socket if it's already added for the mesh
-			Result = ESkeletonTreeFilterResult::Hidden;
+			// Remove non-skeleton sockets if we're filtering
+			if ((SocketFilter == ESocketFilter::Skeleton || SocketFilter == ESocketFilter::None) && SocketItem->GetParentType() == ESocketParentType::Mesh)
+			{
+				Result = ESkeletonTreeFilterResult::Hidden;
+			}
+
+			if (SocketFilter == ESocketFilter::Active && SocketItem->GetParentType() == ESocketParentType::Skeleton && SocketItem->IsSocketCustomized())
+			{
+				// Don't add the skeleton socket if it's already added for the mesh
+				Result = ESkeletonTreeFilterResult::Hidden;
+			}
 		}
 	}
 

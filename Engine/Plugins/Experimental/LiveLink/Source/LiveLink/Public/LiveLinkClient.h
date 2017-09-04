@@ -4,7 +4,7 @@
 
 #include "Transform.h"
 #include "CriticalSection.h"
-#include "TickableEditorObject.h"
+#include "Tickable.h"
 
 #include "ILiveLinkClient.h"
 #include "ILiveLinkSource.h"
@@ -70,7 +70,7 @@ struct FLiveLinkSubject
 	void BuildInterpolatedFrame(const double InSeconds, FLiveLinkSubjectFrame& OutFrame);
 };
 
-class FLiveLinkClient : public ILiveLinkClient, public FTickableEditorObject
+class LIVELINK_API FLiveLinkClient : public ILiveLinkClient, public FTickableGameObject
 {
 public:
 	FLiveLinkClient() : LastValidationCheck(0.0) {}
@@ -78,12 +78,11 @@ public:
 
 	// Begin FTickableObjectBase implementation
 	virtual bool IsTickable() const override { return true; }
+	virtual bool IsTickableWhenPaused() const override { return true; }
+	virtual bool IsTickableInEditor() const override { return true; }
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(LiveLinkClient, STATGROUP_Tickables); }
 	// End FTickableObjectBase
-
-	// Add a new live link source to the client
-	void AddSource(TSharedPtr<ILiveLinkSource> InSource);
 
 	// Remove the specified source from the live link client
 	void RemoveSource(FGuid InEntryGuid);
@@ -92,8 +91,10 @@ public:
 	void RemoveAllSources();
 
 	// ILiveLinkClient Interface
-	virtual FLiveLinkTimeCode MakeTimeCode(double InTime, int32 InFrameNum) const;
-	virtual FLiveLinkTimeCode MakeTimeCodeFromTimeOnly(double InTime) const;
+	virtual FLiveLinkTimeCode MakeTimeCode(double InTime, int32 InFrameNum) const override;
+	virtual FLiveLinkTimeCode MakeTimeCodeFromTimeOnly(double InTime) const override;
+
+	virtual void AddSource(TSharedPtr<ILiveLinkSource> InSource) override;
 
 	virtual void PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) override;
 	virtual void ClearSubject(FName SubjectName) override;

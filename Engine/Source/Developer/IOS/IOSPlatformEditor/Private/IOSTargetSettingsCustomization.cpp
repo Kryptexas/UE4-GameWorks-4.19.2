@@ -120,6 +120,7 @@ void FIOSTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& Det
 
 	BuildRemoteBuildingSection(DetailLayout);
 
+	AudioPluginWidgetManager.BuildAudioCategory(DetailLayout, EAudioPlatform::IOS);
 	FindRequiredFiles();
 }
 

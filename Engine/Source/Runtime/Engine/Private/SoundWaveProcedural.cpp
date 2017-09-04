@@ -9,12 +9,18 @@ USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectIniti
 	bReset = false;
 	NumBufferUnderrunSamples = 512;
 	NumSamplesToGeneratePerCallback = 1024;
+
+	SampleByteSize = 2;
+
 	checkf(NumSamplesToGeneratePerCallback >= NumBufferUnderrunSamples, TEXT("Should generate more samples than this per callback."));
 }
 
 void USoundWaveProcedural::QueueAudio(const uint8* AudioData, const int32 BufferSize)
 {
-	if (BufferSize == 0 || !ensure((BufferSize % sizeof(int16)) == 0))
+	Audio::EAudioMixerStreamDataFormat::Type Format = GetGeneratedPCMDataFormat();
+	SampleByteSize = (Format == Audio::EAudioMixerStreamDataFormat::Int16) ? 2 : 4;
+
+	if (BufferSize == 0 || !ensure((BufferSize % SampleByteSize) == 0))
 	{
 		return;
 	}
@@ -47,7 +53,10 @@ int32 USoundWaveProcedural::GeneratePCMData(uint8* PCMData, const int32 SamplesN
 		AvailableByteCount.Reset();
 	}
 
-	int32 SamplesAvailable = AudioBuffer.Num() / sizeof(int16);
+	Audio::EAudioMixerStreamDataFormat::Type Format = GetGeneratedPCMDataFormat();
+	SampleByteSize = (Format == Audio::EAudioMixerStreamDataFormat::Int16) ? 2 : 4;
+
+	int32 SamplesAvailable = AudioBuffer.Num() / SampleByteSize;
 	int32 SamplesToGenerate = FMath::Min(NumSamplesToGeneratePerCallback, SamplesNeeded);
 
 	check(SamplesToGenerate >= NumBufferUnderrunSamples);
@@ -75,13 +84,13 @@ int32 USoundWaveProcedural::GeneratePCMData(uint8* PCMData, const int32 SamplesN
 		PumpQueuedAudio();
 	}
 
-	SamplesAvailable = AudioBuffer.Num() / sizeof(int16);
+	SamplesAvailable = AudioBuffer.Num() / SampleByteSize;
 
 	// Wait until we have enough samples that are requested before starting.
 	if (SamplesAvailable >= SamplesToGenerate)
 	{
 		const int32 SamplesToCopy = FMath::Min<int32>(SamplesToGenerate, SamplesAvailable);
-		const int32 BytesToCopy = SamplesToCopy * sizeof(int16);
+		const int32 BytesToCopy = SamplesToCopy * SampleByteSize;
 
 		FMemory::Memcpy((void*)PCMData, &AudioBuffer[0], BytesToCopy);
 		AudioBuffer.RemoveAt(0, BytesToCopy);
@@ -93,7 +102,7 @@ int32 USoundWaveProcedural::GeneratePCMData(uint8* PCMData, const int32 SamplesN
 	}
 
 	// There wasn't enough data ready, write out zeros
-	const int32 BytesCopied = NumBufferUnderrunSamples * sizeof(int16);
+	const int32 BytesCopied = NumBufferUnderrunSamples * SampleByteSize;
 	FMemory::Memzero(PCMData, BytesCopied);
 	return BytesCopied;
 }

@@ -26,6 +26,12 @@ public:
 	void Construct(const FArguments& InArgs);
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
+	/** Toggles cloth paint mode */
+	void TogglePaintMode();
+
+	/** Gets whether cloth paint mode is active */
+	bool IsPaintModeActive() const;
+
 protected:
 
 	/** Called as the tool selection changes to enable/disable painting */

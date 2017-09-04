@@ -120,7 +120,7 @@ void UMediaSoundComponent::Init(const int32 SampleRate)
 }
 
 
-void UMediaSoundComponent::OnGenerateAudio(TArray<float>& OutAudio)
+void UMediaSoundComponent::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 {
 	TSharedPtr<FMediaPlayerFacade, ESPMode::ThreadSafe> PinnedPlayerFacade;
 	TSharedPtr<FMediaAudioSampleQueue, ESPMode::ThreadSafe> PinnedSampleQueue;
@@ -133,8 +133,8 @@ void UMediaSoundComponent::OnGenerateAudio(TArray<float>& OutAudio)
 
 	if (PinnedPlayerFacade.IsValid() && PinnedPlayerFacade->IsPlaying() && PinnedSampleQueue.IsValid())
 	{
-		const uint32 FramesRequested = OutAudio.Num() / NumChannels;
-		const uint32 FramesWritten = Resampler->Generate(OutAudio.GetData(), FramesRequested, PinnedPlayerFacade->GetRate(), PinnedPlayerFacade->GetTime(), *PinnedSampleQueue);
+		const uint32 FramesRequested = NumSamples / NumChannels;
+		const uint32 FramesWritten = Resampler->Generate(OutAudio, FramesRequested, PinnedPlayerFacade->GetRate(), PinnedPlayerFacade->GetTime(), *PinnedSampleQueue);
 	}
 	else
 	{

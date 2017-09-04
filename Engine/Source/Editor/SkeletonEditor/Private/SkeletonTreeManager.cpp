@@ -10,10 +10,9 @@ FSkeletonTreeManager& FSkeletonTreeManager::Get()
 	return TheManager;
 }
 
-TSharedRef<ISkeletonTree> FSkeletonTreeManager::CreateSkeletonTree(class USkeleton* InSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs)
+TSharedRef<ISkeletonTree> FSkeletonTreeManager::CreateSkeletonTree(const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs)
 {
-	TSharedPtr<FEditableSkeleton> EditableSkeleton = CreateEditableSkeleton(InSkeleton);
-	TSharedPtr<ISkeletonTree> SkeletonTree = EditableSkeleton->CreateSkeletonTree(InSkeletonTreeArgs);
+	TSharedPtr<ISkeletonTree> SkeletonTree = StaticCastSharedRef<FEditableSkeleton>(InEditableSkeleton)->CreateSkeletonTree(InSkeletonTreeArgs);
 
 	// compact skeletons that are no longer being edited
 	bool bRemoved = false;
@@ -34,6 +33,11 @@ TSharedRef<ISkeletonTree> FSkeletonTreeManager::CreateSkeletonTree(class USkelet
 	while (bRemoved);
 
 	return SkeletonTree.ToSharedRef();
+}
+
+TSharedRef<ISkeletonTree> FSkeletonTreeManager::CreateSkeletonTree(class USkeleton* InSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs)
+{
+	return CreateSkeletonTree(CreateEditableSkeleton(InSkeleton), InSkeletonTreeArgs);
 }
 
 TSharedRef<FEditableSkeleton> FSkeletonTreeManager::CreateEditableSkeleton(class USkeleton* InSkeleton)

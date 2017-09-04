@@ -29,8 +29,6 @@ public:
 #endif
 	}
 
-	virtual TSharedPtr< class ISlateStyle > GetStyleSet() = 0;
-
 public:
 
 	/** Virtual destructor. */

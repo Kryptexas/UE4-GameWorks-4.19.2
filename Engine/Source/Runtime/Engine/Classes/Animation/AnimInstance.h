@@ -1050,7 +1050,7 @@ public:
 	/**
 	* Recalculate Required Curves based on Required Bones [RequiredBones]
 	*/
-	void RecalcRequiredCurves(bool bDisableAnimCurves);
+	void RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption);
 
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }
@@ -1121,6 +1121,9 @@ private:
 	 * the correctly-updated slot weight (after the animation graph has been updated).
 	 */
 	TArray<FQueuedRootMotionBlend> RootMotionBlendQueue;
+
+	// Root motion read from proxy (where it is calculated) and stored here to avoid potential stalls by calling GetProxyOnGameThread
+	FRootMotionMovementParams ExtractedRootMotion;
 
 private:
 	// update montage

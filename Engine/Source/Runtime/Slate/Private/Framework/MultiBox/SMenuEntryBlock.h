@@ -35,8 +35,9 @@ public:
 	 * @param	InToolTipOverride	Optional tool tip override.	 If omitted, then the action's label will be used instead.
 	 * @param	InIconOverride		Optional icon to use for the tool bar image.  If omitted, then the action's icon will be used instead.
 	 * @param	bInShouldCloseWindowAfterMenuSelection	In the case of a submenu, whether it should close after an item is selected
+	 * @param	bInInvertLabelOnHover	Whether to invert the label text's color on hover
 	 */
-	FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride = TAttribute<FText>(), const TAttribute<FText>& InToolTipOverride = TAttribute<FText>(), const FSlateIcon& InIconOverride = FSlateIcon(), bool bInCloseSelfOnly = false, bool bInShouldCloseWindowAfterMenuSelection = true);
+	FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride = TAttribute<FText>(), const TAttribute<FText>& InToolTipOverride = TAttribute<FText>(), const TAttribute<FSlateIcon>& InIconOverride = TAttribute<FSlateIcon>(), bool bInCloseSelfOnly = false, bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
 
 	/**
@@ -51,8 +52,9 @@ public:
 	 * @param	InCommandList		The list of commands bound to delegates that should be executed for menu entries
 	 * @param	InIcon				The icon to display to the left of the label
 	 * @param	bInShouldCloseWindowAfterMenuSelection	In the case of a submenu, whether it should close after an item is selected
+	 * @param	bInInvertLabelOnHover	Whether to invert the label text's color on hover
 	 */
-	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon = FSlateIcon(), bool bInShouldCloseWindowAfterMenuSelection = true);
+	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const TAttribute<FSlateIcon>& InIcon = TAttribute<FSlateIcon>(), bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 	
 
 	/**
@@ -67,8 +69,9 @@ public:
 	 * @param	InCommandList		The list of commands bound to delegates that should be executed for menu entries
 	 * @param	InIcon				The icon to display to the left of the label
 	 * @param	bInShouldCloseWindowAfterMenuSelection	In the case of a submenu, whether it should close after an item is selected
+	 * @param	bInInvertLabelOnHover	Whether to invert the label text's color on hover
 	 */
-	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FOnGetContent& InMenuBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon = FSlateIcon(), bool bInShouldCloseWindowAfterMenuSelection = true);
+	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FOnGetContent& InMenuBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const TAttribute<FSlateIcon>& InIcon = TAttribute<FSlateIcon>(), bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
 	/**
 	 * Constructor
@@ -82,8 +85,9 @@ public:
 	 * @param	InCommandList		The list of commands bound to delegates that should be executed for menu entries
 	 * @param	InIcon				The icon to display to the left of the label
 	 * @param	bInShouldCloseWindowAfterMenuSelection	In the case of a submenu, whether it should close after an item is selected
+	 * @param	bInInvertLabelOnHover	Whether to invert the label text's color on hover
 	 */
-	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TSharedPtr<SWidget>& InEntryWidget, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon = FSlateIcon(), bool bInShouldCloseWindowAfterMenuSelection = true);
+	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TSharedPtr<SWidget>& InEntryWidget, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const TAttribute<FSlateIcon>& InIcon = TAttribute<FSlateIcon>(), bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
 
 	/**
@@ -95,16 +99,17 @@ public:
 	 * @param	InUIAction			UI action to take when this menu item is clicked as well as to determine if the menu entry can be executed or appears "checked"
 	 * @param	InUserInterfaceActionType	Type of interface action
 	 * @param	bInShouldCloseWindowAfterMenuSelection	In the case of a submenu, whether it should close after an item is selected
+	 * @param	bInInvertLabelOnHover	Whether to invert the label text's color on hover
 	 */
-	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, const FSlateIcon& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true);
+	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, const TAttribute<FSlateIcon>& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
-	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true );
+	FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TAttribute<FSlateIcon>& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
-	FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const TAttribute<FText>& InToolTip, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true );
+	FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const TAttribute<FText>& InToolTip, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
-	FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true );
+	FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
-	FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true );
+	FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection = true, bool bInInvertLabelOnHover = true);
 
 	/** FMultiBlock interface */
 	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const override;
@@ -130,7 +135,7 @@ private:
 	TAttribute<FText> ToolTipOverride;
 
 	/** Optional overridden icon for this tool bar button.  IF not set, then the action's icon will be used instead. */
-	FSlateIcon IconOverride;
+	TAttribute<FSlateIcon> IconOverride;
 
 	/** Optional menu entry builder associated with this entry for building sub-menus and pull down menus */
 	FNewMenuDelegate EntryBuilder;
@@ -159,6 +164,9 @@ private:
 
 	/** For submenus, whether the menu should be closed after something is selected */
 	bool bShouldCloseWindowAfterMenuSelection;
+
+	/** Whether to invert the label text's color on hover */
+	bool bInvertLabelOnHover;
 };
 
 
@@ -173,7 +181,15 @@ class SLATE_API SMenuEntryBlock
 
 public:
 
-	SLATE_BEGIN_ARGS( SMenuEntryBlock ){}
+	SLATE_BEGIN_ARGS( SMenuEntryBlock )
+		: _InvertOnHover(true)
+	{}
+
+	/** The icon that will be displayed int the menu block */
+	SLATE_ATTRIBUTE(FSlateIcon, Icon)
+
+	/** Whether to invert the label text's color on hover */
+	SLATE_ARGUMENT(bool, InvertOnHover)
 
 	SLATE_END_ARGS()
 
@@ -347,6 +363,12 @@ protected:
 private:
 	const FSlateBrush* GetCheckBoxImageBrushFromStyle(const FCheckBoxStyle* Style) const;
 
+	/** Get the menu entry brush for this menu block */
+	const FSlateBrush* GetMenuEntryBrush() const;
+
+	/** Get the padding to use for the menu block icon */
+	FMargin GetMenuEntryIconPadding() const;
+
 	/** One-off delayed active timer to update the open/closed state of the sub menu. */
 	EActiveTimerReturnType UpdateSubMenuState(double InCurrentTime, float InDeltaTime, bool bWantsOpen);
 
@@ -367,6 +389,12 @@ private:
 	const FSlateBrush* MenuBarButtonBorderSubmenuOpen;
 	/** Style for menu bar button with no sub menu opened */
 	const FSlateBrush* MenuBarButtonBorderSubmenuClosed;
+
+	/** The icon that will be displayed for this menu block */
+	TAttribute<FSlateIcon> Icon;
+
+	/** The label for the menu block item */
+	TAttribute<FText> Label;
 
 	///** The pending SubMenu request state */
 	//enum

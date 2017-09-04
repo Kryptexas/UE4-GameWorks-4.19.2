@@ -633,7 +633,7 @@ public:
 	class UBodySetup* BodySetup;
 
 	/**
-	 *	Physics and collision information used for this USkeletalMesh, set up in PhAT.
+	 *	Physics and collision information used for this USkeletalMesh, set up in Physics Asset Editor.
 	 *	This is used for per-bone hit detection, accurate bounding box calculation and ragdoll physics for example.
 	 */
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, BlueprintReadOnly, Category=Physics)

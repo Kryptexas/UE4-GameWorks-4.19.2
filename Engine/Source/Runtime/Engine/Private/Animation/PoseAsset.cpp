@@ -626,6 +626,27 @@ void UPoseAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 	// Number of poses
 	OutTags.Add(FAssetRegistryTag("Poses", FString::FromInt(GetNumPoses()), FAssetRegistryTag::TT_Numerical));
+#if WITH_EDITOR
+	TArray<FName> Names;
+	Names.Reserve(PoseContainer.PoseNames.Num() + PoseContainer.Curves.Num());
+
+	for (const FSmartName& SmartName : PoseContainer.PoseNames)
+	{
+		Names.Add(SmartName.DisplayName);
+	}
+
+	for (const FAnimCurveBase& Curve : PoseContainer.Curves)
+	{
+		Names.AddUnique(Curve.Name.DisplayName);
+	}
+
+	FString PoseNameList;
+	for(const FName& Name : Names)
+	{
+		PoseNameList += FString::Printf(TEXT("%s%s"), *Name.ToString(), *USkeleton::CurveTagDelimiter);
+	}
+	OutTags.Add(FAssetRegistryTag(USkeleton::CurveNameTag, PoseNameList, FAssetRegistryTag::TT_Hidden)); //write pose names as curve tag as they use 
+#endif
 }
 
 int32 UPoseAsset::GetNumPoses() const
@@ -890,6 +911,33 @@ void UPoseAsset::Reinitialize()
 	BasePoseIndex = INDEX_NONE;
 }
 
+void UPoseAsset::RenameSmartName(const FName& InOriginalName, const FName& InNewName)
+{
+	for (FSmartName SmartName : PoseContainer.PoseNames)
+	{
+		if (SmartName.DisplayName == InOriginalName)
+		{
+			SmartName.DisplayName = InNewName;
+			break;
+		}
+	}
+
+	for (FAnimCurveBase& Curve : PoseContainer.Curves)
+	{
+		if (Curve.Name.DisplayName == InOriginalName)
+		{
+			Curve.Name.DisplayName = InNewName;
+			break;
+		}
+	}
+}
+
+void UPoseAsset::RemoveSmartNames(const TArray<FName>& InNamesToRemove)
+{
+	DeletePoses(InNamesToRemove);
+	DeleteCurves(InNamesToRemove);
+}
+
 void UPoseAsset::CreatePoseFromAnimation(class UAnimSequence* AnimSequence, const TArray<FSmartName>* InPoseNames/*== nullptr*/)
 {
 	if (AnimSequence)
@@ -1013,7 +1061,6 @@ void UPoseAsset::UpdatePoseFromAnimation(class UAnimSequence* AnimSequence)
 		OnPoseListChanged.Broadcast();
 	}
 }
-#endif // WITH_EDITOR
 
 bool UPoseAsset::ModifyPoseName(FName OldPoseName, FName NewPoseName, const SmartName::UID_Type* NewUID)
 {
@@ -1028,8 +1075,7 @@ bool UPoseAsset::ModifyPoseName(FName OldPoseName, FName NewPoseName, const Smar
 	FSmartName OldPoseSmartName;
 	ensureAlways(MySkeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, OldPoseName, OldPoseSmartName));
 
-	FPoseData* PoseData = PoseContainer.FindPoseData(OldPoseSmartName);
-	if (PoseData)
+	if (FPoseData* PoseData = PoseContainer.FindPoseData(OldPoseSmartName))
 	{
 		FSmartName NewPoseSmartName;
 		if (NewUID)
@@ -1038,11 +1084,7 @@ bool UPoseAsset::ModifyPoseName(FName OldPoseName, FName NewPoseName, const Smar
 		}
 		else
 		{
-			// we're renaming current one
-			MySkeleton->Modify();
-			MySkeleton->RenameSmartName(USkeleton::AnimCurveMappingName, OldPoseSmartName.UID, NewPoseName);
-			NewPoseSmartName = OldPoseSmartName;
-			NewPoseSmartName.DisplayName = NewPoseName;
+			MySkeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, NewPoseName, NewPoseSmartName);
 		}
 
 		PoseContainer.RenamePose(OldPoseSmartName, NewPoseSmartName);
@@ -1053,6 +1095,7 @@ bool UPoseAsset::ModifyPoseName(FName OldPoseName, FName NewPoseName, const Smar
 
 	return false;
 }
+#endif // WITH_EDITOR
 
 int32 UPoseAsset::DeletePoses(TArray<FName> PoseNamesToDelete)
 {

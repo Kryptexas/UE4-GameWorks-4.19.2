@@ -86,6 +86,7 @@ void FAndroidTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 	BuildLaunchImageSection(DetailLayout);
 	BuildDaydreamAppTileImageSection(DetailLayout);
 	BuildGraphicsDebuggerSection(DetailLayout);
+	AudioPluginWidgetManager.BuildAudioCategory(DetailLayout, EAudioPlatform::Android);
 }
 
 static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)

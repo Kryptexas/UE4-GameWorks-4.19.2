@@ -21,7 +21,10 @@ void FSoundBaseDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		Property = DetailBuilder.GetProperty("SourceEffectChain", USoundBase::StaticClass());
 		Property->MarkHiddenByCustomization();
 
-		Property = DetailBuilder.GetProperty("DefaultMasterReverbSendAmount", USoundBase::StaticClass());
+		Property = DetailBuilder.GetProperty("OutputToBusOnly", USoundBase::StaticClass());
+		Property->MarkHiddenByCustomization();
+
+		Property = DetailBuilder.GetProperty("BusSends", USoundBase::StaticClass());
 		Property->MarkHiddenByCustomization();
 	}
 }

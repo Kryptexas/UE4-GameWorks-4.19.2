@@ -197,6 +197,24 @@ private:
 	class UAnimBlueprint* PreviewBlueprint;
 };
 
+class UNREALED_API FPhysicsAssetThumbnailScene : public FThumbnailPreviewScene
+{
+public:
+	/** Constructor */
+	FPhysicsAssetThumbnailScene();
+
+	/** Sets the skeletal mesh to use in the next GetView() */
+	void SetPhysicsAsset(class UPhysicsAsset* InPhysicsAsset);
+
+protected:
+	// FThumbnailPreviewScene implementation
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
+
+private:
+	/** The skeletal mesh actor used to display all physics asset thumbnails */
+	class ASkeletalMeshActor* PreviewActor;
+};
+
 class UActorComponent;
 
 class UNREALED_API FClassActorThumbnailScene : public FThumbnailPreviewScene
