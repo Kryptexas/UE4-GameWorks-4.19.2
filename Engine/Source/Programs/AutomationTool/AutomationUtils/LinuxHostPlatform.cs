@@ -108,7 +108,7 @@ namespace AutomationTool
 		public override bool IsScriptModuleSupported(string ModuleName)
 		{
 			// @todo: add more unsupported modules here
-			if (String.Equals(ModuleName, "GauntletExtras", StringComparison.InvariantCultureIgnoreCase))
+			if (ModuleName.StartsWith("Gauntlet", StringComparison.OrdinalIgnoreCase))
 			{
 				return false;
 			}
