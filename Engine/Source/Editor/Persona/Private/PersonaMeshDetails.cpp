@@ -1338,7 +1338,7 @@ FText FPersonaMeshDetails::GetLODCustomModeNameContent(int32 LODIndex) const
 	int32 RealCurrentLODIndex = (CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1);
 	if (LODIndex == INDEX_NONE)
 	{
-		return LOCTEXT("GetLODCustomModeNameContent", "Custom");
+		return LOCTEXT("GetLODCustomModeNameContent_None", "Custom");
 	}
 	return FText::Format(LOCTEXT("GetLODCustomModeNameContent", "LOD{0}"), LODIndex);
 }

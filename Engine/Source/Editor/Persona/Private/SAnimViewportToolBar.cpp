@@ -240,7 +240,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::MakeViewportToolbar(TSharedPtr<class S
 	FName MenuBarStyle("ViewportMenu");
 	MenuBarBuilder.SetStyle(&FEditorStyle::Get(), MenuBarStyle);
 
-	MenuBarBuilder.AddPullDownMenu(FText(), LOCTEXT("ViewMenuToolTip", "Show viewport options"), FSlateIcon("EditorStyle", "EditorViewportToolBar.MenuDropdown"), FNewMenuDelegate::CreateSP(this, &SAnimViewportToolBar::GenerateViewMenu), "AnimViewportViewMenu");
+	MenuBarBuilder.AddPullDownMenu(FText(), LOCTEXT("ViewportMenuToolTip", "Show viewport options"), FSlateIcon("EditorStyle", "EditorViewportToolBar.MenuDropdown"), FNewMenuDelegate::CreateSP(this, &SAnimViewportToolBar::GenerateViewMenu), "AnimViewportViewMenu");
 
 	MenuBarBuilder.AddPullDownMenu(
 		TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SAnimViewportToolBar::GetCameraMenuLabel)), 
