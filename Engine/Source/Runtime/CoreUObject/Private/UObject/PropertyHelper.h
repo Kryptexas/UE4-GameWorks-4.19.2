@@ -192,8 +192,8 @@ namespace DelegatePropertyTools
 			ObjName[i++] = *Buffer;
 		}
 		ObjName[i] = TCHAR('\0');
-		UClass* Cls = NULL;
-		UObject* Object = NULL;
+		UClass* Cls = nullptr;
+		UObject* Object = nullptr;
 		// Get function name
 		if (*Buffer == TCHAR('.'))
 		{
@@ -210,10 +210,10 @@ namespace DelegatePropertyTools
 			// if we're importing for a subobject, assume the parent object as the source
 			// otherwise, assume Parent for the source
 			// if neither are valid, then the importing fails
-			if (Parent == NULL)
+			if (Parent == nullptr)
 			{
 				ErrorText->Logf(ELogVerbosity::Warning, TEXT("Cannot import unqualified delegate name; no object to search"));
-				return NULL;
+				return nullptr;
 			}
 			// since we don't support nested components, we only need to check one level deep
 			else if (!Parent->HasAnyFlags(RF_ClassDefaultObject) && Parent->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
@@ -228,17 +228,28 @@ namespace DelegatePropertyTools
 			}
 			FCString::Strncpy(FuncName, ObjName, i + 1);
 		}
-		if (Cls == NULL)
+		if (Cls == nullptr)
 		{
 			Cls = FindObject<UClass>(ANY_PACKAGE,ObjName);
-			if (Cls != NULL)
+			if (Cls != nullptr)
 			{
 				Object = Cls->GetDefaultObject();
 			}
 			else
 			{
-				Object = StaticFindObject( UObject::StaticClass(), ANY_PACKAGE, ObjName );
-				if (Object != NULL)
+				// Check outer chain before checking all packages
+				UObject* OuterToCheck = Parent;
+				while (Object == nullptr && OuterToCheck)
+				{
+					Object = StaticFindObject(UObject::StaticClass(), OuterToCheck, ObjName);
+					OuterToCheck = OuterToCheck->GetOuter();
+				}
+				
+				if (Object == nullptr)
+				{
+					Object = StaticFindObject(UObject::StaticClass(), ANY_PACKAGE, ObjName);
+				}
+				if (Object != nullptr)
 				{
 					Cls = Object->GetClass();
 				}
@@ -246,10 +257,10 @@ namespace DelegatePropertyTools
 		}
 		UFunction *Func = FindField<UFunction>( Cls, FuncName );
 		// Check function params.
-		if( Func != NULL )
+		if(Func != nullptr)
 		{
 			// Find the delegate UFunction to check params
-			check(SignatureFunction != NULL && "Invalid delegate property");
+			check(SignatureFunction != nullptr && "Invalid delegate property");
 
 			// check return type and params
 			if(	Func->NumParms == SignatureFunction->NumParms )
@@ -260,7 +271,7 @@ namespace DelegatePropertyTools
 					if( It1->GetClass()!=It2->GetClass() || (It1->PropertyFlags&CPF_OutParm)!=(It2->PropertyFlags&CPF_OutParm) )
 					{
 						ErrorText->Logf(ELogVerbosity::Warning,TEXT("Function %s does not match param types with delegate signature %s"), *Func->GetName(), *SignatureFunction->GetName());
-						Func = NULL;
+						Func = nullptr;
 						break;
 					}
 				}
@@ -268,7 +279,7 @@ namespace DelegatePropertyTools
 			else
 			{
 				ErrorText->Logf(ELogVerbosity::Warning,TEXT("Function %s does not match number of params with delegate signature %s"),*Func->GetName(), *SignatureFunction->GetName());
-				Func = NULL;
+				Func = nullptr;
 			}
 		}
 		else 
@@ -276,11 +287,11 @@ namespace DelegatePropertyTools
 			ErrorText->Logf(ELogVerbosity::Warning,TEXT("Unable to find function %s in object %s for delegate (found class: %s)"),FuncName,ObjName,*GetNameSafe(Cls));
 		}
 
-		//UE_LOG(LogProperty, Log, TEXT("... importing delegate FunctionName:'%s'(%s)   Object:'%s'(%s)"),Func != NULL ? *Func->GetName() : TEXT("NULL"), FuncName, Object != NULL ? *Object->GetFullName() : TEXT("NULL"), ObjName);
+		//UE_LOG(LogProperty, Log, TEXT("... importing delegate FunctionName:'%s'(%s)   Object:'%s'(%s)"),Func != nullptr ? *Func->GetName() : TEXT("nullptr"), FuncName, Object != nullptr ? *Object->GetFullName() : TEXT("nullptr"), ObjName);
 	
-		Delegate.BindUFunction( Func ? Object : NULL, Func ? Func->GetFName() : NAME_None );
+		Delegate.BindUFunction( Func ? Object : nullptr, Func ? Func->GetFName() : NAME_None );
 
-		return ( Func != NULL && Object != NULL ) ? Buffer : NULL;
+		return ( Func != nullptr && Object != nullptr ) ? Buffer : nullptr;
 	}
 }
 

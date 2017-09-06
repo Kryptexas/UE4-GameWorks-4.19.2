@@ -855,6 +855,11 @@ bool UKismetSystemLibrary::IsValidSoftObjectReference(const TSoftObjectPtr<UObje
 	return !SoftObjectReference.IsNull();
 }
 
+FString UKismetSystemLibrary::Conv_SoftObjectReferenceToString(const TSoftObjectPtr<UObject>& SoftObjectReference)
+{
+	return SoftObjectReference.ToString();
+}
+
 bool UKismetSystemLibrary::EqualEqual_SoftObjectReference(const TSoftObjectPtr<UObject>& A, const TSoftObjectPtr<UObject>& B)
 {
 	return A == B;
@@ -868,6 +873,11 @@ bool UKismetSystemLibrary::NotEqual_SoftObjectReference(const TSoftObjectPtr<UOb
 bool UKismetSystemLibrary::IsValidSoftClassReference(const TSoftClassPtr<UObject>& SoftClassReference)
 {
 	return !SoftClassReference.IsNull();
+}
+
+FString UKismetSystemLibrary::Conv_SoftClassReferenceToString(const TSoftClassPtr<UObject>& SoftClassReference)
+{
+	return SoftClassReference.ToString();
 }
 
 bool UKismetSystemLibrary::EqualEqual_SoftClassReference(const TSoftClassPtr<UObject>& A, const TSoftClassPtr<UObject>& B)
@@ -2565,6 +2575,11 @@ bool UKismetSystemLibrary::IsValidPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
 	return PrimaryAssetId.IsValid();
 }
 
+FString UKismetSystemLibrary::Conv_PrimaryAssetIdToString(FPrimaryAssetId PrimaryAssetId)
+{
+	return PrimaryAssetId.ToString();
+}
+
 bool UKismetSystemLibrary::EqualEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B)
 {
 	return A == B;
@@ -2578,6 +2593,11 @@ bool UKismetSystemLibrary::NotEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAs
 bool UKismetSystemLibrary::IsValidPrimaryAssetType(FPrimaryAssetType PrimaryAssetType)
 {
 	return PrimaryAssetType.IsValid();
+}
+
+FString UKismetSystemLibrary::Conv_PrimaryAssetTypeToString(FPrimaryAssetType PrimaryAssetType)
+{
+	return PrimaryAssetType.ToString();
 }
 
 bool UKismetSystemLibrary::EqualEqual_PrimaryAssetType(FPrimaryAssetType A, FPrimaryAssetType B)

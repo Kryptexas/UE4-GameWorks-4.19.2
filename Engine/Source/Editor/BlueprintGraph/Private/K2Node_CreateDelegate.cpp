@@ -318,17 +318,18 @@ void UK2Node_CreateDelegate::PostReconstructNode()
 UFunction* UK2Node_CreateDelegate::GetDelegateSignature() const
 {
 	UEdGraphPin* Pin = GetDelegateOutPin();
-	check(Pin != NULL);
+	check(Pin);
 	if(Pin->LinkedTo.Num())
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if(UEdGraphPin* ResultPin = Pin->LinkedTo[0])
 		{
-			ensure(K2Schema->PC_Delegate == ResultPin->PinType.PinCategory);
-			return FMemberReference::ResolveSimpleMemberReference<UFunction>(ResultPin->PinType.PinSubCategoryMemberReference);
+			if (UEdGraphSchema_K2::PC_Delegate == ResultPin->PinType.PinCategory)
+			{
+				return FMemberReference::ResolveSimpleMemberReference<UFunction>(ResultPin->PinType.PinSubCategoryMemberReference);
+			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/* = false*/) const

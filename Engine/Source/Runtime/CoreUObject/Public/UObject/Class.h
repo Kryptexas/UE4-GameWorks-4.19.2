@@ -1882,7 +1882,7 @@ struct FCppClassTypeInfo : ICppClassTypeInfo
 	FCppClassTypeInfo& operator=(const FCppClassTypeInfo&) = delete;
 
 	// ICppClassTypeInfo implementation
-	bool IsAbstract() const
+	virtual bool IsAbstract() const override
 	{
 		return Info->bIsAbstract;
 	}
@@ -2032,7 +2032,10 @@ public:
 	ClassAddReferencedObjectsType ClassAddReferencedObjects;
 
 	/** Class pseudo-unique counter; used to accelerate unique instance name generation */
-	int32 ClassUnique;
+	uint32 ClassUnique:31;
+
+	/** Used to check if the class was cooked or not */
+	uint32 bCooked:1;
 
 	/** Class flags; See EClassFlags for more information */
 	EClassFlags ClassFlags;
@@ -2057,9 +2060,6 @@ public:
 
 	/** Which Name.ini file to load Config variables out of */
 	FName ClassConfigName;
-
-	/** Used to check if the class was cooked or not */
-	bool bCooked;
 
 	/** List of replication records */
 	TArray<FRepRecord> ClassReps;
@@ -2100,17 +2100,16 @@ public:
 	static void AssembleReferenceTokenStreams();
 
 private:
+#if WITH_EDITOR
 	/** Provides access to attributes of the underlying C++ class. Should never be unset. */
 	TOptional<FCppClassTypeInfo> CppTypeInfo;
+#endif
 
 	/** Map of all functions by name contained in this class */
 	TMap<FName, UFunction*> FuncMap;
 
-	/** A cache of all functions by name that exist in a parent context */
-	mutable TMap<FName, UFunction*> ParentFuncMap;
-
-	/** A cache of all functions by name that exist in an interface context */
-	mutable TMap<FName, UFunction*> InterfaceFuncMap;
+	/** A cache of all functions by name that exist in a parent (superclass or interface) context */
+	mutable TMap<FName, UFunction*> SuperFuncMap;
 
 public:
 	/**
@@ -2227,8 +2226,7 @@ public:
 	/** Clears the function name caches, in case things have changed */
 	void ClearFunctionMapsCaches()
 	{
-		ParentFuncMap.Empty();
-		InterfaceFuncMap.Empty();
+		SuperFuncMap.Empty();
 	}
 
 	/** Looks for a given function name */
@@ -2261,17 +2259,21 @@ public:
 	virtual void SerializeSuperStruct(FArchive& Ar) override;
 	// End of UStruct interface.
 
+#if WITH_EDITOR
 	/** Provides access to C++ type info. */
 	const ICppClassTypeInfo* GetCppTypeInfo() const
 	{
 		return CppTypeInfo ? &CppTypeInfo.GetValue() : nullptr;
 	}
+#endif
 
 	/** Sets C++ type information. Should not be NULL. */
 	void SetCppTypeInfoStatic(const FCppClassTypeInfoStatic* InCppTypeInfoStatic)
 	{
+#if WITH_EDITOR
 		check(InCppTypeInfoStatic);
 		CppTypeInfo.Emplace(InCppTypeInfoStatic);
+#endif
 	}
 	
 	/**

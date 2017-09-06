@@ -993,7 +993,7 @@ struct FPropertyWidgetInfoChainElement
 			check(Element.Property);
 			const FString Postfix = (Element.Index != INDEX_NONE) ? FString::Printf(TEXT("[%d]."), Element.Index) : SimplePostFix;
 			const FString PropertyName = Element.Property->GetName() + Postfix;
-			const FString DisplayName = Element.Property->GetMetaData(TEXT("DisplayName"));
+			const FString& DisplayName = Element.Property->GetMetaData(TEXT("DisplayName"));
 
 			WidgetInfo.PropertyName += PropertyName;
 			WidgetInfo.DisplayName += (!DisplayName.IsEmpty()) ? (DisplayName + Postfix) : PropertyName;
@@ -1001,7 +1001,7 @@ struct FPropertyWidgetInfoChainElement
 
 		{
 			const FString PropertyName = CurrentProp->GetName();
-			const FString DisplayName = CurrentProp->GetMetaData(TEXT("DisplayName"));
+			const FString& DisplayName = CurrentProp->GetMetaData(TEXT("DisplayName"));
 
 			WidgetInfo.PropertyName += PropertyName;
 			WidgetInfo.DisplayName += (!DisplayName.IsEmpty()) ? DisplayName : PropertyName;

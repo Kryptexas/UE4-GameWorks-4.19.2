@@ -23,14 +23,7 @@
 			"BlacklistPlatforms" :
 			[
 				"HTML5"
-			],
-  		"WhitelistPlatforms" :
-			[
-        "Win64",
-        "Mac",
-        "Android"
 			]
-
     }
 	]
 }

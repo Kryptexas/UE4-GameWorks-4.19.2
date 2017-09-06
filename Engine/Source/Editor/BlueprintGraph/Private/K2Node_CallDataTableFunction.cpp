@@ -13,7 +13,7 @@ void UK2Node_CallDataTableFunction::PinDefaultValueChanged(UEdGraphPin* Pin)
 {
 	Super::PinDefaultValueChanged(Pin);
 
-	FString DataTablePinName = GetTargetFunction()->GetMetaData(FBlueprintMetadata::MD_DataTablePin);
+	const FString& DataTablePinName = GetTargetFunction()->GetMetaData(FBlueprintMetadata::MD_DataTablePin);
 	if (Pin->PinName == DataTablePinName)
 	{
 		// When the DataTable pin gets a new value assigned, we need to update the Slate UI so that the RowName drop down gets updated
@@ -25,7 +25,7 @@ void UK2Node_CallDataTableFunction::NotifyPinConnectionListChanged(UEdGraphPin* 
 {
 	Super::NotifyPinConnectionListChanged(Pin);
 
-	FString DataTablePinName = GetTargetFunction()->GetMetaData(FBlueprintMetadata::MD_DataTablePin);
+	const FString& DataTablePinName = GetTargetFunction()->GetMetaData(FBlueprintMetadata::MD_DataTablePin);
 	if (Pin->PinName == DataTablePinName)
 	{
 		// When the DataTable pin gets a new connection assigned, we need to update the Slate UI so that the RowName drop down gets updated

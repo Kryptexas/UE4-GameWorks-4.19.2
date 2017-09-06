@@ -30,7 +30,7 @@ void FMeshMergingSettingsObjectCustomization::CustomizeDetails(IDetailLayoutBuil
 	FName CategoryMetaData("Category");
 	for (TSharedRef<IPropertyHandle> Property: SimpleDefaultProperties)
 	{
-		const FString CategoryName = Property->GetMetaData(CategoryMetaData);
+		const FString& CategoryName = Property->GetMetaData(CategoryMetaData);
 
 		IDetailCategoryBuilder& CategoryBuilder = LayoutBuilder.EditCategory(*CategoryName);
 		IDetailPropertyRow& PropertyRow = CategoryBuilder.AddProperty(Property);
@@ -59,7 +59,7 @@ void FMeshMergingSettingsObjectCustomization::CustomizeDetails(IDetailLayoutBuil
 
 	for (TSharedRef<IPropertyHandle> Property : SimpleDefaultProperties)
 	{
-		const FString CategoryName = Property->GetMetaData(CategoryMetaData);
+		const FString& CategoryName = Property->GetMetaData(CategoryMetaData);
 
 		IDetailCategoryBuilder& CategoryBuilder = LayoutBuilder.EditCategory(*CategoryName);
 		IDetailPropertyRow& PropertyRow = CategoryBuilder.AddProperty(Property);

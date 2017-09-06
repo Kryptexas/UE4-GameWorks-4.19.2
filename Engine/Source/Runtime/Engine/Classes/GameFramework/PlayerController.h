@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -907,10 +907,17 @@ public:
 	 * Play a force feedback pattern on the player's controller
 	 * @param	ForceFeedbackEffect		The force feedback pattern to play
 	 * @param	bLooping				Whether the pattern should be played repeatedly or be a single one shot
+	 * @param	bIgnoreTimeDilation		Whether the pattern should ignore time dilation
 	 * @param	Tag						A tag that allows stopping of an effect.  If another effect with this Tag is playing, it will be stopped and replaced
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
-	void ClientPlayForceFeedback(class UForceFeedbackEffect* ForceFeedbackEffect, bool bLooping, FName Tag);
+	void ClientPlayForceFeedback(class UForceFeedbackEffect* ForceFeedbackEffect, bool bLooping, bool bIgnoreTimeDilation, FName Tag);
+
+	DEPRECATED(4.18, "Use version that specifies whether to ignore time dilation or not")
+	void ClientPlayForceFeedback(class UForceFeedbackEffect* ForceFeedbackEffect, bool bLooping, FName Tag)
+	{
+		ClientPlayForceFeedback(ForceFeedbackEffect, bLooping, false, Tag);
+	}
 
 	/** 
 	 * Stops a playing force feedback pattern

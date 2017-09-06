@@ -149,6 +149,8 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 		}
 	}
 
+	
+
 	if (GConfig)
 	{
 		GConfig->GetBool(TEXT("AssetRegistry"), TEXT("bUpdateDiskCacheAfterLoad"), bUpdateDiskCacheAfterLoad, GEngineIni);
@@ -2024,7 +2026,7 @@ void UAssetRegistryImpl::AddFilesToSearch (const TArray<FString>& Files)
 
 #if WITH_EDITOR
 
-void UAssetRegistryImpl::OnDirectoryChanged (const TArray<FFileChangeData>& FileChanges)
+void UAssetRegistryImpl::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 {
 	// Take local copy of FileChanges array as we wish to collapse pairs of 'Removed then Added' FileChangeData
 	// entries into a single 'Modified' entry.
@@ -2064,27 +2066,27 @@ void UAssetRegistryImpl::OnDirectoryChanged (const TArray<FFileChangeData>& File
 		const bool bIsValidPackageName = FPackageName::TryConvertFilenameToLongPackageName(File, LongPackageName);
 		const bool bIsValidPackage = bIsPackageFile && bIsValidPackageName;
 
-		if ( bIsValidPackage )
+		if (bIsValidPackage)
 		{
-			switch( FileChangesProcessed[FileIdx].Action )
+			switch (FileChangesProcessed[FileIdx].Action)
 			{
-				case FFileChangeData::FCA_Added:
-					// This is a package file that was created on disk. Mark it to be scanned for asset data.
-					NewFiles.AddUnique(File);
-					UE_LOG(LogAssetRegistry, Verbose, TEXT("File was added to content directory: %s"), *File);
-					break;
+			case FFileChangeData::FCA_Added:
+				// This is a package file that was created on disk. Mark it to be scanned for asset data.
+				NewFiles.AddUnique(File);
+				UE_LOG(LogAssetRegistry, Verbose, TEXT("File was added to content directory: %s"), *File);
+				break;
 
-				case FFileChangeData::FCA_Modified:
-					// This is a package file that changed on disk. Mark it to be scanned immediately for new or removed asset data.
-					ModifiedFiles.AddUnique(File);
-					UE_LOG(LogAssetRegistry, Verbose, TEXT("File changed in content directory: %s"), *File);
-					break;
+			case FFileChangeData::FCA_Modified:
+				// This is a package file that changed on disk. Mark it to be scanned immediately for new or removed asset data.
+				ModifiedFiles.AddUnique(File);
+				UE_LOG(LogAssetRegistry, Verbose, TEXT("File changed in content directory: %s"), *File);
+				break;
 
-				case FFileChangeData::FCA_Removed:
-					// This file was deleted. Remove all assets in the package from the registry.
-					RemovePackageData(*LongPackageName);
-					UE_LOG(LogAssetRegistry, Verbose, TEXT("File was removed from content directory: %s"), *File);
-					break;
+			case FFileChangeData::FCA_Removed:
+				// This file was deleted. Remove all assets in the package from the registry.
+				RemovePackageData(*LongPackageName);
+				UE_LOG(LogAssetRegistry, Verbose, TEXT("File was removed from content directory: %s"), *File);
+				break;
 			}
 		}
 	}
@@ -2094,48 +2096,7 @@ void UAssetRegistryImpl::OnDirectoryChanged (const TArray<FFileChangeData>& File
 		AddFilesToSearch(NewFiles);
 	}
 
-	if (ModifiedFiles.Num() > 0)
-	{
-		// Convert all the filenames to package names
-		TArray<FString> ModifiedPackageNames;
-		ModifiedPackageNames.Reserve(ModifiedFiles.Num());
-		for (const FString& File : ModifiedFiles)
-		{
-			ModifiedPackageNames.Add(FPackageName::FilenameToLongPackageName(File));
-		}
-
-		// Get the assets that are currently inside the package
-		TArray<TArray<FAssetData*>> ExistingFilesAssetData;
-		ExistingFilesAssetData.Reserve(ModifiedFiles.Num());
-		for (const FString& PackageName : ModifiedPackageNames)
-		{
-			TArray<FAssetData*>* PackageAssetsPtr = State.CachedAssetsByPackageName.Find(*PackageName);
-			if (PackageAssetsPtr && PackageAssetsPtr->Num() > 0)
-			{
-				ExistingFilesAssetData.Add(*PackageAssetsPtr);
-			}
-			else
-			{
-				ExistingFilesAssetData.AddDefaulted();
-			}
-		}
-
-		// Re-scan and update the asset registry with the new asset data
-		TArray<FName> FoundAssets;
-		ScanPathsAndFilesSynchronous(TArray<FString>(), ModifiedFiles, true, EAssetDataCacheMode::NoCache, &FoundAssets, nullptr);
-
-		// Remove any assets that are no longer present in the package
-		for (const TArray<FAssetData*>& OldPackageAssets : ExistingFilesAssetData)
-		{
-			for (FAssetData* OldPackageAsset : OldPackageAssets)
-			{
-				if (!FoundAssets.Contains(OldPackageAsset->ObjectPath))
-				{
-					RemoveAssetData(OldPackageAsset);
-				}
-			}
-		}
-	}
+	ScanModifiedAssetFiles(ModifiedFiles);
 }
 
 void UAssetRegistryImpl::OnAssetLoaded(UObject *AssetLoaded)
@@ -2234,6 +2195,51 @@ void UAssetRegistryImpl::UpdateRedirectCollector()
 
 #endif // WITH_EDITOR
 
+void UAssetRegistryImpl::ScanModifiedAssetFiles(const TArray<FString>& InFilePaths)
+{
+	if (InFilePaths.Num() > 0)
+	{
+		// Convert all the filenames to package names
+		TArray<FString> ModifiedPackageNames;
+		ModifiedPackageNames.Reserve(InFilePaths.Num());
+		for (const FString& File : InFilePaths)
+		{
+			ModifiedPackageNames.Add(FPackageName::FilenameToLongPackageName(File));
+		}
+
+		// Get the assets that are currently inside the package
+		TArray<TArray<FAssetData*>> ExistingFilesAssetData;
+		ExistingFilesAssetData.Reserve(InFilePaths.Num());
+		for (const FString& PackageName : ModifiedPackageNames)
+		{
+			TArray<FAssetData*>* PackageAssetsPtr = State.CachedAssetsByPackageName.Find(*PackageName);
+			if (PackageAssetsPtr && PackageAssetsPtr->Num() > 0)
+			{
+				ExistingFilesAssetData.Add(*PackageAssetsPtr);
+			}
+			else
+			{
+				ExistingFilesAssetData.AddDefaulted();
+			}
+		}
+
+		// Re-scan and update the asset registry with the new asset data
+		TArray<FName> FoundAssets;
+		ScanPathsAndFilesSynchronous(TArray<FString>(), InFilePaths, true, EAssetDataCacheMode::NoCache, &FoundAssets, nullptr);
+
+		// Remove any assets that are no longer present in the package
+		for (const TArray<FAssetData*>& OldPackageAssets : ExistingFilesAssetData)
+		{
+			for (FAssetData* OldPackageAsset : OldPackageAssets)
+			{
+				if (!FoundAssets.Contains(OldPackageAsset->ObjectPath))
+				{
+					RemoveAssetData(OldPackageAsset);
+				}
+			}
+		}
+	}
+}
 
 void UAssetRegistryImpl::OnContentPathMounted( const FString& InAssetPath, const FString& FileSystemPath )
 {

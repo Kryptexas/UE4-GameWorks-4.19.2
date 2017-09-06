@@ -1081,14 +1081,11 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		// if ArgStr is empty but we have more params to read parse the function to see if these have defaults, if so set them
 		bool bFoundDefault = false;
 		bool bFailedImport = true;
+#if WITH_EDITOR
 		if (!FCString::Strcmp(*ArgStr, TEXT("")))
 		{
 			const FName DefaultPropertyKey(*(FString(TEXT("CPP_Default_")) + PropertyParam->GetName()));
-#if WITH_EDITOR
-			const FString PropertyDefaultValue = Function->GetMetaData(DefaultPropertyKey);
-#else
-			const FString PropertyDefaultValue = TEXT("");
-#endif
+			const FString& PropertyDefaultValue = Function->GetMetaData(DefaultPropertyKey);
 			if (!PropertyDefaultValue.IsEmpty()) 
 			{
 				bFoundDefault = true;
@@ -1097,6 +1094,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 				bFailedImport = (Result == nullptr);
 			}
 		}
+#endif
 
 		if (!bFoundDefault)
 		{

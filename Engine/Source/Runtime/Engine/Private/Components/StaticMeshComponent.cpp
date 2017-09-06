@@ -304,6 +304,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 
+#if WITH_EDITORONLY_DATA
 	if (Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES)
 	{
 		check(AttachmentCounter.GetValue() == 0);
@@ -332,6 +333,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 	{
 		GetBodyInstance()->bAutoWeld = false;	//existing content may rely on no auto welding
 	}
+#endif
 }
 
 void UStaticMeshComponent::PostInitProperties()

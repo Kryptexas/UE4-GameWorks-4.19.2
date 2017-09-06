@@ -1037,7 +1037,7 @@ public:
 	 *
 	 * @return						Returns TRUE if successful
 	 */
-	bool CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEntryNode, UEdGraphNode* InResultNode, class FKismetCompilerContext* CompilerContext = NULL) const;
+	bool CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEntryNode, UEdGraphNode* InResultNode, class FKismetCompilerContext* CompilerContext = nullptr, TSet<UEdGraphNode*>* OutExpandedNodes = nullptr) const;
 
 	/** 
 	 * Connects all of the linked pins from PinA to all of the linked pins from PinB, removing

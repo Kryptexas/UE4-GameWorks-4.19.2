@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -49,29 +49,32 @@ struct ENGINE_API FActiveForceFeedbackEffect
 
 	FName Tag;
 	uint32 bLooping:1;
+	uint32 bIgnoreTimeDilation:1;
 	float PlayTime;
 
 	FActiveForceFeedbackEffect()
-		: ForceFeedbackEffect(NULL)
+		: ForceFeedbackEffect(nullptr)
 		, Tag(NAME_None)
 		, bLooping(false)
+		, bIgnoreTimeDilation(false)
 		, PlayTime(0.f)
 	{
 	}
 
-	FActiveForceFeedbackEffect(UForceFeedbackEffect* InEffect, const bool bInLooping, const FName InTag)
+	FActiveForceFeedbackEffect(UForceFeedbackEffect* InEffect, const bool bInLooping, const bool bInIgnoreTimeDilation, const FName InTag)
 		: ForceFeedbackEffect(InEffect)
 		, Tag(InTag)
 		, bLooping(bInLooping)
+		, bIgnoreTimeDilation(bInIgnoreTimeDilation)
 		, PlayTime(0.f)
 	{
 	}
 
 	// Updates the final force feedback values based on this effect.  Returns true if the effect should continue playing, false if it is finished.
-	bool Update(const float DeltaTime, struct FForceFeedbackValues& Values);
+	bool Update(float DeltaTime, FForceFeedbackValues& Values);
 
 	// Gets the current values at the stored play time
-	void GetValues(struct FForceFeedbackValues& Values) const;
+	void GetValues(FForceFeedbackValues& Values) const;
 };
 
 /**

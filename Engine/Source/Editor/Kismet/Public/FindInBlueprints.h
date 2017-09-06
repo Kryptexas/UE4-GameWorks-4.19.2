@@ -20,10 +20,9 @@
 #include "FindInBlueprintManager.h"
 
 class FBlueprintEditor;
-class FFindInBlueprintsResult;
 class FImaginaryFiBData;
+class FUICommandList;
 
-typedef TSharedPtr<class FFindInBlueprintsResult> FSearchResult;
 typedef STreeView<FSearchResult>  STreeViewType;
 
 DECLARE_DELEGATE_OneParam(FOnSearchComplete, TArray<TSharedPtr<class FImaginaryFiBData>>&);
@@ -79,81 +78,12 @@ namespace FindInBlueprintsHelpers
 	 * @return						TRUE when the parsing is successful
 	 */
 	bool ParsePinType(FText InKey, FText InValue, FEdGraphPinType& InOutPinType);
+
+	/**
+	* Iterates through all the given tree node's children and tells the tree view to expand them
+	*/
+	void ExpandAllChildren(FSearchResult InTreeNode, TSharedPtr< STreeView< TSharedPtr< FFindInBlueprintsResult > > > InTreeView);
 }
-
-/* Item that matched the search results */
-class FFindInBlueprintsResult : public TSharedFromThis< FFindInBlueprintsResult >
-{
-public: 
-	/* Create a root */
-	FFindInBlueprintsResult(const FText& InDisplayText);
-	
-	/* Create a listing for a search result*/
-	FFindInBlueprintsResult(const FText& InDisplayText, TSharedPtr<FFindInBlueprintsResult> InParent);
-
-	virtual ~FFindInBlueprintsResult() {}
-	
-	/* Called when user clicks on the search item */
-	virtual FReply OnClick();
-
-	/* Get Category for this search result */
-	virtual FText GetCategory() const;
-
-	/* Create an icon to represent the result */
-	virtual TSharedRef<SWidget>	CreateIcon() const;
-
-	/** Finalizes any content for the search data that was unsafe to do on a separate thread */
-	virtual void FinalizeSearchData() {};
-
-	/* Gets the comment on this node if any */
-	FString GetCommentText() const;
-
-	/** gets the blueprint housing all these search results */
-	UBlueprint* GetParentBlueprint() const;
-
-	/**
-	 * Parses search info for specific data important for displaying the search result in an easy to understand format
-	 *
-	 * @param	InTokens		The search tokens to check results against
-	 * @param	InKey			This is the tag for the data, describing what it is so special handling can occur if needed
-	 * @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
-	 * @param	InParent		The parent search result
-	 */
-	virtual void ParseSearchInfo(FText InKey, FText InValue) {};
-
-	/** Returns the Object represented by this search information give the Blueprint it can be found in */
-	virtual UObject* GetObject(UBlueprint* InBlueprint) const;
-
-	/**
-	 * Adds extra search info, anything that does not have a predestined place in the search result. Adds a sub-item to the searches and formats its description so the tag displays
-	 *
-	 * @param	InKey			This is the tag for the data, describing what it is so special handling can occur if needed
-	 * @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
-	 * @param	InParent		The parent search result
-	 */
-	void AddExtraSearchInfo(FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
-
-	/**
-	 * Iterates through all this node's children, and tells the tree view to expand them
-	 */
-	void ExpandAllChildren( TSharedPtr< STreeView< TSharedPtr< FFindInBlueprintsResult > > > InTreeView );
-
-	/** Returns the display string for the row */
-	FText GetDisplayString() const;
-
-public:
-	/*Any children listed under this category */
-	TArray< TSharedPtr<FFindInBlueprintsResult> > Children;
-
-	/*If it exists it is the blueprint*/
-	TWeakPtr<FFindInBlueprintsResult> Parent;
-
-	/*The display text for this item */
-	FText DisplayText;
-
-	/** Display text for comment information */
-	FString CommentText;
-};
 
 /** Graph nodes use this class to store their data */
 class FFindInBlueprintsGraphNode : public FFindInBlueprintsResult
@@ -263,12 +193,14 @@ public:
 	SLATE_BEGIN_ARGS( SFindInBlueprints )
 		: _bIsSearchWindow(true)
 		, _bHideSearchBar(false)
+		, _ContainingTab()
 	{}
 		SLATE_ARGUMENT(bool, bIsSearchWindow)
 		SLATE_ARGUMENT(bool, bHideSearchBar)
+		SLATE_ARGUMENT(TSharedPtr<SDockTab>, ContainingTab)
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
+	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor = nullptr);
 	~SFindInBlueprints();
 
 	/** Focuses this widget's search box, and changes the mode as well, and optionally the search terms */
@@ -295,6 +227,18 @@ public:
 	 * @param InMinimiumVersionRequirement		Version that Blueprints must be below to be loaded and indexed, by default all out-of-date Blueprints
 	 */
 	void CacheAllBlueprints(FSimpleDelegate InOnFinished = FSimpleDelegate(), EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST);
+
+	/** If this is a global find results widget, returns the host tab's unique ID. Otherwise, returns NAME_None. */
+	FName GetHostTabId() const;
+
+	/** If this is a global find results widget, ask the host tab to close */
+	void CloseHostTab();
+
+	/** Determines if this context does not accept syncing from an external source */
+	bool IsLocked() const
+	{
+		return bIsLocked;
+	}
 
 private:
 	/** Processes results of the ongoing async stream search */
@@ -392,6 +336,18 @@ private:
 	/** Callback when user attempts to copy their selection in the Find-in-Blueprints */
 	void OnCopyAction();
 
+	/** Called when the user clicks the global find results button */
+	FReply OnOpenGlobalFindResults();
+
+	/** Called when the host tab is closed (if valid) */
+	void OnHostTabClosed(TSharedRef<SDockTab> DockTab);
+
+	/** Called when the lock button is clicked in a global find results tab */
+	FReply OnLockButtonClicked();
+
+	/** Returns the image used for the lock button in a global find results tab */
+	const FSlateBrush* OnGetLockButtonImage() const;
+
 private:
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<class FBlueprintEditor> BlueprintEditorPtr;
@@ -434,4 +390,16 @@ private:
 
 	/** Cached version that was last searched */
 	EFiBVersion LastSearchedFiBVersion;
+
+	/** Commands handled by this widget */
+	TSharedPtr< FUICommandList > CommandList;
+
+	/** Tab hosting this widget. May be invalid. */
+	TWeakPtr<SDockTab> HostTab;
+
+	/** True if current search should not be changed by an external source */
+	bool bIsLocked;
+
+	/** True if the most recent search was a global search */
+	bool bHasGlobalSearchResults;
 };

@@ -103,7 +103,6 @@ void UBlueprintGeneratedClass::PostLoad()
 			ClassFlags |= CLASS_Deprecated;
 		}
 	}
-#endif // WITH_EDITORONLY_DATA
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 	// Patch the fast calls (needed as we can't bump engine version to serialize it directly in UFunction right now)
@@ -113,6 +112,7 @@ void UBlueprintGeneratedClass::PostLoad()
 		Pair.FunctionToPatch->EventGraphCallOffset = Pair.EventGraphCallOffset;
 	}
 #endif
+#endif // WITH_EDITORONLY_DATA
 
 	// Generate "fast path" instancing data for UCS/AddComponent node templates.
 	if (CookedComponentInstancingData.Num() > 0)
@@ -1390,11 +1390,11 @@ void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
 	UberGraphFunction = NULL;
 #if WITH_EDITORONLY_DATA
 	OverridenArchetypeForCDO = NULL;
-#endif //WITH_EDITOR
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 	FastCallPairs_DEPRECATED.Empty();
 #endif
+#endif //WITH_EDITOR
 }
 
 void UBlueprintGeneratedClass::Bind()

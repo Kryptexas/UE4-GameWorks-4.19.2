@@ -40,7 +40,7 @@ USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitial
 	CameraLagMaxDistance = 0.f;
 }
 
-void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime)
+FRotator USpringArmComponent::GetTargetRotation() const
 {
 	FRotator DesiredRot = GetComponentRotation();
 
@@ -57,9 +57,9 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	}
 
 	// If inheriting rotation, check options for which components to inherit
-	if(!bAbsoluteRotation)
+	if (!bAbsoluteRotation)
 	{
-		if(!bInheritPitch)
+		if (!bInheritPitch)
 		{
 			DesiredRot.Pitch = RelativeRotation.Pitch;
 		}
@@ -74,6 +74,13 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 			DesiredRot.Roll = RelativeRotation.Roll;
 		}
 	}
+
+	return DesiredRot;
+}
+
+void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime)
+{
+	FRotator DesiredRot = GetTargetRotation();
 
 	const float InverseCameraLagMaxTimeStep = (1.f / CameraLagMaxTimeStep);
 

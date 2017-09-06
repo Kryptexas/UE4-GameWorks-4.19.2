@@ -104,6 +104,9 @@ struct CORE_API FFrameworkObjectVersion
 		// in order to allow us to do all UFunction loading in a single pass (after classes and CDOs are created):
 		RemoveUField_Next,
 
+		// Fix User Defined structs so that all members are correct flagged blueprint visible 
+		UserDefinedStructsBlueprintVisible,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

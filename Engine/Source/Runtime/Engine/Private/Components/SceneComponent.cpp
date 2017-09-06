@@ -505,19 +505,19 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,F
 #endif
 
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
-	if (Parent && !Parent->bWorldToComponentUpdated)
+	if (Parent && !Parent->bComponentToWorldUpdated)
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_Parent);
 		Parent->UpdateComponentToWorld();
 
 		// Updating the parent may (depending on if we were already attached to parent) result in our being updated, so just return
-		if (bWorldToComponentUpdated)
+		if (bComponentToWorldUpdated)
 		{
 			return;
 		}
 	}
 
-	bWorldToComponentUpdated = true;
+	bComponentToWorldUpdated = true;
 
 	FTransform NewTransform(NoInit);
 
@@ -548,9 +548,7 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,F
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_Changed);
 		// Update transform
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		ComponentToWorld = NewTransform;
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		PropagateTransformUpdate(true, UpdateTransformFlags, Teleport);
 	}
 	else
@@ -1845,7 +1843,7 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 
 		if (Parent->IsNetSimulating() && !IsNetSimulating())
 		{
-			Parent->ClientAttachedChildren.Add(this);
+			Parent->ClientAttachedChildren.AddUnique(this);
 		}
 
 		// Now apply attachment rules
@@ -2195,7 +2193,7 @@ void USceneComponent::UpdateChildTransforms(EUpdateTransformFlags UpdateTransfor
 		if (ChildComp != nullptr)
 		{
 			// Don't update the child if it uses a completely absolute (world-relative) scheme, unless it has never been updated.
-			if (!(ChildComp->bAbsoluteLocation && ChildComp->bAbsoluteRotation && ChildComp->bAbsoluteScale) || !ChildComp->bWorldToComponentUpdated)
+			if (!(ChildComp->bAbsoluteLocation && ChildComp->bAbsoluteRotation && ChildComp->bAbsoluteScale) || !ChildComp->bComponentToWorldUpdated)
 			{
 				ChildComp->UpdateComponentToWorld(UpdateTransformFlagsFromParent, Teleport);
 			}
@@ -2203,6 +2201,7 @@ void USceneComponent::UpdateChildTransforms(EUpdateTransformFlags UpdateTransfor
 	}
 }
 
+#if WITH_EDITORONLY_DATA
 void USceneComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -2214,6 +2213,7 @@ void USceneComponent::Serialize(FArchive& Ar)
 		bAbsoluteLocation = bAbsoluteTranslation_DEPRECATED;
 	}
 }
+#endif
 
 
 void USceneComponent::PostInterpChange(UProperty* PropertyThatChanged)
@@ -2534,7 +2534,7 @@ void USceneComponent::BeginDestroy()
 
 bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics, ETeleportType Teleport)
 {
-	checkSlow(bWorldToComponentUpdated);
+	checkSlow(bComponentToWorldUpdated);
 	FQuat NewRotationQuat(RotationQuat);
 
 #if ENABLE_NAN_DIAGNOSTIC
@@ -2925,9 +2925,7 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 	// We do this because at level load/duplication ComponentToWorld is uninitialized
 	{
 		const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	// Update bounds
@@ -2940,9 +2938,7 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 		
 		// Calculate the new ComponentToWorld transform
 		const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	// Physics move is skipped if physics state is not created or physics scene supports origin shifting
@@ -3259,9 +3255,7 @@ void FScopedMovementUpdate::RevertMove()
 		if (IsTransformDirty())
 		{
 			// Teleport to start
-			PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			Component->ComponentToWorld = InitialTransform;
-			PRAGMA_ENABLE_DEPRECATION_WARNINGS
 			Component->RelativeLocation = InitialRelativeLocation;
 			Component->RelativeRotation = InitialRelativeRotation;
 			Component->RelativeScale3D = InitialRelativeScale;

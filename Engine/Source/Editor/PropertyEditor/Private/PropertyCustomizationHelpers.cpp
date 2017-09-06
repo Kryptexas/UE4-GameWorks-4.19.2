@@ -378,14 +378,14 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 		PropertyHandle = InArgs._PropertyHandle;
 
 		// check if the property metadata wants us to display a thumbnail
-		FString DisplayThumbnailString = PropertyHandle->GetProperty()->GetMetaData(TEXT("DisplayThumbnail"));
+		const FString& DisplayThumbnailString = PropertyHandle->GetProperty()->GetMetaData(TEXT("DisplayThumbnail"));
 		if(DisplayThumbnailString.Len() > 0)
 		{
 			bDisplayThumbnail = DisplayThumbnailString == TEXT("true");
 		}
 
 		// check if the property metadata has an override to the thumbnail size
-		FString ThumbnailSizeString = PropertyHandle->GetProperty()->GetMetaData(TEXT("ThumbnailSize"));
+		const FString& ThumbnailSizeString = PropertyHandle->GetProperty()->GetMetaData(TEXT("ThumbnailSize"));
 		if ( ThumbnailSizeString.Len() > 0 )
 		{
 			FVector2D ParsedVector;

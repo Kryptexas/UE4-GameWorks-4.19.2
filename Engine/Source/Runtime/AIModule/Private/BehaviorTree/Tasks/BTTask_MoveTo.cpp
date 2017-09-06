@@ -19,12 +19,14 @@ UBTTask_MoveTo::UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer) : Su
 	bNotifyTaskFinished = true;
 
 	AcceptableRadius = GET_AI_CONFIG_VAR(AcceptanceRadius);
-	bStopOnOverlap = GET_AI_CONFIG_VAR(bFinishMoveOnGoalOverlap); 
+	bReachTestIncludesGoalRadius = bReachTestIncludesAgentRadius = bStopOnOverlap = GET_AI_CONFIG_VAR(bFinishMoveOnGoalOverlap);
 	bAllowStrafe = GET_AI_CONFIG_VAR(bAllowStrafing);
 	bAllowPartialPath = GET_AI_CONFIG_VAR(bAcceptPartialPaths);
 	bTrackMovingGoal = true;
 	bProjectGoalLocation = true;
 	bUsePathfinding = true;
+
+	bStopOnOverlapNeedsUpdate = true;
 
 	ObservedBlackboardValueTolerance = AcceptableRadius * 0.95f;
 
@@ -83,7 +85,8 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 		MoveReq.SetAllowPartialPath(bAllowPartialPath);
 		MoveReq.SetAcceptanceRadius(AcceptableRadius);
 		MoveReq.SetCanStrafe(bAllowStrafe);
-		MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
+		MoveReq.SetReachTestIncludesAgentRadius(bReachTestIncludesAgentRadius);
+		MoveReq.SetReachTestIncludesGoalRadius(bReachTestIncludesGoalRadius);
 		MoveReq.SetProjectGoalLocation(bProjectGoalLocation);
 		MoveReq.SetUsePathfinding(bUsePathfinding);
 
@@ -389,11 +392,28 @@ uint16 UBTTask_MoveTo::GetInstanceMemorySize() const
 	return sizeof(FBTMoveToTaskMemory);
 }
 
+void UBTTask_MoveTo::PostLoad()
+{
+	Super::PostLoad();
+	
+	if (bStopOnOverlapNeedsUpdate)
+	{
+		bStopOnOverlapNeedsUpdate = false;
+		bReachTestIncludesAgentRadius = bStopOnOverlap;
+		bReachTestIncludesGoalRadius = false;
+	}
+}
+
 #if WITH_EDITOR
 
 FName UBTTask_MoveTo::GetNodeIconName() const
 {
 	return FName("BTEditor.Graph.BTNode.Task.MoveTo.Icon");
+}
+
+void UBTTask_MoveTo::OnNodeCreated()
+{
+	bStopOnOverlapNeedsUpdate = false;
 }
 
 #endif	// WITH_EDITOR

@@ -8,12 +8,17 @@
 #include "Types/WidgetActiveTimerDelegate.h"
 #include "Dom/JsonObject.h"
 #include "HAL/Runnable.h"
+#include "SlateFwd.h"
+#include "Input/Reply.h"
 
 struct FAssetData;
 class FFindInBlueprintsResult;
 class FImaginaryBlueprint;
 class FImaginaryFiBData;
+class FSpawnTabArgs;
 class SFindInBlueprints;
+
+#define MAX_GLOBAL_FIND_RESULTS 4
 
 /**
  *Const values for Find-in-Blueprints to tag searchable data
@@ -242,6 +247,80 @@ struct KISMET_API FFiBMD
 };
 
 ////////////////////////////////////
+// FFindInBlueprintsResult
+
+/* Item that matched the search results */
+class FFindInBlueprintsResult : public TSharedFromThis< FFindInBlueprintsResult >
+{
+public:
+	/* Create a root */
+	FFindInBlueprintsResult(const FText& InDisplayText);
+
+	/* Create a listing for a search result*/
+	FFindInBlueprintsResult(const FText& InDisplayText, TSharedPtr<FFindInBlueprintsResult> InParent);
+
+	virtual ~FFindInBlueprintsResult() {}
+
+	/* Called when user clicks on the search item */
+	virtual FReply OnClick();
+
+	/* Get Category for this search result */
+	virtual FText GetCategory() const;
+
+	/* Create an icon to represent the result */
+	virtual TSharedRef<SWidget>	CreateIcon() const;
+
+	/** Finalizes any content for the search data that was unsafe to do on a separate thread */
+	virtual void FinalizeSearchData() {};
+
+	/* Gets the comment on this node if any */
+	FString GetCommentText() const;
+
+	/** gets the blueprint housing all these search results */
+	UBlueprint* GetParentBlueprint() const;
+
+	/**
+	* Parses search info for specific data important for displaying the search result in an easy to understand format
+	*
+	* @param	InTokens		The search tokens to check results against
+	* @param	InKey			This is the tag for the data, describing what it is so special handling can occur if needed
+	* @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
+	* @param	InParent		The parent search result
+	*/
+	virtual void ParseSearchInfo(FText InKey, FText InValue) {};
+
+	/** Returns the Object represented by this search information give the Blueprint it can be found in */
+	virtual UObject* GetObject(UBlueprint* InBlueprint) const;
+
+	/**
+	* Adds extra search info, anything that does not have a predestined place in the search result. Adds a sub-item to the searches and formats its description so the tag displays
+	*
+	* @param	InKey			This is the tag for the data, describing what it is so special handling can occur if needed
+	* @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
+	* @param	InParent		The parent search result
+	*/
+	void AddExtraSearchInfo(FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
+
+	/** Returns the display string for the row */
+	FText GetDisplayString() const;
+
+public:
+	/*Any children listed under this category */
+	TArray< TSharedPtr<FFindInBlueprintsResult> > Children;
+
+	/*If it exists it is the blueprint*/
+	TWeakPtr<FFindInBlueprintsResult> Parent;
+
+	/*The display text for this item */
+	FText DisplayText;
+
+	/** Display text for comment information */
+	FString CommentText;
+};
+
+typedef TSharedPtr<FFindInBlueprintsResult> FSearchResult;
+
+////////////////////////////////////
 // FStreamSearch
 
 /**
@@ -450,6 +529,17 @@ public:
 
 	bool IsGatheringDataEnabled() const { return bEnableGatheringData; }
 
+	/** Find or create the global find results widget */
+	TSharedPtr<SFindInBlueprints> GetGlobalFindResults();
+
+	/** Enable or disable the global find results tab feature */
+	void EnableGlobalFindResults(bool bEnable);
+
+	/** Close any orphaned global find results tabs for a particular tab manager */
+	void CloseOrphanedGlobalFindResultsTabs(TSharedPtr<class FTabManager> TabManager);
+
+	void GlobalFindResultsClosed(const TSharedRef<SFindInBlueprints>& FindResults);
+
 private:
 	/** Initializes the FiB manager */
 	void Initialize();
@@ -501,6 +591,15 @@ private:
 	/** Begins the process of extracting unloaded FiB data */
 	void ExtractUnloadedFiBData(const FAssetData& InAssetData, const FString& InFiBData, bool bIsVersioned);
 
+	/** Determines the global find results tab label */
+	FText GetGlobalFindResultsTabLabel(int32 TabIdx);
+
+	/** Handler for a request to spawn a new global find results tab */
+	TSharedRef<SDockTab> SpawnGlobalFindResultsTab(const FSpawnTabArgs& SpawnTabArgs, int32 TabIdx);
+
+	/** Creates and opens a new global find results tab */
+	TSharedPtr<SFindInBlueprints> OpenGlobalFindResultsTab();
+
 protected:
 	/** Tells if gathering data is currently allowed */
 	bool bEnableGatheringData;
@@ -546,6 +645,15 @@ protected:
 
 	/** Mapping between a class name and its UClass instance - used for faster look up in FFindInBlueprintSearchManager::OnAssetAdded */
 	TMap<FName, const UClass*> CachedAssetClasses;
+
+	/** The tab identifier/instance name for global find results */
+	FName GlobalFindResultsTabIDs[MAX_GLOBAL_FIND_RESULTS];
+
+	/** Array of open global find results widgets */
+	TArray<TWeakPtr<SFindInBlueprints>> GlobalFindResults;
+
+	/** Global Find Results workspace menu item */
+	TSharedPtr<class FWorkspaceItem> GlobalFindResultsMenuItem;
 };
 
 struct KISMET_API FDisableGatheringDataOnScope

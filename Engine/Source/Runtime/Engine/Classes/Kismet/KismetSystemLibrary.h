@@ -184,6 +184,10 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Utilities")
 	static bool IsValidSoftObjectReference(const TSoftObjectPtr<UObject>& SoftObjectReference);
 
+	/** Converts a Soft Object Reference to a string. The other direction is not provided because it cannot be validated */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "ToString (SoftObjectReference)", CompactNodeTitle = "->"), Category = "Utilities")
+	static FString Conv_SoftObjectReferenceToString(const TSoftObjectPtr<UObject>& SoftObjectReference);
+
 	/** Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (SoftObjectReference)", CompactNodeTitle = "=="), Category = "Utilities")
 	static bool EqualEqual_SoftObjectReference(const TSoftObjectPtr<UObject>& A, const TSoftObjectPtr<UObject>& B);
@@ -195,6 +199,10 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	/** Returns true if the Soft Class Reference is not null */
 	UFUNCTION(BlueprintPure, Category = "Utilities")
 	static bool IsValidSoftClassReference(const TSoftClassPtr<UObject>& SoftClassReference);
+
+	/** Converts a Soft Class Reference to a string. The other direction is not provided because it cannot be validated */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "ToString (SoftObjectReference)", CompactNodeTitle = "->"), Category = "Utilities")
+	static FString Conv_SoftClassReferenceToString(const TSoftClassPtr<UObject>& SoftClassReference);
 
 	/** Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (SoftClassReference)", CompactNodeTitle = "=="), Category = "Utilities")
@@ -1644,6 +1652,10 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "AssetManager")
 	static bool IsValidPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
 
+	/** Converts a Primary Asset Id to a string. The other direction is not provided because it cannot be validated */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "ToString (PrimaryAssetId)", CompactNodeTitle = "->"), Category = "AssetManager")
+	static FString Conv_PrimaryAssetIdToString(FPrimaryAssetId PrimaryAssetId);
+
 	/** Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (PrimaryAssetId)", CompactNodeTitle = "=="), Category = "AssetManager")
 	static bool EqualEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B);
@@ -1652,9 +1664,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (PrimaryAssetId)", CompactNodeTitle = "!="), Category = "AssetManager")
 	static bool NotEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B);
 
-	/** Returns list of PrimaryAssetIds for a PrimaryAssetType */
+	/** Returns list of Primary Asset Ids for a PrimaryAssetType */
 	UFUNCTION(BlueprintPure, Category = "AssetManager")
 	static bool IsValidPrimaryAssetType(FPrimaryAssetType PrimaryAssetType);
+
+	/** Converts a Primary Asset Type to a string. The other direction is not provided because it cannot be validated */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "ToString (PrimaryAssetType)", CompactNodeTitle = "->"), Category = "AssetManager")
+	static FString Conv_PrimaryAssetTypeToString(FPrimaryAssetType PrimaryAssetType);
 
 	/** Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (PrimaryAssetType)", CompactNodeTitle = "=="), Category = "AssetManager")

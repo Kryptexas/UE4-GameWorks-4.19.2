@@ -14,7 +14,7 @@ UHorizontalBox::UHorizontalBox(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SHorizontalBox::FArguments Defaults;
-	Visiblity_DEPRECATED = Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UHorizontalBox::ReleaseSlateResources(bool bReleaseChildren)

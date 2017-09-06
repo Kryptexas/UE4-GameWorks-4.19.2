@@ -102,6 +102,7 @@ void AActor::InitializeDefaults()
 	bActorLabelEditable = true;
 	SpriteScale = 1.0f;
 	bEnableAutoLODGeneration = true;	
+	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
 #endif // WITH_EDITORONLY_DATA
 	NetCullDistanceSquared = 225000000.0f;
 	NetDriverName = NAME_GameNetDriver;
@@ -109,7 +110,6 @@ void AActor::InitializeDefaults()
 	// will be updated in PostInitProperties
 	bActorEnableCollision = true;
 	bActorSeamlessTraveled = false;
-	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
 	bBlockInput = false;
 	bCanBeDamaged = true;
 	bFindCameraComponentWhenViewTarget = true;
@@ -538,7 +538,7 @@ void AActor::Serialize(FArchive& Ar)
 	// we'll let that drop
 	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 	{
-		TArray<UActorComponent*> DuplicatingComponents;
+		TInlineComponentArray<UActorComponent*> DuplicatingComponents;
 		if (Ar.IsSaving())
 		{
 			DuplicatingComponents.Reserve(OwnedComponents.Num());
@@ -568,11 +568,6 @@ void AActor::PostLoad()
 		Owner->Children.Add(this);
 	}
 
-	if (GetLinkerUE4Version() < VER_UE4_CONSUME_INPUT_PER_BIND)
-	{
-		bBlockInput = (InputConsumeOption_DEPRECATED == ICO_ConsumeAll);
-	}
-
 	if (GetLinkerUE4Version() < VER_UE4_PRIVATE_REMOTE_ROLE)
 	{
 		bReplicates = (RemoteRole != ROLE_None);
@@ -582,6 +577,12 @@ void AActor::PostLoad()
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		bExchangedRoles = false;
+	}
+
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerUE4Version() < VER_UE4_CONSUME_INPUT_PER_BIND)
+	{
+		bBlockInput = (InputConsumeOption_DEPRECATED == ICO_ConsumeAll);
 	}
 
 	if (AActor* ParentActor = ParentComponentActor_DEPRECATED.Get())
@@ -599,7 +600,6 @@ void AActor::PostLoad()
 
 	if ( GIsEditor )
 	{
-#if WITH_EDITORONLY_DATA
 		// Propagate the hidden at editor startup flag to the transient hidden flag
 		bHiddenEdTemporary = bHiddenEd;
 
@@ -608,8 +608,8 @@ void AActor::PostLoad()
 		{
 			UE_LOG(LogActor, Log,  TEXT("Loaded Actor (%s) with IsPendingKill() == true"), *GetName() );
 		}
-#endif // WITH_EDITORONLY_DATA
 	}
+#endif // WITH_EDITORONLY_DATA
 }
 
 void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
@@ -2524,8 +2524,8 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
-	// Note: we do not mark dirty here because this can be called when in editor when modifying transient components
-	// if a component is added during this time it should not dirty.  Higher level code in the editor should always dirty the package anyway
+	// Note: we do not mark dirty here because this can be called as part of component duplication when reinstancing components during blueprint compilation
+	// if a component is removed during this time it should not dirty.  Higher level code in the editor should always dirty the package anyway.
 	const bool bMarkDirty = false;
 	Modify(bMarkDirty);
 
@@ -3637,8 +3637,10 @@ void AActor::K2_DestroyComponent(UActorComponent* Component)
 bool AActor::SetRootComponent(class USceneComponent* NewRootComponent)
 {
 	/** Only components owned by this actor can be used as a its root component. */
-	if (ensure(NewRootComponent == NULL || NewRootComponent->GetOwner() == this))
+	if (ensure(NewRootComponent == nullptr || NewRootComponent->GetOwner() == this))
 	{
+		Modify();
+
 		RootComponent = NewRootComponent;
 		return true;
 	}

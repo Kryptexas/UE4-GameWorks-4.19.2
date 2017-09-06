@@ -8,6 +8,7 @@
 #include "Engine/TextureStreamingTypes.h"
 #include "Components/PrimitiveComponent.h"
 #include "Materials/MaterialInterface.h"
+#include "SortedMap.h"
 #include "MeshComponent.generated.h"
 
 /**
@@ -114,8 +115,8 @@ public:
 	 */
 	float GetScalarParameterDefaultValue(const FName ParameterName)
 	{
-		float* Value = ScalarParameterDefaultValues.Find(ParameterName);
-		return (Value) ? *Value : 0.f;
+		FMaterialParameterCache* ParameterCache = MaterialParameterCache.Find(ParameterName);
+		return (ParameterCache ? ParameterCache->ScalarParameterDefaultValue : 0.f);
 	}
 protected:
 	/** Retrieves all the (scalar/vector-)parameters from within the used materials on the SkeletalMesh, and stores material index vs parameter names */
@@ -124,14 +125,20 @@ protected:
 	/** Mark cache parameters map as dirty, cache will be rebuild once SetScalar/SetVector functions are called */
 	void MarkCachedMaterialParameterNameIndicesDirty();
 	
-	/** Map containing material indices for the retrieved scalar material parameter names */
-	TMap<FName, TArray<int32>> ScalarParameterMaterialIndices;
-	/** Map containing material default parameter for the scalar parameter names 
-	 * We only cache the first one as we can't trace back from [name, index] 
-	 * This data is used for animation system to set default back to it*/
-	TMap<FName, float> ScalarParameterDefaultValues;
-	/** Map containing material indices for the retrieved vector material parameter names */
-	TMap<FName, TArray<int32>> VectorParameterMaterialIndices;
+	/** Struct containing information about a given parameter name */
+	struct FMaterialParameterCache
+	{
+		/** Material indices for the retrieved scalar material parameter names */
+		TArray<int32> ScalarParameterMaterialIndices;
+		/** Material indices for the retrieved vector material parameter names */
+		TArray<int32> VectorParameterMaterialIndices;
+		/** Material default parameter for the scalar parameter
+		 * We only cache the last one as we can't trace back from [name, index] 
+		 * This data is used for animation system to set default back to it*/
+		float ScalarParameterDefaultValue = 0.f;
+	};
+
+	TSortedMap<FName, FMaterialParameterCache> MaterialParameterCache;
 
 	/** Flag whether or not the cached material parameter indices map is dirty (defaults to true, and is set from SetMaterial/Set(Skeletal)Mesh */
 	uint32 bCachedMaterialParameterIndicesAreDirty : 1;

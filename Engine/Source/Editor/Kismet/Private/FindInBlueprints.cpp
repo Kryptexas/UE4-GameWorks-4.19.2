@@ -30,7 +30,10 @@
 #include "ImaginaryBlueprintData.h"
 #include "FiBSearchInstance.h"
 #include "BlueprintEditorTabs.h"
+#include "BlueprintEditorSettings.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FindInBlueprints"
 
@@ -107,6 +110,17 @@ bool FindInBlueprintsHelpers::ParsePinType(FText InKey, FText InValue, FEdGraphP
 	return bParsed;
 }
 
+void FindInBlueprintsHelpers::ExpandAllChildren(FSearchResult InTreeNode, TSharedPtr<STreeView<TSharedPtr<FFindInBlueprintsResult>>> InTreeView)
+{
+	if (InTreeNode->Children.Num())
+	{
+		InTreeView->SetItemExpansion(InTreeNode, true);
+		for (int32 i = 0; i < InTreeNode->Children.Num(); i++)
+		{
+			ExpandAllChildren(InTreeNode->Children[i], InTreeView);
+		}
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintSearchResult
@@ -194,18 +208,6 @@ UBlueprint* FFindInBlueprintsResult::GetParentBlueprint() const
 
 	}
 	return ResultBlueprint;
-}
-
-void FFindInBlueprintsResult::ExpandAllChildren( TSharedPtr< STreeView< TSharedPtr< FFindInBlueprintsResult > > > InTreeView )
-{
-	if( Children.Num() )
-	{
-		InTreeView->SetItemExpansion(this->AsShared(), true);
-		for( int32 i = 0; i < Children.Num(); i++ )
-		{
-			Children[i]->ExpandAllChildren(InTreeView);
-		}
-	}
 }
 
 FText FFindInBlueprintsResult::GetDisplayString() const
@@ -590,12 +592,23 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 	LastSearchedFiBVersion = EFiBVersion::FIB_VER_LATEST;
 	BlueprintEditorPtr = InBlueprintEditor;
 
+	HostTab = InArgs._ContainingTab;
+	bIsLocked = false;
+
+	if (HostTab.IsValid())
+	{
+		HostTab.Pin()->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateSP(this, &SFindInBlueprints::OnHostTabClosed));
+	}
+
 	if (InArgs._bIsSearchWindow)
 	{
 		RegisterCommands();
 	}
 
-	bIsInFindWithinBlueprintMode = true;
+	bIsInFindWithinBlueprintMode = BlueprintEditorPtr.IsValid();
+	bHasGlobalSearchResults = !bIsInFindWithinBlueprintMode;
+
+	const bool bHostFindInBlueprintsInGlobalTab = GetDefault<UBlueprintEditorSettings>()->bHostFindInBlueprintsInGlobalTab;
 	
 	this->ChildSlot
 		[
@@ -614,16 +627,45 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 					.Visibility(InArgs._bHideSearchBar? EVisibility::Collapsed : EVisibility::Visible)
 				]
 				+SHorizontalBox::Slot()
+				.Padding(4.f, 0.f, 2.f, 0.f)
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.OnClicked(this, &SFindInBlueprints::OnOpenGlobalFindResults)
+					.Visibility(BlueprintEditorPtr.IsValid() && bHostFindInBlueprintsInGlobalTab ? EVisibility::Visible : EVisibility::Collapsed)
+					.ToolTipText(LOCTEXT("OpenInGlobalFindResultsButtonTooltip", "Find in all Blueprints"))
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "FindResults.FindInBlueprints")
+						.Text(FText::FromString(FString(TEXT("\xf1e5"))) /*fa-binoculars*/)
+					]
+				]
+				+SHorizontalBox::Slot()
 				.Padding(2.f, 0.f)
 				.AutoWidth()
 				[
 					SNew(SCheckBox)
 					.OnCheckStateChanged(this, &SFindInBlueprints::OnFindModeChanged)
 					.IsChecked(this, &SFindInBlueprints::OnGetFindModeChecked)
-					.Visibility(InArgs._bHideSearchBar? EVisibility::Collapsed : EVisibility::Visible)
+					.Visibility(InArgs._bHideSearchBar || bHostFindInBlueprintsInGlobalTab ? EVisibility::Collapsed : EVisibility::Visible)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("BlueprintSearchModeChange", "Find In Current Blueprint Only"))
+					]
+				]
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.VAlign(EVerticalAlignment::VAlign_Center)
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton")
+					.ContentPadding(FMargin(1, 0))
+					.OnClicked(this, &SFindInBlueprints::OnLockButtonClicked)
+					.Visibility(!InArgs._bHideSearchBar && !BlueprintEditorPtr.IsValid() ? EVisibility::Visible : EVisibility::Collapsed)
+					[
+						SNew(SImage)
+						.Image(this, &SFindInBlueprints::OnGetLockButtonImage)
 					]
 				]
 			]
@@ -893,7 +935,7 @@ EActiveTimerReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentT
 		{
 			for ( auto& Item : BackgroundItemsFound )
 			{
-				Item->ExpandAllChildren( TreeView );
+				FindInBlueprintsHelpers::ExpandAllChildren(Item, TreeView);
 				ItemsFound.Add( Item );
 			}
 			TreeView->RequestTreeRefresh();
@@ -933,12 +975,12 @@ EActiveTimerReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentT
 
 void SFindInBlueprints::RegisterCommands()
 {
-	TSharedPtr<FUICommandList> ToolKitCommandList = BlueprintEditorPtr.Pin()->GetToolkitCommands();
+	CommandList = BlueprintEditorPtr.IsValid() ? BlueprintEditorPtr.Pin()->GetToolkitCommands() : MakeShareable(new FUICommandList());
 
-	ToolKitCommandList->MapAction( FGenericCommands::Get().Copy,
+	CommandList->MapAction( FGenericCommands::Get().Copy,
 		FExecuteAction::CreateSP(this, &SFindInBlueprints::OnCopyAction) );
 
-	ToolKitCommandList->MapAction( FGenericCommands::Get().SelectAll,
+	CommandList->MapAction( FGenericCommands::Get().SelectAll,
 		FExecuteAction::CreateSP(this, &SFindInBlueprints::OnSelectAllAction) );
 }
 
@@ -1038,7 +1080,7 @@ void SFindInBlueprints::MakeSearchQuery(FString InSearchString, bool bInIsFindWi
 			{
 				for(auto Item : ItemsFound)
 				{
-					Item->ExpandAllChildren(TreeView);
+					FindInBlueprintsHelpers::ExpandAllChildren(Item, TreeView);
 				}
 			}
 
@@ -1048,6 +1090,8 @@ void SFindInBlueprints::MakeSearchQuery(FString InSearchString, bool bInIsFindWi
 		{
 			LaunchStreamThread(InSearchString, InSearchFilterForImaginaryDataReturn, InMinimiumVersionRequirement, InOnSearchComplete);
 		}
+
+		bHasGlobalSearchResults = !bInIsFindWithinBlueprint;
 	}
 }
 
@@ -1346,7 +1390,7 @@ void SFindInBlueprints::OnCacheComplete()
 TSharedPtr<SWidget> SFindInBlueprints::OnContextMenuOpening()
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection,BlueprintEditorPtr.Pin()->GetToolkitCommands());
+	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, CommandList);
 
 	MenuBuilder.BeginSection("BasicOperations");
 	{
@@ -1406,6 +1450,60 @@ void SFindInBlueprints::OnCopyAction()
 
 	// Copy text to clipboard
 	FPlatformApplicationMisc::ClipboardCopy( *SelectedText );
+}
+
+FReply SFindInBlueprints::OnOpenGlobalFindResults()
+{
+	TSharedPtr<SFindInBlueprints> GlobalFindResults = FFindInBlueprintSearchManager::Get().GetGlobalFindResults();
+	if (GlobalFindResults.IsValid())
+	{
+		GlobalFindResults->FocusForUse(false, SearchValue, true);
+	}
+
+	return FReply::Handled();
+}
+
+void SFindInBlueprints::OnHostTabClosed(TSharedRef<SDockTab> DockTab)
+{
+	FFindInBlueprintSearchManager::Get().GlobalFindResultsClosed(SharedThis(this));
+}
+
+FReply SFindInBlueprints::OnLockButtonClicked()
+{
+	bIsLocked = !bIsLocked;
+	return FReply::Handled();
+}
+
+const FSlateBrush* SFindInBlueprints::OnGetLockButtonImage() const
+{
+	if (bIsLocked)
+	{
+		return FEditorStyle::GetBrush("FindResults.LockButton_Locked");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("FindResults.LockButton_Unlocked");
+	}
+}
+
+FName SFindInBlueprints::GetHostTabId() const
+{
+	TSharedPtr<SDockTab> HostTabPtr = HostTab.Pin();
+	if (HostTabPtr.IsValid())
+	{
+		return HostTabPtr->GetLayoutIdentifier().TabType;
+	}
+
+	return NAME_None;
+}
+
+void SFindInBlueprints::CloseHostTab()
+{
+	TSharedPtr<SDockTab> HostTabPtr = HostTab.Pin();
+	if (HostTabPtr.IsValid())
+	{
+		HostTabPtr->RequestCloseTab();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

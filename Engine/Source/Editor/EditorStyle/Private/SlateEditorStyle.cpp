@@ -747,7 +747,9 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	Set( "MarqueeSelection", new BORDER_BRUSH( "Old/DashedBorder", FMargin(6.0f/32.0f) ) );
 
 	Set( "GenericLock", new IMAGE_BRUSH( "Icons/padlock_locked_16x", Icon16x16 ) );
+	Set( "GenericLock.Small", new IMAGE_BRUSH( "Icons/padlock_locked_16x", Icon16x16 ) );
 	Set( "GenericUnlock", new IMAGE_BRUSH( "Icons/padlock_unlocked_16x", Icon16x16 ) );
+	Set( "GenericUnlock.Small", new IMAGE_BRUSH( "Icons/padlock_unlocked_16x", Icon16x16 ) );
 
 	Set( "GenericPlay", new IMAGE_BRUSH( "Icons/generic_play_16x", Icon16x16 ) );
 	Set( "GenericPause", new IMAGE_BRUSH( "Icons/generic_pause_16x", Icon16x16 ) );
@@ -5526,14 +5528,29 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 
 	}
 
+	//Find Results
+	{
+		Set("FindResults.FindInBlueprints", FTextBlockStyle(NormalText)
+			.SetFont(TTF_FONT("Fonts/FontAwesome", 10))
+			.SetColorAndOpacity(FLinearColor(0.f, 0.f, 0.f))
+		);
+
+		Set("FindResults.LockButton_Locked", new IMAGE_BRUSH("Icons/padlock_locked_16x", Icon16x16));
+		Set("FindResults.LockButton_Unlocked", new IMAGE_BRUSH("Icons/padlock_unlocked_16x", Icon16x16));
+	}
+
 	//Blueprint Diff
 	{
-		Set( "BlueprintDif.HasGraph", new IMAGE_BRUSH( "/Icons/blueprint_Dif_has_graph_8x", Icon8x8 )  );
-		Set( "BlueprintDif.MissingGraph", new IMAGE_BRUSH( "/Icons/blueprint_Dif_missing_graph_8x", Icon8x8 )  );
-		Set( "BlueprintDif.NextDiff", new IMAGE_BRUSH( "/Icons/diff_next_40x", Icon16x16 )  );
-		Set( "BlueprintDif.PrevDiff", new IMAGE_BRUSH( "/Icons/diff_prev_40x", Icon16x16 )  );
+		Set("BlueprintDif.HasGraph", new IMAGE_BRUSH("/Icons/blueprint_Dif_has_graph_8x", Icon8x8));
+		Set("BlueprintDif.HasGraph.Small", new IMAGE_BRUSH("/Icons/blueprint_Dif_has_graph_8x", Icon8x8));
+		Set("BlueprintDif.MissingGraph", new IMAGE_BRUSH("/Icons/blueprint_Dif_missing_graph_8x", Icon8x8));
+		Set("BlueprintDif.MissingGraph.Small", new IMAGE_BRUSH("/Icons/blueprint_Dif_missing_graph_8x", Icon8x8));
+		Set("BlueprintDif.NextDiff", new IMAGE_BRUSH("/Icons/diff_next_40x", Icon16x16));
+		Set("BlueprintDif.NextDiff.Small", new IMAGE_BRUSH("/Icons/diff_next_40x", Icon16x16));
+		Set("BlueprintDif.PrevDiff", new IMAGE_BRUSH("/Icons/diff_prev_40x", Icon16x16));
+		Set("BlueprintDif.PrevDiff.Small", new IMAGE_BRUSH("/Icons/diff_prev_40x", Icon16x16));
 
-		Set( "BlueprintDif.ItalicText", 
+		Set("BlueprintDif.ItalicText", 
 			FTextBlockStyle(NormalText)
 			.SetFont(TTF_FONT("Fonts/Roboto-Italic", 10))
 			.SetColorAndOpacity(FLinearColor(.7f, .7f, .7f))

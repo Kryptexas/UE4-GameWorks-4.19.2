@@ -17,8 +17,8 @@
 class FBlueprintActionDatabaseRegistrar;
 class FKismetCompilerContext;
 
-UCLASS(MinimalAPI)
-class UK2Node_InputKey : public UK2Node
+UCLASS()
+class BLUEPRINTGRAPH_API UK2Node_InputKey : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
@@ -77,17 +77,17 @@ class UK2Node_InputKey : public UK2Node
 	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
 	//~ End UEdGraphNode Interface.
 
-	BLUEPRINTGRAPH_API FText GetModifierText() const;
+	FText GetModifierText() const;
 
-	BLUEPRINTGRAPH_API FName GetModifierName() const;
+	FName GetModifierName() const;
 
-	BLUEPRINTGRAPH_API FText GetKeyText() const;
+	FText GetKeyText() const;
 
 	/** Get the 'pressed' input pin */
-	BLUEPRINTGRAPH_API UEdGraphPin* GetPressedPin() const;
+	UEdGraphPin* GetPressedPin() const;
 
 	/** Get the 'released' input pin */
-	BLUEPRINTGRAPH_API UEdGraphPin* GetReleasedPin() const;
+	UEdGraphPin* GetReleasedPin() const;
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */

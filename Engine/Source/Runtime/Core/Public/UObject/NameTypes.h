@@ -88,7 +88,6 @@ namespace FNameDefs
 #endif
 }
 
-
 enum ELinkerNameTableConstructor    {ENAME_LinkerConstructor};
 
 /** Enumeration for finding name. */
@@ -1147,6 +1146,18 @@ inline uint32 GetTypeHash( const FName N )
 	return N.GetComparisonIndex() + N.GetNumber();
 }
 
+namespace Lex
+{
+	FORCEINLINE FString ToString(const FName& Name)
+	{
+		return Name.ToString();
+	}
+
+	FORCEINLINE void FromString(FName& Name, const TCHAR* Str)
+	{
+		Name = FName(Str);
+	}
+}
 
 FORCEINLINE FMinimalName NameToMinimalName(const FName& InName)
 {

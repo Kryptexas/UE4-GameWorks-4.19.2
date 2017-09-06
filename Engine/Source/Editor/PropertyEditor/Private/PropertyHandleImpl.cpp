@@ -439,16 +439,15 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 
 				bool bIsInContainer = false;
 
-				if (Property && Property->IsA(UArrayProperty::StaticClass()))
+				if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property))
 				{
-					bIsInContainer = Cast<UArrayProperty>(Property)->Inner == NodeProperty;
+					bIsInContainer = (ArrayProperty->Inner == NodeProperty);
 				}
-				else if (Property && Property->IsA(USetProperty::StaticClass()))
+				else if (USetProperty* SetProp = Cast<USetProperty>(Property))
 				{
 					// If the element is part of a set, check for duplicate elements
-					USetProperty* SetProp = Cast<USetProperty>(Property);
 					bIsInContainer = SetProp->ElementProp == NodeProperty;
-					
+
 					if (bIsInContainer)
 					{
 						FScriptSetHelper SetHelper(SetProp, ParentNode->GetValueBaseAddress((uint8*)Cur.Object));
@@ -462,9 +461,8 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 						}
 					}
 				}
-				else if (Property && Property->IsA(UMapProperty::StaticClass()))
+				else if (UMapProperty* MapProperty = Cast<UMapProperty>(Property))
 				{
-					UMapProperty* MapProperty = Cast<UMapProperty>(Property);
 					bIsInContainer = MapProperty->KeyProp == NodeProperty;
 
 					if (bIsInContainer)
@@ -2897,7 +2895,7 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 	}
 	else if ( Property->IsA(UStrProperty::StaticClass()) && Property->HasMetaData( TEXT("Enum") ) )
 	{
-		FString EnumName = Property->GetMetaData(TEXT("Enum"));
+		const FString& EnumName = Property->GetMetaData(TEXT("Enum"));
 		Enum = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);
 		check( Enum );
 	}
@@ -3762,7 +3760,8 @@ FPropertyAccess::Result FPropertyHandleObject::SetValue(const FAssetData& NewVal
 FPropertyAccess::Result FPropertyHandleObject::SetValueFromFormattedString(const FString& InValue, EPropertyValueSetFlags::Type Flags)
 {
 	UProperty* Property = GetProperty();
-	FString AllowedClassesString = Property ? Property->GetMetaData("AllowedClasses") : TEXT("");
+	const FString EmptyString;
+	const FString& AllowedClassesString = Property ? Property->GetMetaData("AllowedClasses") : EmptyString;
 
 	if (Property && !AllowedClassesString.IsEmpty())
 	{

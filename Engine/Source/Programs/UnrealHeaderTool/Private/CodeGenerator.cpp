@@ -845,7 +845,7 @@ FString FNativeClassHeaderGenerator::GetSingletonNameFuncAddr(UField* Item, bool
 
 FString FNativeClassHeaderGenerator::GetOverriddenName(const UField* Item)
 {
-	FString OverriddenName = Item->GetMetaData(TEXT("OverrideNativeName"));
+	const FString& OverriddenName = Item->GetMetaData(TEXT("OverrideNativeName"));
 	if (!OverriddenName.IsEmpty())
 	{
 		return OverriddenName.ReplaceCharWithEscapedChar();
@@ -870,7 +870,7 @@ FString FNativeClassHeaderGenerator::GetOverriddenPathName(const UField* Item)
 
 FString FNativeClassHeaderGenerator::GetOverriddenNameForLiteral(const UField* Item)
 {
-	FString OverriddenName = Item->GetMetaData(TEXT("OverrideNativeName"));
+	const FString& OverriddenName = Item->GetMetaData(TEXT("OverrideNativeName"));
 	if (!OverriddenName.IsEmpty())
 	{
 		return TEXT("TEXT(\"") + OverriddenName + TEXT("\")");
@@ -880,7 +880,7 @@ FString FNativeClassHeaderGenerator::GetOverriddenNameForLiteral(const UField* I
 
 FString FNativeClassHeaderGenerator::GetUTF8OverriddenNameForLiteral(const UField* Item)
 {
-	FString OverriddenName = Item->GetMetaData(TEXT("OverrideNativeName"));
+	const FString& OverriddenName = Item->GetMetaData(TEXT("OverrideNativeName"));
 	if (!OverriddenName.IsEmpty())
 	{
 		return CreateUTF8LiteralString(OverriddenName);
@@ -2060,7 +2060,8 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FOutputDevice& O
 
 	FString OverriddenClassName = *FNativeClassHeaderGenerator::GetOverriddenName(Class);
 
-	const FString InitSearchableValuesFunctionName = bIsDynamic ? Class->GetMetaData(TEXT("InitializeStaticSearchableValues")) : FString();
+	const FString EmptyString;
+	const FString& InitSearchableValuesFunctionName = bIsDynamic ? Class->GetMetaData(TEXT("InitializeStaticSearchableValues")) : EmptyString;
 	const FString InitSearchableValuesFunctionParam = InitSearchableValuesFunctionName.IsEmpty() ? FString(TEXT("nullptr")) :
 		FString::Printf(TEXT("&%s::%s"), ClassNameCPP, *InitSearchableValuesFunctionName);
 

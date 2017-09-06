@@ -437,6 +437,12 @@ FBodyInstance::FBodyInstance()
 	, Scale3D(1.0f)
 	, SceneIndexSync(0)
 	, SceneIndexAsync(0)
+#if WITH_PHYSX
+	, CurrentSceneState(BodyInstanceSceneState::NotAdded)
+#endif // WITH_PHYSX
+	, SleepFamily(ESleepFamily::Normal)
+	, DOFMode(0)
+	, CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
 	, CollisionProfileName(UCollisionProfile::CustomCollisionProfileName)
 	, MaskFilter(0)
 	, bUseCCD(false)
@@ -471,17 +477,18 @@ FBodyInstance::FBodyInstance()
 	, COMNudge(ForceInit)
 	, MassScale(1.f)
 	, InertiaTensorScale(1.f)
-	, DOFConstraint(NULL)
-	, WeldParent(NULL)
-	, PhysMaterialOverride(NULL)
+	, ObjectType(ECC_WorldStatic)
+	, DOFConstraint(nullptr)
+	, WeldParent(nullptr)
+	, PhysMaterialOverride(nullptr)
 	, CustomSleepThresholdMultiplier(1.f)
 	, StabilizationThresholdMultiplier(1.f)
 	, PhysicsBlendWeight(0.f)
 	, PositionSolverIterationCount(8)
 #if WITH_PHYSX
-	, RigidActorSync(NULL)
-	, RigidActorAsync(NULL)
-	, BodyAggregate(NULL)
+	, RigidActorSync(nullptr)
+	, RigidActorAsync(nullptr)
+	, BodyAggregate(nullptr)
 	, RigidActorSyncId(PX_SERIAL_OBJECT_ID_INVALID)
 	, RigidActorAsyncId(PX_SERIAL_OBJECT_ID_INVALID)
 #endif // WITH_PHYSX
@@ -489,12 +496,7 @@ FBodyInstance::FBodyInstance()
 #if WITH_PHYSX
 	, InitialLinearVelocity(0.0f)
 	, PhysxUserData(this)
-	, CurrentSceneState(BodyInstanceSceneState::NotAdded)
 #endif // WITH_PHYSX
-	, SleepFamily(ESleepFamily::Normal)
-	, DOFMode(0)
-	, CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
-	, ObjectType(ECC_WorldStatic)
 {
 	MaxAngularVelocity = UPhysicsSettings::Get()->MaxAngularVelocity;
 }
@@ -2327,7 +2329,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 
 					PShape->getSphereGeometry(PSphereGeom);
 					 
-					PSphereGeom.radius = FMath::Max(SphereElem->Radius * AdjustedScale3DAbs.X, KINDA_SMALL_NUMBER);
+					PSphereGeom.radius = FMath::Max(SphereElem->Radius * AdjustedScale3DAbs.X, FCollisionShape::MinSphereRadius());
 					PLocalPose.p = U2PVector(RelativeTM.TransformPosition(SphereElem->Center));
 					PLocalPose.p *= AdjustedScale3D.X;
 
@@ -2347,9 +2349,9 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 					FKBoxElem* BoxElem = ShapeElem->GetShapeCheck<FKBoxElem>();
 					PShape->getBoxGeometry(PBoxGeom);
 
-					PBoxGeom.halfExtents.x = FMath::Max((0.5f * BoxElem->X * AdjustedScale3DAbs.X), KINDA_SMALL_NUMBER);
-					PBoxGeom.halfExtents.y = FMath::Max((0.5f * BoxElem->Y * AdjustedScale3DAbs.Y), KINDA_SMALL_NUMBER);
-					PBoxGeom.halfExtents.z = FMath::Max((0.5f * BoxElem->Z * AdjustedScale3DAbs.Z), KINDA_SMALL_NUMBER);
+					PBoxGeom.halfExtents.x = FMath::Max((0.5f * BoxElem->X * AdjustedScale3DAbs.X), FCollisionShape::MinBoxExtent());
+					PBoxGeom.halfExtents.y = FMath::Max((0.5f * BoxElem->Y * AdjustedScale3DAbs.Y), FCollisionShape::MinBoxExtent());
+					PBoxGeom.halfExtents.z = FMath::Max((0.5f * BoxElem->Z * AdjustedScale3DAbs.Z), FCollisionShape::MinBoxExtent());
 
 					FTransform BoxTransform = BoxElem->GetTransform() * RelativeTM;
 					PLocalPose = PxTransform(U2PTransform(BoxTransform));
@@ -2383,12 +2385,13 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 					float Radius = FMath::Max(SphylElem->Radius * ScaleRadius, 0.1f);
 					float Length = SphylElem->Length + SphylElem->Radius * 2.f;
 					float HalfLength = Length * ScaleLength * 0.5f;
-					Radius = FMath::Clamp(Radius, 0.1f, HalfLength);	//radius is capped by half length
+					Radius = FMath::Min(Radius, HalfLength);	//radius is capped by half length
+					Radius = FMath::Max(Radius, FCollisionShape::MinCapsuleRadius()); // bounded by minimum limit.
 					float HalfHeight = HalfLength - Radius;
-					HalfHeight = FMath::Max(0.1f, HalfHeight);
+					HalfHeight = FMath::Max(FCollisionShape::MinCapsuleAxisHalfHeight(), HalfHeight);
 
-					PCapsuleGeom.halfHeight = FMath::Max(HalfHeight, KINDA_SMALL_NUMBER);
-					PCapsuleGeom.radius = FMath::Max(Radius, KINDA_SMALL_NUMBER);
+					PCapsuleGeom.halfHeight = HalfHeight;
+					PCapsuleGeom.radius = Radius;
 
 					PLocalPose = PxTransform(U2PVector(RelativeTM.TransformPosition(SphylElem->Center)), U2PQuat(SphylElem->Rotation.Quaternion()) * U2PSphylBasis);
 					PLocalPose.p.x *= AdjustedScale3D.X;

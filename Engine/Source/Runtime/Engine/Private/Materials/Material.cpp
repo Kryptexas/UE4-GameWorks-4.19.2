@@ -1457,41 +1457,41 @@ void UMaterial::FixupMaterialUsageAfterLoad()
 
 void UMaterial::GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionVectorParameter>(OutParameterNames, OutParameterIds);
 }
 void UMaterial::GetAllScalarParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionScalarParameter>(OutParameterNames, OutParameterIds);
 }
 void UMaterial::GetAllTextureParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionTextureSampleParameter>(OutParameterNames, OutParameterIds);
 }
 
 void UMaterial::GetAllFontParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionFontSampleParameter>(OutParameterNames, OutParameterIds);
 }
 
 void UMaterial::GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionStaticBoolParameter>(OutParameterNames, OutParameterIds);
 }
 
 void UMaterial::GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionStaticComponentMaskParameter>(OutParameterNames, OutParameterIds);
 }
 

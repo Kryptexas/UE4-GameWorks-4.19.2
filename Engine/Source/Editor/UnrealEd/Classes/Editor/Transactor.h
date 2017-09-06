@@ -406,6 +406,12 @@ public:
 		return Ar << T.Records << T.Title << T.ObjectMap << T.Context << T.PrimaryObject;
 	}
 
+	/** Serializes a reference to a transaction in a given archive. */
+	friend FArchive& operator<<(FArchive& Ar, TSharedRef<FTransaction>& SharedT)
+	{
+		return Ar << SharedT.Get();
+	}
+
 	/** Used by GC to collect referenced objects. */
 	void AddReferencedObjects( FReferenceCollector& Collector );
 

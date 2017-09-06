@@ -4526,7 +4526,7 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 
 	if ( !DidFindText )
 	{
-		FString DefaultFriendlyName = Property->GetMetaData(TEXT("DisplayName"));
+		const FString& DefaultFriendlyName = Property->GetMetaData(TEXT("DisplayName"));
 		if ( DefaultFriendlyName.IsEmpty() )
 		{
 			const bool bIsBool = Cast<const UBoolProperty>(Property) != NULL;

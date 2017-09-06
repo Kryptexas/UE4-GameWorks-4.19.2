@@ -80,6 +80,17 @@ TArray<TPair<UEdGraphPin*, FString>> PinAllocationTracking;
 /////////////////////////////////////////////////////
 // FEdGraphPinType
 
+void FEdGraphPinType::PostSerialize(const FArchive& Ar)
+{
+	if (Ar.UE4Ver() < VER_UE4_EDGRAPHPINTYPE_SERIALIZATION)
+	{
+		if (bIsArray_DEPRECATED)
+		{
+			ContainerType = EPinContainerType::Array;
+		}
+	}
+}
+
 bool FEdGraphPinType::Serialize(FArchive& Ar)
 {
 	if (Ar.UE4Ver() < VER_UE4_EDGRAPHPINTYPE_SERIALIZATION)

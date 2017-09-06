@@ -43,7 +43,7 @@ FReply SGraphNodeK2Sequence::OnAddPin()
 	ensure(AddPinNode);
 	if (AddPinNode && AddPinNode->CanAddPin())
 	{
-		FScopedTransaction Transaction(NSLOCTEXT("SequencerNode", "AddPinTransaction", "AddPin"));
+		FScopedTransaction Transaction(NSLOCTEXT("SequencerNode", "AddPinTransaction", "Add Pin"));
 
 		AddPinNode->AddInputPin();
 		UpdateGraphNode();

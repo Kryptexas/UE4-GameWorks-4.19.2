@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,9 +79,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentDeactivateSignature, 
 DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentGlobalCreatePhysicsSignature, UActorComponent*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentGlobalDestroyPhysicsSignature, UActorComponent*);
 
-DECLARE_MULTICAST_DELEGATE(FActorComponentInstanceCreatePhysicsSignature);
-DECLARE_MULTICAST_DELEGATE(FActorComponentInstanceDestroyPhysicsSignature);
-
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -100,11 +97,6 @@ public:
 	static FActorComponentGlobalCreatePhysicsSignature GlobalCreatePhysicsDelegate;
 	/** Destroy component physics state global delegate.*/
 	static FActorComponentGlobalDestroyPhysicsSignature GlobalDestroyPhysicsDelegate;
-
-	/** Create component physics state delegate (for this specific instance).*/
-	FActorComponentInstanceCreatePhysicsSignature InstanceCreatePhysicsDelegate;
-	/** Destroy component physics state delegate (for this specific instance).*/
-	FActorComponentInstanceDestroyPhysicsSignature InstanceDestroyPhysicsDelegate;
 
 	/**
 	 * Default UObject constructor that takes an optional ObjectInitializer.
@@ -131,133 +123,133 @@ protected:
 	/** 
 	 *  Indicates if this ActorComponent is currently registered with a scene. 
 	 */
-	uint32 bRegistered:1;
+	uint8 bRegistered:1;
 
 	/** If the render state is currently created for this component */
-	uint32 bRenderStateCreated:1;
+	uint8 bRenderStateCreated:1;
 
 	/** If the physics state is currently created for this component */
-	uint32 bPhysicsStateCreated:1;
+	uint8 bPhysicsStateCreated:1;
 
 	/** Is this component currently replicating? Should the network code consider it for replication? Owning Actor must be replicating first! */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category=ComponentReplication,meta=(DisplayName = "Component Replicates"))
-	uint32 bReplicates:1;
+	uint8 bReplicates:1;
 
 	/** Is this component safe to ID over the network by name?  */
 	UPROPERTY()
-	uint32 bNetAddressable:1;
+	uint8 bNetAddressable:1;
 
 private:
 	/** Is this component in need of its whole state being sent to the renderer? */
-	uint32 bRenderStateDirty:1;
+	uint8 bRenderStateDirty:1;
 
 	/** Is this component's transform in need of sending to the renderer? */
-	uint32 bRenderTransformDirty:1;
+	uint8 bRenderTransformDirty:1;
 
 	/** Is this component's dynamic data in need of sending to the renderer? */
-	uint32 bRenderDynamicDataDirty:1;
+	uint8 bRenderDynamicDataDirty:1;
 
 	/** Used to ensure that any subclass of UActorComponent that overrides PostRename calls up to the Super to make OwnedComponents arrays get updated correctly */
-	uint32 bRoutedPostRename:1;
+	uint8 bRoutedPostRename:1;
 
 public:
 
 	/** Does this component automatically register with its owner */
-	uint32 bAutoRegister:1;
+	uint8 bAutoRegister:1;
 
 protected:
-	uint32 bAllowReregistration:1;
+	uint8 bAllowReregistration:1;
 
 public:
 	/** Should this component be ticked in the editor */
-	uint32 bTickInEditor:1;
+	uint8 bTickInEditor:1;
 
 	/** If true, this component never needs a render update. */
-	uint32 bNeverNeedsRenderUpdate:1;
+	uint8 bNeverNeedsRenderUpdate:1;
 
 	/** Can we tick this concurrently on other threads? */
-	uint32 bAllowConcurrentTick:1;
+	uint8 bAllowConcurrentTick:1;
 
 	/** Can this component be destroyed (via K2_DestroyComponent) by any parent */
-	uint32 bAllowAnyoneToDestroyMe:1;
+	uint8 bAllowAnyoneToDestroyMe:1;
 
+#if WITH_EDITORONLY_DATA
 	/** True if this component was created by a construction script, and will be destroyed by DestroyConstructedComponents */
 	UPROPERTY()
-	uint32 bCreatedByConstructionScript_DEPRECATED:1;
+	uint8 bCreatedByConstructionScript_DEPRECATED:1;
 
 	/** True if this component was created as an instance component */
 	UPROPERTY()
-	uint32 bInstanceComponent_DEPRECATED:1;
+	uint8 bInstanceComponent_DEPRECATED:1;
+#endif
 
 	/** Whether the component is activated at creation or must be explicitly activated. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Activation)
-	uint32 bAutoActivate:1;
+	uint8 bAutoActivate:1;
 
 	/** Whether the component is currently active. */
 	UPROPERTY(transient, ReplicatedUsing=OnRep_IsActive)
-	uint32 bIsActive:1;
+	uint8 bIsActive:1;
 
 	UPROPERTY(EditDefaultsOnly, Category="Variable")
-	uint32 bEditableWhenInherited:1;
+	uint8 bEditableWhenInherited:1;
 
 	/** Cached navigation relevancy flag for collision updates */
-	uint32 bNavigationRelevant : 1;
+	uint8 bNavigationRelevant : 1;
 
 protected:
 	/** Whether this component can potentially influence navigation */
 	UPROPERTY(EditAnywhere, Category = Collision, AdvancedDisplay)
-	uint32 bCanEverAffectNavigation : 1;
+	uint8 bCanEverAffectNavigation : 1;
 
 public:
 	/** If true, we call the virtual InitializeComponent */
-	uint32 bWantsInitializeComponent:1;
+	uint8 bWantsInitializeComponent:1;
 
 	/** If true, we call the virtual BeginPlay */
 	DEPRECATED(4.14, "bWantsBeginPlay was inconsistently enforced and is now unused. BeginPlay will now always be called for Actor Components.")
-	uint32 bWantsBeginPlay:1;
+	uint8 bWantsBeginPlay:1;
 
 	/** If true, the component will be excluded from non-editor builds */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Cooking)
-	uint32 bIsEditorOnly:1;
+	uint8 bIsEditorOnly:1;
 
 private:
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
-	uint32 bHasBeenCreated:1;
+	uint8 bHasBeenCreated:1;
 
 	/** Indicates that InitializeComponent has been called, but UninitializeComponent has not yet */
-	uint32 bHasBeenInitialized:1;
+	uint8 bHasBeenInitialized:1;
 
 	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
-	uint32 bHasBegunPlay:1;
+	uint8 bHasBegunPlay:1;
 
 	/** Indicates the the destruction process has begun for this component to avoid recursion */
-	uint32 bIsBeingDestroyed:1;
+	uint8 bIsBeingDestroyed:1;
 
 	/** Whether we've tried to register tick functions. Reset when they are unregistered. */
-	uint32 bTickFunctionsRegistered:1;
+	uint8 bTickFunctionsRegistered:1;
 
 #if WITH_EDITOR
 	/** During undo/redo it isn't safe to cache owner */
-	uint32 bCanUseCachedOwner:1;
+	uint8 bCanUseCachedOwner:1;
 #endif
 
+	/** True if this component was owned by a net startup actor during level load. */
+	uint8 bIsNetStartupComponent : 1;
+
 	/** Tracks whether the component has been added to one of the world's end of frame update lists */
-	uint32 MarkedForEndOfFrameUpdateState:2;
+	uint8 MarkedForEndOfFrameUpdateState:2;
 	friend struct FMarkComponentEndOfFrameUpdateState;
 
 	friend class FActorComponentInstanceData;
 	friend class FActorComponentDetails;
-
-	/** True if this component was owned by a net startup actor during level load. */
-	bool bIsNetStartupComponent;
 
 public:
 	UPROPERTY()
 	EComponentCreationMethod CreationMethod;
 
 private:
-	mutable AActor* OwnerPrivate;
-
 	UPROPERTY()
 	TArray<FSimpleMemberReference> UCSModifiedProperties;
 
@@ -435,6 +427,8 @@ public:
 	void SetIsNetStartupComponent(const bool bInIsNetStartupComponent) { bIsNetStartupComponent = bInIsNetStartupComponent; }
 
 private:
+
+	mutable AActor* OwnerPrivate;
 
 	/** 
 	 * Pointer to the world that this component is currently registered with. 

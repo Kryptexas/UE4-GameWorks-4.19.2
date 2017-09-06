@@ -42,6 +42,8 @@ enum class EBlueprintCompileOptions
 	SkeletonUpToDate = 0x8, 
 	/** Indicates this is a batch compile and that BroadcastCompiled and BroadcastBlueprintCompiled should be skipped */
 	BatchCompile = 0x10,
+	/** Skips saving blueprints even if save on compile is enabled */
+	SkipSave = 0x20,
 	/** Skips creating a reinstancer and running reinstancing routines - useful if calling code is performing reinstancing */
 	SkipReinstancing = 0x40,
 };

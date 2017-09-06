@@ -162,6 +162,7 @@ struct SLATECORE_API FCheckBoxStyle : public FSlateWidgetStyle
 	FSlateSound HoveredSlateSound;
 	FCheckBoxStyle& SetHoveredSound( const FSlateSound& InHoveredSound ){ HoveredSlateSound = InHoveredSound; return *this; }
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	FName CheckedSound_DEPRECATED;
 	UPROPERTY()
@@ -173,8 +174,10 @@ struct SLATECORE_API FCheckBoxStyle : public FSlateWidgetStyle
 	 * Used to upgrade the deprecated FName sound properties into the new-style FSlateSound properties
 	 */	
 	void PostSerialize(const FArchive& Ar);
+#endif
 };
 
+#if WITH_EDITORONLY_DATA
 template<>
 struct TStructOpsTypeTraits<FCheckBoxStyle> : public TStructOpsTypeTraitsBase2<FCheckBoxStyle>
 {
@@ -183,6 +186,7 @@ struct TStructOpsTypeTraits<FCheckBoxStyle> : public TStructOpsTypeTraitsBase2<F
 		WithPostSerialize = true,
 	};
 };
+#endif
 
 /**
  * Represents the appearance of an STextBlock
@@ -326,6 +330,7 @@ struct SLATECORE_API FButtonStyle : public FSlateWidgetStyle
 	FSlateSound HoveredSlateSound;
 	FButtonStyle& SetHoveredSound( const FSlateSound& InHoveredSound ){ HoveredSlateSound = InHoveredSound; return *this; }
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	FName PressedSound_DEPRECATED;
 	UPROPERTY()
@@ -335,6 +340,7 @@ struct SLATECORE_API FButtonStyle : public FSlateWidgetStyle
 	 * Used to upgrade the deprecated FName sound properties into the new-style FSlateSound properties
 	 */	
 	void PostSerialize(const FArchive& Ar);
+#endif
 };
 
 template<>
@@ -342,7 +348,9 @@ struct TStructOpsTypeTraits<FButtonStyle> : public TStructOpsTypeTraitsBase2<FBu
 {
 	enum 
 	{
+#if WITH_EDITORONLY_DATA
 		WithPostSerialize = true,
+#endif
 		WithCopy = true,
 	};
 };
@@ -436,6 +444,7 @@ struct SLATECORE_API FComboBoxStyle : public FSlateWidgetStyle
 	FSlateSound SelectionChangeSlateSound;
 	FComboBoxStyle& SetSelectionChangeSound( const FSlateSound& InSelectionChangeSound ){ SelectionChangeSlateSound = InSelectionChangeSound; return *this; }
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	FName PressedSound_DEPRECATED;
 	UPROPERTY()
@@ -445,8 +454,10 @@ struct SLATECORE_API FComboBoxStyle : public FSlateWidgetStyle
 	 * Used to upgrade the deprecated FName sound properties into the new-style FSlateSound properties
 	 */	
 	void PostSerialize(const FArchive& Ar);
+#endif
 };
 
+#if WITH_EDITORONLY_DATA
 template<>
 struct TStructOpsTypeTraits<FComboBoxStyle> : public TStructOpsTypeTraitsBase2<FComboBoxStyle>
 {
@@ -455,6 +466,7 @@ struct TStructOpsTypeTraits<FComboBoxStyle> : public TStructOpsTypeTraitsBase2<F
 		WithPostSerialize = true,
 	};
 };
+#endif
 
 /**
  * Represents the appearance of an SHyperlink

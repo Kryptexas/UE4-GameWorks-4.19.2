@@ -1367,6 +1367,13 @@ void UNetDriver::InternalProcessRemoteFunction
 		Ch->ReplicateActor();
 	}
 
+	// Clients may be "closing" this connection but still processing bunches, we can't send anything if we have an invalid ChIndex.
+	if (Ch->ChIndex == -1)
+	{
+		ensure(!IsServer);
+		return;
+	}
+
 	// Form the RPC preamble.
 	FOutBunch Bunch( Ch, 0 );
 

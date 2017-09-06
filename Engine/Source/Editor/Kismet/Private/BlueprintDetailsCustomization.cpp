@@ -5145,11 +5145,11 @@ bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
 	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
 		// If the parent is deprecated, we cannot modify deprecation on this Blueprint
-		if (Blueprint->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
+		if (Blueprint->ParentClass && Blueprint->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
 		{
 			return false;
 		}
-		
+
 		return true;
 	}
 
@@ -5196,7 +5196,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		for (TFieldIterator<UProperty> PropertyIt(Blueprint->GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
-			FString Category = Property->GetMetaData(TEXT("Category"));
+			const FString& Category = Property->GetMetaData(TEXT("Category"));
 
 			if (Category != TEXT("BlueprintOptions") && Category != TEXT("ClassOptions"))
 			{

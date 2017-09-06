@@ -315,6 +315,8 @@ FStreamableManager* FStreamableHandle::GetOwningManager() const
 
 void FStreamableHandle::CancelHandle()
 {
+	check(IsInGameThread());
+
 	if (bReleased || bCanceled || !OwningManager)
 	{
 		// Too late to cancel it
@@ -332,6 +334,7 @@ void FStreamableHandle::CancelHandle()
 	TSharedRef<FStreamableHandle> SharedThis = AsShared();
 
 	ExecuteDelegate(CancelDelegate, SharedThis);
+	UnbindDelegates();
 
 	// Remove from referenced list
 	for (const FSoftObjectPath& AssetRef : RequestedAssets)
@@ -370,6 +373,8 @@ void FStreamableHandle::CancelHandle()
 
 void FStreamableHandle::ReleaseHandle()
 {
+	check(IsInGameThread());
+
 	if (bReleased || bCanceled)
 	{
 		// Too late to release it
@@ -426,6 +431,8 @@ void FStreamableHandle::StartStalledHandle()
 
 FStreamableHandle::~FStreamableHandle()
 {
+	check(IsInGameThread());
+
 	if (IsActive())
 	{
 		bReleased = true;
@@ -443,6 +450,7 @@ void FStreamableHandle::CompleteLoad()
 		bLoadCompleted = true;
 
 		ExecuteDelegate(CompleteDelegate, AsShared());
+		UnbindDelegates();
 
 		// Update any meta handles that are still active
 		for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandles)
@@ -526,8 +534,17 @@ void FStreamableHandle::CallUpdateDelegate()
 	}
 }
 
+void FStreamableHandle::UnbindDelegates()
+{
+	CancelDelegate.Unbind();
+	UpdateDelegate.Unbind();
+	CompleteDelegate.Unbind();
+}
+
 void FStreamableHandle::AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, FSoftObjectPath TargetName)
 {
+	check(IsInGameThread());
+
 	// Needed so we can bind with a shared pointer for safety
 	if (OwningManager)
 	{
@@ -601,9 +618,10 @@ struct FStreamable
 				ActiveHandle->bCanceled = true;
 				ActiveHandle->OwningManager = nullptr;
 
-				if (!ActiveHandle->bReleased && ActiveHandle->CancelDelegate.IsBound())
+				if (!ActiveHandle->bReleased)
 				{
 					FStreamableHandle::ExecuteDelegate(ActiveHandle->CancelDelegate, ActiveHandle);
+					ActiveHandle->UnbindDelegates();
 				}
 			}
 		}
@@ -1055,6 +1073,8 @@ void FStreamableManager::FindInMemory( FSoftObjectPath& InOutTargetName, struct 
 
 void FStreamableManager::AsyncLoadCallback(FSoftObjectPath TargetName)
 {
+	check(IsInGameThread());
+
 	FStreamable* Existing = FindStreamable(TargetName);
 
 	UE_LOG(LogStreamableManager, Verbose, TEXT("Stream Complete callback %s"), *TargetName.ToString());

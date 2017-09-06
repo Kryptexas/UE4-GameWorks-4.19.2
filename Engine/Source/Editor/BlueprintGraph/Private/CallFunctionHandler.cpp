@@ -502,7 +502,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 
 		if (Function->HasMetaData(FBlueprintMetadata::MD_DefaultToSelf))
 		{
-			FString const DefaltToSelfPinName = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+			const FString& DefaltToSelfPinName = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 
 			DefaultToSelfParamNames.Add(DefaltToSelfPinName);
 		}
@@ -510,7 +510,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 		{
 			const bool bHasIntrinsicWorldContext = !K2Schema->IsStaticFunctionGraph(Context.SourceGraph) && FBlueprintEditorUtils::ImplentsGetWorld(Context.Blueprint);
 
-			FString const WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+			const FString& WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
 			if (bHasIntrinsicWorldContext)
 			{

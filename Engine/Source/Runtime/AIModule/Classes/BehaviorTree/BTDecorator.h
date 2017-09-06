@@ -8,6 +8,15 @@
 
 class FBehaviorDecoratorDetails;
 
+enum class EBTDecoratorAbortRequest : uint8
+{
+	// request execution update when only result of condition changes and active branch of tree can potentially change too
+	ConditionResultChanged,
+
+	// request execution update every time as long as condition is still passing
+	ConditionPassing,
+};
+
 /** 
  * Decorators are supporting nodes placed on parent-child connection, that receive notification about execution flow and can be ticked
  *
@@ -105,6 +114,11 @@ protected:
 
 	/** calculates raw, core value of decorator's condition. Should not include calling IsInversed */
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
+
+	/** more "flow aware" version of calling RequestExecution(this) on owning behavior tree component
+	 *  should be used in external events that may change result of CalculateRawConditionValue
+	 */
+	void ConditionalFlowAbort(UBehaviorTreeComponent& OwnerComp, EBTDecoratorAbortRequest RequestMode) const;
 
 	friend FBehaviorDecoratorDetails;
 

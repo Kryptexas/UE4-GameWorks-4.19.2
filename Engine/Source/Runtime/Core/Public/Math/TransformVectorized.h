@@ -560,13 +560,10 @@ public:
 	FORCEINLINE FVector		TransformPositionNoScale(const FVector& V) const;
 
 
-	/** Inverts the matrix and then transforms V - correctly handles scaling in this matrix. */
+	/** Inverts the transform and then transforms V - correctly handles scaling in this transform. */
 	FORCEINLINE FVector		InverseTransformPosition(const FVector &V) const;
-
 	FORCEINLINE FVector		InverseTransformPositionNoScale(const FVector &V) const;
-
 	FORCEINLINE FVector		TransformVector(const FVector& V) const;
-
 	FORCEINLINE FVector		TransformVectorNoScale(const FVector& V) const;
 
 	/** 
@@ -574,8 +571,19 @@ public:
 	 *	If you want to transform a surface normal (or plane) and correctly account for non-uniform scaling you should use TransformByUsingAdjointT with adjoint of matrix inverse.
 	 */
 	FORCEINLINE FVector InverseTransformVector(const FVector &V) const;
-
 	FORCEINLINE FVector InverseTransformVectorNoScale(const FVector &V) const;
+
+	/**
+	* Transform a rotation.
+	* For example if this is a LocalToWorld transform, TransformRotation(Q) would transform Q from local to world space.
+	*/
+	FORCEINLINE FQuat TransformRotation(const FQuat& Q) const;
+
+	/**
+	* Inverse transform a rotation.
+	* For example if this is a LocalToWorld transform, InverseTransformRotation(Q) would transform Q from world to local space.
+	*/
+	FORCEINLINE FQuat InverseTransformRotation(const FQuat& Q) const;
 
 	FORCEINLINE FTransform	GetScaled(float Scale) const;
 	FORCEINLINE FTransform	GetScaled(FVector Scale) const;
@@ -1766,6 +1774,16 @@ FORCEINLINE FVector FTransform::InverseTransformVectorNoScale(const FVector &V) 
 	FVector Result;
 	VectorStoreFloat3(VResult, &Result);
 	return Result;
+}
+
+FORCEINLINE FQuat FTransform::TransformRotation(const FQuat& Q) const
+{
+	return GetRotation() * Q;
+}
+
+FORCEINLINE FQuat FTransform::InverseTransformRotation(const FQuat& Q) const
+{
+	return GetRotation().Inverse() * Q;
 }
 
 FORCEINLINE FTransform FTransform::operator*(const FTransform& Other) const

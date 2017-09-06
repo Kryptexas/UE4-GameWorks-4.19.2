@@ -81,6 +81,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Workflow)
 	bool bHideConstructionScriptComponentsInDetailsView;
 
+	/** If enabled, the global Find in Blueprints command (CTRL-SHIFT-F) will be hosted in a standalone tab. This tab can remain open after the Blueprint Editor context is closed. */
+	UPROPERTY(EditAnywhere, config, Category=Workflow)
+	bool bHostFindInBlueprintsInGlobalTab;
+
 // Compiler Settings
 public:
 	/** Determines when to save Blueprints post-compile */
@@ -118,4 +122,9 @@ public:
 	/** The node template cache is used to speed up blueprint menuing. This determines the peak data size for that cache. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Performance, DisplayName="Node-Template Cache Cap (MB)", meta=(ClampMin="0", UIMin="0"))
 	float NodeTemplateCacheCapMB;
+
+protected:
+	//~ Begin UObject Interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	//~ End UObject Interface
 };

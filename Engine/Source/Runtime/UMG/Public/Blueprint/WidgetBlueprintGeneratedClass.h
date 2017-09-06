@@ -67,13 +67,25 @@ public:
 #if WITH_EDITORONLY_DATA
 
 	UPROPERTY()
-	bool bCookSlowConstructionWidgetTree;
+	uint8 bCookSlowConstructionWidgetTree:1;
 
 #endif
 
 	UPROPERTY()
-	bool bAllowTemplate;
+	uint8 bAllowTemplate:1;
 
+private:
+
+	UPROPERTY()
+	uint8 bValidTemplate:1;
+
+	UPROPERTY(Transient)
+	uint8 bTemplateInitialized:1;
+
+	UPROPERTY(Transient)
+	uint8 bCookedTemplate:1;
+
+public:
 	UPROPERTY()
 	TArray< FDelegateRuntimeBinding > Bindings;
 
@@ -119,14 +131,6 @@ public:
 
 private:
 	void InitializeTemplate(const ITargetPlatform* TargetPlatform);
-
-private:
-
-	UPROPERTY()
-	bool bValidTemplate;
-
-	UPROPERTY(Transient)
-	bool bTemplateInitialized;
 
 	UPROPERTY()
 	TSoftObjectPtr<UUserWidget> TemplateAsset;

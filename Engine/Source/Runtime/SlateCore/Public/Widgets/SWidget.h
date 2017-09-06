@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -1322,19 +1322,19 @@ protected:
 
 protected:
 	/** Is this widget hovered? */
-	bool bIsHovered : 1;
+	uint8 bIsHovered : 1;
 
 	/** Can the widget ever be ticked. */
-	bool bCanTick : 1;
+	uint8 bCanTick : 1;
 
 	/** Can the widget ever support keyboard focus */
-	bool bCanSupportFocus : 1;
+	uint8 bCanSupportFocus : 1;
 
 	/**
 	 * Can the widget ever support children?  This will be false on SLeafWidgets, 
 	 * rather than setting this directly, you should probably inherit from SLeafWidget.
 	 */
-	bool bCanHaveChildren : 1;
+	uint8 bCanHaveChildren : 1;
 
 	/**
 	  * Some widgets might be a complex hierarchy of child widgets you never see.  Some of those widgets
@@ -1342,7 +1342,15 @@ protected:
 	  * so even though it may be set to clip, this flag is used to inform painting that this widget doesn't
 	  * really do the clipping.
 	  */
-	bool bClippingProxy : 1;
+	uint8 bClippingProxy : 1;
+
+#if SLATE_DEFERRED_DESIRED_SIZE
+	/** Has the desired size of the widget been cached? */
+	uint8 bCachedDesiredSize : 1;
+
+	/** Are we currently updating the desired size? */
+	mutable uint8 bUpdatingDesiredSize : 1;
+#endif
 
 private:
 
@@ -1350,16 +1358,16 @@ private:
 	 * Whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
 	 * occupied by this widget, and will instead be repelled to an outside edge
 	 */
-	bool bToolTipForceFieldEnabled : 1;
+	uint8 bToolTipForceFieldEnabled : 1;
 
 	/** Should we be forcing this widget to be volatile at all times and redrawn every frame? */
-	bool bForceVolatile : 1;
+	uint8 bForceVolatile : 1;
 
 	/** The last cached volatility of this widget.  Cached so that we don't need to recompute volatility every frame. */
-	bool bCachedVolatile : 1;
+	uint8 bCachedVolatile : 1;
 
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
-	mutable bool bInheritedVolatility : 1;
+	mutable uint8 bInheritedVolatility : 1;
 
 protected:
 	/**
@@ -1414,13 +1422,6 @@ protected:
 	TAttribute< FVector2D > RenderTransformPivot;
 
 protected:
-#if SLATE_DEFERRED_DESIRED_SIZE
-	/** Has the desired size of the widget been cached? */
-	bool bCachedDesiredSize : 1;
-
-	/** Are we currently updating the desired size? */
-	mutable bool bUpdatingDesiredSize : 1;
-#endif
 
 	/** Debugging information on the type of widget we're creating for the Widget Reflector. */
 	FName TypeOfWidget;

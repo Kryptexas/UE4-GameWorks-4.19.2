@@ -970,6 +970,9 @@ private:
 	/** Map of platform name to asset registry generators, which hold the state of asset registry data for a platform */
 	TMap<FName, FAssetRegistryGenerator*> RegistryGenerators;
 
+	/** List of filenames that may be out of date in the asset registry */
+	TSet<FName> ModifiedAssetFilenames;
+
 	//////////////////////////////////////////////////////////////////////////
 	// iterative ini settings checking
 	// growing list of ini settings which are accessed over the course of the cook

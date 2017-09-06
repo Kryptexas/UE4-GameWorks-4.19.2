@@ -681,6 +681,7 @@ namespace
 		check(NewWorld);
 
 		OutPackage->PIEInstanceID = WorldContext.PIEInstance;
+		OutPackage->SetPackageFlags(PKG_PlayInEditor);
 
 		// Rename streaming levels to PIE
 		for (ULevelStreaming* StreamingLevel : NewWorld->StreamingLevels)
@@ -1575,63 +1576,68 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	FTimedMemReport::Get().PumpTimedMemoryReports();
 #endif
 
-	// start at now minus a bit so we don't get a zero delta.
-	static double LastTime = FPlatformTime::Seconds() - 0.0001;
+	// This is always in realtime and is not adjusted by fixed framerate. Start slightly below current real time
+	static double LastRealTime = FPlatformTime::Seconds() - 0.0001;
 	static bool bTimeWasManipulated = false;
 	bool bTimeWasManipulatedDebug = bTimeWasManipulated;	//Just used for logging of previous frame
 
 	// Figure out whether we want to use real or fixed time step.
 	const bool bUseFixedTimeStep = FApp::IsBenchmarking() || FApp::UseFixedTimeStep();
 
+	// Updates logical last time to match logical current time from last tick
 	FApp::UpdateLastTime();
 
 	// Calculate delta time and update time.
 	if( bUseFixedTimeStep )
 	{
+		// In fixed time step we set the real times to the logical time, this causes it to lie about how fast it is going
 		bTimeWasManipulated = true;
 		const float FrameRate = FApp::GetFixedDeltaTime();
 		FApp::SetDeltaTime(FrameRate);
-		LastTime = FApp::GetCurrentTime();
+		LastRealTime = FApp::GetCurrentTime();
 		FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
 	}
 	else
 	{
-		FApp::SetCurrentTime(FPlatformTime::Seconds());
+		// Updates logical time to real time, this may be changed by fixed frame rate below
+		double CurrentRealTime = FPlatformTime::Seconds();
+		FApp::SetCurrentTime(CurrentRealTime);
+
 		// Did we just switch from a fixed time step to real-time?  If so, then we'll update our
 		// cached 'last time' so our current interval isn't huge (or negative!)
 		if( bTimeWasManipulated && !bUseFixedFrameRate )
 		{
-			LastTime = FApp::GetCurrentTime() - FApp::GetDeltaTime();
+			LastRealTime = CurrentRealTime - FApp::GetDeltaTime();
 			bTimeWasManipulated = false;
 		}
 
-		// Calculate delta time.
-		float DeltaTime = FApp::GetCurrentTime() - LastTime;
+		// Calculate delta time, this is in real time seconds
+		float DeltaRealTime = CurrentRealTime - LastRealTime;
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
-		if( DeltaTime < 0 )
+		if(DeltaRealTime < 0 )
 		{
 #if PLATFORM_ANDROID
 			UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
 #else
 			// AMD dual-core systems are a known issue that require AMD CPU drivers to be installed. Installer will take care of this for shipping.
 			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html - DeltaTime:%f, bUseFixedFrameRate:%d, bTimeWasManipulatedDebug:%d, FixedFrameRate:%f"), 
-				DeltaTime, bUseFixedFrameRate, bTimeWasManipulatedDebug, FixedFrameRate);
+				DeltaRealTime, bUseFixedFrameRate, bTimeWasManipulatedDebug, FixedFrameRate);
 #endif
-			DeltaTime = 0.01;
+			DeltaRealTime = 0.01;
 		}
 
 		// Give engine chance to update frame rate smoothing
-		UpdateRunningAverageDeltaTime(DeltaTime);
+		UpdateRunningAverageDeltaTime(DeltaRealTime);
 
 		// Get max tick rate based on network settings and current delta time.
-		const float GivenMaxTickRate = GetMaxTickRate(DeltaTime);
+		const float GivenMaxTickRate = GetMaxTickRate(DeltaRealTime);
 		const float MaxTickRate = FABTest::StaticIsActive() ? 0.0f : (bUseFixedFrameRate ? FixedFrameRate : GivenMaxTickRate);
 		float WaitTime		= 0;
 		// Convert from max FPS to wait time.
 		if( MaxTickRate > 0 )
 		{
-			WaitTime = FMath::Max( 1.f / MaxTickRate - DeltaTime, 0.f );
+			WaitTime = FMath::Max( 1.f / MaxTickRate - DeltaRealTime, 0.f );
 		}
 
 		// Enforce maximum framerate and smooth framerate by waiting.
@@ -1642,7 +1648,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			FThreadIdleStats::FScopeIdle Scope;
 			
 			FSimpleScopeSecondsCounter ActualWaitTimeCounter(ActualWaitTime);
-			double WaitEndTime = FApp::GetCurrentTime() + WaitTime;
+			double WaitEndTime = CurrentRealTime + WaitTime;
 
 			SCOPE_CYCLE_COUNTER(STAT_GameTickWaitTime);
 			SCOPE_CYCLE_COUNTER(STAT_GameIdleTime);
@@ -1667,34 +1673,34 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 					FPlatformProcess::SleepNoStats( 0 );
 				}
 			}
+			CurrentRealTime = FPlatformTime::Seconds();
 
 			if(bUseFixedFrameRate)
 			{
-				const float FrameRate = 1.f / FixedFrameRate;
-				FApp::SetDeltaTime(FrameRate);
-				FApp::SetCurrentTime(LastTime + FApp::GetDeltaTime());
+				// We are on fixed framerate but had to delay, we set the current time with a fixed time step, which will set Delta below
+				const double FrameTime = 1.0 / FixedFrameRate;
+				FApp::SetCurrentTime(LastRealTime + FrameTime);
 				bTimeWasManipulated = true;
 			}
 			else
 			{
-				FApp::SetCurrentTime(FPlatformTime::Seconds());
+				FApp::SetCurrentTime(CurrentRealTime);
 			}
 		}
 		else if(bUseFixedFrameRate && MaxTickRate == FixedFrameRate)
 		{
-			//We are doing fixed framerate and the real delta time is bigger than our desired delta time. In this case we start falling behind real time (and that's ok)
-			const float FrameRate = 1.f / FixedFrameRate;
-			FApp::SetDeltaTime(FrameRate);
-			FApp::SetCurrentTime(LastTime + FApp::GetDeltaTime());
+			// We are doing fixed framerate and the real delta time is bigger than our desired delta time. In this case we start falling behind real time (and that's ok)
+			const double FrameTime = 1.0 / FixedFrameRate;
+			FApp::SetCurrentTime(LastRealTime + FrameTime);
 			bTimeWasManipulated = true;
 		}
-
 
 		SET_FLOAT_STAT(STAT_GameTickWantedWaitTime,WaitTime * 1000.f);
 		double AdditionalWaitTimeInMs = (ActualWaitTime - static_cast<double>(WaitTime)) * 1000.0;
 		SET_FLOAT_STAT(STAT_GameTickAdditionalWaitTime,FMath::Max<float>(static_cast<float>(AdditionalWaitTimeInMs),0.f));
 
-		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
+		// Update logical delta time based on logical current time
+		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastRealTime);
 		FApp::SetIdleTime(ActualWaitTime);
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
@@ -1708,7 +1714,8 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 #endif
 			FApp::SetDeltaTime(0.01);
 		}
-		LastTime			= FApp::GetCurrentTime();
+
+		LastRealTime = CurrentRealTime;
 
 		// Enforce a maximum delta time if wanted.
 		UGameEngine* GameEngine = Cast<UGameEngine>(this);
@@ -1748,7 +1755,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		{
 			// in seconds
 			FApp::SetDeltaTime(1.0f / OverrideFPS);
-			LastTime = FApp::GetCurrentTime();
+			LastRealTime = FApp::GetCurrentTime();
 			FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
 			bTimeWasManipulated = true;
 		}
@@ -10448,7 +10455,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		// See if the level is already in memory
 		WorldPackage = FindPackage(nullptr, *URL.Map);
 
-		const bool bPackageAlreadyLoaded = (WorldPackage != nullptr);
+		bool bPackageAlreadyLoaded = (WorldPackage != nullptr);
 
 		// If the level isn't already in memory, load level from disk
 		if (WorldPackage == nullptr)
@@ -10475,6 +10482,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			NewWorld = UWorld::FollowWorldRedirectorInPackage(WorldPackage);
 			if ( NewWorld )
 			{
+				// Treat this as an already loaded package because we were loaded by the redirector
+				bPackageAlreadyLoaded = true;
 				WorldPackage = NewWorld->GetOutermost();
 			}
 		}

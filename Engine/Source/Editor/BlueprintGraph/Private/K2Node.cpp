@@ -1021,13 +1021,14 @@ bool UK2Node::CanSplitPin(const UEdGraphPin* Pin) const
 	return false;
 }
 
-void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)
+UK2Node* UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)
 {
 	const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(CompilerContext ? CompilerContext->GetSchema() : SourceGraph->GetSchema());
+	UK2Node* ExpandedNode = nullptr;
 
 	if (Pins.Contains(Pin))
 	{
-		UK2Node* ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
+		ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
 
 		int32 SubPinIndex = 0;
 
@@ -1070,6 +1071,8 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 		}
 		Pin->SubPins.Empty();
 	}
+
+	return ExpandedNode;
 }
 
 void UK2Node::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

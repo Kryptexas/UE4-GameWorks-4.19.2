@@ -517,11 +517,11 @@ struct FWeightedBlendable
 	GENERATED_USTRUCT_BODY()
 
 	/** 0:no effect .. 1:full effect */
-	UPROPERTY(interp, Category=FWeightedBlendable, meta=(ClampMin = "0.0", ClampMax = "1.0", Delta = "0.01"))
+	UPROPERTY(interp, BlueprintReadWrite, Category=FWeightedBlendable, meta=(ClampMin = "0.0", ClampMax = "1.0", Delta = "0.01"))
 	float Weight;
 
 	/** should be of the IBlendableInterface* type but UProperties cannot express that */
-	UPROPERTY(EditAnywhere, Category=FWeightedBlendable, meta=( AllowedClasses="BlendableInterface", Keywords="PostProcess" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FWeightedBlendable, meta=( AllowedClasses="BlendableInterface", Keywords="PostProcess" ))
 	UObject* Object;
 
 	// default constructor
@@ -541,12 +541,12 @@ struct FWeightedBlendable
 };
 
 // for easier detail customization, needed?
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FWeightedBlendables
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category="PostProcessSettings", meta=( Keywords="PostProcess" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="PostProcessSettings", meta=( Keywords="PostProcess" ))
 	TArray<FWeightedBlendable> Array;
 };
 
@@ -1592,7 +1592,7 @@ struct FPostProcessSettings
 	 * Allows custom post process materials to be defined, using a MaterialInstance with the same Material as its parent to allow blending.
 	 * For materials this needs to be the "PostProcess" domain type. This can be used for any UObject object implementing the IBlendableInterface (e.g. could be used to fade weather settings).
 	 */
-	UPROPERTY(EditAnywhere, Category="Rendering Features", meta=( Keywords="PostProcess", DisplayName = "Post Process Materials" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering Features", meta=( Keywords="PostProcess", DisplayName = "Post Process Materials" ))
 	FWeightedBlendables WeightedBlendables;
 
 	// for backwards compatibility

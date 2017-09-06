@@ -99,7 +99,7 @@ void FTcpMessageTransportConnection::Start()
 {
 	check(Thread == nullptr);
 	bRun = true;
-	Thread = FRunnableThread::Create(this, TEXT("FTcpMessageTransportConnection"), 128 * 1024, TPri_Normal);
+	Thread = FRunnableThread::Create(this, *FString::Printf(TEXT("FTcpMessageTransportConnection %s"), *RemoteEndpoint.ToString()), 128 * 1024, TPri_Normal);
 }
 
 bool FTcpMessageTransportConnection::Receive(TSharedPtr<FTcpDeserializedMessage, ESPMode::ThreadSafe>& OutMessage, FGuid& OutSenderNodeId)
@@ -142,10 +142,13 @@ uint32 FTcpMessageTransportConnection::Run()
 			// Disconnected. Reconnect if requested.
 			if (ConnectionRetryDelay > 0)
 			{
+				Socket->Close();
+				ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+				Socket = nullptr;
+
 				UE_LOG(LogTcpMessaging, Verbose, TEXT("Connection to '%s' failed, retrying..."), *RemoteEndpoint.ToString());
 				FPlatformProcess::Sleep(ConnectionRetryDelay);
 
-				ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 				Socket = FTcpSocketBuilder(TEXT("FTcpMessageTransport.RemoteConnection"));
 				if (Socket && Socket->Connect(RemoteEndpoint.ToInternetAddr().Get()))
 				{
@@ -170,7 +173,7 @@ uint32 FTcpMessageTransportConnection::Run()
 			}
 		}
 
-		FPlatformProcess::Sleep(0.0f);
+		FPlatformProcess::SleepNoStats(0.0001f);
 	}
 
 	UpdateConnectionState(STATE_Disconnected);
@@ -260,6 +263,7 @@ void FTcpMessageTransportConnection::UpdateConnectionState(EConnectionState NewC
 
 bool FTcpMessageTransportConnection::ReceiveMessages()
 {
+	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	uint32 PendingDataSize = 0;
 
 	// check if the socket has closed
@@ -268,6 +272,7 @@ bool FTcpMessageTransportConnection::ReceiveMessages()
 		uint8 Dummy;
 		if (!Socket->Recv(&Dummy, 1, BytesRead, ESocketReceiveFlags::Peek))
 		{
+			UE_LOG(LogTcpMessaging, Verbose, TEXT("Dummy read failed with code %d"), (int32)SocketSubsystem->GetLastErrorCode());
 			return false;
 		}
 	}
@@ -281,6 +286,7 @@ bool FTcpMessageTransportConnection::ReceiveMessages()
 			int32 BytesRead = 0;
 			if (!Socket->Recv(HeaderData.GetData(), sizeof(FTcpMessageHeader), BytesRead))
 			{
+				UE_LOG(LogTcpMessaging, Verbose, TEXT("Header read failed with code %d"), (int32)SocketSubsystem->GetLastErrorCode());
 				return false;
 			}
 
@@ -292,6 +298,7 @@ bool FTcpMessageTransportConnection::ReceiveMessages()
 
 			if (!MessageHeader.IsValid())
 			{
+				UE_LOG(LogTcpMessaging, Verbose, TEXT("Header read failed with invalid header"));
 				return false;
 			}
 			else
@@ -331,6 +338,7 @@ bool FTcpMessageTransportConnection::ReceiveMessages()
 			BytesRead = 0;
 			if (!Socket->Recv(MessagesizeData.GetData(), sizeof(uint32), BytesRead))
 			{
+				UE_LOG(LogTcpMessaging, Verbose, TEXT("In progress read failed with code %d"), (int32)SocketSubsystem->GetLastErrorCode());
 				return false;
 			}
 
@@ -348,6 +356,7 @@ bool FTcpMessageTransportConnection::ReceiveMessages()
 		BytesRead = 0;
 		if (!Socket->Recv(RecvMessageData->GetData() + RecvMessageData->Num() - RecvMessageDataRemaining, RecvMessageDataRemaining, BytesRead))
 		{
+			UE_LOG(LogTcpMessaging, Verbose, TEXT("Read failed with code %d"), (int32)SocketSubsystem->GetLastErrorCode());
 			return false;
 		}
 
@@ -401,6 +410,7 @@ bool FTcpMessageTransportConnection::BlockingSend(const uint8* Data, int32 Bytes
 
 bool FTcpMessageTransportConnection::SendMessages()
 {
+	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	if (Outbox.IsEmpty() && bSentHeader)
 	{
 		return true;
@@ -419,6 +429,7 @@ bool FTcpMessageTransportConnection::SendMessages()
 
 		if (!BlockingSend(HeaderData.GetData(), sizeof(FTcpMessageHeader)))
 		{
+			UE_LOG(LogTcpMessaging, Verbose, TEXT("Header write failed with code %d"), (int32)SocketSubsystem->GetLastErrorCode());
 			return false;
 		}
 
@@ -440,6 +451,7 @@ bool FTcpMessageTransportConnection::SendMessages()
 
 			if (!BlockingSend(MessagesizeData.GetData(), sizeof(uint32)))
 			{
+				UE_LOG(LogTcpMessaging, Verbose, TEXT("Payload size write failed with code %d"), (int32)SocketSubsystem->GetLastErrorCode());
 				return false;
 			}
 
@@ -448,6 +460,7 @@ bool FTcpMessageTransportConnection::SendMessages()
 			// send the payload
 			if (!BlockingSend(Payload.GetData(), Payload.Num()))
 			{
+				UE_LOG(LogTcpMessaging, Verbose, TEXT("Payload write failed with code %d"), (int32)SocketSubsystem->GetLastErrorCode());
 				return false;
 			}
 

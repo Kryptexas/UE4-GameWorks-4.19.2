@@ -161,7 +161,6 @@ public:
 #if WITH_EDITOR
 	virtual void PostLinkerChange() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void WillNeverCacheCookedPlatformDataAgain() override;
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;

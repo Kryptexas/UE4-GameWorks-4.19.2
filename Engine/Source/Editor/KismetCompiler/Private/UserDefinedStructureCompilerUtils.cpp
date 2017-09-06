@@ -434,8 +434,9 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 
 			if (bReconstruct)
 			{
-				if (UBlueprint* FoundBlueprint = Node->GetBlueprint())
+				if (Node->HasValidBlueprint())
 				{
+					UBlueprint* FoundBlueprint = Node->GetBlueprint();
 					// The blueprint skeleton needs to be updated before we reconstruct the node
 					// or else we may have member references that point to the old skeleton
 					if (!BlueprintsThatHaveBeenRecompiled.Contains(FoundBlueprint))

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SSCSEditor.h"
@@ -318,12 +318,24 @@ void FSCSRowDragDropOp::HoverTargetChanged()
 		}
 	}
 
-	UProperty* VariableProperty = GetVariableProperty();
-	if (!bHoverHandled && (VariableProperty == nullptr))
+	if (!bHoverHandled)
 	{
-		FText Message = LOCTEXT("CannotFindProperty", "Cannot find corresponding variable (make sure component has been assigned to one)");
-		SetSimpleFeedbackMessage(ErrorSymbol, IconTint, Message);
+		if (UProperty* VariableProperty = GetVariableProperty())
+		{
+			const FSlateBrush* PrimarySymbol;
+			const FSlateBrush* SecondarySymbol;
+			FSlateColor PrimaryColor;
+			FSlateColor SecondaryColor;
+			GetDefaultStatusSymbol(/*out*/ PrimarySymbol, /*out*/ PrimaryColor, /*out*/ SecondarySymbol, /*out*/ SecondaryColor);
 
+			//Create feedback message with the function name.
+			SetSimpleFeedbackMessage(PrimarySymbol, PrimaryColor, VariableProperty->GetDisplayNameText(), SecondarySymbol, SecondaryColor);
+		}
+		else
+		{
+			FText Message = LOCTEXT("CannotFindProperty", "Cannot find corresponding variable (make sure component has been assigned to one)");
+			SetSimpleFeedbackMessage(ErrorSymbol, IconTint, Message);
+		}
 		bHoverHandled = true;
 	}
 

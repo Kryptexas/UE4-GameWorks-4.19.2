@@ -323,6 +323,35 @@ void FAssetViewSortManager::ResetSort()
 	}
 }
 
+UObject::FAssetRegistryTag::ETagType FAssetViewSortManager::FindAndRefreshCustomColumn(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, FName ColumnName, const TArray<FAssetViewCustomColumn>& CustomColumns) const
+{
+	// Look in custom columns list
+	for (const FAssetViewCustomColumn& Column : CustomColumns)
+	{
+		if (Column.ColumnName == ColumnName)
+		{
+			// Refresh the custom data now so it can sort
+
+			for (TSharedPtr<struct FAssetViewItem> AssetItem : AssetItems)
+			{
+				if (!AssetItem.IsValid() || AssetItem->GetType() == EAssetItemType::Folder)
+				{
+					continue;
+				}
+
+				FAssetViewAsset* Asset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem).Get();
+
+				if (!Asset->CustomColumnData.Find(Column.ColumnName))
+				{
+					Asset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(Asset->Data, Column.ColumnName));
+				}
+			}
+			return Column.DataType;
+		}
+	}
+	return UObject::FAssetRegistryTag::ETagType::TT_Hidden;
+}
+
 void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, const FName& MajorityAssetType, const TArray<FAssetViewCustomColumn>& CustomColumns) const
 {
 	//double SortListStartTime = FPlatformTime::Seconds();
@@ -352,31 +381,10 @@ void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetIt
 		}
 		else
 		{
-			bool bFoundCustom = false;
-			UObject::FAssetRegistryTag::ETagType TagType = UObject::FAssetRegistryTag::TT_Alphabetical;
-			// Look in custom columns list
-			for (const FAssetViewCustomColumn& Column : CustomColumns)
-			{
-				if (Column.ColumnName == Tag)
-				{
-					TagType = Column.DataType;
-					bFoundCustom = true;
-
-					// Refresh the custom data now so it can sort
-					for (int32 AssetIndex = 0; AssetIndex < AssetItems.Num(); AssetIndex++)
-					{
-						FAssetViewAsset* Asset = StaticCastSharedPtr<FAssetViewAsset>(AssetItems[AssetIndex]).Get();
-
-						if (!Asset->CustomColumnData.Find(Column.ColumnName))
-						{
-							Asset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(Asset->Data, Column.ColumnName));
-						}
-					}
-				}
-			}
-
+			UObject::FAssetRegistryTag::ETagType TagType = FindAndRefreshCustomColumn(AssetItems, Tag, CustomColumns);
+			
 			// Since this SortData.Tag is not one of preset columns, sort by asset registry tag	
-			if (!bFoundCustom && MajorityAssetType != NAME_None)
+			if (TagType != UObject::FAssetRegistryTag::ETagType::TT_Hidden && MajorityAssetType != NAME_None)
 			{
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *MajorityAssetType.ToString());
 				if (Class)
@@ -409,7 +417,7 @@ void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetIt
 				// The property is a series of Numbers representing dimensions, compare by using atof for each Number, delimited by an "x"
 				SortMethod.Add(MakeUnique<FCompareFAssetItemByTagDimensional>(bAscending, Tag));
 			}
-			else
+			else if (TagType != UObject::FAssetRegistryTag::ETagType::TT_Hidden)
 			{
 				// Unknown or alphabetical, sort alphabetically either way
 				SortMethod.Add(MakeUnique<FCompareFAssetItemByTag>(bAscending, Tag));
@@ -441,6 +449,58 @@ void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetIt
 	SortMethod.Empty();
 
 	//UE_LOG(LogContentBrowser, Warning/*VeryVerbose*/, TEXT("FAssetViewSortManager Sort Time: %0.4f seconds."), FPlatformTime::Seconds() - SortListStartTime);
+}
+
+void FAssetViewSortManager::ExportColumnsToCSV(TArray<TSharedPtr<struct FAssetViewItem>>& AssetItems, TArray<FName>& ColumnList, const TArray<FAssetViewCustomColumn>& CustomColumns, FString& OutString) const
+{
+	// Write column headers
+	for (FName Column : ColumnList)
+	{
+		OutString += Column.ToString();
+		OutString += TEXT(",");
+
+		FindAndRefreshCustomColumn(AssetItems, Column, CustomColumns);
+	}
+	OutString += TEXT("\n");
+
+	// Write each asset
+	for (TSharedPtr<struct FAssetViewItem> AssetItem : AssetItems)
+	{
+		if (!AssetItem.IsValid() || AssetItem->GetType() == EAssetItemType::Folder)
+		{
+			continue;
+		}
+
+		FAssetViewAsset* Asset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem).Get();
+
+		for (FName Column : ColumnList)
+		{
+			FString ValueString;
+
+			if (Column == NameColumnId)
+			{
+				ValueString = Asset->Data.AssetName.ToString();
+			}
+			else if (Column == ClassColumnId)
+			{
+				ValueString = Asset->Data.AssetClass.ToString();
+			}
+			else if (Column == PathColumnId)
+			{
+				ValueString = Asset->Data.PackagePath.ToString();
+			}
+			else
+			{
+				Asset->GetTagValue(Column, ValueString);
+			}
+			
+			OutString += TEXT("\"");
+			OutString += ValueString.Replace(TEXT("\""), TEXT("\"\""));
+			OutString += TEXT("\",");
+		}
+
+		OutString += TEXT("\n");
+	}
 }
 
 void FAssetViewSortManager::SetSortColumnId(const EColumnSortPriority::Type InSortPriority, const FName& InColumnId)

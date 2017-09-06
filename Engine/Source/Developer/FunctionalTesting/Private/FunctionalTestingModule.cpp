@@ -101,6 +101,17 @@ void FFunctionalTestingModule::GetMapTests(bool bEditorOnlyTests, TArray<FString
 
 	if (!AssetRegistry.IsLoadingAssets())
 	{
+#if WITH_EDITOR
+		static bool bDidScan = false;
+
+		if (!GIsEditor && !bDidScan)
+		{
+			// For editor build -game, we need to do a full scan
+			AssetRegistry.SearchAllAssets(true);
+			bDidScan = true;
+		}
+#endif
+
 		TArray<FAssetData> MapList;
 		FARFilter Filter;
 		Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());

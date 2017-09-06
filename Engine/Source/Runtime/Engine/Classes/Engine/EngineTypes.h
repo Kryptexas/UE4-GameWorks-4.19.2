@@ -370,13 +370,13 @@ struct FLightingChannels
 
 	/** Default channel for all primitives and lights. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
-	bool bChannel0;
+	uint8 bChannel0:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
-	bool bChannel1;
+	uint8 bChannel1:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
-	bool bChannel2;
+	uint8 bChannel2:1;
 };
 
 inline uint8 GetLightingChannelMaskForStruct(FLightingChannels Value)

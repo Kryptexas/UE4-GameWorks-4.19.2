@@ -108,14 +108,6 @@ struct FEdGraphPinType
 	EPinContainerType ContainerType;
 
 private:
-	/** DEPRECATED(4.17) Whether or not this pin represents a map of keys to values */
-	UPROPERTY()
-	uint8 bIsMap_DEPRECATED:1;
-
-	/** DEPRECATED(4.17) Whether or not this pin represents a set of (unique) values */
-	UPROPERTY()
-	uint8 bIsSet_DEPRECATED:1;
-
 	/** DEPRECATED(4.17) Whether or not this pin represents an array of values */
 	UPROPERTY()
 	uint8 bIsArray_DEPRECATED:1;
@@ -142,8 +134,6 @@ public:
 	FEdGraphPinType() 
 		: PinSubCategoryObject(nullptr)
 		, ContainerType(EPinContainerType::None)
-		, bIsMap_DEPRECATED(false)
-		, bIsSet_DEPRECATED(false)
 		, bIsArray_DEPRECATED(false)
 		, bIsReference(false)
 		, bIsConst(false)
@@ -158,8 +148,6 @@ public:
 		, PinSubCategoryObject(InPinSubCategoryObject)
 		, PinValueType(InValueTerminalType)
 		, ContainerType(ToPinContainerType(bInIsArray, bInIsSet, bInIsMap))
-		, bIsMap_DEPRECATED(false)
-		, bIsSet_DEPRECATED(false)
 		, bIsArray_DEPRECATED(false)
 		, bIsReference(bInIsReference)
 		, bIsConst(false)
@@ -173,8 +161,6 @@ public:
 		, PinSubCategoryObject(InPinSubCategoryObject)
 		, PinValueType(InValueTerminalType)
 		, ContainerType(InPinContainerType)
-		, bIsMap_DEPRECATED(false)
-		, bIsSet_DEPRECATED(false)
 		, bIsArray_DEPRECATED(false)
 		, bIsReference(bInIsReference)
 		, bIsConst(false)
@@ -212,6 +198,7 @@ public:
 	}
 
 	ENGINE_API bool Serialize(FArchive& Ar);
+	ENGINE_API void PostSerialize(const FArchive& Ar);
 
 	static ENGINE_API FEdGraphPinType GetPinTypeForTerminalType( const FEdGraphTerminalType& TerminalType );
 	static ENGINE_API FEdGraphPinType GetTerminalTypeForContainer( const FEdGraphPinType& ContainerType );
@@ -246,6 +233,7 @@ struct TStructOpsTypeTraits< FEdGraphPinType > : public TStructOpsTypeTraitsBase
 	enum 
 	{
 		WithSerializer = true,
+		WithPostSerialize = true
 	};
 };
 

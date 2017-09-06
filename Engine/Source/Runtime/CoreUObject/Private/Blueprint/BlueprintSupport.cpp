@@ -395,7 +395,7 @@ TArray<UClass*> const& FScopedClassDependencyGather::GetCachedDependencies()
 // rather than littering the code with USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 // checks, let's just define DEFERRED_DEPENDENCY_CHECK for the file
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	#define DEFERRED_DEPENDENCY_CHECK(CheckExpr) check(CheckExpr)
+	#define DEFERRED_DEPENDENCY_CHECK(CheckExpr) ensure(CheckExpr)
 #else  // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 	#define DEFERRED_DEPENDENCY_CHECK(CheckExpr)
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -858,13 +858,13 @@ bool FLinkerLoad::DeferExportCreation(const int32 Index)
 		return false;
 	}
 
-	if ((Export.Object != nullptr) || !Export.ClassIndex.IsImport())
+	if ((Export.Object != nullptr))
 	{
 		return false;
 	}
 
 	UClass* LoadClass = GetExportLoadClass(Index);
-	if (LoadClass == nullptr)
+	if (LoadClass == nullptr || LoadClass->HasAnyClassFlags(CLASS_Native))
 	{
 		return false;
 	}
@@ -873,7 +873,9 @@ bool FLinkerLoad::DeferExportCreation(const int32 Index)
 	bool const bIsPlaceholderClass = (AsPlaceholderClass != nullptr);
 
 	FLinkerLoad* ClassLinker = LoadClass->GetLinker();
-	if ( !bIsPlaceholderClass && ((ClassLinker == nullptr) || !ClassLinker->IsBlueprintFinalizationPending()) )
+	if ( !bIsPlaceholderClass 
+		&& ((ClassLinker == nullptr) || !ClassLinker->IsBlueprintFinalizationPending())
+		&& (!LoadClass->ClassDefaultObject || LoadClass->ClassDefaultObject->HasAnyFlags(RF_LoadCompleted) || !LoadClass->ClassDefaultObject->HasAnyFlags(RF_WasLoaded)) )
 	{
 		return false;
 	}
@@ -1545,6 +1547,9 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		TArray<UObject*> ClassInstances;
 		GetObjectsOfClass(LoadClass, ClassInstances, /*bIncludeDerivedClasses =*/true);
 
+		// Filter out instances that are part of this package, they were handled in ResolveDeferredExports:
+		ClassInstances.RemoveAllSwap([LoadClass](UObject* Obj){return Obj->GetOutermost() == LoadClass->GetOutermost();});
+
 		for (UObject* ClassInst : ClassInstances)
 		{
 			// in the case that we do end up with instances, use this to find 
@@ -1604,6 +1609,8 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 
 	UObject* BlueprintCDO = DeferredCDOIndex != INDEX_NONE ? ExportMap[DeferredCDOIndex].Object : LoadClass->ClassDefaultObject;
 	DEFERRED_DEPENDENCY_CHECK(BlueprintCDO != nullptr);
+	
+	TArray<int32> DeferredTemplateObjects;
 
 	if (!FBlueprintSupport::IsDeferredExportCreationDisabled())
 	{
@@ -1641,7 +1648,11 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 			FObjectExport& Export = ExportMap[ExportIndex];
 			if (ULinkerPlaceholderExportObject* PlaceholderExport = Cast<ULinkerPlaceholderExportObject>(Export.Object))
 			{
-				DEFERRED_DEPENDENCY_CHECK(Export.ClassIndex.IsImport());
+				if(Export.ClassIndex.IsExport())
+				{
+					DeferredTemplateObjects.Push(ExportIndex);
+					continue;
+				}
 
 				UClass* ExportClass = GetExportLoadClass(ExportIndex);
 				// export class could be null... we create these placeholder 
@@ -1699,12 +1710,6 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 	// between now and when DeferredCDOIndex is cleared (they won't be resolved,
 	// so that is a problem!)
 	FResolvingExportTracker::Get().FlagFullExportResolvePassComplete(this);
-
-	for (TObjectIterator<ULinkerPlaceholderExportObject> PlaceholderIt; PlaceholderIt; ++PlaceholderIt)
-	{
-		ULinkerPlaceholderExportObject* PlaceholderObj = *PlaceholderIt;
-		DEFERRED_DEPENDENCY_CHECK((PlaceholderObj->GetOuter() != LinkerRoot) || PlaceholderObj->IsPendingKill());
-	}
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	// the ExportMap loop above could have recursed back into "finalization" for  
@@ -1748,6 +1753,16 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 			FObjectExport& Export = ExportMap[ExportIndex];
 			if (Export.Object == nullptr && (Export.ObjectFlags & RF_DefaultSubObject) != 0 && Export.OuterIndex.IsExport() && Export.OuterIndex.ToExport() == DeferredCDOIndex)
 			{
+				CreateExport(ExportIndex);
+			}
+		}
+
+		{
+			// Create any objects that (non CDO) objects that were deferred in this package:
+			TGuardValue<int32> ClearDeferredCDOToPreventDeferExportCreation(DeferredCDOIndex, INDEX_NONE);
+			for(int32 ExportIndex : DeferredTemplateObjects)
+			{
+				ExportMap[ExportIndex].Object = nullptr;
 				CreateExport(ExportIndex);
 			}
 		}

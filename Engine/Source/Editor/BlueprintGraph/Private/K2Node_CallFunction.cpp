@@ -53,7 +53,7 @@ struct FCustomStructureParamHelper
 		OutNames.Empty();
 		if (Function)
 		{
-			FString MetaDataValue = Function->GetMetaData(GetCustomStructureParamName());
+			const FString& MetaDataValue = Function->GetMetaData(GetCustomStructureParamName());
 			if (!MetaDataValue.IsEmpty())
 			{
 				MetaDataValue.ParseIntoArray(OutNames, TEXT(","), true);
@@ -239,7 +239,7 @@ UEdGraphPin* FDynamicOutputHelper::GetTypePickerPin(const UK2Node_CallFunction* 
 
 	if (UFunction* Function = FuncNode->GetTargetFunction())
 	{
-		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		const FString& TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
 		if (!TypeDeterminingPinName.IsEmpty())
 		{
 			TypePickerPin = FuncNode->FindPin(TypeDeterminingPinName);
@@ -353,7 +353,7 @@ bool FDynamicOutputHelper::IsTypePickerPin(UEdGraphPin* Pin) const
 
 	if (UFunction* Function = GetTargetFunction())
 	{
-		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		const FString& TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
 		if (!TypeDeterminingPinName.IsEmpty())
 		{
 			bIsTypeDeterminingPin = (Pin->PinName == TypeDeterminingPinName);
@@ -928,7 +928,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 		if (bPinGood)
 		{
 			// Check for a display name override
-			const FString PinDisplayName = Param->GetMetaData(FBlueprintMetadata::MD_DisplayName);
+			const FString& PinDisplayName = Param->GetMetaData(FBlueprintMetadata::MD_DisplayName);
 			if (!PinDisplayName.IsEmpty())
 			{
 				Pin->PinFriendlyName = FText::FromString(PinDisplayName);
@@ -956,8 +956,8 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			
 			if (PinsToHide.Contains(Pin->PinName))
 			{
-				FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-				FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+				const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+				const FString& WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 				bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
 
 				if (!bShowWorldContextPin || !bIsSelfPin)
@@ -976,7 +976,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	// If we have an 'enum to exec' parameter, set its default value to something valid so we don't get warnings
 	if(bWantsEnumToExecExpansion)
 	{
-		FString EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
+		const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
 		UEdGraphPin* EnumParamPin = FindPin(EnumParamName);
 		if (UEnum* PinEnum = (EnumParamPin ? Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get()) : NULL))
 		{
@@ -1623,7 +1623,7 @@ FString UK2Node_CallFunction::GetCompactNodeTitle(const UFunction* Function)
 	static const FString ProgrammerConversionSymbol = TEXT("->");
 	static const FString CommonConversionSymbol = TEXT("\x2022");
 
-	const FString OperatorTitle = Function->GetMetaData(FBlueprintMetadata::MD_CompactNodeTitle);
+	const FString& OperatorTitle = Function->GetMetaData(FBlueprintMetadata::MD_CompactNodeTitle);
 	if (!OperatorTitle.IsEmpty())
 	{
 		if (OperatorTitle == ProgrammerMultiplicationSymbol)
@@ -1745,8 +1745,8 @@ void UK2Node_CallFunction::PostPasteNode()
 
 		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin));
 
-		FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-		FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+		const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+		const FString& WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
@@ -1957,8 +1957,8 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 		}
 		else if (UEdGraphPin* BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
 		{
-			FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-			FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+			const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+			const FString& WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
 			struct FStructConnectHelper
 			{

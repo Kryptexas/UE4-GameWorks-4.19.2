@@ -47,6 +47,8 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "SSplitter.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "DesktopPlatformModule.h"
+#include "Misc/FileHelper.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -2996,6 +2998,15 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 				NAME_None,
 				EUserInterfaceActionType::Button
 				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ExportColumns", "Export to CSV"),
+				LOCTEXT("ExportColumnsToolTip", "Export column data to CSV."),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &SAssetView::ExportColumns)),
+				NAME_None,
+				EUserInterfaceActionType::Button
+			);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -4659,6 +4670,43 @@ void SAssetView::ResetColumns()
 	NumVisibleColumns = ColumnView->GetHeaderRow()->GetColumns().Num();
 	ColumnView->GetHeaderRow()->RefreshColumns();
 	ColumnView->RebuildList();
+}
+
+void SAssetView::ExportColumns()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+	const void* ParentWindowWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+
+	const FText Title = LOCTEXT("ExportToCSV", "Export columns as CSV...");
+	const FString FileTypes = TEXT("Data Table CSV (*.csv)|*.csv");
+
+	TArray<FString> OutFilenames;
+	DesktopPlatform->SaveFileDialog(
+		ParentWindowWindowHandle,
+		Title.ToString(),
+		TEXT(""),
+		TEXT("Report.csv"),
+		FileTypes,
+		EFileDialogFlags::None,
+		OutFilenames
+	);
+
+	if (OutFilenames.Num() > 0)
+	{
+		const TIndirectArray<SHeaderRow::FColumn>& Columns = ColumnView->GetHeaderRow()->GetColumns();
+
+		TArray<FName> ColumnNames;
+		for (const SHeaderRow::FColumn& Column : Columns)
+		{
+			ColumnNames.Add(Column.ColumnId);
+		}
+
+		FString SaveString;
+		SortManager.ExportColumnsToCSV(FilteredAssetItems, ColumnNames, CustomColumns, SaveString);
+
+		FFileHelper::SaveStringToFile(SaveString, *OutFilenames[0]);
+	}
 }
 
 void SAssetView::ToggleColumn(const FString ColumnName)

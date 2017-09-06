@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
@@ -92,6 +92,10 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 		{
 			FNativizationSummaryHelper::PropertyUsed(Context.GetCurrentlyGeneratedClass(), Property);
 
+			const UObject* SubobjectInstance = nullptr;
+			const UObject* DefaultSubobjectInstance = nullptr;
+			const bool bIsInstancedSubobject = IsInstancedSubobjectLambda(ArrayIndex, SubobjectInstance, DefaultSubobjectInstance);
+
 			FString PathToMember;
 			UBlueprintGeneratedClass* PropertyOwnerAsBPGC = Cast<UBlueprintGeneratedClass>(Property->GetOwnerClass());
 			UScriptStruct* PropertyOwnerAsScriptStruct = Cast<UScriptStruct>(Property->GetOwnerStruct());
@@ -128,7 +132,15 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 						, ArrayIndex));
 					continue;
 				}
-				const FString GetPtrStr = FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, ArrayIndex, ENativizedTermUsage::UnspecifiedOrReference, nullptr);
+
+				FString OverrideTypeDeclaration;
+				if (bIsInstancedSubobject)
+				{
+					UClass* SubobjectClass = SubobjectInstance->GetClass();
+					OverrideTypeDeclaration = FString::Printf(TEXT("%s%s*"), SubobjectClass->GetPrefixCPP(), *SubobjectClass->GetName());
+				}
+
+				const FString GetPtrStr = FEmitHelper::AccessInaccessibleProperty(Context, Property, OverrideTypeDeclaration, ContainerStr, OperatorStr, ArrayIndex, ENativizedTermUsage::UnspecifiedOrReference, nullptr);
 				PathToMember = Context.GenerateUniqueLocalName();
 				Context.AddLine(FString::Printf(TEXT("auto& %s = %s;"), *PathToMember, *GetPtrStr));
 			}
@@ -141,9 +153,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				PathToMember = FString::Printf(TEXT("%s%s%s%s"), *OuterPath, *AccessOperatorStr, *FEmitHelper::GetCppName(Property), *ArrayPost);
 			}
 
-			const UObject* SubobjectInstance = nullptr;
-			const UObject* DefaultSubobjectInstance = nullptr;
-			if (IsInstancedSubobjectLambda(ArrayIndex, SubobjectInstance, DefaultSubobjectInstance))
+			if (bIsInstancedSubobject)
 			{
 				// Emit code to create subobjects that were not originally instanced with CreateDefaultSubobject() (e.g. - 'EditInlineNew' instances).
 				if (!SubobjectInstance->HasAnyFlags(RF_DefaultSubObject) && SubobjectInstance->HasAnyFlags(RF_ArchetypeObject))
@@ -750,13 +760,11 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UStruct* Struct,
 
 FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr)
 {
-	//TODO: Use Path maps for Objects
-	if (auto ObjectProperty = Cast<UObjectProperty>(Property))
+	auto HandleObjectValueLambda = [&Context, Property](UObject* Object, UClass* Class) -> FString
 	{
-		UObject* Object = ObjectProperty->GetPropertyValue(ValuePtr);
 		if (Object)
 		{
-			UClass* ObjectClassToUse = Context.GetFirstNativeOrConvertedClass(ObjectProperty->PropertyClass);
+			UClass* ObjectClassToUse = Context.GetFirstNativeOrConvertedClass(Class);
 			{
 				const FString MappedObject = Context.FindGloballyMappedObject(Object, ObjectClassToUse);
 				if (!MappedObject.IsEmpty())
@@ -772,7 +780,7 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 
 			const bool bCreatingSubObjectsOfClass = (Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass);
 			{
-				auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
+				UObject* CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
 				if (BPGC && Object && CDO && Object->IsIn(BPGC) && !Object->IsIn(CDO) && bCreatingSubObjectsOfClass)
 				{
 					return HandleClassSubobject(Context, Object, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, bObjectIsCACTemplate);
@@ -800,22 +808,30 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 				}
 			}
 		}
-		else if (ObjectProperty->HasMetaData(FBlueprintMetadata::MD_LatentCallbackTarget))
-		{
-			return TEXT("this");
-		}
-	}
 
-	if (auto StructProperty = Cast<UStructProperty>(Property))
+		return FString();
+	};
+
+	FString Result;
+
+	if (const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
+	{
+		Result = HandleObjectValueLambda(ObjectProperty->GetPropertyValue(ValuePtr), ObjectProperty->PropertyClass);
+	}
+	else if (const UInterfaceProperty* InterfaceProperty = Cast<UInterfaceProperty>(Property))
+	{
+		Result = HandleObjectValueLambda(InterfaceProperty->GetPropertyValue(ValuePtr).GetObject(), InterfaceProperty->InterfaceClass);
+	}
+	else if (const UStructProperty* StructProperty = Cast<UStructProperty>(Property))
 	{
 		FString StructConstructor;
 		if (SpecialStructureConstructor(StructProperty->Struct, ValuePtr, &StructConstructor))
 		{
-			return StructConstructor;
+			Result = StructConstructor;
 		}
 	}
 
-	return FString();
+	return Result;
 }
 
 struct FNonativeComponentData

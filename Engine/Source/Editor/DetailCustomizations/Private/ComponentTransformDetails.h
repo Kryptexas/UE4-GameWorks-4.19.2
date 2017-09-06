@@ -56,30 +56,30 @@ private:
 	/** @return Whether the transform details panel should be enabled (editable) or not (read-only / greyed out) */
 	bool GetIsEnabled() const;
 
-	/**
-	 * Sets the selected object(s) translation (relative)
-	 *
-	 * @param NewValue The new translation value
-	 */
-	void OnSetLocation( float NewValue, ETextCommit::Type CommitInfo, int32 Axis );
+	/** Sets a vector based on two source vectors and an axis list */
+	FVector GetAxisFilteredVector(EAxisList::Type Axis, const FVector& NewValue, const FVector& OldValue);
 
 	/**
-	 * Sets the selected object(s) rotation (relative)
+	 * Sets the selected object(s) axis to passed in value
 	 *
-	 * @param NewValue		The new rotation value for the axis
-	 * @param bCommittted	true if the value was committed, false is the value comes from the slider (int32 due to delegate restrictions)
-	 * @param Axis			The axis of rotation which changed.  0 = Roll, 1 = Pitch, 2 = Yaw
+	 * @param TransformField	The field (location/rotation/scale) to modify
+	 * @param Axis				Bitfield of which axis to set, can be multiple
+	 * @param NewValue			The new vector values, it only uses the ones with specified axis
+	 * @param bMirror			If true, set the value to it's inverse instead of using NewValue
+	 * @param bCommittted		True if the value was committed, false is the value comes from the slider
 	 */
-	void OnSetRotation( float NewValue, bool bCommitted, int32 Axis );
+	void OnSetTransform(ETransformField::Type TransformField, EAxisList::Type Axis, FVector NewValue, bool bMirror, bool bCommitted);
 
 	/**
-	 * Sets the selected object(s) rotation (relative)
+	 * Sets a single axis value, called from UI
 	 *
+	 * @param TransformField	The field (location/rotation/scale) to modify
+	 * @param NewValue		The new translation value
 	 * @param CommitInfo	Whether or not this was committed from pressing enter or losing focus
-	 * @param Axis			The axis of rotation which changed.  0 = Roll, 1 = Pitch, 2 = Yaw
-	 * @param NewValue		The new rotation value for the axis
+	 * @param Axis				Bitfield of which axis to set, can be multiple
+	 * @param bCommittted	true if the value was committed, false is the value comes from the slider
 	 */
-	void OnRotationCommitted( float NewValue, ETextCommit::Type CommitInfo, int32 Axis );
+	void OnSetTransformAxis(float NewValue, ETextCommit::Type CommitInfo, ETransformField::Type TransformField, EAxisList::Type Axis, bool bCommitted);
 
 	/**
 	 * Called when the one of the axis sliders for object rotation begins to change for the first time 
@@ -90,24 +90,6 @@ private:
 	 * Called when the one of the axis sliders for object rotation is released
 	 */
 	void OnEndRotationSlider(float NewValue);
-
-	/**
-	 * Sets the selected object(s) scale (relative)
-	 *
-	 * @param NewValue The new scale value
-	 */
-	void OnSetScale( float NewValue, ETextCommit::Type CommitInfo, int32 Axis );
-
-	/**
-	 * Sets the selected object(s) scale or mirrors them (relative)
-	 * Helper function for OnSetScale and On*ScaleMirrored.
-	 *
-	 * @param NewValue					The new scale value - unused if mirroring
-	 * @param Axis						The axis we are manipulating
-	 * @param bMirror					Whether to mirror the axis
-	 * @param TransactionSessionName	the name of the undo/redo transaction
-	 */
-	void ScaleObject( float NewValue, int32 Axis, bool bMirror, const FText& TransactionSessionName );
 
 	/** @return Icon to use in the preserve scale ratio check box */
 	const FSlateBrush* GetPreserveScaleRatioImage() const;
@@ -152,45 +134,14 @@ private:
 	FText GetScaleText() const;
 
 	/**
-	 * Enables or disables absolute location
-	 *
-	 * @param bEnable True to enable, false to disable (use relative location)
-	 */
-	void OnToggleAbsoluteLocation( bool bEnable );
-
-	/**
-	 * Enables or disables absolute rotation
-	 *
-	 * @param bEnable True to enable, false to disable (use relative rotation)
-	 */
-	void OnToggleAbsoluteRotation( bool bEnable );
-
-	/**
-	 * Enables or disables absolute scale
-	 *
-	 * @param bEnable True to enable, false to disable (use relative scale)
-	 */
-	void OnToggleAbsoluteScale( bool bEnable );
-
-	/**
 	 * Sets relative transform on the specified field
 	 *
 	 * @param The field that should be set to relative
 	 */
-	void OnSetRelativeTransform( ETransformField::Type TransformField );
+	void OnSetAbsoluteTransform( ETransformField::Type TransformField, bool bAbsoluteEnabled);
 
-	/**
-	 * Sets world transform on the specified field
-	 *
-	 * @param The field that should be set to world
-	 */
-	void OnSetWorldTransform( ETransformField::Type TransformField );
-
-	/** @return true if relative transform is enabled for the specified field */
-	bool IsRelativeTransformChecked( ETransformField::Type TransformField ) const;
-
-	/** @return true if world transform is enabled for the specified field */
-	bool IsWorldTransformChecked( ETransformField::Type TransformField ) const;
+	/** @return true if Absolute flag of transform type matches passed in bCheckAbsolute*/
+	bool IsAbsoluteTransformChecked( ETransformField::Type TransformField, bool bAbsoluteEnabled=true) const;
 
 	/** @return true of copy is enabled for the specified field */
 	bool OnCanCopy( ETransformField::Type TransformField ) const;
@@ -245,11 +196,7 @@ private:
 	/** @return The Z component of location */
 	TOptional<float> GetLocationZ() const { return CachedLocation.Z; }
 	/** @return The visibility of the "Reset to Default" button for the location component */
-	EVisibility GetLocationResetVisibility() const
-	{
-		// unset means multiple differing values, so show "Reset to Default" in that case
-		return CachedLocation.IsSet() && CachedLocation.X.GetValue() == 0.0f && CachedLocation.Y.GetValue() == 0.0f && CachedLocation.Z.GetValue() == 0.0f ? EVisibility::Hidden : EVisibility::Visible;
-	}
+	EVisibility GetLocationResetVisibility() const;
 
 	/** @return The X component of rotation */
 	TOptional<float> GetRotationX() const { return CachedRotation.X; }
@@ -258,11 +205,7 @@ private:
 	/** @return The Z component of rotation */
 	TOptional<float> GetRotationZ() const { return CachedRotation.Z; }
 	/** @return The visibility of the "Reset to Default" button for the rotation component */
-	EVisibility GetRotationResetVisibility() const
-	{
-		// unset means multiple differing values, so show "Reset to Default" in that case
-		return CachedRotation.IsSet() && CachedRotation.X.GetValue() == 0.0f && CachedRotation.Y.GetValue() == 0.0f && CachedRotation.Z.GetValue() == 0.0f ? EVisibility::Hidden : EVisibility::Visible;
-	}
+	EVisibility GetRotationResetVisibility() const;
 
 	/** @return The X component of scale */
 	TOptional<float> GetScaleX() const { return CachedScale.X; }
@@ -271,11 +214,7 @@ private:
 	/** @return The Z component of scale */
 	TOptional<float> GetScaleZ() const { return CachedScale.Z; }
 	/** @return The visibility of the "Reset to Default" button for the scale component */
-	EVisibility GetScaleResetVisibility() const
-	{
-		// unset means multiple differing values, so show "Reset to Default" in that case
-		return CachedScale.IsSet() && CachedScale.X.GetValue() == 1.0f && CachedScale.Y.GetValue() == 1.0f && CachedScale.Z.GetValue() == 1.0f ? EVisibility::Hidden : EVisibility::Visible;
-	}
+	EVisibility GetScaleResetVisibility() const;
 
 	/** Cache a single unit to display all location comonents in */
 	void CacheCommonLocationUnits();

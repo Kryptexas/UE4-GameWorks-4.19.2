@@ -79,15 +79,15 @@ class COREUOBJECT_API UProperty : public UField
 	uint64		PropertyFlags;
 	uint16		RepIndex;
 
-	FName		RepNotifyFunc;
-
 private:
+	TEnumAsByte<ELifetimeCondition> BlueprintReplicationCondition;
+
 	// In memory variables (generated during Link()).
 	int32		Offset_Internal;
 
-	ELifetimeCondition BlueprintReplicationCondition;
-
 public:
+	FName		RepNotifyFunc;
+
 	/** In memory only: Linked list of properties from most-derived to base **/
 	UProperty*	PropertyLinkNext;
 	/** In memory only: Linked list of object reference properties from most-derived to base **/

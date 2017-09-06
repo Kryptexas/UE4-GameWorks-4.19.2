@@ -2441,7 +2441,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	if( OriginalActiveProperty )
 	{
 		//if i have metadata forcing other property windows to rebuild
-		FString MetaData = OriginalActiveProperty->GetMetaData(TEXT("ForceRebuildProperty"));
+		const FString& MetaData = OriginalActiveProperty->GetMetaData(TEXT("ForceRebuildProperty"));
 
 		if( MetaData.Len() > 0 )
 		{

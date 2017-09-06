@@ -196,24 +196,8 @@ protected:
 	/** Padding that accounts for the button border when pressed */
 	FMargin PressedBorderPadding;
 
-	/** True if this button is currently in a pressed state */
-	bool bIsPressed;
-
 	/** The location in screenspace the button was pressed */
 	FVector2D PressedScreenSpacePosition;
-
-	/** The delegate to execute when the button is clicked */
-	FOnClicked OnClicked;
-
-	/** The delegate to execute when the button is pressed */
-	FSimpleDelegate OnPressed;
-
-	/** The delegate to execute when the button is released */
-	FSimpleDelegate OnReleased;
-
-	FSimpleDelegate OnHovered;
-
-	FSimpleDelegate OnUnhovered;
 
 	/** Style resource for the button */
 	const FButtonStyle* Style;
@@ -227,17 +211,18 @@ protected:
 	/** Brush resource that represents a button when it is disabled */
 	const FSlateBrush* DisabledImage;
 
-	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
-	EButtonClickMethod::Type ClickMethod;
+	/** The delegate to execute when the button is clicked */
+	FOnClicked OnClicked;
 
-	/** How should the button be clicked with touch events? */
-	EButtonTouchMethod::Type TouchMethod;
+	/** The delegate to execute when the button is pressed */
+	FSimpleDelegate OnPressed;
 
-	/** How should the button be clicked with keyboard/controller button events? */
-	EButtonPressMethod::Type PressMethod;
+	/** The delegate to execute when the button is released */
+	FSimpleDelegate OnReleased;
 
-	/** Can this button be focused? */
-	bool bIsFocusable;
+	FSimpleDelegate OnHovered;
+
+	FSimpleDelegate OnUnhovered;
 
 	/** Press the button */
 	virtual void Press();
@@ -259,6 +244,21 @@ protected:
 
 	/** The Sound to play when the button is pressed */
 	FSlateSound PressedSound;
+
+	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
+	TEnumAsByte<EButtonClickMethod::Type> ClickMethod;
+
+	/** How should the button be clicked with touch events? */
+	TEnumAsByte<EButtonTouchMethod::Type> TouchMethod;
+
+	/** How should the button be clicked with keyboard/controller button events? */
+	TEnumAsByte<EButtonPressMethod::Type> PressMethod;
+
+	/** Can this button be focused? */
+	uint8 bIsFocusable:1;
+
+	/** True if this button is currently in a pressed state */
+	uint8 bIsPressed:1;
 
 private:
 

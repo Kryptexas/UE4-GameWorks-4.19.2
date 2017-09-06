@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/PlayerController.h"
 #include "Misc/PackageName.h"
@@ -1927,7 +1927,7 @@ bool APlayerController::GetHitResultUnderCursorForObjects(const TArray<TEnumAsBy
 		}
 	}
 
-	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
+	if(!bHit)	//If there was no hit we reset the results. This is redundant but helps Blueprint users
 	{
 		HitResult = FHitResult();
 	}
@@ -1949,7 +1949,7 @@ bool APlayerController::GetHitResultUnderFinger(ETouchIndex::Type FingerIndex, E
 		}
 	}
 
-	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
+	if(!bHit)	//If there was no hit we reset the results. This is redundant but helps Blueprint users
 	{
 		HitResult = FHitResult();
 	}
@@ -1971,7 +1971,7 @@ bool APlayerController::GetHitResultUnderFingerByChannel(ETouchIndex::Type Finge
 		}
 	}
 
-	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
+	if(!bHit)	//If there was no hit we reset the results. This is redundant but helps Blueprint users
 	{
 		HitResult = FHitResult();
 	}
@@ -1993,7 +1993,7 @@ bool APlayerController::GetHitResultUnderFingerForObjects(ETouchIndex::Type Fing
 		}
 	}
 
-	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
+	if(!bHit)	//If there was no hit we reset the results. This is redundant but helps Blueprint users
 	{
 		HitResult = FHitResult();
 	}
@@ -3618,7 +3618,7 @@ void APlayerController::ClientPrestreamTextures_Implementation( AActor* ForcedAc
 	}
 }
 
-void APlayerController::ClientPlayForceFeedback_Implementation( UForceFeedbackEffect* ForceFeedbackEffect, bool bLooping, FName Tag)
+void APlayerController::ClientPlayForceFeedback_Implementation( UForceFeedbackEffect* ForceFeedbackEffect, bool bLooping, bool bIgnoreTimeDilation, FName Tag)
 {
 	if (ForceFeedbackEffect)
 	{
@@ -3633,7 +3633,7 @@ void APlayerController::ClientPlayForceFeedback_Implementation( UForceFeedbackEf
 			}
 		}
 
-		ActiveForceFeedbackEffects.Emplace(ForceFeedbackEffect, bLooping, Tag);
+		ActiveForceFeedbackEffects.Emplace(ForceFeedbackEffect, bLooping, bIgnoreTimeDilation, Tag);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		ForceFeedbackEffectHistoryEntries.Emplace(ActiveForceFeedbackEffects.Last(), GetWorld()->GetTimeSeconds());
@@ -3896,6 +3896,8 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 
 	if (bProcessFeedback)
 	{
+		UWorld* World = GetWorld();
+
 		// --- Force Feedback --------------------------
 		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
 		{
@@ -3910,7 +3912,7 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			DynamicEntry.Value.Update(ForceFeedbackValues);
 		}
 
-		if (FForceFeedbackManager* ForceFeedbackManager = FForceFeedbackManager::Get(GetWorld()))
+		if (FForceFeedbackManager* ForceFeedbackManager = FForceFeedbackManager::Get(World))
 		{
 			ForceFeedbackManager->Update(GetFocalLocation(), ForceFeedbackValues);
 		}
@@ -3966,24 +3968,22 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 		{
 			InputInterface->SetForceFeedbackChannelValues(ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
 
-			bool bDisableHaptics = (CVarDisableHaptics.GetValueOnGameThread() > 0);
+			const bool bDisableHaptics = (CVarDisableHaptics.GetValueOnGameThread() > 0);
 			if (!bDisableHaptics)
 			{
-
 				// Haptic Updates
 				if (bLeftHapticsNeedUpdate)
 				{
 					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Left, LeftHaptics);
 				}
-
 				if (bRightHapticsNeedUpdate)
 				{
 					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
 				}
-			}
-			if (bGunHapticsNeedUpdate)
-			{
-				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Gun, GunHaptics);
+				if (bGunHapticsNeedUpdate)
+				{
+					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Gun, GunHaptics);
+				}
 			}
 		}
 	}

@@ -108,5 +108,5 @@ private:
 
 public:
 
-	Private Value;
+	TEnumAsByte<Private> Value;
 };

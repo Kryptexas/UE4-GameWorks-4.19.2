@@ -23,7 +23,7 @@ UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SScrollBox::FArguments Defaults;
-	Visiblity_DEPRECATED = Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 	Clipping = EWidgetClipping::ClipToBounds;
 
 	WidgetStyle = *Defaults._Style;

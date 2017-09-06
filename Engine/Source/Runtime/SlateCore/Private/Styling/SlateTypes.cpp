@@ -51,6 +51,7 @@ void FCheckBoxStyle::GetResources( TArray< const FSlateBrush* > & OutBrushes ) c
 	OutBrushes.Add( &UndeterminedPressedImage );
 }
 
+#if WITH_EDITORONLY_DATA
 void FCheckBoxStyle::PostSerialize(const FArchive& Ar)
 {
 	if(Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FSLATESOUND_CONVERSION)
@@ -61,6 +62,7 @@ void FCheckBoxStyle::PostSerialize(const FArchive& Ar)
 		HoveredSlateSound = FSlateSound::FromName_DEPRECATED(HoveredSound_DEPRECATED);
 	}
 }
+#endif
 
 FTextBlockStyle::FTextBlockStyle()
 : Font()
@@ -117,6 +119,7 @@ const FButtonStyle& FButtonStyle::GetDefault()
 	return Default;
 }
 
+#if WITH_EDITORONLY_DATA
 void FButtonStyle::PostSerialize(const FArchive& Ar)
 {
 	if(Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FSLATESOUND_CONVERSION)
@@ -126,6 +129,7 @@ void FButtonStyle::PostSerialize(const FArchive& Ar)
 		HoveredSlateSound = FSlateSound::FromName_DEPRECATED(HoveredSound_DEPRECATED);
 	}
 }
+#endif
 
 FComboButtonStyle::FComboButtonStyle()
 	: MenuBorderPadding(FMargin(0.0f))
@@ -165,6 +169,7 @@ const FComboBoxStyle& FComboBoxStyle::GetDefault()
 	return Default;
 }
 
+#if WITH_EDITORONLY_DATA
 void FComboBoxStyle::PostSerialize(const FArchive& Ar)
 {
 	if(Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FSLATESOUND_CONVERSION)
@@ -174,6 +179,7 @@ void FComboBoxStyle::PostSerialize(const FArchive& Ar)
 		SelectionChangeSlateSound = FSlateSound::FromName_DEPRECATED(SelectionChangeSound_DEPRECATED);
 	}
 }
+#endif
 
 FHyperlinkStyle::FHyperlinkStyle()
 : UnderlineStyle()

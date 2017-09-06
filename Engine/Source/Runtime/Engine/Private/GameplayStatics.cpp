@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/GameplayStatics.h"
 #include "Serialization/MemoryWriter.h"
@@ -364,6 +364,12 @@ float UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, ACon
 
 UObject* UGameplayStatics::SpawnObject(TSubclassOf<UObject> ObjectClass, UObject* Outer)
 {
+	if (*ObjectClass == nullptr)
+	{
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject no class specified"));
+		return nullptr;
+	}
+
 	if (!Outer)
 	{
 		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject null outer"));
@@ -690,36 +696,49 @@ UParticleSystemComponent* CreateParticleSystem(UParticleSystem* EmitterTemplate,
 
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject* WorldContextObject, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, bool bAutoDestroy)
 {
+	return SpawnEmitterAtLocation(WorldContextObject, EmitterTemplate, SpawnLocation, SpawnRotation, FVector(1.f), bAutoDestroy);
+}
+
+UParticleSystemComponent* UGameplayStatics::InternalSpawnEmitterAtLocation(UWorld* World, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, FVector SpawnScale, bool bAutoDestroy)
+{
+	check(World && EmitterTemplate);
+
+	UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
+
+	PSC->bAbsoluteLocation = true;
+	PSC->bAbsoluteRotation = true;
+	PSC->bAbsoluteScale = true;
+	PSC->RelativeLocation = SpawnLocation;
+	PSC->RelativeRotation = SpawnRotation;
+	PSC->RelativeScale3D = SpawnScale;
+
+	PSC->RegisterComponentWithWorld(World);
+
+	PSC->ActivateSystem(true);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (PSC->Template && PSC->Template->IsImmortal())
+	{
+		UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
+			*(PSC->GetPathName()), *(PSC->Template->GetPathName())
+		);
+	}
+#endif
+
+	return PSC;
+}
+
+UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject* WorldContextObject, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, FVector SpawnScale, bool bAutoDestroy)
+{
+	UParticleSystemComponent* PSC = nullptr;
 	if (EmitterTemplate)
 	{
 		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
-			UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
-
-			PSC->bAbsoluteLocation = true;
-			PSC->bAbsoluteRotation = true;
-			PSC->bAbsoluteScale = true;
-			PSC->RelativeLocation = SpawnLocation;
-			PSC->RelativeRotation = SpawnRotation;
-			PSC->RelativeScale3D = FVector(1.f);
-
-			PSC->RegisterComponentWithWorld(World);
-
-			PSC->ActivateSystem(true);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (PSC->Template && PSC->Template->IsImmortal())
-			{
-				UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
-					*(PSC->GetPathName()), *(PSC->Template->GetPathName())
-					);
-			}
-#endif
-
-			return PSC;
+			PSC = InternalSpawnEmitterAtLocation(World, EmitterTemplate, SpawnLocation, SpawnRotation, SpawnScale, bAutoDestroy);
 		}
 	}
-	return nullptr;
+	return PSC;
 }
 
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World, UParticleSystem* EmitterTemplate, const FTransform& SpawnTransform, bool bAutoDestroy)
@@ -727,34 +746,17 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World
 	UParticleSystemComponent* PSC = nullptr;
 	if (World && EmitterTemplate)
 	{
-		PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
-
-		PSC->bAbsoluteLocation = true;
-		PSC->bAbsoluteRotation = true;
-		PSC->bAbsoluteScale = true;
-		PSC->RelativeLocation = SpawnTransform.GetLocation();
-		PSC->RelativeRotation = SpawnTransform.GetRotation().Rotator();
-		PSC->RelativeScale3D = SpawnTransform.GetScale3D();
-
-		PSC->RegisterComponentWithWorld(World);
-
-		PSC->ActivateSystem(true);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (PSC->Template && PSC->Template->IsImmortal())
-		{
-			UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
-				*(PSC->GetPathName()), *(PSC->Template->GetPathName())
-				);
-		}
-#endif
-
+		PSC = InternalSpawnEmitterAtLocation(World, EmitterTemplate, SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator(), SpawnTransform.GetScale3D(), bAutoDestroy);
 	}
 	return PSC;
 }
 
-
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem* EmitterTemplate, USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bAutoDestroy)
+{
+	return SpawnEmitterAttached(EmitterTemplate, AttachToComponent, AttachPointName, Location, Rotation, FVector(1.f), LocationType, bAutoDestroy);
+}
+
+UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem* EmitterTemplate, USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, FVector Scale, EAttachLocation::Type LocationType, bool bAutoDestroy)
 {
 	UParticleSystemComponent* PSC = nullptr;
 	if (EmitterTemplate)
@@ -775,11 +777,11 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 				if (LocationType == EAttachLocation::KeepWorldPosition)
 				{
 					const FTransform ParentToWorld = AttachToComponent->GetSocketTransform(AttachPointName);
-					const FTransform ComponentToWorld(Rotation, Location);
+					const FTransform ComponentToWorld(Rotation, Location, Scale);
 					const FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
 					PSC->RelativeLocation = RelativeTM.GetLocation();
 					PSC->RelativeRotation = RelativeTM.GetRotation().Rotator();
-					PSC->RelativeScale3D = FVector(1.f);
+					PSC->RelativeScale3D = RelativeTM.GetScale3D();
 				}
 				else
 				{
@@ -788,14 +790,14 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 					
 					if (LocationType == EAttachLocation::SnapToTarget)
 					{
-						// SnapToTarget indicates we "keep world scale", and since we pass in no scale, we assume we want to keep a scale of 1,
-						// which indicates we want the inverse of the parent-to-world scale to maintain world scale of 1.
+						// SnapToTarget indicates we "keep world scale", this indicates we we want the inverse of the parent-to-world scale 
+						// to calculate world scale at Scale 1, and then apply the passed in Scale
 						const FTransform ParentToWorld = AttachToComponent->GetSocketTransform(AttachPointName);
-						PSC->RelativeScale3D = ParentToWorld.GetSafeScaleReciprocal(ParentToWorld.GetScale3D());
+						PSC->RelativeScale3D = Scale * ParentToWorld.GetSafeScaleReciprocal(ParentToWorld.GetScale3D());
 					}
 					else
 					{
-						PSC->RelativeScale3D = FVector(1.f);
+						PSC->RelativeScale3D = Scale;
 					}
 				}
 

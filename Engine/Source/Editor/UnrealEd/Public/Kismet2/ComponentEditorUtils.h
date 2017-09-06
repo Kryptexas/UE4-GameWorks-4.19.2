@@ -154,10 +154,35 @@ public:
 		check(InProperty != nullptr);
 		check(InSceneComponent != nullptr);
 
+		ensureMsgf(Cast<UBoolProperty>(InProperty) == nullptr, TEXT("ApplyDefaultValueChange cannot be safely called on a bool property with a non-bool value, becuase of bitfields"));
+
 		T* CurrentValue = PropertyOffset == INDEX_NONE ? InProperty->ContainerPtrToValuePtr<T>(InSceneComponent) : (T*)((uint8*)InSceneComponent + PropertyOffset);
-		if(CurrentValue != nullptr)
+		check(CurrentValue);
+
+		return ApplyDefaultValueChange(InSceneComponent, *CurrentValue, OldDefaultValue, NewDefaultValue);
+	}
+
+	// Bool specialization so it can properly handle bitfields
+	static bool ApplyDefaultValueChange(class USceneComponent* InSceneComponent, const class UProperty* InProperty, const bool& OldDefaultValue, const bool& NewDefaultValue, int32 PropertyOffset)
+	{
+		check(InProperty != nullptr);
+		check(InSceneComponent != nullptr);
+		
+		// Only bool properties can have bool values
+		const UBoolProperty* BoolProperty = Cast<UBoolProperty>(InProperty);
+		check(BoolProperty);
+
+		uint8* CurrentValue = PropertyOffset == INDEX_NONE ? InProperty->ContainerPtrToValuePtr<uint8>(InSceneComponent) : ((uint8*)InSceneComponent + PropertyOffset);
+		check(CurrentValue);
+
+		bool CurrentBool = BoolProperty->GetPropertyValue(CurrentValue);
+		if (ApplyDefaultValueChange(InSceneComponent, CurrentBool, OldDefaultValue, NewDefaultValue, false))
 		{
-			return ApplyDefaultValueChange(InSceneComponent, *CurrentValue, OldDefaultValue, NewDefaultValue);
+			BoolProperty->SetPropertyValue(CurrentValue, CurrentBool);
+
+			InSceneComponent->ReregisterComponent();
+
+			return true;
 		}
 
 		return false;
@@ -165,7 +190,7 @@ public:
 
 	// Given an instance of a template and a current value, propagates a default value change to the instance (only if applicable)
 	template<typename T>
-	static bool ApplyDefaultValueChange(class USceneComponent* InSceneComponent, T& CurrentValue, const T& OldDefaultValue, const T& NewDefaultValue)
+	static bool ApplyDefaultValueChange(class USceneComponent* InSceneComponent, T& CurrentValue, const T& OldDefaultValue, const T& NewDefaultValue, bool bReregisterComponent = true)
 	{
 		check(InSceneComponent != nullptr);
 
@@ -190,9 +215,12 @@ public:
 			// Modify the value
 			CurrentValue = NewDefaultValue;
 
-			// Re-register the component with the scene so that transforms are updated for display
-			InSceneComponent->ReregisterComponent();
-
+			if (bReregisterComponent && InSceneComponent->IsRegistered())
+			{
+				// Re-register the component with the scene so that transforms are updated for display
+				InSceneComponent->ReregisterComponent();
+			}
+			
 			return true;
 		}
 

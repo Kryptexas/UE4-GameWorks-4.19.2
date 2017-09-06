@@ -20,6 +20,7 @@ UImage::UImage(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+#if WITH_EDITORONLY_DATA
 void UImage::PostLoad()
 {
 	Super::PostLoad();
@@ -30,6 +31,7 @@ void UImage::PostLoad()
 		Image_DEPRECATED = nullptr;
 	}
 }
+#endif
 
 void UImage::ReleaseSlateResources(bool bReleaseChildren)
 {

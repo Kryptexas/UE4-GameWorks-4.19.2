@@ -4,6 +4,8 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "Settings/EditorExperimentalSettings.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "FindInBlueprintManager.h"
 
 UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -23,6 +25,7 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bShowEmptySections(true)
 	, bSpawnDefaultBlueprintNodes(true)
 	, bHideConstructionScriptComponentsInDetailsView(true)
+	, bHostFindInBlueprintsInGlobalTab(true)
 	// Compiler Settings
 	, SaveOnCompile(SoC_Never)
 	, bJumpToNodeErrors(false)
@@ -50,4 +53,28 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	{
 		SaveOnCompile = SoC_SuccessOnly;
 	}
+}
+
+void UBlueprintEditorSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UBlueprintEditorSettings, bHostFindInBlueprintsInGlobalTab))
+	{
+		// Close all open Blueprint editors to reset associated FiB states.
+		FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
+		TArray<UObject*> EditedAssets = AssetEditorManager.GetAllEditedAssets();
+		for (UObject* EditedAsset : EditedAssets)
+		{
+			if (EditedAsset->IsA<UBlueprint>())
+			{
+				AssetEditorManager.CloseAllEditorsForAsset(EditedAsset);
+			}
+		}
+
+		// Enable or disable the feature through the FiB manager.
+		FFindInBlueprintSearchManager::Get().EnableGlobalFindResults(bHostFindInBlueprintsInGlobalTab);
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }

@@ -131,6 +131,9 @@ public:
 	/** Called when a new Graph is clicked on by user */
 	void OnGraphChanged(struct FListItemGraphToDiff* Diff);
 
+	/** Called when blueprint is modified */
+	void OnBlueprintChanged(UBlueprint* InBlueprint);
+
 	/** Helper function for generating an empty widget */
 	static TSharedRef<SWidget> DefaultEmptyPanel();
 

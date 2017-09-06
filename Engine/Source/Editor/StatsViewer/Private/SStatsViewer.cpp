@@ -338,11 +338,11 @@ void SStatsViewer::Tick( const FGeometry& AllottedGeometry, const double InCurre
 				{
 					TSharedPtr< FPropertyPath > PropertyPath = Column->GetDataSource()->AsPropertyPath();
 					const FPropertyInfo& PropertyInfo = PropertyPath->GetRootProperty();
-					const FString ColumnWidthString = PropertyInfo.Property->GetMetaData(StatsViewerMetadata::ColumnWidth);
+					const FString& ColumnWidthString = PropertyInfo.Property->GetMetaData(StatsViewerMetadata::ColumnWidth);
 					const float ColumnWidth = ColumnWidthString.Len() > 0 ? FCString::Atof( *ColumnWidthString ) : 100.0f;
 					Column->SetWidth( ColumnWidth );
 
-					const FString SortModeString = PropertyInfo.Property->GetMetaData(StatsViewerMetadata::SortMode);
+					const FString& SortModeString = PropertyInfo.Property->GetMetaData(StatsViewerMetadata::SortMode);
 					if( SortModeString.Len() > 0 )
 					{
 						EColumnSortMode::Type SortType = SortModeString == TEXT( "Ascending" ) ? EColumnSortMode::Ascending : EColumnSortMode::Descending;
@@ -496,7 +496,7 @@ FReply SStatsViewer::OnExportClicked()
 				{
 					TSharedPtr< FPropertyPath > PropertyPath = Column->GetDataSource()->AsPropertyPath();
 					const FPropertyInfo& PropertyInfo = PropertyPath->GetRootProperty();
-					FString ShowTotal = PropertyInfo.Property->GetMetaData(TEXT("ShowTotal"));
+					const FString& ShowTotal = PropertyInfo.Property->GetMetaData(TEXT("ShowTotal"));
 					if( ShowTotal.Len() > 0 )
 					{
 						FText* TotalText = CustomColumn->TotalsMap.Find( PropertyInfo.Property->GetNameCPP() );

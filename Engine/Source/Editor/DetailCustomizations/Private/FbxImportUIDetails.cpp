@@ -203,7 +203,7 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 	for(TSharedPtr<IPropertyHandle> Handle : ExtraProperties)
 	{
 		FString ImportTypeMetaData = Handle->GetMetaData(TEXT("ImportType"));
-		FString CategoryMetaData = Handle->GetMetaData(TEXT("ImportCategory"));
+		const FString& CategoryMetaData = Handle->GetMetaData(TEXT("ImportCategory"));
 		if(IsImportTypeMetaDataValid(ImportType, ImportTypeMetaData))
 		{
 			// Decide on category
@@ -272,7 +272,7 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 
 		for(TSharedPtr<IPropertyHandle> Handle : ExtraProperties)
 		{
-			FString CategoryMetaData = Handle->GetMetaData(TEXT("ImportCategory"));
+			const FString& CategoryMetaData = Handle->GetMetaData(TEXT("ImportCategory"));
 			if(Handle->GetProperty()->GetOuter() == UFbxAnimSequenceImportData::StaticClass()
 			   && CategoryMetaData.IsEmpty())
 			{

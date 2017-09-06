@@ -863,13 +863,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Appearance")
 	FMargin Padding;
 
-	UPROPERTY()
-	bool bSupportsKeyboardFocus_DEPRECATED;
-
-	/** Setting this flag to true, allows this widget to accept focus when clicked, or when navigated to. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
-	bool bIsFocusable;
-
 	/** All the sequence players currently playing */
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> ActiveSequencePlayers;
@@ -877,12 +870,6 @@ public:
 	/** List of sequence players to cache and clean up when safe */
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> StoppedSequencePlayers;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	bool bStopAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	int32 Priority;
 
 private:
 	/** Stores the widgets being assigned to named slots */
@@ -918,18 +905,31 @@ public:
 
 #endif
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	int32 Priority;
+
+	UPROPERTY()
+	uint8 bSupportsKeyboardFocus_DEPRECATED:1;
+
+	/** Setting this flag to true, allows this widget to accept focus when clicked, or when navigated to. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
+	uint8 bIsFocusable:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	uint8 bStopAction:1;
+
 	/** If a widget doesn't ever need to tick the blueprint, setting this to false is an optimization. */
 	UPROPERTY()
-	uint32 bCanEverTick : 1;
+	uint8 bCanEverTick : 1;
 
 	/** If a widget doesn't ever need to do custom painting in the blueprint, setting this to false is an optimization. */
 	UPROPERTY()
-	uint32 bCanEverPaint : 1;
+	uint8 bCanEverPaint : 1;
 
 protected:
 
 	/** Has this widget been initialized by its class yet? */
-	uint32 bInitialized : 1;
+	uint8 bInitialized : 1;
 
 public:
 	/**
@@ -937,7 +937,7 @@ public:
 	 * initialization logic for widgets, because these widgets have already been initialized.
 	 */
 	UPROPERTY()
-	uint32 bCookedWidgetTree : 1;
+	uint8 bCookedWidgetTree : 1;
 
 protected:
 

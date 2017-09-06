@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -77,6 +77,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ForceFeedback)
 	uint8 bLooping:1;
+
+	/** Should the playback of the forcefeedback pattern ignore time dilation and use the app's delta time */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ForceFeedback)
+	uint8 bIgnoreTimeDilation:1;
 
 	/** Should the Attenuation Settings asset be used (false) or should the properties set directly on the component be used for attenuation properties */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)

@@ -3106,7 +3106,7 @@ void UAssetManager::InitializeAssetBundlesFromMetadata(const UStruct* Struct, co
 				{
 					TSet<FName> LocalBundleSet;
 					TArray<FString> BundleList;
-					FString BundleString = PropertyToSearch->GetMetaData(AssetBundlesName);
+					const FString& BundleString = PropertyToSearch->GetMetaData(AssetBundlesName);
 					BundleString.ParseIntoArrayWS(BundleList, TEXT(","));
 
 					for (const FString& BundleNameString : BundleList)

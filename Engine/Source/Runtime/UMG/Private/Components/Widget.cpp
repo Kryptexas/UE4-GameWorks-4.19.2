@@ -151,7 +151,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITOR
 	DesignerFlags = EWidgetDesignFlags::None;
 #endif
-	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
+	Visibility = ESlateVisibility::Visible;
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 	Cursor = EMouseCursor::Default;
 
@@ -1000,7 +1000,7 @@ void UWidget::SynchronizeProperties()
 			SafeWidget->SetCursor(Cursor);// PROPERTY_BINDING(EMouseCursor::Type, Cursor));
 		}
 
-		SafeWidget->SetEnabled(PROPERTY_BINDING( bool, bIsEnabled ));
+		SafeWidget->SetEnabled(BITFIELD_PROPERTY_BINDING( bIsEnabled ));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
 
@@ -1084,16 +1084,6 @@ UWorld* UWidget::GetWorld() const
 	}
 
 	return nullptr;
-}
-
-void UWidget::PostLoad()
-{
-	Super::PostLoad();
-
-	if ( GetLinkerUE4Version() < VER_UE4_RENAME_WIDGET_VISIBILITY )
-	{
-		Visibility = Visiblity_DEPRECATED;
-	}
 }
 
 EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility Input)

@@ -510,7 +510,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 				else
 				{
 					// Dynamic value that needs to be wired up and evaluated each frame
-					FString EvaluationHandlerStr = SourcePinProperty->GetMetaData(AnimGraphDefaultSchema->NAME_OnEvaluate);
+					const FString& EvaluationHandlerStr = SourcePinProperty->GetMetaData(AnimGraphDefaultSchema->NAME_OnEvaluate);
 					FName EvaluationHandlerName(*EvaluationHandlerStr);
 					if (EvaluationHandlerName == NAME_None)
 					{

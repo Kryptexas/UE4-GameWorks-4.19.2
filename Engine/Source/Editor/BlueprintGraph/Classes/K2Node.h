@@ -268,9 +268,9 @@ class UK2Node : public UEdGraphNode
 	/** Performs a node-specific deprecation fixup, which may delete this node and replace it with another one */
 	BLUEPRINTGRAPH_API virtual void ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges) {}
 
-	BLUEPRINTGRAPH_API virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const { return NULL; }
+	BLUEPRINTGRAPH_API virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const { return nullptr; }
 
-	BLUEPRINTGRAPH_API void ExpandSplitPin(class FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin);
+	BLUEPRINTGRAPH_API UK2Node* ExpandSplitPin(class FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin);
 
 	/**
 	 * Query if this is a node that is safe to ignore (e.g., a comment node or other non-structural annotation that can be pruned with no warnings).
@@ -302,7 +302,7 @@ class UK2Node : public UEdGraphNode
 	 *
 	 * @return	Reference to an actor corresponding to this node, or NULL if no actors are referenced
 	 */
-	virtual AActor* GetReferencedLevelActor() const { return NULL; }
+	virtual AActor* GetReferencedLevelActor() const { return nullptr; }
 
 	// Can this node be created under the specified schema
 	BLUEPRINTGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;

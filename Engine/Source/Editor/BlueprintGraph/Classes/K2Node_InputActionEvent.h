@@ -11,8 +11,8 @@
 
 class UDynamicBlueprintBinding;
 
-UCLASS(MinimalAPI)
-class UK2Node_InputActionEvent : public UK2Node_Event
+UCLASS()
+class BLUEPRINTGRAPH_API UK2Node_InputActionEvent : public UK2Node_Event
 {
 	GENERATED_UCLASS_BODY()
 

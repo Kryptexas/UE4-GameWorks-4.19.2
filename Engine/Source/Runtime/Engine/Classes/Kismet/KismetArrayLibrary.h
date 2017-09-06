@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -142,6 +142,17 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Set Array Elem", ArrayParm = "TargetArray", ArrayTypeDependentParams = "Item", AutoCreateRefTerm = "Item"), Category="Utilities|Array")
 	static void Array_Set(const TArray<int32>& TargetArray, int32 Index, const int32& Item, bool bSizeToFit);
 
+	/*
+	 *Swaps the elements at the specified positions in the specified array
+	 *If the specified positions are equal, invoking this method leaves the array unchanged
+	 *
+	 *@param	TargetArray		The array to perform the operation on
+	 *@param    FirstIndex      The index of one element to be swapped
+	 *@param    SecondIndex     The index of the other element to be swapped
+	*/
+	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Swap Array Elements", CompactNodeTitle = "SWAP", ArrayParm = "TargetArray"), Category="Utilities|Array")
+	static void Array_Swap(const TArray<int32>& TargetArray, int32 FirstIndex, int32 SecondIndex);
+
 	/*  
 	 *Finds the index of the first instance of the item within the array
 	 *	
@@ -202,6 +213,7 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	static int32 GenericArray_LastIndex(const void* TargetArray, const UArrayProperty* ArrayProp);
 	static void GenericArray_Get(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, void* Item);
 	static void GenericArray_Set(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, const void* NewItem, bool bSizeToFit);
+	static void GenericArray_Swap(const void* TargetArray, const UArrayProperty* ArrayProp, int32 First, int32 Second);
 	static int32 GenericArray_Find(const void* TargetArray, const UArrayProperty* ArrayProperty, const void* ItemToFind);
 	static void GenericArray_SetArrayPropertyByName(UObject* OwnerObject, FName ArrayPropertyName, const void* SrcArrayAddr);
 	static bool GenericArray_IsValidIndex(const void* TargetArray, const UArrayProperty* ArrayProp, int32 IndexToTest);
@@ -533,6 +545,28 @@ public:
 		GenericArray_Set(ArrayAddr, ArrayProperty, Index, NewItemPtr, bSizeToFit);
 		P_NATIVE_END;
 		InnerProp->DestroyValue(StorageSpace);
+	}
+
+
+	DECLARE_FUNCTION(execArray_Swap)
+	{
+		Stack.MostRecentProperty = nullptr;
+		Stack.StepCompiledIn<UArrayProperty>(nullptr);
+		void* ArrayAddr = Stack.MostRecentPropertyAddress;
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
+
+		P_GET_PROPERTY(UIntProperty, First);
+		P_GET_PROPERTY(UIntProperty, Second);
+
+		P_FINISH;
+		P_NATIVE_BEGIN;
+		GenericArray_Swap(ArrayAddr, ArrayProperty, First, Second);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Find)

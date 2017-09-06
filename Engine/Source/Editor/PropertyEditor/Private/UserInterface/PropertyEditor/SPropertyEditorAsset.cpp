@@ -58,7 +58,7 @@ bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs, con
 				PropertyToCheck = MapParent;
 			}
 
-			FString DisplayThumbnailString = PropertyToCheck->GetMetaData(TEXT("DisplayThumbnail"));
+			const FString& DisplayThumbnailString = PropertyToCheck->GetMetaData(TEXT("DisplayThumbnail"));
 			if (DisplayThumbnailString.Len() > 0)
 			{
 				bDisplayThumbnail = DisplayThumbnailString == TEXT("true");
@@ -106,24 +106,24 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	// Account for the allowed classes specified in the property metadata
 	if (Property)
 	{
-		FString ClassFilterString;
+		const FString* ClassFilterString;
 		if (UArrayProperty* ArrayParent = Cast<UArrayProperty>(Property->GetOuter()))
 		{
-			ClassFilterString = ArrayParent->GetMetaData("AllowedClasses");
+			ClassFilterString = &ArrayParent->GetMetaData("AllowedClasses");
 		}
 		else
 		{
-			ClassFilterString = Property->GetMetaData("AllowedClasses");
+			ClassFilterString = &Property->GetMetaData("AllowedClasses");
 		}
 
-		if (ClassFilterString.IsEmpty())
+		if (ClassFilterString->IsEmpty())
 		{
 			CustomClassFilters.Add(ObjectClass);
 		}
 		else
 		{
 			TArray<FString> CustomClassFilterNames;
-			ClassFilterString.ParseIntoArray(CustomClassFilterNames, TEXT(","), true);
+			ClassFilterString->ParseIntoArray(CustomClassFilterNames, TEXT(","), true);
 
 			for (auto It = CustomClassFilterNames.CreateIterator(); It; ++It)
 			{

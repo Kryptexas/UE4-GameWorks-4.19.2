@@ -688,7 +688,7 @@ bool UMaterialExpression::CanEditChange(const UProperty* InProperty) const
 
 		if (InProperty->HasMetaData(OverridingInputPropertyMetaData))
 		{
-			FString OverridingPropertyName = InProperty->GetMetaData(OverridingInputPropertyMetaData);
+			const FString& OverridingPropertyName = InProperty->GetMetaData(OverridingInputPropertyMetaData);
 
 			UStructProperty* StructProp = FindField<UStructProperty>(GetClass(), *OverridingPropertyName);
 			if (ensure(StructProp != nullptr))

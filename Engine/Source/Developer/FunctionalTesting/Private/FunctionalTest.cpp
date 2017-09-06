@@ -670,11 +670,11 @@ bool AFunctionalTest::AssertEqual_Name(const FName Actual, const FName Expected,
 }
 
 
-bool AFunctionalTest::AssertEqual_Transform(const FTransform& Actual, const FTransform& Expected, const FString& What, const UObject* ContextObject)
+bool AFunctionalTest::AssertEqual_Transform(const FTransform& Actual, const FTransform& Expected, const FString& What, const float Tolerance, const UObject* ContextObject)
 {
-	if ( !Expected.Equals(Actual) )
+	if ( !Expected.Equals(Actual, Tolerance) )
 	{
-		LogStep(ELogVerbosity::Error, FString::Printf(TEXT("Expected '%s' to be {%s}, but it was {%s} for context '%s'"), *What, *TransformToString(Expected), *TransformToString(Actual), ContextObject ? *ContextObject->GetName() : TEXT("")));
+		LogStep(ELogVerbosity::Error, FString::Printf(TEXT("Expected '%s' to be {%s}, but it was {%s} within tolerance {%f} for context '%s'"), *What, *TransformToString(Expected), *TransformToString(Actual), Tolerance, ContextObject ? *ContextObject->GetName() : TEXT("")));
 		return false;
 	}
 	else
@@ -698,11 +698,11 @@ bool AFunctionalTest::AssertNotEqual_Transform(const FTransform& Actual, const F
 	}
 }
 
-bool AFunctionalTest::AssertEqual_Rotator(const FRotator Actual, const FRotator Expected, const FString& What, const UObject* ContextObject)
+bool AFunctionalTest::AssertEqual_Rotator(const FRotator Actual, const FRotator Expected, const FString& What, const float Tolerance, const UObject* ContextObject)
 {
-	if ( !Expected.Equals(Actual) )
+	if ( !Expected.Equals(Actual, Tolerance) )
 	{
-		LogStep(ELogVerbosity::Error, FString::Printf(TEXT("Expected '%s' to be {%s} but it was {%s} for context '%s'"), *What, *Expected.ToString(), *Actual.ToString(), ContextObject ? *ContextObject->GetName() : TEXT("")));
+		LogStep(ELogVerbosity::Error, FString::Printf(TEXT("Expected '%s' to be {%s} but it was {%s} within tolerance {%f} for context '%s'"), *What, *Expected.ToString(), *Actual.ToString(), Tolerance, ContextObject ? *ContextObject->GetName() : TEXT("")));
 		return false;
 	}
 	else

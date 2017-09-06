@@ -477,6 +477,12 @@ void UK2Node_MakeContainer::PostReconstructNode()
 	Super::PostReconstructNode();
 }
 
+void UK2Node_MakeContainer::InteractiveAddInputPin()
+{
+	FScopedTransaction Transaction(LOCTEXT("AddPinTx", "Add Pin"));
+	AddInputPin();
+}
+
 void UK2Node_MakeContainer::AddInputPin()
 {
 	Modify();

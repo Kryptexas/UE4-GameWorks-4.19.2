@@ -229,9 +229,7 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 
 	if (StaticMeshComponentHandle.IsValid())
 	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		StaticMeshHandle = StaticMeshComponentHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, StaticMesh));
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		StaticMeshHandle = StaticMeshComponentHandle->GetChildHandle(UStaticMeshComponent::GetMemberNameChecked_StaticMesh());
 		if(StaticMeshHandle.IsValid())
 		{
 			FSimpleDelegate OnStaticMeshChangedDelegate = FSimpleDelegate::CreateSP(this, &FBodyInstanceCustomization::RefreshCollisionProfiles);
@@ -265,15 +263,15 @@ int32 FBodyInstanceCustomization::InitializeObjectTypeComboList()
 	for (int32 EnumIndex = 0; EnumIndex < NumEnum; ++EnumIndex)
 	{
 		// make sure the enum entry is object channel
-		FString MetaData = Enum->GetMetaData(*QueryType, EnumIndex);
+		const FString& QueryTypeMetaData = Enum->GetMetaData(*QueryType, EnumIndex);
 		// if query type is object, we allow it to be on movement channel
-		if (MetaData.Len() == 0 || MetaData[0] == '0')
+		if (QueryTypeMetaData.Len() == 0 || QueryTypeMetaData[0] == '0')
 		{
-			MetaData = Enum->GetMetaData(*KeyName, EnumIndex);
+			const FString& KeyNameMetaData = Enum->GetMetaData(*KeyName, EnumIndex);
 
-			if ( MetaData.Len() > 0 )
+			if ( KeyNameMetaData.Len() > 0 )
 			{
-				int32 NewIndex = ObjectTypeComboList.Add( MakeShareable( new FString (MetaData) ));
+				int32 NewIndex = ObjectTypeComboList.Add( MakeShareable( new FString (KeyNameMetaData) ));
 				// @todo: I don't think this would work well if we customize entry, but I don't think we can do that yet
 				// i.e. enum a { a1=5, a2=6 }
 				ObjectTypeValues.Add((ECollisionChannel)EnumIndex);
@@ -350,7 +348,7 @@ void FBodyInstanceCustomization::UpdateValidCollisionChannels()
 	// first go through enum entry, and add suffix to displaynames
 	for ( int32 EnumIndex=0; EnumIndex<NumEnum; ++EnumIndex )
 	{
-		const FString MetaData = Enum->GetMetaData(*KeyName, EnumIndex);
+		const FString& MetaData = Enum->GetMetaData(*KeyName, EnumIndex);
 		if ( MetaData.Len() > 0 )
 		{
 			FCollisionChannelInfo Info;

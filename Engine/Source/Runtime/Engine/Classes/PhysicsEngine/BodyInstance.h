@@ -165,7 +165,7 @@ private:
 	friend struct FBodyInstance;
 };
 
-enum class BodyInstanceSceneState
+enum class BodyInstanceSceneState : uint8
 {
 	NotAdded,
 	AwaitingAdd,
@@ -215,12 +215,32 @@ struct ENGINE_API FBodyInstance
 	// COLLISION SETTINGS
 
 	/** Types of objects that this physics objects will collide with. */
-	// @todo : make this to be transient, so that it doesn't have to save anymore
-	// we have to still load them until resave
 	UPROPERTY() 
 	struct FCollisionResponseContainer ResponseToChannels_DEPRECATED;
 
+public:
+	// Current state of the physx body for tracking deferred addition and removal.
+	BodyInstanceSceneState CurrentSceneState;
+
+	/** The set of values used in considering when put this body to sleep. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	ESleepFamily SleepFamily;
+
+	/** Locks physical movement along specified axis.*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Mode"))
+	TEnumAsByte<EDOFMode::Type> DOFMode;
+
 private:
+	/**
+	 * Type of collision enabled.
+	 * 
+	 *	No Collision      : Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects)
+	 *	Query Only        : Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree.
+	 *	Physics Only      : Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree
+	 *	Collision Enabled : Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints).
+	 */
+	UPROPERTY(EditAnywhere, Category=Custom)
+	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
 
 	/** Collision Profile Name **/
 	UPROPERTY(EditAnywhere, Category=Custom)
@@ -237,11 +257,11 @@ public:
 
 	/** If true Continuous Collision Detection (CCD) will be used for this component */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Collision)
-	uint32 bUseCCD : 1;
+	uint8 bUseCCD : 1;
 
 	/**	Should 'Hit' events fire when this object collides during physics simulation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Collision, meta = (DisplayName = "Simulation Generates Hit Events"))
-	uint32 bNotifyRigidBodyCollision : 1;
+	uint8 bNotifyRigidBodyCollision : 1;
 
 	/////////
 	// SIM SETTINGS
@@ -252,88 +272,88 @@ public:
 	 * For a Static Mesh Component, simulating requires simple collision to be setup on the StaticMesh asset.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
-	uint32 bSimulatePhysics : 1;
+	uint8 bSimulatePhysics : 1;
 
 	/** If true, mass will not be automatically computed and you must set it directly */
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (InlineEditConditionToggle))
-	uint32 bOverrideMass : 1;
+	uint8 bOverrideMass : 1;
 
 	/** If object should have the force of gravity applied */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics)
-	uint32 bEnableGravity : 1;
+	uint8 bEnableGravity : 1;
 
 	/** If true and is attached to a parent, the two bodies will be joined into a single rigid body. Physical settings like collision profile and body settings are determined by the root */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics, meta = (editcondition = "!bSimulatePhysics"))
-	uint32 bAutoWeld : 1;
+	uint8 bAutoWeld : 1;
 
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bSimulatePhysics"))
-	uint32 bStartAwake:1;
+	uint8 bStartAwake:1;
 
 	/**	Should 'wake/sleep' events fire when this object is woken up or put to sleep by the physics simulation. */
 	UPROPERTY(EditAnywhere,AdvancedDisplay, BlueprintReadOnly, Category = Physics)
-	uint32 bGenerateWakeEvents : 1;
+	uint8 bGenerateWakeEvents : 1;
 
 	/** If true, it will update mass when scale changes **/
 	UPROPERTY()
-	uint32 bUpdateMassWhenScaleChanges:1;
+	uint8 bUpdateMassWhenScaleChanges:1;
 
 	/** When a Locked Axis Mode is selected, will lock translation on the specified axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Translation"))
-	uint32 bLockTranslation : 1;
+	uint8 bLockTranslation : 1;
 	
 	/** When a Locked Axis Mode is selected, will lock rotation to the specified axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Rotation"))
-	uint32 bLockRotation : 1;
+	uint8 bLockRotation : 1;
 
 	/** Lock translation along the X-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "X"))
-	uint32 bLockXTranslation : 1;
+	uint8 bLockXTranslation : 1;
 
 	/** Lock translation along the Y-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Y"))
-	uint32 bLockYTranslation : 1;
+	uint8 bLockYTranslation : 1;
 
 	/** Lock translation along the Z-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Z"))
-	uint32 bLockZTranslation : 1;
+	uint8 bLockZTranslation : 1;
 
 	/** Lock rotation about the X-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "X"))
-	uint32 bLockXRotation : 1;
+	uint8 bLockXRotation : 1;
 
 	/** Lock rotation about the Y-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Y"))
-	uint32 bLockYRotation : 1;
+	uint8 bLockYRotation : 1;
 
 	/** Lock rotation about the Z-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Z"))
-	uint32 bLockZRotation : 1;
+	uint8 bLockZRotation : 1;
 
 	/** Override the default max angular velocity */
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (editcondition = "bSimulatePhysics", InlineEditConditionToggle))
-	uint32 bOverrideMaxAngularVelocity : 1;
+	uint8 bOverrideMaxAngularVelocity : 1;
 
 	/** When initializing dynamic instances their component or velocity can override the bStartAwake flag */
-	uint32 bWokenExternally : 1;
+	uint8 bWokenExternally : 1;
 
 	/**
 	* If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
 	* If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
 	*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
-	uint32 bUseAsyncScene : 1;
+	uint8 bUseAsyncScene : 1;
 protected:
 
 	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(InlineEditConditionToggle))
-	uint32 bOverrideMaxDepenetrationVelocity : 1;
+	uint8 bOverrideMaxDepenetrationVelocity : 1;
 
 	/** Whether this instance of the object has its own custom walkable slope override setting. */
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (InlineEditConditionToggle))
-	uint32 bOverrideWalkableSlopeOnInstance : 1;
+	uint8 bOverrideWalkableSlopeOnInstance : 1;
 
-	uint32 bHasSharedShapes : 1;
+	uint8 bHasSharedShapes : 1;
 
 	/** The maximum velocity used to depenetrate this object*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxDepenetrationVelocity", ClampMin = "0.0", UIMin = "0.0"))
@@ -380,6 +400,12 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
 	FVector InertiaTensorScale;
 
+private:
+	/** Enum indicating what type of object this should be considered as when it moves */
+	UPROPERTY(EditAnywhere, Category=Custom)
+	TEnumAsByte<enum ECollisionChannel> ObjectType;
+
+public:
 	/** Use the collision profile found in the given BodySetup's default BodyInstance */
 	void UseExternalCollisionProfile(UBodySetup* InExternalCollisionProfileBodySetup);
 
@@ -394,7 +420,7 @@ public:
 	static EDOFMode::Type ResolveDOFMode(EDOFMode::Type DOFMode);
 
 	/** Constraint used to allow for easy DOF setup per bodyinstance */
-	FConstraintInstance * DOFConstraint;
+	FConstraintInstance* DOFConstraint;
 
 	/** The parent body that we are welded to*/
 	FBodyInstance* WeldParent;
@@ -1154,34 +1180,6 @@ private:
 	TSharedPtr<TMap<physx::PxShape*, FWeldInfo>> ShapeToBodiesMap;
 
 #endif
-
-public:
-	// Current state of the physx body for tracking deferred addition and removal.
-	BodyInstanceSceneState CurrentSceneState;
-
-	/** The set of values used in considering when put this body to sleep. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
-	ESleepFamily SleepFamily;
-
-	/** Locks physical movement along specified axis.*/
-	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Mode"))
-	TEnumAsByte<EDOFMode::Type> DOFMode;
-
-private:
-	/**
-	 * Type of collision enabled.
-	 * 
-	 *	No Collision      : Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects)
-	 *	Query Only        : Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree.
-	 *	Physics Only      : Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree
-	 *	Collision Enabled : Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints).
-	 */
-	UPROPERTY(EditAnywhere, Category=Custom)
-	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
-
-	/** Enum indicating what type of object this should be considered as when it moves */
-	UPROPERTY(EditAnywhere, Category=Custom)
-	TEnumAsByte<enum ECollisionChannel> ObjectType;
 
 	void SetShapeFlagsInternal_AssumesShapeLocked(struct FSetShapeParams& Params, bool& bUpdateMassProperties);
 };

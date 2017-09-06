@@ -63,6 +63,7 @@ public:
 	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) override;
 	virtual void ScanFilesSynchronous(const TArray<FString>& InFilePaths, bool bForceRescan = false) override;
 	virtual void PrioritizeSearchPath(const FString& PathToPrioritize) override;
+	virtual void ScanModifiedAssetFiles(const TArray<FString>& InFilePaths) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual uint32 GetAllocatedSize(bool bLogDetailed = false) const override;
 	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const override;

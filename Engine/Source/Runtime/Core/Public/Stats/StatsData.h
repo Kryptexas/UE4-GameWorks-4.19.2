@@ -69,14 +69,6 @@ struct CORE_API FStatConstants
 	static const FStatNameAndInfo AdvanceFrame;
 };
 
-namespace Lex
-{
-	inline void FromString(FName& OutValue, const TCHAR* Buffer )
-	{
-		OutValue = FName( Buffer );
-	}
-}
-
 /** Parse a typed value into the specified out parameter.
  * 	Expects to find a FromString function that takes a reference to T. Defaults are provided in the Lex namespace.
  */

@@ -421,7 +421,7 @@ void ACharacter::OnStartCrouch( float HeightAdjust, float ScaledHeightAdjust )
 	}
 	else
 	{
-		BaseTranslationOffset.Z = GetDefault<ACharacter>(GetClass())->BaseTranslationOffset.Z + HeightAdjust;
+		BaseTranslationOffset.Z = DefaultChar->BaseTranslationOffset.Z + HeightAdjust;
 	}
 
 	K2_OnStartCrouch(HeightAdjust, ScaledHeightAdjust);

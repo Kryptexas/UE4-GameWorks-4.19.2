@@ -42,9 +42,13 @@ enum class EAutomationCommand : uint8
 class FAutomationExecCmd : private FSelfRegisteringExec
 {
 public:
+	static const float DefaultDelayTimer;
+	static const float DefaultFindWorkersTimeout;
+
 	FAutomationExecCmd()
 	{
-		DelayTimer = 5.0f;
+		DelayTimer = DefaultDelayTimer;
+		FindWorkersTimeout = DefaultFindWorkersTimeout;
 	}
 
 	void Init()
@@ -53,7 +57,7 @@ public:
 
 		// Set state to FindWorkers to kick off the testing process
 		AutomationTestState = EAutomationTestState::Initializing;
-		DelayTimer = 5.0f;
+		DelayTimer = DefaultDelayTimer;
 
 		// Load the automation controller
 		IAutomationControllerModule* AutomationControllerModule = &FModuleManager::LoadModuleChecked<IAutomationControllerModule>("AutomationController");
@@ -173,12 +177,32 @@ public:
 			// Request the workers
 			AutomationController->RequestAvailableWorkers(SessionID);
 			AutomationTestState = EAutomationTestState::RequestTests;
+			FindWorkersTimeout = DefaultFindWorkersTimeout;
+		}
+	}
+
+	void RequestTests(float DeltaTime)
+	{
+		FindWorkersTimeout -= DeltaTime;
+
+		if (FindWorkersTimeout <= 0)
+		{
+			// Call the refresh callback manually
+			HandleRefreshTestCallback();
 		}
 	}
 
 	void HandleRefreshTestCallback()
 	{
 		TArray<FString> AllTestNames;
+		
+		if (AutomationController->GetNumDeviceClusters() == 0)
+		{
+			// Couldn't find any workers, go back into finding workers
+			UE_LOG(LogAutomationCommandLine, Warning, TEXT("Can't find any workers! Searching again"));
+			AutomationTestState = EAutomationTestState::FindWorkers;
+			return;
+		}
 
 		// We have found some workers
 		// Create a filter to add to the automation controller, otherwise we don't get any reports
@@ -317,6 +341,7 @@ public:
 			}
 			case EAutomationTestState::RequestTests:
 			{
+				RequestTests(DeltaTime);
 				break;
 			}
 			case EAutomationTestState::DoingRequestedWork:
@@ -398,7 +423,17 @@ public:
 			for (int CommandIndex = 0; CommandIndex < CommandList.Num(); ++CommandIndex)
 			{
 				const TCHAR* TempCmd = *CommandList[CommandIndex];
-				if (FParse::Command(&TempCmd, TEXT("List")))
+				if (FParse::Command(&TempCmd, TEXT("StartRemoteSession")))
+				{
+					FString SessionString = TempCmd;
+					if (!FGuid::Parse(SessionString, SessionID))
+					{
+						Ar.Logf(TEXT("%s is not a valid session guid!"), *SessionString);
+						bHandled = false;
+						break;
+					}
+				}
+				else if (FParse::Command(&TempCmd, TEXT("List")))
 				{
 					AutomationCommandQueue.Add(EAutomationCommand::ListAllTests);
 				}
@@ -506,6 +541,7 @@ public:
 				else
 				{
 					Ar.Logf(TEXT("Incorrect automation command syntax! Supported commands are: "));
+					Ar.Logf(TEXT("\tAutomation StartRemoteSession <sessionid>"));
 					Ar.Logf(TEXT("\tAutomation List"));
 					Ar.Logf(TEXT("\tAutomation RunTests <test string>"));
 					Ar.Logf(TEXT("\tAutomation RunAll "));
@@ -539,6 +575,9 @@ private:
 	/** Delay used before finding workers on game instances. Just to ensure they have started up */
 	float DelayTimer;
 
+	/** Timer Handle for giving up on workers */
+	float FindWorkersTimeout;
+
 	/** Holds the session ID */
 	FGuid SessionID;
 
@@ -562,6 +601,8 @@ private:
 	TArray<FString> TestsRun;
 };
 
+const float FAutomationExecCmd::DefaultDelayTimer = 5.0f;
+const float FAutomationExecCmd::DefaultFindWorkersTimeout = 30.0f;
 static FAutomationExecCmd AutomationExecCmd;
 
 void EmptyLinkFunctionForStaticInitializationAutomationExecCmd()

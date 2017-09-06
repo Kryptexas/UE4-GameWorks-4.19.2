@@ -377,7 +377,7 @@ void AActor::PreEditUndo()
 	Super::PreEditUndo();
 }
 
-void AActor::PostEditUndo()
+bool AActor::InternalPostEditUndo()
 {
 	// Check if this Actor needs to be re-instanced
 	UClass* OldClass = GetClass();
@@ -390,7 +390,7 @@ void AActor::PostEditUndo()
 		};
 
 		// Early exit, letting anything more occur would be invalid due to the REINST_ class
-		return;
+		return false;
 	}
 
 	// Notify LevelBounds actor that level bounding box might be changed
@@ -400,45 +400,6 @@ void AActor::PostEditUndo()
 		{
 			Level->MarkLevelBoundsDirty();
 		}
-	}
-
-	// Restore OwnedComponents array
-	if (!IsPendingKill())
-	{
-		ResetOwnedComponents();
-		// notify navigation system
-		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
-	}
-	else
-	{
-		UNavigationSystem::ClearNavOctreeAll(this);
-	}
-
-	Super::PostEditUndo();
-}
-
-void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
-{
-	CurrentTransactionAnnotation = StaticCastSharedPtr<FActorTransactionAnnotation>(TransactionAnnotation);
-
-	// Check if this Actor needs to be re-instanced
-	UClass* OldClass = GetClass();
-	if (OldClass->HasAnyClassFlags(CLASS_NewerVersionExists))
-	{
-		UClass* NewClass = OldClass->GetAuthoritativeClass();
-		if (!ensure(NewClass != OldClass))
-		{
-			UE_LOG(LogActor, Warning, TEXT("WARNING: %s is out of date and is the same as its AuthoritativeClass during PostEditUndo!"), *OldClass->GetName());
-		};
-
-		// Early exit, letting anything more occur would be invalid due to the REINST_ class
-		return;
-	}
-
-	// Notify LevelBounds actor that level bounding box might be changed
-	if (!IsTemplate())
-	{
-		GetLevel()->MarkLevelBoundsDirty();
 	}
 
 	// Restore OwnedComponents array
@@ -457,7 +418,26 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 		UNavigationSystem::ClearNavOctreeAll(this);
 	}
 
-	Super::PostEditUndo(TransactionAnnotation);
+	// This is a normal undo, so call super
+	return true;
+}
+
+void AActor::PostEditUndo()
+{
+	if (InternalPostEditUndo())
+	{
+		Super::PostEditUndo();
+	}
+}
+
+void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
+{
+	CurrentTransactionAnnotation = StaticCastSharedPtr<FActorTransactionAnnotation>(TransactionAnnotation);
+
+	if (InternalPostEditUndo())
+	{
+		Super::PostEditUndo(TransactionAnnotation);
+	}
 }
 
 // @todo: Remove this hack once we have decided on the scaling method to use.

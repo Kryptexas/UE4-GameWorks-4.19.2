@@ -5499,7 +5499,7 @@ TSharedPtr<SWidget> FMatinee::CreateGroupMenu()
 			//	UInterpTrack* DefTrack = TrackClass->GetDefaultObject<UInterpTrack>();
 			//	if ( !DefTrack->bDirGroupOnly && !DefTrack->bSubTrackOnly )
 			//	{
-			//		FString DisplayGroup = TrackClass->GetMetaData("DisplayGroup");
+			//		const FString& DisplayGroup = TrackClass->GetMetaData("DisplayGroup");
 			//		TrackGroups.FindOrAdd(DisplayGroup).Add(TrackClass);
 			//	}
 			//}

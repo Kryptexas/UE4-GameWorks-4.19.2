@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
 #include "Components/ActorComponent.h"
@@ -203,6 +203,7 @@ void UActorComponent::PostLoad()
 {
 	Super::PostLoad();
 
+#if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
 		if (IsTemplate())
@@ -239,6 +240,7 @@ void UActorComponent::PostLoad()
 			}
 		}
 	}
+#endif
 
 	if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 	{
@@ -475,13 +477,17 @@ void UActorComponent::BeginDestroy()
 bool UActorComponent::NeedsLoadForClient() const
 {
 	check(GetOuter());
-	return (!IsEditorOnly() && GetOuter()->NeedsLoadForClient() && Super::NeedsLoadForClient());
+	// For Component Blueprints, avoid calling into the class to avoid recursion
+	bool bNeedsLoadOuter = HasAnyFlags(RF_ClassDefaultObject) || GetOuter()->NeedsLoadForClient();
+	return (!IsEditorOnly() && bNeedsLoadOuter && Super::NeedsLoadForClient());
 }
 
 bool UActorComponent::NeedsLoadForServer() const
 {
 	check(GetOuter());
-	return (!IsEditorOnly() && GetOuter()->NeedsLoadForServer() && Super::NeedsLoadForServer());
+	// For Component Blueprints, avoid calling into the class to avoid recursion
+	bool bNeedsLoadOuter = HasAnyFlags(RF_ClassDefaultObject) || GetOuter()->NeedsLoadForServer();
+	return (!IsEditorOnly() && bNeedsLoadOuter && Super::NeedsLoadForServer());
 }
 
 int32 UActorComponent::GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack )
@@ -1201,7 +1207,6 @@ void UActorComponent::CreatePhysicsState()
 
 		// Broadcast delegate
 		GlobalCreatePhysicsDelegate.Broadcast(this);
-		InstanceCreatePhysicsDelegate.Broadcast();
 	}
 }
 
@@ -1213,7 +1218,6 @@ void UActorComponent::DestroyPhysicsState()
 	{
 		// Broadcast delegate
 		GlobalDestroyPhysicsDelegate.Broadcast(this);
-		InstanceDestroyPhysicsDelegate.Broadcast();
 
 		ensureMsgf(bRegistered, TEXT("Component has physics state when not registered (%s)"), *GetFullName()); // should not have physics state unless we are registered
 

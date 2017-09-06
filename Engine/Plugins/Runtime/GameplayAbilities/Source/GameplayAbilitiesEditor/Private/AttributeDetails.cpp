@@ -40,7 +40,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 	PropertyOptions.Empty();
 	PropertyOptions.Add(MakeShareable(new FString("None")));
 
-	FString FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
+	const FString& FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
 
 	TArray<UProperty*> PropertiesToAdd;
 	FGameplayAttribute::GetAllAttributeProperties(PropertiesToAdd, FilterMetaStr);

@@ -1,7 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "GenericPlatform/IInputInterface.h"
+#include "Misc/App.h"
 
 UForceFeedbackEffect::UForceFeedbackEffect(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -91,7 +92,7 @@ bool FActiveForceFeedbackEffect::Update(const float DeltaTime, FForceFeedbackVal
 
 	const float Duration = ForceFeedbackEffect->GetDuration();
 
-	PlayTime += DeltaTime;
+	PlayTime += (bIgnoreTimeDilation ? FApp::GetDeltaTime() : DeltaTime);
 
 	if (PlayTime > Duration && (!bLooping || Duration == 0.f) )
 	{

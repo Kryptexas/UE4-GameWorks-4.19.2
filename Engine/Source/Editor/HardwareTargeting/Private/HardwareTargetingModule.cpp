@@ -127,7 +127,7 @@ static FName HardwareTargetingConsoleVariableMetaFName(TEXT("ConsoleVariable"));
 	bool bModified = SettingsObject->PropertyName != (TargetValue); \
 	UProperty* Property = FindFieldChecked<UProperty>(Class::StaticClass(), GET_MEMBER_NAME_CHECKED(Class, PropertyName)); \
 	if (!Builder.bReadOnly) { \
-		FString CVarName = Property->GetMetaData(HardwareTargetingConsoleVariableMetaFName); \
+		const FString& CVarName = Property->GetMetaData(HardwareTargetingConsoleVariableMetaFName); \
 		if (!CVarName.IsEmpty()) { IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName); \
 			if (CVar) { CVar->Set(TargetValue, ECVF_SetByProjectSetting); } } \
 		SettingsObject->PropertyName = (TargetValue); } \

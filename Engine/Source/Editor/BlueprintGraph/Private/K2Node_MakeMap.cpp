@@ -171,7 +171,7 @@ void UK2Node_MakeMap::GetContextMenuActions(const FGraphNodeContextMenuBuilder& 
 				LOCTEXT("AddPinTooltip", "Add another pair of key/value pins"),
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateUObject(this, &UK2Node_MakeMap::AddInputPin)
+					FExecuteAction::CreateUObject(this, &UK2Node_MakeMap::InteractiveAddInputPin)
 				)
 			);
 		}

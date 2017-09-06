@@ -2702,7 +2702,22 @@ void UCookOnTheFlyServer::OnObjectPropertyChanged(UObject* ObjectBeingModified, 
 
 void UCookOnTheFlyServer::OnObjectSaved( UObject* ObjectSaved )
 {
-	OnObjectUpdated( ObjectSaved );
+	if (GIsCookerLoadingPackage)
+	{
+		// This is the cooker saving a cooked package, ignore
+		return;
+	}
+
+	UPackage *Package = ObjectSaved->GetOutermost();
+
+	MarkPackageDirtyForCooker(Package);
+
+	FName PackageFFileName = GetCachedStandardPackageFileFName(Package);
+
+	if (PackageFFileName != NAME_None)
+	{
+		ModifiedAssetFilenames.Add(PackageFFileName);
+	}
 }
 
 void UCookOnTheFlyServer::OnObjectUpdated( UObject *Object )
@@ -4442,15 +4457,16 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			const FName CookedFile = CookedPaths.Value;
 			const FName UncookedFilename = CookedPaths.Key;
 			const FName* FoundPackageName = GetCachedPackageFilenameToPackageFName(UncookedFilename);
-			const FName PackageName = FoundPackageName ? *FoundPackageName : FName();
-			bool bShouldKeep = true;
-
 			if ( !FoundPackageName )
 			{
+				// Source file no longer exists
 				++NumPackagesRemoved;
-				bShouldKeep = false;
+				continue;
 			}
-			else if (ModifiedPackages.Contains(PackageName))
+			const FName PackageName = *FoundPackageName;
+			bool bShouldKeep = true;
+
+			if (ModifiedPackages.Contains(PackageName))
 			{
 				++NumPackagesFileHashMismatch;
 				bShouldKeep = false;
@@ -4653,6 +4669,23 @@ void UCookOnTheFlyServer::GenerateAssetRegistry()
 
 	if (!!(CookFlags & ECookInitializationFlags::GeneratedAssetRegistry))
 	{
+		// Force a rescan of modified package files
+		TArray<FString> ModifiedPackageFileList;
+
+		for (FName ModifiedPackage : ModifiedAssetFilenames)
+		{
+			ModifiedPackageFileList.Add(ModifiedPackage.ToString());
+		}
+
+		AssetRegistry->ScanModifiedAssetFiles(ModifiedPackageFileList);
+
+		ModifiedAssetFilenames.Reset();
+
+		// This is cook in the editor on a second pass, so refresh the generators
+		for (TPair<FName, FAssetRegistryGenerator*>& Pair : RegistryGenerators)
+		{
+			Pair.Value->Initialize(CookByTheBookOptions ? CookByTheBookOptions->StartupPackages : TArray<FName>());
+		}
 		return;
 	}
 	CookFlags |= ECookInitializationFlags::GeneratedAssetRegistry;
@@ -5706,6 +5739,11 @@ void UCookOnTheFlyServer::InitializeSandbox()
 
 		}
 	}
+	else
+	{
+		// This is an in-editor cook, do an iterative clean
+		CleanSandbox(true);
+	}
 }
 
 void UCookOnTheFlyServer::TermSandbox()
@@ -5857,13 +5895,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		}
 	}
 
-	// need to test this out
-	/*if (RecompileChangedShaders(TargetPlatformNames))
-	{
-		// clean everything :(
-		CleanSandbox(false);
-	}*/
-
 	CookByTheBookOptions->bLeakTest = (CookOptions & ECookByTheBookOptions::LeakTest) != ECookByTheBookOptions::None; // this won't work from the editor this needs to be standalone
 	check(!CookByTheBookOptions->bLeakTest || CurrentCookMode == ECookMode::CookByTheBook);
 
@@ -5878,7 +5909,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 	if (!IsChildCooker())
 	{
-		for (const auto &Platform : TargetPlatforms)
+		for (ITargetPlatform* Platform : TargetPlatforms)
 		{
 			FName PlatformName = FName(*Platform->PlatformName());
 

@@ -11,7 +11,7 @@ void FSoftObjectPathCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> 
 {
 	StructPropertyHandle = InStructPropertyHandle;
 
-	FString ClassFilterString = StructPropertyHandle->GetMetaData("AllowedClasses");
+	const FString& ClassFilterString = StructPropertyHandle->GetMetaData("AllowedClasses");
 	if( !ClassFilterString.IsEmpty() )
 	{
 		TArray<FString> CustomClassFilterNames;

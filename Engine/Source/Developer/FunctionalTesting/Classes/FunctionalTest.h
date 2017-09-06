@@ -416,14 +416,14 @@ public:
 	 * @param What	A name to use in the message if the assert fails ("Expected 'What' to be {Expected} but it was {Actual} for context ''")
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Asserts", DisplayName = "Assert Equal (Transform)", meta = ( HidePin = "ContextObject", DefaultToSelf = "ContextObject"))
-	bool AssertEqual_Transform(const FTransform& Actual, const FTransform& Expected, const FString& What, const UObject* ContextObject = nullptr);
+	bool AssertEqual_Transform(const FTransform& Actual, const FTransform& Expected, const FString& What, float Tolerance = 1.e-4, const UObject* ContextObject = nullptr);
 
 	/**
 	 * Assert that two floats are equal within tolerance between two floats.
 	 * @param What	A name to use in the message if the assert fails (What: expected {Actual} to be Equal To {Expected} within Tolerance for context '')
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Asserts", DisplayName = "Assert Equal (Float)", meta = ( HidePin = "ContextObject", DefaultToSelf = "ContextObject"))
-	bool AssertEqual_Float(const float Actual, const float Expected, const FString& What, float Tolerance = 1.e-4, const UObject* ContextObject = nullptr);
+	bool AssertEqual_Float(const float Actual, const float Expected, const FString& What, const float Tolerance = 1.e-4, const UObject* ContextObject = nullptr);
 
 	/**
 	* Assert that two bools are equal
@@ -458,7 +458,7 @@ public:
 	 * @param What	A name to use in the message if the assert fails ("Expected 'What' to be {Expected} but it was {Actual} for context ''")
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Asserts", DisplayName = "Assert Equal (Rotator)", meta = ( HidePin = "ContextObject", DefaultToSelf = "ContextObject"))
-	bool AssertEqual_Rotator(const FRotator Actual, const FRotator Expected, const FString& What, const UObject* ContextObject = nullptr);
+	bool AssertEqual_Rotator(const FRotator Actual, const FRotator Expected, const FString& What, const float Tolerance = 1.e-4, const UObject* ContextObject = nullptr);
 
 	/**
 	 * Assert that the component angles of two rotators are all not equal within a small tolerance.

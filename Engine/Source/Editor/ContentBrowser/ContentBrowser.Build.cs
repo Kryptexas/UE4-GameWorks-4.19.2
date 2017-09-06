@@ -39,7 +39,8 @@ public class ContentBrowser : ModuleRules
 				"UnrealEd",
 				"EditorWidgets",
 				"Projects",
-				"AddContentDialog"
+				"AddContentDialog",
+				"DesktopPlatform",
 			}
 		);
 

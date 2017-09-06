@@ -54,8 +54,9 @@ public class Kismet : ModuleRules
 				"HotReload",
                 "BlueprintNativeCodeGen",
                 "UMGEditor",
-                "UMG" // for SBlueprintDiff
-			}
+                "UMG", // for SBlueprintDiff
+                "WorkspaceMenuStructure"
+            }
 			);
 
         DynamicallyLoadedModuleNames.AddRange(

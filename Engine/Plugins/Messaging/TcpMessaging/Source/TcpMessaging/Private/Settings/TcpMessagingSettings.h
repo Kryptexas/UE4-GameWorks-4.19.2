@@ -12,9 +12,23 @@ UCLASS(config=Engine)
 class UTcpMessagingSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
+
+	/** Returns true if our transport is enabled */
+	bool IsTransportEnabled() const;
+
+	/** Gets the listen endpoint */
+	FString GetListenEndpoint() const;
+
+	/** Returns array of connect endpoints */
+	void GetConnectToEndpoints(TArray<FString>& Endpoints) const;
+
+	/** Returns connection delay */
+	int32 GetConnectionRetryDelay() const;
+
+private:
 
 	/** Whether the TCP transport channel is enabled */
 	UPROPERTY(config, EditAnywhere, Category = Transport)

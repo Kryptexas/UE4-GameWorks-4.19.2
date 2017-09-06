@@ -310,7 +310,7 @@ struct FEmitHelper
 
 	static FString GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property);
 
-	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
+	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property, FString OverrideTypeDeclaration
 		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx
 		, ENativizedTermUsage TermUsage, FString* CustomSetExpressionEnding);
 

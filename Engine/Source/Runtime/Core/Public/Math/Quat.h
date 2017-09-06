@@ -426,6 +426,16 @@ public:
 	 */
 	FString ToString() const;
 
+	/**
+	 * Initialize this FQuat from a FString. 
+	 * The string is expected to contain X=, Y=, Z=, W=, otherwise 
+	 * this FQuat will have indeterminate (invalid) values.
+	 *
+	 * @param InSourceString FString containing the quaternion values.
+	 * @return true if the FQuat was initialized; false otherwise.
+	 */
+	bool InitFromString(const FString& InSourceString);
+
 public:
 
 #if ENABLE_NAN_DIAGNOSTIC
@@ -710,6 +720,19 @@ FORCEINLINE FString FQuat::ToString() const
 	return FString::Printf(TEXT("X=%.9f Y=%.9f Z=%.9f W=%.9f"), X, Y, Z, W);
 }
 
+inline bool FQuat::InitFromString(const FString& InSourceString)
+{
+	X = Y = Z = 0.f;
+	W = 1.f;
+
+	const bool bSuccess
+		=  FParse::Value(*InSourceString, TEXT("X="), X)
+		&& FParse::Value(*InSourceString, TEXT("Y="), Y)
+		&& FParse::Value(*InSourceString, TEXT("Z="), Z)
+		&& FParse::Value(*InSourceString, TEXT("W="), W);
+	DiagnosticCheckNaN();
+	return bSuccess;
+}
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 FORCEINLINE FQuat& FQuat::operator=(const FQuat& Other)
@@ -811,9 +834,6 @@ FORCEINLINE FQuat FQuat::operator*(const FQuat& Q) const
 
 FORCEINLINE FQuat FQuat::operator*=(const FQuat& Q)
 {
-	/**
-	 * Now this uses VectorQuaternionMultiply that is optimized per platform.
-	 */
 	VectorRegister A = VectorLoadAligned(this);
 	VectorRegister B = VectorLoadAligned(&Q);
 	VectorRegister Result;

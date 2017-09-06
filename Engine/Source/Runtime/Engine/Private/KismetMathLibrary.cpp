@@ -129,12 +129,10 @@ void UKismetMathLibrary::ReportError_DaysInMonth()
 }
 
 
-
 // Include code in this source file if it's not being inlined in the header.
 #if !KISMET_MATH_INLINE_ENABLED
 #include "Kismet/KismetMathLibrary.inl"
 #endif
-
 
 bool UKismetMathLibrary::RandomBoolWithWeight(float Weight)
 {
@@ -414,7 +412,6 @@ FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
 	return RRot;
 }
 
-
 FVector UKismetMathLibrary::GetReflectionVector(FVector Direction, FVector SurfaceNormal)
 {
 	return FMath::GetReflectionVector(Direction, SurfaceNormal);
@@ -448,6 +445,16 @@ FVector UKismetMathLibrary::GetVectorArrayAverage(const TArray<FVector>& Vectors
 	}
 
 	return Average;
+}
+
+FRotator UKismetMathLibrary::TransformRotation(const FTransform& T, FRotator Rotation)
+{
+	return T.TransformRotation(Rotation.Quaternion()).Rotator();
+}
+
+FRotator UKismetMathLibrary::InverseTransformRotation(const FTransform& T, FRotator Rotation)
+{
+	return T.InverseTransformRotation(Rotation.Quaternion()).Rotator();
 }
 
 FRotator UKismetMathLibrary::ComposeRotators(FRotator A, FRotator B)
@@ -817,7 +824,6 @@ FRotator UKismetMathLibrary::MakeRotationFromAxes(FVector Forward, FVector Right
 	return RotMatrix.Rotator();
 }
 
-
 int32 UKismetMathLibrary::RandomIntegerFromStream(int32 Max, const FRandomStream& Stream)
 {
 	return Stream.RandHelper(Max);
@@ -826,6 +832,11 @@ int32 UKismetMathLibrary::RandomIntegerFromStream(int32 Max, const FRandomStream
 int32 UKismetMathLibrary::RandomIntegerInRangeFromStream(int32 Min, int32 Max, const FRandomStream& Stream)
 {
 	return Stream.RandRange(Min, Max);
+}
+
+bool UKismetMathLibrary::InRange_IntInt(int32 Value, int32 Min, int32 Max, bool InclusiveMin, bool InclusiveMax)
+{
+	return ((InclusiveMin ? (Value >= Min) : (Value > Min)) && (InclusiveMax ? (Value <= Max) : (Value < Max)));
 }
 
 bool UKismetMathLibrary::RandomBoolFromStream(const FRandomStream& Stream)
@@ -879,7 +890,6 @@ void UKismetMathLibrary::SetRandomStreamSeed(FRandomStream& Stream, int32 NewSee
 {
 	Stream.Initialize(NewSeed);
 }
-
 
 void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw)
 {

@@ -906,7 +906,7 @@ bool UWorld::PreSaveRoot(const TCHAR* Filename)
 	{
 		for (UBlueprint* Blueprint : PersistentLevel->GetLevelBlueprints())
 		{
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection);
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection | EBlueprintCompileOptions::SkipSave);
 		}
 	}
 #endif
@@ -2527,6 +2527,7 @@ void UWorld::RenameToPIEWorld(int32 PIEInstanceID)
 	UPackage* WorldPackage = GetOutermost();
 
 	WorldPackage->PIEInstanceID = PIEInstanceID;
+	WorldPackage->SetPackageFlags(PKG_PlayInEditor);
 
 	const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(WorldPackage->GetName(), PIEInstanceID);
 	WorldPackage->Rename(*PIEPackageName);

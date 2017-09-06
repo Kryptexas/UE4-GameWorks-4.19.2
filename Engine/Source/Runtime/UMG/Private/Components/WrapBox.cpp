@@ -14,7 +14,7 @@ UWrapBox::UWrapBox(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SWrapBox::FArguments Defaults;
-	Visibility = Visiblity_DEPRECATED = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 
 	WrapWidth = 500;
 	bExplicitWrapWidth = false;

@@ -963,7 +963,7 @@ void UEdGraphSchema_K2::GetAutoEmitTermParameters(const UFunction* Function, TAr
 
 	if( Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm) )
 	{
-		FString MetaData = Function->GetMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
+		const FString& MetaData = Function->GetMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
 		MetaData.ParseIntoArray(AutoEmitParameterNames, TEXT(","), true);
 
 		for (int32 NameIndex = 0; NameIndex < AutoEmitParameterNames.Num();)
@@ -3473,7 +3473,7 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 
 	if (TypeOut.PinSubCategory == PSC_Bitmask)
 	{
-		FString BitmaskEnumName = TestProperty->GetMetaData(TEXT("BitmaskEnum"));
+		const FString& BitmaskEnumName = TestProperty->GetMetaData(TEXT("BitmaskEnum"));
 		if(!BitmaskEnumName.IsEmpty())
 		{
 			// @TODO: Potentially replace this with a serialized UEnum reference on the UProperty (e.g. UByteProperty::Enum)
@@ -3847,8 +3847,8 @@ bool UEdGraphSchema_K2::ArePinsCompatible(const UEdGraphPin* PinA, const UEdGrap
 	}
 	else
 	{
-		return false;
-	}
+	return false;
+}
 }
 
 namespace
@@ -4750,7 +4750,7 @@ bool UEdGraphSchema_K2::FindFunctionParameterDefaultValue(const UFunction* Funct
 {
 	bool bHasAutomaticValue = false;
 
-	const FString MetadataDefaultValue = Function->GetMetaData(*Param->GetName());
+	const FString& MetadataDefaultValue = Function->GetMetaData(*Param->GetName());
 	if (!MetadataDefaultValue.IsEmpty())
 	{
 		// Specified default value in the metadata
@@ -4760,7 +4760,7 @@ bool UEdGraphSchema_K2::FindFunctionParameterDefaultValue(const UFunction* Funct
 	else
 	{
 		const FName MetadataCppDefaultValueKey(*(FString(TEXT("CPP_Default_")) + Param->GetName()));
-		const FString MetadataCppDefaultValue = Function->GetMetaData(MetadataCppDefaultValueKey);
+		const FString& MetadataCppDefaultValue = Function->GetMetaData(MetadataCppDefaultValueKey);
 		if (!MetadataCppDefaultValue.IsEmpty())
 		{
 			OutString = MetadataCppDefaultValue;
@@ -6360,12 +6360,12 @@ float UEdGraphSchema_K2::EstimateNodeHeight( UEdGraphNode* Node )
 }
 
 
-bool UEdGraphSchema_K2::CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEntryNode, UEdGraphNode* InResultNode, FKismetCompilerContext* CompilerContext) const
+bool UEdGraphSchema_K2::CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEntryNode, UEdGraphNode* InResultNode, FKismetCompilerContext* CompilerContext, TSet<UEdGraphNode*>* OutExpandedNodes) const
 {
 	bool bSuccessful = true;
 
 	// Handle any split pin cleanup in either the Entry or Result node first
-	auto HandleSplitPins = [CompilerContext](UK2Node* Node)
+	auto HandleSplitPins = [CompilerContext, OutExpandedNodes](UK2Node* Node)
 	{
 		if (Node)
 		{
@@ -6376,7 +6376,13 @@ bool UEdGraphSchema_K2::CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEnt
 				// Expand any gateway pins as needed
 				if (Pin->SubPins.Num() > 0)
 				{
-					Node->ExpandSplitPin(CompilerContext, Node->GetGraph(), Pin);
+					if (UK2Node* ExpandedNode = Node->ExpandSplitPin(CompilerContext, Node->GetGraph(), Pin))
+					{
+						if (OutExpandedNodes)
+						{
+							OutExpandedNodes->Add(ExpandedNode);
+						}
+					}
 				}
 			}
 		}
@@ -6394,13 +6400,19 @@ bool UEdGraphSchema_K2::CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEnt
 
 		// For each pin in the gateway node, find the associated pin in the entry or result node.
 		UEdGraphNode* const GatewayNode = (BoundaryPin->Direction == EGPD_Input) ? InEntryNode : InResultNode;
-		UEdGraphPin* GatewayPin = NULL;
+		UEdGraphPin* GatewayPin = nullptr;
 		if (GatewayNode)
 		{
 			// First handle struct combining if necessary
 			if (BoundaryPin->SubPins.Num() > 0)
 			{
-				InNode->ExpandSplitPin(CompilerContext, InNode->GetGraph(), BoundaryPin);
+				if (UK2Node* ExpandedNode = InNode->ExpandSplitPin(CompilerContext, InNode->GetGraph(), BoundaryPin))
+				{
+					if (OutExpandedNodes)
+					{
+						OutExpandedNodes->Add(ExpandedNode);
+					}
+				}
 			}
 
 			for (int32 PinIdx = GatewayNode->Pins.Num() - 1; PinIdx >= 0; --PinIdx)
@@ -6427,7 +6439,7 @@ bool UEdGraphSchema_K2::CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEnt
 		}
 		else
 		{
-			if (BoundaryPin->LinkedTo.Num() > 0 && BoundaryPin->ParentPin == NULL)
+			if (BoundaryPin->LinkedTo.Num() > 0 && BoundaryPin->ParentPin == nullptr)
 			{
 				UBlueprint* OwningBP = InNode->GetBlueprint();
 				if( OwningBP )
@@ -6436,7 +6448,7 @@ bool UEdGraphSchema_K2::CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEnt
 					bSuccessful = false;
 					OwningBP->Message_Warn( FString::Printf(*NSLOCTEXT("K2Node", "PinOnBoundryNode_Warning", "Warning: Pin '%s' on boundary node '%s' could not be found in the composite node '%s'").ToString(),
 						*(BoundaryPin->PinName),
-						(GatewayNode != NULL) ? *(GatewayNode->GetName()) : TEXT("(null)"),
+						(GatewayNode ? *(GatewayNode->GetName()) : TEXT("(null)")),
 						*(GetName()))					
 						);
 				}
@@ -6444,7 +6456,7 @@ bool UEdGraphSchema_K2::CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEnt
 				{
 					UE_LOG(LogBlueprint, Warning, TEXT("%s"), *FString::Printf(*NSLOCTEXT("K2Node", "PinOnBoundryNode_Warning", "Warning: Pin '%s' on boundary node '%s' could not be found in the composite node '%s'").ToString(),
 						*(BoundaryPin->PinName),
-						(GatewayNode != NULL) ? *(GatewayNode->GetName()) : TEXT("(null)"),
+						(GatewayNode ? *(GatewayNode->GetName()) : TEXT("(null)")),
 						*(GetName()))					
 						);
 				}
@@ -6473,7 +6485,7 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarB = InPinB->LinkedTo[IndexB];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases below.
-			if (FarB != NULL)
+			if (FarB != nullptr)
 			{
 				FarB->DefaultValue = InPinA->DefaultValue;
 				FarB->DefaultObject = InPinA->DefaultObject;
@@ -6489,7 +6501,7 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarA = InPinA->LinkedTo[IndexA];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases above and below.
-			if (FarA != NULL)
+			if (FarA != nullptr)
 			{
 				FarA->DefaultValue = InPinB->DefaultValue;
 				FarA->DefaultObject = InPinB->DefaultObject;
@@ -6505,14 +6517,19 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarA = InPinA->LinkedTo[IndexA];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases above.
-			if (FarA != NULL)
+			if (FarA != nullptr)
 			{
 				for (int32 IndexB = 0; IndexB < InPinB->LinkedTo.Num(); ++IndexB)
 				{
 					UEdGraphPin* FarB = InPinB->LinkedTo[IndexB];
-					FarA->Modify();
-					FarB->Modify();
-					FarA->MakeLinkTo(FarB);
+
+					if (FarB != nullptr)
+					{
+						FarA->Modify();
+						FarB->Modify();
+						FarA->MakeLinkTo(FarB);
+					}
+					
 				}
 			}
 		}
@@ -6535,24 +6552,53 @@ UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompiler
 		}
 		StructType = GetFallbackStruct();
 	}
-	UK2Node* SplitPinNode = NULL;
+	UK2Node* SplitPinNode = nullptr;
 
 	if (Pin->Direction == EGPD_Input)
 	{
 		if (UK2Node_MakeStruct::CanBeMade(StructType))
 		{
-			UK2Node_MakeStruct* MakeStructNode = (CompilerContext ? CompilerContext->SpawnIntermediateNode<UK2Node_MakeStruct>(GraphNode, SourceGraph) : NewObject<UK2Node_MakeStruct>(Graph));
-			MakeStructNode->StructType = StructType;
-			MakeStructNode->bMadeAfterOverridePinRemoval = true;
+			UK2Node_MakeStruct* MakeStructNode;
+
+			if (CompilerContext)
+			{
+				MakeStructNode = CompilerContext->SpawnIntermediateNode<UK2Node_MakeStruct>(GraphNode, SourceGraph);
+				MakeStructNode->StructType = StructType;
+				MakeStructNode->bMadeAfterOverridePinRemoval = true;
+				MakeStructNode->AllocateDefaultPins();
+			}
+			else
+			{
+				FGraphNodeCreator<UK2Node_MakeStruct> MakeStructCreator(*Graph);
+				MakeStructNode = MakeStructCreator.CreateNode(false);
+				MakeStructNode->StructType = StructType;
+				MakeStructNode->bMadeAfterOverridePinRemoval = true;
+				MakeStructCreator.Finalize();
+			}
+
 			SplitPinNode = MakeStructNode;
 		}
 		else
 		{
 			const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeMake"));
-			const UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
+			const UFunction* Function = FindObject<UFunction>(nullptr, *MetaData, true);
 
-			UK2Node_CallFunction* CallFunctionNode = (CompilerContext ? CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, SourceGraph) : NewObject<UK2Node_CallFunction>(Graph));
-			CallFunctionNode->SetFromFunction(Function);
+			UK2Node_CallFunction* CallFunctionNode;
+			
+			if (CompilerContext)
+			{
+				CallFunctionNode = CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, SourceGraph);
+				CallFunctionNode->SetFromFunction(Function);
+				CallFunctionNode->AllocateDefaultPins();
+			}
+			else
+			{
+				FGraphNodeCreator<UK2Node_CallFunction> MakeStructCreator(*Graph);
+				CallFunctionNode = MakeStructCreator.CreateNode(false);
+				CallFunctionNode->SetFromFunction(Function);
+				MakeStructCreator.Finalize();
+			}
+
 			SplitPinNode = CallFunctionNode;
 		}
 	}
@@ -6560,23 +6606,53 @@ UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompiler
 	{
 		if (UK2Node_BreakStruct::CanBeBroken(StructType))
 		{
-			UK2Node_BreakStruct* BreakStructNode = (CompilerContext ? CompilerContext->SpawnIntermediateNode<UK2Node_BreakStruct>(GraphNode, SourceGraph) : NewObject<UK2Node_BreakStruct>(Graph));
-			BreakStructNode->StructType = StructType;
-			BreakStructNode->bMadeAfterOverridePinRemoval = true;
+			UK2Node_BreakStruct* BreakStructNode;
+
+			if (CompilerContext)
+			{
+				BreakStructNode = CompilerContext->SpawnIntermediateNode<UK2Node_BreakStruct>(GraphNode, SourceGraph);
+				BreakStructNode->StructType = StructType;
+				BreakStructNode->bMadeAfterOverridePinRemoval = true;
+				BreakStructNode->AllocateDefaultPins();
+			}
+			else
+			{
+				FGraphNodeCreator<UK2Node_BreakStruct> MakeStructCreator(*Graph);
+				BreakStructNode = MakeStructCreator.CreateNode(false);
+				BreakStructNode->StructType = StructType;
+				BreakStructNode->bMadeAfterOverridePinRemoval = true;
+				MakeStructCreator.Finalize();
+			}
+
 			SplitPinNode = BreakStructNode;
 		}
 		else
 		{
 			const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeBreak"));
-			const UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
+			const UFunction* Function = FindObject<UFunction>(nullptr, *MetaData, true);
 
-			UK2Node_CallFunction* CallFunctionNode = (CompilerContext ? CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, SourceGraph) : NewObject<UK2Node_CallFunction>(Graph));
-			CallFunctionNode->SetFromFunction(Function);
+			UK2Node_CallFunction* CallFunctionNode;
+
+			if (CompilerContext)
+			{
+				CallFunctionNode = CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, SourceGraph);
+				CallFunctionNode->SetFromFunction(Function);
+				CallFunctionNode->AllocateDefaultPins();
+			}
+			else
+			{
+				FGraphNodeCreator<UK2Node_CallFunction> MakeStructCreator(*Graph);
+				CallFunctionNode = MakeStructCreator.CreateNode(false);
+				CallFunctionNode->SetFromFunction(Function);
+				MakeStructCreator.Finalize();
+			}
+
 			SplitPinNode = CallFunctionNode;
 		}
 	}
 
-	SplitPinNode->AllocateDefaultPins();
+	SplitPinNode->NodePosX = GraphNode->NodePosX - SplitPinNode->NodeWidth - 10;
+	SplitPinNode->NodePosY = GraphNode->NodePosY;
 
 	return SplitPinNode;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnParticleComponent.cpp: Particle component implementation.
@@ -3419,11 +3419,13 @@ void UParticleSystemComponent::Serialize( FArchive& Ar )
 	}
 
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+#if WITH_EDITORONLY_DATA
 
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::ExplicitAttachmentRules)
 	{
 		USceneComponent::ConvertAttachLocation(AutoAttachLocationType_DEPRECATED, AutoAttachLocationRule, AutoAttachRotationRule, AutoAttachScaleRule);
 	}
+#endif
 }
 
 void UParticleSystemComponent::BeginDestroy()

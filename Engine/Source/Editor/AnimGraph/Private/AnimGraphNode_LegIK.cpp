@@ -3,7 +3,7 @@
 #include "AnimGraphNode_LegIK.h"
 
 /////////////////////////////////////////////////////
-// UOrionAnimGraphNode_LegIK
+// UAnimGraphNode_LegIK
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 

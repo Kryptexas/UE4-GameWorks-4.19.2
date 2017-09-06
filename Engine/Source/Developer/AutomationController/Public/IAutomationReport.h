@@ -148,7 +148,7 @@ struct FAutomationTestResults
 			WarningTotal++;
 			break;
 		case EAutomationEventType::Error:
-			WarningTotal++;
+			ErrorTotal++;
 			break;
 		}
 

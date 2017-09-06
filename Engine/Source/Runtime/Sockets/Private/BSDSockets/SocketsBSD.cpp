@@ -41,8 +41,8 @@ bool FSocketBSD::Connect(const FInternetAddr& Addr)
 	check(SocketSubsystem);
 	ESocketErrors Error = SocketSubsystem->TranslateErrorCode(Return);
 
-	// "would block" is not an error
-	return ((Error == SE_NO_ERROR) || (Error == SE_EWOULDBLOCK));
+	// EWOULDBLOCK is not an error, and EINPROGRESS is fine on initial connection as it may still be creating for nonblocking sockets
+	return ((Error == SE_NO_ERROR) || (Error == SE_EWOULDBLOCK) || (Error == SE_EINPROGRESS));
 }
 
 

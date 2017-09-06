@@ -755,6 +755,12 @@ void UActorChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
 
 FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 {
+	if (!ensure(ChIndex != -1))
+	{
+		// Client "closing" but still processing bunches. Client->Server RPCs should avoid calling this, but perhaps more code needs to check this condition.
+		return FPacketIdRange(INDEX_NONE);
+	}
+
 	check(!Closing);
 	check(Connection->Channels[ChIndex]==this);
 	check(!Bunch->IsError());

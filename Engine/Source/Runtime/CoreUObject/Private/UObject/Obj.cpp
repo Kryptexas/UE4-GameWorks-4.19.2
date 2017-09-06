@@ -2010,7 +2010,7 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 
 #if WITH_EDITOR
 		static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
-		FString CVarName = Property->GetMetaData(ConsoleVariableFName);
+		const FString& CVarName = Property->GetMetaData(ConsoleVariableFName);
 		if (!CVarName.IsEmpty())
 		{
 			Key = CVarName;
@@ -2207,7 +2207,7 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 
 #if WITH_EDITOR
 			static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
-			FString CVarName = Property->GetMetaData(ConsoleVariableFName);
+			const FString& CVarName = Property->GetMetaData(ConsoleVariableFName);
 			if (!CVarName.IsEmpty())
 			{
 				Key = CVarName;
@@ -2396,7 +2396,7 @@ void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, cons
 		
 #if WITH_EDITOR
 		static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
-		FString CVarName = InProperty->GetMetaData(ConsoleVariableFName);
+		const FString& CVarName = InProperty->GetMetaData(ConsoleVariableFName);
 		if (!CVarName.IsEmpty())
 		{
 			PropertyKey = CVarName;

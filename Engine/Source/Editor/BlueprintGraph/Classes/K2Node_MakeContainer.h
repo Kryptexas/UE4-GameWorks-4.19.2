@@ -77,6 +77,9 @@ protected:
 
 	bool CanResetToWildcard() const;
 
+	/** Helper function for context menu add pin to ensure transaction is set up correctly. */
+	void InteractiveAddInputPin();
+
 	/** Propagates the pin type from the output (set) pin to the inputs, to make sure types are consistent */
 	void PropagatePinType();
 

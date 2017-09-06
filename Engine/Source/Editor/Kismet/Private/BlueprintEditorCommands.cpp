@@ -107,7 +107,7 @@ namespace NodeSpawnInfoHelpers
 		TArray<FString> ExcludedEventNames;
 		if( InBlueprint->ParentClass->HasMetaData(*ExclusionListKeyName) )
 		{
-			const FString ExcludedEventNameString = InBlueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
+			const FString& ExcludedEventNameString = InBlueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
 			ExcludedEventNameString.ParseIntoArray(ExcludedEventNames, TEXT(","), true);
 		}
 

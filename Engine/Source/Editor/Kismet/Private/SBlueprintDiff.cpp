@@ -806,6 +806,10 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 		];
 
 	SetCurrentMode( FBlueprintEditorApplicationModes::StandardBlueprintEditorMode );
+
+	// Bind to blueprint changed events as they may be real in memory blueprints that will be modified
+	const_cast<UBlueprint*>(PanelNew.Blueprint)->OnChanged().AddSP(this, &SBlueprintDiff::OnBlueprintChanged);
+	const_cast<UBlueprint*>(PanelOld.Blueprint)->OnChanged().AddSP(this, &SBlueprintDiff::OnBlueprintChanged);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -840,6 +844,18 @@ void SBlueprintDiff::OnGraphChanged(FListItemGraphToDiff* Diff)
 	if(PanelNew.GraphEditor.IsValid() && PanelNew.GraphEditor.Pin()->GetCurrentGraph() == Diff->GetGraphNew())
 	{
 		FocusOnGraphRevisions(Diff);
+	}
+}
+
+void SBlueprintDiff::OnBlueprintChanged(UBlueprint* InBlueprint)
+{
+	if (InBlueprint == PanelOld.Blueprint && PanelOld.GraphEditor.IsValid())
+	{
+		PanelOld.GraphEditor.Pin()->NotifyGraphChanged();
+	}
+	if (InBlueprint == PanelNew.Blueprint && PanelNew.GraphEditor.IsValid())
+	{
+		PanelNew.GraphEditor.Pin()->NotifyGraphChanged();
 	}
 }
 

@@ -346,6 +346,7 @@ public:
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && PointerDraggingSliderIndex == INDEX_NONE )
 		{
 			DistanceDragged = 0;
+			InternalValue = ValueAttribute.Get();
 			PreDragValue = InternalValue;
 			PointerDraggingSliderIndex = MouseEvent.GetPointerIndex();
 			CachedMousePosition = MouseEvent.GetScreenSpacePosition().IntPoint();
@@ -614,6 +615,7 @@ public:
 		if ( Key == EKeys::Escape && HasMouseCapture())
 		{
 			bDragging = false;
+			PointerDraggingSliderIndex = INDEX_NONE;
 
 			InternalValue = PreDragValue;
 			NotifyValueCommitted();
@@ -868,6 +870,7 @@ protected:
 		if ( !this->HasMouseCapture() )
 		{
 			bDragging = false;
+			PointerDraggingSliderIndex = INDEX_NONE;
 		}
 	}
 	

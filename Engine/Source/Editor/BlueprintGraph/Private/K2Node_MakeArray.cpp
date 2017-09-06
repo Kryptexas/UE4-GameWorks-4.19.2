@@ -101,7 +101,7 @@ void UK2Node_MakeArray::GetContextMenuActions(const FGraphNodeContextMenuBuilder
 				LOCTEXT("AddPinTooltip", "Add another array element pin"),
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateUObject(this, &UK2Node_MakeArray::AddInputPin)
+					FExecuteAction::CreateUObject(this, &UK2Node_MakeArray::InteractiveAddInputPin)
 				)
 			);
 		}

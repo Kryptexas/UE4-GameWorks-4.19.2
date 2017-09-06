@@ -103,7 +103,7 @@ void UDeveloperSettings::ImportConsoleVariableValues()
 			continue;
 		}
 
-		FString CVarName = Property->GetMetaData(DeveloperSettingsConsoleVariableMetaFName);
+		const FString& CVarName = Property->GetMetaData(DeveloperSettingsConsoleVariableMetaFName);
 		if (!CVarName.IsEmpty())
 		{
 			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);
@@ -126,7 +126,7 @@ void UDeveloperSettings::ExportValuesToConsoleVariables(UProperty* PropertyThatC
 {
 	if(PropertyThatChanged)
 	{
-		FString CVarName = PropertyThatChanged->GetMetaData(DeveloperSettingsConsoleVariableMetaFName);
+		const FString& CVarName = PropertyThatChanged->GetMetaData(DeveloperSettingsConsoleVariableMetaFName);
 		if (!CVarName.IsEmpty())
 		{
 			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);

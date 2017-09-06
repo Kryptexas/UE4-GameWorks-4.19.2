@@ -404,7 +404,7 @@ struct FAsyncPackage : FGCObject
 		return Desc.NameToLoad;
 	}
 
-	void AddCompletionCallback(const FLoadPackageAsyncDelegate& Callback, bool bInternal);
+	void AddCompletionCallback(TUniquePtr<FLoadPackageAsyncDelegate>&& Callback, bool bInternal);
 
 	/** Gets the number of references to this package from other packages in the dependency tree. */
 	FORCEINLINE int32 GetDependencyRefCount() const
@@ -490,17 +490,17 @@ private:
 	{
 		bool bIsInternal;
 		bool bCalled;
-		FLoadPackageAsyncDelegate Callback;
+		TUniquePtr<FLoadPackageAsyncDelegate> Callback;
 
 		FCompletionCallback()
 			: bIsInternal(false)
 			, bCalled(false)
 		{
 		}
-		FCompletionCallback(bool bInInternal, FLoadPackageAsyncDelegate InCallback)
+		FCompletionCallback(bool bInInternal, TUniquePtr<FLoadPackageAsyncDelegate>&& InCallback)
 			: bIsInternal(bInInternal)
 			, bCalled(false)
-			, Callback(InCallback)
+			, Callback(MoveTemp(InCallback))
 		{
 		}
 	};

@@ -6,6 +6,7 @@
 #include "UObject/StructOnScope.h"
 #include "UObject/UnrealType.h"
 #include "UObject/LinkerLoad.h"
+#include "UObject/FrameworkObjectVersion.h"
 #include "Misc/SecureHash.h"
 #include "UObject/PropertyPortFlags.h"
 #include "Misc/PackageName.h" // for FPackageName::GetLongPackageAssetName()
@@ -75,24 +76,37 @@ void UUserDefinedStruct::Serialize(FArchive& Ar)
 {
 	Super::Serialize( Ar );
 
-	if (Ar.IsLoading() && (EUserDefinedStructureStatus::UDSS_UpToDate == Status))
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.IsLoading())
 	{
-		// We need to force the editor data to be preload in case anyone needs to extract variable
-		// information at editor time about the user structure.
-		if ( EditorData != nullptr )
+		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::UserDefinedStructsBlueprintVisible)
 		{
-			Ar.Preload(EditorData);
-			if (!(Ar.GetPortFlags() & PPF_Duplicate))
+			for (TFieldIterator<UProperty> PropIt(this); PropIt; ++PropIt)
 			{
-				FStructureEditorUtils::RecreateDefaultInstanceInEditorData(this);
+				PropIt->PropertyFlags |= CPF_BlueprintVisible;
 			}
 		}
 
-		const FStructureEditorUtils::EStructureError Result = FStructureEditorUtils::IsStructureValid(this, NULL, &ErrorMessage);
-		if (FStructureEditorUtils::EStructureError::Ok != Result)
+		if (EUserDefinedStructureStatus::UDSS_UpToDate == Status)
 		{
-			Status = EUserDefinedStructureStatus::UDSS_Error;
-			UE_LOG(LogClass, Log, TEXT("UUserDefinedStruct.Serialize '%s' validation: %s"), *GetName(), *ErrorMessage);
+			// We need to force the editor data to be preload in case anyone needs to extract variable
+			// information at editor time about the user structure.
+			if (EditorData != nullptr)
+			{
+				Ar.Preload(EditorData);
+				if (!(Ar.GetPortFlags() & PPF_Duplicate))
+				{
+					FStructureEditorUtils::RecreateDefaultInstanceInEditorData(this);
+				}
+			}
+
+			const FStructureEditorUtils::EStructureError Result = FStructureEditorUtils::IsStructureValid(this, NULL, &ErrorMessage);
+			if (FStructureEditorUtils::EStructureError::Ok != Result)
+			{
+				Status = EUserDefinedStructureStatus::UDSS_Error;
+				UE_LOG(LogClass, Log, TEXT("UUserDefinedStruct.Serialize '%s' validation: %s"), *GetName(), *ErrorMessage);
+			}
 		}
 	}
 }

@@ -245,10 +245,6 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_Owner();
 
-	/** Used to specify the net driver to replicate on (NAME_None || NAME_GameNetDriver is the default net driver) */
-	UPROPERTY()
-	FName NetDriverName;
-
 private:
 	/**
 	 * Describes how much control the remote machine has over the actor.
@@ -264,6 +260,10 @@ private:
 	AActor* Owner;
 
 public:
+
+	/** Used to specify the net driver to replicate on (NAME_None || NAME_GameNetDriver is the default net driver) */
+	UPROPERTY()
+	FName NetDriverName;
 
 	/**
 	 * Set whether this actor replicates to network clients. When this actor is spawned on the server it will be sent to clients as well.
@@ -295,6 +295,10 @@ public:
 	/** Used for replication of our RootComponent's position and velocity */
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_ReplicatedMovement, Category=Replication, AdvancedDisplay)
 	struct FRepMovement ReplicatedMovement;
+
+	/** How long this Actor lives before dying, 0=forever. Note this is the INITIAL value and should not be modified once play has begun. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Actor)
+	float InitialLifeSpan;
 
 private:
 	/**
@@ -330,6 +334,11 @@ public:
 	UPROPERTY(EditAnywhere, Category=Input)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoReceiveInput;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	TEnumAsByte<enum EInputConsumeOptions> InputConsumeOption_DEPRECATED;
+#endif
+
 	/** The priority of this input component when pushed in to the stack. */
 	UPROPERTY(EditAnywhere, Category=Input)
 	int32 InputPriority;
@@ -337,9 +346,6 @@ public:
 	/** Component that handles input for this actor, if input is enabled. */
 	UPROPERTY()
 	class UInputComponent* InputComponent;
-
-	UPROPERTY()
-	TEnumAsByte<enum EInputConsumeOptions> InputConsumeOption_DEPRECATED;
 
 	/** Square of the max distance from the client's viewpoint that this actor is relevant and will be replicated. */
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category=Replication)
@@ -443,6 +449,49 @@ protected:
 	UPROPERTY(Category = Actor, EditAnywhere, AdvancedDisplay)
 	uint8 bCanBeInCluster:1;
 
+protected:
+
+	/**
+	 * If false, the Blueprint ReceiveTick() event will be disabled on dedicated servers.
+	 * @see AllowReceiveTickEventOnDedicatedServer()
+	 */
+	UPROPERTY()
+	uint8 bAllowReceiveTickEventOnDedicatedServer:1;
+
+private:
+
+	/** 
+	 *	Indicates that PreInitializeComponents/PostInitializeComponents have been called on this Actor 
+	 *	Prevents re-initializing of actors spawned during level startup
+	 */
+	uint8 bActorInitialized:1;
+	
+	enum class EActorBeginPlayState : uint8
+	{
+		HasNotBegunPlay,
+		BeginningPlay,
+		HasBegunPlay,
+	};
+
+	/** 
+	 *	Indicates that BeginPlay has been called for this Actor.
+	 *  Set back to false once EndPlay has been called.
+	 */
+	EActorBeginPlayState ActorHasBegunPlay:2;
+
+public:
+	/** Indicates the actor was pulled through a seamless travel.  */
+	UPROPERTY()
+	uint8 bActorSeamlessTraveled:1;
+
+	/** Whether this actor should not be affected by world origin shifting. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
+	uint8 bIgnoresOriginShifting:1;
+	
+	/** If true, and if World setting has bEnableHierarchicalLOD equal to true, then it will generate LODActor from groups of clustered Actor */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = HLOD, meta = (DisplayName = "Include Actor for HLOD Mesh generation"))
+	uint8 bEnableAutoLODGeneration:1;
+
 public:
 
 	/** Controls how to handle spawning this actor in a situation where it's colliding with something else. "Default" means AlwaysSpawn here. */
@@ -483,10 +532,6 @@ protected:
 	UPROPERTY(transient)
 	TArray<class AMatineeActor*> ControllingMatineeActors;
 
-	/** How long this Actor lives before dying, 0=forever. Note this is the INITIAL value and should not be modified once play has begun. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Actor)
-	float InitialLifeSpan;
-
 	/** Handle for efficient management of LifeSpanExpired timer */
 	FTimerHandle TimerHandle_LifeSpanExpired;
 
@@ -500,9 +545,11 @@ public:
 	TArray< FName > Layers;
 
 private:
+#if WITH_EDITORONLY_DATA
 	/** The Actor that owns the UChildActorComponent that owns this Actor. */
 	UPROPERTY()
 	TWeakObjectPtr<AActor> ParentComponentActor_DEPRECATED;	
+#endif
 
 	/** The UChildActorComponent that owns this Actor. */
 	UPROPERTY()
@@ -581,49 +628,6 @@ public:
 	/** Returns how many lights are uncached for this actor. */
 	int32 GetNumUncachedLights();
 #endif // WITH_EDITORONLY_DATA
-
-protected:
-
-	/**
-	 * If false, the Blueprint ReceiveTick() event will be disabled on dedicated servers.
-	 * @see AllowReceiveTickEventOnDedicatedServer()
-	 */
-	UPROPERTY()
-	uint8 bAllowReceiveTickEventOnDedicatedServer:1;
-
-private:
-
-	/** 
-	 *	Indicates that PreInitializeComponents/PostInitializeComponents have been called on this Actor 
-	 *	Prevents re-initializing of actors spawned during level startup
-	 */
-	uint8 bActorInitialized:1;
-	
-	enum class EActorBeginPlayState : uint8
-	{
-		HasNotBegunPlay,
-		BeginningPlay,
-		HasBegunPlay,
-	};
-
-	/** 
-	 *	Indicates that BeginPlay has been called for this Actor.
-	 *  Set back to false once EndPlay has been called.
-	 */
-	EActorBeginPlayState ActorHasBegunPlay:2;
-
-public:
-	/** Indicates the actor was pulled through a seamless travel.  */
-	UPROPERTY()
-	uint8 bActorSeamlessTraveled:1;
-
-	/** Whether this actor should not be affected by world origin shifting. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
-	uint8 bIgnoresOriginShifting:1;
-	
-	/** If true, and if World setting has bEnableHierarchicalLOD equal to true, then it will generate LODActor from groups of clustered Actor */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = HLOD, meta = (DisplayName = "Include Actor for HLOD Mesh generation"))
-	uint8 bEnableAutoLODGeneration:1;
 
 private:
 
@@ -2764,7 +2768,7 @@ public:
 	 * It's recommended to use TArrays with a TInlineAllocator to potentially avoid memory allocation costs.
 	 * TInlineComponentArray is defined to make this easier, for example:
 	 * {
-	 * 	   TInlineComponentArray<UPrimitiveComponent*> PrimComponents;
+	 * 	   TInlineComponentArray<UActorComponent*> PrimComponents;
 	 *     Actor->GetComponents(PrimComponents);
 	 * }
 	 *
@@ -2956,6 +2960,9 @@ private:
 
 	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
 	ENetMode InternalGetNetMode() const;
+
+	/** Unified implementation function to be called from the two implementations of PostEditUndo for the AActor specific elements that need to happen. */
+	bool InternalPostEditUndo();
 
 	friend struct FMarkActorIsBeingDestroyed;
 	friend struct FActorParentComponentSetter;

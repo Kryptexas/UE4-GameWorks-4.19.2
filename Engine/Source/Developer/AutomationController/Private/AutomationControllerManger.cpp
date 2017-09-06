@@ -787,10 +787,16 @@ void FAutomationControllerManager::UpdateTests()
 				FAutomationTestResults TestResults;
 				TestResults.State = EAutomationState::Fail;
 				TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName(ClusterIndex, DeviceIndex);
+				TestResults.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("Timeout waiting for device %s"), *TestResults.GameInstance)));
 
 				// Set the results
 				Report->SetResults(ClusterIndex, CurrentTestPass, TestResults);
 				bTestResultsAvailable = true;
+
+				const FAutomationTestResults& FinalResults = Report->GetResults(ClusterIndex, CurrentTestPass);
+
+				// Gather all of the data relevant to this test for our json reporting.
+				CollectTestResults(Report, FinalResults);
 
 				// Disable the device in the cluster so it is not used again
 				DeviceClusterManager.DisableDevice(ClusterIndex, DeviceIndex);
@@ -801,6 +807,9 @@ void FAutomationControllerManager::UpdateTests()
 				// If there are no more devices, set the module state to disabled
 				if ( DeviceClusterManager.HasActiveDevice() == false )
 				{
+					// Process results first to write out the report
+					ProcessResults();
+
 					GLog->Logf(ELogVerbosity::Display, TEXT("Module disabled"));
 					SetControllerStatus(EAutomationControllerModuleState::Disabled);
 					ClusterDistributionMask = 0;

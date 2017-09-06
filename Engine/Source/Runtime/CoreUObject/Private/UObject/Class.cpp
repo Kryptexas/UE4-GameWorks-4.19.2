@@ -3572,7 +3572,12 @@ void UClass::Serialize( FArchive& Ar )
 		{
 			bCooked = Ar.IsCooking();
 		}
-		Ar << bCooked;
+		bool bCookedAsBool = bCooked;
+		Ar << bCookedAsBool;
+		if (Ar.IsLoading())
+		{
+			bCooked = bCookedAsBool;
+		}
 	}
 
 	// Defaults.
@@ -3835,16 +3840,16 @@ bool UClass::HasProperty(UProperty* InProperty) const
 UClass::UClass(const FObjectInitializer& ObjectInitializer)
 :	UStruct( ObjectInitializer )
 ,	ClassUnique(0)
+,	bCooked(false)
 ,	ClassFlags(CLASS_None)
 ,	ClassCastFlags(0)
 ,	ClassWithin( UObject::StaticClass() )
 ,	ClassGeneratedBy(nullptr)
-,	bCooked(false)
 ,	ClassDefaultObject(nullptr)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
-	CppTypeInfo.Emplace(&DefaultCppClassTypeInfoStatic);
+	SetCppTypeInfoStatic(&DefaultCppClassTypeInfoStatic);
 }
 
 /**
@@ -3853,16 +3858,16 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
 :	UStruct(ObjectInitializer, InBaseClass)
 ,	ClassUnique(0)
+,	bCooked(false)
 ,	ClassFlags(CLASS_None)
 ,	ClassCastFlags(0)
 ,	ClassWithin(UObject::StaticClass())
 ,	ClassGeneratedBy(nullptr)
-,	bCooked(false)
 ,	ClassDefaultObject(nullptr)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
-	CppTypeInfo.Emplace(&DefaultCppClassTypeInfoStatic);
+	SetCppTypeInfoStatic(&DefaultCppClassTypeInfoStatic);
 
 	UClass* ParentClass = GetSuperClass();
 	if (ParentClass)
@@ -3905,18 +3910,18 @@ UClass::UClass
 ,	ClassVTableHelperCtorCaller(InClassVTableHelperCtorCaller)
 ,	ClassAddReferencedObjects( InClassAddReferencedObjects )
 ,	ClassUnique				( 0 )
+,	bCooked					( false )
 ,	ClassFlags				( InClassFlags | CLASS_Native )
 ,	ClassCastFlags			( InClassCastFlags )
 ,	ClassWithin				( nullptr )
 ,	ClassGeneratedBy		( nullptr )
 ,	ClassConfigName			()
-,	bCooked					( false )
 ,	NetFields				()
 ,	ClassDefaultObject		( nullptr )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
-	CppTypeInfo.Emplace(&DefaultCppClassTypeInfoStatic);
+	SetCppTypeInfoStatic(&DefaultCppClassTypeInfoStatic);
 
 	// We store the pointer to the ConfigName in an FName temporarily, this cast is intentional
 	// as we expect the mis-typed data to get picked up in UClass::DeferredRegister. PVS-Studio
@@ -4135,11 +4140,12 @@ UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type Incl
 	UFunction* Result = FuncMap.FindRef(InName);
 	if (Result == nullptr && IncludeSuper == EIncludeSuperFlag::IncludeSuper)
 	{
-		if (Interfaces.Num())
+		UClass* SuperClass = GetSuperClass();
+		if (SuperClass || Interfaces.Num() > 0)
 		{
-			if (UFunction** InterfaceResult = InterfaceFuncMap.Find(InName))
+			if (UFunction** SuperResult = SuperFuncMap.Find(InName))
 			{
-				Result = *InterfaceResult;
+				Result = *SuperResult;
 			}
 			else
 			{
@@ -4152,23 +4158,12 @@ UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type Incl
 					}
 				}
 
-				InterfaceFuncMap.Add(InName, Result);
-			}
-		}
-
-		if (Result == nullptr)
-		{
-			if (UClass* SuperClass = GetSuperClass())
-			{
-				if (UFunction** ParentResult = ParentFuncMap.Find(InName))
-				{
-					Result = *ParentResult;
-				}
-				else
+				if (SuperClass && Result == nullptr)
 				{
 					Result = SuperClass->FindFunctionByName(InName);
-					ParentFuncMap.Add(InName, Result);
 				}
+
+				SuperFuncMap.Add(InName, Result);
 			}
 		}
 	}

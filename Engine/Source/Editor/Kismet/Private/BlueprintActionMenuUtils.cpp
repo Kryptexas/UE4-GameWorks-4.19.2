@@ -181,7 +181,7 @@ static bool BlueprintActionMenuUtilsImpl::IsUnexposedMemberAction(FBlueprintActi
 		{
 			if (UProperty* Property = Cast<UProperty>(Binding.Get()))
 			{
-				FString const ExposedCategoryMetadata = Property->GetMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories);
+				const FString& ExposedCategoryMetadata = Property->GetMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories);
 				if (ExposedCategoryMetadata.IsEmpty())
 				{
 					continue;
@@ -193,7 +193,7 @@ static bool BlueprintActionMenuUtilsImpl::IsUnexposedMemberAction(FBlueprintActi
 			}
 		}
 
-		FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
+		const FString& FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
 		bIsFliteredOut = !AllExposedCategories.Contains(FunctionCategory);
 	}
 	return bIsFliteredOut;

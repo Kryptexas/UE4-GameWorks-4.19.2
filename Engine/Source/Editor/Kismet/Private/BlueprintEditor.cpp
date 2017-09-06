@@ -572,6 +572,13 @@ bool FBlueprintEditor::IsInAScriptingMode() const
 
 bool FBlueprintEditor::OnRequestClose()
 {
+	// Also close the Find Results tab if we're not in full edit mode and the option to host Global Find Results is enabled.
+	TSharedPtr<SDockTab> FindResultsTab = TabManager->FindExistingLiveTab(FBlueprintEditorTabs::FindResultsID);
+	if (FindResultsTab.IsValid() && !IsInAScriptingMode() && GetDefault<UBlueprintEditorSettings>()->bHostFindInBlueprintsInGlobalTab)
+	{
+		FindResultsTab->RequestCloseTab();
+	}
+
 	bEditorMarkedAsClosed = true;
 	return FWorkflowCentricApplication::OnRequestClose();
 }
@@ -806,8 +813,23 @@ void FBlueprintEditor::ClearSelectionStateFor(FName SelectionOwner)
 
 void FBlueprintEditor::SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms, bool bSelectFirstResult)
 {
-	TabManager->InvokeTab(FBlueprintEditorTabs::FindResultsID);
-	FindResults->FocusForUse(bSetFindWithinBlueprint, NewSearchTerms, bSelectFirstResult);
+	TSharedPtr<SFindInBlueprints> FindResultsToUse;
+
+	if (bSetFindWithinBlueprint
+		|| !GetDefault<UBlueprintEditorSettings>()->bHostFindInBlueprintsInGlobalTab)
+	{
+		FindResultsToUse = FindResults;
+		TabManager->InvokeTab(FBlueprintEditorTabs::FindResultsID);
+	}
+	else
+	{
+		FindResultsToUse = FFindInBlueprintSearchManager::Get().GetGlobalFindResults();
+	}
+
+	if (FindResultsToUse.IsValid())
+	{
+		FindResultsToUse->FocusForUse(bSetFindWithinBlueprint, NewSearchTerms, bSelectFirstResult);
+	}
 }
 
 void FBlueprintEditor::SummonFindAndReplaceUI()
@@ -2101,6 +2123,12 @@ void FBlueprintEditor::PostLayoutBlueprintEditorInitialization()
 			TabManager->InvokeTab(FBlueprintEditorTabs::CompilerResultsID);
 		}
 	}
+
+	if (!GetDefault<UBlueprintEditorSettings>()->bHostFindInBlueprintsInGlobalTab)
+	{
+		// Close any docked global FiB tabs that may have been restored with a saved layout.
+		FFindInBlueprintSearchManager::Get().CloseOrphanedGlobalFindResultsTabs(TabManager);
+	}
 }
 
 void FBlueprintEditor::SetupViewForBlueprintEditingMode()
@@ -2599,8 +2627,7 @@ bool FBlueprintEditor::CanGenerateNativeCode() const
 
 void FBlueprintEditor::FindInBlueprint_Clicked()
 {
-	TabManager->InvokeTab(FBlueprintEditorTabs::FindResultsID);
-	FindResults->FocusForUse(true);
+	SummonSearchUI(true);
 }
 
 void FBlueprintEditor::ReparentBlueprint_Clicked()
@@ -3264,9 +3291,8 @@ void FBlueprintEditor::DeleteUnusedVariables_OnClicked()
 void FBlueprintEditor::FindInBlueprints_OnClicked()
 {
 	SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-
-	TabManager->InvokeTab(FBlueprintEditorTabs::FindResultsID);
-	FindResults->FocusForUse(false);
+	
+	SummonSearchUI(false);
 }
 
 void FBlueprintEditor::ClearAllBreakpoints()
@@ -6782,7 +6808,7 @@ UEdGraph* FBlueprintEditor::CollapseSelectionToMacro(TSharedPtr<SGraphEditor> In
 
 void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSourceGraph, TSet<UEdGraphNode*>& OutExpandedNodes)
 {
-	UEdGraph* DestinationGraph = InNodeToExpand->GetGraph();
+ 	UEdGraph* DestinationGraph = InNodeToExpand->GetGraph();
 	UEdGraph* SourceGraph = InSourceGraph;
 	check(SourceGraph);
 
@@ -6866,7 +6892,7 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 	}
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	K2Schema->CollapseGatewayNode(Cast<UK2Node>(InNodeToExpand), Entry, Result);
+	K2Schema->CollapseGatewayNode(Cast<UK2Node>(InNodeToExpand), Entry, Result, nullptr, &OutExpandedNodes);
 
 	if(Entry)
 	{

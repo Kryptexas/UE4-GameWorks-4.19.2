@@ -532,6 +532,10 @@ void UChildActorComponent::CreateChildActor()
 				{
 					Params.ObjectFlags &= ~RF_Transactional;
 				}
+				if (HasAllFlags(RF_Transient))
+				{
+					Params.ObjectFlags |= RF_Transient;
+				}
 
 				// Spawn actor of desired class
 				ConditionalUpdateComponentToWorld();

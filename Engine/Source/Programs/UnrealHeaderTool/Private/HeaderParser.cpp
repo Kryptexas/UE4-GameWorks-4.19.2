@@ -2871,7 +2871,7 @@ void FHeaderParser::VerifyPropertyMarkups( UClass* TargetClass )
 
 			if (Prop->HasAnyPropertyFlags(CPF_BlueprintVisible))
 			{
-				const FString GetterFuncName = Prop->GetMetaData(TEXT("BlueprintGetter"));
+				const FString& GetterFuncName = Prop->GetMetaData(TEXT("BlueprintGetter"));
 				if (!GetterFuncName.IsEmpty())
 				{
 					if (UFunction* TargetFunc = FindTargetFunction(*GetterFuncName))
@@ -2887,7 +2887,7 @@ void FHeaderParser::VerifyPropertyMarkups( UClass* TargetClass )
 
 				if (!Prop->HasAnyPropertyFlags(CPF_BlueprintReadOnly))
 				{
-					const FString SetterFuncName = Prop->GetMetaData(TEXT("BlueprintSetter"));
+					const FString& SetterFuncName = Prop->GetMetaData(TEXT("BlueprintSetter"));
 					if (!SetterFuncName.IsEmpty())
 					{
 						if (UFunction* TargetFunc = FindTargetFunction(*SetterFuncName))
@@ -6959,6 +6959,7 @@ struct FExposeOnSpawnValidator
 		case CPT_Byte:
 		case CPT_Float:
 		case CPT_Bool:
+		case CPT_Bool8:
 		case CPT_ObjectReference:
 		case CPT_String:
 		case CPT_Text:

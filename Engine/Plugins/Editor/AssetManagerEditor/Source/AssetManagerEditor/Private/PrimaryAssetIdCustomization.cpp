@@ -32,7 +32,7 @@ void FPrimaryAssetIdCustomization::CustomizeHeader(TSharedRef<class IPropertyHan
 
 	StructPropertyHandle = InStructPropertyHandle;
 
-	FString TypeFilterString = StructPropertyHandle->GetMetaData("AllowedTypes");
+	const FString& TypeFilterString = StructPropertyHandle->GetMetaData("AllowedTypes");
 	if( !TypeFilterString.IsEmpty() )
 	{
 		TArray<FString> CustomTypeFilterNames;

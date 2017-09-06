@@ -15,7 +15,7 @@ UCanvasPanel::UCanvasPanel(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SConstraintCanvas::FArguments Defaults;
-	Visiblity_DEPRECATED = Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UCanvasPanel::ReleaseSlateResources(bool bReleaseChildren)

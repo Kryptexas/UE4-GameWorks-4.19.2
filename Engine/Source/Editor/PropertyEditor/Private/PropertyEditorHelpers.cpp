@@ -524,7 +524,7 @@ namespace PropertyEditorHelpers
 				else
 				{
 
-					FString EnumName = Property->GetMetaData(TEXT("Enum"));
+					const FString& EnumName = Property->GetMetaData(TEXT("Enum"));
 					Enum = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);
 				}
 

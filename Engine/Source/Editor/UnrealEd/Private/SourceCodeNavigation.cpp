@@ -1804,7 +1804,7 @@ bool FSourceCodeNavigation::FindClassHeaderPath( const UField *Field, FString &O
 		if(FSourceCodeNavigation::FindModulePath(*ModulePackageName + ModuleNameIdx + 1, ModuleBasePath))
 		{
 			// Get the metadata for the class path relative to the module base
-			FString ModuleRelativePath = ModulePackage->GetMetaData()->GetValue(Field, TEXT("ModuleRelativePath"));
+			const FString& ModuleRelativePath = ModulePackage->GetMetaData()->GetValue(Field, TEXT("ModuleRelativePath"));
 			if(ModuleRelativePath.Len() > 0)
 			{
 				OutClassHeaderPath = ModuleBasePath / ModuleRelativePath;
@@ -1830,7 +1830,7 @@ bool FSourceCodeNavigation::FindClassSourcePath( const UField *Field, FString &O
 		{
 			// Get the metadata for the class path relative to the module base
 			// Given this we can try and find the corresponding .cpp file
-			FString ModuleRelativePath = ModulePackage->GetMetaData()->GetValue(Field, TEXT("ModuleRelativePath"));
+			const FString& ModuleRelativePath = ModulePackage->GetMetaData()->GetValue(Field, TEXT("ModuleRelativePath"));
 			if(ModuleRelativePath.Len() > 0)
 			{
 				const FString PotentialCppLeafname = FPaths::GetBaseFilename(ModuleRelativePath) + TEXT(".cpp");

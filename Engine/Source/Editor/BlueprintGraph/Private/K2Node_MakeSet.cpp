@@ -101,7 +101,7 @@ void UK2Node_MakeSet::GetContextMenuActions(const FGraphNodeContextMenuBuilder& 
 				LOCTEXT("AddPinTooltip", "Add another set element pin"),
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateUObject(this, &UK2Node_MakeSet::AddInputPin)
+					FExecuteAction::CreateUObject(this, &UK2Node_MakeSet::InteractiveAddInputPin)
 				)
 			);
 		}
