@@ -170,7 +170,6 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 	}
 
 	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage());
-	BoneProxy->AddToRoot();
 	BoneProxy->SkelMeshComponent = PreviewScene.IsValid() ? PreviewScene.Pin()->GetPreviewMeshComponent() : nullptr;
 	BoneProxy->bIsTickable = true;
 
@@ -280,12 +279,6 @@ SSkeletonTree::~SSkeletonTree()
 	if (EditableSkeleton.IsValid())
 	{
 		EditableSkeleton.Pin()->UnregisterOnSkeletonHierarchyChanged(this);
-	}
-
-	if (BoneProxy)
-	{
-		BoneProxy->RemoveFromRoot();
-		BoneProxy = nullptr;
 	}
 }
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
@@ -2103,6 +2096,11 @@ ESkeletonTreeFilterResult SSkeletonTree::HandleFilterSkeletonTreeItem(const FSke
 	}
 
 	return Result;
+}
+
+void SSkeletonTree::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	Collector.AddReferencedObject(BoneProxy);
 }
 
 #undef LOCTEXT_NAMESPACE

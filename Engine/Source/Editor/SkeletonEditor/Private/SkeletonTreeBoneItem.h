@@ -15,16 +15,16 @@
 #include "Animation/Skeleton.h"
 #include "Widgets/Input/SComboButton.h"
 #include "BoneProxy.h"
+#include "GCObject.h"
 
 class UDebugSkelMeshComponent;
 
-class FSkeletonTreeBoneItem : public FSkeletonTreeItem
+class FSkeletonTreeBoneItem : public FSkeletonTreeItem, public FGCObject
 {
 public:
 	SKELETON_TREE_ITEM_TYPE(FSkeletonTreeBoneItem, FSkeletonTreeItem)
 
 	FSkeletonTreeBoneItem(const FName& InBoneName, const TSharedRef<class ISkeletonTree>& InSkeletonTree);
-	virtual ~FSkeletonTreeBoneItem();
 
 	/** ISkeletonTreeItem interface */
 	virtual void GenerateWidgetForNameColumn(TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected) override;
@@ -35,6 +35,9 @@ public:
 	virtual FReply HandleDrop(const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual UObject* GetObject() const override { return BoneProxy; }
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** Check to see if the specified bone is weighted in the specified component */
 	bool IsBoneWeighted(int32 MeshBoneIndex, UDebugSkelMeshComponent* PreviewComponent);

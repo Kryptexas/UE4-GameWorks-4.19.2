@@ -21,21 +21,11 @@ FSkeletonTreeVirtualBoneItem::FSkeletonTreeVirtualBoneItem(const FName& InBoneNa
 
 	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage(), *(BoneProxyPrefix + FString::Printf(TEXT("%p"), &InSkeletonTree.Get()) + InBoneName.ToString()));
 	BoneProxy->SetFlags(RF_Transactional);
-	BoneProxy->AddToRoot();
 	BoneProxy->BoneName = InBoneName;
 	TSharedPtr<IPersonaPreviewScene> PreviewScene = InSkeletonTree->GetPreviewScene();
 	if (PreviewScene.IsValid())
 	{
 		BoneProxy->SkelMeshComponent = PreviewScene->GetPreviewMeshComponent();
-	}
-}
-
-FSkeletonTreeVirtualBoneItem::~FSkeletonTreeVirtualBoneItem()
-{
-	if (BoneProxy)
-	{
-		BoneProxy->RemoveFromRoot();
-		BoneProxy = nullptr;
 	}
 }
 
@@ -195,6 +185,11 @@ EVisibility FSkeletonTreeVirtualBoneItem::GetVirtualBonePrefixVisibility() const
 void FSkeletonTreeVirtualBoneItem::EnableBoneProxyTick(bool bEnable)
 {
 	BoneProxy->bIsTickable = bEnable;
+}
+
+void FSkeletonTreeVirtualBoneItem::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	Collector.AddReferencedObject(BoneProxy);
 }
 
 #undef LOCTEXT_NAMESPACE

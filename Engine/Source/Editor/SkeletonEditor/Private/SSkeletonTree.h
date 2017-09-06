@@ -24,6 +24,7 @@
 #include "SkeletonTreeBuilder.h"
 #include "SSearchBox.h"
 #include "EditorUndoClient.h"
+#include "GCObject.h"
 
 class FMenuBuilder;
 class FSkeletonTreeAttachedAssetItem;
@@ -42,7 +43,7 @@ struct FNotificationInfo;
 // SSkeletonTree
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-class SSkeletonTree : public ISkeletonTree, public FEditorUndoClient
+class SSkeletonTree : public ISkeletonTree, public FEditorUndoClient, public FGCObject
 {
 public:
 	SLATE_BEGIN_ARGS( SSkeletonTree )
@@ -105,6 +106,9 @@ public:
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** Creates the tree control and then populates */
 	void CreateTreeColumns();

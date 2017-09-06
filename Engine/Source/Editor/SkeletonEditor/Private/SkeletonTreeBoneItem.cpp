@@ -32,21 +32,11 @@ FSkeletonTreeBoneItem::FSkeletonTreeBoneItem(const FName& InBoneName, const TSha
 
 	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage(), *(BoneProxyPrefix + FString::Printf(TEXT("%p"), &InSkeletonTree.Get()) + InBoneName.ToString()));
 	BoneProxy->SetFlags(RF_Transactional);
-	BoneProxy->AddToRoot();
 	BoneProxy->BoneName = InBoneName;
 	TSharedPtr<IPersonaPreviewScene> PreviewScene = InSkeletonTree->GetPreviewScene();
 	if (PreviewScene.IsValid())
 	{
 		BoneProxy->SkelMeshComponent = PreviewScene->GetPreviewMeshComponent();
-	}
-}
-
-FSkeletonTreeBoneItem::~FSkeletonTreeBoneItem()
-{
-	if (BoneProxy)
-	{
-		BoneProxy->RemoveFromRoot();
-		BoneProxy = nullptr;
 	}
 }
 
@@ -455,6 +445,11 @@ bool FSkeletonTreeBoneItem::IsBoneRequired(int32 MeshBoneIndex, UDebugSkelMeshCo
 	int32 Index = LODModel.RequiredBones.Find(MeshBoneIndex);
 
 	return Index != INDEX_NONE;
+}
+
+void FSkeletonTreeBoneItem::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	Collector.AddReferencedObject(BoneProxy);
 }
 
 #undef LOCTEXT_NAMESPACE

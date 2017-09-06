@@ -13,16 +13,16 @@
 #include "SkeletonTreeItem.h"
 #include "IEditableSkeleton.h"
 #include "BoneProxy.h"
+#include "GCObject.h"
 
 class SInlineEditableTextBlock;
 
-class FSkeletonTreeVirtualBoneItem : public FSkeletonTreeItem
+class FSkeletonTreeVirtualBoneItem : public FSkeletonTreeItem, public FGCObject
 {
 public:
 	SKELETON_TREE_ITEM_TYPE(FSkeletonTreeVirtualBoneItem, FSkeletonTreeItem)
 
 	FSkeletonTreeVirtualBoneItem(const FName& InBoneName, const TSharedRef<class ISkeletonTree>& InSkeletonTree);
-	~FSkeletonTreeVirtualBoneItem();
 
 	/** Builds the table row widget to display this info */
 	virtual void GenerateWidgetForNameColumn(TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected) override;
@@ -32,6 +32,9 @@ public:
 	virtual void RequestRename() override;
 	virtual void OnItemDoubleClicked() override;
 	virtual UObject* GetObject() const override { return BoneProxy; }
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** Return socket name as FText for display in skeleton tree */
 	FText GetVirtualBoneNameAsText() const { return FText::FromName(BoneName); }
