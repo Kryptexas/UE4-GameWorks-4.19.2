@@ -145,6 +145,13 @@ protected:
 		// @todo thomass: proper settings support for source control module
 		GetMutableDefault<UEditorLoadingSavingSettings>()->SccHackInitialize();
 
+		// global editor settings
+		SettingsModule.RegisterSettings("Editor", "General", "Global",
+			LOCTEXT("GlobalSettingsName", "Global"),
+			LOCTEXT("GlobalSettingsDescription", "Edit global settings that affect all editors."),
+			GetMutableDefault<UEditorSettings>()
+		);
+
 		// misc unsorted settings
 		SettingsModule.RegisterSettings("Editor", "General", "UserSettings",
 			LOCTEXT("UserSettingsName", "Miscellaneous"),
