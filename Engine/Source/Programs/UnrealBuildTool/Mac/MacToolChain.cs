@@ -1475,7 +1475,7 @@ namespace UnrealBuildTool
 
 			// We need to know what third party dylibs would be copied to the bundle
 			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
-				{
+			{
 			    foreach (string AdditionalLibrary in Libraries)
 				{
 					string LibName = Path.GetFileName(AdditionalLibrary);

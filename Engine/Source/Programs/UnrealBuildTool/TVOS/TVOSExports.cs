@@ -60,23 +60,24 @@ namespace UnrealBuildTool
 			return new UEDeployTVOS().PrepForUATPackageOrDeploy(Config, ProjectFile, InProjectName, InProjectDirectory.FullName, InExecutablePath, InEngineDir.FullName, bForDistribution, CookFlavor, bIsDataDeploy, bCreateStubIPA);
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="ProjectFile"></param>
-		/// <param name="Config"></param>
-		/// <param name="ProjectDirectory"></param>
-		/// <param name="bIsUE4Game"></param>
-		/// <param name="GameName"></param>
-		/// <param name="ProjectName"></param>
-		/// <param name="InEngineDir"></param>
-		/// <param name="AppDirectory"></param>
-		/// <param name="bSupportsPortrait"></param>
-		/// <param name="bSupportsLandscape"></param>
-		/// <returns></returns>
-		public static bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ProjectFile"></param>
+        /// <param name="Config"></param>
+        /// <param name="ProjectDirectory"></param>
+        /// <param name="bIsUE4Game"></param>
+        /// <param name="GameName"></param>
+        /// <param name="ProjectName"></param>
+        /// <param name="InEngineDir"></param>
+        /// <param name="AppDirectory"></param>
+        /// <param name="bSupportsPortrait"></param>
+        /// <param name="bSupportsLandscape"></param>
+        /// <param name="bSkipIcons"></param>
+        /// <returns></returns>
+        public static bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons)
 		{
-			return new UEDeployTVOS().GeneratePList(ProjectFile, Config, ProjectDirectory.FullName, bIsUE4Game, GameName, ProjectName, InEngineDir.FullName, AppDirectory.FullName, out bSupportsPortrait, out bSupportsLandscape);
+			return new UEDeployTVOS().GeneratePList(ProjectFile, Config, ProjectDirectory.FullName, bIsUE4Game, GameName, ProjectName, InEngineDir.FullName, AppDirectory.FullName, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons);
 		}
 	}
 }

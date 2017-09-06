@@ -126,6 +126,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static List<UEBuildFramework> RememberedAdditionalFrameworks = new List<UEBuildFramework>();
 
+        public override string GetSDKVersion()
+        {
+            return Settings.Value.IOSSDKVersionFloat.ToString();
+        }
+
 		public override void ModifyBuildProducts(ReadOnlyTargetRules Target, UEBuildBinary Binary, List<string> Libraries, List<UEBuildBundleResource> BundleResources, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			if (Target.bCreateStubIPA && Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
@@ -134,7 +139,7 @@ namespace UnrealBuildTool
 				BuildProducts.Add(StubFile, BuildProductType.Package);
                 if (CppPlatform == CppPlatform.TVOS)
                 {
-                    FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Assets.car");
+                    FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "AssetCatalog", "Assets.car");
                     BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
                 }
 			}
@@ -890,21 +895,18 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph)
+        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform)
         {
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
-            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "Assets.car");
+            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "AssetCatalog", "Assets.car");
 
             FileItem OutputFile;
-/*            if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+            if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Platform == CppPlatform.IOS)
             {
-                OutputFile = FileItem.GetRemoteItemByPath(FullDestPathRoot, UnrealTargetPlatform.IOS);
+                FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "Payload", Path.GetFileNameWithoutExtension(LocalExecutable.AbsolutePath) + ".app", "Assets.car");
             }
-            else*/
-            {
-                OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
-            }
+            OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
 
             // Make the compile action
             Action CompileAssetAction = ActionGraph.Add(ActionType.CreateAppBundle);
@@ -916,17 +918,21 @@ namespace UnrealBuildTool
             CompileAssetAction.WorkingDirectory = GetMacDevSrcRoot();
             CompileAssetAction.CommandPath = "/usr/bin/xcrun";
 
-            FileItem AssetCat = FileItem.GetItemByPath(Path.Combine(IntermediateDir, "Assets.xcassets"));
+            FileItem AssetCat = FileItem.GetItemByPath(Path.Combine(IntermediateDir, "Resources", "Assets.xcassets"));
             FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
             FileItem InputFile = LocalToRemoteFileItem(AssetCat, BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
 
             string Arguments = "";
             Arguments += " actool --output-format human-readable-text --notices --warnings";
             Arguments += " --output-partial-info-plist \"";
-            Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + "/assetcatalog_generated_info.plist\"";
-            Arguments += " --app-icon AppIcon --launch-image LaunchImage --compress-pngs";
-            Arguments += " --enable-on-demand-resources YES --filter-for-device-model AppleTV5,3 --filter-for-device-os-version 9.2";
-            Arguments += " --target-device tv --minimum-deployment-target 9.2 --platform appletvos --compile \"";
+            Arguments += Path.GetDirectoryName(InputFile.AbsolutePath).Replace("\\", "/") + "/assetcatalog_generated_info.plist\"";
+            Arguments += " --app-icon AppIcon";
+            Arguments += Platform == CppPlatform.TVOS ? " --launch-image LaunchImage" : "";
+//            Arguments += " --compress-pngs";
+            Arguments += " --enable-on-demand-resources YES";
+            Arguments += Platform == CppPlatform.TVOS ? " --filter-for-device-model AppleTV5,3 --filter-for-device-os-version 9.2" : "";
+            Arguments += Platform == CppPlatform.TVOS ? " --target-device tv --minimum-deployment-target 9.2 --platform appletvos" : " --target-device iphone --target-device ipad --minimum-deployment-target 9.0 --platform iphoneos --product-type com.apple.product-type.application";
+            Arguments += " --compile \"";
             Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + "\" \"" + InputFile.AbsolutePath + "\"";
 
             CompileAssetAction.CommandArguments = Arguments;
@@ -1195,9 +1201,11 @@ namespace UnrealBuildTool
 			}
         }
 
-        public void GenerateAssetCatalog(string EngineDir, string BuildDir, string IntermediateDir)
+        public void GenerateAssetCatalog(string EngineDir, string BuildDir, string IntermediateDir, CppPlatform Platform)
         {
-            string[] Directories = { "Assets.xcassets",
+            if (Platform == CppPlatform.TVOS)
+            {
+                string[] Directories = { "Assets.xcassets",
                                             Path.Combine("Assets.xcassets", "AppIcon.brandassets"),
                                             Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack"),
                                             Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack", "Back.imagestacklayer"),
@@ -1215,8 +1223,8 @@ namespace UnrealBuildTool
                                             Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack", "Middle.imagestacklayer", "Content.imageset"),
                                             Path.Combine("Assets.xcassets", "AppIcon.brandassets", "TopShelf.imageset"),
                                             Path.Combine("Assets.xcassets", "LaunchImage.launchimage"),
-            };
-            string[] Contents = { "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                };
+                string[] Contents = { "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
                                     "{\n\t\"assets\" : [\n\t\t{\n\t\t\t\"size\" : \"1280x768\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"AppIconLarge.imagestack\",\n\t\t\t\"role\" : \"primary-app-icon\"\n\t\t},\n\t\t{\n\t\t\t\"size\" : \"400x240\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"AppIconSmall.imagestack\",\n\t\t\t\"role\" : \"primary-app-icon\"\n\t\t},\n\t\t{\n\t\t\t\"size\" : \"1920x720\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"TopShelf.imageset\",\n\t\t\t\"role\" : \"top-shelf-image\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
                                     "{\n\t\"layers\" : [\n\t\t{\n\t\t\t\"filename\" : \"Front.imagestacklayer\"\n\t\t},\n\t\t{\n\t\t\t\"filename\" : \"Middle.imagestacklayer\"\n\t\t},\n\t\t{\n\t\t\t\"filename\" : \"Back.imagestacklayer\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
                                     "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
@@ -1234,8 +1242,8 @@ namespace UnrealBuildTool
                                     "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Icon_Small_Middle.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
                                     "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"TopShelf.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
                                     "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"orientation\" : \"landscape\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Launch.png\",\n\t\t\t\"extent\" : \"full-screen\",\n\t\t\t\"minimum-system-version\" : \"9.0\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
-            };
-            string[] Images = { null,
+                };
+                string[] Images = { null,
                                 null,
                                 null,
                                 null,
@@ -1253,26 +1261,94 @@ namespace UnrealBuildTool
                                 "Icon_Small_Middle.png",
                                 "TopShelf.png",
                                 "Launch.png"
-            };
+                };
 
-            // create asset catalog for images
-            for (int i = 0; i < Directories.Length; ++i)
+                // create asset catalog for images
+                for (int i = 0; i < Directories.Length; ++i)
+                {
+                    string Dir = Path.Combine(IntermediateDir, "Resources", Directories[i]);
+                    if (!Directory.Exists(Dir))
+                    {
+                        Directory.CreateDirectory(Dir);
+                    }
+                    File.WriteAllText(Path.Combine(Dir, "Contents.json"), Contents[i]);
+                    LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, "Contents.json")), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+                    if (Images[i] != null)
+                    {
+                        string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resource", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "TVOS"))), "Resources", "Graphics", Images[i]);
+                        if (File.Exists(Image))
+                        {
+                            File.Copy(Image, Path.Combine(Dir, Images[i]), true);
+                            LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[i])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+                            FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[i]));
+                            DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+                        }
+                    }
+                }
+            }
+            else
             {
-                string Dir = Path.Combine(IntermediateDir, Directories[i]);
+                // copy the template asset catalog to the appropriate directory
+                string Dir = Path.Combine(IntermediateDir, "Resources", "Assets.xcassets");
                 if (!Directory.Exists(Dir))
                 {
                     Directory.CreateDirectory(Dir);
                 }
-                File.WriteAllText(Path.Combine(Dir, "Contents.json"), Contents[i]);
-                LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, "Contents.json")), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
-                if (Images[i] != null)
+                // create the directories
+                foreach (string directory in Directory.EnumerateDirectories(Path.Combine(EngineDir, "Build", "IOS", "Resources", "Assets.xcassets"), "*", SearchOption.AllDirectories))
                 {
-                    string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resource", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir,"Build", "TVOS"))), "Resources", "Graphics", Images[i]);
+                    Dir = directory.Replace(Path.Combine(EngineDir, "Build", "IOS"), IntermediateDir);
+                    if (!Directory.Exists(Dir))
+                    {
+                        Directory.CreateDirectory(Dir);
+                    }
+                }
+                // copy the default files
+                foreach (string file in Directory.EnumerateFiles(Path.Combine(EngineDir, "Build", "IOS", "Resources", "Assets.xcassets"), "*", SearchOption.AllDirectories))
+                {
+                    Dir = file.Replace(Path.Combine(EngineDir, "Build", "IOS"), IntermediateDir);
+                    File.Copy(file, Dir, true);
+                    LocalToRemoteFileItem(FileItem.GetItemByPath(Dir), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+                    FileInfo DestFileInfo = new FileInfo(Dir);
+                    DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+                }
+                // copy the icons from the game directory if it has any
+                string[][] Images = {
+                    new string []{ "IPhoneIcon20@2x.png", "Icon20@2x.png", "Icon40.png" },
+                    new string []{ "IPhoneIcon20@3x.png", "Icon20@3x.png", "Icon60.png" },
+                    new string []{ "IPhoneIcon29@2x.png", "Icon29@2x.png", "Icon58.png" },
+                    new string []{ "IPhoneIcon29@3x.png", "Icon29@3x.png", "Icon87.png" },
+                    new string []{ "IPhoneIcon40@2x.png", "Icon40@2x.png", "Icon80.png" },
+                    new string []{ "IPhoneIcon40@3x.png", "Icon40@3x.png", "Icon60@2x.png", "Icon120.png" },
+                    new string []{ "IPhoneIcon60@2x.png", "Icon60@2x.png", "Icon40@3x.png", "Icon120.png" },
+                    new string []{ "IPhoneIcon60@3x.png", "Icon60@3x.png", "Icon180.png" },
+                    new string []{ "IPadIcon20.png", "Icon20.png" },
+                    new string []{ "IPadIcon20@2x.png", "Icon20@2x.png", "Icon40.png" },
+                    new string []{ "IPadIcon29.png", "Icon29.png" },
+                    new string []{ "IPadIcon29@2x.png", "Icon29@2x.png", "Icon58.png" },
+                    new string []{ "IPadIcon40.png", "Icon40.png", "Icon20@2x.png" },
+                    new string []{ "IPadIcon76.png", "Icon76.png" },
+                    new string []{ "IPadIcon76@2x.png", "Icon76@2x.png", "Icon152.png" },
+                    new string []{ "IPadIcon83.5@2x.png", "Icon83.5@2x.png", "Icon167.png" },
+                    new string []{ "Icon1024.png", "Icon1024.png" },
+                };
+                Dir = Path.Combine(IntermediateDir, "Resources", "Assets.xcassets", "AppIcon.appiconset");
+                for (int Index = 0; Index < Images.Length; ++Index)
+                {
+                    string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resources", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "IOS"))), "Resources", "Graphics", Images[Index][1]);
+                    if (!File.Exists(Image) && Images[Index].Length > 2)
+                    {
+                        Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resources", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "IOS"))), "Resources", "Graphics", Images[Index][2]);
+                    }
+                    if (!File.Exists(Image) && Images[Index].Length > 3)
+                    {
+                        Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resources", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "IOS"))), "Resources", "Graphics", Images[Index][3]);
+                    }
                     if (File.Exists(Image))
                     {
-                        File.Copy(Image, Path.Combine(Dir, Images[i]), true);
-                        LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[i])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
-                        FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[i]));
+                        File.Copy(Image, Path.Combine(Dir, Images[Index][0]), true);
+                        LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[Index][0])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+                        FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[Index][0]));
                         DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
                     }
                 }
@@ -1298,14 +1374,14 @@ namespace UnrealBuildTool
                 }
             }
 
-            // for tvOS generate the asset catalog
-            if (CppPlatform == CppPlatform.TVOS)
+            // generate the asset catalog
+            if (CppPlatform == CppPlatform.TVOS || (CppPlatform == CppPlatform.IOS && Settings.Value.IOSSDKVersionFloat >= 11.0f))
             {
                 string EngineDir = UnrealBuildTool.EngineDirectory.ToString();
-                string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Build/TVOS";
-                string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Intermediate/TVOS";
-                GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir);
-                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph));
+                string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Build/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+                string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Intermediate/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+                GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir, BinaryLinkEnvironment.Platform);
+                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph, BinaryLinkEnvironment.Platform));
             }
 
             return OutputFiles;
@@ -1712,7 +1788,7 @@ namespace UnrealBuildTool
                 if (Target.Platform == UnrealTargetPlatform.TVOS)
                 {
                     // copy back the built asset catalog
-                    string CatPath = Path.GetDirectoryName(Target.OutputPath.FullName) + "\\Assets.car";
+                    string CatPath = Path.GetDirectoryName(Target.OutputPath.FullName) + "\\AssetCatalog\\Assets.car";
                     RPCUtilHelper.CopyFile(ConvertPath(CatPath), CatPath, false);
                 }
 

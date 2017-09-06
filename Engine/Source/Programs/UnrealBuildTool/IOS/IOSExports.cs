@@ -70,23 +70,24 @@ namespace UnrealBuildTool
 			return new UEDeployIOS().PrepForUATPackageOrDeploy(Config, ProjectFile, InProjectName, InProjectDirectory.FullName, InExecutablePath, InEngineDir.FullName, bForDistribution, CookFlavor, bIsDataDeploy, bCreateStubIPA);
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="ProjectFile"></param>
-		/// <param name="Config"></param>
-		/// <param name="ProjectDirectory"></param>
-		/// <param name="bIsUE4Game"></param>
-		/// <param name="GameName"></param>
-		/// <param name="ProjectName"></param>
-		/// <param name="InEngineDir"></param>
-		/// <param name="AppDirectory"></param>
-		/// <param name="bSupportsPortrait"></param>
-		/// <param name="bSupportsLandscape"></param>
-		/// <returns></returns>
-		public static bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ProjectFile"></param>
+        /// <param name="Config"></param>
+        /// <param name="ProjectDirectory"></param>
+        /// <param name="bIsUE4Game"></param>
+        /// <param name="GameName"></param>
+        /// <param name="ProjectName"></param>
+        /// <param name="InEngineDir"></param>
+        /// <param name="AppDirectory"></param>
+        /// <param name="bSupportsPortrait"></param>
+        /// <param name="bSupportsLandscape"></param>
+        /// <param name="bSkipIcons"></param>
+        /// <returns></returns>
+        public static bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons)
 		{
-			return new UEDeployIOS().GeneratePList(ProjectFile, Config, ProjectDirectory.FullName, bIsUE4Game, GameName, ProjectName, InEngineDir.FullName, AppDirectory.FullName, out bSupportsPortrait, out bSupportsLandscape);
+			return new UEDeployIOS().GeneratePList(ProjectFile, Config, ProjectDirectory.FullName, bIsUE4Game, GameName, ProjectName, InEngineDir.FullName, AppDirectory.FullName, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons);
 		}
 
 		/// <summary>
@@ -101,5 +102,43 @@ namespace UnrealBuildTool
 			IOSToolChain ToolChain = new IOSToolChain(null, ProjectSettings);
 			ToolChain.StripSymbols(SourceFile, TargetFile);
 		}
-	}
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static bool SupportsIconCatalog(UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string ProjectName)
+        {
+            // get the receipt
+            FileReference ReceiptFilename;
+            if (bIsUE4Game)
+            {
+                ReceiptFilename = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory, "UE4Game", UnrealTargetPlatform.IOS, Config, "");
+            }
+            else
+            {
+                ReceiptFilename = TargetReceipt.GetDefaultPath(ProjectDirectory, ProjectName, UnrealTargetPlatform.IOS, Config, "");
+            }
+
+            string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
+
+            if (System.IO.File.Exists(ReceiptFilename.FullName))
+            {
+                TargetReceipt Receipt = TargetReceipt.Read(ReceiptFilename, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+                var Results = Receipt.AdditionalProperties.Where(x => x.Name == "SDK");
+
+                if (Results.Count() > 0)
+                {
+                    if (Single.Parse(Results.ElementAt(0).Value) >= 11.0f)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+    }
 }

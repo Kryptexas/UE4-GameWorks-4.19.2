@@ -50,6 +50,13 @@ then
   popd > /dev/null
 fi
 
+if [ -e ../../../Binaries/IOS/AssetCatalog/Assets.car ]
+then
+  pushd ../../../Binaries/IOS/AssetCatalog > /dev/null
+  cp -R ./ ../Payload/$1$4.app/
+  popd > /dev/null
+fi
+
 if [ -e $1-Info.plist ]
 then
   if [ -d ../../../Intermediate/IOS ]
