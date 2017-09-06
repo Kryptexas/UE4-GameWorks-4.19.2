@@ -646,6 +646,10 @@ void FAudioStreamingManager::RemoveLevel(class ULevel* Level)
 {
 }
 
+void FAudioStreamingManager::NotifyLevelOffset(class ULevel* Level, const FVector& Offset)
+{
+}
+
 void FAudioStreamingManager::AddStreamingSoundWave(USoundWave* SoundWave)
 {
 	if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming())

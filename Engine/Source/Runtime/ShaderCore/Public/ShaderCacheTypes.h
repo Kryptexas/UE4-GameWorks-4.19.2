@@ -161,17 +161,16 @@ struct SHADERCORE_API FShaderRenderTargetKey
 
 struct SHADERCORE_API FShaderCacheKey
 {
-	FShaderCacheKey() : Platform(SP_NumPlatforms), Frequency(SF_NumFrequencies), Hash(0), bActive(false) {}
+	FShaderCacheKey() : Frequency(SF_NumFrequencies), Hash(0), bActive(false) {}
 	
 	FSHAHash SHAHash;
-	EShaderPlatform Platform;
 	EShaderFrequency Frequency;
 	mutable uint32 Hash;
 	bool bActive;
 	
 	friend bool operator ==(const FShaderCacheKey& A,const FShaderCacheKey& B)
 	{
-		return A.SHAHash == B.SHAHash && A.Platform == B.Platform && A.Frequency == B.Frequency && A.bActive == B.bActive;
+		return A.SHAHash == B.SHAHash && A.Frequency == B.Frequency && A.bActive == B.bActive;
 	}
 	
 	friend uint32 GetTypeHash(const FShaderCacheKey &Key)
@@ -179,20 +178,27 @@ struct SHADERCORE_API FShaderCacheKey
 		if(!Key.Hash)
 		{
 			uint32 TargetFrequency = Key.Frequency;
-			uint32 TargetPlatform = Key.Platform;
-			Key.Hash = FCrc::MemCrc_DEPRECATED((const void*)&Key.SHAHash, sizeof(Key.SHAHash)) ^ GetTypeHash(TargetPlatform) ^ (GetTypeHash(TargetFrequency) << 16) ^ GetTypeHash(Key.bActive);
+			Key.Hash = FCrc::MemCrc_DEPRECATED((const void*)&Key.SHAHash, sizeof(Key.SHAHash)) ^ (GetTypeHash(TargetFrequency) << 16) ^ GetTypeHash(Key.bActive);
 		}
 		return Key.Hash;
 	}
 	
 	friend FArchive& operator<<( FArchive& Ar, FShaderCacheKey& Info )
 	{
-		uint32 TargetFrequency = Info.Frequency;
-		uint32 TargetPlatform = Info.Platform;
-		Ar << TargetFrequency << TargetPlatform;
+		Ar << Info.SHAHash;
+		
+		uint8 TargetFrequency = Info.Frequency;
+		Ar << TargetFrequency;
 		Info.Frequency = (EShaderFrequency)TargetFrequency;
-		Info.Platform = (EShaderPlatform)TargetPlatform;
-		return Ar << Info.SHAHash << Info.bActive << Info.Hash;
+
+		Ar << Info.bActive;
+
+		if (Ar.IsLoading())
+		{
+			Info.Hash = GetTypeHash(Info);
+		}
+
+		return Ar;
 	}
 };
 
@@ -429,7 +435,6 @@ struct SHADERCORE_API FShaderDrawKey
 		FMemory::Memset(Resources, 255, sizeof(Resources));
 		FMemory::Memzero(UsedResourcesLo);
 		FMemory::Memzero(UsedResourcesHi);
-		check(GetMaxTextureSamplers() <= EShaderCacheMaxNumSamplers);
 	}
 	
 	uint32 SamplerStates[SF_NumFrequencies][EShaderCacheMaxNumSamplers];
@@ -636,6 +641,11 @@ public:
 	{
 		return Map.FindChecked(Object);
 	}
+
+	bool Contains(Type const& Object) const
+	{
+		return Map.Contains(Object);
+	}
 	
 	Type& operator[](int32 Index)
 	{
@@ -654,12 +664,19 @@ public:
 	
 	friend FORCEINLINE FArchive& operator<<( FArchive& Ar, TIndexedSet& Set )
 	{
-		return Ar << Set.Map << Set.Data;
-	}
-	
-	friend FORCEINLINE FArchive& operator<<( FArchive& Ar, const TIndexedSet& Set )
-	{
-		return Ar << Set.Map << Set.Data;
+		Ar << Set.Data;
+		
+		if (Ar.IsLoading())
+		{
+			Set.Map.Empty(Set.Data.Num());
+
+			for (int32 i = 0; i < Set.Data.Num(); ++i)
+			{
+				Set.Map.Add(Set.Data[i], i);
+			}
+		}
+
+		return Ar;
 	}
 };
 
@@ -693,10 +710,13 @@ struct FShaderPreDrawEntry
 
 struct FShaderPlatformCache
 {		
-	friend FArchive& operator<<( FArchive& Ar, FShaderPlatformCache& Info )
-	{
-		return Ar << Info.Shaders << Info.BoundShaderStates << Info.DrawStates << Info.RenderTargets << Info.Resources << Info.SamplerStates << Info.PreDrawEntries << Info.ShaderStateMembership << Info.StreamingDrawStates << Info.PipelineStates;
-	}
+	FShaderPlatformCache()
+	: ShaderPlatform(SP_NumPlatforms)
+	{}
+
+	friend FArchive& operator<<( FArchive& Ar, FShaderPlatformCache& Info );
+
+	EShaderPlatform ShaderPlatform;
 
 	TIndexedSet<FShaderCacheKey> Shaders;
 	TIndexedSet<FShaderCacheBoundState> BoundShaderStates;
@@ -709,14 +729,6 @@ struct FShaderPlatformCache
 	
 	TMap<int32, TSet<int32>> ShaderStateMembership;
 	TMap<uint32, FShaderStreamingCache> StreamingDrawStates;
-};
-
-struct FShaderCaches
-{
-public:
-	friend FArchive& operator<<( FArchive& Ar, FShaderCaches& Info );
-	
-	TMap<uint32, FShaderPlatformCache> PlatformCaches;
 };
 
 struct FShaderResourceViewBinding

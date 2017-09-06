@@ -968,6 +968,16 @@ void FStreamingManagerCollection::RemoveLevel( ULevel* Level )
 	}
 }
 
+void FStreamingManagerCollection::NotifyLevelOffset(ULevel* Level, const FVector& Offset)
+{
+	// Route to streaming managers.
+	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
+	{
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
+		StreamingManager->NotifyLevelOffset( Level, Offset );
+	}
+}
+
 /** Called when an actor is spawned. */
 void FStreamingManagerCollection::NotifyActorSpawned( AActor* Actor )
 {

@@ -11,6 +11,7 @@
 #include "Misc/Paths.h"
 #include "Misc/App.h"
 #include "Misc/MonitoredProcess.h"
+#include "Logging/MessageLog.h"
 #if PLATFORM_WINDOWS
 #include "WindowsHWrapper.h"
 #endif
@@ -149,7 +150,7 @@ static void OnOutput(FString Message)
 	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
 }
 
-int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath) const
+int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath, FText& CustomizedLogMessage) const
 {
 	OutDocumentationPath = TEXT("Platforms/iOS/QuickStart/6");
 
@@ -507,6 +508,14 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 	bool bFoundRemap = false;
 	bool bIncludePVRTC = !bIsTVOS && CookPVRTC();
 	bool bIncludeASTC = bIsTVOS || CookASTC();
+
+	if (Texture->bForcePVRTC4 && CookPVRTC())
+	{
+		OutFormats.AddUnique(FName(TEXT("PVRTC4")));
+		OutFormats.AddUnique(FName(TEXT("PVRTCN")));
+		return;
+	}
+
 	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
 	{
 		if (TextureFormatName == FormatRemap[RemapIndex])

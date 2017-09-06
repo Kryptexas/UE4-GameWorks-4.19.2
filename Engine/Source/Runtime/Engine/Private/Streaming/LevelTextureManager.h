@@ -56,6 +56,8 @@ public:
 
 	bool IsInitialized() const { return bIsInitialized; }
 
+	void NotifyLevelOffset(const FVector& Offset);
+
 private:
 
 	ULevel* Level;

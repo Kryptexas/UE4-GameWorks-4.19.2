@@ -481,8 +481,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		{
 			FString NotInstalledTutorialLink;
 			FString DocumentationLink;
+			FText CustomizedLogMessage;
 			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
-			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink, DocumentationLink);
+			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink, DocumentationLink, CustomizedLogMessage);
 
 			// report to analytics
 			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);
@@ -495,7 +496,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
-					FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
+					CustomizedLogMessage.IsEmpty() ? FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()) : CustomizedLogMessage,
 					NotInstalledTutorialLink,
 					DocumentationLink
 				);
@@ -506,7 +507,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("LicenseNotAcceptedMessage", "License not accepted."),
-					LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device."),
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device.") : CustomizedLogMessage,
 					NotInstalledTutorialLink,
 					DocumentationLink
 				);
@@ -518,7 +519,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
-					LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.") : CustomizedLogMessage,
 					NotInstalledTutorialLink,
 					DocumentationLink
 				);
@@ -529,7 +530,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
-					LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.") : CustomizedLogMessage,
 					NotInstalledTutorialLink,
 					DocumentationLink
 				);
@@ -540,7 +541,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("ManifestNotFound", "Manifest not found."),
-					LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found.") : CustomizedLogMessage,
 					NotInstalledTutorialLink,
 					DocumentationLink
 				);
@@ -551,7 +552,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
-					LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field."),
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field.") : CustomizedLogMessage,
 					NotInstalledTutorialLink,
 					DocumentationLink
 				);

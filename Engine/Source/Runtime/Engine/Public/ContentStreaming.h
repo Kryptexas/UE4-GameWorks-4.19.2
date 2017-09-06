@@ -206,6 +206,11 @@ struct IStreamingManager
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) = 0;
 
+	/**
+	 * Notifies manager that level primitives were shifted
+	 */
+	virtual void NotifyLevelOffset( class ULevel* Level, const FVector& Offset ) = 0;
+
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor )
 	{
@@ -573,6 +578,9 @@ struct FStreamingManagerCollection : public IStreamingManager
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) override;
+	
+	/* Notifies manager that level primitives were shifted. */
+	virtual void NotifyLevelOffset( class ULevel* Level, const FVector& Offset ) override;
 
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor ) override;

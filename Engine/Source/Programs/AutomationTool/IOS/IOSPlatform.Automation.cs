@@ -235,9 +235,9 @@ public class IOSPlatform : Platform
 		IOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate, out TeamUUID, out bAutomaticSigning);
     }
 
-	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape)
+	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons)
 	{
-		return IOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape);
+		return IOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons);
 	}
 
     protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
@@ -857,6 +857,7 @@ public class IOSPlatform : Platform
                     var TargetConfiguration = SC.StageTargetConfigurations[0];
                     bool bSupportsPortrait = false;
                     bool bSupportsLandscape = false;
+                    bool bSkipIcons = false;
 
                     DeployGeneratePList(
 							SC.RawProjectPath,	
@@ -867,7 +868,8 @@ public class IOSPlatform : Platform
                             SC.ShortProjectName, DirectoryReference.Combine(SC.LocalRoot, "Engine"),
 														DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : DirectoryReference.Combine(SC.LocalRoot, "Engine")), "Binaries", PlatformName, "Payload", (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app"),
                             out bSupportsPortrait,
-                            out bSupportsLandscape);
+                            out bSupportsLandscape,
+                            out bSkipIcons);
 
                     // copy the plist to the stage dir
                     SC.StageFile(StagedFileType.SystemNonUFS, TargetPListFile, new StagedFileReference("Info.plist"));
@@ -875,13 +877,13 @@ public class IOSPlatform : Platform
                     // copy the icons/launch screens from the engine
                     {
                         DirectoryReference DataPath = DirectoryReference.Combine(SC.EngineRoot, "Build", "IOS", "Resources", "Graphics");
-						StageImageAndIconFiles(DataPath, bSupportsPortrait, bSupportsLandscape, SC);
+						StageImageAndIconFiles(DataPath, bSupportsPortrait, bSupportsLandscape, SC, bSkipIcons);
 					}
 
                     // copy the icons/launch screens from the game (may stomp the engine copies)
                     {
                         DirectoryReference DataPath = DirectoryReference.Combine(SC.ProjectRoot, "Build", "IOS", "Resources", "Graphics");
-						StageImageAndIconFiles(DataPath, bSupportsPortrait, bSupportsLandscape, SC);
+						StageImageAndIconFiles(DataPath, bSupportsPortrait, bSupportsLandscape, SC, bSkipIcons);
                     }
                 }
 
@@ -910,7 +912,7 @@ public class IOSPlatform : Platform
         }
     }
 
-	private void StageImageAndIconFiles(DirectoryReference DataPath, bool bSupportsPortrait, bool bSupportsLandscape, DeploymentContext SC)
+	private void StageImageAndIconFiles(DirectoryReference DataPath, bool bSupportsPortrait, bool bSupportsLandscape, DeploymentContext SC, bool bSkipIcons)
 	{
 		if(DirectoryReference.Exists(DataPath))
 		{
@@ -941,7 +943,10 @@ public class IOSPlatform : Platform
 				}
 			}
 
-			SC.StageFiles(StagedFileType.SystemNonUFS, DataPath, "Icon*.png", StageFilesSearch.TopDirectoryOnly, StagedDirectoryReference.Root);
+            if (!bSkipIcons)
+            {
+                SC.StageFiles(StagedFileType.SystemNonUFS, DataPath, "Icon*.png", StageFilesSearch.TopDirectoryOnly, StagedDirectoryReference.Root);
+            }
 		}
 	}
 

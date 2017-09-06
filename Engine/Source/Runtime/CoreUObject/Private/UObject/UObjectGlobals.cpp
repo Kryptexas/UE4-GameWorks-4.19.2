@@ -1326,6 +1326,8 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 
 		SlowTask.EnterProgressFrame(30);
 
+		Linker->FinishExternalReadDependencies(0.0);
+
 		EndLoadAndCopyLocalizationGatherFlag();
 
 #if WITH_EDITOR

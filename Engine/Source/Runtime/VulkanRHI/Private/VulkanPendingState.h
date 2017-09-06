@@ -97,10 +97,11 @@ public:
 		{
 			// make sure any dynamically backed SRV points to current memory
 			SRV->UpdateView();
-			if (SRV->BufferView)
+            FVulkanBufferView* BufferView = SRV->GetBufferView();
+			if (BufferView != nullptr)
 			{
-				checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVBufferViewState(BindIndex, SRV->BufferView);
+				checkf(BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
+				CurrentState->SetSRVBufferViewState(BindIndex, BufferView);
 			}
 			else if (SRV->SourceStructuredBuffer)
 			{
@@ -173,7 +174,7 @@ public:
 		FMemory::Memzero(Viewport);
 		StencilRef = 0;
 		bScissorEnable = false;
-		NeedsUpdateMask = ENeedsAll;
+
 		CurrentPipeline = nullptr;
 		CurrentState = nullptr;
 		CurrentBSS = nullptr;
@@ -201,9 +202,7 @@ public:
 		{
 			Viewport.maxDepth = MaxZ;
 		}
-
-		NeedsUpdateMask |= ENeedsViewport;
-
+		
 		SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
 		bScissorEnable = false;
 	}
@@ -230,9 +229,6 @@ public:
 		Scissor.offset.y = MinY;
 		Scissor.extent.width = Width;
 		Scissor.extent.height = Height;
-
-		// todo vulkan: compare against previous (and viewport above)
-		NeedsUpdateMask |= ENeedsScissor;
 	}
 
 	inline void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Offset)
@@ -298,10 +294,11 @@ public:
 		{
 			// make sure any dynamically backed SRV points to current memory
 			SRV->UpdateView();
-			if (SRV->BufferView)
+			FVulkanBufferView* BufferView = SRV->GetBufferView();
+			if (BufferView)
 			{
-				checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVBufferViewState(Stage, BindIndex, SRV->BufferView);
+				checkf(BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
+				CurrentState->SetSRVBufferViewState(Stage, BindIndex, BufferView);
 			}
 			else if (SRV->SourceStructuredBuffer)
 			{
@@ -369,10 +366,7 @@ public:
 
 	inline void UpdateDynamicStates(FVulkanCmdBuffer* Cmd)
 	{
-		if (NeedsUpdateMask != 0 || Cmd->bNeedsDynamicStateSet)
-		{
-			InternalUpdateDynamicStates(Cmd);
-		}
+		InternalUpdateDynamicStates(Cmd);
 	}
 
 	inline void SetStencilRef(uint32 InStencilRef)
@@ -380,7 +374,6 @@ public:
 		if (InStencilRef != StencilRef)
 		{
 			StencilRef = InStencilRef;
-			NeedsUpdateMask |= ENeedsStencilRef;
 		}
 	}
 
@@ -390,27 +383,18 @@ public:
 	}
 
 	inline void MarkNeedsDynamicStates()
-	{
-		NeedsUpdateMask = ENeedsAll;
+	{	
 	}
 
 protected:
 	FVulkanGlobalUniformPool GlobalUniformPool;
 
-	enum
-	{
-		ENeedsScissor =		1 << 0,
-		ENeedsViewport =	1 << 1,
-		ENeedsStencilRef =	1 << 2,
-
-		ENeedsAll = ENeedsScissor | ENeedsViewport | ENeedsStencilRef,
-	};
-
 	VkViewport Viewport;
 	uint32 StencilRef;
 	bool bScissorEnable;
 	VkRect2D Scissor;
-	uint8 NeedsUpdateMask;
+
+	bool bNeedToClear;
 
 	FVulkanGraphicsPipelineState* CurrentPipeline;
 	FVulkanGfxPipelineState* CurrentState;

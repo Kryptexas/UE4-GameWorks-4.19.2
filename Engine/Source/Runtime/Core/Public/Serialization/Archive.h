@@ -7,6 +7,7 @@
 #include "Misc/AssertionMacros.h"
 #include "Templates/EnableIf.h"
 #include "Templates/IsEnumClass.h"
+#include "Templates/Function.h"
 #include "HAL/PlatformProperties.h"
 #include "Misc/Compression.h"
 #include "Misc/EngineVersionBase.h"
@@ -16,6 +17,7 @@ class FCustomVersionContainer;
 class ITargetPlatform;
 struct FUntypedBulkData;
 template<class TEnum> class TEnumAsByte;
+typedef TFunction<bool (double RemainingTime)> FExternalReadCallback;
 
 
 // Temporary while we shake out the EDL at boot
@@ -1222,6 +1224,13 @@ public:
 	{
 		SerializedProperty = InProperty;
 	}
+
+	/** 
+	 * Adds external read dependency 
+	 *
+	 * @return true if dependency has been added, false if Archive does not support them
+	 */
+	virtual bool AttachExternalReadDependency(FExternalReadCallback& ReadCallback) { return false; };
 
 #if WITH_EDITORONLY_DATA
 	/** Pushes editor-only marker to the stack of currently serialized properties */

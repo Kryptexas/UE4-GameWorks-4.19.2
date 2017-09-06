@@ -5312,7 +5312,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 
 	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-	bool const bCacheShaderLibraries = !IsCookingDLC();
+	bool const bCacheShaderLibraries = !IsCookingDLC() && (CurrentCookMode == ECookMode::CookByTheBook);
     bool bShaderLibrarySaved = false;
 	if (bCacheShaderLibraries && PackagingSettings->bShareMaterialShaderCode)
 	{
@@ -5890,7 +5890,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	}
 	
 	// shader code sharing does not support multiple packages yet
-	bool const bCacheShaderLibraries = !IsCookingDLC();
+	bool const bCacheShaderLibraries = !IsCookingDLC() && (CurrentCookMode == ECookMode::CookByTheBook);
 	if (bCacheShaderLibraries && PackagingSettings->bShareMaterialShaderCode)
 	{
 		FShaderCodeLibrary::InitForCooking(PackagingSettings->bSharedMaterialNativeLibraries);

@@ -1783,6 +1783,9 @@ namespace UnrealBuildTool
 			{
 				Receipt.AddBuildProduct(VersionManifestFile, BuildProductType.RequiredResource);
 			}
+
+            // add the SDK used by the tool chain
+            Receipt.AdditionalProperties.Add(new ReceiptProperty("SDK", ToolChain.GetSDKVersion()));
 		}
 
 		/// <summary>

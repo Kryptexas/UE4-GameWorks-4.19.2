@@ -25,7 +25,7 @@
 //
 // Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
-// Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
+// Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
 
 #ifndef PX_PHYSICS_NX_ACTOR
@@ -89,7 +89,7 @@ struct PxActorFlag
 
 		/**
 		\brief Disables simulation for the actor.
-		
+
 		\note This is only supported by PxRigidStatic and PxRigidDynamic actors and can be used to reduce the memory footprint when rigid actors are
 		used for scene queries only.
 
@@ -117,7 +117,7 @@ PX_FLAGS_OPERATORS(PxActorFlag::Enum,PxU8)
 
 /**
 \brief Identifies each type of actor.
-@see PxActor 
+@see PxActor
 */
 struct PxActorType
 {
@@ -150,7 +150,7 @@ struct PxActorType
 		*/
 		ePARTICLE_FLUID PX_DEPRECATED,
 #endif
-		
+
 		/**
 		\brief An articulation link
 		@see PxArticulationLink
@@ -183,7 +183,7 @@ class PxActor : public PxBase
 public:
 	/**
 	\brief Deletes the actor.
-	
+
 	Do not keep a reference to the deleted instance.
 
 	If the actor belongs to a #PxAggregate object, it is automatically removed from the aggregate.
@@ -214,8 +214,8 @@ public:
 
 	/**
 	\brief Sets a name string for the object that can be retrieved with getName().
-	
-	This is for debugging and is not used by the SDK. The string is not copied by the SDK, 
+
+	This is for debugging and is not used by the SDK. The string is not copied by the SDK,
 	only the pointer is stored.
 
 	\param[in] name String to set the objects name to.
@@ -248,7 +248,7 @@ public:
 
 	/**
 	\brief Raises or clears a particular actor flag.
-	
+
 	See the list of flags #PxActorFlag
 
 	<b>Sleeping:</b> Does <b>NOT</b> wake the actor up automatically.
@@ -258,33 +258,33 @@ public:
 
 	<b>Default:</b> PxActorFlag::eVISUALIZATION
 
-	@see PxActorFlag getActorFlags() 
+	@see PxActorFlag getActorFlags()
 	*/
 	virtual		void			setActorFlag(PxActorFlag::Enum flag, bool value) = 0;
 	/**
 	\brief sets the actor flags
-	
+
 	See the list of flags #PxActorFlag
-	@see PxActorFlag setActorFlag() 
+	@see PxActorFlag setActorFlag()
 	*/
 	virtual		void			setActorFlags( PxActorFlags inFlags ) = 0;
 
 	/**
 	\brief Reads the PxActor flags.
-	
+
 	See the list of flags #PxActorFlag
 
 	\return The values of the PxActor flags.
 
-	@see PxActorFlag setActorFlag() 
+	@see PxActorFlag setActorFlag()
 	*/
 	virtual		PxActorFlags	getActorFlags()	const = 0;
 
 	/**
 	\brief Assigns dynamic actors a dominance group identifier.
-	
+
 	PxDominanceGroup is a 5 bit group identifier (legal range from 0 to 31).
-	
+
 	The PxScene::setDominanceGroupPair() lets you set certain behaviors for pairs of dominance groups.
 	By default every dynamic actor is created in group 0.
 
@@ -297,7 +297,7 @@ public:
 	@see getDominanceGroup() PxDominanceGroup PxScene::setDominanceGroupPair()
 	*/
 	virtual		void			setDominanceGroup(PxDominanceGroup dominanceGroup)		 = 0;
-	
+
 	/**
 	\brief Retrieves the value set with setDominanceGroup().
 
@@ -307,7 +307,7 @@ public:
 	*/
 	virtual		PxDominanceGroup	getDominanceGroup() const = 0;
 
-	
+
 	/**
 	\brief Sets the owner client of an actor.
 
@@ -315,7 +315,7 @@ public:
 
 	<b>Default:</b> PX_DEFAULT_CLIENT
 
-	@see PxClientID PxScene::createClient() 
+	@see PxClientID PxScene::createClient()
 	*/
 	virtual		void			setOwnerClient( PxClientID inClient ) = 0;
 
@@ -335,7 +335,7 @@ public:
 	The actor will always send notice for all possible events to its own owner client.  By default
 	it will not send any events to any other clients.  If the user however raises a bit flag for
 	any event type using this function, that event will then be sent also to any other clients which
-	are programmed to listed to foreign actor events of that type. 
+	are programmed to listed to foreign actor events of that type.
 
 	\deprecated PxActorClientBehaviorFlag feature has been deprecated in PhysX version 3.4
 
@@ -373,6 +373,10 @@ protected:
 	PX_INLINE					PxActor(PxType concreteType, PxBaseFlags baseFlags) : PxBase(concreteType, baseFlags), userData(NULL) {}
 	PX_INLINE					PxActor(PxBaseFlags baseFlags) : PxBase(baseFlags) {}
 	virtual						~PxActor()	{}
+
+#if __EMSCRIPTEN__
+public:
+#endif
 	virtual		bool			isKindOf(const char* name)	const		{	return !::strcmp("PxActor", name) || PxBase::isKindOf(name); }
 
 

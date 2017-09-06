@@ -17,10 +17,15 @@ namespace VulkanRHI
 
 	enum
 	{
+#if PLATFORM_ANDROID
+		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 3,
+		GPU_ONLY_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
+		STAGING_HEAP_PAGE_SIZE = 16 * 1024 * 1024,
+#else
 		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 20,
-
 		GPU_ONLY_HEAP_PAGE_SIZE = 256 * 1024 * 1024,
 		STAGING_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
+#endif
 	};
 
 	// Custom ref counting
@@ -1193,6 +1198,6 @@ namespace VulkanRHI
 
 	inline void* FBufferSuballocation::GetMappedPointer()
 	{
-		return Owner->GetMappedPointer();
+		return (uint8*)Owner->GetMappedPointer() + AlignedOffset;
 	}
 }

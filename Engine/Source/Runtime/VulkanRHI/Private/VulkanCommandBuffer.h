@@ -100,6 +100,13 @@ public:
 
 	bool bNeedsDynamicStateSet;
 	bool bHasPipeline;
+	bool bHasViewport;
+	bool bHasScissor;
+	bool bHasStencilRef;
+
+	VkViewport CurrentViewport;
+	VkRect2D CurrentScissor;
+	uint32 CurrentStencilRef;
 
 private:
 	FVulkanDevice* Device;

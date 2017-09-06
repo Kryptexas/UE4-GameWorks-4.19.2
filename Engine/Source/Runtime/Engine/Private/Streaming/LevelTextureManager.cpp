@@ -351,6 +351,15 @@ void FLevelTextureManager::IncrementalUpdate(
 	}
 }
 
+void FLevelTextureManager::NotifyLevelOffset(const FVector& Offset)
+{
+	if (BuildStep == EStaticBuildStep::Done)
+	{
+		// offset static primitives bounds
+		StaticInstances.OffsetBounds(Offset);
+	}
+}
+
 uint32 FLevelTextureManager::GetAllocatedSize() const
 {
 	return StaticInstances.GetAllocatedSize() + 

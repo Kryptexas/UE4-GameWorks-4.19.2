@@ -577,6 +577,17 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	((FMetalDeviceContext&)ImmediateContext.GetInternalContext()).Init();
 		
 	GDynamicRHI = this;
+
+	// Without optimisation the shader loading can be so slow we mustn't attempt to preload all the shaders at load.
+	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
+	if (CVar->GetInt() == 0)
+	{
+		FShaderCache::InitShaderCache(SCO_NoShaderPreload, GMaxRHIShaderPlatform);
+	}
+	else
+	{
+		FShaderCache::InitShaderCache(SCO_Default, GMaxRHIShaderPlatform);
+	}
 	
 #if PLATFORM_MAC
 	FShaderCache::SetMaxShaderResources(128);

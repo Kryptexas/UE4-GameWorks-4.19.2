@@ -6,47 +6,57 @@
 FVulkanShaderResourceView::~FVulkanShaderResourceView()
 {
 	TextureView.Destroy(*Device);
-	BufferView = nullptr;
 	SourceVertexBuffer = nullptr;
 	SourceIndexBuffer = nullptr;
 	SourceTexture = nullptr;
 	Device = nullptr;
+
+    for (auto& BufferView : BufferViews)
+    {
+        BufferView = nullptr;
+    }
 }
 
 void FVulkanShaderResourceView::UpdateView()
 {
-	// update the buffer view for dynamic VB backed buffers (or if it was never set)
-	if (SourceVertexBuffer != nullptr)
+	FVulkanResourceMultiBuffer* SourceMultiBiffer = SourceVertexBuffer.GetReference();
+	if (SourceMultiBiffer == nullptr)
 	{
-		if (SourceVertexBuffer->IsVolatile() && VolatileLockCounter != SourceVertexBuffer->GetVolatileLockCounter())
-		{
-			BufferView = nullptr;
-			VolatileLockCounter = SourceVertexBuffer->GetVolatileLockCounter();
-		}
-
-		if (BufferView == nullptr || SourceVertexBuffer->IsDynamic())
-		{
-			SCOPE_CYCLE_COUNTER(STAT_VulkanSRVUpdateTime);
-			// thanks to ref counting, overwriting the buffer will toss the old view
-			BufferView = new FVulkanBufferView(Device);
-			BufferView->Create(SourceVertexBuffer.GetReference(), BufferViewFormat, SourceVertexBuffer->GetOffset(), SourceVertexBuffer->GetSize());
-		}
+		SourceMultiBiffer = SourceIndexBuffer.GetReference();
 	}
-	else if (SourceIndexBuffer != nullptr)
+		
+	// update the buffer view for dynamic VB backed buffers (or if it was never set)
+	if (SourceMultiBiffer)
 	{
-		if (SourceIndexBuffer->IsVolatile() && VolatileLockCounter != SourceIndexBuffer->GetVolatileLockCounter())
+        int32 NumViews = FMath::Max(SourceMultiBiffer->GetNumberBuffers(), 1);
+		if (BufferViews.Num() != NumViews)
 		{
-			BufferView = nullptr;
-			VolatileLockCounter = SourceIndexBuffer->GetVolatileLockCounter();
+			BufferViews.SetNumZeroed(NumViews);
 		}
 
-		if (BufferView == nullptr || SourceIndexBuffer->IsDynamic())
+		uint32 SourceMultiBufferSize = (SourceVertexBuffer ? SourceVertexBuffer->GetSize() : SourceIndexBuffer->GetSize());
+		
+		// Assuming that Buffer update was already done
+        BufferViewIndex = SourceMultiBiffer->GetBufferIndex();
+        TRefCountPtr<FVulkanBufferView>& BufferView = BufferViews[BufferViewIndex];
+
+        if (SourceMultiBiffer->IsVolatile() && VolatileLockCounter != SourceMultiBiffer->GetVolatileLockCounter())
+        {
+            BufferView = nullptr;
+            VolatileLockCounter = SourceMultiBiffer->GetVolatileLockCounter();
+        }
+
+        if (BufferView != nullptr && BufferView->Offset == SourceMultiBiffer->GetOffset() && BufferView->Size == SourceMultiBufferSize)
+        {
+            return;
+        }
+
+		if (BufferView == nullptr || SourceMultiBiffer->IsDynamic())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VulkanSRVUpdateTime);
 			// thanks to ref counting, overwriting the buffer will toss the old view
 			BufferView = new FVulkanBufferView(Device);
-			BufferView->Create(SourceIndexBuffer->GetStride() == 4 ? VK_FORMAT_R32_UINT : VK_FORMAT_R16_UINT,
-				SourceIndexBuffer.GetReference(), SourceIndexBuffer->GetOffset(), SourceIndexBuffer->GetSize());
+			BufferView->Create(SourceMultiBiffer, BufferViewFormat, SourceMultiBiffer->GetOffset(), SourceMultiBufferSize);
 		}
 	}
 	else if (SourceStructuredBuffer)
@@ -244,6 +254,15 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FVertex
 	return SRV;
 }
 
+FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FIndexBufferRHIParamRef IndexBufferRHI)
+{
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device);
+	// delay the shader view create until we use it, so we just track the source info here
+	SRV->SourceIndexBuffer = ResourceCast(IndexBufferRHI);
+	SRV->BufferViewFormat = (IndexBufferRHI->GetStride() == 4) ? PF_R32_UINT : PF_R16_UINT;
+	return SRV;
+}
+
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
 {
 	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device);
@@ -292,14 +311,6 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTextur
 	SRV->SourceTexture = ResourceCast(TextureCubeRHI);
 	SRV->MipLevel = MipLevel;
 	SRV->NumMips = 1;
-	return SRV;
-}
-
-FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FIndexBufferRHIParamRef IndexBufferRHI)
-{
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device);
-	// delay the shader view create until we use it, so we just track the source info here
-	SRV->SourceIndexBuffer = ResourceCast(IndexBufferRHI);
 	return SRV;
 }
 

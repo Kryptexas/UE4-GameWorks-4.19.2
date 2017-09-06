@@ -1126,7 +1126,7 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 	}
 }
 
-void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
 {
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
@@ -1139,24 +1139,26 @@ void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint3
 	ViewInfo.format = (VkFormat)FormatInfo.PlatformFormat;
 
 	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
-	ViewInfo.offset = Offset;
-	ViewInfo.range = Size;
+	ViewInfo.offset = InOffset;
+	ViewInfo.range = InSize;
 	Flags = Buffer.GetFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
+
+    Size = InSize;
+    Offset = InOffset;
 }
 
-void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
 {
 	check(Format != PF_Unknown);
 	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
 	check(FormatInfo.Supported);
-	Create((VkFormat)FormatInfo.PlatformFormat, Buffer, Offset, Size);
+	Create((VkFormat)FormatInfo.PlatformFormat, Buffer, InOffset, InSize);
 }
 
-
-void FVulkanBufferView::Create(VkFormat Format, FVulkanResourceMultiBuffer* Buffer, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(VkFormat Format, FVulkanResourceMultiBuffer* Buffer, uint32 InOffset, uint32 InSize)
 {
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
@@ -1167,12 +1169,15 @@ void FVulkanBufferView::Create(VkFormat Format, FVulkanResourceMultiBuffer* Buff
 	ViewInfo.format = Format;
 
 	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
-	ViewInfo.offset = Offset;
-	ViewInfo.range = Size;
+	ViewInfo.offset = InOffset;
+	ViewInfo.range = InSize;
 	Flags = Buffer->GetBufferUsageFlags() & (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
+
+    Size = InSize;
+    Offset = InOffset;
 }
 
 void FVulkanBufferView::Destroy()

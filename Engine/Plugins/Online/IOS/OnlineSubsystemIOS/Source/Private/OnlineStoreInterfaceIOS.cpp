@@ -168,6 +168,7 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 			PurchaseProductInfo.DisplayName = [Product localizedTitle];
 			PurchaseProductInfo.DisplayDescription = [Product localizedDescription];
 			PurchaseProductInfo.DisplayPrice = [numberFormatter stringFromNumber : Product.price];
+			PurchaseProductInfo.RawPrice = [Product.price floatValue];
 			PurchaseProductInfo.CurrencyCode = [Product.priceLocale objectForKey : NSLocaleCurrencyCode];
 			PurchaseProductInfo.CurrencySymbol = [Product.priceLocale objectForKey : NSLocaleCurrencySymbol];
 			PurchaseProductInfo.DecimalSeparator = [Product.priceLocale objectForKey : NSLocaleDecimalSeparator];
@@ -220,6 +221,7 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 				NewProductInfo.DisplayName = [Product localizedTitle];
 				NewProductInfo.DisplayDescription = [Product localizedDescription];
 				NewProductInfo.DisplayPrice = [numberFormatter stringFromNumber : Product.price];
+				NewProductInfo.RawPrice = [Product.price floatValue];
 				NewProductInfo.CurrencyCode = [Product.priceLocale objectForKey : NSLocaleCurrencyCode];
 				NewProductInfo.CurrencySymbol = [Product.priceLocale objectForKey : NSLocaleCurrencySymbol];
 				NewProductInfo.DecimalSeparator = [Product.priceLocale objectForKey : NSLocaleDecimalSeparator];
@@ -251,4 +253,10 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 
 		bIsProductRequestInFlight = false;
 	}
+}
+
+void FOnlineStoreInterfaceIOS::ProcessRestorePurchases(EInAppPurchaseState::Type InCompletetionState)
+{
+	TriggerOnInAppPurchaseRestoreCompleteDelegates(InCompletetionState);
+	bIsRestoringPurchases = false;
 }

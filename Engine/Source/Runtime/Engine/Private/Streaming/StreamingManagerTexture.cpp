@@ -559,6 +559,18 @@ void FStreamingManagerTexture::RemoveLevel( ULevel* Level )
 	}
 }
 
+void FStreamingManagerTexture::NotifyLevelOffset(ULevel* Level, const FVector& Offset)
+{
+	for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+	{
+		if (LevelManager.GetLevel() == Level)
+		{
+			LevelManager.NotifyLevelOffset(Offset);
+			break;
+		}
+	}
+}
+
 /**
  * Adds a new texture to the streaming manager.
  */

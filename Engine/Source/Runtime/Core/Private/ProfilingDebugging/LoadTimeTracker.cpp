@@ -112,6 +112,7 @@ void FLoadTimeTracker::DumpRawLoadTimes() const
 	UE_LOG(LogStreaming, Display, TEXT("Package_CreateLinker: %f"), Package_CreateLinker);
 	UE_LOG(LogStreaming, Display, TEXT("Package_CreateExports: %f"), Package_CreateExports);
 	UE_LOG(LogStreaming, Display, TEXT("Package_PreLoadObjects: %f"), Package_PreLoadObjects);
+	UE_LOG(LogStreaming, Display, TEXT("Package_ExternalReadDependencies: %f"), Package_ExternalReadDependencies);
 	UE_LOG(LogStreaming, Display, TEXT("Package_PostLoadObjects: %f"), Package_PostLoadObjects);
 	UE_LOG(LogStreaming, Display, TEXT("Package_Tick: %f"), Package_Tick);
 	UE_LOG(LogStreaming, Display, TEXT("Package_CreateAsyncPackagesFromQueue: %f"), Package_CreateAsyncPackagesFromQueue);
@@ -180,6 +181,7 @@ void FLoadTimeTracker::ResetRawLoadTimes()
 	Package_CreateLinker = 0.0;
 	Package_CreateExports = 0.0;
 	Package_PreLoadObjects = 0.0;
+	Package_ExternalReadDependencies = 0.0;
 	Package_PostLoadObjects = 0.0;
 	Package_Tick = 0.0;
 	Package_CreateAsyncPackagesFromQueue = 0.0;

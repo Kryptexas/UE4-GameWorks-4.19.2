@@ -66,6 +66,7 @@ DECLARE_CYCLE_STAT(TEXT("CreateExports AsyncPackage"),STAT_FAsyncPackage_CreateE
 DECLARE_CYCLE_STAT(TEXT("FreeReferencedImports AsyncPackage"), STAT_FAsyncPackage_FreeReferencedImports, STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("Precache ArchiveAsync"), STAT_FArchiveAsync_Precache, STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("PreLoadObjects AsyncPackage"),STAT_FAsyncPackage_PreLoadObjects,STATGROUP_AsyncLoad);
+DECLARE_CYCLE_STAT(TEXT("ExternalReadDependencies AsyncPackage"),STAT_FAsyncPackage_ExternalReadDependencies,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("PostLoadObjects AsyncPackage"),STAT_FAsyncPackage_PostLoadObjects,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("FinishObjects AsyncPackage"),STAT_FAsyncPackage_FinishObjects,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("CreateAsyncPackagesFromQueue"), STAT_FAsyncPackage_CreateAsyncPackagesFromQueue, STATGROUP_AsyncLoad);
@@ -5495,6 +5496,12 @@ EAsyncPackageState::Type FAsyncPackage::TickAsyncPackage(bool InbUseTimeLimit, b
 			}
 		} // !GEventDrivenLoaderEnabled
 
+		if (LoadingState == EAsyncPackageState::Complete && !bLoadHasFailed)
+		{
+			SCOPED_LOADTIMER(Package_ExternalReadDependencies);
+			LoadingState = FinishExternalReadDependencies();
+		}
+
 		// Call PostLoad on objects, this could cause new objects to be loaded that require
 		// another iteration of the PreLoad loop.
 		if (LoadingState == EAsyncPackageState::Complete && !bLoadHasFailed)
@@ -6159,6 +6166,27 @@ EAsyncPackageState::Type FAsyncPackage::PreLoadObjects()
 	ThreadObjLoaded.Reset();
 
 	return PreLoadIndex == PackageObjLoaded.Num() ? EAsyncPackageState::Complete : EAsyncPackageState::TimeOut;
+}
+
+EAsyncPackageState::Type FAsyncPackage::FinishExternalReadDependencies()
+{
+	if (!IsTimeLimitExceeded())
+	{
+		double CurrentTime = FPlatformTime::Seconds();
+		double RemainingTimeLimit = TimeLimit - (CurrentTime - TickStartTime);
+		
+		if (!bUseTimeLimit || RemainingTimeLimit > 0.0)
+		{
+			if (Linker->FinishExternalReadDependencies(bUseTimeLimit ? RemainingTimeLimit : 0.0))
+			{
+				return EAsyncPackageState::Complete;
+			}
+		}
+	}
+	
+	LastTypeOfWorkPerformed = TEXT("ExternalReadDependencies");
+
+	return EAsyncPackageState::TimeOut;
 }
 
 /**

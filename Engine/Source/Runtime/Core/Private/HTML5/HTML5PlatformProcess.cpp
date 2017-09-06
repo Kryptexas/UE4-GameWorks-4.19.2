@@ -9,6 +9,8 @@
 #include "Misc/App.h"
 #include "Misc/SingleThreadEvent.h"
 
+#include <emscripten/emscripten.h>
+
 const TCHAR* FHTML5PlatformProcess::ComputerName()
 {
 	return TEXT("Browser");
@@ -25,20 +27,40 @@ void FHTML5PlatformProcess::Sleep( float Seconds )
 {
 	SCOPE_CYCLE_COUNTER(STAT_HTML5Sleep);
 	FThreadIdleStats::FScopeIdle Scope;
-
-	SleepNoStats(Seconds);
-	// @todo html5 threading: actually put the thread to sleep for awhile (UE3 did nothing, we do the same now)
+	if ( FPlatformProcess::SupportsMultithreading() )
+	{
+		EM_ASM_({
+			console.log("FHTML5PlatformProcess::Sleep(" + $0 + ")");
+		}, Seconds);
+		emscripten_sleep_with_yield(Seconds*1000.0f);
+	}
+	else {
+		EM_ASM({console.log("FHTML5PlatformProcess::Sleep( SKIPPING )");});
+	}
 }
 
 void FHTML5PlatformProcess::SleepNoStats(float Seconds)
 {
-	// @todo html5 threading: actually put the thread to sleep for awhile (UE3 did nothing, we do the same now)
+	if ( FPlatformProcess::SupportsMultithreading() )
+	{
+		EM_ASM_({
+			console.log("FHTML5PlatformProcess::SleepNoStats(" + $0 + ")");
+		}, Seconds);
+		emscripten_sleep_with_yield(Seconds*1000.0f);
+	}
+	else {
+		EM_ASM({console.log("FHTML5PlatformProcess::SleepNoStats( SKIPPING )");});
+	}
 }
 
 void FHTML5PlatformProcess::SleepInfinite()
 {
 	// stop this thread forever
 	//pause();
+	EM_ASM({
+		console.log("FHTML5PlatformProcess::SleepInfinite()");
+		calling_a_function_that_does_not_exist_in_javascript_will__stop__the_thread_forever();
+	}); // =)
 }
 
 #include "HTML5PlatformRunnableThread.h"

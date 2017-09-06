@@ -1870,8 +1870,9 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 	{
 		FString NotInstalledTutorialLink;
 		FString DocumentationLink;
+		FText CustomizedLogMessage;
 		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
-		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink, DocumentationLink);
+		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink, DocumentationLink, CustomizedLogMessage);
 		
 		// report to analytics
 		FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.LaunchOn.Failed"), PlatformName, bHasCode, Result);
@@ -1883,7 +1884,7 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
-				FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
+				CustomizedLogMessage.IsEmpty() ? FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()) : CustomizedLogMessage,
 				NotInstalledTutorialLink,
 				DocumentationLink
 			);
@@ -1895,7 +1896,7 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("LicenseNotAcceptedMessage", "License not accepted."),
-				LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device."),
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device.") : CustomizedLogMessage,
 				NotInstalledTutorialLink,
 				DocumentationLink
 			);
@@ -1907,7 +1908,7 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
-				LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.") : CustomizedLogMessage,
 				NotInstalledTutorialLink,
 				DocumentationLink
 			);
@@ -1919,7 +1920,7 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
-				LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.") : CustomizedLogMessage,
 				NotInstalledTutorialLink,
 				DocumentationLink
 			);
@@ -1931,7 +1932,7 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("ManifestNotFound", "Manifest not found."),
-				LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found.") : CustomizedLogMessage,
 				NotInstalledTutorialLink,
 				DocumentationLink
 			);

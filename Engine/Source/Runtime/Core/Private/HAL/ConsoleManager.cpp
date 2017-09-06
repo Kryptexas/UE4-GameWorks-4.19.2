@@ -1870,12 +1870,6 @@ static TAutoConsoleVariable<int32> CVarMobileHDR32bppMode(
 	TEXT("3: Force Mobile 32bpp HDR with direct RGBA8 rendering."),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarMobileReduceLoadedMips(
-	TEXT("r.MobileReduceLoadedMips"),
-	0,
-	TEXT("Reduce loaded texture mipmaps for nonstreaming mobile platforms.\n"),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarSetClearSceneMethod(
 	TEXT("r.ClearSceneMethod"),
 	1,
@@ -2386,6 +2380,15 @@ static TAutoConsoleVariable<int32> CVarDisableThreadedRendering(
 	TEXT("Sets whether or not to allow threaded rendering for a particular Android device profile.\n")
 	TEXT("	0 = Allow threaded rendering [default]\n")
 	TEXT("	1 = Disable creation of render thread on startup"),
+	ECVF_ReadOnly);
+
+
+static TAutoConsoleVariable<int32> CVarDisableThreadedRenderingFirstLoad(
+	TEXT("r.AndroidDisableThreadedRenderingFirstLoad"),
+	0,
+	TEXT("Sets whether or not to allow threaded rendering for a particular Android device profile on the initial load.\n")
+	TEXT("	0 = Allow threaded rendering on the initial load [default]\n")
+	TEXT("	1 = Disable threaded rendering on the initial load"),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarDisableVulkanSupport(

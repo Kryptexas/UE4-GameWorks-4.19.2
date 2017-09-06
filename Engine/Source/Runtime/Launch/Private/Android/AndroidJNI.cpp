@@ -750,6 +750,16 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardChanged
 	}
 }
 
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardSendKey(JNIEnv* jenv, jobject thiz, jint keyCode)
+{
+	FDeferredAndroidMessage Message;
+
+	Message.messageType = MessageType_KeyDown;
+	Message.KeyEventData.keyId = keyCode;
+	FAndroidInputInterface::DeferMessage(Message);
+
+}
+
 void AndroidThunkCpp_LaunchURL(const FString& URL)
 {
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())

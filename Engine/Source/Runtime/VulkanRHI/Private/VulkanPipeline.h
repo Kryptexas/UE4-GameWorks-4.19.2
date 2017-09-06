@@ -140,7 +140,7 @@ public:
 	enum
 	{
 		// Bump every time serialization changes
-		VERSION = 12,
+		VERSION = 13,
 	};
 
 	struct FDescriptorSetLayoutBinding
@@ -363,7 +363,8 @@ public:
 			uint8 bHasDepthStencil;
 			uint8 bHasResolveAttachments;
 			uint8 NumUsedClearValues;
-			uint32 Hash;
+			uint32 RenderPassHash;
+            uint32 FramebufferHash;
 			FVector Extent3D;
 
 			void ReadFrom(const FVulkanRenderTargetLayout &InState);
@@ -380,8 +381,9 @@ public:
 					bHasDepthStencil == In.bHasDepthStencil &&
 					bHasResolveAttachments == In.bHasResolveAttachments &&
 					NumUsedClearValues == In.NumUsedClearValues &&
-					Hash == In.Hash &&
-					Extent3D == In.Extent3D;
+					Extent3D == In.Extent3D &&
+					RenderPassHash == In.RenderPassHash &&
+                    FramebufferHash == In.FramebufferHash;
 			}
 		};
 		FRenderTargets RenderTargets;

@@ -46,6 +46,15 @@ void FTextureInstanceView::FBounds4::Clear(int32 Index)
 	LastRenderTime.Component(Index) = -FLT_MAX;
 }
 
+void FTextureInstanceView::FBounds4::OffsetBounds(int32 Index, const FVector& Offset)
+{
+	check(Index >= 0 && Index < 4);
+
+	OriginX.Component(Index) += Offset.X;
+	OriginY.Component(Index) += Offset.Y;
+	OriginZ.Component(Index) += Offset.Z;
+}
+
 void FTextureInstanceView::FBounds4::UpdateLastRenderTime(int32 Index, float InLastRenderTime)
 {
 	check(Index >= 0 && Index < 4);

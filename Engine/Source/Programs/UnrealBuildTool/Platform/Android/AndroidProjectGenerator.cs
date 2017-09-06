@@ -26,6 +26,8 @@ namespace UnrealBuildTool
 
 		static bool VSPropsFileWritten = false;     // This is for the file VSAndroidUnreal.props which only needs to be written once
 
+		static bool VSSandboxedSDK = false;         // Checks if VS has installed the sandboxed SDK version to support Unreal
+													// If this sandboxed SDK is present change the config to consume it instead of the main VS Android SDK
 
 		bool IsVSAndroidSupportInstalled()
 		{
@@ -34,14 +36,27 @@ namespace UnrealBuildTool
 				return VSDebuggingEnabled;
 			}
 			VSSupportChecked = true;
-			
+
 			//check to make sure Cross Platform Tools are installed for MS
-			string Path = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Android SDK Tools", "Path", null) as string;
-			if (!String.IsNullOrEmpty(Path) && VSDebugCommandLineOptionPresent)
+
+			// First check to see if the sandboxed SDK has been installed, it's always dropped to the same ProgramData file location
+			if (File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft\\AndroidSDK\\25\\tools\\android.bat"))
+				&& VSDebugCommandLineOptionPresent)
 			{
 				VSDebuggingEnabled = true;
+				VSSandboxedSDK = true;
 			}
-			else if (VSDebugCommandLineOptionPresent)
+			else
+			{
+				// If the sandboxed SDK is not present (pre Visual Studio 15.4) then the non-Sandboxed SDK tools should have the correct build tools for building
+				string Path = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Android SDK Tools", "Path", null) as string;
+				if (!String.IsNullOrEmpty(Path) && VSDebugCommandLineOptionPresent)
+				{
+					VSDebuggingEnabled = true;
+				}
+			}
+
+			if (VSDebugCommandLineOptionPresent && VSDebuggingEnabled == false)
 			{
 				Log.TraceWarning("Android SDK tools have to be installed to use this.  Please Install Visual C++ for Cross-Platform Mobile Development https://msdn.microsoft.com/en-us/library/dn707598.aspx");
 			}
@@ -355,11 +370,22 @@ namespace UnrealBuildTool
 
 			string FileName = "VSAndroidUnreal.props";
 
+			// Change the path to the Android SDK based on if we are using the Visual Studio Sandboxed SDK or not
+			string vsAndroidSDKPath;
+			if (VSSandboxedSDK)
+			{
+				vsAndroidSDKPath = "$(ProgramData)\\Microsoft\\AndroidSDK\\25";
+			}
+			else
+			{
+				vsAndroidSDKPath = "$(VS_AndroidHome)";
+			}
+
 			string FileText = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + ProjectFileGenerator.NewLine +
 								"<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" + ProjectFileGenerator.NewLine +
 								"	<ImportGroup Label=\"PropertySheets\" />" + ProjectFileGenerator.NewLine +
 								"	<PropertyGroup Label=\"UserMacros\">" + ProjectFileGenerator.NewLine +
-								"		<ANDROID_HOME>$(VS_AndroidHome)</ANDROID_HOME>" + ProjectFileGenerator.NewLine +
+								"		<ANDROID_HOME>" + vsAndroidSDKPath + "</ANDROID_HOME>" + ProjectFileGenerator.NewLine +
 								"		<JAVA_HOME>$(VS_JavaHome)</JAVA_HOME>" + ProjectFileGenerator.NewLine +
 								"		<ANT_HOME>$(VS_AntHome)</ANT_HOME>" + ProjectFileGenerator.NewLine +
 								"		<NDKROOT>$(VS_NdkRoot)</NDKROOT>" + ProjectFileGenerator.NewLine +

@@ -1196,7 +1196,7 @@ static void EstablishVulkanDeviceSupport()
 	// make sure the Vulkan RHI is compiled in
 	if (FModuleManager::Get().ModuleExists(TEXT("VulkanRHI")))
 	{
-		FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with Vulkan support"));
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("Testing for Vulkan availability:"));
 
 		// does commandline override (using GL or ES2 for legacy commandlines)
 		bool bForceOpenGL = FParse::Param(FCommandLine::Get(), TEXT("GL")) || FParse::Param(FCommandLine::Get(), TEXT("OpenGL")) || FParse::Param(FCommandLine::Get(), TEXT("ES2"));
@@ -1229,38 +1229,66 @@ static void EstablishVulkanDeviceSupport()
 
 				if (VulkanSupport == EDeviceVulkanSupportStatus::Supported)
 				{
-					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver available, will use VulkanRHI"));
+					FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI is available, Vulkan capable device detected."));
 				}
 				else
 				{
-					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver NOT available, falling back to OpenGL ES"));
+					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver NOT available."));
 				}
 			}
 			else
 			{
-				FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library NOT detected, falling back to OpenGL ES"));
+				FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library NOT detected."));
 			}
 		}
 		else
 		{
-			FPlatformMisc::LowLevelOutputDebugString(TEXT("Forced OpenGL ES"));
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI disabled due to command line forcing OpenGL ES."));
 		}
 	}
 	else
 	{
-		FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with OpenGL ES support only"));
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI not present."));
 	}
 }
 
 bool FAndroidMisc::ShouldUseVulkan()
 {
 	check(VulkanSupport != EDeviceVulkanSupportStatus::Uninitialized);
-	static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
+	static int CachedVulkanSupport = -1;
 
-	bool bSupportsVulkan = false;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
+	if (CachedVulkanSupport == -1)
+	{
+		static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
+		bool bSupportsVulkan = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
+		const bool bShouldUseVulkan = bSupportsVulkan && VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
+		CachedVulkanSupport = bShouldUseVulkan ? 1 : 0;
 
-	return bSupportsVulkan && VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
+		if (bShouldUseVulkan)
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI will be used!"));
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI will NOT be used:"));
+			if(!bSupportsVulkan)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT(" ** Vulkan support is disabled in config."));
+			}
+			if (CVarDisableVulkan->GetValueOnAnyThread() != 0)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT(" ** Vulkan is disabled via console variable."));
+			}
+			if (VulkanSupport != EDeviceVulkanSupportStatus::Supported)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT(" ** Vulkan is not support by the device."));
+			}
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("OpenGL ES will be used."));
+		}
+	}
+
+	return CachedVulkanSupport == 1;
 }
 
 FString FAndroidMisc::GetVulkanVersion()

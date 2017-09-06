@@ -144,7 +144,7 @@ class SHADERCORE_API FShaderCache : public FTickableObjectRenderThread
 	friend class FShaderCacheLibrary;
 	
 public:
-	FShaderCache(uint32 Options);
+	FShaderCache(uint32 Options, EShaderPlatform Platform);
 	virtual ~FShaderCache();
 	
 	/** Called by the game to set the game specific shader cache version, only caches of this version will be loaded. Must be called before RHI initialisation, as InitShaderCache will load any existing cache. Defaults to FEngineVersion::Current().GetChangelist() if never called. */
@@ -159,7 +159,7 @@ public:
 	}
 	
 	/** Shader cache initialisation, called only by the RHI. */
-	static void InitShaderCache(uint32 Options);
+	static void InitShaderCache(uint32 Options, EShaderPlatform ShaderPlatform);
 	/** Loads any existing cache of shader binaries, called by the RHI after full initialisation. */
 	static void LoadBinaryCache();
 	/** Save binary cache immediately to the given output dir for the given platform. */
@@ -285,7 +285,7 @@ public:
 	/** Instantiate or retrieve a compute shader from the cache for the provided code & hash. */
 	static FORCEINLINE FComputeShaderRHIRef CreateComputeShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)
 	{
-		if ( Cache )
+		if (Cache)
 		{
 			return Cache->GetComputeShader(Platform, Hash, Code);
 		}
@@ -381,7 +381,7 @@ public:
 	/** Called by the RHI. Logs the construction of a sampelr state & caches it so that draw states can be properly recorded. No-op when r.UseShaderDrawLog & r.UseShaderPredraw are disabled. */
 	static FORCEINLINE void LogSamplerState(FShaderCacheState* CacheState, FSamplerStateInitializerRHI const& Init, FSamplerStateRHIParamRef State)
 	{
-		if ( Cache )
+		if ( Cache && CacheState )
 		{
 			Cache->InternalLogSamplerState(*CacheState, Init, State);
 		}
@@ -560,10 +560,7 @@ public:
 	
 	/** Returns the number of shaders waiting for precompilation */
 	static uint32 NumShaderPrecompilesRemaining();
-	
-	
-	typedef TMap<EShaderPlatform, class FShaderCacheLibrary*> FShaderCacheLibraryMap;
-	
+		
 public: // From FTickableObjectRenderThread
 	virtual void Tick( float DeltaTime ) final override;
 	
@@ -577,9 +574,9 @@ private:
 	void SaveAll();
 	void OnAppDeactivate();
 	
-	static bool LoadShaderCache(FString Path, FShaderCaches* Cache);
-	static bool SaveShaderCache(FString Path, FShaderCaches* Cache);
-	
+	static bool LoadShaderCache(FString Path, FShaderPlatformCache& Cache);
+	static bool SaveShaderCache(FString Path, FShaderPlatformCache& Cache);
+		
 	void InternalLogStreamingKey(uint32 StreamKey, bool const bActive);
 	
 	void InternalLogVertexDeclaration(const FShaderCacheState& CacheState, const FVertexDeclarationElementList& VertexElements, FVertexDeclarationRHIParamRef VertexDeclaration);
@@ -648,11 +645,6 @@ private:
 	FShaderCacheState* InternalCreateOrFindCacheStateForContext(const IRHICommandContext* Context);
 	void InternalRemoveCacheStateForContext(const IRHICommandContext* Context);
 	
-	FShaderPlatformCache& GetShaderCacheForPlatform(EShaderPlatform Platform)
-	{
-		return Platform == GMaxRHIShaderPlatform ? *CurrentShaderPlatformCache : Caches.PlatformCaches.FindChecked(Platform);
-	}
-	
 	bool ShouldPreDrawShaders(int64 CurrentPreDrawTime) const;
 	
 private:
@@ -680,23 +672,19 @@ private:
 		FVertexBufferRHIRef PredrawVB; // Standard VB
 		FVertexBufferRHIRef PredrawZVB; // Zero-stride VB
 	//};
-	
+
 private:
-	// Serialised
-	FShaderCaches Caches;
+	EShaderPlatform CurrentPlatform;
+	
+	// Serialized
+	FShaderPlatformCache CurrentShaderPlatformCache;
 	
 	// Optional, separate runtime code cache
-	FShaderCacheLibraryMap CodeCache;
-	
-	//
-	FShaderPlatformCache* CurrentShaderPlatformCache;
-	
+	class FShaderCacheLibrary* CodeCache;
+		
 	// All the pipeline states loaded from the libraries - only valid for OpenGL.
 	TMap<FShaderCacheKey, TSet<FShaderPipelineKey>> Pipelines;
-	
-	// Optional, RHI backed shader library
-	TMap<EShaderPlatform, class FShaderCacheLibrary*> CachedShaderLibraries;
-	
+
 	// Transient non-invasive tracking of RHI resources for shader logging
 	TMap<FShaderCacheKey, FVertexShaderRHIRef> CachedVertexShaders;
 	TMap<FShaderCacheKey, FPixelShaderRHIRef> CachedPixelShaders;
@@ -751,6 +739,8 @@ private:
 	//List of states per RHI context with a default state
 	FShaderCacheState* DefaultCacheState;
 	mutable TMap<const IRHICommandContext*,FShaderCacheState*> ContextCacheStates;
+
+	IConsoleObject* SaveShaderCacheCmd;
 	
 	static FShaderCache* Cache;
 	static int32 GameVersion;

@@ -452,13 +452,11 @@ public partial class Project : CommandUtils
 				}
             }
 
-			// shader cache
+			// shader cache files
 			{
-				string ShaderCache = CombinePaths(SC.ProjectRoot.FullName, "Content/DrawCache.ushadercache");
-				if (File.Exists(ShaderCache))
-				{
-					SC.StageFile(StagedFileType.UFS, new FileReference(ShaderCache));
-				}
+				DirectoryReference ShaderCacheRoot = DirectoryReference.Combine(SC.ProjectRoot, "Content");
+				List<FileReference> ShaderCacheFiles = SC.FindFilesToStage(ShaderCacheRoot, "DrawCache-*.ushadercache", StageFilesSearch.TopDirectoryOnly);
+				SC.StageFiles(StagedFileType.UFS, ShaderCacheFiles);
 			}
 
 			// Get the final output directory for cooked data

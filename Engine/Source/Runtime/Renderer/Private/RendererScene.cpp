@@ -1909,7 +1909,21 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		    {
 			    if (LightSceneInfo == MobileDirectionalLights[LightChannelIdx])
 			    {
-				    MobileDirectionalLights[LightChannelIdx] = nullptr;
+					MobileDirectionalLights[LightChannelIdx] = nullptr;
+
+					// find another light that could be the new MobileDirectionalLight for this channel
+					for (const FLightSceneInfoCompact& OtherLight : Lights)
+					{
+						if (OtherLight.LightSceneInfo != LightSceneInfo &&
+							OtherLight.LightType == LightType_Directional &&
+							!OtherLight.bStaticLighting &&
+							GetFirstLightingChannelFromMask(OtherLight.LightSceneInfo->Proxy->GetLightingChannelMask()) == LightChannelIdx)
+						{
+							MobileDirectionalLights[LightChannelIdx] = OtherLight.LightSceneInfo;
+							break;
+						}
+					}
+
 					// if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
 					if (!LightSceneInfo->Proxy->HasStaticShadowing() || bUseCSMForDynamicObjects)
 					{

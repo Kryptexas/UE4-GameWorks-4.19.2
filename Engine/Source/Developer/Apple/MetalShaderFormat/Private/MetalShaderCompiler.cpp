@@ -1634,25 +1634,25 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
             TypeMode = EMetalTypeBufferModeUAV;
 			HlslCompilerTarget = HCT_FeatureLevelSM5;
 			StandardVersion = TEXT("2.0");
-			MinOSVersion = bIsMobile ? TEXT("-mios-version-min=11.0") : TEXT("-mmacosx-version-min=10.13");
+			MinOSVersion = bIsMobile ? TEXT("") : TEXT("-mmacosx-version-min=10.13");
 			break;
 		case 2:
 			// Enable full SM5 feature support so tessellation & fragment UAVs compile
             TypeMode = EMetalTypeBufferModeSRV;
 			HlslCompilerTarget = HCT_FeatureLevelSM5;
 			StandardVersion = TEXT("1.2");
-			MinOSVersion = bIsMobile ? TEXT("-mios-version-min=10.0") : TEXT("-mmacosx-version-min=10.12");
+			MinOSVersion = bIsMobile ? TEXT("") : TEXT("-mmacosx-version-min=10.12");
 			break;
 		case 1:
 			HlslCompilerTarget = bIsMobile ? HlslCompilerTarget : HCT_FeatureLevelSM5;
 			StandardVersion = TEXT("1.1");
-			MinOSVersion = bIsMobile ? TEXT("-mios-version-min=9.0") : TEXT("-mmacosx-version-min=10.11");
+			MinOSVersion = bIsMobile ? TEXT("") : TEXT("-mmacosx-version-min=10.11");
 			break;
 		case 0:
 		default:
 			check(bIsMobile);
 			StandardVersion = TEXT("1.0");
-			MinOSVersion = TEXT("-mios-version-min=8.0");
+			MinOSVersion = TEXT("");
 			break;
 	}
 	

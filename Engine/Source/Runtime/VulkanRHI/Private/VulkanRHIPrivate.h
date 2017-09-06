@@ -119,7 +119,6 @@ public:
 	FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
 	FVulkanRenderTargetLayout(const FRHISetRenderTargetsInfo& RTInfo);
 
-	inline uint32 GetHash() const { return Hash; }
 	inline const VkExtent2D& GetExtent2D() const { return Extent.Extent2D; }
 	inline const VkExtent3D& GetExtent3D() const { return Extent.Extent3D; }
 	inline const VkAttachmentDescription* GetAttachmentDescriptions() const { return Desc; }
@@ -138,6 +137,9 @@ public:
 	inline const VkAttachmentReference* GetDepthStencilAttachmentReference() const { return bHasDepthStencil ? &DepthStencilReference : nullptr; }
 
 protected:
+    FVulkanTextureBase* ColorTextures[MaxSimultaneousRenderTargets];
+    FVulkanTextureBase* DepthStencilTexture;
+    
 	VkAttachmentReference ColorReferences[MaxSimultaneousRenderTargets];
 	VkAttachmentReference ResolveReferences[MaxSimultaneousRenderTargets];
 	VkAttachmentReference DepthStencilReference;
@@ -151,7 +153,9 @@ protected:
 	uint8 NumSamples;
 	uint8 NumUsedClearValues;
 
-	uint32 Hash;
+    uint32 RenderPassHash;
+    uint32 FramebufferHash;
+    uint32 TexturesHash;
 
 	union
 	{
@@ -161,6 +165,8 @@ protected:
 
 	FVulkanRenderTargetLayout()
 	{
+        FMemory::Memzero(ColorTextures);
+        DepthStencilTexture = nullptr;
 		FMemory::Memzero(ColorReferences);
 		FMemory::Memzero(ResolveReferences);
 		FMemory::Memzero(DepthStencilReference);
@@ -169,12 +175,68 @@ protected:
 		NumColorAttachments = 0;
 		bHasDepthStencil = 0;
 		bHasResolveAttachments = 0;
-		Hash = 0;
+        RenderPassHash = 0;
+        FramebufferHash = 0;
+        TexturesHash = 0;
 		Extent.Extent3D.width = 0;
 		Extent.Extent3D.height = 0;
 		Extent.Extent3D.depth = 0;
 	}
 	friend class FVulkanPipelineStateCache;
+    friend class FVulkanPendingGfxState;
+    friend class FVulkanCommandListContext;
+
+private:
+	
+	struct FRenderPassHashable
+	{
+		FRenderPassHashable(const FVulkanRenderTargetLayout& InRenderTargetLayout)
+		{
+			FMemory::Memcpy(Descriptions, InRenderTargetLayout.Desc);
+		}
+
+		VkAttachmentDescription Descriptions[MaxSimultaneousRenderTargets * 2 + 1];
+	};
+
+	struct FFramebufferHashable
+	{
+		FFramebufferHashable(uint32_t InRenderPassHash, const FVulkanRenderTargetLayout& InRenderTargetLayout, const FRHISetRenderTargetsInfo* RTInfo)
+			: RenderPassHash(InRenderPassHash)
+			, Padding(0)
+			, DepthStencilTexture(InRenderTargetLayout.DepthStencilTexture)
+		{
+			for (uint32 i = 0; i < InRenderTargetLayout.NumColorAttachments; i++)
+			{
+				ColorTextureHashState[i].ColorTexture = InRenderTargetLayout.ColorTextures[i];
+				ColorTextureHashState[i].MipIndex = RTInfo ? RTInfo->ColorRenderTarget[i].MipIndex : 0;
+				ColorTextureHashState[i].ArraySliceIndex = RTInfo ? RTInfo->ColorRenderTarget[i].ArraySliceIndex : 0xFFFFFFFF;
+			}
+			FMemory::Memzero(&ColorTextureHashState[InRenderTargetLayout.NumColorAttachments], sizeof(ColorTextureHashState[0]) * (MaxSimultaneousRenderTargets - InRenderTargetLayout.NumColorAttachments));
+		}
+
+		uint32_t RenderPassHash;
+		uint32_t Padding;
+		struct FColorTextureHashable
+		{
+			FVulkanTextureBase* ColorTexture;
+			uint32 MipIndex;
+			uint32 ArraySliceIndex;
+		};
+		FColorTextureHashable ColorTextureHashState[MaxSimultaneousRenderTargets];
+		FVulkanTextureBase* DepthStencilTexture;
+	};
+
+	struct FTexturesHashable
+	{
+		FTexturesHashable(const FVulkanRenderTargetLayout& InRenderTargetLayout)
+			: DepthStencilTexture(InRenderTargetLayout.DepthStencilTexture)
+		{
+			FMemory::Memcpy(ColorTextures, InRenderTargetLayout.ColorTextures);
+		}
+
+		FVulkanTextureBase* ColorTextures[MaxSimultaneousRenderTargets];
+		FVulkanTextureBase* DepthStencilTexture;
+	};
 };
 
 struct FVulkanSemaphore

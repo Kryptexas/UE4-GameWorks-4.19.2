@@ -141,7 +141,11 @@ public:
 	{
 		return StripShader_Metal(Code, DebugOutputDir, bNative);
     }
-    virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const
+	virtual bool SupportsShaderArchives() const override 
+	{ 
+		return true;
+	}
+	virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const override
     {
         return new FMetalShaderFormatArchive(Format, WorkingDirectory);
     }

@@ -57,7 +57,14 @@ public:
 	 */
     virtual bool StripShaderCode( TArray<uint8>& Code, FString const& DebugOutputDir, bool const bNative ) const { return false; }
     
-    /**
+	/**
+	* Whether this shader format supports a format-specific archive for precompiled shader code.
+	*
+	* @returns true if shader archives are supported, false otherwise.
+	*/
+	virtual bool SupportsShaderArchives() const { return false; }
+	
+	/**
      * Create a format specific archive for precompiled shader code.
      *
      * @param Format The format of shaders to cache.

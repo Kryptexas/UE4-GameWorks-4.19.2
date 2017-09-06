@@ -35,8 +35,6 @@ DECLARE_CYCLE_STAT(TEXT("ReleaseTickGroup"), STAT_ReleaseTickGroup, STATGROUP_Ti
 DECLARE_CYCLE_STAT(TEXT("ReleaseTickGroup Block"), STAT_ReleaseTickGroup_Block, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("CleanupTasksWait"), STAT_CleanupTasksWait, STATGROUP_TickGroups);
 
-
-
 static TAutoConsoleVariable<float> CVarStallStartFrame(
 	TEXT("CriticalPathStall.TickStartFrame"),
 	0.0f,
@@ -91,7 +89,7 @@ FAutoConsoleTaskPriority CPrio_CleanupTaskPriority(
 FAutoConsoleTaskPriority CPrio_NormalAsyncTickTaskPriority(
 	TEXT("TaskGraph.TaskPriorities.NormalAsyncTickTaskPriority"),
 	TEXT("Task and thread priority for async ticks that are not high priority."),
-	ENamedThreads::NormalThreadPriority, 
+	ENamedThreads::NormalThreadPriority,
 	ENamedThreads::NormalTaskPriority
 	);
 
@@ -108,9 +106,9 @@ FORCEINLINE bool CanDemoteIntoTickGroup(ETickingGroup TickGroup)
 {
 	switch (TickGroup)
 	{
-	    case TG_StartPhysics:
-	    case TG_EndPhysics:
-		    return false;
+		case TG_StartPhysics:
+		case TG_EndPhysics:
+			return false;
 	}
 	return true;
 }
@@ -160,9 +158,9 @@ public:
 	 * @param Item	The item to add
 	 * @return		Index to the new item
 	 */
-	FORCEINLINE int32 AddThreadsafe(const ElementType& Item) 
-	{ 
-		return EmplaceThreadsafe(Item); 
+	FORCEINLINE int32 AddThreadsafe(const ElementType& Item)
+	{
+		return EmplaceThreadsafe(Item);
 	}
 
 };
@@ -219,9 +217,9 @@ class FTickFunctionTask
 	/** tick context, here thread is desired execution thread **/
 	FTickContext			Context;
 	/** If true, log each tick **/
-	bool					bLogTick; 
+	bool					bLogTick;
 	/** If true, log prereqs **/
-	bool					bLogTicksShowPrerequistes; 
+	bool					bLogTicksShowPrerequistes;
 public:
 	/** Constructor
 		* @param InTarget - Function to tick
@@ -244,13 +242,13 @@ public:
 		return Context.Thread;
 	}
 	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
-	{ 
-		return ESubsequentsMode::TrackSubsequents; 
+	{
+		return ESubsequentsMode::TrackSubsequents;
 	}
-	/** 
+	/**
 		*	Actually execute the tick.
 		*	@param	CurrentThread; the thread we are running on
-		*	@param	MyCompletionGraphEvent; my completion event. Not always useful since at the end of DoWork, you can assume you are done and hence further tasks do not need you as a prerequisite. 
+		*	@param	MyCompletionGraphEvent; my completion event. Not always useful since at the end of DoWork, you can assume you are done and hence further tasks do not need you as a prerequisite.
 		*	However, MyCompletionGraphEvent can be useful for passing to other routines or when it is handy to set up subsequents before you actually do work.
 		**/
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -310,8 +308,8 @@ class FTickTaskSequencer
 			return CPrio_DispatchTaskPriority.Get();
 		}
 		static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
-		{ 
-			return ESubsequentsMode::TrackSubsequents; 
+		{
+			return ESubsequentsMode::TrackSubsequents;
 		}
 		void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 		{
@@ -345,9 +343,9 @@ class FTickTaskSequencer
 		{
 			return CPrio_CleanupTaskPriority.Get();
 		}
-		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
-		{ 
-			return ESubsequentsMode::TrackSubsequents; 
+		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode()
+		{
+			return ESubsequentsMode::TrackSubsequents;
 		}
 		void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 		{
@@ -371,12 +369,12 @@ class FTickTaskSequencer
 	ETickingGroup WaitForTickGroup;
 
 	/** If true, allow concurrent ticks **/
-	bool				bAllowConcurrentTicks; 
+	bool				bAllowConcurrentTicks;
 
 	/** If true, log each tick **/
-	bool				bLogTicks; 
+	bool				bLogTicks;
 	/** If true, log each tick **/
-	bool				bLogTicksShowPrerequistes; 
+	bool				bLogTicksShowPrerequistes;
 
 public:
 
@@ -394,7 +392,7 @@ public:
 	**/
 	FORCEINLINE static bool SingleThreadedMode()
 	{
-		if (!FApp::ShouldUseThreadingForPerformance() || IsRunningDedicatedServer() || FPlatformMisc::NumberOfCores() < 3)
+		if (!FApp::ShouldUseThreadingForPerformance() || IsRunningDedicatedServer() || FPlatformMisc::NumberOfCores() < 3 || !FPlatformProcess::SupportsMultithreading())
 		{
 			return true;
 		}
@@ -412,7 +410,7 @@ public:
 		checkSlow(TickFunction->ActualStartTickGroup >=0 && TickFunction->ActualStartTickGroup < TG_MAX);
 
 		FTickContext UseContext = TickContext;
-	   
+
 		bool bIsOriginalTickGroup = (TickFunction->ActualStartTickGroup == TickFunction->TickGroup);
 
 		if (TickFunction->bRunOnAnyThread && bAllowConcurrentTicks && bIsOriginalTickGroup)
@@ -505,8 +503,8 @@ public:
 		AddTickTaskCompletionParallel(TickFunction->ActualStartTickGroup, TickFunction->ActualEndTickGroup, Task, TickFunction->bHighPriority);
 	}
 
-	/** 
-	 * Release the queued ticks for a given tick group and process them. 
+	/**
+	 * Release the queued ticks for a given tick group and process them.
 	 * @param WorldTickGroup - tick group to release
 	 * @param bBlockTillComplete - if true, do not return until all ticks are complete
 	**/
@@ -948,7 +946,7 @@ public:
 	}
 	/**
 	 * Queues the newly spawned ticks for this level
-	 * @return - the number of items 
+	 * @return - the number of items
 	 */
 	int32 QueueNewlySpawned(ETickingGroup CurrentTickGroup)
 	{
@@ -1001,7 +999,7 @@ public:
 	void RunPauseFrame(const FTickContext& InContext)
 	{
 		check(!NewlySpawnedTickFunctions.Num()); // There shouldn't be any in here at this point in the frame
-		
+
 		float CumulativeCooldown = 0.f;
 		FTickFunction* PrevTickFunction = nullptr;
 		FTickFunction* TickFunction = AllCoolingDownTickFunctions.Head;
@@ -1238,9 +1236,9 @@ public:
 						TickFunction->Next->RelativeTickCooldown += TickFunction->RelativeTickCooldown;
 						TickFunction->Next = nullptr;
 					}
-		        }
-		        else
-		        {
+				}
+				else
+				{
 					PrevComparisionFunction = ComparisonFunction;
 					ComparisonFunction = ComparisonFunction->Next;
 				}
@@ -1365,7 +1363,7 @@ public:
 		bTickNewlySpawned = true;
 		TickTaskSequencer.StartFrame();
 		FillLevelList(LevelsToTick);
-		
+
 		int32 NumWorkerThread = 0;
 		bool bConcurrentQueue = false;
 #if !PLATFORM_WINDOWS
@@ -1378,12 +1376,12 @@ public:
 
 		if (!bConcurrentQueue)
 		{
-		    int32 TotalTickFunctions = 0;
-		    for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
-		    {
-			    TotalTickFunctions += LevelList[LevelIndex]->StartFrame(Context);
-		    }
-		    INC_DWORD_STAT_BY(STAT_TicksQueued, TotalTickFunctions);
+			int32 TotalTickFunctions = 0;
+			for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
+			{
+				TotalTickFunctions += LevelList[LevelIndex]->StartFrame(Context);
+			}
+			INC_DWORD_STAT_BY(STAT_TicksQueued, TotalTickFunctions);
 			for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
 			{
 				LevelList[LevelIndex]->QueueAllTicks();
@@ -1402,7 +1400,7 @@ public:
 			{
 				LevelList[LevelIndex]->ReserveTickFunctionCooldowns(AllTickFunctions.Num());
 			}
-			ParallelFor(AllTickFunctions.Num(), 
+			ParallelFor(AllTickFunctions.Num(),
 				[this](int32 Index)
 				{
 					FTickFunction* TickFunction = AllTickFunctions[Index];
@@ -1411,8 +1409,8 @@ public:
 					TickFunction->QueueTickFunctionParallel(Context, StackForCycleDetection);
 				}
 			);
-		    for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
-		    {
+			for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
+			{
 				LevelList[LevelIndex]->ScheduleTickFunctionCooldowns();
 			}
 			AllTickFunctions.Reset();
@@ -1632,8 +1630,8 @@ FTickFunction::~FTickFunction()
 }
 
 
-/** 
-* Adds the tick function to the master list of tick functions. 
+/**
+* Adds the tick function to the master list of tick functions.
 * @param Level - level to place this tick function in
 **/
 void FTickFunction::RegisterTickFunction(ULevel* Level)
@@ -1688,7 +1686,7 @@ void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction&
 {
 	const bool bThisCanTick = (bCanEverTick || IsTickFunctionRegistered());
 	const bool bTargetCanTick = (TargetTickFunction.bCanEverTick || TargetTickFunction.IsTickFunctionRegistered());
-	
+
 	if (bThisCanTick && bTargetCanTick)
 	{
 		Prerequisites.AddUnique(FTickPrerequisite(TargetObject, TargetTickFunction));
@@ -1739,7 +1737,7 @@ void FTickFunction::QueueTickFunction(FTickTaskSequencer& TTS, const struct FTic
 {
 	checkSlow(TickContext.Thread == ENamedThreads::GameThread); // we assume same thread here
 	check(bRegistered);
-		
+
 	if (TickVisitedGFrameCounter != GFrameCounter)
 	{
 		TickVisitedGFrameCounter = GFrameCounter;
@@ -1784,7 +1782,7 @@ void FTickFunction::QueueTickFunction(FTickTaskSequencer& TTS, const struct FTic
 				// if the tick was "demoted", make sure it ends up in an ordinary tick group.
 				while (!CanDemoteIntoTickGroup(MyActualTickGroup))
 				{
-					MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1); 
+					MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1);
 				}
 			}
 			ActualStartTickGroup = MyActualTickGroup;
@@ -1792,14 +1790,14 @@ void FTickFunction::QueueTickFunction(FTickTaskSequencer& TTS, const struct FTic
 			if (EndTickGroup > ActualStartTickGroup)
 			{
 				check(EndTickGroup <= TG_NewlySpawned);
-				ETickingGroup TestTickGroup = ETickingGroup(ActualEndTickGroup + 1); 
+				ETickingGroup TestTickGroup = ETickingGroup(ActualEndTickGroup + 1);
 				while (TestTickGroup <= EndTickGroup)
 			{
 					if (CanDemoteIntoTickGroup(TestTickGroup))
 					{
 						ActualEndTickGroup = TestTickGroup;
 					}
-					TestTickGroup = ETickingGroup(TestTickGroup + 1); 
+					TestTickGroup = ETickingGroup(TestTickGroup + 1);
 				}
 			}
 
@@ -1875,7 +1873,7 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 				// if the tick was "demoted", make sure it ends up in an ordinary tick group.
 				while (!CanDemoteIntoTickGroup(MyActualTickGroup))
 				{
-					MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1); 
+					MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1);
 				}
 			}
 			ActualStartTickGroup = MyActualTickGroup;
@@ -1883,14 +1881,14 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 			if (EndTickGroup > ActualStartTickGroup)
 			{
 				check(EndTickGroup <= TG_NewlySpawned);
-				ETickingGroup TestTickGroup = ETickingGroup(ActualEndTickGroup + 1); 
+				ETickingGroup TestTickGroup = ETickingGroup(ActualEndTickGroup + 1);
 				while (TestTickGroup <= EndTickGroup)
 				{
 					if (CanDemoteIntoTickGroup(TestTickGroup))
 					{
 						ActualEndTickGroup = TestTickGroup;
 					}
-					TestTickGroup = ETickingGroup(TestTickGroup + 1); 
+					TestTickGroup = ETickingGroup(TestTickGroup + 1);
 				}
 			}
 
@@ -1927,13 +1925,13 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 	}
 }
 
-float FTickFunction::CalculateDeltaTime(const FTickContext& TickContext) 
+float FTickFunction::CalculateDeltaTime(const FTickContext& TickContext)
 {
 	float DeltaTimeForFunction = TickContext.DeltaSeconds;
 
 	if (TickInterval == 0.f)
 	{
-		// No tick interval. Return the world delta seconds, and make sure to mark that 
+		// No tick interval. Return the world delta seconds, and make sure to mark that
 		// we're not tracking last-tick-time for this object.
 		LastTickGameTimeSeconds = -1.f;
 	}

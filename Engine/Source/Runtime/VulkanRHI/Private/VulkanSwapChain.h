@@ -6,7 +6,7 @@
 
 #pragma once
 
-#define USE_IMAGE_ACQUIRE_FENCES	1
+#define USE_IMAGE_ACQUIRE_FENCES	!PLATFORM_ANDROID
 
 namespace VulkanRHI
 {

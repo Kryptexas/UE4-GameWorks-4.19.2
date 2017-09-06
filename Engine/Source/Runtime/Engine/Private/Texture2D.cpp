@@ -65,6 +65,32 @@ static TAutoConsoleVariable<int32> CVarForceHighestMipOnUITexturesEnabled(
 	TEXT("If set to 1, texutres in the UI Group will have their highest mip level forced."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarMobileReduceLoadedMips(
+	TEXT("r.MobileReduceLoadedMips"),
+	0,
+	TEXT("Reduce loaded texture mipmaps for nonstreaming mobile platforms.\n"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMobileMaxLoadedMips(
+	TEXT("r.MobileMaxLoadedMips"),
+	MAX_TEXTURE_MIP_COUNT,
+	TEXT("Maximum number of loaded mips for nonstreaming mobile platforms.\n"),
+	ECVF_RenderThreadSafe);
+
+static int32 MobileReduceLoadedMips(int32 NumTotalMips)
+{
+	int32 NumReduceMips = FMath::Max(0, CVarMobileReduceLoadedMips.GetValueOnAnyThread());
+	int32 MaxLoadedMips = FMath::Clamp(CVarMobileMaxLoadedMips.GetValueOnAnyThread(), 1, GMaxTextureMipCount);
+
+	int32 NumMips = NumTotalMips;
+	// Reduce number of mips as requested
+	NumMips = FMath::Max(NumMips - NumReduceMips, 1);
+	// Clamp number of mips as requested
+	NumMips = FMath::Min(NumMips, MaxLoadedMips);
+	
+	return NumMips;
+}
+
 static bool CanCreateAsVirtualTexture(const UTexture2D* Texture, uint32 TexCreateFlags)
 {
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
@@ -794,7 +820,7 @@ FTextureResource* UTexture2D::CreateResource()
 
 	// Determine whether or not this texture can be streamed.
 	bIsStreamable = 
-#if !PLATFORM_ANDROID
+#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
 					IStreamingManager::Get().IsTextureStreamingEnabled() &&
 #endif
 					!NeverStream && 
@@ -856,15 +882,14 @@ FTextureResource* UTexture2D::CreateResource()
 		// Handle streaming textures.
 		if( bIsStreamable )
 		{
-#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
 			// Only request lower miplevels and let texture streaming code load the rest.
 			NumNonStreamingMips = GetNumNonStreamingMips();
-			RequestedMips = NumNonStreamingMips;
-#else
-			static auto* MobileReduceLoadedMipsCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileReduceLoadedMips"));
-			NumNonStreamingMips = GetNumNonStreamingMips();
-			RequestedMips = FMath::Min(NumMips, GMaxTextureMipCount) - MobileReduceLoadedMipsCvar->GetValueOnAnyThread();
+
+#if !PLATFORM_SUPPORTS_TEXTURE_STREAMING // eg, Android
+			NumNonStreamingMips = MobileReduceLoadedMips(NumNonStreamingMips);
 #endif
+
+			RequestedMips = NumNonStreamingMips;
 		}
 		// Handle non- streaming textures.
 		else

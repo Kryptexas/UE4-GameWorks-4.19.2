@@ -9,6 +9,8 @@
 #include "CoreMinimal.h"
 #include "RHI.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogShaderLibrary, Log, All);
+
 class FShaderPipeline;
 
 struct SHADERCORE_API FShaderCodeLibraryPipeline
@@ -90,6 +92,16 @@ struct SHADERCORE_API FShaderCodeLibrary
 	static FDomainShaderRHIRef CreateDomainShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code);
 	/** Instantiate or retrieve a compute shader from the cache for the provided code & hash. */
 	static FComputeShaderRHIRef CreateComputeShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code);
+
+	// Place a request to preload shader code
+	// Blocking call if no Archive is provided or Archive is not a type of FLinkerLoad
+	// Shader code preload will be finished before owning UObject PostLoad call
+	static bool RequestShaderCode(const FSHAHash& Hash, FArchive* Ar);
+
+	// Request to release shader code
+	// Must match RequestShaderCode call
+	// Invalid to call before owning UObject PostLoad call
+	static void ReleaseShaderCode(const FSHAHash& Hash);
 	
 	// Create an iterator over all the shaders in the library
 	static TRefCountPtr<FRHIShaderLibrary::FShaderLibraryIterator> CreateIterator(void);

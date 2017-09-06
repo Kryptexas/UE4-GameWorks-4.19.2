@@ -2802,15 +2802,17 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		TexelFactor = 0.75f * LocalStreamingDistanceMultiplier * ComponentSizeQuads * FMath::Abs(Proxy->GetRootComponent()->RelativeScale3D.X);
 	}
 
+	ERHIFeatureLevel::Type FeatureLevel = LevelContext.GetFeatureLevel();
+
 	// TODO - LOD Materials - Currently all LOD materials are instances of [0] so have the same textures
-    UMaterialInterface* MaterialInterface = GetWorld()->FeatureLevel >= ERHIFeatureLevel::SM4 ? MaterialInstances[0] : MobileMaterialInterface;
+    UMaterialInterface* MaterialInterface = FeatureLevel >= ERHIFeatureLevel::SM4 ? MaterialInstances[0] : MobileMaterialInterface;
 
 	// Normal usage...
 	// Enumerate the textures used by the material.
 	if (MaterialInterface)
 	{
 		TArray<UTexture*> Textures;
-		MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
+		MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
 		// Add each texture to the output with the appropriate parameters.
 		// TODO: Take into account which UVIndex is being used.
 		for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++)
@@ -2876,8 +2878,6 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		}
 
 		// Lightmap
-		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
-
 		const FMeshMapBuildData* MapBuildData = GetMeshMapBuildData();
 
 		FLightMap2D* Lightmap = MapBuildData && MapBuildData->LightMap ? MapBuildData->LightMap->GetLightMap2D() : nullptr;

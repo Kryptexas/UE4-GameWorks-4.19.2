@@ -22,7 +22,9 @@
 #define TYPE_TEXT_VARIATION_URI				0x00000010
 
 // Java InputType text flags
-#define TYPE_TEXT_FLAG_NO_SUGGESTIONS		0x00080000
+
+#define TYPE_TEXT_FLAG_NO_SUGGESTIONS		0x00080001
+#define TYPE_TEXT_FLAG_MULTI_LINE			0x00020000
 
 int32 GAndroidNewKeyboard = 0;
 static FAutoConsoleVariableRef CVarAndroidNewKeyboard(
@@ -88,6 +90,8 @@ void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex,
 		if (bShow)
 		{
 			// Show alert for input
+			if (TextEntryWidget->IsMultilineEntry())
+				InputType |= TYPE_TEXT_FLAG_MULTI_LINE;
 			extern void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry>, int32, const FString&, const FString&);
 			AndroidThunkCpp_ShowVirtualKeyboardInput(TextEntryWidget, InputType, TextEntryWidget->GetHintText().ToString(), TextEntryWidget->GetText().ToString());
 		}

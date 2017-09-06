@@ -1426,6 +1426,7 @@ void FOpenGLDynamicRHI::Init()
 	VERIFY_GL_SCOPE();
 
 	FOpenGLProgramBinaryCache::Initialize();
+	FShaderCache::InitShaderCache(SCO_Default, GMaxRHIShaderPlatform);
 	FShaderCache::SetMaxShaderResources(FOpenGL::GetMaxTextureImageUnits());
 
 	InitializeStateResources();

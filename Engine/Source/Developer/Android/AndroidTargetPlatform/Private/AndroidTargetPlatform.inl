@@ -303,7 +303,7 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bPr
 }
 
 template<class TPlatformProperties>
-inline int32 FAndroidTargetPlatform<TPlatformProperties>::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath) const
+inline int32 FAndroidTargetPlatform<TPlatformProperties>::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath, FText& CustomizedLogMessage) const
 {
 	OutDocumentationPath = TEXT("Platforms/Android/GettingStarted");
 
@@ -321,6 +321,7 @@ inline int32 FAndroidTargetPlatform<TPlatformProperties>::CheckRequirements(cons
 		// need to check license was accepted
 		if (!HasLicense())
 		{
+			CustomizedLogMessage = LOCTEXT("AndroidLicenseNotAcceptedMessageDetail", "SDK License must be accepted in the Android project settings to deploy your app to the device.");
 			bReadyToBuild |= ETargetPlatformReadyStatus::LicenseNotAccepted;
 		}
 	}

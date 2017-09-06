@@ -4964,6 +4964,43 @@ bool FLinkerLoad::HasAnyObjectsPendingLoad() const
 	return false;
 }
 
+bool FLinkerLoad::AttachExternalReadDependency(FExternalReadCallback& ReadCallback)
+{
+	ExternalReadDependencies.Add(ReadCallback);
+	return true;
+}
+
+bool FLinkerLoad::FinishExternalReadDependencies(double InTimeLimit)
+{
+	double LocalStartTime = FPlatformTime::Seconds();
+	double RemainingTime = InTimeLimit;
+	
+	while (ExternalReadDependencies.Num())
+	{
+		FExternalReadCallback& ReadCallback = ExternalReadDependencies.Last();
+		
+		bool bFinished = ReadCallback(RemainingTime);
+		
+		checkf(RemainingTime > 0.0 || bFinished, TEXT("FExternalReadCallback must be finished when RemainingTime is zero"));
+
+		if (bFinished)
+		{
+			ExternalReadDependencies.RemoveAt(ExternalReadDependencies.Num() - 1);
+		}
+
+		// Update remaining time
+		if (RemainingTime > 0.0)
+		{
+			RemainingTime-= (FPlatformTime::Seconds() - LocalStartTime);
+			if (RemainingTime <= 0.0)
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 #if WITH_EDITORONLY_DATA
 /** Performs a fixup on packages' editor-only flag */
 void FixupPackageEditorOnlyFlag(FName PackageThatGotEditorOnlyFlagCleared, bool bRecursive)

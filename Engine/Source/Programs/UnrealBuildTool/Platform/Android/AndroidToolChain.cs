@@ -1363,8 +1363,7 @@ namespace UnrealBuildTool
 						}
 					}
 
-					FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
-					LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
+					string LinkResponseArguments = "";
 
 					// libs don't link in other libs
 					if (!LinkEnvironment.bIsBuildingLibrary)
@@ -1381,37 +1380,37 @@ namespace UnrealBuildTool
 								{
 									AbsoluteLibraryPath = Path.Combine(LinkerPath, AbsoluteLibraryPath);
 								}
-								LinkAction.CommandArguments += string.Format(" -L\"{0}\"", AbsoluteLibraryPath);
+								LinkResponseArguments += string.Format(" -L\"{0}\"", AbsoluteLibraryPath);
 							}
 						}
 
 						// add libraries in a library group
-						LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
+						LinkResponseArguments += string.Format(" -Wl,--start-group");
 						foreach (string AdditionalLibrary in LinkEnvironment.AdditionalLibraries)
 						{
 							if (!ShouldSkipLib(AdditionalLibrary, Arch, GPUArchitecture))
 							{
 								if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
 								{
-									LinkAction.CommandArguments += string.Format(" \"-l{0}\"", AdditionalLibrary);
+									LinkResponseArguments += string.Format(" \"-l{0}\"", AdditionalLibrary);
 								}
 								else
 								{
 									// full pathed libs are compiled by us, so we depend on linking them
-									LinkAction.CommandArguments += string.Format(" \"{0}\"", Path.GetFullPath(AdditionalLibrary));
+									LinkResponseArguments += string.Format(" \"{0}\"", Path.GetFullPath(AdditionalLibrary));
 									LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
 								}
 							}
 						}
-						LinkAction.CommandArguments += OptionalLinkArguments;
-						LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
+						LinkResponseArguments += OptionalLinkArguments;
+						LinkResponseArguments += string.Format(" -Wl,--end-group");
 
 						// Write the MAP file to the output directory.
 						if (LinkEnvironment.bCreateMapFile)
 						{
 							FileReference MAPFilePath = FileReference.Combine(LinkEnvironment.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".map");
 							FileItem MAPFile = FileItem.GetItemByFileReference(MAPFilePath);
-							LinkAction.CommandArguments += String.Format(" -Wl,--cref -Wl,-Map,{0}", MAPFilePath);
+							LinkResponseArguments += String.Format(" -Wl,--cref -Wl,-Map,{0}", MAPFilePath);
 							LinkAction.ProducedItems.Add(MAPFile);
 
 							// Export a list of object file paths, so we can locate the object files referenced by the map file
@@ -1420,7 +1419,14 @@ namespace UnrealBuildTool
 					}
 
 					// Add the additional arguments specified by the environment.
-					LinkAction.CommandArguments += LinkEnvironment.AdditionalArguments;
+					LinkResponseArguments += LinkEnvironment.AdditionalArguments;
+
+					// Write out a response file
+					FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+					InputFileNames.Add(LinkResponseArguments.Replace("\\", "/"));
+					LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
+
+					// Fix up the paths in commandline
 					LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
 
 					// Only execute linking on the local PC.

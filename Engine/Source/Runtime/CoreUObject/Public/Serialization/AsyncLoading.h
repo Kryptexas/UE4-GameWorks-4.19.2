@@ -852,7 +852,14 @@ private:
 	 *
 	 * @return true
 	 */
-	EAsyncPackageState::Type FinishObjects();	
+	EAsyncPackageState::Type FinishObjects();
+
+	/**
+	 * Finalizes external dependencies till time limit is exceeded
+	 *
+	 * @return Complete if all dependencies are finished, TimeOut otherwise
+	 */
+	EAsyncPackageState::Type FinishExternalReadDependencies();
 
 	/**
 	 * Function called when pending import package has been loaded.

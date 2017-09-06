@@ -520,6 +520,11 @@ void FShaderResource::SerializeShaderCode(FArchive& Ar)
 	if (Ar.IsLoading())
 	{
 		bCodeInSharedLocation = bCodeShared;
+
+		if (bCodeInSharedLocation)
+		{
+			FShaderCodeLibrary::RequestShaderCode(OutputHash, &Ar);
+		}
 	}
 
 	if (!bCodeShared)
@@ -549,6 +554,11 @@ void FShaderResource::Release()
 
 		Canary = FShader::ShaderMagic_CleaningUp;
 		BeginCleanup(this);
+
+		if (bCodeInSharedLocation)
+		{
+			FShaderCodeLibrary::ReleaseShaderCode(OutputHash);
+		}
 	}
 }
 
@@ -711,6 +721,12 @@ void FShaderResource::InitRHI()
 		DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 		DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, Code.GetAllocatedSize());
 		Code.Empty();
+		
+		if (bCodeInSharedLocation)
+		{
+			FShaderCodeLibrary::ReleaseShaderCode(OutputHash);
+			bCodeInSharedLocation = false;
+		}
 	}
 }
 

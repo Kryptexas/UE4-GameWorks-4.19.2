@@ -277,7 +277,15 @@ void FDefaultGameMoviePlayer::PassLoadingScreenWindowBackToGame() const
 
 void FDefaultGameMoviePlayer::SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes)
 {
-	LoadingScreenAttributes = InLoadingScreenAttributes;
+	if (!CanPlayMovie())
+	{
+		LoadingScreenAttributes = FLoadingScreenAttributes();
+		UE_LOG(LogMoviePlayer, Warning, TEXT("Initial loading screen disabled from BaseDeviceProfiles.ini: r.AndroidDisableThreadedRenderingFirstLoad=1"));
+	}
+	else
+	{
+		LoadingScreenAttributes = InLoadingScreenAttributes;
+}
 }
 
 bool FDefaultGameMoviePlayer::HasEarlyStartupMovie() const
@@ -345,6 +353,17 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 	}
 
 	return bBeganPlaying;
+}
+
+/** Check if the device can render on a parallel thread on the initial loading*/
+bool FDefaultGameMoviePlayer::CanPlayMovie() const
+{
+	const IConsoleVariable *const CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AndroidDisableThreadedRenderingFirstLoad"));
+	if (CVar && CVar->GetInt() != 0)
+	{
+		return (GEngine && GEngine->IsInitialized());
+	}
+	return true;
 }
 
 void FDefaultGameMoviePlayer::StopMovie()

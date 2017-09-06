@@ -136,6 +136,9 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) override;
 
+	/* Notifies manager that level primitives were shifted */
+	virtual void NotifyLevelOffset(ULevel* Level, const FVector& Offset) override;
+	
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor ) override;
 

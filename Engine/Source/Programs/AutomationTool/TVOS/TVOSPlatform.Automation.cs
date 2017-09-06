@@ -27,9 +27,9 @@ public class TVOSPlatform : IOSPlatform
 		TVOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate, out Team, out bAutomaticSigning);
     }
 
-	public override bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape)
+	public override bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons)
 	{
-		return TVOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape);
+		return TVOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons);
 	}
 
     public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
@@ -43,7 +43,7 @@ public class TVOSPlatform : IOSPlatform
         {
             // copy the icons/launch screens from the engine
             {
-				FileReference SourcePath = FileReference.Combine(SC.LocalRoot, "Engine", "Binaries", "TVOS", "Assets.car");
+				FileReference SourcePath = FileReference.Combine(SC.LocalRoot, "Engine", "Binaries", "TVOS", "AssetCatalog", "Assets.car");
 				if(FileReference.Exists(SourcePath))
 				{
 					SC.StageFile(StagedFileType.SystemNonUFS, SourcePath, new StagedFileReference("Assets.car"));
@@ -61,7 +61,7 @@ public class TVOSPlatform : IOSPlatform
 
             // copy the icons/launch screens from the game (may stomp the engine copies)
             {
-                FileReference SourcePath = FileReference.Combine(SC.ProjectRoot, "Binaries", "TVOS", "Assets.car");
+                FileReference SourcePath = FileReference.Combine(SC.ProjectRoot, "Binaries", "TVOS", "AssetCatalog", "Assets.car");
 				if(FileReference.Exists(SourcePath))
 				{
 	                SC.StageFile(StagedFileType.SystemNonUFS, SourcePath, new StagedFileReference("Assets.car"));
@@ -91,7 +91,8 @@ public class TVOSPlatform : IOSPlatform
 
                     bool bSupportsPortrait = false;
                     bool bSupportsLandscape = false;
-                    DeployGeneratePList(SC.RawProjectPath, TargetConfiguration, (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.EngineRoot, DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), "Binaries", "TVOS", "Payload", (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app"), out bSupportsPortrait, out bSupportsLandscape);
+                    bool bSkipIcons = false;
+                    DeployGeneratePList(SC.RawProjectPath, TargetConfiguration, (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.EngineRoot, DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), "Binaries", "TVOS", "Payload", (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app"), out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons);
                 }
 
                 SC.StageFile(StagedFileType.SystemNonUFS, TargetPListFile, new StagedFileReference("Info.plist"));

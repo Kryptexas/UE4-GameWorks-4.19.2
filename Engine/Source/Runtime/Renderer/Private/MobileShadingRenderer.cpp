@@ -226,7 +226,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
 	ConditionalResolveSceneDepth(RHICmdList, View);
 	
-	if (ViewFamily.EngineShowFlags.Decals)
+	if (ViewFamily.EngineShowFlags.Decals && !View.bIsPlanarReflection)
 	{
 		RenderDecals(RHICmdList);
 	}
@@ -238,8 +238,11 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		Scene->FXSystem->PostRenderOpaque(RHICmdList);
 	}
 
-	RenderModulatedShadowProjections(RHICmdList);
-
+	if (!View.bIsPlanarReflection)
+	{
+		RenderModulatedShadowProjections(RHICmdList);
+	}
+	
 	// Draw translucency.
 	if (ViewFamily.EngineShowFlags.Translucency)
 	{
@@ -426,7 +429,7 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 	if (IsMobileHDR() 
 		&& IsMobilePlatform(ShaderPlatform) 
 		&& !IsPCPlatform(ShaderPlatform) // exclude mobile emulation on PC
-		)
+		&& !View.bIsPlanarReflection)	// exclude depth resolve from planar reflection captures, can't do it reliably more than once per frame
 	{
 		bool bSceneDepthInAlpha = (SceneContext.GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
 		bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));

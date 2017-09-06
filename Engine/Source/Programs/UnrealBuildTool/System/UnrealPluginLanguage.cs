@@ -1251,7 +1251,15 @@ namespace UnrealBuildTool
 								// add it if not found
 								if (!bFound)
 								{
-									XMLWork.Element("manifest").Add(new XElement("uses-permission", Node.Attributes()));
+									// Get the attributes and apply any variable expansion needed
+									var AttributeList = Node.Attributes().ToList();
+									foreach (var Attribute in AttributeList)
+									{
+										string NewValue = ExpandVariables(CurrentContext, Attribute.Value);
+										Attribute.SetValue(NewValue);
+									}
+
+									XMLWork.Element("manifest").Add(new XElement("uses-permission", AttributeList));
 								}
 							}
 						}
@@ -1301,7 +1309,15 @@ namespace UnrealBuildTool
 								// add it if not found
 								if (!bFound)
 								{
-									XMLWork.Element("manifest").Add(new XElement("uses-feature", Node.Attributes()));
+									// Get the attributes and apply any variable expansion needed
+									var AttributeList = Node.Attributes().ToList();
+									foreach (var Attribute in AttributeList)
+									{
+										string NewValue = ExpandVariables(CurrentContext, Attribute.Value);
+										Attribute.SetValue(NewValue);
+									}
+
+									XMLWork.Element("manifest").Add(new XElement("uses-feature", AttributeList));
 								}
 							}
 						}
@@ -1351,7 +1367,15 @@ namespace UnrealBuildTool
 								// add it if not found
 								if (!bFound)
 								{
-									XMLWork.Element("manifest").Element("application").Add(new XElement("uses-library", Node.Attributes()));
+									// Get the attributes and apply any variable expansion needed
+									var AttributeList = Node.Attributes().ToList();
+									foreach (var Attribute in AttributeList)
+									{
+										string NewValue = ExpandVariables(CurrentContext, Attribute.Value);
+										Attribute.SetValue(NewValue);
+									}
+
+									XMLWork.Element("manifest").Element("application").Add(new XElement("uses-library", AttributeList));
 								}
 							}
 						}
@@ -1651,6 +1675,7 @@ namespace UnrealBuildTool
 											"\t\t{\n";
 								if (FailMsg != null)
 								{
+									Work += "\t\t\tLog.debug(e.toString());\n";
 									Work += "\t\t\tLog.debug(\"" + FailMsg + "\");\n";
 								}
 								GlobalContext.StringVariables["Output"] += Work + "\t\t}\n";

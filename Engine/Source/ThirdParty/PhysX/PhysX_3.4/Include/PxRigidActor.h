@@ -25,7 +25,7 @@
 //
 // Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
-// Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
+// Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
 
 #ifndef PX_PHYSICS_NX_RIGIDACTOR
@@ -59,7 +59,7 @@ class PxRigidActor : public PxActor
 public:
 	/**
 	\brief Deletes the rigid actor object.
-	
+
 	Also releases any shapes associated with the actor.
 
 	Releasing an actor will affect any objects that are connected to the actor (constraint shaders like joints etc.).
@@ -89,24 +89,24 @@ public:
 
 	@see PxRigidDynamic.setGlobalPose() PxRigidStatic.setGlobalPose()
 	*/
-	virtual		PxTransform 	getGlobalPose()		const = 0;
+	virtual		PxTransform		getGlobalPose()		const = 0;
 
 	/**
 	\brief Method for setting an actor's pose in the world.
 
-	This method instantaneously changes the actor space to world space transformation. 
+	This method instantaneously changes the actor space to world space transformation.
 
-	This method is mainly for dynamic rigid bodies (see #PxRigidDynamic). Calling this method on static actors is 
-	likely to result in a performance penalty, since internal optimization structures for static actors may need to be 
-	recomputed. In addition, moving static actors will not interact correctly with dynamic actors or joints. 
-	
-	To directly control an actor's position and have it correctly interact with dynamic bodies and joints, create a dynamic 
+	This method is mainly for dynamic rigid bodies (see #PxRigidDynamic). Calling this method on static actors is
+	likely to result in a performance penalty, since internal optimization structures for static actors may need to be
+	recomputed. In addition, moving static actors will not interact correctly with dynamic actors or joints.
+
+	To directly control an actor's position and have it correctly interact with dynamic bodies and joints, create a dynamic
 	body with the PxRigidBodyFlag::eKINEMATIC flag, then use the setKinematicTarget() commands to define its path.
 
 	Even when moving dynamic actors, exercise restraint in making use of this method. Where possible, avoid:
-	
+
 	\li moving actors into other actors, thus causing overlap (an invalid physical state)
-	
+
 	\li moving an actor that is connected by a joint to another away from the other (thus causing joint error)
 
 	<b>Sleeping:</b> This call wakes dynamic actors if they are sleeping and the autowake parameter is true (default).
@@ -126,7 +126,7 @@ public:
 
 	/**
 	\brief Creates a new shape with default properties and a list of materials and adds it to the list of shapes of this actor.
-	
+
 	This is equivalent to the following
 
 	PxShape* shape(...) = PxGetPhysics().createShape(...);	// reference count is 1
@@ -136,7 +136,7 @@ public:
 	As a consequence, detachShape() will result in the release of the last reference, and the shape will be deleted.
 
 	\note The default shape flags to be set are: eVISUALIZATION, eSIMULATION_SHAPE, eSCENE_QUERY_SHAPE (see #PxShapeFlag).
-	Triangle mesh, heightfield or plane geometry shapes configured as eSIMULATION_SHAPE are not supported for 
+	Triangle mesh, heightfield or plane geometry shapes configured as eSIMULATION_SHAPE are not supported for
 	non-kinematic PxRigidDynamic instances.
 
 	\note Creating compounds with a very large number of shapes may adversely affect performance and stability.
@@ -169,7 +169,7 @@ public:
 	As a consequence, detachShape() will result in the release of the last reference, and the shape will be deleted.
 
 	\note The default shape flags to be set are: eVISUALIZATION, eSIMULATION_SHAPE, eSCENE_QUERY_SHAPE (see #PxShapeFlag).
-	Triangle mesh, heightfield or plane geometry shapes configured as eSIMULATION_SHAPE are not supported for 
+	Triangle mesh, heightfield or plane geometry shapes configured as eSIMULATION_SHAPE are not supported for
 	non-kinematic PxRigidDynamic instances.
 
 	\note Creating compounds with a very large number of shapes may adversely affect performance and stability.
@@ -193,15 +193,15 @@ public:
 		return createShape(geometry, &materialPtr, 1, shapeFlags);
 	}
 
-	/** attach a shared shape to an actor 
+	/** attach a shared shape to an actor
 
 	This call will increment the reference count of the shape.
 
-	\note Mass properties of dynamic rigid actors will not automatically be recomputed 
-	to reflect the new mass distribution implied by the shape. Follow this call with a call to 
+	\note Mass properties of dynamic rigid actors will not automatically be recomputed
+	to reflect the new mass distribution implied by the shape. Follow this call with a call to
 	the PhysX extensions method #PxRigidBodyExt::updateMassAndInertia() to do that.
 
-	Attaching a triangle mesh, heightfield or plane geometry shape configured as eSIMULATION_SHAPE is not supported for 
+	Attaching a triangle mesh, heightfield or plane geometry shape configured as eSIMULATION_SHAPE is not supported for
 	non-kinematic PxRigidDynamic instances.
 
 
@@ -213,8 +213,8 @@ public:
 	virtual void				attachShape(PxShape& shape) = 0;
 
 
-	/** detach a shape from an actor. 
-	
+	/** detach a shape from an actor.
+
 	This will also decrement the reference count of the PxShape, and if the reference count is zero, will cause it to be deleted.
 
 	<b>Sleeping:</b> Does <b>NOT</b> wake the actor up automatically.
@@ -292,6 +292,10 @@ protected:
 	PX_INLINE					PxRigidActor(PxType concreteType, PxBaseFlags baseFlags) : PxActor(concreteType, baseFlags) {}
 	PX_INLINE					PxRigidActor(PxBaseFlags baseFlags) : PxActor(baseFlags) {}
 	virtual						~PxRigidActor()	{}
+
+#if __EMSCRIPTEN__
+public:
+#endif
 	virtual		bool			isKindOf(const char* name)	const	{	return !::strcmp("PxRigidActor", name) || PxActor::isKindOf(name); }
 };
 

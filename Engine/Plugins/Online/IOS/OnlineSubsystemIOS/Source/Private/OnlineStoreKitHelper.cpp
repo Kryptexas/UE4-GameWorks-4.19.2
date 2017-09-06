@@ -179,7 +179,7 @@ FStoreKitTransactionData::FStoreKitTransactionData(const SKPaymentTransaction* T
 		{
 			StoreInterface->CachedPurchaseRestoreObject->ReadState = EOnlineAsyncTaskState::Done;
 		}
-		StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(EInAppPurchaseState::Restored);
+		StoreInterface->ProcessRestorePurchases(EInAppPurchaseState::Restored);
 		
 		return true;
 	}];
@@ -214,7 +214,7 @@ FStoreKitTransactionData::FStoreKitTransactionData(const SKPaymentTransaction* T
 			StoreInterface->CachedPurchaseRestoreObject->ReadState = EOnlineAsyncTaskState::Done;
 		}
  
-		StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(CompletionState);
+		StoreInterface->ProcessRestorePurchases(CompletionState);
 	 
 		return true;
 	 }];

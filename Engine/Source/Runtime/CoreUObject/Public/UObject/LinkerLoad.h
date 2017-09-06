@@ -147,6 +147,11 @@ public:
 	*/
 	TArray<FPackageIndex> PreloadDependencies;
 
+	/**
+	*  List of external read dependencies that must be finished to load this package
+	*/
+	TArray<FExternalReadCallback> ExternalReadDependencies;
+
 	/** 
 	 * Utility functions to query the object name redirects list for previous names for a class
 	 * @param CurrentClassPath The current name of the class, with a full path
@@ -561,6 +566,20 @@ public:
 
 	/** Used by Matinee to fixup component renaming */
 	COREUOBJECT_API static FName FindSubobjectRedirectName(const FName& Name, UClass* Class);
+
+	/** 
+	 * Adds external read dependency 
+	 *
+	 * @return true if dependency has been added
+	 */
+	virtual bool AttachExternalReadDependency(FExternalReadCallback& ReadCallback) override;
+
+	/**
+	 * Finalizes external dependencies till time limit is exceeded
+	 *
+	 * @return true if all dependencies are finished, false otherwise
+	 */
+	bool FinishExternalReadDependencies(double TimeLimit);
 
 private:
 #if WITH_EDITOR

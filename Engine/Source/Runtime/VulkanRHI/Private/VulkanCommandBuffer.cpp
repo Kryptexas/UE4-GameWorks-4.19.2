@@ -21,6 +21,10 @@ static FAutoConsoleVariableRef CVarVulkanUseSingleQueue(
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferPool* InCommandBufferPool)
 	: bNeedsDynamicStateSet(true)
 	, bHasPipeline(false)
+	, bHasViewport(false)
+	, bHasScissor(false)
+	, bHasStencilRef(false)
+	, CurrentStencilRef(0)
 	, Device(InDevice)
 	, CommandBufferHandle(VK_NULL_HANDLE)
 	, State(EState::ReadyForBegin)
@@ -28,6 +32,9 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 	, FenceSignaledCounter(0)
 	, CommandBufferPool(InCommandBufferPool)
 {
+	FMemory::Memzero(CurrentViewport);
+	FMemory::Memzero(CurrentScissor);
+	
 	VkCommandBufferAllocateInfo CreateCmdBufInfo;
 	FMemory::Memzero(CreateCmdBufInfo);
 	CreateCmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -63,7 +70,7 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 {
 	check(IsOutsideRenderPass());
 
-	VkRenderPassBeginInfo Info;
+    VkRenderPassBeginInfo Info;
 	FMemory::Memzero(Info);
 	Info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	Info.renderPass = RenderPass->GetHandle();
@@ -104,6 +111,14 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 		{
 			State = EState::ReadyForBegin;
 			bHasPipeline = false;
+			bHasViewport = false;
+			bHasScissor = false;
+			bHasStencilRef = false;
+
+			FMemory::Memzero(CurrentViewport);
+			FMemory::Memzero(CurrentScissor);
+			CurrentStencilRef = 0;
+
 			VulkanRHI::vkResetCommandBuffer(CommandBufferHandle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 #if VULKAN_REUSE_FENCES
 			Fence->GetOwner()->ResetFence(Fence);

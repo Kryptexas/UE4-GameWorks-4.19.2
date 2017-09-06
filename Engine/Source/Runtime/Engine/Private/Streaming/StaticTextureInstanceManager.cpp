@@ -121,3 +121,13 @@ uint32 FStaticTextureInstanceManager::GetAllocatedSize() const
 	const FTextureInstanceState* State = StateSync.GetState();
 	return  State ? (sizeof(FTextureInstanceState) + State->GetAllocatedSize()) : 0;
 }
+
+
+void FStaticTextureInstanceManager::OffsetBounds(const FVector& Offset)
+{
+	FTextureInstanceState* State = StateSync.SyncAndGetState();
+	if (State)
+	{
+		State->OffsetBounds(Offset);
+	}
+}

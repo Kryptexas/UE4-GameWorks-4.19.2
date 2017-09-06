@@ -133,9 +133,14 @@ static TAutoConsoleVariable<int32> CVarEnableSustainedPerformanceMode(
 extern void AndroidThunkCpp_SetSustainedPerformanceMode(bool);
 static void SetSustainedPerformanceMode()
 {
-	bool bSustainedPerformanceMode = CVarEnableSustainedPerformanceMode.GetValueOnAnyThread() != 0;
-	UE_LOG(LogAndroid, Log, TEXT("Setting sustained performance mode: %d"), (int32)bSustainedPerformanceMode);
-	AndroidThunkCpp_SetSustainedPerformanceMode(bSustainedPerformanceMode);
+	static bool bSustainedPerformanceMode = false;
+	bool bIncomingSustainedPerformanceMode = CVarEnableSustainedPerformanceMode.GetValueOnAnyThread() != 0;
+	if(bSustainedPerformanceMode != bIncomingSustainedPerformanceMode)
+	{
+		bSustainedPerformanceMode = bIncomingSustainedPerformanceMode;
+		UE_LOG(LogAndroid, Log, TEXT("Setting sustained performance mode: %d"), (int32)bSustainedPerformanceMode);
+		AndroidThunkCpp_SetSustainedPerformanceMode(bSustainedPerformanceMode);
+	}
 }
 FAutoConsoleVariableSink CVarEnableSustainedPerformanceModeSink(FConsoleCommandDelegate::CreateStatic(&SetSustainedPerformanceMode));
 

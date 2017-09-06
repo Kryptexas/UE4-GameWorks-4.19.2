@@ -10,20 +10,31 @@
 
 uint32 FShaderDrawKey::CurrentMaxResources = EShaderCacheMaxNumResources;
 
-FArchive& operator<<( FArchive& Ar, FShaderCaches& Info )
+FArchive& operator<<( FArchive& Ar, FShaderPlatformCache& Info )
 {
 	uint32 CacheVersion = Ar.IsLoading() ? ((uint32)~0u) : ((uint32)FShaderCacheCustomVersion::Latest);
 	uint32 GameVersion = Ar.IsLoading() ? ((uint32)~0u) : ((uint32)FShaderCache::GetGameVersion());
-	
+
 	Ar << CacheVersion;
-	if ( !Ar.IsError() && CacheVersion == FShaderCacheCustomVersion::Latest )
+	if (!Ar.IsError() && CacheVersion == FShaderCacheCustomVersion::Latest)
 	{
 		Ar << GameVersion;
-		
-		if ( !Ar.IsError() && GameVersion == FShaderCache::GetGameVersion() )
+		if (!Ar.IsError() && GameVersion == FShaderCache::GetGameVersion())
 		{
+			uint8 ShaderPlatform = (uint8)Info.ShaderPlatform;
+			Ar << ShaderPlatform;
+			Info.ShaderPlatform = (EShaderPlatform)ShaderPlatform;
 			
-			Ar << Info.PlatformCaches;
+			Ar << Info.Shaders; 
+			Ar << Info.BoundShaderStates; 
+			Ar << Info.DrawStates; 
+			Ar << Info.RenderTargets; 
+			Ar << Info.Resources; 
+			Ar << Info.SamplerStates; 
+			Ar << Info.PreDrawEntries; 
+			Ar << Info.ShaderStateMembership; 
+			Ar << Info.StreamingDrawStates;
+			Ar << Info.PipelineStates;
 		}
 	}
 	return Ar;

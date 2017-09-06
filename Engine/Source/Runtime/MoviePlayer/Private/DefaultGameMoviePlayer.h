@@ -123,6 +123,9 @@ private:
 	
 	/** Called via a delegate in the engine when maps finish loading */
 	void OnPostLoadMap(UWorld* LoadedWorld);
+	
+	/** Check if the device can render on a parallel thread on the initial loading*/
+	bool CanPlayMovie() const;
 private:
 	FDefaultGameMoviePlayer();
 

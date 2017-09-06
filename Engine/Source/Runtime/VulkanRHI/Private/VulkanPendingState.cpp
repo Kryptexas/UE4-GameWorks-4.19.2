@@ -254,24 +254,31 @@ void FVulkanPendingGfxState::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd)
 {
 	bool bInCmdNeedsDynamicState = Cmd->bNeedsDynamicStateSet;
 
+	bool bNeedsUpdateViewport = !Cmd->bHasViewport || (Cmd->bHasViewport && FMemory::Memcmp((const void*)&Cmd->CurrentViewport, (const void*)&Viewport, sizeof(VkViewport)) != 0);
 	// Validate and update Viewport
-	if ((NeedsUpdateMask & ENeedsViewport) == ENeedsViewport || bInCmdNeedsDynamicState)
+	if (bNeedsUpdateViewport)
 	{
 		ensure(Viewport.width > 0 || Viewport.height > 0);
 		VulkanRHI::vkCmdSetViewport(Cmd->GetHandle(), 0, 1, &Viewport);
+		FMemory::Memcpy(Cmd->CurrentViewport, Viewport);
+		Cmd->bHasViewport = true;
 	}
 
-	// Validate and update scissor rect
-	if ((NeedsUpdateMask & ENeedsScissor) == ENeedsScissor || bInCmdNeedsDynamicState)
+	bool bNeedsUpdateScissor = !Cmd->bHasScissor || (Cmd->bHasScissor && FMemory::Memcmp((const void*)&Cmd->CurrentScissor, (const void*)&Scissor, sizeof(VkRect2D)) != 0);
+	if (bNeedsUpdateScissor)
 	{
 		VulkanRHI::vkCmdSetScissor(Cmd->GetHandle(), 0, 1, &Scissor);
+		FMemory::Memcpy(Cmd->CurrentScissor, Scissor);
+		Cmd->bHasScissor = true;
 	}
 
-	if ((NeedsUpdateMask & ENeedsStencilRef) == ENeedsStencilRef || bInCmdNeedsDynamicState)
+	bool bNeedsUpdateStencil = !Cmd->bHasStencilRef || (Cmd->bHasStencilRef && Cmd->CurrentStencilRef != StencilRef);
+	if (bNeedsUpdateStencil)
 	{
 		VulkanRHI::vkCmdSetStencilReference(Cmd->GetHandle(), VK_STENCIL_FRONT_AND_BACK, StencilRef);
+		Cmd->CurrentStencilRef = StencilRef;
+		Cmd->bHasStencilRef = true;
 	}
 
-	NeedsUpdateMask = 0;
 	Cmd->bNeedsDynamicStateSet = false;
 }

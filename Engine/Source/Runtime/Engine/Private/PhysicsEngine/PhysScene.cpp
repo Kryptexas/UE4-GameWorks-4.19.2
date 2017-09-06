@@ -353,7 +353,7 @@ class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 	virtual void submitTask(PxBaseTask& Task) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_PhysXSingleThread);
-		
+
 		if(!IsClothDispatcher)
 		{
 			// Clothing will always be running from a worker, and the tasks
@@ -375,7 +375,7 @@ class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 			Task.run();
 			Task.release();
 		}
-		
+
 		while (TaskStack.Num() > 1)
 		{
 			PxBaseTask& ChildTask = *TaskStack.Pop();
@@ -442,7 +442,7 @@ FPhysScene::FPhysScene()
 	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
 
 	PhysXTreeRebuildRate = PhysSetting->PhysXTreeRebuildRate;
-	
+
 	// Create scenes of all scene types
 	for (uint32 SceneType = 0; SceneType < NumPhysScenes; ++SceneType)
 	{
@@ -587,7 +587,7 @@ void FPhysScene::SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, c
 			const PxTransform PNewPose = U2PTransform(TargetTransform);
 			PRigidDynamic->setKinematicTarget(PNewPose);	//If we interpolate, we will end up setting the kinematic target once per sub-step. However, for the sake of scene queries we should do this right away
 		}
-		else 
+		else
 		{
 			const PxTransform PNewPose = U2PTransform(TargetTransform);
 			PRigidDynamic->setGlobalPose(PNewPose);
@@ -704,7 +704,7 @@ void FPhysScene::RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uin
 	{
 		RemoveActiveRigidActor(SceneType, RigidActor);
 	}
-	
+
 
 	PendingSleepEvents[SceneType].Remove(BodyInstance->GetPxRigidActorFromScene_AssumesLocked(SceneType));
 }
@@ -829,7 +829,7 @@ void GatherPhysXStats_AssumesLocked(PxScene* PSyncScene, PxScene* PAsyncScene)
 		SET_DWORD_STAT(STAT_NumActiveKinematicBodies, SimStats.nbActiveKinematicBodies);
 		SET_DWORD_STAT(STAT_NumStaticBodies, SimStats.nbStaticBodies);
 		SET_DWORD_STAT(STAT_NumMobileBodies, SimStats.nbDynamicBodies);
-			
+
 		//SET_DWORD_STAT(STAT_NumBroadphaseAdds, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));	//TODO: These do not seem to work
 		//SET_DWORD_STAT(STAT_NumBroadphaseRemoves, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
 
@@ -904,7 +904,7 @@ void GatherClothingStats(const UWorld* World)
 		for (TObjectIterator<USkeletalMeshComponent> Itr; Itr; ++Itr)
 		{
 			if (Itr->GetWorld() != World) { continue; }
-			
+
 			if(const IClothingSimulation* Simulation = Itr->GetClothingSimulation())
 			{
 				Simulation->GatherStats();
@@ -982,7 +982,7 @@ void FPhysScene::UpdateKinematicsOnDeferredSkelMeshes()
 		SkelComp->UpdateKinematicBonesToAnim(SkelComp->GetComponentSpaceTransforms(), Info.TeleportType, Info.bNeedsSkinning, EAllowKinematicDeferral::DisallowDeferral);
 
 		// Clear deferred flag
-		SkelComp->bDeferredKinematicUpdate = false; 
+		SkelComp->bDeferredKinematicUpdate = false;
 	}
 
 	// Empty map now all is done
@@ -1236,17 +1236,23 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 #if WITH_PHYSX
 	PxScene* PScene = GetPhysXScene(SceneType);
 	check(PScene);
-	
+
 	/** Array of custom sync handlers (plugins) */
 	TArray<FCustomPhysXSyncActors*> CustomPhysXSyncActors;
 
 	PxU32 NumActors = 0;
 	PxActor** PActiveActors = PScene->getActiveActors(NumActors);
-	
+
 	for (PxU32 TransformIdx = 0; TransformIdx < NumActors; ++TransformIdx)
 	{
 		PxActor* PActiveActor = PActiveActors[TransformIdx];
+#if PLATFORM_HTML5
+		// emscripten doesn't seem to know how to look at <PxRigidActor> from the PxActor class...
+		PxRigidActor* XRigidActor = static_cast<PxRigidActor*>(PActiveActor); // is()
+		PxRigidActor* RigidActor = XRigidActor->PxRigidActor::isKindOf(PxTypeInfo<PxRigidActor>::name()) ? XRigidActor : NULL; // typeMatch<T>()
+#else
 		PxRigidActor* RigidActor = PActiveActor->is<PxRigidActor>();
+#endif
 
 		if (IgnoreActiveActors[SceneType].Find(RigidActor) != INDEX_NONE)
 		{
@@ -1637,7 +1643,7 @@ DECLARE_CYCLE_STAT(TEXT("EnsureCollisionTreeIsBuilt"), STAT_PhysicsEnsureCollisi
 void FPhysScene::EnsureCollisionTreeIsBuilt(UWorld* World)
 {
 	check(IsInGameThread());
-	
+
 
 	SCOPE_CYCLE_COUNTER(STAT_PhysicsEnsureCollisionTreeIsBuilt);
 	//We have to call fetchResults several times to update the internal data structures. PhysX doesn't have an API for this so we have to make all actors sleep before doing this
@@ -1701,7 +1707,7 @@ PxScene* FPhysScene::GetPhysXScene(uint32 SceneType) const
 	{
 		return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
 	}
-	
+
 	return nullptr;
 }
 
@@ -1714,7 +1720,7 @@ apex::Scene* FPhysScene::GetApexScene(uint32 SceneType) const
 	}
 
 	return nullptr;
-	
+
 }
 #endif // WITH_APEX
 
@@ -1933,7 +1939,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	{
 		PSceneDesc.flags |= PxSceneFlag::eREQUIRE_RW_LOCK;
 	}
-	
+
 #endif
 
 	if(!UPhysicsSettings::Get()->bDisableActiveActors)
@@ -1949,7 +1955,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 		PSceneDesc.flags |= PxSceneFlag::eENABLE_CCD;
 	}
 
-	// Need to turn this on to consider kinematics turning into dynamic. Otherwise, you'll need to call resetFiltering to do the expensive broadphase reinserting 
+	// Need to turn this on to consider kinematics turning into dynamic. Otherwise, you'll need to call resetFiltering to do the expensive broadphase reinserting
 	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_STATIC_PAIRS;
 	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_PAIRS;	//this is only needed for destruction, but unfortunately this flag cannot be modified after creation and the plugin has no hook (yet)
 
@@ -1977,7 +1983,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Build the APEX scene descriptor for the PhysX scene
 	apex::SceneDesc ApexSceneDesc;
 	ApexSceneDesc.scene = PScene;
-	// This interface allows us to modify the PhysX simulation filter shader data with contact pair flags 
+	// This interface allows us to modify the PhysX simulation filter shader data with contact pair flags
 	ApexSceneDesc.physX3Interface = GPhysX3Interface;
 
 	// Create the APEX scene from our descriptor
@@ -2070,7 +2076,7 @@ FConstraintBrokenDelegateData::FConstraintBrokenDelegateData(FConstraintInstance
 	: OnConstraintBrokenDelegate(ConstraintInstance->OnConstraintBrokenDelegate)
 	, ConstraintIndex(ConstraintInstance->ConstraintIndex)
 {
-	
+
 }
 
 #if WITH_PHYSX
@@ -2104,7 +2110,7 @@ void FPhysScene::FDeferredSceneData::FlushDeferredActors_AssumesLocked(PxScene* 
 			}
 		}
 
-		
+
 		int32 Idx = -1;
 		for (FBodyInstance* Instance : AddInstances)
 		{

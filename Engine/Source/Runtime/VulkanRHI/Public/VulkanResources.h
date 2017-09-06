@@ -787,6 +787,8 @@ struct FVulkanBufferView : public FRHIResource, public VulkanRHI::FDeviceChild
 		: VulkanRHI::FDeviceChild(InDevice)
 		, View(VK_NULL_HANDLE)
 		, Flags(0)
+        , Offset(0)
+        , Size(0)
 	{
 	}
 
@@ -802,6 +804,10 @@ struct FVulkanBufferView : public FRHIResource, public VulkanRHI::FDeviceChild
 
 	VkBufferView View;
 	VkFlags Flags;
+
+    // For Caching
+    uint32 Offset;
+    uint32 Size;
 };
 
 class FVulkanBuffer : public FRHIResource
@@ -946,6 +952,16 @@ public:
 	void* Lock(bool bFromRenderingThread, EResourceLockMode LockMode, uint32 Size, uint32 Offset);
 	void Unlock(bool bFromRenderingThread);
 
+    inline int32 GetNumberBuffers() const
+    {
+        return NumBuffers;
+    }
+
+    inline uint32 GetBufferIndex() const
+    {
+        return DynamicBufferIndex;
+    }
+
 protected:
 	uint32 UEUsage;
 	VkBufferUsageFlags BufferUsageFlags;
@@ -1050,15 +1066,20 @@ public:
 		, BufferViewFormat(PF_Unknown)
 		, MipLevel(0)
 		, NumMips(-1)
+		, BufferViewIndex(0)
 		, VolatileLockCounter(MAX_uint32)
 	{
 	}
 
 	void UpdateView();
 
-	// The vertex buffer this SRV comes from (can be null)
-	TRefCountPtr<FVulkanBufferView> BufferView;
-	TRefCountPtr<FVulkanVertexBuffer> SourceVertexBuffer;
+    inline FVulkanBufferView* GetBufferView()
+    {
+        check(BufferViews.Num() > BufferViewIndex);
+        return BufferViews[BufferViewIndex];
+    }
+
+   	TRefCountPtr<FVulkanVertexBuffer> SourceVertexBuffer;
 	TRefCountPtr<FVulkanIndexBuffer> SourceIndexBuffer;
 	EPixelFormat BufferViewFormat;
 
@@ -1072,6 +1093,10 @@ public:
 	~FVulkanShaderResourceView();
 
 protected:
+	// The vertex buffer this SRV comes from (can be null)
+	TArray<TRefCountPtr<FVulkanBufferView>> BufferViews;
+    int32 BufferViewIndex;
+
 	// Used to check on volatile buffers if a new BufferView is required
 	uint32 VolatileLockCounter;
 };

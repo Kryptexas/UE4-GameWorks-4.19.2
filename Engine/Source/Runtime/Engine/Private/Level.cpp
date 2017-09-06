@@ -2019,15 +2019,6 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset);
 
-	if (!InWorldOffset.IsZero())
-	{
-		// Re-add level data to a manager, in case level is visible it this point
-		if (bIsVisible)
-		{
-			IStreamingManager::Get().AddLevel( this );
-		}
-	}
-
 	// Move precomputed light samples
 	if (PrecomputedLightVolume && !InWorldOffset.IsZero())
 	{
@@ -2111,6 +2102,12 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 		}
 	}
 
+	if (!InWorldOffset.IsZero()) 
+	{
+		// Notify streaming managers that level primitives were shifted
+		IStreamingManager::Get().NotifyLevelOffset(this, InWorldOffset);		
+	}
+	
 	FWorldDelegates::PostApplyLevelOffset.Broadcast(this, OwningWorld, InWorldOffset, bWorldShift);
 }
 

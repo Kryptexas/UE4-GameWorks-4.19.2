@@ -217,6 +217,7 @@ protected:
 			: CurrentRenderPass(nullptr)
 			, PreviousRenderPass(nullptr)
 			, CurrentFramebuffer(nullptr)
+            , TexturesHash(0)
 		{
 		}
 
@@ -228,7 +229,7 @@ protected:
 			FVulkanRenderPass** FoundRenderPass = nullptr;
 			{
 				FScopeLock Lock(&RenderPassesCS);
-				FoundRenderPass = RenderPasses.Find(RTLayoutHash);
+				FoundRenderPass = RenderPasses.Find(RTLayout.RenderPassHash);
 			}
 			if (FoundRenderPass)
 			{
@@ -238,7 +239,7 @@ protected:
 			FVulkanRenderPass* RenderPass = new FVulkanRenderPass(InDevice, RTLayout);
 			{
 				FScopeLock Lock(&RenderPassesCS); 
-				RenderPasses.Add(RTLayoutHash, RenderPass);
+				RenderPasses.Add(RTLayout.RenderPassHash, RenderPass);
 			}
 			return RenderPass;
 		}
@@ -249,6 +250,7 @@ protected:
 		FVulkanRenderPass* CurrentRenderPass;
 		FVulkanRenderPass* PreviousRenderPass;
 		FVulkanFramebuffer* CurrentFramebuffer;
+        uint32 TexturesHash;
 
 		struct FFlushMipsInfo
 		{
@@ -260,12 +262,8 @@ protected:
 
 		TMap<uint32, FVulkanRenderPass*> RenderPasses;
 		FCriticalSection RenderPassesCS;
-
-		struct FFramebufferList
-		{
-			TArray<FVulkanFramebuffer*> Framebuffer;
-		};
-		TMap<uint32, FFramebufferList*> Framebuffers;
+		
+		TMap<uint32, FVulkanFramebuffer*> Framebuffers;
 
 		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, VkImage Image);
 

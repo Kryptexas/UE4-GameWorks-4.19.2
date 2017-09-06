@@ -1738,18 +1738,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	});
 #endif	// USE_LOCALIZED_PACKAGE_CACHE
 
-
-	// Without optimisation the shader loading can be so slow we mustn't attempt to preload all the shaders at load.
-	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
-	if (CVar->GetInt() == 0)
-	{
-		FShaderCache::InitShaderCache(SCO_NoShaderPreload);
-	}
-	else
-	{
-		FShaderCache::InitShaderCache(SCO_Default);
-	}
-
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
 

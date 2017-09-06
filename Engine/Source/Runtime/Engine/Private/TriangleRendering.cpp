@@ -247,7 +247,7 @@ bool FCanvasTriangleRendererItem::Render_RenderThread(FRHICommandListImmediate& 
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverlayColor = FLinearColor::White;
 
-	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && IsMobileHDR();
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && XOR(IsMobileHDR(), Canvas->GetAllowSwitchVerticalAxis());
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
@@ -315,7 +315,7 @@ bool FCanvasTriangleRendererItem::Render_GameThread(const FCanvas* Canvas)
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
-	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && IsMobileHDR();
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && XOR(IsMobileHDR(),Canvas->GetAllowSwitchVerticalAxis());
 
 	struct FDrawTriangleParameters
 	{

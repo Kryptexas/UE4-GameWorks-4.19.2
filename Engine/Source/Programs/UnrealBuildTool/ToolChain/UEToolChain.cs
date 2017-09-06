@@ -111,5 +111,10 @@ namespace UnrealBuildTool
 		{
 
 		}
+
+        public virtual string GetSDKVersion()
+        {
+            return "Not Applicable";
+        }
 	};
 }

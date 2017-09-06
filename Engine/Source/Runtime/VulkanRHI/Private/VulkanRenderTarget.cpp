@@ -44,44 +44,20 @@ void FVulkanCommandListContext::FTransitionState::Destroy(FVulkanDevice& InDevic
 
 	for (auto& Pair : Framebuffers)
 	{
-		FFramebufferList* List = Pair.Value;
-		for (int32 Index = List->Framebuffer.Num() - 1; Index >= 0; --Index)
-		{
-			List->Framebuffer[Index]->Destroy(InDevice);
-			delete List->Framebuffer[Index];
-		}
-		delete List;
+		Pair.Value->Destroy(InDevice);
+		delete Pair.Value;
 	}
 	Framebuffers.Reset();
 }
 
 FVulkanFramebuffer* FVulkanCommandListContext::FTransitionState::GetOrCreateFramebuffer(FVulkanDevice& InDevice, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass)
 {
-	uint32 RTLayoutHash = RTLayout.GetHash();
-
-	FFramebufferList** FoundFramebufferList = Framebuffers.Find(RTLayoutHash);
-	FFramebufferList* FramebufferList = nullptr;
-	if (FoundFramebufferList)
+	FVulkanFramebuffer** Framebuffer = Framebuffers.Find(RTLayout.FramebufferHash);
+	if (Framebuffer == nullptr)
 	{
-		FramebufferList = *FoundFramebufferList;
-
-		for (int32 Index = 0; Index < FramebufferList->Framebuffer.Num(); ++Index)
-		{
-			if (FramebufferList->Framebuffer[Index]->Matches(RenderTargetsInfo))
-			{
-				return FramebufferList->Framebuffer[Index];
-			}
-		}
+		Framebuffer = &Framebuffers.Add(RTLayout.FramebufferHash, new FVulkanFramebuffer(InDevice, RenderTargetsInfo, RTLayout, *RenderPass));
 	}
-	else
-	{
-		FramebufferList = new FFramebufferList;
-		Framebuffers.Add(RTLayoutHash, FramebufferList);
-	}
-
-	FVulkanFramebuffer* Framebuffer = new FVulkanFramebuffer(InDevice, RenderTargetsInfo, RTLayout, *RenderPass);
-	FramebufferList->Framebuffer.Add(Framebuffer);
-	return Framebuffer;
+	return *Framebuffer;
 }
 
 FVulkanRenderPass* FVulkanCommandListContext::PrepareRenderPassForPSOCreation(const FGraphicsPipelineStateInitializer& Initializer)
@@ -92,10 +68,8 @@ FVulkanRenderPass* FVulkanCommandListContext::PrepareRenderPassForPSOCreation(co
 
 FVulkanRenderPass* FVulkanCommandListContext::PrepareRenderPassForPSOCreation(const FVulkanRenderTargetLayout& RTLayout)
 {
-	const uint32 RTLayoutHash = RTLayout.GetHash();
-
 	FVulkanRenderPass* RenderPass = nullptr;
-	RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
+	RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayout.RenderPassHash);
 	return RenderPass;
 }
 
@@ -195,6 +169,7 @@ void FVulkanCommandListContext::FTransitionState::BeginRenderPass(FVulkanCommand
 
 	CurrentFramebuffer = Framebuffer;
 	CurrentRenderPass = RenderPass;
+    TexturesHash = RTLayout.TexturesHash;
 }
 
 void FVulkanCommandListContext::FTransitionState::EndRenderPass(FVulkanCmdBuffer* CmdBuffer)
@@ -209,27 +184,17 @@ void FVulkanCommandListContext::FTransitionState::NotifyDeletedRenderTarget(FVul
 {
 	for (auto It = Framebuffers.CreateIterator(); It; ++It)
 	{
-		FFramebufferList* List = It->Value;
-		for (int32 Index = List->Framebuffer.Num() - 1; Index >= 0; --Index)
+		FVulkanFramebuffer* Framebuffer = It->Value;
+	
+		if (Framebuffer->ContainsRenderTarget(Image))
 		{
-			FVulkanFramebuffer* Framebuffer = List->Framebuffer[Index];
-			if (Framebuffer->ContainsRenderTarget(Image))
+			if (Framebuffer == CurrentFramebuffer)
 			{
-				List->Framebuffer.RemoveAtSwap(Index, 1, false);
-				Framebuffer->Destroy(InDevice);
-
-				if (Framebuffer == CurrentFramebuffer)
-				{
-					CurrentFramebuffer = nullptr;
-				}
-
-				delete Framebuffer;
+				CurrentFramebuffer = nullptr;
 			}
-		}
-
-		if (List->Framebuffer.Num() == 0)
-		{
-			delete List;
+			
+			Framebuffer->Destroy(InDevice);
+			delete Framebuffer;
 			It.RemoveCurrent();
 		}
 	}
@@ -257,14 +222,13 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 	FRHISetRenderTargetsInfo RenderTargetsInfo(NumSimultaneousRenderTargets, NewRenderTargets, DepthView);
 
 	FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
-	const uint32 RTLayoutHash = RTLayout.GetHash();
 
 	FVulkanRenderPass* RenderPass = nullptr;
 	FVulkanFramebuffer* Framebuffer = nullptr;
 
 	if (RTLayout.GetExtent2D().width != 0 && RTLayout.GetExtent2D().height != 0)
 	{
-		RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
+		RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayout.RenderPassHash);
 		Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
 	}
 
@@ -328,8 +292,8 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 		((RenderTargetsInfo.NumColorRenderTargets == 1) && RenderTargetsInfo.ColorRenderTarget[0].Texture))
 	{
 		FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
-		const uint32 RTLayoutHash = RTLayout.GetHash();
-		FVulkanRenderPass* RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
+
+		FVulkanRenderPass* RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayout.RenderPassHash);
 		FVulkanFramebuffer* Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
 
 		TransitionState.BeginRenderPass(*this, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
@@ -1069,8 +1033,12 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 	, bHasResolveAttachments(false)
 	, NumSamples(0)
 	, NumUsedClearValues(0)
-	, Hash(0)
+    , RenderPassHash(0)
+    , FramebufferHash(0)
+    , TexturesHash(0)
 {
+    FMemory::Memzero(ColorTextures);
+    DepthStencilTexture = nullptr;
 	FMemory::Memzero(ColorReferences);
 	FMemory::Memzero(ResolveReferences);
 	FMemory::Memzero(DepthStencilReference);
@@ -1085,6 +1053,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		if (RTView.Texture)
 		{
 			FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTView.Texture);
+            ColorTextures[Index] = Texture;
 			check(Texture);
 	
 			if (bSetExtent)
@@ -1149,6 +1118,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		VkAttachmentDescription& CurrDesc = Desc[NumAttachmentDescriptions];
 		FMemory::Memzero(CurrDesc);
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTInfo.DepthStencilRenderTarget.Texture);
+        DepthStencilTexture = Texture;
 		check(Texture);
 
 		//@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
@@ -1214,35 +1184,14 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		}
 	}
 
-	// Fill up hash struct
-	FRenderPassHashableStruct RTHash;
-	{
-		FMemory::Memzero(RTHash);
-		RTHash.NumAttachments = RTInfo.NumColorRenderTargets;
-		RTHash.NumSamples = NumSamples;
-		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
-		{
-			RTHash.LoadActions[Index] = RTInfo.ColorRenderTarget[Index].LoadAction;
-			RTHash.StoreActions[Index] = RTInfo.ColorRenderTarget[Index].StoreAction;
-			if (RTInfo.ColorRenderTarget[Index].Texture)
-			{
-				const FRHIRenderTargetView& RTView = RTInfo.ColorRenderTarget[Index];
-				FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTView.Texture);
-				RTHash.Formats[Index] = Texture->Surface.ViewFormat;
-			}
-			else
-			{
-				RTHash.Formats[Index] = VK_FORMAT_UNDEFINED;
-			}
-		}
-
-		RTHash.Formats[MaxSimultaneousRenderTargets] = UEToVkFormat(RTInfo.DepthStencilRenderTarget.Texture ? RTInfo.DepthStencilRenderTarget.Texture->GetFormat() : PF_Unknown, false);
-		RTHash.DepthLoad= RTInfo.DepthStencilRenderTarget.DepthLoadAction;
-		RTHash.DepthStore = RTInfo.DepthStencilRenderTarget.DepthStoreAction;
-		RTHash.StencilLoad = RTInfo.DepthStencilRenderTarget.StencilLoadAction;
-		RTHash.StencilStore = RTInfo.DepthStencilRenderTarget.GetStencilStoreAction();
-	}
-	Hash = FCrc::MemCrc32(&RTHash, sizeof(RTHash));
+    FRenderPassHashable RenderPassHashable(*this);
+    RenderPassHash = FCrc::MemCrc32(&RenderPassHashable, sizeof(RenderPassHashable));
+    
+    FFramebufferHashable FramebufferHashable(RenderPassHash, *this, &RTInfo);
+    FramebufferHash = FCrc::MemCrc32(&FramebufferHashable, sizeof(FramebufferHashable));
+    
+    FTexturesHashable TexturesHashable(*this);
+    TexturesHash = FCrc::MemCrc32(&TexturesHashable, sizeof(TexturesHashable));
 }
 
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer)
@@ -1252,8 +1201,12 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStat
 	, bHasResolveAttachments(false)
 	, NumSamples(0)
 	, NumUsedClearValues(0)
-	, Hash(0)
+    , RenderPassHash(0)
+    , FramebufferHash(0)
+    , TexturesHash(0)
 {
+    FMemory::Memzero(ColorTextures);
+    DepthStencilTexture = nullptr;
 	FMemory::Memzero(ColorReferences);
 	FMemory::Memzero(ResolveReferences);
 	FMemory::Memzero(DepthStencilReference);
@@ -1362,23 +1315,12 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStat
 	}
 
 	// Fill up hash struct
-	FRenderPassHashableStruct RTHash;
-	{
-		FMemory::Memzero(RTHash);
-		RTHash.NumAttachments = Initializer.RenderTargetsEnabled;
-		RTHash.NumSamples = NumSamples;
-		for (uint32 Index = 0; Index < Initializer.RenderTargetsEnabled; ++Index)
-		{
-			RTHash.LoadActions[Index] = Initializer.RenderTargetLoadActions[Index];
-			RTHash.StoreActions[Index] = Initializer.RenderTargetStoreActions[Index];
-			RTHash.Formats[Index] = UEToVkFormat(Initializer.RenderTargetFormats[Index], (Initializer.RenderTargetFlags[Index] & TexCreate_SRGB) == TexCreate_SRGB);
-		}
-
-		RTHash.Formats[MaxSimultaneousRenderTargets] = UEToVkFormat(Initializer.DepthStencilTargetFormat, false);
-		RTHash.DepthLoad= Initializer.DepthTargetLoadAction;
-		RTHash.DepthStore = Initializer.DepthTargetStoreAction;
-		RTHash.StencilLoad = Initializer.StencilTargetLoadAction;
-		RTHash.StencilStore = Initializer.StencilTargetStoreAction;
-	}
-	Hash = FCrc::MemCrc32(&RTHash, sizeof(RTHash));
+    FRenderPassHashable RenderPassHashable(*this);
+    RenderPassHash = FCrc::MemCrc32(&RenderPassHashable, sizeof(RenderPassHashable));
+    
+    FFramebufferHashable FramebufferHashable(RenderPassHash, *this, nullptr);
+    FramebufferHash = FCrc::MemCrc32(&FramebufferHashable, sizeof(FramebufferHashable));
+    
+    FTexturesHashable TexturesHashable(*this);
+    TexturesHash = FCrc::MemCrc32(&TexturesHashable, sizeof(TexturesHashable));
 }
