@@ -26,13 +26,19 @@ TSharedRef<ISequencerSection> FTransformPropertyTrackEditor::MakeSectionInterfac
 
 TSharedPtr<SWidget> FTransformPropertyTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
 {
-	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+	TWeakPtr<ISequencer> WeakSequencer = GetSequencer();
 
 	const int32 RowIndex = Params.TrackInsertRowIndex;
 	auto SubMenuCallback = [=]() -> TSharedRef<SWidget>
 	{
 		FMenuBuilder MenuBuilder(true, nullptr);
-		FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
+
+		TSharedPtr<ISequencer> SequencerPtr = WeakSequencer.Pin();
+		if (SequencerPtr.IsValid())
+		{
+			FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
+		}
+
 		return MenuBuilder.MakeWidget();
 	};
 
