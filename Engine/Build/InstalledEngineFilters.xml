@@ -377,15 +377,6 @@
 <Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Extras/ThirdPartyNotUE/putty/..."/>	
 
 <!-- Win64 specific -->
-	<Do If="'$(HostPlatform)' == 'Win64'">
-		<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions)">
-			<!-- Content only - exclude things we only need for code projects -->
-			Engine/Binaries/Linux/....a
-			Engine/Plugins/.../Binaries/Linux/....a
-			Engine/Source/ThirdParty/.../Linux/....a
-		</Property>
-	</Do>
-
 	<!-- HTML5 -->
 	<Property Name="CopyHTML5Filter">
 		<!-- Build Files -->

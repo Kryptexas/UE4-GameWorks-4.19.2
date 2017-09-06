@@ -670,7 +670,7 @@
 			<Copy Files="#CompressedDDCWin64" From="$(SavedDir)" To="$(LocalInstalledDir)" If="'$(WithDDC)' == true" Tag="#Installed Build Win64 Files"/>
 
 			<!-- List all of the platforms that we only allow for content projects -->
-			<Property Name="ContentOnlyPlatforms" Value="Linux"/>
+			<Property Name="ContentOnlyPlatforms" Value=""/>
 
 			<!-- Create command line arguments for any platforms that were built with additional architectures -->
 			<Property Name="ArchitectureCommands" Value=""/>
