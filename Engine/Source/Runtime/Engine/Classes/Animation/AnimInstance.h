@@ -322,7 +322,7 @@ struct FMontageEvaluationState
 	{}
 
 	// The montage to evaluate
-	UAnimMontage* Montage;
+	TWeakObjectPtr<UAnimMontage> Montage;
 
 	// The weight to use for this montage
 	float MontageWeight;

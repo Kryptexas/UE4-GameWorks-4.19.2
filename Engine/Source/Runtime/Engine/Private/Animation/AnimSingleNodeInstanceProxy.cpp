@@ -16,6 +16,8 @@ void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	PreviewPoseCurrentTime = 0.0f;
 #endif
 
+	UpdateCounter.Reset();
+
 	// it's already doing it when evaluate
 	BlendSpaceInput = FVector::ZeroVector;
 	CurrentTime = 0.f;
