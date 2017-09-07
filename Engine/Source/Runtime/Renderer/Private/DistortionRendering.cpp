@@ -862,6 +862,12 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 		for( int32 PrimIdx = 0; PrimIdx < Prims.Num(); PrimIdx++ )
 		{
 			FPrimitiveSceneProxy* PrimitiveSceneProxy = Prims[PrimIdx];
+
+#if WITH_FLEX
+			if (PrimitiveSceneProxy->IsFlexFluidSurface())
+				continue;
+#endif
+
 			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneProxy->GetPrimitiveSceneInfo()->GetIndex()];
 			FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveSceneProxy->GetPrimitiveSceneInfo();
 

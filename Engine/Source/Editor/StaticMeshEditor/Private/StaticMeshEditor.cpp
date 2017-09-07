@@ -539,6 +539,9 @@ void FStaticMeshEditor::ExtendToolBar()
 					LOCTEXT("UVToolbarText", "UV"), 
 					LOCTEXT("UVToolbarTooltip", "Toggles display of the static mesh's UVs for the specified channel."),
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "StaticMeshEditor.SetDrawUVs"));
+#if WITH_FLEX
+				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawFlexPreview);
+#endif
 			}
 
 			ToolbarBuilder.EndSection();
@@ -1996,6 +1999,14 @@ void FStaticMeshEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyC
 	{
 		StaticMesh->BodySetup->CreatePhysicsMeshes();
 	}
+
+#if WITH_FLEX
+	//update preview flex mesh post UFlexAsset::ReImport
+	if (PropertyThatChanged->GetOwnerClass()->IsChildOf(UFlexAsset::StaticClass()) || *PropertyThatChanged->GetName() == FName(TEXT("FlexAsset")))
+	{
+		Viewport->UpdateFlexPreviewComponent();
+	}
+#endif
 }
 
 void FStaticMeshEditor::UndoAction()
@@ -2046,6 +2057,10 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		RefreshTool();
 	}
+
+#if WITH_FLEX
+	Viewport->UpdateFlexPreviewComponent();
+#endif
 }
 
 void FStaticMeshEditor::SetCurrentViewedUVChannel(int32 InNewUVChannel)

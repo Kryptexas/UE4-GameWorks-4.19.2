@@ -11,6 +11,12 @@
 #include "PhysicsEngine/RadialForceActor.h"
 #include "Components/DestructibleComponent.h"
 
+#if WITH_FLEX
+#include "PhysicsEngine/FlexActor.h"
+#include "PhysicsEngine/FlexComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
 URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectInitializer)
@@ -23,6 +29,7 @@ URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectIni
 	ImpulseStrength = 1000.0f;
 	ForceStrength = 10.0f;
 	bAutoActivate = true;
+	FlexAttach = false;
 
 	// by default we affect all 'dynamic' objects that can currently be affected by forces
 	AddCollisionChannelToAffect(ECC_Pawn);
@@ -89,6 +96,19 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 				}
 			}
 		}
+	
+	#if WITH_FLEX
+			if (ForceStrength != 0.0f)
+			{
+				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+				const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
+				if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+				{
+					PhysScene->AddRadialForceToFlex(Origin, Radius, ForceStrength, Falloff);
+	}
+}
+	#endif
+
 	}
 }
 
@@ -97,6 +117,61 @@ void URadialForceComponent::BeginPlay()
 	Super::BeginPlay();
 
 	UpdateCollisionObjectQueryParams();
+
+#if WITH_FLEX
+	
+	// create rigid attachments to overlapping Flex actors
+	if (FlexAttach)
+	{
+		const FVector Origin = GetComponentLocation();
+
+		for (TActorIterator<AFlexActor> It(GetWorld()); It; ++It)
+		{
+			AFlexActor* FlexActor = (*It);
+			UFlexComponent* FlexComponent = Cast<UFlexComponent>(FlexActor->GetRootComponent());
+
+			if (FlexComponent)
+			{
+				const FBoxSphereBounds FlexBounds = FlexComponent->GetBounds();
+				
+				// dist of force field to flex bounds
+				const float DistSq = FlexBounds.ComputeSquaredDistanceFromBoxToPoint(Origin);
+
+				if (DistSq < Radius*Radius)
+				{
+					FlexComponent->AttachToComponent(this, Radius);
+				}
+			}
+		}
+
+		// Find all ParticleSystemComponents
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			AActor* TestActor= (*It);
+			TArray<UActorComponent*> ParticleComponents = TestActor->GetComponentsByClass(UParticleSystemComponent::StaticClass());
+			for (int32 ComponentIdx = 0; ComponentIdx < ParticleComponents.Num(); ++ComponentIdx)
+			{
+				UParticleSystemComponent* ParticleSystemComponet = Cast<UParticleSystemComponent>(ParticleComponents[ComponentIdx]);
+
+				// is this a PSC with Flex?
+				if (ParticleSystemComponet && ParticleSystemComponet->GetFirstFlexContainerTemplate())
+				{
+					const FBoxSphereBounds FlexBounds = ParticleSystemComponet->CalcBounds(FTransform::Identity);
+
+					// dist of force field to flex bounds
+					const float DistSq = FlexBounds.ComputeSquaredDistanceFromBoxToPoint(Origin);
+
+					if (DistSq < Radius*Radius)
+					{
+						ParticleSystemComponet->AttachFlexToComponent(this, Radius);
+					}
+				}
+
+			}
+		}
+	}
+
+#endif
 }
 
 void URadialForceComponent::PostLoad()
@@ -165,6 +240,18 @@ void URadialForceComponent::FireImpulse()
 				}
 			}
 		}
+
+#if WITH_FLEX
+	if (ImpulseStrength != 0.0f)
+	{
+		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
+		if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+		{
+			PhysScene->AddRadialImpulseToFlex(Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange);
+		}
+	}
+#endif
 	}
 }
 

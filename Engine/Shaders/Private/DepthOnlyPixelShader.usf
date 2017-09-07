@@ -29,8 +29,24 @@ void Main(
 #if MATERIALBLENDING_MASKED_USING_COVERAGE
 	, out uint OutCoverage : SV_Coverage
 #endif
+#if FLEX_FLUID_SURFACE_FACTORY
+   ,out float OutDepth : SV_DEPTH
+#endif
 	)
 {
+
+#if FLEX_FLUID_SURFACE_FACTORY
+
+	GetFlexFluidSurfaceCoverageAndClipping(FactoryInterpolants);
+	OutColor = 0;
+	OutDepth = GetFlexFluidSurfaceDepth(FactoryInterpolants);
+	
+	#if MATERIALBLENDING_MASKED_USING_COVERAGE
+	OutCoverage = 0xF;
+	#endif
+
+#else
+
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
 	#if INSTANCED_STEREO
 		ResolvedView = ResolveView(GetEyeIndex(FactoryInterpolants.PackedEyeIndex));
@@ -61,4 +77,6 @@ void Main(
 #else
 	OutColor = 0;
 #endif
+
+#endif //FLEX_FLUID_SURFACE_FACTORY
 }

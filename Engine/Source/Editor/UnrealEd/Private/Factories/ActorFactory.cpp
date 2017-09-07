@@ -111,7 +111,6 @@ ActorFactory.cpp:
 #include "Engine/TriggerSphere.h"
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TextRenderActor.h"
-
 #include "Engine/DestructibleMesh.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -129,6 +128,11 @@ ActorFactory.cpp:
 #include "Factories/ActorFactoryMovieScene.h"
 
 DEFINE_LOG_CATEGORY(LogActorFactory);
+
+#if WITH_FLEX
+#include "ActorFactories/ActorFactoryFlex.h"
+#include "PhysicsEngine/FlexActor.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
 
@@ -387,6 +391,24 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 	// Meshes align the Z (up) axis with the surface normal
 	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
 }
+
+#if WITH_FLEX
+
+AActor* UActorFactoryStaticMesh::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlagsIn, const FName Name)
+{
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
+	if (StaticMesh && StaticMesh->FlexAsset && NewActorClassName == TEXT(""))
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.OverrideLevel = InLevel;
+		SpawnInfo.ObjectFlags = ObjectFlagsIn;
+		SpawnInfo.Name = Name;
+		return InLevel->OwningWorld->SpawnActor(AFlexActor::StaticClass(), &Transform, SpawnInfo);
+	}
+	return Super::SpawnActor(Asset, InLevel, Transform, ObjectFlagsIn, Name);
+}
+
+#endif // WITH_FLEX
 
 /*-----------------------------------------------------------------------------
 UActorFactoryBasicShape
@@ -656,6 +678,7 @@ void UActorFactoryEmitter::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 		Emitter->SetTemplate(ParticleSystem);
 	}
 }
+
 
 
 /*-----------------------------------------------------------------------------
@@ -1616,6 +1639,52 @@ UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const FObjectIn
 {
 	DisplayName = LOCTEXT("InteractiveFoliageDisplayName", "Interactive Foliage");
 	NewActorClass = AInteractiveFoliageActor::StaticClass();
+}
+
+/*-----------------------------------------------------------------------------
+UActorFactoryFlex
+-----------------------------------------------------------------------------*/
+UActorFactoryFlex::UActorFactoryFlex(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("FlexDisplayName", "Flex Actor");
+	NewActorClass = AFlexActor::StaticClass();
+}
+
+bool UActorFactoryFlex::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
+{
+	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UStaticMesh::StaticClass()))
+	{
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoStaticMesh", "A valid static mesh must be specified.");
+		return false;
+	}
+
+	return true;
+}
+
+void UActorFactoryFlex::PostSpawnActor(UObject* Asset, AActor* NewActor)
+{
+	Super::PostSpawnActor(Asset, NewActor);
+
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
+
+	if (StaticMesh)
+	{
+		UE_LOG(LogActorFactory, Log, TEXT("Actor Factory created %s"), *StaticMesh->GetName());
+
+		// Change properties
+		AFlexActor* FlexActor = CastChecked<AFlexActor>(NewActor);
+		UStaticMeshComponent* StaticMeshComponent = FlexActor->GetStaticMeshComponent();
+		check(StaticMeshComponent);
+
+		StaticMeshComponent->UnregisterComponent();
+
+		StaticMeshComponent->SetStaticMesh(StaticMesh);
+		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
+
+		// Init Component
+		StaticMeshComponent->RegisterComponent();
+	}
 }
 
 /*-----------------------------------------------------------------------------

@@ -64,6 +64,10 @@
 #include "Framework/Commands/GenericCommands.h"
 #include "UnrealEngine.h"
 
+#if WITH_FLEX
+#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#endif
+
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");
 static const FName Cascade_PropertiesTab("Cascade_Properties");
@@ -5275,6 +5279,28 @@ void UCascadeParticleSystemComponent::CascadeTickComponent(float DeltaTime, enum
 {
 	// Tick the particle system component when ticked from within Cascade.
 	Super::TickComponent( DeltaTime, TickType, NULL );
+
+#if WITH_FLEX
+	// Tick flex fluid surface components
+	{
+		int32 NumEmitters = EmitterInstances.Num();
+		TSet<UFlexFluidSurfaceComponent*> FlexFluidSurfaces;
+		for (int32 EmitterIndex = 0; EmitterIndex < NumEmitters; EmitterIndex++)
+		{
+			FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
+			if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate)
+			{
+				UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate);
+				check(SurfaceComponent);
+				if (!FlexFluidSurfaces.Contains(SurfaceComponent))
+				{
+					SurfaceComponent->TickComponent(DeltaTime, TickType, NULL);
+					FlexFluidSurfaces.Add(SurfaceComponent);
+				}
+			}
+		}
+	}
+#endif
 }
 
 const static FName CascadeParticleSystemComponentParticleLineCheckName(TEXT("ParticleLineCheck"));

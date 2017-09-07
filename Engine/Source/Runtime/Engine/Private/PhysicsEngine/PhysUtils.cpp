@@ -16,6 +16,18 @@
 #include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
+#if WITH_FLEX
+#include "FlexContainerInstance.h"
+#include "DrawDebugHelpers.h" // FlushPersistentDebugLines
+#endif
+
+/* *********************************************************************** */
+/* *********************************************************************** */
+/* *********************** MODELTOHULLS  ********************************* */
+/* *********************************************************************** */
+/* *********************************************************************** */
+
+
 /** Returns false if ModelToHulls operation should halt because of vertex count overflow. */
 static bool AddConvexPrim(FKAggregateGeom* OutGeom, TArray<FPlane> &Planes, UModel* InModel)
 {
@@ -601,6 +613,29 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 
 		return 1;
 	}
+
+#if WITH_FLEX
+	if (FParse::Command(&Cmd, TEXT("FLEXVIS")))
+	{
+		FFlexContainerInstance::sGlobalDebugDraw = !FFlexContainerInstance::sGlobalDebugDraw;
+
+		// if disabling debug draw ensure any persistent lines are flushed
+		if (!FFlexContainerInstance::sGlobalDebugDraw)
+			FlushPersistentDebugLines(InWorld);
+	}
+	else if (FParse::Command(&Cmd, TEXT("FLEXSTARTRECORD")))
+	{
+		FPhysScene* Scene = InWorld->GetPhysicsScene();
+		if (Scene)
+			Scene->StartFlexRecord();
+	}
+	else if (FParse::Command(&Cmd, TEXT("FLEXSTOPRECORD")))
+	{
+		FPhysScene* Scene = InWorld->GetPhysicsScene();
+		if (Scene)
+			Scene->StopFlexRecord();
+	}
+#endif
 
 #endif // WITH_PHYSX
 

@@ -29,6 +29,10 @@
 	#define APEX_STATICALLY_LINKED	0
 #endif
 
+#if WITH_FLEX
+// fwd declare error func
+void FlexErrorFunc(NvFlexErrorSeverity level, const char* msg, const char* file, int line);
+#endif
 
 FPhysCommandHandler * GPhysCommandHandler = NULL;
 FDelegateHandle GPreGarbageCollectDelegateHandle;
@@ -75,8 +79,6 @@ static TAutoConsoleVariable<int32> CVarUseUnifiedHeightfield(
 	1,
 	TEXT("Whether to use the PhysX unified heightfield. This feature of PhysX makes landscape collision consistent with triangle meshes but the thickness parameter is not supported for unified heightfields. 1 enables and 0 disables. Default: 1"),
 	ECVF_ReadOnly);
-
-
 
 //////////////////////////////////////////////////////////////////////////
 // UWORLD
@@ -442,8 +444,61 @@ void InitGamePhys()
 #endif // WITH_PHYSX
 }
 
+void InitGamePhysPostRHI()
+{
+#if WITH_FLEX
+
+	if (!GUsingNullRHI)
+	{
+
+		NvFlexInitDesc desc;
+		memset(&desc, 0, sizeof(NvFlexInitDesc));
+		
+#if WITH_FLEX_CUDA
+		// query the CUDA device index from the NVIDIA control panel
+		int SuggestedOrdinal = NvFlexDeviceGetSuggestedOrdinal();
+
+		// create an optimized CUDA context for Flex, the context will
+		// be made current on the calling thread, note that if using
+		// GPU PhysX then it is recommended to skip this step and use
+		// the same CUDA context as PhysX
+		NvFlexDeviceCreateCudaContext(SuggestedOrdinal);
+
+		desc.computeType = eNvFlexCUDA;
+#else
+
+		static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
+		desc.computeType = bD3D12 ? eNvFlexD3D12 : eNvFlexD3D11;
+
+#endif
+
+		GFlexLib = NvFlexInit(NV_FLEX_VERSION, FlexErrorFunc, &desc);
+		
+		if (GFlexLib)
+		{
+			UE_LOG(LogInit, Display, TEXT("Initialized Flex with GPU: %s"), ANSI_TO_TCHAR(NvFlexGetDeviceName(GFlexLib)));
+		}
+	}
+
+	if (GFlexLib != NULL)
+	{
+		GFlexIsInitialized = true;
+	}
+#endif // WITH_FLEX
+}
+
 void TermGamePhys()
 {
+
+#if WITH_FLEX
+	if (GFlexIsInitialized)
+	{
+		NvFlexShutdown(GFlexLib);
+
+		GFlexIsInitialized = false;
+	}		
+#endif // WITH_FLEX
+
 #if WITH_BOX2D
 	FPhysicsIntegration2D::ShutdownPhysics();
 #endif

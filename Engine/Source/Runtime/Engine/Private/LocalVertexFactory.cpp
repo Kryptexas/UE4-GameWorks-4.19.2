@@ -111,29 +111,45 @@ void FLocalVertexFactory::InitRHI()
 	if(Data.PositionComponent.VertexBuffer != Data.TangentBasisComponents[0].VertexBuffer)
 	{
 		FVertexDeclarationElementList PositionOnlyStreamElements;
-		PositionOnlyStreamElements.Add(AccessPositionStreamComponent(Data.PositionComponent,0));
+		AddVertexPositionElements(Data, PositionOnlyStreamElements);		
 		InitPositionDeclaration(PositionOnlyStreamElements);
 	}
 
 	FVertexDeclarationElementList Elements;
+	AddVertexElements(Data, Elements);
+
+	check(Streams.Num() > 0);
+
+	InitDeclaration(Elements);
+
+	check(IsValidRef(GetDeclaration()));
+}
+
+void FLocalVertexFactory::AddVertexPositionElements(FDataType& InData, FVertexDeclarationElementList& Elements)
+{
+	Elements.Add(AccessPositionStreamComponent(InData.PositionComponent,0));
+}
+
+void FLocalVertexFactory::AddVertexElements(FDataType& InData, FVertexDeclarationElementList& Elements)
+{
 	if(Data.PositionComponent.VertexBuffer != NULL)
 	{
-		Elements.Add(AccessStreamComponent(Data.PositionComponent,0));
+		Elements.Add(AccessStreamComponent(InData.PositionComponent,0));
 	}
 
 	// only tangent,normal are used by the stream. the binormal is derived in the shader
 	uint8 TangentBasisAttributes[2] = { 1, 2 };
 	for(int32 AxisIndex = 0;AxisIndex < 2;AxisIndex++)
 	{
-		if(Data.TangentBasisComponents[AxisIndex].VertexBuffer != NULL)
+		if(InData.TangentBasisComponents[AxisIndex].VertexBuffer != NULL)
 		{
-			Elements.Add(AccessStreamComponent(Data.TangentBasisComponents[AxisIndex],TangentBasisAttributes[AxisIndex]));
+			Elements.Add(AccessStreamComponent(InData.TangentBasisComponents[AxisIndex],TangentBasisAttributes[AxisIndex]));
 		}
 	}
 
-	if(Data.ColorComponent.VertexBuffer)
+	if(InData.ColorComponent.VertexBuffer)
 	{
-		Elements.Add(AccessStreamComponent(Data.ColorComponent,3));
+		Elements.Add(AccessStreamComponent(InData.ColorComponent,3));
 	}
 	else
 	{
@@ -144,13 +160,13 @@ void FLocalVertexFactory::InitRHI()
 	}
 	ColorStreamIndex = Elements.Last().StreamIndex;
 
-	if(Data.TextureCoordinates.Num())
+	if(InData.TextureCoordinates.Num())
 	{
 		const int32 BaseTexCoordAttribute = 4;
-		for(int32 CoordinateIndex = 0;CoordinateIndex < Data.TextureCoordinates.Num();CoordinateIndex++)
+		for(int32 CoordinateIndex = 0;CoordinateIndex < InData.TextureCoordinates.Num();CoordinateIndex++)
 		{
 			Elements.Add(AccessStreamComponent(
-				Data.TextureCoordinates[CoordinateIndex],
+				InData.TextureCoordinates[CoordinateIndex],
 				BaseTexCoordAttribute + CoordinateIndex
 				));
 		}
@@ -173,11 +189,13 @@ void FLocalVertexFactory::InitRHI()
 		Elements.Add(AccessStreamComponent(Data.TextureCoordinates[0],15));
 	}
 
+	/*
 	check(Streams.Num() > 0);
 
 	InitDeclaration(Elements);
 
 	check(IsValidRef(GetDeclaration()));
+	*/
 }
 
 FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)

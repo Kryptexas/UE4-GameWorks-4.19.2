@@ -162,6 +162,7 @@ void Main(
 		// Shift to the eye viewport
 		Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) * (1.0f - 0.5 * ResolvedView.HMDEyePaddingOffset);
 	}
+
 	#elif IOSZBIASWORKAROUND
 		// Z bias is needed here for ios metal (UE-26765) and gles (UE-27530)
 		// with metal compiler we cannot guarantee the order of operations across different shaders.

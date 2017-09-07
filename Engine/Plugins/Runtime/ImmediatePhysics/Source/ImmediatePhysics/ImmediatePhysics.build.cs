@@ -13,7 +13,8 @@ public class ImmediatePhysics: ModuleRules
                 "Engine",
                 "AnimGraphRuntime",
                 "PhysX",
-                "APEX"  //This is not really needed, but the includes are all coupled. Not really an issue at the moment, could be broken out in the future
+                "APEX",  //This is not really needed, but the includes are all coupled. Not really an issue at the moment, could be broken out in the future
+                "FLEX"   //Same reason as above
 
 			}
 		);
