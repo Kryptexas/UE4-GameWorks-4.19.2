@@ -16,9 +16,11 @@
 #include "AnimationRecorder.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
+#include "DragAndDrop/ActorDragDropOp.h"
 #include "SequenceRecorderCommands.h"
 #include "SequenceRecorderSettings.h"
 #include "SequenceRecorder.h"
+#include "SDropTarget.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
@@ -180,24 +182,30 @@ void SSequenceRecorder::Construct(const FArguments& Args)
 						+SVerticalBox::Slot()
 						.FillHeight(1.0f)
 						[
-							SAssignNew(ListView, SListView<UActorRecording*>)
-							.ListItemsSource(&FSequenceRecorder::Get().GetQueuedRecordings())
-							.SelectionMode(ESelectionMode::SingleToggle)
-							.OnGenerateRow(this, &SSequenceRecorder::MakeListViewWidget)
-							.OnSelectionChanged(this, &SSequenceRecorder::OnSelectionChanged)
-							.HeaderRow
-							(
-								SNew(SHeaderRow)
-								+ SHeaderRow::Column(ActorColumnName)
-								.FillWidth(43.0f)
-								.DefaultLabel(LOCTEXT("ActorHeaderName", "Actor"))
-								+ SHeaderRow::Column(AnimationColumnName)
-								.FillWidth(43.0f)
-								.DefaultLabel(LOCTEXT("AnimationHeaderName", "Animation"))
-								+ SHeaderRow::Column(LengthColumnName)
-								.FillWidth(14.0f)
-								.DefaultLabel(LOCTEXT("LengthHeaderName", "Length"))
-							)
+							SNew( SDropTarget )
+							.OnAllowDrop( this, &SSequenceRecorder::OnRecordingListAllowDrop )
+							.OnDrop( this, &SSequenceRecorder::OnRecordingListDrop )
+							.Content()
+							[
+								SAssignNew(ListView, SListView<UActorRecording*>)
+								.ListItemsSource(&FSequenceRecorder::Get().GetQueuedRecordings())
+								.SelectionMode(ESelectionMode::SingleToggle)
+								.OnGenerateRow(this, &SSequenceRecorder::MakeListViewWidget)
+								.OnSelectionChanged(this, &SSequenceRecorder::OnSelectionChanged)
+								.HeaderRow
+								(
+									SNew(SHeaderRow)
+									+ SHeaderRow::Column(ActorColumnName)
+									.FillWidth(43.0f)
+									.DefaultLabel(LOCTEXT("ActorHeaderName", "Actor"))
+									+ SHeaderRow::Column(AnimationColumnName)
+									.FillWidth(43.0f)
+									.DefaultLabel(LOCTEXT("AnimationHeaderName", "Animation"))
+									+ SHeaderRow::Column(LengthColumnName)
+									.FillWidth(14.0f)
+									.DefaultLabel(LOCTEXT("LengthHeaderName", "Length"))
+								)
+							]
 						]
 						+SVerticalBox::Slot()
 						.AutoHeight()
@@ -401,6 +409,32 @@ EVisibility SSequenceRecorder::GetDelayProgressVisibilty() const
 FText SSequenceRecorder::GetTargetSequenceName() const
 {
 	return FText::Format(LOCTEXT("NextSequenceFormat", "Next Sequence: {0}"), FText::FromString(FSequenceRecorder::Get().GetNextSequenceName()));
+}
+
+bool SSequenceRecorder::OnRecordingListAllowDrop( TSharedPtr<FDragDropOperation> DragDropOperation )
+{
+	return DragDropOperation->IsOfType<FActorDragDropOp>();
+}
+
+
+FReply SSequenceRecorder::OnRecordingListDrop( TSharedPtr<FDragDropOperation> DragDropOperation )
+{
+	if ( DragDropOperation->IsOfType<FActorDragDropOp>() )
+	{
+		TSharedPtr<FActorDragDropOp> ActorDragDropOperation = StaticCastSharedPtr<FActorDragDropOp>( DragDropOperation );
+
+		for (auto Actor : ActorDragDropOperation->Actors)
+		{
+			if (Actor.IsValid())
+			{
+				FSequenceRecorder::Get().AddNewQueuedRecording(Actor.Get());
+			}
+		}
+
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
 }
 
 #undef LOCTEXT_NAMESPACE

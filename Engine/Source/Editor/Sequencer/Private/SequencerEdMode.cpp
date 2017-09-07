@@ -374,7 +374,7 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 	);
 	
 	const FMovieSceneEvaluationTemplateInstance* TemplateInstance = Sequencer->GetEvaluationTemplate().GetInstance(Sequencer->GetFocusedTemplateID());
-	if (!bShowTrajectory || !TemplateInstance)
+	if (!bShowTrajectory || !TemplateInstance || !TransformTrack->GetAllSections().ContainsByPredicate([](UMovieSceneSection* In){ return In->IsActive(); }))
 	{
 		return;
 	}
@@ -390,7 +390,7 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 			continue;
 		}
 
-		TArray<FTrajectoryKey> TrajectoryKeys = TransformTrack->GetTrajectoryData();
+		TArray<FTrajectoryKey> TrajectoryKeys = TransformTrack->GetTrajectoryData(Sequencer->GetLocalTime(), Sequencer->GetSettings()->GetTrajectoryPathCap());
 		for (TWeakObjectPtr<> WeakBinding : BoundObjects)
 		{
 			UObject* BoundObject = WeakBinding.Get();

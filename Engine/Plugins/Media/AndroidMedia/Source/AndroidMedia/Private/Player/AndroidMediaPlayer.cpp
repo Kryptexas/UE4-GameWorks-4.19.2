@@ -104,6 +104,34 @@ FAndroidMediaPlayer::~FAndroidMediaPlayer()
 /* IMediaPlayer interface
  *****************************************************************************/
 
+#if ANDROIDMEDIAPLAYER_USE_NATIVELOGGING
+// Useful for debugging
+static void DumpState(EMediaState state)
+{
+	switch (state)
+	{
+	case EMediaState::Closed:
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidMediaPlayer: CurrentState = Closed"));
+		break;
+	case EMediaState::Error:
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidMediaPlayer: CurrentState = Error"));
+		break;
+	case EMediaState::Paused:
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidMediaPlayer: CurrentState = Paused"));
+		break;
+	case EMediaState::Playing:
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidMediaPlayer: CurrentState = Playing"));
+		break;
+	case EMediaState::Preparing:
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidMediaPlayer: CurrentState = Preparing"));
+		break;
+	case EMediaState::Stopped:
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidMediaPlayer: CurrentState = Stopped"));
+		break;
+	}
+}
+#endif
+
 void FAndroidMediaPlayer::Close()
 {
 	#if ANDROIDMEDIAPLAYER_USE_NATIVELOGGING
@@ -164,7 +192,7 @@ FString FAndroidMediaPlayer::GetInfo() const
 }
 
 
-FName FAndroidMediaPlayer::GetName() const
+FName FAndroidMediaPlayer::GetPlayerName() const
 {
 	static FName PlayerName(TEXT("AndroidMedia"));
 	return PlayerName;
@@ -306,7 +334,7 @@ void FAndroidMediaPlayer::SetGuid(const FGuid& Guid)
 }
 
 
-void FAndroidMediaPlayer::TickFetch(FTimespan DeltaTime)
+void FAndroidMediaPlayer::TickFetch(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
 	if (CurrentState != EMediaState::Playing && CurrentState != EMediaState::Paused)
 	{
@@ -579,7 +607,7 @@ void FAndroidMediaPlayer::TickFetch(FTimespan DeltaTime)
 }
 
 
-void FAndroidMediaPlayer::TickInput(FTimespan DeltaTime)
+void FAndroidMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
 	if (CurrentState != EMediaState::Playing)
 	{
@@ -596,6 +624,11 @@ void FAndroidMediaPlayer::TickInput(FTimespan DeltaTime)
 			PauseHandle.Reset();
 		}
 
+		if (!JavaMediaPlayer.IsValid())
+		{
+			return;
+		}
+
 #if ANDROIDMEDIAPLAYER_USE_PREPAREASYNC
 		// if preparing, see if finished
 		if (CurrentState == EMediaState::Preparing)
@@ -610,7 +643,19 @@ void FAndroidMediaPlayer::TickInput(FTimespan DeltaTime)
 				InitializePlayer();
 			}
 		}
+		else
 #endif
+		if (CurrentState == EMediaState::Stopped)
+		{
+			if (JavaMediaPlayer->DidComplete())
+			{
+				EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackEndReached);
+
+#if ANDROIDMEDIAPLAYER_USE_NATIVELOGGING
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidMedia::Tick - PlaybackEndReached - stopped - %s"), *PlayerGuid.ToString());
+#endif
+			}
+		}
 
 		return;
 	}
@@ -633,23 +678,23 @@ void FAndroidMediaPlayer::TickInput(FTimespan DeltaTime)
 	// generate events
 	if (!JavaMediaPlayer->IsPlaying())
 	{
-		if (JavaMediaPlayer->DidComplete())
-		{
-			EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackEndReached);
-
-			#if ANDROIDMEDIAPLAYER_USE_NATIVELOGGING
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidMedia::Tick - PlaybackEndReached - !playing - %s"), *PlayerGuid.ToString());
-			#endif
-		}
-
 		// might catch it restarting the loop so ignore if looping
 		if (!bLooping)
 		{
 			CurrentState = EMediaState::Stopped;
 			EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackSuspended);
 
+#if ANDROIDMEDIAPLAYER_USE_NATIVELOGGING
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidMedia::Tick - PlaybackSuspended - !playing - %s"), *PlayerGuid.ToString());
+#endif
+		}
+
+		if (JavaMediaPlayer->DidComplete())
+		{
+			EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackEndReached);
+
 			#if ANDROIDMEDIAPLAYER_USE_NATIVELOGGING
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidMedia::Tick - PlaybackSuspended - !playing - %s"), *PlayerGuid.ToString());
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidMedia::Tick - PlaybackEndReached - !playing - %s"), *PlayerGuid.ToString());
 			#endif
 		}
 	}
@@ -949,11 +994,11 @@ bool FAndroidMediaPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 	case EMediaTrackType::Audio:
 		if (TrackIndex != SelectedAudioTrack)
 		{
-			UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %llx: Selecting audio track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedVideoTrack, AudioTracks.Num());
+			UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %p: Selecting audio track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedVideoTrack, AudioTracks.Num());
 
 			if (TrackIndex == INDEX_NONE)
 			{
-				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %llx: Disabling audio"), this, TrackIndex);
+				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %p: Disabling audio"), this, TrackIndex);
 
 				JavaMediaPlayer->SetAudioEnabled(false);
 			}
@@ -964,7 +1009,7 @@ bool FAndroidMediaPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 					return false;
 				}
 
-				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %llx: Enabling audio"), this, TrackIndex);
+				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %p: Enabling audio"), this, TrackIndex);
 
 				JavaMediaPlayer->SetAudioEnabled(true);
 			}
@@ -976,11 +1021,11 @@ bool FAndroidMediaPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 	case EMediaTrackType::Caption:
 		if (TrackIndex != SelectedCaptionTrack)
 		{
-			UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %llx: Selecting caption track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedCaptionTrack, CaptionTracks.Num());
+			UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %p: Selecting caption track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedCaptionTrack, CaptionTracks.Num());
 
 			if (TrackIndex == INDEX_NONE)
 			{
-				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %llx: Disabling captions"), this, TrackIndex);
+				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %p: Disabling captions"), this, TrackIndex);
 			}
 			else
 			{
@@ -989,7 +1034,7 @@ bool FAndroidMediaPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 					return false;
 				}
 
-				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %llx: Enabling captions"), this, TrackIndex);
+				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %p: Enabling captions"), this, TrackIndex);
 			}
 
 			SelectedCaptionTrack = TrackIndex;
@@ -999,11 +1044,11 @@ bool FAndroidMediaPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 	case EMediaTrackType::Video:
 		if (TrackIndex != SelectedVideoTrack)
 		{
-			UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %llx: Selecting video track %i instead of %i (%i tracks)."), this, TrackIndex, SelectedVideoTrack, VideoTracks.Num());
+			UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %p: Selecting video track %i instead of %i (%i tracks)."), this, TrackIndex, SelectedVideoTrack, VideoTracks.Num());
 
 			if (TrackIndex == INDEX_NONE)
 			{
-				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %llx: Disabling video"), this, TrackIndex);
+				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %p: Disabling video"), this, TrackIndex);
 				JavaMediaPlayer->SetVideoEnabled(false);
 			}
 			else
@@ -1013,7 +1058,7 @@ bool FAndroidMediaPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 					return false;
 				}
 
-				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %llx: Enabling video"), this, TrackIndex);
+				UE_LOG(LogAndroidMedia, VeryVerbose, TEXT("Player %p: Enabling video"), this, TrackIndex);
 				JavaMediaPlayer->SetVideoEnabled(true);
 			}
 
@@ -1136,7 +1181,7 @@ bool FAndroidMediaPlayer::IsLooping() const
 
 bool FAndroidMediaPlayer::Seek(const FTimespan& Time)
 {
-	UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %llx: Seeking to %s"), this, *Time.ToString());
+	UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %p: Seeking to %s"), this, *Time.ToString());
 
 	if ((CurrentState == EMediaState::Closed) ||
 		(CurrentState == EMediaState::Error) ||
@@ -1146,7 +1191,7 @@ bool FAndroidMediaPlayer::Seek(const FTimespan& Time)
 		return false;
 	}
 
-	UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %llx: Seeking to %s"), this, *Time.ToString());
+	UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %p: Seeking to %s"), this, *Time.ToString());
 
 	JavaMediaPlayer->SeekTo(static_cast<int32>(Time.GetTotalMilliseconds()));
 	EventSink.ReceiveMediaEvent(EMediaEvent::SeekCompleted);
@@ -1185,7 +1230,7 @@ bool FAndroidMediaPlayer::SetRate(float Rate)
 		return true; // rate already set
 	}
 
-	UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %llx: Setting rate from to %f to %f"), this, GetRate(), Rate);
+	UE_LOG(LogAndroidMedia, Verbose, TEXT("Player %p: Setting rate from to %f to %f"), this, GetRate(), Rate);
 
 	if (Rate == 0.0f)
 	{

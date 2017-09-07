@@ -185,6 +185,14 @@ public:
 	FString GetInfo() const;
 
 	/**
+	 * Get the human readable name of the currently loaded media source.
+	 *
+	 * @return Media source name, or empty text if no media is opened
+	 * @see GetPlayerName, GetUrl
+	 */
+	FText GetMediaName() const;
+
+	/**
 	 * Get the number of tracks of the given type.
 	 *
 	 * @param TrackType The type of media tracks.
@@ -217,6 +225,7 @@ public:
 	 * Get the name of the current native media player.
 	 *
 	 * @return Player name, or NAME_None if not available.
+	 * @see GetMediaName
 	 */
 	FName GetPlayerName() const;
 

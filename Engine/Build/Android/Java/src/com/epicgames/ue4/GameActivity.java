@@ -1102,8 +1102,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	{
 		if(keyCode == KeyEvent.KEYCODE_BACK ||keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
 		{
-			Log.debug("=== Restoring Transparent Bars due to KeyCode ===");
-			restoreTranslucentBarsDelayed();
+			if (ShouldHideUI)
+			{
+				Log.debug("=== Restoring Transparent Bars due to KeyCode ===");
+				restoreTranslucentBarsDelayed();
+			}
 		}
 
 		return super.onKeyDown(keyCode, event);

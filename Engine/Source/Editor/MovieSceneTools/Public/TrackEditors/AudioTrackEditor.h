@@ -106,6 +106,8 @@ public:
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder) const override;
 	virtual int32 OnPaintSection(FSequencerSectionPainter& Painter) const override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void BeginSlipSection() override;
+	virtual void SlipSection(float SlipTime) override;
 	
 private:
 
@@ -136,4 +138,10 @@ private:
 	TWeakObjectPtr<USoundWave> StoredSoundWave;
 
 	TWeakPtr<ISequencer> Sequencer;
+
+	/** Cached start offset value valid only during resize */
+	float InitialStartOffsetDuringResize;
+	
+	/** Cached start time valid only during resize */
+	float InitialStartTimeDuringResize;
 };

@@ -135,6 +135,12 @@ float UMediaPlayer::GetHorizontalFieldOfView() const
 }
 
 
+FText UMediaPlayer::GetMediaName() const
+{
+	return PlayerFacade->GetMediaName();
+}
+
+
 int32 UMediaPlayer::GetNumTracks(EMediaPlayerTrack TrackType) const
 {
 	return PlayerFacade->GetNumTracks((EMediaTrackType)TrackType);
@@ -604,9 +610,9 @@ void UMediaPlayer::PostDuplicate(bool bDuplicateForPIE)
 }
 
 
-void UMediaPlayer::PostLoad()
+void UMediaPlayer::PostInitProperties()
 {
-	Super::PostLoad();
+	Super::PostInitProperties();
 
 	PlayerFacade->SetGuid(PlayerGuid);
 
@@ -696,6 +702,10 @@ void UMediaPlayer::HandlePlayerMediaEvent(EMediaEvent Event)
 
 	case EMediaEvent::SeekCompleted:
 		OnSeekCompleted.Broadcast();
+		break;
+
+	case EMediaEvent::TracksChanged:
+		OnTracksChanged.Broadcast();
 		break;
 	}
 }

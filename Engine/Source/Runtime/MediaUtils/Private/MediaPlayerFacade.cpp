@@ -18,7 +18,11 @@
 #include "Misc/ScopeLock.h"
 #include "Modules/ModuleManager.h"
 
+#include "MediaHelpers.h"
 #include "MediaSampleCache.h"
+
+
+#define MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS 0
 
 
 /* Local helpers
@@ -203,6 +207,12 @@ FString FMediaPlayerFacade::GetInfo() const
 }
 
 
+FText FMediaPlayerFacade::GetMediaName() const
+{
+	return Player.IsValid() ? Player->GetMediaName() : FText::GetEmpty();
+}
+
+
 int32 FMediaPlayerFacade::GetNumTracks(EMediaTrackType TrackType) const
 {
 	return Player.IsValid() ? Player->GetTracks().GetNumTracks(TrackType) : 0;
@@ -217,7 +227,7 @@ int32 FMediaPlayerFacade::GetNumTrackFormats(EMediaTrackType TrackType, int32 Tr
 
 FName FMediaPlayerFacade::GetPlayerName() const
 {
-	return Player.IsValid() ? Player->GetName() : NAME_None;
+	return Player.IsValid() ? Player->GetPlayerName() : NAME_None;
 }
 
 
@@ -540,7 +550,7 @@ bool FMediaPlayerFacade::SupportsRate(float Rate, bool Unthinned) const
 
 void FMediaPlayerFacade::FlushSinks()
 {
-	UE_LOG(LogMediaUtils, Verbose, TEXT("PlayerFacade %llx: Flushing sinks"), this);
+	UE_LOG(LogMediaUtils, Verbose, TEXT("PlayerFacade %p: Flushing sinks"), this);
 
 	AudioSampleSinks.Flush();
 	CaptionSampleSinks.Flush();
@@ -589,7 +599,7 @@ TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> FMediaPlayerFacade::GetPlayerForUr
 	}
 
 	// reuse existing player if requested
-	if (Player.IsValid() && (PlayerName == Player->GetName()))
+	if (Player.IsValid() && (PlayerName == Player->GetPlayerName()))
 	{
 		return Player;
 	}
@@ -628,7 +638,7 @@ TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> FMediaPlayerFacade::GetPlayerForUr
 	// try to reuse existing player
 	if (Player.IsValid())
 	{
-		IMediaPlayerFactory* Factory = MediaModule->GetPlayerFactory(Player->GetName());
+		IMediaPlayerFactory* Factory = MediaModule->GetPlayerFactory(Player->GetPlayerName());
 
 		if ((Factory != nullptr) && Factory->CanPlayUrl(Url, Options))
 		{
@@ -665,11 +675,11 @@ TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> FMediaPlayerFacade::GetPlayerForUr
 		{
 			if (Factory->SupportsPlatform(RunningPlatformName))
 			{
-				UE_LOG(LogMediaUtils, Log, TEXT("| %s (URI scheme or file extension not supported)"), *Factory->GetName().ToString());
+				UE_LOG(LogMediaUtils, Log, TEXT("| %s (URI scheme or file extension not supported)"), *Factory->GetPlayerName().ToString());
 			}
 			else
 			{
-				UE_LOG(LogMediaUtils, Log, TEXT("| %s (only available on %s, but not on %s)"), *Factory->GetName().ToString(), *FString::Join(Factory->GetSupportedPlatforms(), TEXT(", ")), *RunningPlatformName);
+				UE_LOG(LogMediaUtils, Log, TEXT("| %s (only available on %s, but not on %s)"), *Factory->GetPlayerName().ToString(), *FString::Join(Factory->GetSupportedPlatforms(), TEXT(", ")), *RunningPlatformName);
 			}	
 		}
 	}
@@ -715,11 +725,11 @@ void FMediaPlayerFacade::ProcessEvent(EMediaEvent Event)
 
 		if (MediaInfo.IsEmpty())
 		{
-			UE_LOG(LogMediaUtils, Verbose, TEXT("PlayerFacade %llx: Media Info: n/a"), this);
+			UE_LOG(LogMediaUtils, Verbose, TEXT("PlayerFacade %p: Media Info: n/a"), this);
 		}
 		else
 		{
-			UE_LOG(LogMediaUtils, Verbose, TEXT("PlayerFacade %llx: Media Info:\n%s"), this, *MediaInfo);
+			UE_LOG(LogMediaUtils, Verbose, TEXT("PlayerFacade %p: Media Info:\n%s"), this, *MediaInfo);
 		}
 	}
 
@@ -751,12 +761,12 @@ void FMediaPlayerFacade::SelectDefaultTracks()
 /* IMediaClockSink interface
 *****************************************************************************/
 
-void FMediaPlayerFacade::TickFetch(FTimespan DeltaTime, FTimespan /*Timecode*/)
+void FMediaPlayerFacade::TickFetch(FTimespan DeltaTime, FTimespan Timecode)
 {
 	// let the player generate samples & process events
 	if (Player.IsValid())
 	{
-		Player->TickFetch(DeltaTime);
+		Player->TickFetch(DeltaTime, Timecode);
 	}
 
 	// process deferred events
@@ -811,11 +821,11 @@ void FMediaPlayerFacade::TickFetch(FTimespan DeltaTime, FTimespan /*Timecode*/)
 }
 
 
-void FMediaPlayerFacade::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
+void FMediaPlayerFacade::TickInput(FTimespan DeltaTime, FTimespan Timecode)
 {
 	if (Player.IsValid())
 	{
-		Player->TickInput(DeltaTime);
+		Player->TickInput(DeltaTime, Timecode);
 	}
 }
 
@@ -881,14 +891,8 @@ void FMediaPlayerFacade::TickTickable()
 
 void FMediaPlayerFacade::ReceiveMediaEvent(EMediaEvent Event)
 {
-	if (IsInGameThread())
-	{
-		ProcessEvent(Event);
-	}
-	else
-	{
-		QueuedEvents.Enqueue(Event);
-	}
+	UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Received media event %s"), this, *MediaUtils::EventToString(Event));
+	QueuedEvents.Enqueue(Event);
 }
 
 
@@ -903,7 +907,9 @@ void FMediaPlayerFacade::ProcessAudioSamples(IMediaSamples& Samples, TRange<FTim
 	{
 		if (!AudioSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxAudioSinkDepth))
 		{
-			UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %llx: Audio sample sink overflow"), this);
+			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
+				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Audio sample sink overflow"), this);
+			#endif
 		}
 	}
 }
@@ -917,7 +923,9 @@ void FMediaPlayerFacade::ProcessCaptionSamples(IMediaSamples& Samples, TRange<FT
 	{
 		if (!CaptionSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxCaptionSinkDepth))
 		{
-			UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %llx: Caption sample sink overflow"), this);
+			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
+				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Caption sample sink overflow"), this);
+			#endif
 		}
 	}
 }
@@ -931,7 +939,9 @@ void FMediaPlayerFacade::ProcessMetadataSamples(IMediaSamples& Samples, TRange<F
 	{
 		if (!MetadataSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxMetadataSinkDepth))
 		{
-			UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %llx: Metadata sample sink overflow"), this);
+			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
+				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Metadata sample sink overflow"), this);
+			#endif
 		}
 	}
 }
@@ -945,7 +955,9 @@ void FMediaPlayerFacade::ProcessSubtitleSamples(IMediaSamples& Samples, TRange<F
 	{
 		if (!SubtitleSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxSubtitleSinkDepth))
 		{
-			UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %llx: Subtitle sample sink overflow"), this);
+			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
+				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Subtitle sample sink overflow"), this);
+			#endif
 		}
 	}
 }
@@ -959,7 +971,9 @@ void FMediaPlayerFacade::ProcessVideoSamples(IMediaSamples& Samples, TRange<FTim
 	{
 		if (!VideoSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxVideoSinkDepth))
 		{
-			UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %llx: Video sample sink overflow"), this);
+			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
+				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Video sample sink overflow"), this);
+			#endif
 		}
 	}
 }

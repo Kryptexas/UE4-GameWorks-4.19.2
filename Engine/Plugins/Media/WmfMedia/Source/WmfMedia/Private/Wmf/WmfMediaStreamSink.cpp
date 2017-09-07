@@ -11,24 +11,94 @@
 #include "WmfMediaUtils.h"
 
 
+/* FWmfMediaStreamSink static functions
+ *****************************************************************************/
+
+bool FWmfMediaStreamSink::Create(const GUID& MajorType, TComPtr<FWmfMediaStreamSink>& OutSink)
+{
+	TComPtr<FWmfMediaStreamSink> StreamSink = new FWmfMediaStreamSink(MajorType, 1);
+	TComPtr<FWmfMediaSink> MediaSink = new FWmfMediaSink();
+
+	if (!MediaSink->Initialize(*StreamSink))
+	{
+		return false;
+	}
+
+	OutSink = StreamSink;
+
+	return true;
+}
+
+
 /* FWmfMediaStreamSink structors
  *****************************************************************************/
 
 FWmfMediaStreamSink::FWmfMediaStreamSink(const GUID& InMajorType, DWORD InStreamId)
-	: RefCount(0)
+	: Prerolling(false)
+	, RefCount(0)
 	, StreamId(InStreamId)
 	, StreamType(InMajorType)
-{ }
+{
+	UE_LOG(LogWmfMedia, Verbose, TEXT("StreamSink %p: Created with stream type %s"), this, *WmfMedia::MajorTypeToString(StreamType));
+}
 
 
 FWmfMediaStreamSink::~FWmfMediaStreamSink()
 {
 	check(RefCount == 0);
+
+	UE_LOG(LogWmfMedia, Verbose, TEXT("StreamSink %p: Destroyed"), this);
 }
 
 
 /* FWmfMediaStreamSink interface
  *****************************************************************************/
+
+bool FWmfMediaStreamSink::GetNextSample(const TRange<FTimespan>& SampleRange, FWmfMediaStreamSinkSample& OutSample)
+{
+	if (SampleRange.IsEmpty())
+	{
+		return false; // nothing to play
+	}
+
+	FScopeLock Lock(&CriticalSection);
+
+	FQueuedSample QueuedSample;
+
+	while (SampleQueue.Peek(QueuedSample))
+	{
+		if (QueuedSample.MediaType.IsValid())
+		{
+			check(QueuedSample.Sample.IsValid());
+
+			if (!SampleRange.Contains(FTimespan(QueuedSample.Time)))
+			{
+				return false; // no new sample needed
+			}
+
+			check(SampleQueue.Pop());
+
+			OutSample.MediaType = QueuedSample.MediaType;
+			OutSample.Sample = QueuedSample.Sample;
+
+			return true;
+		}
+
+		SampleQueue.Pop();
+
+		// process pending marker
+		QueueEvent(MEStreamSinkMarker, GUID_NULL, S_OK, QueuedSample.MarkerContext);
+		PropVariantClear(QueuedSample.MarkerContext);
+		delete QueuedSample.MarkerContext;
+
+		UE_LOG(LogWmfMedia, Verbose, TEXT("StreamSink %p: Processed marker (%s)"), this, *WmfMedia::MarkerTypeToString(QueuedSample.MarkerType));
+
+		continue;
+	}
+
+	return false;
+}
+
 
 bool FWmfMediaStreamSink::Initialize(FWmfMediaSink& InOwner)
 {
@@ -38,7 +108,7 @@ bool FWmfMediaStreamSink::Initialize(FWmfMediaSink& InOwner)
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to create event queue for stream sink (%s)"), *WmfMedia::ResultToString(Result));
+		UE_LOG(LogWmfMedia, Verbose, TEXT("StreamSink %p: Failed to create event queue for stream sink: %s"), this, *WmfMedia::ResultToString(Result));
 		return false;
 	}
 
@@ -48,17 +118,34 @@ bool FWmfMediaStreamSink::Initialize(FWmfMediaSink& InOwner)
 }
 
 
-FOnWmfMediaStreamSinkBuffer& FWmfMediaStreamSink::OnBuffer()
+HRESULT FWmfMediaStreamSink::Pause()
 {
 	FScopeLock Lock(&CriticalSection);
-	return BufferDelegate;
+
+	return QueueEvent(MEStreamSinkPaused, GUID_NULL, S_OK, NULL);
 }
 
 
-FOnWmfMediaStreamSinkSample& FWmfMediaStreamSink::OnSample()
+HRESULT FWmfMediaStreamSink::Preroll()
 {
 	FScopeLock Lock(&CriticalSection);
-	return SampleDelegate;
+
+	if (!EventQueue.IsValid())
+	{
+		return MF_E_SHUTDOWN;
+	}
+
+	Prerolling = true;
+
+	return QueueEvent(MEStreamSinkRequestSample, GUID_NULL, S_OK, NULL);
+}
+
+
+HRESULT FWmfMediaStreamSink::Restart()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	return QueueEvent(MEStreamSinkStarted, GUID_NULL, S_OK, NULL);
 }
 
 
@@ -71,6 +158,40 @@ void FWmfMediaStreamSink::Shutdown()
 		EventQueue->Shutdown();
 		EventQueue.Reset();
 	}
+}
+
+
+HRESULT FWmfMediaStreamSink::Start()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	HRESULT Result = QueueEvent(MEStreamSinkStarted, GUID_NULL, S_OK, NULL);
+
+	if (FAILED(Result))
+	{
+		return Result;
+	}
+
+	return QueueEvent(MEStreamSinkRequestSample, GUID_NULL, S_OK, NULL);
+}
+
+
+HRESULT FWmfMediaStreamSink::Stop()
+{
+	Flush();
+
+	FScopeLock Lock(&CriticalSection);
+
+	return QueueEvent(MEStreamSinkStopped, GUID_NULL, S_OK, NULL);
+}
+
+
+/* IMFGetService interface
+ *****************************************************************************/
+
+STDMETHODIMP FWmfMediaStreamSink::GetService(__RPC__in REFGUID guidService, __RPC__in REFIID riid, __RPC__deref_out_opt LPVOID* ppvObject)
+{
+	return Owner->GetService(guidService, riid, ppvObject);
 }
 
 
@@ -272,6 +393,8 @@ STDMETHODIMP FWmfMediaStreamSink::IsMediaTypeSupported(IMFMediaType* pMediaType,
 		return E_POINTER;
 	}
 
+	UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Checking if media type is supported:\n%s"), *WmfMedia::DumpAttributes(*pMediaType));
+
 	FScopeLock Lock(&CriticalSection);
 
 	if (!EventQueue.IsValid())
@@ -292,6 +415,7 @@ STDMETHODIMP FWmfMediaStreamSink::IsMediaTypeSupported(IMFMediaType* pMediaType,
 
 	if (MajorType != StreamType)
 	{
+		UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Media type doesn't match stream type %s"), this, *WmfMedia::MajorTypeToString(StreamType));
 		return MF_E_INVALIDMEDIATYPE;
 	}
 
@@ -310,9 +434,12 @@ STDMETHODIMP FWmfMediaStreamSink::IsMediaTypeSupported(IMFMediaType* pMediaType,
 
 		if (SUCCEEDED(Result) && ((OutFlags & CompareFlags) == CompareFlags))
 		{
+			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Media type is supported"), this, *WmfMedia::MajorTypeToString(MajorType));
 			return S_OK;
 		}
 	}
+
+	UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Media type is not supported"), this);
 
 	return MF_E_INVALIDMEDIATYPE;
 }
@@ -325,6 +452,8 @@ STDMETHODIMP FWmfMediaStreamSink::SetCurrentMediaType(IMFMediaType* pMediaType)
 		return E_POINTER;
 	}
 
+	UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Setting current media type:\n%s"), *WmfMedia::DumpAttributes(*pMediaType));
+
 	FScopeLock Lock(&CriticalSection);
 
 	if (!EventQueue.IsValid())
@@ -336,8 +465,11 @@ STDMETHODIMP FWmfMediaStreamSink::SetCurrentMediaType(IMFMediaType* pMediaType)
 
 	if (FAILED(Result))
 	{
+		UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Tried to set unsupported media type"), this);
 		return Result;
 	}
+
+	UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Current media type set"), this);
 
 	CurrentMediaType = pMediaType;
 
@@ -357,6 +489,22 @@ STDMETHODIMP FWmfMediaStreamSink::Flush()
 		return MF_E_SHUTDOWN;
 	}
 
+	UE_LOG(LogWmfMedia, Verbose, TEXT("StreamSink %p: Flushing samples & markers"), this);
+
+	FQueuedSample QueuedSample;
+
+	while (SampleQueue.Dequeue(QueuedSample))
+	{
+		if (QueuedSample.MediaType.IsValid())
+		{
+			continue;
+		}
+
+		// notify WMF that flushed markers haven't been processed
+		QueueEvent(MEStreamSinkMarker, GUID_NULL, E_ABORT, QueuedSample.MarkerContext);
+		PropVariantClear(QueuedSample.MarkerContext);
+		delete QueuedSample.MarkerContext;
+	}
 
 	return S_OK;
 }
@@ -430,6 +578,25 @@ STDMETHODIMP FWmfMediaStreamSink::PlaceMarker(MFSTREAMSINK_MARKER_TYPE eMarkerTy
 		return MF_E_SHUTDOWN;
 	}
 
+	UE_LOG(LogWmfMedia, Verbose, TEXT("StreamSink %p: Placing marker (%s)"), this, *WmfMedia::MarkerTypeToString(eMarkerType));
+
+	PROPVARIANT* MarkerContext = new PROPVARIANT;
+
+	if (pvarContextValue != NULL)
+	{
+		HRESULT Result = ::PropVariantCopy(MarkerContext, pvarContextValue);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogWmfMedia, Verbose, TEXT("StreamSink %p: Failed to copy marker context: %s"), this, *WmfMedia::ResultToString(Result));
+			delete MarkerContext;
+
+			return Result;
+		}
+	}
+
+	SampleQueue.Enqueue({ eMarkerType, MarkerContext, NULL, NULL, 0 });
+
 	return S_OK;
 }
 
@@ -448,91 +615,37 @@ STDMETHODIMP FWmfMediaStreamSink::ProcessSample(__RPC__in_opt IMFSample* pSample
 		return MF_E_SHUTDOWN;
 	}
 
-	DWORD NumBuffers;
+	if (!CurrentMediaType.IsValid())
 	{
-		const HRESULT Result = pSample->GetBufferCount(&NumBuffers);
+		UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Stream received a sample while not having a valid media type set"), this);
+		return MF_E_INVALIDMEDIATYPE;
+	}
+
+	// get sample time
+	LONGLONG Time = 0;
+	{
+		const HRESULT Result = pSample->GetSampleTime(&Time);
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to get buffer count from media sample (%s)"), *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to get time from sink sample: %s"), *WmfMedia::ResultToString(Result));
 			return Result;
 		}
 	}
 
-	FTimespan Duration;
+	SampleQueue.Enqueue({ MFSTREAMSINK_MARKER_DEFAULT, NULL, CurrentMediaType, pSample, Time });
+
+	// finish pre-rolling
+	if (Prerolling)
 	{
-		LONGLONG SampleDuration = 0;
-		const HRESULT Result = pSample->GetSampleDuration(&SampleDuration);
+		UE_LOG(LogWmfMedia, VeryVerbose, TEXT("StreamSink %p: Preroll complete"), this);
+		Prerolling = false;
 
-		if (FAILED(Result))
-		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to get sample duration from media sample (%s)"), *WmfMedia::ResultToString(Result));
-			return Result;
-		}
-
-		Duration = FTimespan(SampleDuration);
+		return QueueEvent(MEStreamSinkPrerolled, GUID_NULL, S_OK, NULL);
 	}
 
-	DWORD Flags;
-	{
-		const HRESULT Result = pSample->GetSampleFlags(&Flags);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to get sample flags from media sample (%s)"), *WmfMedia::ResultToString(Result));
-			return Result;
-		}
-	}
-
-	FTimespan Time;
-	{
-		LONGLONG SampleTime = 0;
-		const HRESULT Result = pSample->GetSampleTime(&SampleTime);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to get sample time from media sample (%s)"), *WmfMedia::ResultToString(Result));
-			return Result;
-		}
-
-		Time = FTimespan(SampleTime);
-	}
-
-	if (BufferDelegate.IsBound())
-	{
-		TComPtr<IMFMediaBuffer> Buffer = NULL;
-		{
-			const HRESULT Result = pSample->ConvertToContiguousBuffer(&Buffer);
-
-			if (FAILED(Result))
-			{
-				UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to get contiguous buffer from media sample (%s)"), *WmfMedia::ResultToString(Result));
-				return Result;
-			}
-		}
-
-		BYTE* ByteBuffer = NULL;
-		DWORD Size = 0;
-		{
-			const HRESULT Result = Buffer->Lock(&ByteBuffer, NULL, &Size);
-
-			if (FAILED(Result))
-			{
-				UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Failed to lock contiguous buffer from media sample (%s)"), *WmfMedia::ResultToString(Result));
-				return Result;
-			}
-		}
-
-		BufferDelegate.Execute(ByteBuffer, Size, Time, Duration, Flags);
-		Buffer->Unlock();
-	}
-
-	if (SampleDelegate.IsBound())
-	{
-		SampleDelegate.Execute(*pSample, NumBuffers, Time, Duration, Flags);
-	}
-
-	return S_OK;
+	// request another sample
+	return QueueEvent(MEStreamSinkRequestSample, GUID_NULL, S_OK, NULL);
 }
 
 
@@ -554,6 +667,8 @@ STDMETHODIMP FWmfMediaStreamSink::QueryInterface(REFIID RefID, void** Object)
 {
 	static const QITAB QITab[] =
 	{
+		QITABENT(FWmfMediaStreamSink, IMFGetService),
+		QITABENT(FWmfMediaStreamSink, IMFMediaTypeHandler),
 		QITABENT(FWmfMediaStreamSink, IMFStreamSink),
 		{ 0 }
 	};

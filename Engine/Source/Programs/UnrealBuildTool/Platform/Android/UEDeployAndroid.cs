@@ -1004,6 +1004,7 @@ namespace UnrealBuildTool
 						File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvPmApi.Core.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvPmApi.Core.so", true);
 						File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvidia_gfx_debugger.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvidia_gfx_debugger.so", true);
 					}
+					break;
 				*/
 				default:
 					break;
@@ -2459,8 +2460,10 @@ namespace UnrealBuildTool
 					"subst " + UnusedDriveLetter + " \"%CD%\"\n" +
 					"pushd " + UnusedDriveLetter + "\n" +
 					"call \"%ANTPATH%\\ant.orig.bat\" %ANT_CMD_LINE_ARGS%\n" +
+					"set ANTERROR=%ERRORLEVEL%\n" +
 					"popd\n" +
-					"subst " + UnusedDriveLetter + " /d\n";
+					"subst " + UnusedDriveLetter + " /d\n" +
+					"exit /b %ANTERROR%\n";
 
 			File.WriteAllText(AntBatFilename, AntBatText);
 		}
@@ -2524,8 +2527,10 @@ namespace UnrealBuildTool
 					"subst " + UnusedDriveLetter + " \"%CD%\"\n" +
 					"pushd " + UnusedDriveLetter + "\n" +
 					"call \"%GRADLEPATH%\\gradlew.bat\" %GRADLE_CMD_LINE_ARGS%\n" +
+					"set GRADLEERROR=%ERRORLEVEL%\n" +
 					"popd\n" +
-					"subst " + UnusedDriveLetter + " /d\n";
+					"subst " + UnusedDriveLetter + " /d\n" +
+					"exit /b %GRADLEERROR%\n";
 
 			File.WriteAllText(RunGradleBatFilename, RunGradleBatText);
 

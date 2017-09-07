@@ -47,8 +47,10 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorActorSpawner::CreateNewS
 	// Deal with creating a spawnable from an instance of an actor
 	else if (AActor* Actor = Cast<AActor>(&SourceObject))
 	{
-		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Actor, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transactional);
-		NewSpawnable.Name = Actor->GetActorLabel();
+		AActor* SpawnedActor = Cast<AActor>(StaticDuplicateObject(Actor, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transactional));
+		SpawnedActor->bIsEditorPreviewActor = false;
+		NewSpawnable.ObjectTemplate = SpawnedActor;
+		NewSpawnable.Name = Actor->GetActorLabel();		
 	}
 
 	// If it's a blueprint, we need some special handling

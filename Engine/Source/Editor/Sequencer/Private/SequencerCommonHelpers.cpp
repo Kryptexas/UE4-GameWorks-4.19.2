@@ -245,12 +245,19 @@ bool AreKeysSelectedInNode(FSequencer& Sequencer, TSharedRef<FSequencerDisplayNo
 
 void SequencerHelpers::ValidateNodesWithSelectedKeysOrSections(FSequencer& Sequencer)
 {
+	TArray<TSharedRef<FSequencerDisplayNode>> NodesToRemove;
+
 	for (auto Node : Sequencer.GetSelection().GetNodesWithSelectedKeysOrSections())
 	{
 		if (!IsSectionSelectedInNode(Sequencer, Node) && !AreKeysSelectedInNode(Sequencer, Node))
 		{
-			Sequencer.GetSelection().RemoveFromNodesWithSelectedKeysOrSections(Node);
+			NodesToRemove.Add(Node);
 		}
+	}
+
+	for (auto Node : NodesToRemove)
+	{
+		Sequencer.GetSelection().RemoveFromNodesWithSelectedKeysOrSections(Node);
 	}
 }
 

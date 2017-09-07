@@ -32,6 +32,8 @@ bool FWmfMediaSink::Initialize(FWmfMediaStreamSink& InStreamSink)
 {
 	FScopeLock Lock(&CriticalSection);
 
+	DWORD StreamId = 0;
+
 	if (!InStreamSink.Initialize(*this))
 	{
 		return false;
@@ -55,7 +57,7 @@ STDMETHODIMP FWmfMediaSink::OnClockPause(MFTIME hnsSystemTime)
 		return MF_E_SHUTDOWN;
 	}
 
-	return S_OK;
+	return StreamSink->Pause();
 }
 
 
@@ -68,7 +70,7 @@ STDMETHODIMP FWmfMediaSink::OnClockRestart(MFTIME hnsSystemTime)
 		return MF_E_SHUTDOWN;
 	}
 
-	return S_OK;
+	return StreamSink->Restart();
 }
 
 
@@ -94,7 +96,7 @@ STDMETHODIMP FWmfMediaSink::OnClockStart(MFTIME hnsSystemTime, LONGLONG llClockS
 		return MF_E_SHUTDOWN;
 	}
 
-	return S_OK;
+	return StreamSink->Start();
 }
 
 
@@ -107,7 +109,26 @@ STDMETHODIMP FWmfMediaSink::OnClockStop(MFTIME hnsSystemTime)
 		return MF_E_SHUTDOWN;
 	}
 
-	return S_OK;
+	return StreamSink->Stop();
+}
+
+
+/* IMFGetService interface
+ *****************************************************************************/
+
+STDMETHODIMP FWmfMediaSink::GetService(__RPC__in REFGUID guidService, __RPC__in REFIID riid, __RPC__deref_out_opt LPVOID* ppvObject)
+{
+	if (guidService == MF_RATE_CONTROL_SERVICE)
+	{
+		return QueryInterface(riid, ppvObject);
+	}
+	
+	if (guidService == MR_VIDEO_ACCELERATION_SERVICE)
+	{
+		// @todo gmp: implement WmfMedia video acceleration
+	}
+
+	return MF_E_UNSUPPORTED_SERVICE;
 }
 
 
@@ -173,16 +194,18 @@ STDMETHODIMP FWmfMediaSink::GetStreamSinkById(DWORD dwIdentifier, __RPC__deref_o
 		return E_POINTER;
 	}
 
-	if (dwIdentifier != WmfMediaStreamSink::FixedStreamId)
-	{
-		return MF_E_INVALIDSTREAMNUMBER;
-	}
-
 	FScopeLock Lock(&CriticalSection);
 
 	if (!StreamSink.IsValid())
 	{
 		return MF_E_SHUTDOWN;
+	}
+
+	DWORD Identifier = 0;
+
+	if (FAILED(StreamSink->GetIdentifier(&Identifier)) || (Identifier != dwIdentifier))
+	{
+		return MF_E_INVALIDSTREAMNUMBER;
 	}
 
 	*ppStreamSink = StreamSink;
@@ -260,7 +283,7 @@ STDMETHODIMP FWmfMediaSink::SetPresentationClock(__RPC__in_opt IMFPresentationCl
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Error, TEXT("Failed to remove media sink from presentation clock (%s)"), *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Error, TEXT("Failed to remove media sink from presentation clock: %s"), *WmfMedia::ResultToString(Result));
 			return Result;
 		}
 	}
@@ -272,7 +295,7 @@ STDMETHODIMP FWmfMediaSink::SetPresentationClock(__RPC__in_opt IMFPresentationCl
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Error, TEXT("Failed to add media sink to presentation clock (%s)"), *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Error, TEXT("Failed to add media sink to presentation clock: %s"), *WmfMedia::ResultToString(Result));
 			return Result;
 		}
 	}
@@ -299,6 +322,78 @@ STDMETHODIMP FWmfMediaSink::Shutdown()
 }
 
 
+/* IMFMediaSinkPreroll interface
+ *****************************************************************************/
+
+STDMETHODIMP FWmfMediaSink::NotifyPreroll(MFTIME hnsUpcomingStartTime)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (!StreamSink.IsValid())
+	{
+		return MF_E_SHUTDOWN;
+	}
+
+	return StreamSink->Preroll();
+}
+
+
+/* IMFRateSupport interface
+ *****************************************************************************/
+
+STDMETHODIMP FWmfMediaSink::GetFastestRate(MFRATE_DIRECTION eDirection, BOOL fThin, _Out_ float* pflRate)
+{
+	if (pflRate == NULL)
+	{
+		return E_POINTER;
+	}
+
+	FScopeLock Lock(&CriticalSection);
+
+	if (!StreamSink.IsValid())
+	{
+		return MF_E_SHUTDOWN;
+	}
+
+	*pflRate = (eDirection == MFRATE_FORWARD) ? FLT_MAX : FLT_MIN;
+
+	return S_OK;
+}
+
+
+STDMETHODIMP FWmfMediaSink::GetSlowestRate(MFRATE_DIRECTION eDirection, BOOL fThin, _Out_ float* pflRate)
+{
+	if (pflRate == NULL)
+	{
+		return E_POINTER;
+	}
+
+	FScopeLock Lock(&CriticalSection);
+
+	if (!StreamSink.IsValid())
+	{
+		return MF_E_SHUTDOWN;
+	}
+
+	*pflRate = 0.0;
+
+	return S_OK;
+}
+
+
+STDMETHODIMP FWmfMediaSink::IsRateSupported(BOOL fThin, float flRate, __RPC__inout_opt float* pflNearestSupportedRate)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (!StreamSink.IsValid())
+	{
+		return MF_E_SHUTDOWN;
+	}
+
+	return S_OK;
+}
+
+
 /* IUnknown interface
  *****************************************************************************/
 
@@ -318,7 +413,10 @@ STDMETHODIMP FWmfMediaSink::QueryInterface(REFIID RefID, void** Object)
 	static const QITAB QITab[] =
 	{
 		QITABENT(FWmfMediaSink, IMFClockStateSink),
+		QITABENT(FWmfMediaSink, IMFGetService),
 		QITABENT(FWmfMediaSink, IMFMediaSink),
+		QITABENT(FWmfMediaSink, IMFMediaSinkPreroll),
+		QITABENT(FWmfMediaSink, IMFRateSupport),
 		{ 0 }
 	};
 

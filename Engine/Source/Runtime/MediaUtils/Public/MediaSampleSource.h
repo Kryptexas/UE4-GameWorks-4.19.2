@@ -20,11 +20,11 @@ class TMediaSampleSource
 public:
 
 	/**
-	 * Dequeue the next sample in the queue.
+	 * Remove and return the next sample in the queue.
 	 *
 	 * @param OutSample Will contain the sample if the queue is not empty.
 	 * @return true if a sample has been returned, false if the queue was empty.
-	 * @see Peek
+	 * @see Peek, Pop
 	 */
 	virtual bool Dequeue(TSharedPtr<SampleType, ESPMode::ThreadSafe>& OutSample) = 0;
 
@@ -33,9 +33,17 @@ public:
 	 *
 	 * @param OutSample Will contain the sample if the queue is not empty.
 	 * @return true if a sample has been returned, false if the queue was empty.
-	 * @see Peek
+	 * @see Dequeue, Pop
 	 */
 	virtual bool Peek(TSharedPtr<SampleType, ESPMode::ThreadSafe>& OutSample) = 0;
+
+	/**
+	 * Remove the next sample from the queue.
+	 *
+	 * @return true if a sample was removed, false otherwise.
+	 * @see Dequeue, Peek
+	 */
+	virtual bool Pop() = 0;
 
 public:
 

@@ -37,12 +37,12 @@ void USynthSound::Init(USynthComponent* InSynthComponent, int32 InNumChannels)
 
 bool USynthSound::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
+	OutAudio.Reset();
+
 	if (bAudioMixer)
 	{
 		// If running with audio mixer, the output audio buffer will be in floats already
-		OutAudio.Reset();
 		OutAudio.AddZeroed(NumSamples * sizeof(float));
-
 		OwningSynthComponent->OnGeneratePCMAudio((float*)OutAudio.GetData(), NumSamples);
 	}
 	else
@@ -55,6 +55,7 @@ bool USynthSound::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 		OwningSynthComponent->OnGeneratePCMAudio(FloatBufferDataPtr, NumSamples);
 
 		// Convert the float buffer to int16 data
+		OutAudio.AddZeroed(NumSamples * sizeof(int16));
 		int16* OutAudioBuffer = (int16*)OutAudio.GetData();
 		for (int32 i = 0; i < NumSamples; ++i)
 		{

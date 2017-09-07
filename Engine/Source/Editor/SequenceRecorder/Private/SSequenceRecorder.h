@@ -14,6 +14,7 @@ class FActiveTimerHandle;
 class FUICommandList;
 class IDetailsView;
 class SProgressBar;
+class FDragDropOperation;
 
 class SSequenceRecorder : public SCompoundWidget
 {
@@ -70,6 +71,10 @@ private:
 	EVisibility GetDelayProgressVisibilty() const;
 
 	FText GetTargetSequenceName() const;
+
+	FReply OnRecordingListDrop( TSharedPtr<FDragDropOperation> DragDropOperation );
+
+	bool OnRecordingListAllowDrop( TSharedPtr<FDragDropOperation> DragDropOperation );
 
 private:
 	TSharedPtr<IDetailsView> SequenceRecordingDetailsView;

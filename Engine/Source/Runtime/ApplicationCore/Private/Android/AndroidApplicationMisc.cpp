@@ -3,8 +3,8 @@
 #include "AndroidApplicationMisc.h"
 
 #include "AndroidApplication.h"
-#include "AndroidInputInterface.h"
 #include "AndroidErrorOutputDevice.h"
+#include "AndroidInputInterface.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Internationalization/Regex.h"

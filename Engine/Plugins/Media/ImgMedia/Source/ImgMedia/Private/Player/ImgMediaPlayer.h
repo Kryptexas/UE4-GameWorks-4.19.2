@@ -47,7 +47,7 @@ public:
 	virtual IMediaCache& GetCache() override;
 	virtual IMediaControls& GetControls() override;
 	virtual FString GetInfo() const override;
-	virtual FName GetName() const override;
+	virtual FName GetPlayerName() const override;
 	virtual IMediaSamples& GetSamples() override;
 	virtual FString GetStats() const override;
 	virtual IMediaTracks& GetTracks() override;
@@ -55,7 +55,7 @@ public:
 	virtual IMediaView& GetView() override;
 	virtual bool Open(const FString& Url, const IMediaOptions* Options) override;
 	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* Options) override;
-	virtual void TickInput(FTimespan DeltaTime) override;
+	virtual void TickInput(FTimespan DeltaTime, FTimespan Timecode) override;
 
 protected:
 

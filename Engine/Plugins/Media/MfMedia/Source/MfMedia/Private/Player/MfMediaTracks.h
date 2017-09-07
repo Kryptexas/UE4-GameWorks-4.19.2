@@ -199,10 +199,9 @@ public:
 	 *
 	 * @param Rate The current playback rate.
 	 * @param Time The current presentation time.
-	 * @param DeltaTime Time since the last tick.
 	 * @see TickAudio
 	 */
-	void TickInput(float Rate, FTimespan Time, FTimespan DeltaTime);
+	void TickInput(float Rate, FTimespan Time);
 
 public:
 
@@ -227,8 +226,9 @@ protected:
 	 *
 	 * @param StreamIndex The index number of the stream in the presentation descriptor.
 	 * @param OutInfo String to append debug information to.
+	 * @return true on success, false otherwise.
 	 */
-	void AddStreamToTracks(uint32 StreamIndex, FString& OutInfo);
+	bool AddStreamToTracks(uint32 StreamIndex, FString& OutInfo);
 
 	/**
 	 * Get the specified audio format.

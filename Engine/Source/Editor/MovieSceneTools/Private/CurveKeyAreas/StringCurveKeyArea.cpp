@@ -144,6 +144,7 @@ FRichCurve* FStringCurveKeyArea::GetRichCurve()
 TArray<FKeyHandle> FStringCurveKeyArea::GetUnsortedKeyHandles() const
 {
 	TArray<FKeyHandle> OutKeyHandles;
+	OutKeyHandles.Reserve(Curve->GetNumKeys());
 
 	for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
 	{

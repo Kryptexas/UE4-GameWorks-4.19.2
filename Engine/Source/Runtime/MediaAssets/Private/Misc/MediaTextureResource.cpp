@@ -177,7 +177,7 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 		if (Sample->GetOutputDim().GetMin() <= 0)
 		{
 			#if MEDIATEXTURERESOURCE_TRACE_RENDER
-				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Corrupt sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Corrupt sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
 			#endif
 
 			ClearTexture(FLinearColor::Red, Params.SrgbOutput); // mark corrupt sample
@@ -185,7 +185,7 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 		else if (MediaTextureResource::RequiresConversion(Sample, Params.SrgbOutput))
 		{
 			#if MEDIATEXTURERESOURCE_TRACE_RENDER
-				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Converting sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Converting sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
 			#endif
 
 			ConvertSample(Sample, Params.ClearColor, Params.SrgbOutput);
@@ -193,7 +193,7 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 		else
 		{
 			#if MEDIATEXTURERESOURCE_TRACE_RENDER
-				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Copying sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Copying sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
 			#endif
 
 			CopySample(Sample, Params.ClearColor, Params.SrgbOutput);
@@ -208,7 +208,7 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 	else if (!Cleared)
 	{
 		#if MEDIATEXTURERESOURCE_TRACE_RENDER
-			UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Clearing texture at time %s"), this, *Params.Time.ToString());
+			UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Clearing texture at time %s"), this, *Params.Time.ToString());
 		#endif
 
 		ClearTexture(Params.ClearColor, Params.SrgbOutput);

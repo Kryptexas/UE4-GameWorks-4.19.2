@@ -45,6 +45,8 @@ public:
 		: DisplayName(InDisplayName)
 		, SectionObject(*CastChecked<UMovieSceneSubSection>(&InSection))
 		, Sequencer(InSequencer)
+		, InitialStartOffsetDuringResize(0.f)
+		, InitialStartTimeDuringResize(0.f)
 	{
 	}
 
@@ -278,6 +280,25 @@ public:
 		return FReply::Handled();
 	}
 
+	virtual void BeginSlipSection() override
+	{
+		InitialStartOffsetDuringResize = SectionObject.Parameters.StartOffset;
+		InitialStartTimeDuringResize = SectionObject.GetStartTime();
+	}
+
+	virtual void SlipSection(float SlipTime) override
+	{
+		float StartOffset = (SlipTime - InitialStartTimeDuringResize) / SectionObject.Parameters.TimeScale;
+		StartOffset += InitialStartOffsetDuringResize;
+
+		// Ensure start offset is not less than 0
+		StartOffset = FMath::Max(StartOffset, 0.f);
+
+		SectionObject.Parameters.StartOffset = StartOffset;
+
+		ISequencerSection::SlipSection(SlipTime);
+	}
+
 private:
 
 	/** Display name of the section */
@@ -288,6 +309,12 @@ private:
 
 	/** Sequencer interface */
 	TWeakPtr<ISequencer> Sequencer;
+
+	/** Cached start offset value valid only during resize */
+	float InitialStartOffsetDuringResize;
+	
+	/** Cached start time valid only during resize */
+	float InitialStartTimeDuringResize;
 };
 
 

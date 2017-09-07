@@ -777,7 +777,7 @@ protected:
 protected:
 
 	/** Get all the keys for the current sequencer selection */
-	virtual void GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection) override;
+	virtual void GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection, float DuplicateThresoldTime) override;
 
 	UMovieSceneSection* FindNextOrPreviousShot(UMovieSceneSequence* Sequence, float Time, const bool bNext) const;
 
@@ -1074,4 +1074,7 @@ private:
 	TSharedPtr<struct FSequencerTemplateStore> TemplateStore;
 
 	TMap<FName, TFunction<void()>> CleanupFunctions;
+
+	/** Transient collection of keys that is used for jumping between keys contained within the current selection */
+	TUniquePtr<ISequencerKeyCollection> SelectedKeyCollection;
 };

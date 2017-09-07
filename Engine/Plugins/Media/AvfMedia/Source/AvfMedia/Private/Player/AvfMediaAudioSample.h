@@ -67,7 +67,7 @@ public:
 		Buffer.AddUninitialized(InBufferSize);
 
 		Channels = InChannels;
-		Duration = FTimespan::FromSeconds(InFrames / InSampleRate);
+		Duration = FTimespan::FromSeconds((float)InFrames / (float)InSampleRate);
 		Frames = InFrames;
 		SampleRate = InSampleRate;
 		Time = InTime;

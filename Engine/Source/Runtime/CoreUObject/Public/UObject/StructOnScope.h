@@ -6,6 +6,7 @@
 #include "UObject/Class.h"
 #include "UObject/WeakObjectPtr.h"
 #include "UObject/Package.h"
+#include "Casts.h"
 
 class FStructOnScope
 {

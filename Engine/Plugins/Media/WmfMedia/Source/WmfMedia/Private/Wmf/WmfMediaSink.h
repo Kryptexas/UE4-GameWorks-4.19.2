@@ -17,7 +17,10 @@ class FWmfMediaStreamSink;
  */
 class FWmfMediaSink
 	: public IMFClockStateSink
+	, public IMFGetService
 	, public IMFMediaSink
+	, public IMFMediaSinkPreroll
+	, public IMFRateSupport
 {
 public:
 
@@ -46,6 +49,12 @@ public:
 
 public:
 
+	//~ IMFGetService interface
+
+	STDMETHODIMP GetService(__RPC__in REFGUID guidService, __RPC__in REFIID riid, __RPC__deref_out_opt LPVOID* ppvObject);
+
+public:
+
 	// ~IMFMediaSink interface
 
 	STDMETHODIMP AddStreamSink(DWORD dwStreamSinkIdentifier, __RPC__in_opt IMFMediaType* pMediaType, __RPC__deref_out_opt IMFStreamSink** ppStreamSink);
@@ -57,6 +66,20 @@ public:
 	STDMETHODIMP RemoveStreamSink(DWORD dwStreamSinkIdentifier);
 	STDMETHODIMP SetPresentationClock(__RPC__in_opt IMFPresentationClock* pPresentationClock);
 	STDMETHODIMP Shutdown();
+
+public:
+
+	//~ IMFMediaSinkPreroll interface
+
+	STDMETHODIMP NotifyPreroll(MFTIME hnsUpcomingStartTime);
+
+public:
+
+	//~ IMFRateSupport interface
+
+	STDMETHODIMP GetFastestRate(MFRATE_DIRECTION eDirection, BOOL fThin, _Out_ float* pflRate);
+	STDMETHODIMP GetSlowestRate(MFRATE_DIRECTION eDirection, BOOL fThin, _Out_ float* pflRate);
+	STDMETHODIMP IsRateSupported(BOOL fThin, float flRate, __RPC__inout_opt float* pflNearestSupportedRate);
 
 public:
 

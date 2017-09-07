@@ -23,28 +23,25 @@ enum class EMovieSceneKeyInterpolation : uint8;
 /** Keyable structure used to identify a particular FGroupedKeyArea */
 struct FIndexKey
 {
-	FIndexKey(FString InNodePath, UMovieSceneSection* InSection);
+	FIndexKey(FName InNodePath, UMovieSceneSection* InSection);
 
 	friend bool operator==(const FIndexKey& A, const FIndexKey& B)
 	{
-		return A.CachedHash == B.CachedHash && A.NodePath == B.NodePath && A.Section == B.Section;
+		return A.NodePath == B.NodePath && A.Section == B.Section;
 	}
 
 	friend uint32 GetTypeHash( const FIndexKey& IndexKey )
 	{
-		return IndexKey.CachedHash;
+		return GetTypeHash(IndexKey.NodePath) ^ GetTypeHash(IndexKey.Section);
 	}
 
 private:
 
 	/** Cached path of the node that we relate to */
-	FString NodePath;
+	FName NodePath;
 
 	/** The movie scene section that we relate to */
 	TWeakObjectPtr<UMovieSceneSection> Section;
-
-	/** Cached hash for efficiency (to avoid having to re-hash strings all the time) */
-	uint32 CachedHash;
 };
 
 
@@ -82,7 +79,7 @@ struct FKeyGrouping
 	/** The representative time at which all keys within this group are located */
 	float RepresentativeTime;
 	/** Array of keys contained within this group */
-	TArray<FKeyIndex> Keys;
+	TArray<FKeyIndex, TInlineAllocator<1>> Keys;
 };
 
 
@@ -97,14 +94,23 @@ public:
 
 public:
 
-	/** Initialize this key collection from the specified nodes. Only gathers keys from those explicitly specified. */
-	virtual void InitializeExplicit(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) override;
+	/**
+	 * Initialize this key collection from the specified nodes. Only gathers keys from those explicitly specified.
+	 * @return true if this collection was (re)initialized, false if it did not need updating
+	 */
+	virtual bool InitializeExplicit(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) override;
 
-	/** Initialize this key collection from the specified nodes. Gathers keys from all child nodes. */
-	virtual void InitializeRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) override;
+	/**
+	 * Initialize this key collection from the specified nodes. Gathers keys from all child nodes.
+	 * @return true if this collection was (re)initialized, false if it did not need updating
+	 */
+	virtual bool InitializeRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) override;
 	
-	/** Initialize this key collection from the specified node and section index. */
-	virtual void InitializeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float DuplicateThreshold = SMALL_NUMBER) override;
+	/**
+	 * Initialize this key collection from the specified node and section index.
+	 * @return true if this collection was (re)initialized, false if it did not need updating
+	 */
+	virtual bool InitializeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float DuplicateThreshold = SMALL_NUMBER) override;
 
 	/** Iterate the keys contained within this collection */
 	virtual void IterateKeys(const TFunctionRef<bool(float)>& Iter) override;
@@ -141,6 +147,10 @@ protected:
 	FKeyGrouping* FindGroup(FKeyHandle InHandle);
 
 protected:
+
+	/** A signature that is used to avoid unnecessary updates */
+	FSequencerKeyCollectionSignature CacheSignature;
+
 	/** Array of (child) key areas that we are reflecting */
 	TArray<TSharedRef<IKeyArea>> KeyAreas;
 
@@ -194,8 +204,16 @@ public:
 	virtual void PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment) override;
 	virtual TOptional<FLinearColor> GetColor() override;
 
+public:
+
+	/** Ensure this key area is up to date based on the section's signature */
+	void Update();
+
 protected:
-	
+
+	/** Weak pointer back to the display node so we can update when necessary */
+	TWeakPtr<FSequencerDisplayNode> DisplayNode;
+
 	/** Pointer to the section to which this key area relates */
 	UMovieSceneSection* Section;
 };

@@ -345,6 +345,8 @@ public:
 	/** Toggle whether to show pre and post roll in sequencer */
 	void SetShouldShowPrePostRoll(bool bInVisualizePreAndPostRoll);
 
+	uint32 GetTrajectoryPathCap() const { return TrajectoryPathCap; }
+
 	/** Gets the multicast delegate which is invoked whenevcer the bLockPlaybackToAudioClock setting is changed. */
 	FOnLockPlaybackToAudioClockChanged& GetOnLockPlaybackToAudioClockChanged() { return OnLockPlaybackToAudioClockChanged; }
 
@@ -528,6 +530,10 @@ protected:
 	/** Enable or disable showing of pre and post roll visualization. */
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bVisualizePreAndPostRoll;
+
+	/** Specifies the maximum number of keys to draw when rendering trajectories in viewports */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	uint32 TrajectoryPathCap;
 
 	FOnLockPlaybackToAudioClockChanged OnLockPlaybackToAudioClockChanged;
 	FOnEvaluateSubSequencesInIsolationChanged OnEvaluateSubSequencesInIsolationChangedEvent;

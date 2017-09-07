@@ -11,6 +11,7 @@
 #include "Rendering/RenderingCommon.h"
 #include "DisplayNodes/SequencerTrackNode.h"
 #include "SectionLayout.h"
+#include "SequencerKeyTimeCache.h"
 
 class FPaintArgs;
 class FSequencer;
@@ -149,6 +150,8 @@ private:
 	TArray<FSequencerOverlapRange> UnderlappingEasingSegments;
 	/** The signature of the track last time the overlapping segments were updated */
 	FGuid CachedTrackSignature;
+	/** Cache of key area positions */
+	TMap<TSharedPtr<IKeyArea>, FSequencerCachedKeys> CachedKeyAreaPositions;
 
 	friend struct FSequencerSectionPainterImpl;
 };

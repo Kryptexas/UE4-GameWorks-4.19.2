@@ -375,7 +375,7 @@ void FAvfMediaTracks::ProcessAudio()
 
 				if (!AudioSample->Initialize(
 					OutputLength,
-					TargetDesc.mFramesPerPacket,
+					NumSamples,
 					TargetDesc.mChannelsPerFrame,
 					TargetDesc.mSampleRate,
 					FTimespan::FromSeconds(CMTimeGetSeconds(FrameTimeStamp))))

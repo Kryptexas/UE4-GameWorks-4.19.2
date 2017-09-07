@@ -381,7 +381,7 @@ public:
 	virtual void UpdatePlaybackRange() = 0;
 
 	/** Get all the keys for the current sequencer selection */
-	virtual void GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection) = 0;
+	virtual void GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection, float DuplicateThresoldTime) = 0;
 
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;

@@ -303,7 +303,7 @@ FString FAvfMediaPlayer::GetInfo() const
 }
 
 
-FName FAvfMediaPlayer::GetName() const
+FName FAvfMediaPlayer::GetPlayerName() const
 {
 	static FName PlayerName(TEXT("AvfMedia"));
 	return PlayerName;
@@ -475,7 +475,7 @@ void FAvfMediaPlayer::TickAudio()
 }
 
 
-void FAvfMediaPlayer::TickFetch(FTimespan DeltaTime)
+void FAvfMediaPlayer::TickFetch(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
 	if ((CurrentState > EMediaState::Error) && (Duration > 0.0f))
 	{
@@ -484,7 +484,7 @@ void FAvfMediaPlayer::TickFetch(FTimespan DeltaTime)
 }
 
 
-void FAvfMediaPlayer::TickInput(FTimespan DeltaTime)
+void FAvfMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
 	// process deferred tasks
 	TFunction<void()> Task;

@@ -96,7 +96,7 @@ public:
 		return LOCTEXT("MediaPlayerDisplayName", "Apple AV Foundation");
 	}
 
-	virtual FName GetName() const override
+	virtual FName GetPlayerName() const override
 	{
 		static FName PlayerName(TEXT("AvfMedia"));
 		return PlayerName;

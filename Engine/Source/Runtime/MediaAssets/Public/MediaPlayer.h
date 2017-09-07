@@ -180,6 +180,15 @@ public:
 	float GetHorizontalFieldOfView() const;
 
 	/**
+	 * Get the human readable name of the currently loaded media source.
+	 *
+	 * @return Media source name, or empty text if no media is opened
+	 * @see GetPlayerName, GetUrl
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	virtual FText GetMediaName() const;
+
+	/**
 	 * Get the number of tracks of the given type.
 	 *
 	 * @param TrackType The type of media tracks.
@@ -204,6 +213,7 @@ public:
 	 * Get the name of the current native media player.
 	 *
 	 * @return Player name, or NAME_None if not available.
+	 * @see GetMediaName
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	FName GetPlayerName() const;
@@ -752,7 +762,7 @@ public:
 	 * synchronously or asynchronously, this event may be executed before or
 	 * after the call to OpenSource / OpenUrl returns.
 	 *
-	 * @see OnMediaOpenFailed
+	 * @see OnMediaOpenFailed, OnTracksChanged
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaOpened OnMediaOpened;
@@ -790,10 +800,18 @@ public:
 	 *
 	 * Depending on whether the underlying player implementation performs seeks
 	 * synchronously or asynchronously, this event may be executed before or
-	 * after the call to Seek.
+	 * after the call to Seek returns.
 	 */
-	UPROPERTY(BlueprintAssignable, Category = "Media|MediaPlayer")
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaEvent OnSeekCompleted;
+
+	/**
+	 * A delegate that is invoked when the media track collection changed.
+	 *
+	 * @see OnMediaOpened
+	 */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaEvent OnTracksChanged;
 
 public:
 
@@ -861,7 +879,7 @@ public:
 	virtual bool CanBeInCluster() const override;
 	virtual FString GetDesc() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	virtual void PostLoad() override;
+	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

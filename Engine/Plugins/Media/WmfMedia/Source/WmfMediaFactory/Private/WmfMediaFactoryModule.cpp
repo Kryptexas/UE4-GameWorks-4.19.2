@@ -114,7 +114,7 @@ public:
 		return LOCTEXT("MediaPlayerDisplayName", "Windows Media Foundation");
 	}
 
-	virtual FName GetName() const override
+	virtual FName GetPlayerName() const override
 	{
 		static FName PlayerName(TEXT("WmfMedia"));
 		return PlayerName;

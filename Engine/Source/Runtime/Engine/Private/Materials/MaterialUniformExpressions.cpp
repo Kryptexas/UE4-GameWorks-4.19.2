@@ -10,6 +10,8 @@
 #include "Materials/MaterialInstanceSupport.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "ExternalTexture.h"
+#include "MessageLog.h"
+#include "UObjectToken.h"
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()
 {
@@ -401,8 +403,15 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 				// Do not allow external textures to be applied to normal texture samplers
 				if (Value->GetMaterialType() == MCT_TextureExternal)
 				{
-					ensureMsgf(false, TEXT("External texture applied to a Texture2D sampler. This may work by chance on some platforms but is not portable. Please change sampler type to 'External'. Texture '%s' on parameter '%s' (slot %i) in material '%s'"),
-						*Value->GetPathName(), TextureParameter ? *TextureParameter->GetParameterName().ToString() : TEXT("non-parameter"), ExpressionIndex, *MaterialRenderContext.Material.GetFriendlyName());
+					FText MessageText = FText::Format(
+						NSLOCTEXT("MaterialExpressions", "IncompatibleExternalTexture", " applied to a non-external Texture2D sampler. This may work by chance on some platforms but is not portable. Please change sampler type to 'External'. Parameter '{0}' (slot {1}) in material '{2}'"),
+						FText::FromName(TextureParameter ? TextureParameter->GetParameterName() : FName()),
+						ExpressionIndex,
+						FText::FromString(*MaterialRenderContext.Material.GetFriendlyName()));
+
+					FMessageLog("PIE").Warning()
+						->AddToken(FUObjectToken::Create(Value))
+						->AddToken(FTextToken::Create(MessageText));
 				}
 			}
 
@@ -746,7 +755,7 @@ void FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const U
 
 namespace
 {
-	void SerializeOptional(FArchive Ar, TOptional<FName> OptionalName)
+	void SerializeOptional(FArchive& Ar, TOptional<FName>& OptionalName)
 	{
 		bool bIsSet = OptionalName.IsSet();
 		Ar << bIsSet;

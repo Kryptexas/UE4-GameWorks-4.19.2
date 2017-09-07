@@ -348,6 +348,13 @@ void FSequencer::Close()
 
 void FSequencer::Tick(float InDeltaTime)
 {
+	static bool bEnableRefCountCheck = true;
+	if (bEnableRefCountCheck && !FSlateApplication::Get().AnyMenusVisible())
+	{
+		const int32 SequencerRefCount = AsShared().GetSharedReferenceCount() - 1;
+		ensureAlwaysMsgf(SequencerRefCount == 1, TEXT("Multiple persistent shared references detected for Sequencer. There should only be one persistent authoritative reference. Found %d additional references which will result in FSequencer not being released correctly."), SequencerRefCount - 1);
+	}
+
 	Selection.Tick();
 	
 	if (PlaybackContextAttribute.IsBound())
@@ -631,7 +638,7 @@ TArray<UObject*> FSequencer::GetEventContexts() const
 	return Temp;
 }
 
-void FSequencer::GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection)
+void FSequencer::GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection, float DuplicateThreshold)
 {
 	if (!KeyCollection.IsValid())
 	{
@@ -643,10 +650,6 @@ void FSequencer::GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCo
 	{
 		SelectedNodes.Add(&Node.Get());
 	}
-
-	// Anything within .5 pixel's worth of time is a duplicate as far as we're concerned
-	FVirtualTrackArea TrackArea = SequencerWidget->GetVirtualTrackArea();;
-	const float DuplicateThreshold = (TrackArea.PixelToTime(0.f) - TrackArea.PixelToTime(1.f)) * .5f;
 
 	KeyCollection->InitializeRecursive(SelectedNodes, DuplicateThreshold);
 }
@@ -809,7 +812,6 @@ void FSequencer::DeleteSections(const TSet<TWeakObjectPtr<UMovieSceneSection>>& 
 		}
 
 		bAnythingRemoved = true;
-		Selection.RemoveFromSelection(Section.Get());
 	}
 
 	if (bAnythingRemoved)
@@ -818,6 +820,7 @@ void FSequencer::DeleteSections(const TSet<TWeakObjectPtr<UMovieSceneSection>>& 
 		NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemRemoved );
 	}
 
+	Selection.EmptySelectedSections();
 	SequencerHelpers::ValidateNodesWithSelectedKeysOrSections(*this);
 }
 
@@ -2860,13 +2863,12 @@ FReply FSequencer::SetPlaybackStart()
 
 FReply FSequencer::JumpToPreviousKey()
 {
-	TUniquePtr<ISequencerKeyCollection> ActiveKeyCollection;
-	GetKeysFromSelection(ActiveKeyCollection);
-	if (ActiveKeyCollection.IsValid())
+	GetKeysFromSelection(SelectedKeyCollection, SMALL_NUMBER);
+	if (SelectedKeyCollection.IsValid())
 	{
 		TRange<float> FindRange(TRange<float>::BoundsType(), GetLocalTime());
 
-		TOptional<float> NewTime = ActiveKeyCollection->FindFirstKeyInRange(FindRange, EFindKeyDirection::Backwards);
+		TOptional<float> NewTime = SelectedKeyCollection->FindFirstKeyInRange(FindRange, EFindKeyDirection::Backwards);
 		if (NewTime.IsSet())
 		{
 			SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
@@ -2879,13 +2881,12 @@ FReply FSequencer::JumpToPreviousKey()
 
 FReply FSequencer::JumpToNextKey()
 {
-	TUniquePtr<ISequencerKeyCollection> ActiveKeyCollection;
-	GetKeysFromSelection(ActiveKeyCollection);
-	if (ActiveKeyCollection.IsValid())
+	GetKeysFromSelection(SelectedKeyCollection, SMALL_NUMBER);
+	if (SelectedKeyCollection.IsValid())
 	{
 		TRange<float> FindRange(GetLocalTime(), TRange<float>::BoundsType());
 
-		TOptional<float> NewTime = ActiveKeyCollection->FindFirstKeyInRange(FindRange, EFindKeyDirection::Forwards);
+		TOptional<float> NewTime = SelectedKeyCollection->FindFirstKeyInRange(FindRange, EFindKeyDirection::Forwards);
 		if (NewTime.IsSet())
 		{
 			SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
@@ -3146,16 +3147,15 @@ void FSequencer::OnClampRangeChanged( TRange<float> NewClampRange )
 float FSequencer::OnGetNearestKey(float InTime)
 {
 	float NearestKeyTime = InTime;
-	TUniquePtr<ISequencerKeyCollection> ActiveKeyCollection;
-	GetKeysFromSelection(ActiveKeyCollection);
+	GetKeysFromSelection(SelectedKeyCollection, SMALL_NUMBER);
 
-	if (ActiveKeyCollection.IsValid())
+	if (SelectedKeyCollection.IsValid())
 	{
 		TRange<float> FindRangeBackwards(TRange<float>::BoundsType(), NearestKeyTime);
-		TOptional<float> NewTimeBackwards = ActiveKeyCollection->FindFirstKeyInRange(FindRangeBackwards, EFindKeyDirection::Backwards);
+		TOptional<float> NewTimeBackwards = SelectedKeyCollection->FindFirstKeyInRange(FindRangeBackwards, EFindKeyDirection::Backwards);
 
 		TRange<float> FindRangeForwards(NearestKeyTime, TRange<float>::BoundsType());
-		TOptional<float> NewTimeForwards = ActiveKeyCollection->FindFirstKeyInRange(FindRangeForwards, EFindKeyDirection::Forwards);
+		TOptional<float> NewTimeForwards = SelectedKeyCollection->FindFirstKeyInRange(FindRangeForwards, EFindKeyDirection::Forwards);
 		if (NewTimeForwards.IsSet())
 		{
 			if (NewTimeBackwards.IsSet())

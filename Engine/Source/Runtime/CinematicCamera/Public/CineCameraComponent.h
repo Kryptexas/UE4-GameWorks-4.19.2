@@ -30,6 +30,12 @@ struct FCameraFilmbackSettings
 	/** Read-only. Computed from Sensor dimensions. */
 	UPROPERTY(Interp, VisibleAnywhere, BlueprintReadOnly, Category = "Filmback")
 	float SensorAspectRatio;
+
+	bool operator==(const FCameraFilmbackSettings& Other) const
+	{
+		return (SensorWidth == Other.SensorWidth)
+			&& (SensorHeight == Other.SensorHeight);
+	}
 };
 
 /** A named bundle of filmback settings used to implement filmback presets */
@@ -241,6 +247,22 @@ public:
 	/** Returns the vertical FOV of the camera with current settings. */
 	UFUNCTION(BlueprintCallable, Category = "Cine Camera")
 	float GetVerticalFieldOfView() const;
+
+	/** Returns the filmback name of the camera with the current settings. */
+	UFUNCTION(BlueprintCallable, Category = "Cine Camera")
+	FString GetFilmbackPresetName() const;
+
+	/** Set the current preset settings by preset name. */
+	UFUNCTION(BlueprintCallable, Category = "Cine Camera")
+	void SetFilmbackPresetByName(const FString& InPresetName);
+
+	/** Returns the lens name of the camera with the current settings. */
+	UFUNCTION(BlueprintCallable, Category = "Cine Camera")
+	FString GetLensPresetName() const;
+
+	/** Set the current lens settings by preset name. */
+	UFUNCTION(BlueprintCallable, Category = "Cine Camera")
+	void SetLensPresetByName(const FString& InPresetName);
 
 	/** Returns a list of available filmback presets. */
 	static TArray<FNamedFilmbackPreset> const& GetFilmbackPresets();

@@ -46,6 +46,7 @@ private:
 	TSharedPtr<ISequencerEditToolDragOperation> CreateDrag(const FPointerEvent& MouseEvent);
 
 	bool GetHotspotTime(float& HotspotTime) const;
+	float GetHotspotOffsetTime(float CurrentTime) const;
 
 	struct FDelayedDrag_Hotspot : FDelayedDrag
 	{

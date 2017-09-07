@@ -66,7 +66,6 @@ namespace WmfMedia
 	GUID const* const SupportedMajorTypes[] = {
 		&MFMediaType_Audio,
 		&MFMediaType_Binary,
-		&MFMediaType_Image,
 		&MFMediaType_SAMI,
 		&MFMediaType_Video
 	};
@@ -95,8 +94,8 @@ namespace WmfMedia
 //		&MFVideoFormat_A2R10G10B10,
 //		&MFVideoFormat_A16B16G16R16F,
 //		&MFVideoFormat_ARGB32
-		&MFVideoFormat_RGB24,
 		&MFVideoFormat_RGB32,
+		&MFVideoFormat_RGB24,
 //		&MFVideoFormat_RGB555,
 //		&MFVideoFormat_RGB565,
 //		&MFVideoFormat_RGB8,
@@ -157,6 +156,8 @@ namespace WmfMedia
 			return;
 		}
 
+		Initialized = true;
+
 		// initialize audio types
 		for (const FAudioFormat& Format : SupportedAudioFormats)
 		{
@@ -171,8 +172,7 @@ namespace WmfMedia
 					FAILED(MediaType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, Format.BitsPerSample)) ||
 					FAILED(MediaType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, NumChannels)))
 				{
-					UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported audio types"));
-					return;
+					UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported audio type: %s, %i bits/sample, %i channels"), *SubTypeToString(*Format.SubType), Format.BitsPerSample, NumChannels);
 				}
 
 				SupportedAudioTypes.Add(MediaType);
@@ -188,7 +188,6 @@ namespace WmfMedia
 				FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
 			{
 				UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported binary types"));
-				return;
 			}
 
 			SupportedBinaryTypes.Add(MediaType);
@@ -203,7 +202,6 @@ namespace WmfMedia
 				FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
 			{
 				UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported SAMI types"));
-				return;
 			}
 
 			SupportedSamiTypes.Add(MediaType);
@@ -217,10 +215,10 @@ namespace WmfMedia
 			if (FAILED(::MFCreateMediaType(&MediaType)) ||
 				FAILED(MediaType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video)) ||
 				FAILED(MediaType->SetGUID(MF_MT_SUBTYPE, *Format)) ||
-				FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
+				FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)) ||
+				FAILED(MediaType->SetUINT32(MF_MT_INTERLACE_MODE, (UINT32)MFVideoInterlace_Progressive)))
 			{
-				UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported video types"));
-				return;
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported video type: %s"), *SubTypeToString(*Format));
 			}
 
 			SupportedVideoTypes.Add(MediaType);
@@ -234,22 +232,112 @@ namespace WmfMedia
 
 namespace WmfMedia
 {
+	FString AttributeToString(const GUID& Guid)
+	{
+		if (Guid == MF_MT_MAJOR_TYPE) return TEXT("MF_MT_MAJOR_TYPE");
+		if (Guid == MF_MT_MAJOR_TYPE) return TEXT("MF_MT_MAJOR_TYPE");
+		if (Guid == MF_MT_SUBTYPE) return TEXT("MF_MT_SUBTYPE");
+		if (Guid == MF_MT_ALL_SAMPLES_INDEPENDENT) return TEXT("MF_MT_ALL_SAMPLES_INDEPENDENT");
+		if (Guid == MF_MT_FIXED_SIZE_SAMPLES) return TEXT("MF_MT_FIXED_SIZE_SAMPLES");
+		if (Guid == MF_MT_COMPRESSED) return TEXT("MF_MT_COMPRESSED");
+		if (Guid == MF_MT_SAMPLE_SIZE) return TEXT("MF_MT_SAMPLE_SIZE");
+		if (Guid == MF_MT_WRAPPED_TYPE) return TEXT("MF_MT_WRAPPED_TYPE");
+		if (Guid == MF_MT_AUDIO_NUM_CHANNELS) return TEXT("MF_MT_AUDIO_NUM_CHANNELS");
+		if (Guid == MF_MT_AUDIO_SAMPLES_PER_SECOND) return TEXT("MF_MT_AUDIO_SAMPLES_PER_SECOND");
+		if (Guid == MF_MT_AUDIO_FLOAT_SAMPLES_PER_SECOND) return TEXT("MF_MT_AUDIO_FLOAT_SAMPLES_PER_SECOND");
+		if (Guid == MF_MT_AUDIO_AVG_BYTES_PER_SECOND) return TEXT("MF_MT_AUDIO_AVG_BYTES_PER_SECOND");
+		if (Guid == MF_MT_AUDIO_BLOCK_ALIGNMENT) return TEXT("MF_MT_AUDIO_BLOCK_ALIGNMENT");
+		if (Guid == MF_MT_AUDIO_BITS_PER_SAMPLE) return TEXT("MF_MT_AUDIO_BITS_PER_SAMPLE");
+		if (Guid == MF_MT_AUDIO_VALID_BITS_PER_SAMPLE) return TEXT("MF_MT_AUDIO_VALID_BITS_PER_SAMPLE");
+		if (Guid == MF_MT_AUDIO_SAMPLES_PER_BLOCK) return TEXT("MF_MT_AUDIO_SAMPLES_PER_BLOCK");
+		if (Guid == MF_MT_AUDIO_CHANNEL_MASK) return TEXT("MF_MT_AUDIO_CHANNEL_MASK");
+		if (Guid == MF_MT_AUDIO_FOLDDOWN_MATRIX) return TEXT("MF_MT_AUDIO_FOLDDOWN_MATRIX");
+		if (Guid == MF_MT_AUDIO_WMADRC_PEAKREF) return TEXT("MF_MT_AUDIO_WMADRC_PEAKREF");
+		if (Guid == MF_MT_AUDIO_WMADRC_PEAKTARGET) return TEXT("MF_MT_AUDIO_WMADRC_PEAKTARGET");
+		if (Guid == MF_MT_AUDIO_WMADRC_AVGREF) return TEXT("MF_MT_AUDIO_WMADRC_AVGREF");
+		if (Guid == MF_MT_AUDIO_WMADRC_AVGTARGET) return TEXT("MF_MT_AUDIO_WMADRC_AVGTARGET");
+		if (Guid == MF_MT_AUDIO_PREFER_WAVEFORMATEX) return TEXT("MF_MT_AUDIO_PREFER_WAVEFORMATEX");
+		if (Guid == MF_MT_AAC_PAYLOAD_TYPE) return TEXT("MF_MT_AAC_PAYLOAD_TYPE");
+		if (Guid == MF_MT_AAC_AUDIO_PROFILE_LEVEL_INDICATION) return TEXT("MF_MT_AAC_AUDIO_PROFILE_LEVEL_INDICATION");
+		if (Guid == MF_MT_FRAME_SIZE) return TEXT("MF_MT_FRAME_SIZE");
+		if (Guid == MF_MT_FRAME_RATE) return TEXT("MF_MT_FRAME_RATE");
+		if (Guid == MF_MT_FRAME_RATE_RANGE_MAX) return TEXT("MF_MT_FRAME_RATE_RANGE_MAX");
+		if (Guid == MF_MT_FRAME_RATE_RANGE_MIN) return TEXT("MF_MT_FRAME_RATE_RANGE_MIN");
+		if (Guid == MF_MT_PIXEL_ASPECT_RATIO) return TEXT("MF_MT_PIXEL_ASPECT_RATIO");
+		if (Guid == MF_MT_DRM_FLAGS) return TEXT("MF_MT_DRM_FLAGS");
+		if (Guid == MF_MT_PAD_CONTROL_FLAGS) return TEXT("MF_MT_PAD_CONTROL_FLAGS");
+		if (Guid == MF_MT_SOURCE_CONTENT_HINT) return TEXT("MF_MT_SOURCE_CONTENT_HINT");
+		if (Guid == MF_MT_VIDEO_CHROMA_SITING) return TEXT("MF_MT_VIDEO_CHROMA_SITING");
+		if (Guid == MF_MT_INTERLACE_MODE) return TEXT("MF_MT_INTERLACE_MODE");
+		if (Guid == MF_MT_TRANSFER_FUNCTION) return TEXT("MF_MT_TRANSFER_FUNCTION");
+		if (Guid == MF_MT_VIDEO_PRIMARIES) return TEXT("MF_MT_VIDEO_PRIMARIES");
+		if (Guid == MF_MT_CUSTOM_VIDEO_PRIMARIES) return TEXT("MF_MT_CUSTOM_VIDEO_PRIMARIES");
+		if (Guid == MF_MT_YUV_MATRIX) return TEXT("MF_MT_YUV_MATRIX");
+		if (Guid == MF_MT_VIDEO_LIGHTING) return TEXT("MF_MT_VIDEO_LIGHTING");
+		if (Guid == MF_MT_VIDEO_NOMINAL_RANGE) return TEXT("MF_MT_VIDEO_NOMINAL_RANGE");
+		if (Guid == MF_MT_GEOMETRIC_APERTURE) return TEXT("MF_MT_GEOMETRIC_APERTURE");
+		if (Guid == MF_MT_MINIMUM_DISPLAY_APERTURE) return TEXT("MF_MT_MINIMUM_DISPLAY_APERTURE");
+		if (Guid == MF_MT_PAN_SCAN_APERTURE) return TEXT("MF_MT_PAN_SCAN_APERTURE");
+		if (Guid == MF_MT_PAN_SCAN_ENABLED) return TEXT("MF_MT_PAN_SCAN_ENABLED");
+		if (Guid == MF_MT_AVG_BITRATE) return TEXT("MF_MT_AVG_BITRATE");
+		if (Guid == MF_MT_AVG_BIT_ERROR_RATE) return TEXT("MF_MT_AVG_BIT_ERROR_RATE");
+		if (Guid == MF_MT_MAX_KEYFRAME_SPACING) return TEXT("MF_MT_MAX_KEYFRAME_SPACING");
+		if (Guid == MF_MT_DEFAULT_STRIDE) return TEXT("MF_MT_DEFAULT_STRIDE");
+		if (Guid == MF_MT_PALETTE) return TEXT("MF_MT_PALETTE");
+		if (Guid == MF_MT_USER_DATA) return TEXT("MF_MT_USER_DATA");
+		if (Guid == MF_MT_AM_FORMAT_TYPE) return TEXT("MF_MT_AM_FORMAT_TYPE");
+		if (Guid == MF_MT_MPEG_START_TIME_CODE) return TEXT("MF_MT_MPEG_START_TIME_CODE");
+		if (Guid == MF_MT_MPEG2_PROFILE) return TEXT("MF_MT_MPEG2_PROFILE");
+		if (Guid == MF_MT_MPEG2_LEVEL) return TEXT("MF_MT_MPEG2_LEVEL");
+		if (Guid == MF_MT_MPEG2_FLAGS) return TEXT("MF_MT_MPEG2_FLAGS");
+		if (Guid == MF_MT_MPEG_SEQUENCE_HEADER) return TEXT("MF_MT_MPEG_SEQUENCE_HEADER");
+		if (Guid == MF_MT_DV_AAUX_SRC_PACK_0) return TEXT("MF_MT_DV_AAUX_SRC_PACK_0");
+		if (Guid == MF_MT_DV_AAUX_CTRL_PACK_0) return TEXT("MF_MT_DV_AAUX_CTRL_PACK_0");
+		if (Guid == MF_MT_DV_AAUX_SRC_PACK_1) return TEXT("MF_MT_DV_AAUX_SRC_PACK_1");
+		if (Guid == MF_MT_DV_AAUX_CTRL_PACK_1) return TEXT("MF_MT_DV_AAUX_CTRL_PACK_1");
+		if (Guid == MF_MT_DV_VAUX_SRC_PACK) return TEXT("MF_MT_DV_VAUX_SRC_PACK");
+		if (Guid == MF_MT_DV_VAUX_CTRL_PACK) return TEXT("MF_MT_DV_VAUX_CTRL_PACK");
+		if (Guid == MF_MT_ARBITRARY_HEADER) return TEXT("MF_MT_ARBITRARY_HEADER");
+		if (Guid == MF_MT_ARBITRARY_FORMAT) return TEXT("MF_MT_ARBITRARY_FORMAT");
+		if (Guid == MF_MT_IMAGE_LOSS_TOLERANT) return TEXT("MF_MT_IMAGE_LOSS_TOLERANT");
+		if (Guid == MF_MT_MPEG4_SAMPLE_DESCRIPTION) return TEXT("MF_MT_MPEG4_SAMPLE_DESCRIPTION");
+		if (Guid == MF_MT_MPEG4_CURRENT_SAMPLE_ENTRY) return TEXT("MF_MT_MPEG4_CURRENT_SAMPLE_ENTRY");
+		if (Guid == MF_MT_ORIGINAL_4CC) return TEXT("MF_MT_ORIGINAL_4CC");
+		if (Guid == MF_MT_ORIGINAL_WAVE_FORMAT_TAG) return TEXT("MF_MT_ORIGINAL_WAVE_FORMAT_TAG");
+
+		// unknown identifier
+		return GuidToString(Guid);
+	}
+
+
 	FString CaptureDeviceRoleToString(ERole Role)
 	{
 		switch (Role)
 		{
-		case eCommunications:
-			return TEXT("Communications");
-
-		case eConsole:
-			return TEXT("Console");
-
-		case eMultimedia:
-			return TEXT("Multimedia");
+		case eCommunications: return TEXT("Communications");
+		case eConsole: return TEXT("Console");
+		case eMultimedia: return TEXT("Multimedia");
 
 		default:
 			return TEXT("Unknown");
 		}
+	}
+
+
+	HRESULT CopyAttribute(IMFAttributes* Src, IMFAttributes* Dest, const GUID& Key)
+	{
+		PROPVARIANT var;
+		PropVariantInit(&var);
+
+		HRESULT Result = Src->GetItem(Key, &var);
+		
+		if (SUCCEEDED(Result))
+		{
+			Result = Dest->SetItem(Key, var);
+			PropVariantClear(&var);
+		}
+
+		return Result;
 	}
 
 
@@ -261,7 +349,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create %s output type: %s"), *MajorTypeToString(MajorType), *ResultToString(Result));
 				return NULL;
 			}
 
@@ -269,7 +357,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize %s output type: %s"), *MajorTypeToString(MajorType), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -334,7 +422,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize binary output type (%s)"), *ResultToString(Result));
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize binary output type: %s"), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -345,7 +433,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize caption output type (%s)"), *ResultToString(Result));
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize caption output type: %s"), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -383,7 +471,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set video output type (%s)"), *ResultToString(Result));
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set video output type: %s"), *ResultToString(Result));
 				return NULL;
 			}
 
@@ -405,7 +493,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set video output sub-type (%s)"), *ResultToString(Result));
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set video output sub-type: %s"), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -415,6 +503,139 @@ namespace WmfMedia
 		}
 
 		return OutputType;
+	}
+
+
+	FString DumpAttributes(IMFAttributes& Attributes)
+	{
+		FString Dump;
+
+		UINT32 NumAttributes = 0;
+		{
+			const HRESULT Result = Attributes.GetCount(&NumAttributes);
+
+			if (FAILED(Result))
+			{
+				Dump += FString::Printf(TEXT("\tFailed to get attribute count: %s\n"), *ResultToString(Result));
+				return Dump;
+			}
+		}
+
+		for (UINT32 AttributeIndex = 0; AttributeIndex < NumAttributes; ++AttributeIndex)
+		{
+			GUID Guid = { 0 };
+			PROPVARIANT Item;
+			{
+				::PropVariantInit(&Item);
+
+				const HRESULT Result = Attributes.GetItemByIndex(AttributeIndex, &Guid, &Item);
+
+				if (FAILED(Result))
+				{
+					Dump += FString::Printf(TEXT("\tFailed to get attribute %i: %s\n"), AttributeIndex, *ResultToString(Result));
+				}
+			}
+
+			const FString GuidName = AttributeToString(Guid);
+
+			if (Guid == MF_MT_AM_FORMAT_TYPE)
+			{
+				Dump += Dump += FString::Printf(TEXT("\t%s: %s (%s)\n"), *GuidName, *GuidToString(*Item.puuid), *FormatTypeToString(*Item.puuid));
+			}
+			else if (Guid == MF_MT_MAJOR_TYPE)
+			{
+				Dump += FString::Printf(TEXT("\t%s: %s (%s)\n"), *GuidName, *GuidToString(*Item.puuid), *MajorTypeToString(*Item.puuid));
+			}
+			else if (Guid == MF_MT_SUBTYPE)
+			{
+				Dump += FString::Printf(TEXT("\t%s: %s (%s)\n"), *GuidName, *GuidToString(*Item.puuid), *SubTypeToString(*Item.puuid));
+			}
+			else if ((Guid == MF_MT_FRAME_RATE) || (Guid == MF_MT_FRAME_RATE_RANGE_MAX) || (Guid == MF_MT_FRAME_RATE_RANGE_MIN))
+			{
+				UINT32 High = 0;
+				UINT32 Low = 0;
+
+				::Unpack2UINT32AsUINT64(Item.uhVal.QuadPart, &High, &Low);
+				Dump += FString::Printf(TEXT("\t%s: %d/%d\n"), *GuidName, High, Low);
+			}
+			else if (Guid == MF_MT_FRAME_SIZE)
+			{
+				UINT32 High = 0;
+				UINT32 Low = 0;
+
+				::Unpack2UINT32AsUINT64(Item.uhVal.QuadPart, &High, &Low);
+				Dump += FString::Printf(TEXT("\t%s: %d x %d\n"), *GuidName, High, Low);
+			}
+			else if (Guid == MF_MT_INTERLACE_MODE)
+			{
+				Dump += FString::Printf(TEXT("\t%s: %d (%s)\n"), *GuidName, Item.ulVal, *InterlaceModeToString((MFVideoInterlaceMode)Item.ulVal));
+			}
+			else if (Guid == MF_MT_PIXEL_ASPECT_RATIO)
+			{
+				UINT32 High = 0;
+				UINT32 Low = 0;
+
+				::Unpack2UINT32AsUINT64(Item.uhVal.QuadPart, &High, &Low);
+				Dump += FString::Printf(TEXT("\t%s: %d:%d\n"), *GuidName, High, Low);
+			}
+			else if ((Guid == MF_MT_GEOMETRIC_APERTURE) || (Guid == MF_MT_MINIMUM_DISPLAY_APERTURE) || (Guid == MF_MT_PAN_SCAN_APERTURE))
+			{
+				if (Item.caub.cElems < sizeof(MFVideoArea))
+				{
+					Dump += FString::Printf(TEXT("\t%s: failed to get value (buffer too small)\n"), *GuidName);
+				}
+				else
+				{
+					MFVideoArea* Area = (MFVideoArea*)Item.caub.pElems;
+
+					Dump += FString::Printf(TEXT("\t%s: (%f,%f) (%d,%d)\n"),
+						*GuidName,
+						Area->OffsetX.value + (static_cast<float>(Area->OffsetX.fract) / 65536.0f),
+						Area->OffsetY.value + (static_cast<float>(Area->OffsetY.fract) / 65536.0f),
+						Area->Area.cx,
+						Area->Area.cy);
+				}
+			}
+			else
+			{
+				switch (Item.vt)
+				{
+				case VT_UI4:
+					Dump += FString::Printf(TEXT("\t%s: %d\n"), *GuidName, Item.ulVal);
+					break;
+
+				case VT_UI8:
+					Dump += FString::Printf(TEXT("\t%s: %ll\n"), *GuidName, Item.uhVal.QuadPart);
+					break;
+
+				case VT_R8:
+					Dump += FString::Printf(TEXT("\t%s: %f\n"), *GuidName, Item.dblVal);
+					break;
+
+				case VT_CLSID:
+					Dump += FString::Printf(TEXT("\t%s: %s\n"), *GuidName, *GuidToString(*Item.puuid));
+					break;
+
+				case VT_LPWSTR:
+					Dump += FString::Printf(TEXT("\t%s: %s\n"), *GuidName, Item.pwszVal);
+					break;
+
+				case VT_VECTOR | VT_UI1:
+					Dump += FString::Printf(TEXT("\t%s: <byte array>\n"), *GuidName);
+					break;
+
+				case VT_UNKNOWN:
+					Dump += FString::Printf(TEXT("\t%s: IUnknown\n"), *GuidName);
+					break;
+
+				default:
+					Dump += FString::Printf(TEXT("\t%s: Unknown value type %d\n"), *GuidName, Item.vt);
+					break;
+				}
+			}
+		}
+
+		return Dump;
 	}
 
 
@@ -433,7 +654,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device enumeration attributes: %s"), *WmfMedia::ResultToString(Result));
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device enumeration attributes: %s"), *ResultToString(Result));
 				return;
 			}
 		}
@@ -444,7 +665,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device enumeration type: %s"), *WmfMedia::ResultToString(Result));
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device enumeration type: %s"), *ResultToString(Result));
 				return;
 			}
 		}
@@ -483,6 +704,23 @@ namespace WmfMedia
 		}
 
 		return Result;
+	}
+
+
+	FString FormatTypeToString(GUID FormatType)
+	{
+		if (FormatType == FORMAT_DvInfo) return TEXT("DVINFO");
+		if (FormatType == FORMAT_MPEG2Video) return TEXT("MPEG2VIDEOINFO");
+		if (FormatType == FORMAT_MPEGStreams) return TEXT("AM_MPEGSYSTEMTYPE");
+		if (FormatType == FORMAT_MPEGVideo) return TEXT("MPEG1VIDEOINFO");
+		if (FormatType == FORMAT_None) return TEXT("None");
+		if (FormatType == FORMAT_VideoInfo) return TEXT("VIDEOINFOHEADER");
+		if (FormatType == FORMAT_VideoInfo2) return TEXT("VIDEOINFOHEADER2");
+		if (FormatType == FORMAT_WaveFormatEx) return TEXT("WAVEFORMATEX");
+		if (FormatType == FORMAT_525WSS) return TEXT("525WSS");
+		if (FormatType == GUID_NULL) return TEXT("Null");
+
+		return FString::Printf(TEXT("Unknown format type %s"), *GuidToString(FormatType));
 	}
 
 
@@ -630,6 +868,33 @@ namespace WmfMedia
 	}
 
 
+	HRESULT GetTopologyFromEvent(IMFMediaEvent& Event, TComPtr<IMFTopology>& OutTopology)
+	{
+		HRESULT Result = S_OK;
+		PROPVARIANT Variant;
+
+		PropVariantInit(&Variant);
+		Result = Event.GetValue(&Variant);
+
+		if (SUCCEEDED(Result))
+		{
+			if (Variant.vt != VT_UNKNOWN)
+			{
+				Result = E_UNEXPECTED;
+			}
+		}
+
+		if (SUCCEEDED(Result))
+		{
+			Result = Variant.punkVal->QueryInterface(IID_PPV_ARGS(&OutTopology));
+		}
+
+		PropVariantClear(&Variant);
+
+		return Result;
+	}
+
+
 	FString GuidToString(const GUID& Guid)
 	{
 		return FString::Printf(TEXT("%08x-%04x-%04x-%02x%02x%02x%02x%02x%02x%02x%02x"),
@@ -645,6 +910,24 @@ namespace WmfMedia
 			Guid.Data4[6],
 			Guid.Data4[7]
 		);
+	}
+
+
+	FString InterlaceModeToString(MFVideoInterlaceMode Mode)
+	{
+		switch (Mode)
+		{
+		case MFVideoInterlace_Unknown: return TEXT("Unknown");
+		case MFVideoInterlace_Progressive: return TEXT("Progressive");
+		case MFVideoInterlace_FieldInterleavedUpperFirst: return TEXT("Field Interleaved Upper First");
+		case MFVideoInterlace_FieldInterleavedLowerFirst: return TEXT("Field Intereaved Lower First");
+		case MFVideoInterlace_FieldSingleUpper: return TEXT("Field Single Upper");
+		case MFVideoInterlace_FieldSingleLower: return TEXT("Field Single Lower");
+		case MFVideoInterlace_MixedInterlaceOrProgressive: return TEXT("Mixed Interlace or Progressive");
+		
+		default:
+			return FString::Printf(TEXT("Unknown mode %i"), (int32)Mode);
+		}
 	}
 
 
@@ -677,6 +960,21 @@ namespace WmfMedia
 		if (MajorType == MFMediaType_Stream) return TEXT("Stream");
 
 		return GuidToString(MajorType);
+	}
+
+
+	FString MarkerTypeToString(MFSTREAMSINK_MARKER_TYPE MarkerType)
+	{
+		switch (MarkerType)
+		{
+		case MFSTREAMSINK_MARKER_DEFAULT: return TEXT("Default");
+		case MFSTREAMSINK_MARKER_ENDOFSEGMENT: return TEXT("End Of Segment");
+		case MFSTREAMSINK_MARKER_TICK: return TEXT("Tick");
+		case MFSTREAMSINK_MARKER_EVENT: return TEXT("Event");
+
+		default:
+			return FString::Printf(TEXT("Unknown marker type %i"), (int32)MarkerType);
+		}
 	}
 
 
@@ -796,7 +1094,7 @@ namespace WmfMedia
 		case MEContentProtectionMetadata: return TEXT("Content Protection Metadata");
 
 		default:
-			return FString::Printf(TEXT("Unknown event %i"), Event);
+			return FString::Printf(TEXT("Unknown event %i"), (int32)Event);
 		}
 	}
 
@@ -840,7 +1138,7 @@ namespace WmfMedia
 
 					if (FAILED(Result))
 					{
-						UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device attributes (%s)"), *WmfMedia::ResultToString(Result));
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device attributes: %s"), *ResultToString(Result));
 						return NULL;
 					}
 
@@ -852,7 +1150,7 @@ namespace WmfMedia
 
 					if (FAILED(Result))
 					{
-						UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device source type attribute (%s)"), *WmfMedia::ResultToString(Result));
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device source type attribute: %s"), *ResultToString(Result));
 						return NULL;
 					}
 
@@ -867,7 +1165,7 @@ namespace WmfMedia
 
 					if (FAILED(Result))
 					{
-						UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device endpoint/symlink attribute (%s)"), *WmfMedia::ResultToString(Result));
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device endpoint/symlink attribute: %s"), *ResultToString(Result));
 						return NULL;
 					}
 				}
@@ -878,7 +1176,7 @@ namespace WmfMedia
 
 					if (FAILED(Result))
 					{
-						UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device media source (%s)"), *WmfMedia::ResultToString(Result));
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device media source: %s"), *ResultToString(Result));
 						return NULL;
 					}
 				}
@@ -930,7 +1228,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Error, TEXT("Failed to create media source resolver (%s)"), *WmfMedia::ResultToString(Result));
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to create media source resolver: %s"), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -947,7 +1245,7 @@ namespace WmfMedia
 
 				if (FAILED(Result))
 				{
-					UE_LOG(LogWmfMedia, Error, TEXT("Failed to resolve byte stream %s (%s)"), *Url, *WmfMedia::ResultToString(Result));
+					UE_LOG(LogWmfMedia, Error, TEXT("Failed to resolve byte stream %s: %s"), *Url, *ResultToString(Result));
 					return NULL;
 				}
 			}
@@ -957,7 +1255,7 @@ namespace WmfMedia
 
 				if (FAILED(Result))
 				{
-					UE_LOG(LogWmfMedia, Error, TEXT("Failed to resolve URL %s (%s)"), *Url, *WmfMedia::ResultToString(Result));
+					UE_LOG(LogWmfMedia, Error, TEXT("Failed to resolve URL %s: %s"), *Url, *ResultToString(Result));
 					return NULL;
 				}
 			}
@@ -970,7 +1268,7 @@ namespace WmfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Error, TEXT("Failed to query media source interface: %s"), *WmfMedia::ResultToString(Result));
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to query media source interface: %s"), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -1418,6 +1716,26 @@ namespace WmfMedia
 
 		// unknown type
 		return FString::Printf(TEXT("%s (%s)"), *GuidToString(SubType), *FourccToString(SubType.Data1));
+	}
+
+
+	FString TopologyStatusToString(MF_TOPOSTATUS Status)
+	{
+		switch (Status)
+		{
+		case MF_TOPOSTATUS_ENDED: return TEXT("Ended");
+		case MF_TOPOSTATUS_INVALID: return TEXT("Invalid");
+		case MF_TOPOSTATUS_READY: return TEXT("Ready");
+		case MF_TOPOSTATUS_SINK_SWITCHED: return TEXT("Sink Switched");
+		case MF_TOPOSTATUS_STARTED_SOURCE: return TEXT("Started Source");
+
+#if (WINVER >= _WIN32_WINNT_WIN7)
+		case MF_TOPOSTATUS_DYNAMIC_CHANGED: return TEXT("Dynamic Changed");
+#endif
+
+		default:
+			return FString::Printf(TEXT("Unknown status %i"), (int32)Status);
+		}
 	}
 }
 

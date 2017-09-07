@@ -87,7 +87,7 @@ public:
 		return LOCTEXT("MediaPlayerDisplayName", "Image Sequence");
 	}
 
-	virtual FName GetName() const override
+	virtual FName GetPlayerName() const override
 	{
 		static FName PlayerName(TEXT("ImgMedia"));
 		return PlayerName;

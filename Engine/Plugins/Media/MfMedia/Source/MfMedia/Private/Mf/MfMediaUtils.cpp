@@ -30,7 +30,7 @@ namespace MfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to create %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to create %s output type: %s"), *MajorTypeToString(MajorType), *ResultToString(Result));
 				return NULL;
 			}
 
@@ -38,7 +38,7 @@ namespace MfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize %s output type: %s"), *MajorTypeToString(MajorType), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -115,7 +115,7 @@ namespace MfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize caption output type (%s)"), *ResultToString(Result));
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize caption output type: %s"), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -162,11 +162,11 @@ namespace MfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output type (%s)"), *ResultToString(Result));
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output type: %s"), *ResultToString(Result));
 				return NULL;
 			}
 
-#if 1//PLATFORM_XBOXONE
+#if PLATFORM_XBOXONE
 			Result = OutputType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12); // XboxOne only supports NV12
 #else
 			Result = OutputType->SetGUID(MF_MT_SUBTYPE, (SubType == MFVideoFormat_RGB32) ? MFVideoFormat_RGB32 : MFVideoFormat_NV12);
@@ -174,7 +174,7 @@ namespace MfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output sub-type (%s)"), *ResultToString(Result));
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output sub-type: %s"), *ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -391,7 +391,7 @@ namespace MfMedia
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Error, TEXT("Failed to create media source resolver (%s)"), *MfMedia::ResultToString(Result));
+				UE_LOG(LogMfMedia, Error, TEXT("Failed to create media source resolver: %s"), *MfMedia::ResultToString(Result));
 				return NULL;
 			}
 		}
@@ -408,7 +408,7 @@ namespace MfMedia
 
 				if (FAILED(Result))
 				{
-					UE_LOG(LogMfMedia, Error, TEXT("Failed to resolve byte stream %s (%s)"), *Url, *MfMedia::ResultToString(Result));
+					UE_LOG(LogMfMedia, Error, TEXT("Failed to resolve byte stream %s: %s"), *Url, *MfMedia::ResultToString(Result));
 					return NULL;
 				}
 			}
@@ -418,7 +418,7 @@ namespace MfMedia
 
 				if (FAILED(Result))
 				{
-					UE_LOG(LogMfMedia, Error, TEXT("Failed to resolve URL %s (%s)"), *Url, *MfMedia::ResultToString(Result));
+					UE_LOG(LogMfMedia, Error, TEXT("Failed to resolve URL %s: %s"), *Url, *MfMedia::ResultToString(Result));
 					return NULL;
 				}
 			}

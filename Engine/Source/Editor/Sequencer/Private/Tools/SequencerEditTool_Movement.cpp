@@ -13,6 +13,7 @@
 #include "Tools/EditToolDragOperations.h"
 #include "IKeyArea.h"
 #include "SBox.h"
+#include "SlateApplication.h"
 
 const FName FSequencerEditTool_Movement::Identifier = "Movement";
 
@@ -105,6 +106,20 @@ bool FSequencerEditTool_Movement::GetHotspotTime(float& HotspotTime) const
 	return false;
 }
 
+float FSequencerEditTool_Movement::GetHotspotOffsetTime(float CurrentTime) const
+{
+	//@todo abstract dragging offset from shift
+	if (DelayedDrag->Hotspot.IsValid() && FSlateApplication::Get().GetModifierKeys().IsShiftDown())
+	{
+		TOptional<float> OptionalOffsetTime = DelayedDrag->Hotspot->GetOffsetTime();
+		if (OptionalOffsetTime.IsSet())
+		{
+			return OptionalOffsetTime.GetValue();
+		}
+	}
+	return CurrentTime - OriginalHotspotTime;
+}
+
 TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag(const FPointerEvent& MouseEvent)
 {
 	FSequencerSelection& Selection = Sequencer.GetSelection();
@@ -149,7 +164,16 @@ TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateD
 				SequencerHelpers::UpdateHoveredNodeFromSelectedSections(Sequencer);
 				SectionHandles.Add(SectionToDrag.GetValue());
 			}
-			return MakeShareable( new FMoveSection( Sequencer, SectionHandles ) );
+			if (MouseEvent.IsShiftDown())
+			{
+				const bool bDraggingByEnd = false;
+				const bool bIsSlipping = true;
+				return MakeShareable( new FResizeSection( Sequencer, SectionHandles, bDraggingByEnd, bIsSlipping ) );
+			}
+			else
+			{
+				return MakeShareable( new FMoveSection( Sequencer, SectionHandles ) );
+			}
 		}
 		// Moving key(s)?
 		else if (HotspotType == ESequencerHotspot::Key)
@@ -345,7 +369,8 @@ int32 FSequencerEditTool_Movement::OnPaint(const FGeometry& AllottedGeometry, co
 				);
 
 				// draw offset string
-				const FString OffsetString = TimeToString(CurrentTime - OriginalHotspotTime, true);
+				float OffsetTime = GetHotspotOffsetTime(CurrentTime);
+				const FString OffsetString = TimeToString(OffsetTime, true);
 				const FVector2D OffsetStringSize = FontMeasureService->Measure(OffsetString, SmallLayoutFont);
 				const FVector2D OffsetPos = FVector2D(NewPos.X + MousePadding, NewPos.Y - 0.5f * OffsetStringSize.Y);
 

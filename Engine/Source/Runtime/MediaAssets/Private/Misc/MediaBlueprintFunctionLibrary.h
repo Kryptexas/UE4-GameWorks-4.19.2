@@ -9,6 +9,9 @@
 #include "MediaBlueprintFunctionLibrary.generated.h"
 
 
+/**
+ * Filter flags for the EnumerateAudioCaptureDevices BP function.
+ */
 UENUM(BlueprintType, meta=(BitFlags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EMediaAudioCaptureDeviceFilter : uint8
 {
@@ -21,13 +24,16 @@ enum class EMediaAudioCaptureDeviceFilter : uint8
 	/** Software device. */
 	Software = 0x4,
 
-	/** Unspecified audio capture device. */
-	Unspecified = 0x8
+	/** Unknown audio capture device types. */
+	Unknown = 0x8
 };
 
 ENUM_CLASS_FLAGS(EMediaAudioCaptureDeviceFilter)
 
 
+/**
+ * Filter flags for the EnumerateVideoCaptureDevices BP function.
+ */
 UENUM(BlueprintType, meta=(BitFlags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EMediaVideoCaptureDeviceFilter : uint8
 {
@@ -37,8 +43,8 @@ enum class EMediaVideoCaptureDeviceFilter : uint8
 	/** Software video capture device. */
 	Software = 0x2,
 
-	/** Unspecified video capture device. */
-	Unspecified = 0x4,
+	/** Unknown video capture device types. */
+	Unknown = 0x4,
 
 	/** Web cam. */
 	Webcam = 0x8
@@ -47,6 +53,9 @@ enum class EMediaVideoCaptureDeviceFilter : uint8
 ENUM_CLASS_FLAGS(EMediaVideoCaptureDeviceFilter)
 
 
+/**
+ * Filter flags for the EnumerateWebcamCaptureDevices BP function.
+ */
 UENUM(BlueprintType, meta=(BitFlags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EMediaWebcamCaptureDeviceFilter : uint8
 {
@@ -59,8 +68,8 @@ enum class EMediaWebcamCaptureDeviceFilter : uint8
 	/** Rear facing web cam. */
 	Rear = 0x4,
 
-	/** Unspecified web cam type. */
-	Unspecified = 0x8
+	/** Unknown web cam types. */
+	Unknown = 0x8
 };
 
 ENUM_CLASS_FLAGS(EMediaWebcamCaptureDeviceFilter)

@@ -125,6 +125,7 @@ public:
 
 	virtual UMovieSceneSection* SplitSection( float SplitTime ) override;
 	virtual void TrimSection( float TrimTime, bool bTrimLeft ) override;
+	virtual TOptional<float> GetOffsetTime() const override { return TOptional<float>(Parameters.StartOffset); }
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
 

@@ -2,13 +2,16 @@
 
 #include "WmfMediaPrivate.h"
 
+#include "IMediaCaptureSupport.h"
+#include "Modules/ModuleManager.h"
+
+#include "IWmfMediaModule.h"
+
 #if WMFMEDIA_SUPPORTED_PLATFORM
-	#include "IMediaCaptureSupport.h"
 	#include "IMediaModule.h"
 	#include "Modules/ModuleInterface.h"
-	#include "Modules/ModuleManager.h"
+	#include "Templates/SharedPointer.h"
 
-	#include "IWmfMediaModule.h"
 	#include "WmfMediaPlayer.h"
 	#include "WmfMediaUtils.h"
 

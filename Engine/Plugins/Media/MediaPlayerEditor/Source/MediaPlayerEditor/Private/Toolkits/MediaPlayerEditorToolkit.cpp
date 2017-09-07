@@ -306,7 +306,7 @@ void FMediaPlayerEditorToolkit::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.PlayMedia,
 		FExecuteAction::CreateLambda([this]{ MediaPlayer->Play(); }),
-		FCanExecuteAction::CreateLambda([this]{ return MediaPlayer->IsReady() && (MediaPlayer->GetRate() != 1.0f); })
+		FCanExecuteAction::CreateLambda([this]{ return MediaPlayer->IsReady() && (!MediaPlayer->IsPlaying() || (MediaPlayer->GetRate() != 1.0f)); })
 	);
 
 	ToolkitCommands->MapAction(

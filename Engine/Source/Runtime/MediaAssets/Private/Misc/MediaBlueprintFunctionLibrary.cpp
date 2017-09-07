@@ -17,7 +17,7 @@ void UMediaBlueprintFunctionLibrary::EnumerateAudioCaptureDevices(int32 Filter, 
 
 	for (const auto& DeviceInfo : DeviceInfos)
 	{
-		if (((DeviceInfo.Type == EMediaCaptureDeviceType::Audio) && EnumHasAnyFlags(FilterEnum, EMediaAudioCaptureDeviceFilter::Unspecified)) ||
+		if (((DeviceInfo.Type == EMediaCaptureDeviceType::Audio) && EnumHasAnyFlags(FilterEnum, EMediaAudioCaptureDeviceFilter::Unknown)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::AudioCard) && EnumHasAnyFlags(FilterEnum, EMediaAudioCaptureDeviceFilter::Card)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::AudioSoftware) && EnumHasAnyFlags(FilterEnum, EMediaAudioCaptureDeviceFilter::Software)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::Microphone) && EnumHasAnyFlags(FilterEnum, EMediaAudioCaptureDeviceFilter::Microphone)))
@@ -38,7 +38,7 @@ void UMediaBlueprintFunctionLibrary::EnumerateVideoCaptureDevices(int32 Filter, 
 	for (const auto& DeviceInfo : DeviceInfos)
 	{
 		if (((DeviceInfo.Type == EMediaCaptureDeviceType::DepthSensor) && EnumHasAnyFlags(FilterEnum, EMediaVideoCaptureDeviceFilter::Webcam)) ||
-			((DeviceInfo.Type == EMediaCaptureDeviceType::Video) && EnumHasAnyFlags(FilterEnum, EMediaVideoCaptureDeviceFilter::Unspecified)) ||
+			((DeviceInfo.Type == EMediaCaptureDeviceType::Video) && EnumHasAnyFlags(FilterEnum, EMediaVideoCaptureDeviceFilter::Unknown)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::VideoCard) && EnumHasAnyFlags(FilterEnum, EMediaVideoCaptureDeviceFilter::Card)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::VideoSoftware) && EnumHasAnyFlags(FilterEnum, EMediaVideoCaptureDeviceFilter::Software)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::Webcam) && EnumHasAnyFlags(FilterEnum, EMediaVideoCaptureDeviceFilter::Webcam)) ||
@@ -61,7 +61,7 @@ void UMediaBlueprintFunctionLibrary::EnumerateWebcamCaptureDevices(int32 Filter,
 	for (const auto& DeviceInfo : DeviceInfos)
 	{
 		if (((DeviceInfo.Type == EMediaCaptureDeviceType::DepthSensor) && EnumHasAnyFlags(FilterEnum, EMediaWebcamCaptureDeviceFilter::DepthSensor)) ||
-			((DeviceInfo.Type == EMediaCaptureDeviceType::Webcam) && EnumHasAnyFlags(FilterEnum, EMediaWebcamCaptureDeviceFilter::Unspecified)) ||
+			((DeviceInfo.Type == EMediaCaptureDeviceType::Webcam) && EnumHasAnyFlags(FilterEnum, EMediaWebcamCaptureDeviceFilter::Unknown)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::WebcamFront) && EnumHasAnyFlags(FilterEnum, EMediaWebcamCaptureDeviceFilter::Front)) ||
 			((DeviceInfo.Type == EMediaCaptureDeviceType::WebcamRear) && EnumHasAnyFlags(FilterEnum, EMediaWebcamCaptureDeviceFilter::Rear)))
 		{

@@ -7,6 +7,7 @@
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
 #include "CoreTypes.h"
+#include "Containers/Queue.h"
 #include "Delegates/Delegate.h"
 #include "HAL/CriticalSection.h"
 #include "Misc/Timespan.h"
@@ -14,39 +15,38 @@
 class FWmfMediaSink;
 
 
-/** Declares a delegate that gets fired when the sink received a new sample. */
-DECLARE_DELEGATE_FiveParams(FOnWmfMediaStreamSinkSample,
-	IMFSample& /*Sample*/,
-	DWORD /*NumBuffers*/,
-	FTimespan /*Time*/,
-	FTimespan /*Duration*/,
-	DWORD /*Flags*/
-);
-
-
-/** Declares a delegate that gets fired when the sink received a new sample. */
-DECLARE_DELEGATE_FiveParams(FOnWmfMediaStreamSinkBuffer,
-	const BYTE* /*Buffer*/,
-	DWORD /*Size*/,
-	FTimespan /*Time*/,
-	FTimespan /*Duration*/,
-	DWORD /*Flags*/
-);
-
-
-namespace WmfMediaStreamSink
+/**
+ * Structure for media samples queued in a stream sink.
+ */
+struct FWmfMediaStreamSinkSample
 {
-	const DWORD FixedStreamId = 1;
-}
+	/** The sample's media type. */
+	TComPtr<IMFMediaType> MediaType;
+
+	/** The media sample. */
+	TComPtr<IMFSample> Sample;
+};
 
 
 /**
  * Implements a stream sink object for the WMF pipeline.
  */
 class FWmfMediaStreamSink
-	: public IMFMediaTypeHandler
+	: public IMFGetService
+	, public IMFMediaTypeHandler
 	, public IMFStreamSink
 {
+public:
+
+	/**
+	 * Creates a stream sink for the specified major type.
+	 *
+	 * @param MajorType The sink's major type.
+	 * @param OutSink Will contain the created sink.
+	 * @return true on success, false otherwise.
+	 */
+	static bool Create(const GUID& MajorType, TComPtr<FWmfMediaStreamSink>& OutSink);
+
 public:
 
 	/**
@@ -60,6 +60,15 @@ public:
 public:
 
 	/**
+	 * Get the next sample in the queue.
+	 *
+	 * @param SampleRange Time range of samples that should be returned.
+	 * @param OutSample Will contain the sample.
+	 * @return true if a sample was returned, false if the queue is empty.
+	 */
+	bool GetNextSample(const TRange<FTimespan>& SampleRange, FWmfMediaStreamSinkSample& OutSample);
+
+	/**
 	 * Initialize this sink.
 	 *
 	 * @param InOwner The media sink that owns this stream sink.
@@ -68,11 +77,35 @@ public:
 	 */
 	bool Initialize(FWmfMediaSink& InOwner);
 
-	/** Get a delegate that is executed when the sink received a new sample. */
-	FOnWmfMediaStreamSinkBuffer& OnBuffer();
+	/**
+	 * Pause the stream.
+	 *
+	 * This method is called by the owner media sink.
+	 *
+	 * @return Result code.
+	 * @see Preroll, Restart, Start, Stop
+	 */
+	HRESULT Pause();
 
-	/** Get a delegate that is executed when the sink received a new sample. */
-	FOnWmfMediaStreamSinkSample& OnSample();
+	/**
+	 * Preroll the sink.
+	 *
+	 * This method is called by the owner media sink.
+	 *
+	 * @return Result code.
+	 * @see Pause, Restart, Start, Stop
+	 */
+	HRESULT Preroll();
+
+	/**
+	 * Restart the stream.
+	 *
+	 * This method is called by the owner media sink.
+	 *
+	 * @return Result code.
+	 * @see Pause, Preroll, Start, Stop
+	 */
+	HRESULT Restart();
 
 	/**
 	 * Shut down this sink.
@@ -80,6 +113,32 @@ public:
 	 * @see Initialize
 	 */
 	void Shutdown();
+
+	/**
+	 * Start the sink.
+	 *
+	 * This method is called by the owner media sink.
+	 *
+	 * @return Result code.
+	 * @see Pause, Preroll, Restart, Stop
+	 */
+	HRESULT Start();
+
+	/**
+	 * Stop the stream.
+	 *
+	 * This method is called by the owner media sink.
+	 *
+	 * @return Result code.
+	 * @see Pause, Preroll, Restart, Start
+	 */
+	HRESULT Stop();
+
+public:
+
+	//~ IMFGetService interface
+
+	STDMETHODIMP GetService(__RPC__in REFGUID guidService, __RPC__in REFIID riid, __RPC__deref_out_opt LPVOID* ppvObject);
 
 public:
 
@@ -127,9 +186,6 @@ private:
 
 private:
 
-	/** The delegate that gets fired when the sink received a new sample. */
-	FOnWmfMediaStreamSinkBuffer BufferDelegate;
-
 	/** Critical section for synchronizing access to this sink. */
 	FCriticalSection CriticalSection;
 
@@ -142,17 +198,41 @@ private:
 	/** The media sink that owns this stream sink. */
 	TComPtr<FWmfMediaSink> Owner;
 
+	/** Whether the sink is currently prerolling samples. */
+	bool Prerolling;
+
 	/** Holds a reference counter for this instance. */
 	int32 RefCount;
-
-	/** The delegate that gets fired when the sink received a new sample. */
-	FOnWmfMediaStreamSinkSample SampleDelegate;
 
 	/** The stream identifier (currently fixed). */
 	DWORD StreamId;
 
 	/** The sink's major media type. */
 	const GUID StreamType;
+
+private:
+
+	/** Structure for queued media samples & markers. */
+	struct FQueuedSample
+	{
+		/** Stream marker type. */
+		MFSTREAMSINK_MARKER_TYPE MarkerType;
+
+		/** Stream marker context. */
+		PROPVARIANT* MarkerContext;
+
+		/** The sample's media type. */
+		TComPtr<IMFMediaType> MediaType;
+
+		/** The media sample. */
+		TComPtr<IMFSample> Sample;
+
+		/** Sample time. */
+		LONGLONG Time;
+	};
+
+	/** Media sample queue. */
+	TQueue<FQueuedSample> SampleQueue;
 };
 
 #endif

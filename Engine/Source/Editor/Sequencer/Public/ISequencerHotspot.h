@@ -31,6 +31,7 @@ struct ISequencerHotspot
 	virtual ESequencerHotspot GetType() const = 0;
 	virtual void UpdateOnHover(SSequencerTrackArea& InTrackArea, ISequencer& InSequencer) const = 0;
 	virtual TOptional<float> GetTime() const { return TOptional<float>(); }
+	virtual TOptional<float> GetOffsetTime() const { return TOptional<float>(); }
 	virtual TSharedPtr<ISequencerEditToolDragOperation> InitiateDrag(ISequencer&) { return nullptr; }
 	virtual bool PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& Sequencer, float MouseDownTime){ return false; }
 	virtual FCursorReply GetCursor() const { return FCursorReply::Unhandled(); }

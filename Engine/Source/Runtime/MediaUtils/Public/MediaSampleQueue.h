@@ -65,7 +65,7 @@ public:
 			return false; // pending flush
 		}
 
-		check(Samples.Dequeue(Sample));
+		check(Samples.Pop());
 		check(Sample.IsValid());
 
 		FPlatformAtomics::InterlockedDecrement(&NumSamples);
@@ -97,20 +97,48 @@ public:
 		return true;
 	}
 
+	virtual bool Pop() override
+	{
+		TSharedPtr<SampleType, ESPMode::ThreadSafe> Sample;
+
+		if (!Samples.Peek(Sample))
+		{
+			return false; // empty queue
+		}
+
+		if (!Sample.IsValid())
+		{
+			return false; // pending flush
+		}
+
+		check(Samples.Pop());
+		check(Sample.IsValid());
+
+		FPlatformAtomics::InterlockedDecrement(&NumSamples);
+		check(NumSamples >= 0);
+
+		return true;
+	}
+
 public:
 
 	//~ TMediaSampleSink interface (to be called only from producer thread)
 
 	virtual bool Enqueue(const TSharedPtr<SampleType, ESPMode::ThreadSafe>& Sample) override
 	{
-		if (!Samples.Enqueue(Sample))
-		{
-			return false;
-		}
-
 		if (Sample.IsValid())
 		{
 			FPlatformAtomics::InterlockedIncrement(&NumSamples);
+		}
+
+		if (!Samples.Enqueue(Sample))
+		{
+			if (Sample.IsValid())
+			{
+				FPlatformAtomics::InterlockedDecrement(&NumSamples);
+			}
+
+			return false;
 		}
 
 		return true;

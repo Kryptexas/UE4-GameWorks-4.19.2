@@ -79,7 +79,7 @@ FString FWmfMediaPlayer::GetInfo() const
 }
 
 
-FName FWmfMediaPlayer::GetName() const
+FName FWmfMediaPlayer::GetPlayerName() const
 {
 	static FName PlayerName(TEXT("WmfMedia"));
 	return PlayerName;
@@ -140,13 +140,13 @@ bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Arch
 
 	if (Archive->TotalSize() == 0)
 	{
-		UE_LOG(LogWmfMedia, Error, TEXT("Cannot open media from archive (archive is empty)."));
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Player %p: Cannot open media from archive (archive is empty)"), this);
 		return false;
 	}
 
 	if (OriginalUrl.IsEmpty())
 	{
-		UE_LOG(LogWmfMedia, Error, TEXT("Cannot open media from archive (no original URL provided)."));
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Player %p: Cannot open media from archive (no original URL provided)"), this);
 		return false;
 	}
 
@@ -154,39 +154,37 @@ bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Arch
 }
 
 
-void FWmfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/)
+void FWmfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/, FTimespan /*Timecode*/)
 {
 	bool MediaSourceChanged = false;
-	bool TopologyChanged = false;
+	bool TrackSelectionChanged = false;
 
-	Tracks->GetFlags(MediaSourceChanged, TopologyChanged);
+	Tracks->GetFlags(MediaSourceChanged, TrackSelectionChanged);
 
 	if (MediaSourceChanged)
 	{
 		EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
 	}
 
-	if (TopologyChanged)
+	if (TrackSelectionChanged)
 	{
-		if (Tracks->IsInitialized())
-		{
-			Session->SetTopology(Tracks->CreateTopology(), Tracks->GetDuration());
-		}
-		else
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Player %p: Creating and setting new playback topology"), this);
+
+		if (!Tracks->IsInitialized() || !Session->SetTopology(Tracks->CreateTopology(), Tracks->GetDuration()))
 		{
 			Session->Shutdown();
 			EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpenFailed);
 		}
 	}
 
-	if (MediaSourceChanged || TopologyChanged)
+	if (MediaSourceChanged || TrackSelectionChanged)
 	{
 		Tracks->ClearFlags();
 	}
 }
 
 
-void FWmfMediaPlayer::TickInput(FTimespan DeltaTime)
+void FWmfMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
 	// forward session events
 	TArray<EMediaEvent> OutEvents;
@@ -219,14 +217,14 @@ bool FWmfMediaPlayer::InitializePlayer(const TSharedPtr<FArchive, ESPMode::Threa
 	// initialize presentation on a separate thread
 	const EAsyncExecution Execution = Precache ? EAsyncExecution::Thread : EAsyncExecution::ThreadPool;
 
-	Async<void>(Execution, [Archive, Url, Precache, StreamsPtr = TWeakPtr<FWmfMediaTracks, ESPMode::ThreadSafe>(Tracks)]()
+	Async<void>(Execution, [Archive, Url, Precache, TracksPtr = TWeakPtr<FWmfMediaTracks, ESPMode::ThreadSafe>(Tracks)]()
 	{
-		TSharedPtr<FWmfMediaTracks, ESPMode::ThreadSafe> PinnedStreams = StreamsPtr.Pin();
+		TSharedPtr<FWmfMediaTracks, ESPMode::ThreadSafe> PinnedTracks = TracksPtr.Pin();
 
-		if (PinnedStreams.IsValid())
+		if (PinnedTracks.IsValid())
 		{
 			TComPtr<IMFMediaSource> MediaSource = WmfMedia::ResolveMediaSource(Archive, Url, Precache);
-			PinnedStreams->Initialize(MediaSource);
+			PinnedTracks->Initialize(MediaSource);
 		}
 	});
 

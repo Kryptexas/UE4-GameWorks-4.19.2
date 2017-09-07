@@ -4,6 +4,7 @@
 
 #include "Containers/UnrealString.h"
 #include "Internationalization/Text.h"
+#include "Misc/Paths.h"
 #include "Misc/Timespan.h"
 
 class FArchive;
@@ -75,9 +76,10 @@ public:
 	/**
 	 * Get the name of this player.
 	 *
-	 * @return Player name, i.e. 'AndroidMedia' or 'WmfMedia'.
+	 * @return Media player name, i.e. 'AndroidMedia' or 'WmfMedia'.
+	 * @see GetMediaName
 	 */
-	virtual FName GetName() const = 0;
+	virtual FName GetPlayerName() const = 0;
 
 	/**
 	 * Get the player's sample queue.
@@ -168,6 +170,29 @@ public:
 	//~ The following methods are optional
 
 	/**
+	 * Get the human readable name of the currently loaded media source.
+	 *
+	 * Depending on the type of media source, this might be the name of a file,
+	 * the display name of a capture device, or some other identifying string.
+	 * If the player does not provide a specialized implementation for this
+	 * method, the media name will be derived from the current media URL.
+	 *
+	 * @return Media source name, or empty text if no media is opened
+	 * @see GetPlayerName, GetUrl
+	 */
+	virtual FText GetMediaName() const
+	{
+		const FString Url = GetUrl();
+
+		if (Url.IsEmpty())
+		{
+			return FText::GetEmpty();
+		}
+
+		return FText::FromString(FPaths::GetBaseFilename(Url));
+	}
+
+	/**
 	 * Set the player's globally unique identifier.
 	 *
 	 * @param Guid The GUID to set.
@@ -197,9 +222,10 @@ public:
 	 * samples before they are rendered on textures or audio components.
 	 *
 	 * @param DeltaTime Time since last tick.
+	 * @param Timecode The current media time code.
 	 * @see TickAudio, TickInput
 	 */
-	virtual void TickFetch(FTimespan DeltaTime)
+	virtual void TickFetch(FTimespan DeltaTime, FTimespan Timecode)
 	{
 		// override in child class if needed
 	}
@@ -211,9 +237,10 @@ public:
 	 * Engine is being ticked, or to initiate the processing of input samples.
 	 *
 	 * @param DeltaTime Time since last tick.
+	 * @param Timecode The current media time code.
 	 * @see TickAudio, TickFetch
 	 */
-	virtual void TickInput(FTimespan DeltaTime)
+	virtual void TickInput(FTimespan DeltaTime, FTimespan Timecode)
 	{
 		// override in child class if needed
 	}

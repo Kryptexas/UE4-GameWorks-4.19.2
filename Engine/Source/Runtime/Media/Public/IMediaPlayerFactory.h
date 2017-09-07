@@ -97,10 +97,10 @@ public:
 	/**
 	 * Get the unique name of the media player.
 	 *
-	 * @return Player name.
+	 * @return Media player name, i.e. 'AndroidMedia' or 'WmfMedia'.
 	 * @see GetDisplayName
 	 */
-	virtual FName GetName() const = 0;
+	virtual FName GetPlayerName() const = 0;
 
 	/**
 	 * Get the names of platforms that the media player supports.

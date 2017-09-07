@@ -66,7 +66,7 @@ public:
 	 * @param OutValue Will hold the returned value.
 	 * @return true if a value was returned, false if the queue was empty.
 	 * @note To be called only from consumer thread.
-	 * @see Empty, Enqueue, IsEmpty, Peek
+	 * @see Empty, Enqueue, IsEmpty, Peek, Pop
 	 */
 	bool Dequeue(ItemType& OutItem)
 	{
@@ -92,12 +92,11 @@ public:
 	 * Empty the queue, discarding all items.
 	 *
 	 * @note To be called only from consumer thread.
-	 * @see Dequeue, IsEmpty, Peek
+	 * @see Dequeue, IsEmpty, Peek, Pop
 	 */
 	void Empty()
 	{
-		ItemType DummyItem;
-		while (Dequeue(DummyItem));
+		while (Pop());
 	}
 
 	/**
@@ -106,7 +105,7 @@ public:
 	 * @param Item The item to add.
 	 * @return true if the item was added, false otherwise.
 	 * @note To be called only from producer thread(s).
-	 * @see Dequeue
+	 * @see Dequeue, Pop
 	 */
 	bool Enqueue(const ItemType& Item)
 	{
@@ -143,7 +142,7 @@ public:
 	 * @param Item The item to add.
 	 * @return true if the item was added, false otherwise.
 	 * @note To be called only from producer thread(s).
-	 * @see Dequeue
+	 * @see Dequeue, Pop
 	 */
 	bool Enqueue(ItemType&& Item)
 	{
@@ -179,7 +178,7 @@ public:
 	 *
 	 * @return true if the queue is empty, false otherwise.
 	 * @note To be called only from consumer thread.
-	 * @see Dequeue, Empty, Peek
+	 * @see Dequeue, Empty, Peek, Pop
 	 */
 	bool IsEmpty() const
 	{
@@ -192,7 +191,7 @@ public:
 	 * @param OutItem Will hold the peeked at item.
 	 * @return true if an item was returned, false if the queue was empty.
 	 * @note To be called only from consumer thread.
-	 * @see Dequeue, Empty, IsEmpty
+	 * @see Dequeue, Empty, IsEmpty, Pop
 	 */
 	bool Peek(ItemType& OutItem) const
 	{
@@ -202,6 +201,32 @@ public:
 		}
 
 		OutItem = Tail->NextNode->Item;
+
+		return true;
+	}
+
+	/**
+	 * Removes the item from the tail of the queue.
+	 *
+	 * @return true if a value was removed, false if the queue was empty.
+	 * @note To be called only from consumer thread.
+	 * @see Dequeue, Empty, Enqueue, IsEmpty, Peek
+	 */
+	bool Pop()
+	{
+		TNode* Popped = Tail->NextNode;
+
+		if (Popped == nullptr)
+		{
+			return false;
+		}
+		
+		TSAN_AFTER(&Tail->NextNode);
+
+		TNode* OldTail = Tail;
+		Tail = Popped;
+		Tail->Item = ItemType();
+		delete OldTail;
 
 		return true;
 	}

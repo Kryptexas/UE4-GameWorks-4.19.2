@@ -27,11 +27,7 @@ bool FMediaSamples::FetchAudio(TRange<FTimespan> TimeRange, TSharedPtr<IMediaAud
 		return false;
 	}
 
-	if (!AudioSampleQueue.Dequeue(Sample))
-	{
-		return false;
-	}
-
+	check(AudioSampleQueue.Pop());
 	OutSample = Sample;
 
 	return true;
@@ -54,11 +50,7 @@ bool FMediaSamples::FetchCaption(TRange<FTimespan> TimeRange, TSharedPtr<IMediaO
 		return false;
 	}
 
-	if (!CaptionSampleQueue.Dequeue(Sample))
-	{
-		return false;
-	}
-
+	check(CaptionSampleQueue.Pop());
 	OutSample = Sample;
 
 	return true;
@@ -81,11 +73,7 @@ bool FMediaSamples::FetchMetadata(TRange<FTimespan> TimeRange, TSharedPtr<IMedia
 		return false;
 	}
 
-	if (!MetadataSampleQueue.Dequeue(Sample))
-	{
-		return false;
-	}
-
+	check(MetadataSampleQueue.Pop());
 	OutSample = Sample;
 
 	return true;
@@ -108,11 +96,7 @@ bool FMediaSamples::FetchSubtitle(TRange<FTimespan> TimeRange, TSharedPtr<IMedia
 		return false;
 	}
 
-	if (!SubtitleSampleQueue.Dequeue(Sample))
-	{
-		return false;
-	}
-
+	check(SubtitleSampleQueue.Pop());
 	OutSample = Sample;
 
 	return true;
@@ -135,11 +119,7 @@ bool FMediaSamples::FetchVideo(TRange<FTimespan> TimeRange, TSharedPtr<IMediaTex
 		return false;
 	}
 
-	if (!VideoSampleQueue.Dequeue(Sample))
-	{
-		return false;
-	}
-
+	check(VideoSampleQueue.Pop());
 	OutSample = Sample;
 
 	return true;

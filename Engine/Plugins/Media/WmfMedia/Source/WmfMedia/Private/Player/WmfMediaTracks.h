@@ -125,10 +125,10 @@ public:
 	 * Get the current flags.
 	 *
 	 * @param OutMediaSourceChanged Will indicate whether the media source changed.
-	 * @param OutTopologyChanged Will indicate whether the topology changed.
+	 * @param OutSelectionChanged Will indicate whether the track selection changed.
 	 * @see ClearFlags
 	 */
-	void GetFlags(bool& OutMediaSourceChanged, bool& OutTopologyChanged) const;
+	void GetFlags(bool& OutMediaSourceChanged, bool& OutSelectionChanged) const;
 
 	/**
 	 * Get the information string for the currently loaded media source.
@@ -201,8 +201,10 @@ protected:
 	 *
 	 * @param StreamIndex The index of the stream to add.
 	 * @param OutInfo Will contain appended debug information.
+	 * @return true on success, false otherwise.
+	 * @see AddTrackToTopology
 	 */
-	void AddStreamToTracks(uint32 StreamIndex, FString& OutInfo);
+	bool AddStreamToTracks(uint32 StreamIndex, FString& OutInfo);
 
 	/**
 	 * Add the given track to the specified playback topology.
@@ -210,6 +212,7 @@ protected:
 	 * @param Track The track to add.
 	 * @param Topology The playback topology.
 	 * @return true on success, false otherwise.
+	 * @see AddStreamToTracks
 	 */
 	bool AddTrackToTopology(const FTrack& Track, IMFTopology& Topology) const;
 
@@ -302,17 +305,17 @@ private:
 	/** Index of the selected audio track. */
 	int32 SelectedAudioTrack;
 
-	/** Index of the selected binary track. */
-	int32 SelectedBinaryTrack;
-
 	/** Index of the selected caption track. */
 	int32 SelectedCaptionTrack;
+
+	/** Index of the selected binary track. */
+	int32 SelectedMetadataTrack;
 
 	/** Index of the selected video track. */
 	int32 SelectedVideoTrack;
 
-	/** Whether the playback topology changed. */
-	bool TopologyChanged;
+	/** Whether the track selection changed. */
+	bool SelectionChanged;
 
 	/** Video sample object pool. */
 	FWmfMediaTextureSamplePool* VideoSamplePool;

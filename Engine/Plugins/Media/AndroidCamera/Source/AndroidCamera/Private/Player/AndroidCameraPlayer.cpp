@@ -164,7 +164,7 @@ FString FAndroidCameraPlayer::GetInfo() const
 }
 
 
-FName FAndroidCameraPlayer::GetName() const
+FName FAndroidCameraPlayer::GetPlayerName() const
 {
 	static FName PlayerName(TEXT("AndroidCamera"));
 	return PlayerName;
@@ -267,7 +267,7 @@ bool FAndroidCameraPlayer::Open(const FString& Url, const IMediaOptions* /*Optio
 
 bool FAndroidCameraPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* /*Options*/)
 {
-	return false; // @todo AndroidCamera: implement opening media from FArchive
+	return false; // not supported
 }
 
 
@@ -281,7 +281,7 @@ void FAndroidCameraPlayer::SetGuid(const FGuid& Guid)
 }
 
 
-void FAndroidCameraPlayer::TickFetch(FTimespan DeltaTime)
+void FAndroidCameraPlayer::TickFetch(FTimespan DeltaTime, FTimespan Timecode)
 {
 	if (CurrentState != EMediaState::Playing && CurrentState != EMediaState::Paused)
 	{
@@ -576,7 +576,7 @@ void FAndroidCameraPlayer::TickFetch(FTimespan DeltaTime)
 }
 
 
-void FAndroidCameraPlayer::TickInput(FTimespan DeltaTime)
+void FAndroidCameraPlayer::TickInput(FTimespan DeltaTime, FTimespan Timecode)
 {
 	if (CurrentState != EMediaState::Playing)
 	{
@@ -999,11 +999,11 @@ bool FAndroidCameraPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInd
 	case EMediaTrackType::Audio:
 		if (TrackIndex != SelectedAudioTrack)
 		{
-			UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %llx: Selecting audio track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedVideoTrack, AudioTracks.Num());
+			UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %p: Selecting audio track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedVideoTrack, AudioTracks.Num());
 
 			if (TrackIndex == INDEX_NONE)
 			{
-				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %llx: Disabling audio"), this, TrackIndex);
+				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %p: Disabling audio"), this, TrackIndex);
 
 				JavaCameraPlayer->SetAudioEnabled(false);
 			}
@@ -1014,7 +1014,7 @@ bool FAndroidCameraPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInd
 					return false;
 				}
 
-				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %llx: Enabling audio"), this, TrackIndex);
+				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %p: Enabling audio"), this, TrackIndex);
 
 				JavaCameraPlayer->SetAudioEnabled(true);
 			}
@@ -1026,11 +1026,11 @@ bool FAndroidCameraPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInd
 	case EMediaTrackType::Caption:
 		if (TrackIndex != SelectedCaptionTrack)
 		{
-			UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %llx: Selecting caption track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedCaptionTrack, CaptionTracks.Num());
+			UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %p: Selecting caption track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedCaptionTrack, CaptionTracks.Num());
 
 			if (TrackIndex == INDEX_NONE)
 			{
-				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %llx: Disabling captions"), this, TrackIndex);
+				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %p: Disabling captions"), this, TrackIndex);
 			}
 			else
 			{
@@ -1039,7 +1039,7 @@ bool FAndroidCameraPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInd
 					return false;
 				}
 
-				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %llx: Enabling captions"), this, TrackIndex);
+				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %p: Enabling captions"), this, TrackIndex);
 			}
 
 			SelectedCaptionTrack = TrackIndex;
@@ -1049,11 +1049,11 @@ bool FAndroidCameraPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInd
 	case EMediaTrackType::Video:
 		if (TrackIndex != SelectedVideoTrack)
 		{
-			UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %llx: Selecting video track %i instead of %i (%i tracks)."), this, TrackIndex, SelectedVideoTrack, VideoTracks.Num());
+			UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %p: Selecting video track %i instead of %i (%i tracks)."), this, TrackIndex, SelectedVideoTrack, VideoTracks.Num());
 
 			if (TrackIndex == INDEX_NONE)
 			{
-				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %llx: Disabling video"), this, TrackIndex);
+				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %p: Disabling video"), this, TrackIndex);
 				JavaCameraPlayer->SetVideoEnabled(false);
 			}
 			else
@@ -1078,7 +1078,7 @@ bool FAndroidCameraPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInd
 					SetRate(OldRate);
 				}
 
-				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %llx: Enabling video"), this, TrackIndex);
+				UE_LOG(LogAndroidCamera, VeryVerbose, TEXT("Player %p: Enabling video"), this, TrackIndex);
 				JavaCameraPlayer->SetVideoEnabled(true);
 			}
 
@@ -1279,7 +1279,7 @@ bool FAndroidCameraPlayer::Seek(const FTimespan& Time)
 		return false;
 	}
 
-	UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %llx: Seeking to %s"), this, *Time.ToString());
+	UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %p: Seeking to %s"), this, *Time.ToString());
 
 	JavaCameraPlayer->SeekTo(static_cast<int32>(Time.GetTotalMilliseconds()));
 	EventSink.ReceiveMediaEvent(EMediaEvent::SeekCompleted);
@@ -1318,7 +1318,7 @@ bool FAndroidCameraPlayer::SetRate(float Rate)
 		return true; // rate already set
 	}
 
-	UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %llx: Setting rate from to %f to %f"), this, GetRate(), Rate);
+	UE_LOG(LogAndroidCamera, Verbose, TEXT("Player %p: Setting rate from to %f to %f"), this, GetRate(), Rate);
 
 	if (Rate == 0.0f)
 	{

@@ -43,7 +43,7 @@ public:
 	{
 		for (IMediaPlayerFactory* Factory : PlayerFactories)
 		{
-			if (Factory->GetName() == FactoryName)
+			if (Factory->GetPlayerName() == FactoryName)
 			{
 				return Factory;
 			}

@@ -289,11 +289,13 @@ namespace MediaAudioResampler
 			{
 				*Dest = 0.0f;
 
-				for (uint32 SrcIndex = 0; SrcIndex < SrcChannels; ++Coeff, ++Src, ++SrcIndex)
+				for (uint32 SrcIndex = 0; SrcIndex < SrcChannels; ++Coeff, ++SrcIndex)
 				{
-					*Dest += *Src * *Coeff;
+					*Dest += Src[SrcIndex] * *Coeff;
 				}
 			}
+
+			Src += SrcChannels;
 		}
 
 		return true;
@@ -558,7 +560,7 @@ bool FMediaAudioResampler::SetInput(const TSharedPtr<IMediaAudioSample, ESPMode:
 		case EMediaAudioSampleFormat::Int16:
 			while (FloatData < FloatDataEnd)
 			{
-				*FloatData++ = (float)(*(const int16*)Buffer / 32767.0f);
+				*FloatData++ = (float)(*(const int16*)Buffer / 32768.0f);
 				Buffer += sizeof(int16);
 			}
 			break;
@@ -566,7 +568,7 @@ bool FMediaAudioResampler::SetInput(const TSharedPtr<IMediaAudioSample, ESPMode:
 		case EMediaAudioSampleFormat::Int32:
 			while (FloatData < FloatDataEnd)
 			{
-				*FloatData++ = (float)*(const int32*)Buffer / 4294967295.0f;
+				*FloatData++ = (float)*(const int32*)Buffer / 2147483648.0f;
 				Buffer += sizeof(int32);
 			}
 			break;
@@ -574,7 +576,7 @@ bool FMediaAudioResampler::SetInput(const TSharedPtr<IMediaAudioSample, ESPMode:
 		case EMediaAudioSampleFormat::Int8:
 			while (FloatData < FloatDataEnd)
 			{
-				*FloatData++ = (float)*(const int8*)Buffer / 255.0f;
+				*FloatData++ = (float)*(const int8*)Buffer / 128.0f;
 				Buffer += sizeof(int8);
 			}
 			break;
@@ -591,7 +593,7 @@ bool FMediaAudioResampler::SetInput(const TSharedPtr<IMediaAudioSample, ESPMode:
 		else
 		{
 			// down-mix channels
-			Input.AddUninitialized(NumSamples);
+			Input.AddDefaulted(NumFrames * OutputChannels);
 
 			if (!MediaAudioResampler::Downmix(FloatSamples.GetData(), NumChannels, NumFrames, Input.GetData(), OutputChannels))
 			{

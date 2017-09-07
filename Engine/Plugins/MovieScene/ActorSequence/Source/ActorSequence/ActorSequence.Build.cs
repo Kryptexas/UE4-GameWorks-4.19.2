@@ -6,7 +6,7 @@ public class ActorSequence : ModuleRules
 {
 	public ActorSequence(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateIncludePaths.Add("Runtime/ActorSequence/Private");
+		PrivateIncludePaths.Add("ActorSequence/Private");
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

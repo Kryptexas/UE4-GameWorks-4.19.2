@@ -112,7 +112,7 @@ FString FMfMediaPlayer::GetInfo() const
 }
 
 
-FName FMfMediaPlayer::GetName() const
+FName FMfMediaPlayer::GetPlayerName() const
 {
 	static FName PlayerName(TEXT("MfMedia"));
 	return PlayerName;
@@ -174,13 +174,13 @@ bool FMfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archi
 
 	if (Archive->TotalSize() == 0)
 	{
-		UE_LOG(LogMfMedia, Error, TEXT("Cannot open media from archive (archive is empty)."));
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Cannot open media from archive (archive is empty)."), this);
 		return false;
 	}
 
 	if (OriginalUrl.IsEmpty())
 	{
-		UE_LOG(LogMfMedia, Error, TEXT("Cannot open media from archive (no original URL provided)."));
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Cannot open media from archive (no original URL provided)."), this);
 		return false;
 	}
 
@@ -197,7 +197,7 @@ void FMfMediaPlayer::TickAudio()
 }
 
 
-void FMfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/)
+void FMfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/, FTimespan /*Timecode*/)
 {
 	bool MediaSourceChanged = false;
 	bool TrackSelectionChanged = false;
@@ -252,7 +252,7 @@ void FMfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/)
 }
 
 
-void FMfMediaPlayer::TickInput(FTimespan DeltaTime)
+void FMfMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan Timecode)
 {
 	if ((CurrentState != EMediaState::Playing) || (CurrentDuration == FTimespan::Zero()))
 	{
@@ -322,7 +322,7 @@ void FMfMediaPlayer::TickInput(FTimespan DeltaTime)
 	// update tracks
 	if (CurrentState == EMediaState::Playing)
 	{
-		Tracks->TickInput(CurrentRate, CurrentTime, DeltaTime);
+		Tracks->TickInput(CurrentRate, CurrentTime);
 	}
 }
 
@@ -349,7 +349,7 @@ bool FMfMediaPlayer::CommitTime(FTimespan Time)
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogMfMedia, Warning, TEXT("Failed to commit time %s: %s"), *Time.ToString(), *MfMedia::ResultToString(Result));
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Failed to set source reader position to %s: %s"), this, *Time.ToString(), *MfMedia::ResultToString(Result));
 		return false;
 	}
 
@@ -361,7 +361,7 @@ bool FMfMediaPlayer::CommitTime(FTimespan Time)
 
 bool FMfMediaPlayer::InitializePlayer(const TSharedPtr<FArchive, ESPMode::ThreadSafe>& Archive, const FString& Url, bool Precache)
 {
-	UE_LOG(LogMfMedia, VeryVerbose, TEXT("Player %llx: Initializing %s (archive = %s, precache = %s)"), this, *Url, Archive.IsValid() ? TEXT("yes") : TEXT("no"), Precache ? TEXT("yes") : TEXT("no"));
+	UE_LOG(LogMfMedia, VeryVerbose, TEXT("Player %p: Initializing %s (archive = %s, precache = %s)"), this, *Url, Archive.IsValid() ? TEXT("yes") : TEXT("no"), Precache ? TEXT("yes") : TEXT("no"));
 
 	CurrentState = EMediaState::Preparing;
 
@@ -393,6 +393,15 @@ bool FMfMediaPlayer::InitializePlayer(const TSharedPtr<FArchive, ESPMode::Thread
 
 void FMfMediaPlayer::UpdateCharacteristics()
 {
+	// reset characteristics
+	Characteristics = 0u;
+
+	RateControl.Reset();
+	RateSupport.Reset();
+
+	ThinnedRates.Empty();
+	UnthinnedRates.Empty();
+
 	if (!MediaSource.IsValid())
 	{
 		return;
@@ -403,7 +412,7 @@ void FMfMediaPlayer::UpdateCharacteristics()
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogMfMedia, Warning, TEXT("Failed to get media source characteristics: %s"), *MfMedia::ResultToString(Result));
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Failed to get media source characteristics: %s"), this, *MfMedia::ResultToString(Result));
 	}
 
 	// get service interface
@@ -413,7 +422,7 @@ void FMfMediaPlayer::UpdateCharacteristics()
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogMfMedia, Warning, TEXT("Failed to query service interface: %s"), *MfMedia::ResultToString(Result));
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Failed to query service interface: %s"), this, *MfMedia::ResultToString(Result));
 		return;
 	}
 
@@ -422,22 +431,22 @@ void FMfMediaPlayer::UpdateCharacteristics()
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogMfMedia, Log, TEXT("Rate control service unavailable (%s)"), *MfMedia::ResultToString(Result));
+		UE_LOG(LogMfMedia, Log, TEXT("Rate control service unavailable: %s"), *MfMedia::ResultToString(Result));
 	}
 	else
 	{
-		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Rate control ready"), this);
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Rate control ready"), this);
 	}
 
 	Result = GetService->GetService(MF_RATE_CONTROL_SERVICE, IID_PPV_ARGS(&RateSupport));
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogMfMedia, Log, TEXT("Rate support service unavailable (%s)"), *MfMedia::ResultToString(Result));
+		UE_LOG(LogMfMedia, Log, TEXT("Rate support service unavailable: %s"), *MfMedia::ResultToString(Result));
 	}
 	else
 	{
-		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Rate support ready"), this);
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Rate support ready"), this);
 	}
 
 	// cache rate control properties
@@ -473,11 +482,6 @@ void FMfMediaPlayer::UpdateCharacteristics()
 			UnthinnedRates.Add(TRange<float>::Inclusive(MaxRate, MinRate));
 		}
 #endif
-	}
-	else
-	{
-		ThinnedRates.Empty();
-		UnthinnedRates.Empty();
 	}
 }
 
@@ -570,17 +574,17 @@ bool FMfMediaPlayer::Seek(const FTimespan& Time)
 	// validate seek
 	if ((CurrentState == EMediaState::Closed) || (CurrentState == EMediaState::Error))
 	{
-		UE_LOG(LogMfMedia, Warning, TEXT("Cannot seek while closed or in error state"));
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Cannot seek while closed or in error state"), this);
 		return false;
 	}
 
 	if ((Time < FTimespan::Zero()) || (Time > CurrentDuration))
 	{
-		UE_LOG(LogMfMedia, Warning, TEXT("Invalid seek time %s (media duration is %s)"), *Time.ToString(), *CurrentDuration.ToString());
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Invalid seek time %s (media duration is %s)"), this, *Time.ToString(), *CurrentDuration.ToString());
 		return false;
 	}
 	
-	UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Seeking to %s"), this, *Time.ToString());
+	UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Seeking to %s"), this, *Time.ToString());
 
 	if (!CommitTime(Time))
 	{
@@ -623,17 +627,17 @@ bool FMfMediaPlayer::SetRate(float Rate)
 	// check whether rate is supported
 	if (UnthinnedRates.Contains(Rate))
 	{
-		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Setting rate from to %f to %f (unthinned)"), this, CurrentRate, Rate);
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Setting rate from to %f to %f (unthinned)"), this, CurrentRate, Rate);
 		Thin = FALSE;
 	}
 	else if (ThinnedRates.Contains(Rate))
 	{
-		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Setting rate from to %f to %f (thinned)"), this, CurrentRate, Rate);
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Setting rate from to %f to %f (thinned)"), this, CurrentRate, Rate);
 		Thin = TRUE;
 	}
 	else
 	{
-		UE_LOG(LogMfMedia, Warning, TEXT("The rate %f is not supported"), Rate);
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: The rate %f is not supported"), this, Rate);
 		return false;
 	}
 
@@ -649,7 +653,7 @@ bool FMfMediaPlayer::SetRate(float Rate)
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to commit rate change from %f to zero: %s"), CurrentRate, *MfMedia::ResultToString(Result));
+				UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Failed to commit rate change from %f to zero: %s"), this, CurrentRate, *MfMedia::ResultToString(Result));
 				return false;
 			}
 		}
@@ -663,7 +667,7 @@ bool FMfMediaPlayer::SetRate(float Rate)
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to commit rate change from %f to %f (%s): %s"), CurrentRate, Rate, ThinnedString, *MfMedia::ResultToString(Result));
+				UE_LOG(LogMfMedia, Verbose, TEXT("Player %p: Failed to commit rate change from %f to %f [%s]: %s"), this, CurrentRate, Rate, ThinnedString, *MfMedia::ResultToString(Result));
 				return false;
 			}
 		}

@@ -39,6 +39,8 @@ public:
 	virtual FMargin GetContentPadding() const override;
 	virtual void BeginResizeSection() override;
 	virtual void ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime) override;
+	virtual void BeginSlipSection() override;
+	virtual void SlipSection(float SlipTime) override;
 
 	// FThumbnail interface
 	virtual void SetSingleTime(float GlobalTime) override;

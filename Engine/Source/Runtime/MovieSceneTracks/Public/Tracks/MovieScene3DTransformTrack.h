@@ -59,7 +59,7 @@ public:
 
 	virtual UMovieSceneSection* CreateNewSection() override;
 
-	MOVIESCENETRACKS_API TArray<FTrajectoryKey> GetTrajectoryData() const;
+	MOVIESCENETRACKS_API TArray<FTrajectoryKey> GetTrajectoryData(float Time, int32 MaxNumDataPoints) const;
 
 	/**
 	 * Access the interrogation key for transform data - any interrgation data stored with this key is guaranteed to be of type 'FTransform'

@@ -88,7 +88,7 @@ public:
 		return LOCTEXT("MediaPlayerDisplayName", "Android Media");
 	}
 
-	virtual FName GetName() const override
+	virtual FName GetPlayerName() const override
 	{
 		static FName PlayerName(TEXT("AndroidMedia"));
 		return PlayerName;

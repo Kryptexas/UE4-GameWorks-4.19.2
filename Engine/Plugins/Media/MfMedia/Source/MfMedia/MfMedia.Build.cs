@@ -39,8 +39,8 @@ namespace UnrealBuildTool.Rules
 				PublicAdditionalLibraries.Add("mfreadwrite.lib");
 				PublicAdditionalLibraries.Add("mfuuid.lib");
 
-				if ((Target.Platform == UnrealTargetPlatform.Win32) 
-					|| (Target.Platform == UnrealTargetPlatform.Win64))
+				if ((Target.Platform == UnrealTargetPlatform.Win32) ||
+					(Target.Platform == UnrealTargetPlatform.Win64))
 				{
 					PublicAdditionalLibraries.Add("mf.lib");
 					PublicAdditionalLibraries.Add("Propsys.lib");

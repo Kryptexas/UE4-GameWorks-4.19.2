@@ -732,7 +732,7 @@ void SMediaPlayerEditorViewer::HandleDecoderMenuNewMenu(FMenuBuilder& MenuBuilde
 	for (IMediaPlayerFactory* Factory : PlayerFactories)
 	{
 		const bool SupportsRunningPlatform = Factory->GetSupportedPlatforms().Contains(PlatformName);
-		const FName PlayerName = Factory->GetName();
+		const FName PlayerName = Factory->GetPlayerName();
 
 		MenuBuilder.AddMenuEntry(
 			FText::Format(LOCTEXT("PlayerNameFormat", "{0} ({1})"), Factory->GetDisplayName(), FText::FromName(PlayerName)),

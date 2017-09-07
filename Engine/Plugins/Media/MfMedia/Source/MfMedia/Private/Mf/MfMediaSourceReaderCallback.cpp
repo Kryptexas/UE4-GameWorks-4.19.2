@@ -31,7 +31,7 @@ FMfMediaSourceReaderCallback::FMfMediaSourceReaderCallback(IMfMediaSourceReaderS
 
 FMfMediaSourceReaderCallback::~FMfMediaSourceReaderCallback()
 {
-	UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %llx: Destroyed)"), this);
+	UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %p: Destroyed)"), this);
 }
 
 
@@ -47,7 +47,7 @@ STDMETHODIMP FMfMediaSourceReaderCallback::OnEvent(DWORD, IMFMediaEvent* Event)
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %llx: Failed to get session event type: %s"), this, *MfMedia::ResultToString(Result));
+			UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %p: Failed to get session event type: %s"), this, *MfMedia::ResultToString(Result));
 			return Result;
 		}
 	}
@@ -59,12 +59,12 @@ STDMETHODIMP FMfMediaSourceReaderCallback::OnEvent(DWORD, IMFMediaEvent* Event)
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %llx: Failed to get event status: %s"), this, *MfMedia::ResultToString(Result));
+			UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %p: Failed to get event status: %s"), this, *MfMedia::ResultToString(Result));
 			return Result;
 		}
 	}
 
-	UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %llx: Event [%s] (%s)"), this, *MfMedia::MediaEventToString(EventType), *MfMedia::ResultToString(EventStatus));
+	UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %p: Event [%s]: %s"), this, *MfMedia::MediaEventToString(EventType), *MfMedia::ResultToString(EventStatus));
 
 	Sink.ReceiveSourceReaderEvent(EventType);
 
@@ -83,7 +83,7 @@ STDMETHODIMP FMfMediaSourceReaderCallback::OnFlush(DWORD)
 STDMETHODIMP FMfMediaSourceReaderCallback::OnReadSample(HRESULT Status, DWORD StreamIndex, DWORD StreamFlags, LONGLONG Timestamp, IMFSample* Sample)
 {
 	#if MFMEDIASOURCEREADERCALLBACK_TRACE_SAMPLES
-		UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %llx: Sample read: %s (stream = %i, status = %i, flags = %i)"), this, *FTimespan(Timestamp).ToString(), StreamIndex, Status, StreamFlags);
+		UE_LOG(LogMfMedia, VeryVerbose, TEXT("Callback %p: Sample read: %s (stream = %i, status = %i, flags = %i)"), this, *FTimespan(Timestamp).ToString(), StreamIndex, Status, StreamFlags);
 	#endif
 
 	Sink.ReceiveSourceReaderSample(Sample, Status, StreamFlags, StreamIndex, FTimespan(Timestamp));

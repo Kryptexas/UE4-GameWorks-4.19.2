@@ -38,14 +38,17 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.Add("HeadMountedDisplay");
 			}
 
-			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
-				(Target.Platform == UnrealTargetPlatform.Win32))
+			if (Target.Type != TargetType.Server)
 			{
-				PublicDelayLoadDLLs.Add("mf.dll");
-				PublicDelayLoadDLLs.Add("mfplat.dll");
-				PublicDelayLoadDLLs.Add("mfplay.dll");
-				PublicDelayLoadDLLs.Add("mfuuid.dll");
-				PublicDelayLoadDLLs.Add("shlwapi.dll");
+				if ((Target.Platform == UnrealTargetPlatform.Win64) ||
+					(Target.Platform == UnrealTargetPlatform.Win32))
+				{
+					PublicDelayLoadDLLs.Add("mf.dll");
+					PublicDelayLoadDLLs.Add("mfplat.dll");
+					PublicDelayLoadDLLs.Add("mfplay.dll");
+					PublicDelayLoadDLLs.Add("mfuuid.dll");
+					PublicDelayLoadDLLs.Add("shlwapi.dll");
+				}
 			}
 		}
 	}

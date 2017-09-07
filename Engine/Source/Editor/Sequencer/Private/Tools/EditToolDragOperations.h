@@ -64,7 +64,7 @@ class FResizeSection
 public:
 
 	/** Create and initialize a new instance. */
-	FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections, bool bInDraggingByEnd );
+	FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections, bool bInDraggingByEnd, bool bIsSlipping );
 
 public:
 
@@ -82,6 +82,9 @@ private:
 
 	/** true if dragging  the end of the section, false if dragging the start */
 	bool bDraggingByEnd;
+
+	/** true if slipping, adjust only the start offset */
+	bool bIsSlipping;
 
 	/** Time where the mouse is pressed */
 	float MouseDownTime;

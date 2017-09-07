@@ -51,6 +51,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bEvaluateSubSequencesInIsolation = false;
 	bRerunConstructionScripts = false;
 	bVisualizePreAndPostRoll = true;
+	TrajectoryPathCap = 250;
 }
 
 void USequencerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

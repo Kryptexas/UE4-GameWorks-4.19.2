@@ -11,6 +11,7 @@
 #include "HAL/CriticalSection.h"
 #include "IMediaControls.h"
 #include "IMediaEventSink.h"
+#include "Misc/Optional.h"
 #include "Misc/Timespan.h"
 
 #include "AllowWindowsPlatformTypes.h"
@@ -119,10 +120,9 @@ protected:
 	 * The caller holds the lock to the critical section.
 	 *
 	 * @param Rate The play rate to commit.
-	 * @param Thinning The thinning mode.
 	 * @see CommitTime, CommitTopology
 	 */
-	bool CommitRate(float Rate, EMediaRateThinning Thinning);
+	bool CommitRate(float Rate);
 
 	/**
 	 * Commit the specified play position.
@@ -145,16 +145,48 @@ protected:
 	/**
 	 * Discard all pending state changes.
 	 *
-	 * @see UpdatePendingState
+	 * @see DoPendingChanges
 	 */
-	void DiscardPendingState();
+	void DiscardPendingChanges();
 
 	/**
-	 * Applies any pending state changes.
-	 *
-	 * @see DiscardPendingState
-	 */
-	void UpdatePendingState();
+	* Applies any pending state changes.
+	*
+	* @see DiscardPendingChanges
+	*/
+	void DoPendingChanges();
+
+	/** Get the latest characteristics from the current media source. */
+	void UpdateCharacteristics();
+
+private:
+
+	/** Callback for the MEError event. */
+	void HandleError(HRESULT EventStatus);
+
+	/** Callback for the MESessionEnded event. */
+	void HandleSessionEnded();
+
+	/** Callback for the MESessionPaused event. */
+	void HandleSessionPaused(HRESULT EventStatus);
+
+	/** Callback for the MESessionRateChanged event. */
+	void HandleSessionRateChanged(HRESULT EventStatus, IMFMediaEvent& Event);
+
+	/** Callback for the MESessionScrubSampleComplete event. */
+	void HandleSessionScrubSampleComplete();
+
+	/** Callback for the MESessionStarted event. */
+	void HandleSessionStarted(HRESULT EventStatus);
+
+	/** Callback for the MESessionStopped event. */
+	void HandleSessionStopped(HRESULT EventStatus);
+
+	/** Callback for the MESessionTopologySet event. */
+	void HandleSessionTopologySet(HRESULT EventStatus, IMFMediaEvent& Event);
+
+	/** Callback for the MESessionTopologyStatus event. */
+	void HandleSessionTopologyStatus(HRESULT EventStatus, IMFMediaEvent& Event);
 
 private:
 
@@ -175,12 +207,6 @@ private:
 	/** The duration of the media. */
 	FTimespan CurrentDuration;
 
-	/** The current playback rate. */
-	float CurrentRate;
-
-	/** The current playback state. */
-	EMediaState CurrentState;
-
 	/** The full playback topology currently set on the media session. */
 	TComPtr<IMFTopology> CurrentTopology;
 
@@ -193,8 +219,8 @@ private:
 	/** The last play head position before playback was stopped. */
 	FTimespan LastTime;
 
-	/** Whether a state change is pending. */
-	bool PendingChange;
+	/** Whether one or more state changes are pending. */
+	bool PendingChanges;
 
 	/** The media session's clock. */
 	TComPtr<IMFPresentationClock> PresentationClock;
@@ -209,16 +235,19 @@ private:
 	int32 RefCount;
 
 	/** Deferred play rate change value. */
-	float RequestedRate;
-
-	/** Thinning of the deferred play rate. */
-	EMediaRateThinning RequestedThinning;
+	TOptional<float> RequestedRate;
 
 	/** Deferred playback topology to set. */
 	TComPtr<IMFTopology> RequestedTopology;
 
-	/** Deferred play time change value. */
-	FTimespan RequestedTime;
+	/** Deferred play time change value (MinValue = no change, MaxValue = current time). */
+	TOptional<FTimespan> RequestedTime;
+
+	/** The session's internal playback rate (not necessarily the same as GetRate). */
+	float SessionRate;
+
+	/** The session's current state (not necessarily the same as GetState). */
+	EMediaState SessionState;
 
 	/** Whether playback should loop to the beginning. */
 	bool ShouldLoop;

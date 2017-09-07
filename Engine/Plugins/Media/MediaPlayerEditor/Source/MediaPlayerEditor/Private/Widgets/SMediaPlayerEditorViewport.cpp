@@ -286,12 +286,14 @@ FText SMediaPlayerEditorViewport::HandleMediaPlayerStateText() const
 
 FText SMediaPlayerEditorViewport::HandleMediaSourceNameText() const
 {
-	if (MediaPlayer->GetUrl().IsEmpty())
+	const FText MediaName = MediaPlayer->GetMediaName();
+
+	if (MediaName.IsEmpty())
 	{
 		return LOCTEXT("StateOverlayNoMedia", "No Media");
 	}
 
-	return FText::FromString(FPaths::GetBaseFilename(MediaPlayer->GetUrl()));
+	return MediaName;
 }
 
 

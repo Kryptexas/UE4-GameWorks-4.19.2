@@ -46,6 +46,7 @@ namespace UnrealBuildTool.Rules
 					"NetworkReplayStreaming",
 					"AssetRegistry",
 					"CinematicCamera",
+                    "EditorWidgets",
 				}
 				);
 

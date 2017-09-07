@@ -96,6 +96,7 @@ public class MediaPlayer14
 		setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
 			@Override
 			public void onPrepared(MediaPlayer player) {
+//				GameActivity.Log.debug("*** MEDIA PREPARED ***");
 				synchronized(player)
 				{
 					Prepared = true;
@@ -108,6 +109,7 @@ public class MediaPlayer14
 			public void onCompletion(MediaPlayer player) {
 				synchronized(player)
 				{
+//					GameActivity.Log.debug("*** MEDIA COMPLETION ***");
 					if (Looping)
 					{
 						seekTo(0);
@@ -421,7 +423,10 @@ public class MediaPlayer14
 		synchronized(this)
 		{
 			Completed = false;
-			super.start();
+			if (Prepared)
+			{
+				super.start();
+			}
 		}
 	}
 
@@ -430,8 +435,26 @@ public class MediaPlayer14
 		synchronized(this)
 		{
 			Completed = false;
-			super.stop();
+			if (Prepared)
+			{
+				super.stop();
+			}
 		}
+	}
+
+	public int getCurrentPosition()
+	{
+		int position = 0;
+
+		synchronized(this)
+		{
+			if (Prepared)
+			{
+				position = super.getCurrentPosition();
+			}
+		}
+
+		return position;
 	}
 
 	public void seekTo(int position)
@@ -439,7 +462,10 @@ public class MediaPlayer14
 		synchronized (this)
 		{
 			Completed = false;
-			super.seekTo(position);
+			if (Prepared)
+			{
+				super.seekTo(position);
+			}
 		}
 	}
 

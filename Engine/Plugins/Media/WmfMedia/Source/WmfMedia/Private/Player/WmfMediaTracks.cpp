@@ -7,6 +7,7 @@
 
 #include "IHeadMountedDisplayModule.h"
 #include "IMediaOptions.h"
+#include "MediaHelpers.h"
 #include "Misc/ScopeLock.h"
 #include "UObject/Class.h"
 
@@ -34,10 +35,10 @@ FWmfMediaTracks::FWmfMediaTracks()
 	: AudioSamplePool(new FWmfMediaAudioSamplePool)
 	, MediaSourceChanged(false)
 	, SelectedAudioTrack(INDEX_NONE)
-	, SelectedBinaryTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
+	, SelectedMetadataTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
-	, TopologyChanged(false)
+	, SelectionChanged(false)
 	, VideoSamplePool(new FWmfMediaTextureSamplePool)
 { }
 
@@ -66,14 +67,14 @@ void FWmfMediaTracks::AppendStats(FString &OutStats) const
 	
 	if (AudioTracks.Num() == 0)
 	{
-		OutStats += TEXT("    none\n");
+		OutStats += TEXT("\tnone\n");
 	}
 	else
 	{
 		for (const FTrack& Track : AudioTracks)
 		{
-			OutStats += FString::Printf(TEXT("    %s\n"), *Track.DisplayName.ToString());
-			OutStats += TEXT("        Not implemented yet");
+			OutStats += FString::Printf(TEXT("\t%s\n"), *Track.DisplayName.ToString());
+			OutStats += TEXT("\t\tNot implemented yet");
 		}
 	}
 
@@ -82,14 +83,14 @@ void FWmfMediaTracks::AppendStats(FString &OutStats) const
 
 	if (VideoTracks.Num() == 0)
 	{
-		OutStats += TEXT("    none\n");
+		OutStats += TEXT("\tnone\n");
 	}
 	else
 	{
 		for (const FTrack& Track : VideoTracks)
 		{
-			OutStats += FString::Printf(TEXT("    %s\n"), *Track.DisplayName.ToString());
-			OutStats += TEXT("        Not implemented yet");
+			OutStats += FString::Printf(TEXT("\t%s\n"), *Track.DisplayName.ToString());
+			OutStats += TEXT("\t\tNot implemented yet");
 		}
 	}
 }
@@ -100,7 +101,7 @@ void FWmfMediaTracks::ClearFlags()
 	FScopeLock Lock(&CriticalSection);
 
 	MediaSourceChanged = false;
-	TopologyChanged = false;
+	SelectionChanged = false;
 }
 
 
@@ -113,8 +114,8 @@ TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology()
 	}
 
 	if ((SelectedAudioTrack == INDEX_NONE) &&
-		(SelectedBinaryTrack == INDEX_NONE) &&
 		(SelectedCaptionTrack == INDEX_NONE) &&
+		(SelectedMetadataTrack == INDEX_NONE) &&
 		(SelectedVideoTrack == INDEX_NONE))
 	{
 		return NULL; // no tracks selected
@@ -127,7 +128,7 @@ TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology()
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Error, TEXT("Failed to create playback topology: %s"), *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create playback topology: %s"), this, *WmfMedia::ResultToString(Result));
 			return NULL;
 		}
 	}
@@ -140,14 +141,14 @@ TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology()
 		TracksAdded |= AddTrackToTopology(AudioTracks[SelectedAudioTrack], *Topology);
 	}
 
-	if (MetadataTracks.IsValidIndex(SelectedBinaryTrack))
-	{
-		TracksAdded |= AddTrackToTopology(MetadataTracks[SelectedBinaryTrack], *Topology);
-	}
-
 	if (CaptionTracks.IsValidIndex(SelectedCaptionTrack))
 	{
 		TracksAdded |= AddTrackToTopology(CaptionTracks[SelectedCaptionTrack], *Topology);
+	}
+
+	if (MetadataTracks.IsValidIndex(SelectedMetadataTrack))
+	{
+		TracksAdded |= AddTrackToTopology(MetadataTracks[SelectedMetadataTrack], *Topology);
 	}
 
 	if (VideoTracks.IsValidIndex(SelectedVideoTrack))
@@ -180,12 +181,12 @@ FTimespan FWmfMediaTracks::GetDuration() const
 }
 
 
-void FWmfMediaTracks::GetFlags(bool& OutMediaSourceChanged, bool& OutTopologyChanged) const
+void FWmfMediaTracks::GetFlags(bool& OutMediaSourceChanged, bool& OutSelectionChanged) const
 {
 	FScopeLock Lock(&CriticalSection);
 
 	OutMediaSourceChanged = MediaSourceChanged;
-	OutTopologyChanged = TopologyChanged;
+	OutSelectionChanged = SelectionChanged;
 }
 
 
@@ -193,64 +194,76 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource)
 {
 	Shutdown();
 
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Initializing tracks"), this);
+
 	FScopeLock Lock(&CriticalSection);
 
 	MediaSourceChanged = true;
+	SelectionChanged = true;
 
-	if (InMediaSource != NULL)
+	if (InMediaSource == NULL)
 	{
-		// create presentation descriptor
-		TComPtr<IMFPresentationDescriptor> NewPresentationDescriptor;
+		return;
+	}
+
+	// create presentation descriptor
+	TComPtr<IMFPresentationDescriptor> NewPresentationDescriptor;
+	{
+		const HRESULT Result = InMediaSource->CreatePresentationDescriptor(&NewPresentationDescriptor);
+
+		if (FAILED(Result))
 		{
-			const HRESULT Result = InMediaSource->CreatePresentationDescriptor(&NewPresentationDescriptor);
-
-			if (FAILED(Result))
-			{
-				UE_LOG(LogWmfMedia, Error, TEXT("Failed to create presentation descriptor: %s"), *WmfMedia::ResultToString(Result));
-				return;
-			}
-		}
-
-		// get number of streams
-		DWORD StreamCount = 0;
-		{
-			const HRESULT Result = NewPresentationDescriptor->GetStreamDescriptorCount(&StreamCount);
-
-			if (FAILED(Result))
-			{
-				UE_LOG(LogWmfMedia, Error, TEXT("Failed to get stream count (%s)"), *WmfMedia::ResultToString(Result));
-				return;
-			}
-
-			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %llx: Found %i streams"), this, StreamCount);
-		}
-
-		// initialization successful
-		MediaSource = InMediaSource;
-		PresentationDescriptor = NewPresentationDescriptor;
-
-		// add streams (Media Foundation reports them in reverse order)
-		for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
-		{
-			AddStreamToTracks(StreamIndex, Info);
-			Info += TEXT("\n");
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create presentation descriptor: %s"), *WmfMedia::ResultToString(Result));
+			return;
 		}
 	}
 
-	TopologyChanged = true;
+	// get number of streams
+	DWORD StreamCount = 0;
+	{
+		const HRESULT Result = NewPresentationDescriptor->GetStreamDescriptorCount(&StreamCount);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get stream count: %s"), this, *WmfMedia::ResultToString(Result));
+			return;
+		}
+
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Found %i streams"), this, StreamCount);
+	}
+
+	// initialization successful
+	MediaSource = InMediaSource;
+	PresentationDescriptor = NewPresentationDescriptor;
+
+	// add streams (Media Foundation reports them in reverse order)
+	bool AllStreamsAdded = true;
+
+	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
+	{
+		AllStreamsAdded &= AddStreamToTracks(StreamIndex, Info);
+		Info += TEXT("\n");
+	}
+
+	if (!AllStreamsAdded)
+	{
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Not all available streams were added to the track collection"), this);
+	}
 }
 
 
 void FWmfMediaTracks::Shutdown()
 {
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Shutting down tracks"), this);
+
 	FScopeLock Lock(&CriticalSection);
 
 	AudioSamplePool->Reset();
 	VideoSamplePool->Reset();
 
 	SelectedAudioTrack = INDEX_NONE;
-	SelectedBinaryTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
+	SelectedMetadataTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
 
 	AudioTracks.Empty();
@@ -269,7 +282,7 @@ void FWmfMediaTracks::Shutdown()
 	PresentationDescriptor.Reset();
 
 	MediaSourceChanged = false;
-	TopologyChanged = false;
+	SelectionChanged = false;
 }
 
 
@@ -487,11 +500,11 @@ int32 FWmfMediaTracks::GetSelectedTrack(EMediaTrackType TrackType) const
 	case EMediaTrackType::Audio:
 		return SelectedAudioTrack;
 
-	case EMediaTrackType::Metadata:
-		return SelectedBinaryTrack;
-
 	case EMediaTrackType::Caption:
 		return SelectedCaptionTrack;
+
+	case EMediaTrackType::Metadata:
+		return SelectedMetadataTrack;
 
 	case EMediaTrackType::Video:
 		return SelectedVideoTrack;
@@ -666,139 +679,87 @@ bool FWmfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 		return false; // not initialized
 	}
 
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Selecting %s track %i"), this, *MediaUtils::TrackTypeToString(TrackType), TrackIndex);
+
 	FScopeLock Lock(&CriticalSection);
+
+	int32* SelectedTrack = nullptr;
+	TArray<FTrack>* Tracks = nullptr;
 
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
-		if (TrackIndex == SelectedAudioTrack)
-		{
-			return true; // already selected
-		}
-
-		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %llx: Selecting audio track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedAudioTrack, AudioTracks.Num());
-
-		// disable current track
-		if (SelectedAudioTrack != INDEX_NONE)
-		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Disabling audio track %i"), this, SelectedAudioTrack);
-
-			PresentationDescriptor->DeselectStream(AudioTracks[SelectedAudioTrack].StreamIndex);
-			SelectedAudioTrack = INDEX_NONE;
-		}
-
-		// enable new track
-		if (TrackIndex != INDEX_NONE)
-		{
-			if (!AudioTracks.IsValidIndex(TrackIndex) || FAILED(PresentationDescriptor->SelectStream(AudioTracks[TrackIndex].StreamIndex)))
-			{
-				return false; // invalid track index or failed to select
-			}
-
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Enabled audio track %i"), this, TrackIndex);
-		}
-
-		SelectedAudioTrack = TrackIndex;
+		SelectedTrack = &SelectedAudioTrack;
+		Tracks = &AudioTracks;
 		break;
 
 	case EMediaTrackType::Caption:
-		if (TrackIndex == SelectedCaptionTrack)
-		{
-			return true;
-		}
-
-		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %llx: Selecting caption track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedCaptionTrack, CaptionTracks.Num());
-
-		// disable current track
-		if (SelectedCaptionTrack != INDEX_NONE)
-		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Disabling caption track %i"), this, SelectedCaptionTrack);
-
-			PresentationDescriptor->DeselectStream(CaptionTracks[SelectedCaptionTrack].StreamIndex);
-			SelectedCaptionTrack = INDEX_NONE;
-		}
-
-		// enable new track
-		if (TrackIndex != INDEX_NONE)
-		{
-			if (!CaptionTracks.IsValidIndex(TrackIndex) || FAILED(PresentationDescriptor->SelectStream(CaptionTracks[TrackIndex].StreamIndex)))
-			{
-				return false; // invalid track index or failed to select
-			}
-
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Enabled caption track %i"), this, TrackIndex);
-		}
-
-		SelectedCaptionTrack = TrackIndex;
+		SelectedTrack = &SelectedCaptionTrack;
+		Tracks = &CaptionTracks;
 		break;
 
 	case EMediaTrackType::Metadata:
-		if (TrackIndex == SelectedBinaryTrack)
-		{
-			return true; // already selected
-		}
-
-		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %llx: Selecting binary track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedBinaryTrack, MetadataTracks.Num());
-
-		// disable current track
-		if (SelectedBinaryTrack != INDEX_NONE)
-		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Disabling metadata track %i"), this, SelectedBinaryTrack);
-
-			PresentationDescriptor->DeselectStream(MetadataTracks[SelectedBinaryTrack].StreamIndex);
-			SelectedBinaryTrack = INDEX_NONE;
-		}
-
-		// enable new track
-		if (TrackIndex != INDEX_NONE)
-		{
-			if (!MetadataTracks.IsValidIndex(TrackIndex) || FAILED(PresentationDescriptor->SelectStream(MetadataTracks[TrackIndex].StreamIndex)))
-			{
-				return false; // invalid track index or failed to select
-			}
-
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Enabled metadata track %i"), this, TrackIndex);
-		}
-
-		SelectedBinaryTrack = TrackIndex;
+		SelectedTrack = &SelectedMetadataTrack;
+		Tracks = &MetadataTracks;
 		break;
 
 	case EMediaTrackType::Video:
-		if (TrackIndex == SelectedVideoTrack)
-		{
-			return true; // already selected
-		}
-
-		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %llx: Selecting video track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedVideoTrack, VideoTracks.Num());
-
-		// disable current track
-		if (SelectedVideoTrack != INDEX_NONE)
-		{
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Disabling video track %i"), this, SelectedVideoTrack);
-
-			PresentationDescriptor->DeselectStream(VideoTracks[SelectedVideoTrack].StreamIndex);
-			SelectedVideoTrack = INDEX_NONE;
-		}
-
-		// enable new track
-		if (TrackIndex != INDEX_NONE)
-		{
-			if (!VideoTracks.IsValidIndex(TrackIndex) || FAILED(PresentationDescriptor->SelectStream(VideoTracks[TrackIndex].StreamIndex)))
-			{
-				return false; // invalid track index or failed to select
-			}
-
-			UE_LOG(LogWmfMedia, VeryVerbose, TEXT("Tracks %llx: Enabled video track %i"), this, TrackIndex);
-		}
-
-		SelectedVideoTrack = TrackIndex;
+		SelectedTrack = &SelectedVideoTrack;
+		Tracks = &VideoTracks;
 		break;
 
 	default:
 		return false; // unsupported track type
 	}
 
-	TopologyChanged = true;
+	check(SelectedTrack != nullptr);
+	check(Tracks != nullptr);
+
+	if (TrackIndex == *SelectedTrack)
+	{
+		return true; // already selected
+	}
+
+	if ((TrackIndex != INDEX_NONE) && !Tracks->IsValidIndex(TrackIndex))
+	{
+		return false; // invalid track
+	}
+
+	// deselect stream for old track
+	if (*SelectedTrack != INDEX_NONE)
+	{
+		const DWORD StreamIndex = (*Tracks)[*SelectedTrack].StreamIndex;
+		const HRESULT Result = PresentationDescriptor->DeselectStream(StreamIndex);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to deselect stream %i on presentation descriptor: %s"), this, StreamIndex, *WmfMedia::ResultToString(Result));
+			return false;
+		}
+
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Disabled stream %i"), this, StreamIndex);
+			
+		*SelectedTrack = INDEX_NONE;
+		SelectionChanged = true;
+	}
+
+	// select stream for new track
+	if (TrackIndex != INDEX_NONE)
+	{
+		const DWORD StreamIndex = (*Tracks)[TrackIndex].StreamIndex;
+		const HRESULT Result = PresentationDescriptor->SelectStream(StreamIndex);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to enable %s track %i (stream %i): %s"), this, *MediaUtils::TrackTypeToString(TrackType), TrackIndex, StreamIndex, *WmfMedia::ResultToString(Result));
+			return false;
+		}
+
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Enabled stream %i"), this, StreamIndex);
+
+		*SelectedTrack = TrackIndex;
+		SelectionChanged = true;
+	}
 
 	return true;
 }
@@ -806,54 +767,58 @@ bool FWmfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 
 bool FWmfMediaTracks::SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex, int32 FormatIndex)
 {
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Setting format on %s track %i to %i"), this, *MediaUtils::TrackTypeToString(TrackType), TrackIndex, FormatIndex);
+
 	FScopeLock Lock(&CriticalSection);
 
-	FTrack* Track = nullptr;
+	TArray<FTrack>* Tracks = nullptr;
 
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
-		if (AudioTracks.IsValidIndex(TrackIndex))
-		{
-			Track = &AudioTracks[TrackIndex];
-		}
+		Tracks = &AudioTracks;
 		break;
 
 	case EMediaTrackType::Caption:
-		if (CaptionTracks.IsValidIndex(TrackIndex))
-		{
-			Track = &CaptionTracks[TrackIndex];
-		}
+		Tracks = &CaptionTracks;
 		break;
 
 	case EMediaTrackType::Metadata:
-		if (MetadataTracks.IsValidIndex(TrackIndex))
-		{
-			Track = &MetadataTracks[TrackIndex];
-		}
+		Tracks = &MetadataTracks;
 		break;
 
 	case EMediaTrackType::Video:
-		if (VideoTracks.IsValidIndex(TrackIndex))
-		{
-			Track = &VideoTracks[TrackIndex];
-		}
+		Tracks = &VideoTracks;
 		break;
 
 	default:
-		break; // unsupported track type
+		return false; // unsupported track type
 	};
 
-	if (Track == nullptr)
+	check(Tracks != nullptr);
+
+	if (!Tracks->IsValidIndex(TrackIndex))
 	{
-		return false;
+		return false; // invalid track index
 	}
 
-	if (Track->SelectedFormat != FormatIndex)
+	FTrack& Track = (*Tracks)[TrackIndex];
+
+	if (Track.SelectedFormat == FormatIndex)
 	{
-		Track->SelectedFormat = FormatIndex;
-		TopologyChanged = true;
+		return true; // format already set
 	}
+
+	if (!Track.Formats.IsValidIndex(FormatIndex))
+	{
+		return false; // invalid format index
+	}
+
+	// set track format
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Set format %i instead of %i on %s track %i (%i formats)"), this, FormatIndex, Track.SelectedFormat, *MediaUtils::TrackTypeToString(TrackType), TrackIndex, Track.Formats.Num());
+
+	Track.SelectedFormat = FormatIndex;
+	SelectionChanged = true;
 
 	return true;
 }
@@ -861,6 +826,8 @@ bool FWmfMediaTracks::SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex
 
 bool FWmfMediaTracks::SetVideoTrackFrameRate(int32 TrackIndex, int32 FormatIndex, float FrameRate)
 {
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Setting frame rate on format %i of video track %i to %f"), this, FormatIndex, TrackIndex, FrameRate);
+
 	FScopeLock Lock(&CriticalSection);
 
 	const FFormat* Format = GetVideoFormat(TrackIndex, FormatIndex);
@@ -948,7 +915,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set current media type for stream %i (%s)"), Track.StreamIndex, *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to set current media type for stream %i: %s"), this, Track.StreamIndex, *WmfMedia::ResultToString(Result));
 			return false;
 		}
 	}
@@ -963,7 +930,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create audio renderer for stream %i (%s)"), Track.StreamIndex, *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create audio renderer for stream %i: %s"), this, Track.StreamIndex, *WmfMedia::ResultToString(Result));
 			return false;
 		}
 
@@ -979,7 +946,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 
 				if (FAILED(Result))
 				{
-					UE_LOG(LogWmfMedia, Warning, TEXT("Failed to override HMD audio output device for stream %i (%s)"), Track.StreamIndex, *WmfMedia::ResultToString(Result));
+					UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to override HMD audio output device for stream %i: %s"), this, Track.StreamIndex, *WmfMedia::ResultToString(Result));
 					return false;
 				}
 			}
@@ -1004,7 +971,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 		{
 			Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerMetadataSample);
 		}
-		else if ((MajorType == MFMediaType_Video) || (MajorType == MFMediaType_Image))
+		else if (MajorType == MFMediaType_Video)
 		{
 			Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerVideoSample);
 		}
@@ -1013,7 +980,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create sampler grabber sink for stream %i (%s)"), Track.StreamIndex, *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create sampler grabber sink for stream %i: %s"), this, Track.StreamIndex, *WmfMedia::ResultToString(Result));
 			return false;
 		}
 	}
@@ -1032,7 +999,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 		FAILED(OutputNode->SetUINT32(MF_TOPONODE_NOSHUTDOWN_ON_REMOVE, FALSE)) ||
 		FAILED(Topology.AddNode(OutputNode)))
 	{
-		UE_LOG(LogWmfMedia, Warning, TEXT("Failed to configure output node for stream %i"), Track.StreamIndex);
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to configure output node for stream %i"), this, Track.StreamIndex);
 		return false;
 	}
 
@@ -1045,7 +1012,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 		FAILED(SourceNode->SetUnknown(MF_TOPONODE_STREAM_DESCRIPTOR, Track.Descriptor)) ||
 		FAILED(Topology.AddNode(SourceNode)))
 	{
-		UE_LOG(LogWmfMedia, Warning, TEXT("Failed to configure source node for stream %i"), Track.StreamIndex);
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to configure source node for stream %i"), this, Track.StreamIndex);
 		return false;
 	}
 
@@ -1054,7 +1021,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogWmfMedia, Warning, TEXT("Failed to connect topology nodes for stream %i (%s)"), Track.StreamIndex, *WmfMedia::ResultToString(Result));
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to connect topology nodes for stream %i: %s"), this, Track.StreamIndex, *WmfMedia::ResultToString(Result));
 		return false;
 	}
 
@@ -1062,7 +1029,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 }
 
 
-void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
+bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 {
 	OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex);
 
@@ -1070,19 +1037,24 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 	TComPtr<IMFStreamDescriptor> StreamDescriptor;
 	{
 		BOOL Selected = FALSE;
-		const HRESULT Result = PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, &StreamDescriptor);
+		HRESULT Result = PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, &StreamDescriptor);
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Skipping missing stream descriptor for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
-			OutInfo += TEXT("    missing stream descriptor\n");
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get stream descriptor for stream %i: %s"), this, StreamIndex, *WmfMedia::ResultToString(Result));
+			OutInfo += TEXT("\tmissing stream descriptor\n");
 
-			return;
+			return false;
 		}
 
 		if (Selected == TRUE)
 		{
-			PresentationDescriptor->DeselectStream(StreamIndex);
+			Result = PresentationDescriptor->DeselectStream(StreamIndex);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to deselect stream %i: %s"), this, StreamIndex, *WmfMedia::ResultToString(Result));
+			}
 		}
 	}
 
@@ -1093,10 +1065,10 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to get media type handler for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
-			OutInfo += TEXT("    no handler available\n");
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get media type handler for stream %i: %s"), this, StreamIndex, *WmfMedia::ResultToString(Result));
+			OutInfo += TEXT("\tno handler available\n");
 
-			return;
+			return false;
 		}
 	}
 
@@ -1107,23 +1079,23 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to determine major type of stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
-			OutInfo += TEXT("    failed to determine MajorType\n");
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to determine major type of stream %i: %s"), this, StreamIndex, *WmfMedia::ResultToString(Result));
+			OutInfo += TEXT("\tfailed to determine MajorType\n");
 
-			return;
+			return false;
 		}
 
-		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %llx: Major type of stream %i is %s"), this, StreamIndex, *WmfMedia::MajorTypeToString(MajorType));
-		OutInfo += FString::Printf(TEXT("    Type: %s\n"), *WmfMedia::MajorTypeToString(MajorType));
+		UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Major type of stream %i is %s"), this, StreamIndex, *WmfMedia::MajorTypeToString(MajorType));
+		OutInfo += FString::Printf(TEXT("\tType: %s\n"), *WmfMedia::MajorTypeToString(MajorType));
 
 		if ((MajorType != MFMediaType_Audio) &&
 			(MajorType != MFMediaType_SAMI) &&
 			(MajorType != MFMediaType_Video))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Unsupported major type %s for stream %i"), *WmfMedia::MajorTypeToString(MajorType), StreamIndex);
-			OutInfo += TEXT("    Unsupported stream type\n");
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Unsupported major type %s of stream %i"), this, *WmfMedia::MajorTypeToString(MajorType), StreamIndex);
+			OutInfo += TEXT("\tUnsupported stream type\n");
 
-			return;
+			return false;
 		}
 	}
 
@@ -1132,7 +1104,7 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 	{
 		if (Protected)
 		{
-			OutInfo += FString::Printf(TEXT("    Protected content\n"));
+			OutInfo += FString::Printf(TEXT("\tProtected content\n"));
 		}
 	}
 
@@ -1143,45 +1115,55 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to get number of track formats in stream %i of type %s"), StreamIndex, *WmfMedia::MajorTypeToString(MajorType));
-			OutInfo += TEXT("    failed to get track formats\n");
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get number of track formats in stream %i"), this, StreamIndex);
+			OutInfo += TEXT("\tfailed to get track formats\n");
 
-			return;
+			return false;
 		}
 	}
 
 	// create & add track
 	FTrack* Track = nullptr;
+	int32 TrackIndex = INDEX_NONE;
+	int32* SelectedTrack = nullptr;
 
 	if (MajorType == MFMediaType_Audio)
 	{
-		const int32 TrackIndex = AudioTracks.AddDefaulted();
+		SelectedTrack = &SelectedAudioTrack;
+		TrackIndex = AudioTracks.AddDefaulted();
 		Track = &AudioTracks[TrackIndex];
 	}
 	else if (MajorType == MFMediaType_SAMI)
 	{
-		const int32 TrackIndex = CaptionTracks.AddDefaulted();
+		SelectedTrack = &SelectedCaptionTrack;
+		TrackIndex = CaptionTracks.AddDefaulted();
 		Track = &CaptionTracks[TrackIndex];
 	}
 	else if (MajorType == MFMediaType_Binary)
 	{
-		const int32 TrackIndex = MetadataTracks.AddDefaulted();
+		SelectedTrack = &SelectedMetadataTrack;
+		TrackIndex = MetadataTracks.AddDefaulted();
 		Track = &MetadataTracks[TrackIndex];
 	}
-	else if ((MajorType == MFMediaType_Video) || (MajorType == MFMediaType_Image))
+	else if (MajorType == MFMediaType_Video)
 	{
-		const int32 TrackIndex = VideoTracks.AddDefaulted();
+		SelectedTrack = &SelectedVideoTrack;
+		TrackIndex = VideoTracks.AddDefaulted();
 		Track = &VideoTracks[TrackIndex];
 	}
 
 	check(Track != nullptr);
+	check(TrackIndex != INDEX_NONE);
+	check(SelectedTrack != nullptr);
 
 	// get current format
 	TComPtr<IMFMediaType> CurrentMediaType;
 	{
-		if (FAILED(Handler->GetCurrentMediaType(&CurrentMediaType)))
+		HRESULT Result = Handler->GetCurrentMediaType(&CurrentMediaType);
+
+		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to get current media type in stream %i of type %s"), StreamIndex, *WmfMedia::MajorTypeToString(MajorType));
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get current media type in stream %i: %s"), this, StreamIndex, *WmfMedia::ResultToString(Result));
 		}
 	}
 
@@ -1192,14 +1174,14 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 
 	for (DWORD TypeIndex = 0; TypeIndex < NumMediaTypes; ++TypeIndex)
 	{
-		OutInfo += FString::Printf(TEXT("    Format %i\n"), TypeIndex);
+		OutInfo += FString::Printf(TEXT("\tFormat %i\n"), TypeIndex);
 
 		// get media type
 		TComPtr<IMFMediaType> MediaType;
 
 		if (FAILED(Handler->GetMediaTypeByIndex(TypeIndex, &MediaType)))
 		{
-			OutInfo += TEXT("        failed to get media type\n");
+			OutInfo += TEXT("\t\tfailed to get media type\n");
 
 			continue;
 		}
@@ -1217,22 +1199,22 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to get sub-type of format %i in stream %i (%s)"), TypeIndex, StreamIndex, *WmfMedia::ResultToString(Result));
-				OutInfo += TEXT("        failed to get sub-type\n");
+				UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get sub-type of format %i in stream %i: %s"), this, TypeIndex, StreamIndex, *WmfMedia::ResultToString(Result));
+				OutInfo += TEXT("\t\tfailed to get sub-type\n");
 
 				continue;;
 			}
 		}
 
 		const FString TypeName = WmfMedia::SubTypeToString(SubType);
-		OutInfo += FString::Printf(TEXT("        Codec: %s\n"), *TypeName);
+		OutInfo += FString::Printf(TEXT("\t\tCodec: %s\n"), *TypeName);
 
 		// create output type
 		TComPtr<IMFMediaType> OutputType = WmfMedia::CreateOutputType(MajorType, SubType, AllowNonStandardCodecs);
 
 		if (!OutputType.IsValid())
 		{
-			OutInfo += TEXT("        failed to create output type\n");
+			OutInfo += TEXT("\t\tfailed to create output type\n");
 
 			continue;
 		}
@@ -1258,9 +1240,9 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 				{ 0 }
 			});
 
-			OutInfo += FString::Printf(TEXT("        Channels: %i\n"), NumChannels);
-			OutInfo += FString::Printf(TEXT("        Sample Rate: %i Hz\n"), SampleRate);
-			OutInfo += FString::Printf(TEXT("        Bits Per Sample: %i\n"), BitsPerSample);
+			OutInfo += FString::Printf(TEXT("\t\tChannels: %i\n"), NumChannels);
+			OutInfo += FString::Printf(TEXT("\t\tSample Rate: %i Hz\n"), SampleRate);
+			OutInfo += FString::Printf(TEXT("\t\tBits Per Sample: %i\n"), BitsPerSample);
 		}
 		else if (MajorType == MFMediaType_SAMI)
 		{
@@ -1290,8 +1272,8 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 
 				if (FAILED(Result))
 				{
-					UE_LOG(LogWmfMedia, Error, TEXT("Failed to get video output sub-type for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
-					OutInfo += FString::Printf(TEXT("        failed to get sub-type"));
+					UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get video output sub-type for stream %i: %s"), this, StreamIndex, *WmfMedia::ResultToString(Result));
+					OutInfo += FString::Printf(TEXT("\t\tfailed to get sub-type"));
 
 					continue;
 				}
@@ -1303,12 +1285,12 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 			{
 				if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&OutputDim.X, (UINT32*)&OutputDim.Y)))
 				{
-					OutInfo += FString::Printf(TEXT("        Dimensions: %i x %i\n"), OutputDim.X, OutputDim.Y);
+					OutInfo += FString::Printf(TEXT("\t\tDimensions: %i x %i\n"), OutputDim.X, OutputDim.Y);
 				}
 				else
 				{
 					OutputDim = FIntPoint::ZeroValue;
-					OutInfo += FString::Printf(TEXT("        Dimensions: n/a\n"));
+					OutInfo += FString::Printf(TEXT("\t\tDimensions: n/a\n"));
 				}
 			}
 
@@ -1320,12 +1302,12 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 				if (SUCCEEDED(::MFGetAttributeRatio(MediaType, MF_MT_FRAME_RATE, &Numerator, &Denominator)))
 				{
 					FrameRate = static_cast<float>(Numerator) / Denominator;
-					OutInfo += FString::Printf(TEXT("        Frame Rate: %g fps\n"), FrameRate);
+					OutInfo += FString::Printf(TEXT("\t\tFrame Rate: %g fps\n"), FrameRate);
 				}
 				else
 				{
 					FrameRate = 0.0f;
-					OutInfo += FString::Printf(TEXT("        Frame Rate: n/a\n"));
+					OutInfo += FString::Printf(TEXT("\t\tFrame Rate: n/a\n"));
 				}
 			}
 
@@ -1355,7 +1337,12 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 					FrameRates = TRange<float>(FrameRate);
 				}
 
-				OutInfo += FString::Printf(TEXT("        Frame Rate Range: %g - %g fps\n"), FrameRates.GetLowerBoundValue(), FrameRates.GetUpperBoundValue());
+				OutInfo += FString::Printf(TEXT("\t\tFrame Rate Range: %g - %g fps\n"), FrameRates.GetLowerBoundValue(), FrameRates.GetUpperBoundValue());
+
+				if (FrameRates.IsDegenerate() && (FrameRates.GetLowerBoundValue() == 1.0f))
+				{
+					OutInfo += FString::Printf(TEXT("\t\tpossibly a still image stream (may not work)\n"));
+				}
 			}
 
 			FIntPoint BufferDim;
@@ -1488,7 +1475,41 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 		}
 	}
 
-	// get stream info
+	// ensure that a track format is selected
+	if (Track->SelectedFormat == INDEX_NONE)
+	{
+		for (int32 FormatIndex = 0; FormatIndex < Track->Formats.Num(); ++FormatIndex)
+		{
+			const FFormat& Format = Track->Formats[FormatIndex];
+			const HRESULT Result = Handler->SetCurrentMediaType(Format.InputType);
+
+			if (SUCCEEDED(Result))
+			{
+				UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Picked default format %i for stream %i"), this, FormatIndex, StreamIndex);
+				Track->SelectedFormat = FormatIndex;
+				break;
+			}
+		}
+
+		if (Track->SelectedFormat == INDEX_NONE)
+		{
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: No supported media types found in stream %i"), this, StreamIndex);
+			OutInfo += TEXT("\tunsupported media type\n");
+		}
+	}
+
+	// select this track if no track is selected yet
+	if ((*SelectedTrack == INDEX_NONE) && (Track->SelectedFormat != INDEX_NONE))
+	{
+		const HRESULT Result = PresentationDescriptor->SelectStream(StreamIndex);
+
+		if (SUCCEEDED(Result))
+		{
+			*SelectedTrack = TrackIndex;
+		}
+	}
+
+	// set track details
 	PWSTR OutString = NULL;
 	UINT32 OutLength = 0;
 
@@ -1513,17 +1534,7 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 	Track->Protected = Protected;
 	Track->StreamIndex = StreamIndex;
 
-	if (Track->Formats.Num() > 0)
-	{
-		Track->SelectedFormat = 0;
-	}
-	else
-	{
-		Track->SelectedFormat = INDEX_NONE;
-
-		UE_LOG(LogWmfMedia, Warning, TEXT("No supported media type in stream %i of type %s"), StreamIndex, *WmfMedia::MajorTypeToString(MajorType));
-		OutInfo += TEXT("    unsupported media type\n");
-	}
+	return true;
 }
 
 
@@ -1674,13 +1685,13 @@ void FWmfMediaTracks::HandleMediaSamplerMetadataSample(const uint8* Buffer, uint
 
 	FScopeLock Lock(&CriticalSection);
 
-	if (!MetadataTracks.IsValidIndex(SelectedBinaryTrack))
+	if (!MetadataTracks.IsValidIndex(SelectedMetadataTrack))
 	{
 		return; // invalid track index
 	}
 
 	// create & add sample to queue
-	const FTrack& Track = MetadataTracks[SelectedBinaryTrack];
+	const FTrack& Track = MetadataTracks[SelectedMetadataTrack];
 	const auto BinarySample = MakeShared<FWmfMediaBinarySample, ESPMode::ThreadSafe>();
 
 	if (BinarySample->Initialize(Buffer, Size, Time, Duration))

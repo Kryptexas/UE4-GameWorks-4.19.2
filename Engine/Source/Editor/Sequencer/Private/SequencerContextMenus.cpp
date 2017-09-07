@@ -2017,6 +2017,8 @@ void FEasingContextMenu::EasingTypeMenu(FMenuBuilder& MenuBuilder)
 
 void FEasingContextMenu::OnEasingTypeChanged(UClass* NewClass)
 {
+	FScopedTransaction Transaction(LOCTEXT("SetEasingType", "Set Easing Method"));
+
 	for (const FEasingAreaHandle& Handle : Easings)
 	{
 		UMovieSceneSection* Section = Handle.Section.GetSectionObject();

@@ -83,7 +83,7 @@ FString FImgMediaPlayer::GetInfo() const
 }
 
 
-FName FImgMediaPlayer::GetName() const
+FName FImgMediaPlayer::GetPlayerName() const
 {
 	static FName PlayerName(TEXT("ImgMedia"));
 	return PlayerName;
@@ -177,7 +177,7 @@ bool FImgMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& /*Ar
 }
 
 
-void FImgMediaPlayer::TickInput(FTimespan DeltaTime)
+void FImgMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
 	if (!Loader.IsValid() || (CurrentState == EMediaState::Error))
 	{

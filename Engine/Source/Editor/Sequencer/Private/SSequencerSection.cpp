@@ -1178,9 +1178,18 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 			continue;
 		}
 
-		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
+		// Gather keys for a region larger thean the view range to ensure we draw keys that are only just offscreen.
+		TRange<float> PaddedViewRange;
+		{
+			const float KeyWidthAsTime = TimeToPixelConverter.PixelToTime(SequencerSectionConstants::KeySize.X) - TimeToPixelConverter.PixelToTime(0);
+			const TRange<float> ViewRange = GetSequencer().GetViewRange();
 
-		if (!KeyHandles.Num())
+			PaddedViewRange = TRange<float>(ViewRange.GetLowerBoundValue() - KeyWidthAsTime, ViewRange.GetUpperBoundValue() + KeyWidthAsTime);
+		}
+
+		const FSequencerCachedKeys& CachedKeys = CachedKeyAreaPositions.FindChecked(KeyArea);
+		TArrayView<const FSequencerCachedKey> KeysInRange = CachedKeys.GetKeysInRange(PaddedViewRange);
+		if (!KeysInRange.Num())
 		{
 			continue;
 		}
@@ -1190,9 +1199,21 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 		TOptional<FSlateClippingState> PreviousClipState = InPainter.DrawElements.GetClippingState();
 		InPainter.DrawElements.PopClip();
 
-		for (const FKeyHandle& KeyHandle : KeyHandles)
+		static float PixelOverlapThreshold = 3.f;
+
+		for (int32 KeyIndex = 0; KeyIndex < KeysInRange.Num(); ++KeyIndex)
 		{
-			float KeyTime = KeyArea->GetKeyTime(KeyHandle);
+			FKeyHandle KeyHandle = KeysInRange[KeyIndex].Handle;
+			const float KeyTime = KeysInRange[KeyIndex].Time;
+			const float KeyPosition = TimeToPixelConverter.TimeToPixel(KeyTime);
+
+			// Count the number of overlapping keys
+			int32 NumOverlaps = 0;
+			while (KeyIndex + 1 < KeysInRange.Num() && FMath::IsNearlyEqual(TimeToPixelConverter.TimeToPixel(KeysInRange[KeyIndex+1].Time), KeyPosition, PixelOverlapThreshold))
+			{
+				++KeyIndex;
+				++NumOverlaps;
+			}
 
 			// omit keys which would not be visible
 			if( !SectionObject.IsTimeWithinSection(KeyTime))
@@ -1302,6 +1323,12 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 				FillColor = KeyColor;
 			}
 
+			// Color keys with overlaps with a red border
+			if (NumOverlaps > 0)
+			{
+				BorderColor = FLinearColor(0.83f, 0.12f, 0.12f, 1.0f); // Red
+			}
+
 			// allow group to tint the color
 			if (LayoutElement.GetType() == FSectionLayoutElement::Group)
 			{
@@ -1310,8 +1337,6 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 			}
 
 			// draw border
-			float KeyPosition = TimeToPixelConverter.TimeToPixel(KeyTime);
-
 			static FVector2D ThrobAmount(12.f, 12.f);
 			const FVector2D KeySize = bSelected ? SequencerSectionConstants::KeySize + ThrobAmount * ThrobScaleValue : SequencerSectionConstants::KeySize;
 
@@ -1601,6 +1626,16 @@ void SSequencerSection::Tick( const FGeometry& AllottedGeometry, const double In
 	if( GetVisibility() == EVisibility::Visible )
 	{
 		Layout = FSectionLayout(*ParentSectionArea, SectionIndex);
+
+		// Update cached key area key positions
+		for (const FSectionLayoutElement& LayoutElement : Layout->GetElements())
+		{
+			TSharedPtr<IKeyArea> KeyArea = LayoutElement.GetKeyArea();
+			if (KeyArea.IsValid())
+			{
+				CachedKeyAreaPositions.FindOrAdd(KeyArea).Update(KeyArea.ToSharedRef());
+			}
+		}
 
 		UMovieSceneSection* Section = SectionInterface->GetSectionObject();
 		if (Section && !Section->IsInfinite())

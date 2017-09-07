@@ -391,13 +391,10 @@ public:
 	}
 
 	/** Get the key grouping for the specified section index, ensuring it is fully up to date */
-	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(UMovieSceneSection* InSection);
-
-	/** Get the key grouping for the specified section index */
 	TSharedRef<FGroupedKeyArea> GetKeyGrouping(UMovieSceneSection* InSection);
 
 	/** Get key groupings array */
-	const TArray<TSharedRef<FGroupedKeyArea>> GetKeyGroupings() const { return KeyGroupings; }
+	const TArray<TSharedRef<FGroupedKeyArea>>& GetKeyGroupings() const { return KeyGroupings; }
 
 	DECLARE_EVENT(FSequencerDisplayNode, FRequestRenameEvent);
 	FRequestRenameEvent& OnRenameRequested() { return RenameRequestedEvent; }

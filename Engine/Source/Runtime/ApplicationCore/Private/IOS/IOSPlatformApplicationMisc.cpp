@@ -1,6 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSPlatformApplicationMisc.h"
+
+#include "HAL/PlatformProcess.h"
+#include "Modules/ModuleManager.h"
+
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
