@@ -108,7 +108,7 @@ namespace HTML5LaunchHelper
 			{
 				WebServer.Start();
 			}
-			catch (HttpListenerException ex)
+			catch (HttpListenerException)
 			{
 				System.Console.WriteLine("WARNING: Port already in use... Exiting");
 				return false;
