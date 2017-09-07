@@ -343,7 +343,7 @@ void FBlueprintCompilerCppBackend::EmitCreateSetStatement(FEmitterLocalContext& 
 	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
 	{
 		FBPTerminal* CurrentTerminal = Statement.RHS[i];
-		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s );"), *Set, i, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s );"), *Set, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
 	}
 }
 
@@ -358,7 +358,7 @@ void FBlueprintCompilerCppBackend::EmitCreateMapStatement(FEmitterLocalContext& 
 	{
 		FBPTerminal* KeyTerminal = Statement.RHS[i];
 		FBPTerminal* ValueTerminal = Statement.RHS[i];
-		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, i, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
 	}
 }
 
