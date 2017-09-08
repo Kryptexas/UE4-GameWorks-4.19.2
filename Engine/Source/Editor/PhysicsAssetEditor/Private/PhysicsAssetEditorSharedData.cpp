@@ -1638,11 +1638,6 @@ TSharedRef<SWidget> FPhysicsAssetEditorSharedData::CreateGenerateBodiesWidget(co
 
 void FPhysicsAssetEditorSharedData::PostUndo()
 {
-	if (bRunningSimulation)
-	{
-		return;
-	}
-
 	bool bInvalidSelection = false;
 
 	for (int32 BodyIndex = 0; BodyIndex < SelectedBodies.Num() && bInvalidSelection == false; ++BodyIndex)
