@@ -231,9 +231,9 @@ namespace Audio
 		MixerSources[SourceId] = nullptr;
 
 		// Reset all state and data
-		SourceInfo.PitchSourceParam.Reset();
-		SourceInfo.VolumeSourceParam.Reset();
-		SourceInfo.LPFCutoffFrequencyParam.Reset();
+		SourceInfo.PitchSourceParam.Init();
+		SourceInfo.VolumeSourceParam.Init();
+		SourceInfo.LPFCutoffFrequencyParam.Init();
 
 		SourceInfo.LowPassFilters.Reset();
 		SourceInfo.ChannelMapParam.Reset();
