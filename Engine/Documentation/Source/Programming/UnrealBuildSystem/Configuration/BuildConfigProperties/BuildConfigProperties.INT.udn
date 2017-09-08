@@ -4,6 +4,10 @@ Crumbs:
 Description: This is a procedurally generated markdown page.
 Version: 4.18
 
+### XboxOnePlatform
+
+$ Compiler : Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
+
 ### BuildConfiguration
 
 $ bGeneratedSYMFile : Whether to generate dSYM files Lists Architectures that you want to build
@@ -21,6 +25,8 @@ $ bUsePerFileIntellisense : Whether to generate per-file intellisense data
 $ bEditorDependsOnShaderCompileWorker : Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
 
 $ bDebugBuildsActuallyUseDebugCRT : Enables the debug C++ runtime (CRT) for debug builds. By default we always use the release runtime, since the debug version isn't particularly useful when debugging Unreal Engine projects, and linking against the debug CRT libraries forces our third party library dependencies to also be compiled using the debug CRT (and often perform more slowly). Often it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply so that you can debug your program's code.
+
+$ bUseXGEController : Whether the XGE controller worker and modules should be included in the engine build. These are required for distributed shader compilation using the XGE interception interface.
 
 $ bUseUnityBuild : Whether to unify C++ code into larger files for faster compilation.
 
