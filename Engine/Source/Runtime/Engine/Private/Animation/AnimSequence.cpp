@@ -228,7 +228,7 @@ static void LoadOldCompressedTrack(FArchive& Ar, FCompressedTrack& Dst, int32 By
 
 void UAnimSequence::Serialize(FArchive& Ar)
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+	LLM_SCOPE(ELLMTag::Animation);
 
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 

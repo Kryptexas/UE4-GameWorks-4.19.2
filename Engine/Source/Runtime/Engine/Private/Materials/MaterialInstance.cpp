@@ -26,6 +26,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Components.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /**
  * Cache uniform expressions for the given material.
@@ -1935,6 +1936,7 @@ void UMaterialInstance::ClearAllCachedCookedPlatformData()
 
 void UMaterialInstance::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::Materials);
 	SCOPED_LOADTIMER(MaterialInstanceSerializeTime);
 	Super::Serialize(Ar);
 

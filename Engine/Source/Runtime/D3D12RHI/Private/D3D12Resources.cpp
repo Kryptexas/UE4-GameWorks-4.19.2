@@ -6,6 +6,7 @@ D3D12Resources.cpp: D3D RHI utility implementation.
 
 #include "D3D12RHIPrivate.h"
 #include "EngineModule.h"
+#include "D3D12LLM.h"
 
 /////////////////////////////////////////////////////////////////////
 //	FD3D12 Deferred Deletion Queue
@@ -271,7 +272,7 @@ HRESULT FD3D12Adapter::CreateCommittedResource(const D3D12_RESOURCE_DESC& InDesc
 		return E_POINTER;
 	}
 
-	LLM_SCOPED_TAG_WITH_STAT(STAT_D3DPlatformLLM, ELLMTracker::Platform);
+	LLM_PLATFORM_SCOPE(ELLMTag::GraphicsPlatform);
 
 	TRefCountPtr<ID3D12Resource> pResource;
 	const HRESULT hr = RootDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &InDesc, InitialUsage, ClearValue, IID_PPV_ARGS(pResource.GetInitReference()));
@@ -300,7 +301,7 @@ HRESULT FD3D12Adapter::CreatePlacedResourceWithHeap(const D3D12_RESOURCE_DESC& I
 		return E_POINTER;
 	}
 
-	LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG(D3D12CommittedResources);
+	LLM_PLATFORM_SCOPE_D3D12(ELLMTagD3D12::CommittedResources);
 	TRefCountPtr<ID3D12Resource> pResource;
 	FD3D12Heap* Heap = nullptr;
 	HRESULT hr;

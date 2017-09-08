@@ -843,7 +843,9 @@ void AllocateClipmapTexture(FRHICommandListImmediate& RHICmdList, int32 ClipmapI
 		RHICmdList,
 		VolumeDesc,
 		Texture,
-		TextureName 
+		TextureName,
+		true,
+		ERenderTargetTransience::NonTransient
 	);
 }
 

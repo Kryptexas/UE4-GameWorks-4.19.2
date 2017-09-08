@@ -888,5 +888,37 @@ namespace UnrealBuildTool
 
 			return -1;
 		}
+
+		/// <summary>
+		/// Executes a list of custom build step scripts
+		/// </summary>
+		/// <param name="ScriptFiles">List of script files to execute</param>
+		/// <returns>True if the steps succeeded, false otherwise</returns>
+		public static bool ExecuteCustomBuildSteps(FileReference[] ScriptFiles)
+		{
+			UnrealTargetPlatform HostPlatform = BuildHostPlatform.Current.Platform;
+			foreach(FileReference ScriptFile in ScriptFiles)
+			{
+				ProcessStartInfo StartInfo = new ProcessStartInfo();
+				if(HostPlatform == UnrealTargetPlatform.Win64)
+				{
+					StartInfo.FileName = "cmd.exe";
+					StartInfo.Arguments = String.Format("/C \"{0}\"", ScriptFile.FullName);
+				}
+				else
+				{
+					StartInfo.FileName = "/bin/sh";
+					StartInfo.Arguments = String.Format("\"{0}\"", ScriptFile.FullName);
+				}
+
+				int ReturnCode = Utils.RunLocalProcessAndLogOutput(StartInfo);
+				if(ReturnCode != 0)
+				{
+					Log.TraceError("Custom build step terminated with exit code {0}", ReturnCode);
+					return false;
+				}
+			}
+			return true;
+		}
 	}
 }

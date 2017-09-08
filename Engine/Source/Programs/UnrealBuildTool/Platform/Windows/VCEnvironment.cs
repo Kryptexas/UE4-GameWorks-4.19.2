@@ -132,7 +132,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static VCEnvironment SetEnvironment(CppPlatform Platform, WindowsCompiler Compiler)
 		{
-			if (EnvVars != null && EnvVars.Platform == Platform)
+			if (EnvVars != null && EnvVars.Platform == Platform && EnvVars.Compiler == Compiler)
 			{
 				return EnvVars;
 			}
@@ -161,9 +161,9 @@ namespace UnrealBuildTool
 			{
 				string Version = File.ReadAllText(FileReference.Combine(VCInstallDir, "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt").FullName).Trim();
 				VCToolChainDir = DirectoryReference.Combine(VCInstallDir, "Tools", "MSVC", Version);
-			}
+            }
 
-			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, Compiler);
+            WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, Compiler);
 			WindowsSDKLibVersion = FindWindowsSDKLibVersion(WindowsSDKDir);
 			WindowsSDKExtensionDir = FindWindowsSDKExtensionInstallationFolder(Compiler);
 			NetFxSDKExtensionDir = FindNetFxSDKExtensionInstallationFolder(Compiler);
@@ -173,8 +173,8 @@ namespace UnrealBuildTool
 			VCToolPath32 = GetVCToolPath32(Compiler, VCInstallDir, VCToolChainDir);
 			VCToolPath64 = GetVCToolPath64(Compiler, VCInstallDir, VCToolChainDir);
 
-			// Compile using 64 bit tools for 64 bit targets, and 32 for 32.
-			DirectoryReference CompilerDir = (Platform == CppPlatform.Win64) ? VCToolPath64 : VCToolPath32;
+            // Compile using 64 bit tools for 64 bit targets, and 32 for 32.
+            DirectoryReference CompilerDir = (Platform == CppPlatform.Win64) ? VCToolPath64 : VCToolPath32;
 
 			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker and can handle large linking jobs)
 			DirectoryReference LinkerDir = VCToolPath64;

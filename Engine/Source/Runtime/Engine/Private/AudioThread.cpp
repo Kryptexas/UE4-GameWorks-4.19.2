@@ -154,7 +154,7 @@ void FAudioThread::Exit()
 
 uint32 FAudioThread::Run()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+	LLM_SCOPE(ELLMTag::Audio);
 
 	FPlatformProcess::SetupAudioThread();
 	AudioThreadMain( TaskGraphBoundSyncEvent );

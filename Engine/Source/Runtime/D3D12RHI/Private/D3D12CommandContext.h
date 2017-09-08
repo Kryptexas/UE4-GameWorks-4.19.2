@@ -71,6 +71,8 @@ public:
 	void ConditionalClearShaderResource(FD3D12ResourceLocation* Resource);
 	void ClearAllShaderResources();
 
+	virtual void RHISetAsyncComputeBudget(EAsyncComputeBudget Budget) {}
+
 	FD3D12FastConstantAllocator ConstantsAllocator;
 
 	// Handles to the command list and direct command allocator this context owns (granted by the command list manager/command allocator manager), and a direct pointer to the D3D command list/command allocator.
@@ -109,6 +111,7 @@ public:
 
 	const bool bIsDefaultContext;
 	const bool bIsAsyncComputeContext;
+	virtual void FlushMetadata(FTextureRHIParamRef* InTextures, int32 NumTextures) {};
 
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
 	bool bNeedFlushTextureCache;
@@ -202,6 +205,8 @@ public:
 	}
 
 	virtual void SetDepthBounds(float MinDepth, float MaxDepth);
+
+	virtual void SetAsyncComputeBudgetInternal(EAsyncComputeBudget Budget) {}
 
 	// IRHIComputeContext interface
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;

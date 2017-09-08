@@ -37,6 +37,7 @@
 #include "Camera/CameraComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Engine/NetworkObjectList.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY(LogActor);
 
@@ -675,6 +676,8 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 {
+	LLM_SCOPE(ELLMTag::EngineMisc);
+
 	#if WITH_EDITOR
 	static const FName CallInEditorMeta(TEXT("CallInEditor"));
 	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor || Function->GetBoolMetaData(CallInEditorMeta);

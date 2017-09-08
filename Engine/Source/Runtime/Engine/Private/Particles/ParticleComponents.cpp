@@ -81,6 +81,7 @@
 #include "Distributions/DistributionFloatConstantCurve.h"
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "GameFramework/GameState.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -4387,6 +4388,8 @@ bool UParticleSystemComponent::IsReadyForOwnerToAutoDestroy() const
 
 void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
 
 	if (Template == nullptr || Template->Emitters.Num() == 0)
@@ -4966,6 +4969,8 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 
 void UParticleSystemComponent::InitParticles()
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_InitParticles);
 
 	if (IsTemplate() == true)
@@ -7101,6 +7106,8 @@ UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectIni
 
 void UParticleSystemReplay::Serialize( FArchive& Ar )
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	Super::Serialize( Ar );
 
 	// Serialize clip ID number
@@ -7264,6 +7271,8 @@ void AEmitterCameraLensEffectBase::NotifyRetriggered()
 
 void AEmitterCameraLensEffectBase::PostInitializeComponents()
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	GetParticleSystemComponent()->SetDepthPriorityGroup(SDPG_Foreground);
 	Super::PostInitializeComponents();
 	ActivateLensEffect();
@@ -7271,6 +7280,8 @@ void AEmitterCameraLensEffectBase::PostInitializeComponents()
 
 void AEmitterCameraLensEffectBase::PostLoad()
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	Super::PostLoad();
 
 	// using TNumericLimits<float>::Max() as a sentinel value to indicate this deprecated data has been 

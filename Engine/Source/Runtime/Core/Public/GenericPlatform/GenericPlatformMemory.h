@@ -474,7 +474,7 @@ public:
 	* This function sets AllocFunction and FreeFunction and returns true, or just returns false.
 	* These functions are the platform dependant low low low level functions that LLM uses to allocate memory.
 	*/
-	static bool GetLLMAllocFunctions(void*(*&AllocFunction)(size_t), void(*&FreeFunction)(void*, size_t));
+	static bool GetLLMAllocFunctions(void*(*&OutAllocFunction)(size_t), void(*&OutFreeFunction)(void*, size_t), int32& OutAlignment);
 
 protected:
 	friend struct FGenericStatsUpdater;

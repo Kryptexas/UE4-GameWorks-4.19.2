@@ -18,6 +18,7 @@
 #include "ActiveSound.h"
 #include "Sound/AudioSettings.h"
 #include "ContentStreaming.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /*------------------------------------------------------------------------------------
 	For muting user soundtracks during cinematics
@@ -1220,6 +1221,8 @@ int32 FXAudio2SoundSource::GetDestinationVoiceIndexForEffect( SourceDestinations
 
 void FXAudio2SoundSourceCallback::OnBufferEnd(void* BufferContext)
 {
+	LLM_SCOPE(ELLMTag::Audio);
+
 	if (BufferContext)
 	{
 		FXAudio2SoundSource* SoundSource = (FXAudio2SoundSource*)BufferContext;

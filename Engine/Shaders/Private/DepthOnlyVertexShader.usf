@@ -14,10 +14,6 @@ bool bIsInstancedStereoEmulated;
 
 #define IOSZBIASWORKAROUND (IOS && (ES2_PROFILE || ES3_1_PROFILE))
 
-#if IOSZBIASWORKAROUND
-#define IOSZBIASVALUE 0.0001
-#endif
-
 struct FDepthOnlyVSToPS
 {
 	#if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
@@ -164,7 +160,12 @@ void Main(
 		// Use of a fused multiply add intrinsic in all shader code or as the first IR pass in hlslcc *might* solve this.
 		// In the meantime we add a small bias.
 		// This can be done here as the mobile renderer's only use of the depth only shader is for modulated shadows.
-		Output.Position.z += IOSZBIASVALUE * Output.Position.w;
+		Output.Position.z += 0.0001 * Output.Position.w;
+	#elif XBOXONE_BIAS_HACK
+		// XB1 needs a bias in the opposite direction to fix FORT-40853
+		// XBOXONE_BIAS_HACK is defined only in a custom node in a particular material
+		// This should be removed with a future shader compiler update
+		Output.Position.z -= 0.0001 * Output.Position.w;
 	#endif
 
 #if USE_GLOBAL_CLIP_PLANE

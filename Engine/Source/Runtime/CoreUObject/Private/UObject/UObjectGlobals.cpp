@@ -2245,6 +2245,8 @@ UObject* StaticAllocateObject
 	bool* bOutRecycledSubobject
 )
 {
+	LLM_SCOPE(ELLMTag::UObject);
+
 	SCOPE_CYCLE_COUNTER(STAT_AllocateObject);
 	checkSlow(InOuter != INVALID_OBJECT); // not legal
 	check(!InClass || (InClass->ClassWithin && InClass->ClassConstructor));
@@ -2411,7 +2413,6 @@ UObject* StaticAllocateObject
 
 	if (!bSubObject)
 	{
-		LLM_SCOPED_SINGLE_STAT_TAG(UObject);
 		FMemory::Memzero((void *)Obj, TotalSize);
 		new ((void *)Obj) UObjectBase(InClass, InFlags|RF_NeedInitialization, InternalSetFlags, InOuter, InName);
 	}
@@ -3113,6 +3114,8 @@ UObject* StaticConstructObject_Internal
 	bool bAssumeTemplateIsArchetype	/*=false*/
 )
 {
+	LLM_SCOPE(ELLMTag::UObject);
+
 	SCOPE_CYCLE_COUNTER(STAT_ConstructObject);
 	UObject* Result = NULL;
 

@@ -24,6 +24,35 @@ struct FSamplerStateInitializerRHI;
 struct FTextureMemoryStats;
 
 
+/** Struct to hold common data between begin/end updatetexture3d */
+struct FUpdateTexture3DData
+{
+	FUpdateTexture3DData(FTexture3DRHIParamRef InTexture, uint32 InMipIndex, const struct FUpdateTextureRegion3D& InUpdateRegion, uint32 InSourceRowPitch, uint32 InSourceDepthPitch, uint8* InSourceData, uint32 InDataSizeBytes, uint32 InFrameNumber )
+		: Texture(InTexture)
+		, MipIndex(InMipIndex)
+		, UpdateRegion(InUpdateRegion)
+		, RowPitch(InSourceRowPitch)
+		, DepthPitch(InSourceDepthPitch)
+		, Data(InSourceData)
+		, DataSizeBytes(InDataSizeBytes)
+		, FrameNumber(InFrameNumber)
+	{
+	}
+
+	FTexture3DRHIParamRef Texture;
+	uint32 MipIndex;
+	FUpdateTextureRegion3D UpdateRegion;
+	uint32 RowPitch;
+	uint32 DepthPitch;
+	uint8* Data;
+	uint32 DataSizeBytes;
+	uint32 FrameNumber;
+	uint8 PlatformData[64];
+
+private:
+	FUpdateTexture3DData();
+};
+
 /** The interface which is implemented by the dynamically bound RHI. */
 class RHI_API FDynamicRHI
 {
@@ -42,6 +71,12 @@ public:
 	virtual void Shutdown() = 0;
 
 	virtual const TCHAR* GetName() = 0;
+
+	/** Called after PostInit to initialize the pixel format info, which is needed for some commands default implementations */
+	void InitPixelFormatInfo(const TArray<uint32>& PixelFormatBlockBytesIn)
+	{
+		PixelFormatBlockBytes = PixelFormatBlockBytesIn;
+	}
 
 	/////// RHI Methods
 
@@ -813,6 +848,10 @@ public:
 	virtual void* LockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush = true);
 	virtual void UnlockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush = true);
 	virtual void UpdateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData);
+
+	virtual FUpdateTexture3DData BeginUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion);
+	virtual void EndUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FUpdateTexture3DData& UpdateData);
+
 	virtual void UpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData);
 
 	virtual FTexture2DRHIRef RHICreateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo);
@@ -851,6 +890,9 @@ public:
 
 	/* Copy the source box pixels in the destination box texture, return true if implemented for the current platform*/
 	virtual bool RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { return false; }
+
+protected:
+	TArray<uint32> PixelFormatBlockBytes;
 };
 
 /** A global pointer to the dynamically bound RHI implementation. */

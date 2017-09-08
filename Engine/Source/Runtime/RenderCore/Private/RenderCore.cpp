@@ -172,6 +172,10 @@ DEFINE_STAT(STAT_RenderWholeSceneReflectiveShadowMapsTime);
 DEFINE_STAT(STAT_ShadowmapAtlasMemory);
 DEFINE_STAT(STAT_CachedShadowmapMemory);
 
+DEFINE_STAT(STAT_RenderTargetPoolSize);
+DEFINE_STAT(STAT_RenderTargetPoolUsed);
+DEFINE_STAT(STAT_RenderTargetPoolCount);
+
 #define EXPOSE_FORCE_LOD !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 #if EXPOSE_FORCE_LOD

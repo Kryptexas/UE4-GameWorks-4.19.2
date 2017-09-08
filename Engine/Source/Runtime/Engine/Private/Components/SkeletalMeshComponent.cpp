@@ -22,6 +22,7 @@
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "Animation/AnimBlueprint.h"
 #include "SkeletalRender.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #include "Logging/MessageLog.h"
 #include "Animation/AnimNode_SubInput.h"

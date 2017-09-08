@@ -109,7 +109,7 @@ void FSlateTextureAtlas::MarkTextureDirty()
 
 void FSlateTextureAtlas::InitAtlasData()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Slate);
+	LLM_SCOPE(ELLMTag::UI);
 
 	check(AtlasEmptySlots == NULL && AtlasData.Num() == 0);
 

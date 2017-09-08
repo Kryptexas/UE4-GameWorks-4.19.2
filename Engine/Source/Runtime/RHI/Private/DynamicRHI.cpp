@@ -175,7 +175,7 @@ void RHIInit(bool bHasEditorToken)
 		}
 		else
 		{
-			LLM_SCOPED_TAG_WITH_STAT(STAT_RHIMiscLLM, ELLMTracker::Default);
+			LLM_SCOPE(ELLMTag::RHIMisc);
 
 			GDynamicRHI = PlatformCreateDynamicRHI();
 			if (GDynamicRHI)
@@ -201,9 +201,10 @@ void RHIInit(bool bHasEditorToken)
 #endif
 }
 
-void RHIPostInit()
+void RHIPostInit(const TArray<uint32>& InPixelFormatByteWidth)
 {
 	check(GDynamicRHI);
+	GDynamicRHI->InitPixelFormatInfo(InPixelFormatByteWidth);
 	GDynamicRHI->PostInit();
 }
 

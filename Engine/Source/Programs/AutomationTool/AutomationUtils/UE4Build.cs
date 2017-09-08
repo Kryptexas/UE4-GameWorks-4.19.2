@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Web.Script.Serialization;
 using UnrealBuildTool;
 using Tools.DotNETCommon;
+using System.Linq;
 
 namespace AutomationTool
 {
@@ -812,6 +813,14 @@ namespace AutomationTool
 
 		public bool ProcessXGEItems(List<XGEItem> Actions, string XGETool, string Args, string TaskFilePath, bool DoRetries, bool SpecialTestFlag, bool ShowProgress)
 		{
+			foreach(XGEItem Item in Actions)
+			{
+				if(Item.Manifest.PreBuildScripts != null)
+				{
+					Utils.ExecuteCustomBuildSteps(Item.Manifest.PreBuildScripts.Select(x => new FileReference(x)).ToArray());
+				}
+			}
+
 			TelemetryStopwatch CombineXGEStopwatch = new TelemetryStopwatch("CombineXGEItemFiles.{0}", Path.GetFileNameWithoutExtension(XGETool));
 
 			XmlDocument XGETaskDocument;	
@@ -937,6 +946,13 @@ namespace AutomationTool
 							}
 						}
 					}
+				}
+			}
+			foreach(XGEItem Item in Actions)
+			{
+				if(Item.Manifest.PostBuildScripts != null)
+				{
+					Utils.ExecuteCustomBuildSteps(Item.Manifest.PostBuildScripts.Select(x => new FileReference(x)).ToArray());
 				}
 			}
 			foreach (var Item in Actions)

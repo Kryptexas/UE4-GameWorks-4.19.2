@@ -35,6 +35,7 @@
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -2268,6 +2269,8 @@ COREUOBJECT_API extern bool GOutputCookingWarnings;
  */
 void UStaticMesh::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::StaticMesh);
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("UStaticMesh::Serialize"), STAT_StaticMesh_Serialize, STATGROUP_LoadTime );
 
 	Super::Serialize(Ar);

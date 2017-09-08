@@ -21,6 +21,7 @@
 #include "UObject/GCScopeLock.h"
 #include "HAL/ExceptionHandling.h"
 #include "UObject/UObjectClusters.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /*-----------------------------------------------------------------------------
    Garbage collection.
@@ -574,31 +575,31 @@ template <bool bParallel>
 FORCEINLINE void FGCCollector<bParallel>::InternalHandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
 {
 #if ENABLE_GC_OBJECT_CHECKS
-	if (Object && !Object->IsValidLowLevelFast())
-	{
-		UE_LOG(LogGarbage, Fatal, TEXT("Invalid object in GC: 0x%016llx, ReferencingObject: %s, ReferencingProperty: %s"), 
-			(int64)(PTRINT)Object, 
-			ReferencingObject ? *ReferencingObject->GetFullName() : TEXT("NULL"),
-			ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
-	}
+		if (Object && !Object->IsValidLowLevelFast())
+		{
+			UE_LOG(LogGarbage, Fatal, TEXT("Invalid object in GC: 0x%016llx, ReferencingObject: %s, ReferencingProperty: %s"), 
+				(int64)(PTRINT)Object, 
+				ReferencingObject ? *ReferencingObject->GetFullName() : TEXT("NULL"),
+				ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
+		}
 #endif // ENABLE_GC_OBJECT_CHECKS
-	ReferenceProcessor.HandleObjectReference(ObjectArrayStruct.ObjectsToSerialize, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
+		ReferenceProcessor.HandleObjectReference(ObjectArrayStruct.ObjectsToSerialize, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
 }
 
 template <bool bParallel>
 void FGCCollector<bParallel>::HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
 {
-	InternalHandleObjectReference(Object, ReferencingObject, ReferencingProperty);
+		InternalHandleObjectReference(Object, ReferencingObject, ReferencingProperty);
 }
 
 template <bool bParallel>
 void FGCCollector<bParallel>::HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty)
 {
-	for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
-	{
-		UObject*& Object = InObjects[ObjectIndex];
-		InternalHandleObjectReference(Object, InReferencingObject, InReferencingProperty);
-	}
+		for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
+		{
+			UObject*& Object = InObjects[ObjectIndex];
+			InternalHandleObjectReference(Object, InReferencingObject, InReferencingProperty);
+		}
 }
 
 typedef FGCCollector<true> FGCCollectorMultithreaded;
@@ -803,7 +804,9 @@ public:
 	 * @param KeepFlags		Objects with these flags will be kept regardless of being referenced or not
 	 */
 	void PerformReachabilityAnalysis(EObjectFlags KeepFlags, bool bForceSingleThreaded = false)
-	{		
+	{
+		LLM_SCOPE(ELLMTag::GC);
+
 		SCOPED_NAMED_EVENT(FRealtimeGC_PerformReachabilityAnalysis, FColor::Red);
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FRealtimeGC::PerformReachabilityAnalysis"), STAT_FArchiveRealtimeGC_PerformReachabilityAnalysis, STATGROUP_GC);
 

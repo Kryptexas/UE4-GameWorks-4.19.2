@@ -18,6 +18,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "EditorFramework/AssetImportData.h"
 #include "ProfilingDebugging/CookStats.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if ENABLE_COOK_STATS
 namespace SoundWaveCookStats
@@ -171,7 +172,7 @@ void USoundWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 void USoundWave::Serialize( FArchive& Ar )
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+	LLM_SCOPE(ELLMTag::Audio);
 
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("USoundWave::Serialize"), STAT_SoundWave_Serialize, STATGROUP_LoadTime );
 
@@ -359,7 +360,7 @@ void USoundWave::InvalidateCompressedData()
 
 void USoundWave::PostLoad()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+	LLM_SCOPE(ELLMTag::Audio);
 
 	Super::PostLoad();
 

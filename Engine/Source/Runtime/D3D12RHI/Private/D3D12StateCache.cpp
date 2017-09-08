@@ -69,10 +69,12 @@ void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* In
 	// Init the descriptor heaps
 	const uint32 MaxDescriptorsForTier = (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_TIER_1 :
 		NUM_VIEW_DESCRIPTORS_TIER_2;
-	check(GLOBAL_VIEW_HEAP_SIZE <= MaxDescriptorsForTier)
+
+	check(LOCAL_VIEW_HEAP_SIZE <= MaxDescriptorsForTier);
+	check(GLOBAL_VIEW_HEAP_SIZE <= MaxDescriptorsForTier);
 
 	const uint32 NumSamplerDescriptors = NUM_SAMPLER_DESCRIPTORS;
-	DescriptorCache.Init(InParent, InCmdContext, GLOBAL_VIEW_HEAP_SIZE, NumSamplerDescriptors, SubHeapDesc);
+	DescriptorCache.Init(InParent, InCmdContext, LOCAL_VIEW_HEAP_SIZE, NumSamplerDescriptors, SubHeapDesc);
 
 	if (AncestralState)
 	{
@@ -158,6 +160,7 @@ void FD3D12StateCacheBase::ClearState()
 
 	PipelineState.Graphics.bNeedRebuildPSO = true;
 	PipelineState.Compute.bNeedRebuildPSO = true;
+	PipelineState.Compute.ComputeBudget = EAsyncComputeBudget::EAll_4;
 	PipelineState.Graphics.CurrentPipelineStateObject = nullptr;
 	PipelineState.Compute.CurrentPipelineStateObject = nullptr;
 	PipelineState.Common.CurrentPipelineStateObject = nullptr;
@@ -399,6 +402,12 @@ void FD3D12StateCacheBase::ApplyState()
 	}
 
 	SetPipelineState<IsCompute>(Pso);
+
+	// Need to cache compute budget, as we need to reset after PSO changes
+	if (IsCompute && CommandList->GetType() == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+	{
+		CmdContext->SetAsyncComputeBudgetInternal(PipelineState.Compute.ComputeBudget);
+	}
 
 	if (!IsCompute)
 	{

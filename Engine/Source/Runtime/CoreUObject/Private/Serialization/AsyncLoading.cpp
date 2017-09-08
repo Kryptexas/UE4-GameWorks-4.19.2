@@ -1879,7 +1879,7 @@ void FAsyncLoadingThread::QueueEvent_StartImportPackages(FAsyncPackage* Package,
 
 void FAsyncPackage::Event_StartImportPackages()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 
 	{
 		FScopedAsyncPackageEvent Scope(this);
@@ -2780,7 +2780,7 @@ EAsyncPackageState::Type FAsyncPackage::SetupExports_Event()
 
 void FAsyncPackage::Event_ProcessImportsAndExports()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 
 	if (bAllExportsSerialized)
 	{
@@ -3052,7 +3052,7 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 	SCOPED_LOADTIMER(Package_CreateExports);
 	FObjectExport& Export = Linker->ExportMap[LocalExportIndex];
 
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 	LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetLinkerRoot(), ELLMTagSet::Assets);
 	LLM_SCOPED_TAG_WITH_OBJECT_IN_SET((Export.DynamicType == FObjectExport::EDynamicType::DynamicType) ? UDynamicClass::StaticClass() : 
 		CastEventDrivenIndexToObject<UClass>(Export.ClassIndex, false), ELLMTagSet::AssetClasses);
@@ -3378,7 +3378,7 @@ void FAsyncPackage::EventDrivenSerializeExport(int32 LocalExportIndex)
 
 	FObjectExport& Export = Linker->ExportMap[LocalExportIndex];
 
-	LLM_SCOPED_SINGLE_STAT_TAG(UObject);
+	LLM_SCOPE(ELLMTag::UObject);
 	LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetLinkerRoot(), ELLMTagSet::Assets);
 	LLM_SCOPED_TAG_WITH_OBJECT_IN_SET((Export.DynamicType == FObjectExport::EDynamicType::DynamicType) ? UDynamicClass::StaticClass() :
 		CastEventDrivenIndexToObject<UClass>(Export.ClassIndex, false), ELLMTagSet::AssetClasses);
@@ -3643,7 +3643,7 @@ int64 FAsyncPackage::PrecacheRequestReady(IAsyncReadRequest * Read)
 
 void FAsyncPackage::MakeNextPrecacheRequestCurrent()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 
 	check(ReadyPrecacheRequests.Num());
 	IAsyncReadRequest* Read = ReadyPrecacheRequests.Pop(false);
@@ -3971,7 +3971,7 @@ void FAsyncPackage::Event_ProcessPostloadWait()
 
 void FAsyncPackage::Event_StartPostload()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 
 	Linker->GetFArchiveAsync2Loader()->LogItem(TEXT("Event_StartPostload"));
 	check(AsyncPackageLoadingState == EAsyncPackageLoadingState::ReadyForPostLoad);
@@ -4680,7 +4680,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FFlushTree* FlushTree)
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 
 	check(IsInGameThread());
 	
@@ -5300,7 +5300,7 @@ double FAsyncPackage::GetLoadStartTime() const
  */
 void FAsyncPackage::ResetLoader()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 
 	// Reset loader.
 	if (Linker)
@@ -5752,7 +5752,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
  */
 EAsyncPackageState::Type FAsyncPackage::FinishLinker()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(AsyncLoading);
+	LLM_SCOPE(ELLMTag::AsyncLoading);
 
 	SCOPED_LOADTIMER(FinishLinkerTime);
 	EAsyncPackageState::Type Result = EAsyncPackageState::Complete;
@@ -6210,6 +6210,8 @@ EAsyncPackageState::Type FAsyncPackage::FinishExternalReadDependencies()
  */
 EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 {
+	LLM_SCOPE(ELLMTag::UObject);
+
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_PostLoadObjects);
 
 	SCOPED_LOADTIMER(PostLoadObjectsTime);

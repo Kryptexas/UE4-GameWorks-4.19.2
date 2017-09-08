@@ -1571,7 +1571,7 @@ void FSlateApplication::FinishedInputThisFrame()
 
 void FSlateApplication::Tick(ESlateTickType TickType)
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Slate);
+	LLM_SCOPE(ELLMTag::UI);
 
 	SCOPE_TIME_GUARD(TEXT("FSlateApplication::Tick"));
 

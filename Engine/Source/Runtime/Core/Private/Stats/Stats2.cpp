@@ -188,6 +188,7 @@ int32 FStats::GameThreadStatsFrame = 1;
 void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate /*= FOnAdvanceRenderingThreadStats()*/ )
 {
 #if STATS
+	LLM_SCOPE(ELLMTag::Stats);
 	check( IsInGameThread() );
 	static int32 MasterDisableChangeTagStartFrame = -1;
 	FPlatformAtomics::InterlockedIncrement(&GameThreadStatsFrame);
@@ -520,6 +521,8 @@ public:
 
 	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) override
 	{
+		LLM_SCOPE(ELLMTag::Stats);
+
 		FScopeLock ScopeLock(&SynchronizationObject);
 
 		FStatNameAndInfo LongName(StatShortName, InGroup, InCategory, InDescription, InStatType, bShouldClearEveryFrame, bCycleStat, MemoryRegion);
@@ -870,7 +873,7 @@ public:
 	/** Tick function. */
 	virtual void Tick() override
 	{
-		LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+		LLM_SCOPE(ELLMTag::Stats);
 
 		static double LastTime = -1.0;
 		bool bShouldProcess = false;
@@ -953,7 +956,7 @@ public:
 	/** Received a stat packet from other thread and add to the processing queue. */
 	void StatMessage(FStatPacket* Packet)
 	{
-		LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+		LLM_SCOPE(ELLMTag::Stats);
 
 		if (CVarDumpStatPackets.GetValueOnAnyThread())
 		{
@@ -1112,7 +1115,7 @@ void FThreadStats::Flush( bool bHasBrokenCallstacks /*= false*/, bool bForceFlus
 
 void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlush )
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+	LLM_SCOPE(ELLMTag::Stats);
 
 	if (bReentranceGuard)
 	{

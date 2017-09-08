@@ -92,8 +92,7 @@ struct CORE_API FWindowsPlatformMemory
 	static void BinnedFreeToOS( void* Ptr, SIZE_T Size );
 	static FSharedMemoryRegion* MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
-	static bool IsDebugMemoryEnabled();
-	static bool GetLLMAllocFunctions(void*(*&AllocFunction)(size_t), void(*&FreeFunction)(void*, size_t));
+	static bool GetLLMAllocFunctions(void*(*&OutAllocFunction)(size_t), void(*&OutFreeFunction)(void*, size_t), int32& OutAlignment);
 protected:
 	friend struct FGenericStatsUpdater;
 

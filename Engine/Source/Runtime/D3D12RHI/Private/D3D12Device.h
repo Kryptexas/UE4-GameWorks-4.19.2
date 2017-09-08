@@ -106,6 +106,8 @@ public:
 
 	void GetLocalVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO* LocalVideoMemoryInfo);
 
+	void BlockUntilIdle();
+
 protected:
 
 	/** A pool of command lists we can cycle through for the global D3D device */

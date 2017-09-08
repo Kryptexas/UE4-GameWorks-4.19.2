@@ -705,8 +705,8 @@ public:
 	* @param ShadowColor - Shadow color to draw underneath the text (ignored for distance field fonts)
 	* @return total size in pixels of text drawn
 	*/
-	ENGINE_API int32 DrawShadowedString( float StartX, float StartY, const TCHAR* Text, const UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
-	
+	ENGINE_API int32 DrawShadowedString( float StartX, float StartY, const TCHAR* Text, const UFont* Font, const FLinearColor& Color, const float TextScale = 1.0f, const FLinearColor& ShadowColor = FLinearColor::Black );
+
 	ENGINE_API int32 DrawShadowedText( float StartX, float StartY, const FText& Text, const UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
 
 	ENGINE_API void WrapString( FTextSizingParameters& Parameters, const float InCurX, const TCHAR* const pText, TArray<FWrappedStringElement>& out_Lines, FCanvasWordWrapper::FWrappedLineData* const OutWrappedLineData = nullptr);

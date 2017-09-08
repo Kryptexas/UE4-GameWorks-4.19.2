@@ -456,6 +456,9 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #endif // #if !UE_BUILD_SHIPPING
 
+	static const auto DebugTextCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DebugTextScale"));
+	const float TextScale = DebugTextCVar->GetFloat();
+
 	// Render CPU thread and GPU frame times.
 	const bool bStereoRendering = GEngine->IsStereoscopic3D(InViewport);
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
@@ -464,45 +467,46 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	int32 X3 = InX * (bStereoRendering ? 0.5f : 1.0f);
 	if (bShowUnitMaxTimes)
 	{
-		X3 -= Font->GetStringSize(TEXT(" 0000.00 ms "));
+		X3 -= (int32)((float)Font->GetStringSize(TEXT(" 000.00 ms ")) * TextScale);
 	}
-	const int32 X2 = bShowUnitMaxTimes ? X3 - Font->GetStringSize(TEXT(" 000.00 ms ")) : X3;
-	const int32 X1 = X2 - Font->GetStringSize(TEXT("Frame: "));
-	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
+
+	int32 X2 = bShowUnitMaxTimes ? X3 - (int32)((float)Font->GetStringSize(TEXT(" 000.00 ms ")) * TextScale) : X3;
+	int32 X1 = X2 - (int32)((float)Font->GetStringSize(TEXT("Frame: ")) * TextScale);
+	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f  * TextScale);
 	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;
 
 	{
 		const FColor FrameTimeAverageColor = GEngine->GetFrameTimeDisplayColor(FrameTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, FrameTimeAverageColor);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor::White, TextScale);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, FrameTimeAverageColor, TextScale);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor MaxFrameTimeColor = GEngine->GetFrameTimeDisplayColor(Max_FrameTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, MaxFrameTimeColor);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, MaxFrameTimeColor, TextScale);
 		}
 		InY += RowHeight;
 	}
 
 	{
 		const FColor GameThreadAverageColor = GEngine->GetFrameTimeDisplayColor(GameThreadTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, GameThreadAverageColor);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor::White, TextScale);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, GameThreadAverageColor, TextScale);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor GameThreadMaxColor = GEngine->GetFrameTimeDisplayColor(Max_GameThreadTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, GameThreadMaxColor);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, GameThreadMaxColor, TextScale);
 		}
 		InY += RowHeight;
 	}
 
 	{
 		const FColor RenderThreadAverageColor = GEngine->GetFrameTimeDisplayColor(RenderThreadTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, RenderThreadAverageColor);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor::White, TextScale);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, RenderThreadAverageColor, TextScale);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor RenderThreadMaxColor = GEngine->GetFrameTimeDisplayColor(Max_RenderThreadTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, RenderThreadMaxColor);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, RenderThreadMaxColor, TextScale);
 		}
 		InY += RowHeight;
 	}
@@ -511,12 +515,12 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	if (bHaveGPUData)
 	{
 		const FColor GPUAverageColor = GEngine->GetFrameTimeDisplayColor(GPUFrameTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, GPUAverageColor);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor::White, TextScale);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, GPUAverageColor, TextScale);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor GPUMaxColor = GEngine->GetFrameTimeDisplayColor(Max_GPUFrameTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, GPUMaxColor);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, GPUMaxColor, TextScale);
 		}
 		if(GMaxRHIShaderPlatform == SP_PS4)
 		{
@@ -545,7 +549,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 
 			if(!Warnings.IsEmpty())
 			{
-				InCanvas->DrawShadowedString(X3 + 100, InY, *Warnings, Font, FColor::Red);
+				InCanvas->DrawShadowedString(X3 + 100, InY, *Warnings, Font, FColor::Red, TextScale);
 			}
 		}
 		InY += RowHeight;
@@ -557,8 +561,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	{
 		UFont* SmallFont = GEngine->GetSmallFont();
 		check(SmallFont);
-		int32 AlertPrintWidth = SmallFont->GetStringSize(TEXT("000.0"));
-		int32 AlertPrintHeight = SmallFont->GetStringHeightSize(TEXT("000.0"));
+		int32 AlertPrintWidth = SmallFont->GetStringSize(TEXT("000.0")) * TextScale;
+		int32 AlertPrintHeight = SmallFont->GetStringHeightSize(TEXT("000.0")) * TextScale;
 
 		// The vertical axis is time in milliseconds
 		// The horizontal axis is the frame number (NOT time!!!)
@@ -572,8 +576,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 		// Graph layout
 		const float GraphLeftXPos = 80.0f;
 		const float GraphBottomYPos = InViewport->GetSizeXY().Y - 50.0f;
-		const float GraphHorizPixelsPerFrame = 2.0f;
-		const float GraphVerticalPixelsPerMS = 10.0f;
+		const float GraphHorizPixelsPerFrame = 2.0f * TextScale;
+		const float GraphVerticalPixelsPerMS = 10.0f * TextScale;
 		const float GraphHeightInMS = 40.0f;
 
 		const FLinearColor GraphBorderColor(0.1f, 0.1f, 0.1f);
@@ -730,7 +734,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 					if (StartX > LastPrintX)
 					{
 
-						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), SmallFont, StatColor);
+						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), SmallFont, StatColor, TextScale);
 						LastPrintX = StartX + AlertPrintWidth + AlertPadding;
 					}
 				}

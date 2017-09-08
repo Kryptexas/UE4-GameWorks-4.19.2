@@ -683,10 +683,6 @@ void SetScratch( float X, float Y, float Z, float W, float U = 0.0f )
 	GScratch[4] = U;
 }
 
-// Disabled for UE-48236
-#if PLATFORM_PS4
-PRAGMA_DISABLE_OPTIMIZATION
-#endif
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorRegisterAbstractionTest, "System.Core.Math.Vector Register Abstraction Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
@@ -1119,7 +1115,16 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	LogTest( TEXT("VectorTransformVector"), TestVectorsEqual( V1, V2 ) );
 
 	// NaN / Inf tests
-	const float NaN = sqrtf(-1.0f);
+	// Using a union as we need to do a bitwise cast of 0xFFFFFFFF into a float.
+	typedef union
+	{
+		unsigned int IntNaN;
+		float FloatNaN;
+	} IntFloatUnion;
+	IntFloatUnion NaNU;
+	NaNU.IntNaN = 0xFFFFFFFF;
+	const float NaN = NaNU.FloatNaN;
+
 	LogTest(TEXT("VectorContainsNaNOrInfinite true"), VectorContainsNaNOrInfinite(MakeVectorRegister(NaN, NaN, NaN, NaN)));
 	LogTest(TEXT("VectorContainsNaNOrInfinite true"), VectorContainsNaNOrInfinite(MakeVectorRegister(NaN, 0.f, 0.f, 0.f)));
 	LogTest(TEXT("VectorContainsNaNOrInfinite true"), VectorContainsNaNOrInfinite(MakeVectorRegister(0.f, 0.f, 0.f, NaN)));
@@ -1487,12 +1492,6 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 
 	return true;
 }
-
-// Disabled for UE-48236
-#if PLATFORM_PS4
-PRAGMA_ENABLE_OPTIMIZATION
-#endif
-
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FInterpolationFunctionTests, "System.Core.Math.Interpolation Function Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 bool FInterpolationFunctionTests::RunTest(const FString&)

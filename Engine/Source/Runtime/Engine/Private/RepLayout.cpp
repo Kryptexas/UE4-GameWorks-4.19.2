@@ -14,6 +14,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/NetworkSettings.h"
+#include "HAL/LowLevelMemTracker.h"
 
 static TAutoConsoleVariable<int32> CVarDoPropertyChecksum( TEXT( "net.DoPropertyChecksum" ), 0, TEXT( "" ) );
 
@@ -3513,6 +3514,8 @@ void FRepLayout::ConstructProperties( TArray< uint8, TAlignedHeapAllocator<16> >
 
 void FRepLayout::InitProperties( TArray< uint8, TAlignedHeapAllocator<16> >& ShadowData, uint8* Src ) const
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	uint8* StoredData = ShadowData.GetData();
 
 	// Init all items

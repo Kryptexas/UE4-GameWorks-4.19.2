@@ -1768,8 +1768,8 @@ void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList,
 			{
 				// Create scratch cubemaps for filtering passes
 				FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(TargetSize, PF_FloatRGBA, FClearValueBinding(FLinearColor(0, 10000, 0, 0)), CubeTexFlags, TexCreate_RenderTargetable, false, 1, NumReflectionCaptureMips));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, ReflectionColorScratchCubemap[0], TEXT("ReflectionColorScratchCubemap0"));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, ReflectionColorScratchCubemap[1], TEXT("ReflectionColorScratchCubemap1"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, ReflectionColorScratchCubemap[0], TEXT("ReflectionColorScratchCubemap0"), true, ERenderTargetTransience::NonTransient );
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, ReflectionColorScratchCubemap[1], TEXT("ReflectionColorScratchCubemap1"), true, ERenderTargetTransience::NonTransient );
 			}
 
 			extern int32 GDiffuseIrradianceCubemapSize;
@@ -1777,13 +1777,13 @@ void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList,
 
 			{
 				FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(GDiffuseIrradianceCubemapSize, PF_FloatRGBA, FClearValueBinding(FLinearColor(0, 10000, 0, 0)), CubeTexFlags, TexCreate_RenderTargetable, false, 1, NumDiffuseIrradianceMips));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, DiffuseIrradianceScratchCubemap[0], TEXT("DiffuseIrradianceScratchCubemap0"));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, DiffuseIrradianceScratchCubemap[1], TEXT("DiffuseIrradianceScratchCubemap1"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, DiffuseIrradianceScratchCubemap[0], TEXT("DiffuseIrradianceScratchCubemap0"), true, ERenderTargetTransience::NonTransient);
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, DiffuseIrradianceScratchCubemap[1], TEXT("DiffuseIrradianceScratchCubemap1"), true, ERenderTargetTransience::NonTransient);
 			}
 
 			{
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(FSHVector3::MaxSHBasis, 1), PF_FloatRGBA, FClearValueBinding(FLinearColor(0, 10000, 0, 0)), TexCreate_None, TexCreate_RenderTargetable, false));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SkySHIrradianceMap, TEXT("SkySHIrradianceMap"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SkySHIrradianceMap, TEXT("SkySHIrradianceMap"), true, ERenderTargetTransience::NonTransient);
 			}
 		}
 	}
@@ -1829,7 +1829,7 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		Desc.Flags |= GFastVRamConfig.SceneDepth;
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneDepthZ, TEXT("SceneDepthZ"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneDepthZ, TEXT("SceneDepthZ") );
 		SceneStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
 	}
 
@@ -1838,7 +1838,7 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.AutoWritable = false;
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"), true, ERenderTargetTransience::NonTransient);
 	}
 }
 
@@ -1883,7 +1883,7 @@ void FSceneRenderTargets::AllocateLightingChannelTexture(FRHICommandList& RHICmd
 	{
 		// Only need 3 bits for lighting channels
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_R16_UINT, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightingChannels, TEXT("LightingChannels"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightingChannels, TEXT("LightingChannels"), true, ERenderTargetTransience::NonTransient);
 	}
 }
 
@@ -1896,7 +1896,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		FIntPoint SmallDepthZSize(FMath::Max<uint32>(BufferSize.X / SmallColorDepthDownsampleFactor, 1), FMath::Max<uint32>(BufferSize.Y / SmallColorDepthDownsampleFactor, 1));
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SmallDepthZSize, PF_DepthStencil, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, true));
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SmallDepthZ, TEXT("SmallDepthZ"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SmallDepthZ, TEXT("SmallDepthZ"), true, ERenderTargetTransience::NonTransient);
 	}
 
 	// Create the required render targets if running Highend.
@@ -1913,7 +1913,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 				// todo: ideally this should be only UAV or RT, not both
 				Desc.TargetableFlags |= TexCreate_UAV;
 			}
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ScreenSpaceAO, TEXT("ScreenSpaceAO"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ScreenSpaceAO, TEXT("ScreenSpaceAO"), true, ERenderTargetTransience::NonTransient);
 		}
 		
 		{
@@ -1941,7 +1941,9 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 						1,
 						false)),
 					TranslucencyLightingVolumeAmbient[RTSetIndex],
-					GetVolumeName(RTSetIndex, false)
+					GetVolumeName(RTSetIndex, false),
+					true,
+					ERenderTargetTransience::NonTransient
 					);
 
 				//Tests to catch UE-31578, UE-32536 and UE-22073 crash (Defferred Render Targets not being allocated)
@@ -1964,7 +1966,9 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 						1,
 						false)),
 					TranslucencyLightingVolumeDirectional[RTSetIndex],
-					GetVolumeName(RTSetIndex, true)
+					GetVolumeName(RTSetIndex, true),
+					true,
+					ERenderTargetTransience::NonTransient
 					);
 
 				//Tests to catch UE-31578, UE-32536 and UE-22073 crash
@@ -1997,7 +2001,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 			Desc.TargetableFlags |= TexCreate_UAV;
 		}
 		Desc.Flags |= GFastVRamConfig.LightAccumulation;
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAccumulation, TEXT("LightAccumulation"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAccumulation, TEXT("LightAccumulation"), true, ERenderTargetTransience::NonTransient);
 	}
 
 	AllocateDebugViewModeTargets(RHICmdList);
@@ -2364,7 +2368,7 @@ IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(FRHICommandListImme
 
 	if ((Value == 1 && bPrimitives) || Value == 2 || bCustomDepthPassWritingStencil)
 	{
-		bool bHasValidCustomDepth = (CustomDepth.IsValid() && BufferSize == CustomDepth->GetDesc().Extent);
+		bool bHasValidCustomDepth = (CustomDepth.IsValid() && BufferSize == CustomDepth->GetDesc().Extent && !GFastVRamConfig.bDirty);
 		bool bHasValidCustomStencil;
 		if (bMobilePath)
 		{
@@ -2383,7 +2387,8 @@ IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(FRHICommandListImme
 
 			// Todo: Could check if writes stencil here and create min viable target
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, FClearValueBinding::DepthFar, CustomDepthFlags, TexCreate_DepthStencilTargetable, false));
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CustomDepth, TEXT("CustomDepth"));
+			Desc.Flags |= GFastVRamConfig.CustomDepth;
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CustomDepth, TEXT("CustomDepth"), true, ERenderTargetTransience::NonTransient);
 			
 			if (bMobilePath)
 			{
@@ -2630,91 +2635,91 @@ void FSceneTextureShaderParameters::Set(
 		}
 	}
 
-	// optimization possible: TShaderRHIParamRef is no param Ref
-	if (SceneColorTextureParameter.IsBound())
-	{
-		FSamplerStateRHIRef Filter;
-		switch ( ColorFilter )
+		// optimization possible: TShaderRHIParamRef is no param Ref
+		if (SceneColorTextureParameter.IsBound())
 		{
-		case SF_Bilinear:
-			Filter = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-			break;
-		case SF_Trilinear:
-			Filter = TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-			break;
-		case SF_AnisotropicPoint:
-			Filter = TStaticSamplerState<SF_AnisotropicPoint,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-			break;
-		case SF_AnisotropicLinear:
-			Filter = TStaticSamplerState<SF_AnisotropicLinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-			break;
-		case SF_Point:
-		default:
-			Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-			break;
-		}
+			FSamplerStateRHIRef Filter;
+			switch ( ColorFilter )
+			{
+			case SF_Bilinear:
+				Filter = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_Trilinear:
+				Filter = TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_AnisotropicPoint:
+				Filter = TStaticSamplerState<SF_AnisotropicPoint,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_AnisotropicLinear:
+				Filter = TStaticSamplerState<SF_AnisotropicLinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_Point:
+			default:
+				Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			}
 
-		SetTextureParameter(
-			RHICmdList, 
-			ShaderRHI,
-			SceneColorTextureParameter,
-			SceneColorTextureParameterSampler,
-			Filter,
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				SceneColorTextureParameter,
+				SceneColorTextureParameterSampler,
+				Filter,
 			SceneColorTexture
-			);
-	}
+				);
+		}
 
 	if (SceneAlphaCopyTextureParameter.IsBound() && SceneAlphaCopyTexture)
-	{
-		FSamplerStateRHIRef Filter;
-		Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-		SetTextureParameter(
-			RHICmdList, 
-			ShaderRHI,
-			SceneAlphaCopyTextureParameter,
-			SceneAlphaCopyTextureParameterSampler,
-			Filter,
+		{
+			FSamplerStateRHIRef Filter;
+			Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				SceneAlphaCopyTextureParameter,
+				SceneAlphaCopyTextureParameterSampler,
+				Filter,
 			SceneAlphaCopyTexture
-			);
-	}
+				);
+		}
 
-	if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
-	{
-		SetTextureParameter(
-			RHICmdList, 
-			ShaderRHI,
-			SceneDepthTextureParameter,
-			SceneDepthTextureParameterSampler,
-			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+		if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
+		{
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				SceneDepthTextureParameter,
+				SceneDepthTextureParameterSampler,
+				TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			SceneDepthTexture
-			);
+				);
 	}	
 
-	if (FeatureLevel >= ERHIFeatureLevel::SM5)
-	{
+		if (FeatureLevel >= ERHIFeatureLevel::SM5)
+		{
 		SetTextureParameter(RHICmdList, ShaderRHI, SceneColorSurfaceParameter, SceneColorSurfaceTexture);
-	}
-	if (FeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		if(GSupportsDepthFetchDuringDepthTest)
-		{
-			if(SceneDepthSurfaceParameter.IsBound())
-			{
-				SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, DepthSurface);
-			}
-			if(SceneDepthTextureNonMS.IsBound())
-			{
-				SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthTextureNonMS, DepthTextureNonMS);
-			}
 		}
-		else
+		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			if(SceneDepthSurfaceParameter.IsBound())
+			if(GSupportsDepthFetchDuringDepthTest)
 			{
-				SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, DepthAuxiliarySurface);
+				if(SceneDepthSurfaceParameter.IsBound())
+				{
+				SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, DepthSurface);
+				}
+				if(SceneDepthTextureNonMS.IsBound())
+				{
+				SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthTextureNonMS, DepthTextureNonMS);
+				}
 			}
-			if(SceneDepthTextureNonMS.IsBound())
+			else
 			{
+				if(SceneDepthSurfaceParameter.IsBound())
+				{
+				SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, DepthAuxiliarySurface);
+				}
+				if(SceneDepthTextureNonMS.IsBound())
+				{
 				SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthTextureNonMS, DepthAuxiliarySurface);
 			}
 		}
@@ -2728,23 +2733,23 @@ void FSceneTextureShaderParameters::Set(
 			else
 			{
 				SetTextureParameter(RHICmdList, ShaderRHI, SceneStencilTextureParameter, GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture);
+				}
 			}
 		}
-	}
 
-	if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
-	{
-		if (MobileCustomStencilTexture.IsBound())
+		if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
 		{
-			SetTextureParameter(
-				RHICmdList, 
-				ShaderRHI,
-				MobileCustomStencilTexture,
-				MobileCustomStencilTextureSampler,
-				TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+		if (MobileCustomStencilTexture.IsBound())
+			{
+				SetTextureParameter(
+					RHICmdList, 
+					ShaderRHI,
+					MobileCustomStencilTexture,
+					MobileCustomStencilTextureSampler,
+					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 				MobileCustomStencil
-				);
-		}
+					);
+			}
 	}	
 
 	if( DirectionalOcclusionSampler.IsBound() )
@@ -2952,13 +2957,13 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 
 	SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTexture, CustomDepthTextureSampler, TStaticSamplerState<>::GetRHI(), CustomDepth);
 
-	if (FeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		if (GBufferResources.IsBound())
+		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
+			if (GBufferResources.IsBound())
+			{
 			check(GBufferResourcesUniformBuffer);
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, GBufferResources, GBufferResourcesUniformBuffer);
-		}
+			}
 
 		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceAOTexture, ScreenSpaceAOTextureSampler, TStaticSamplerState<>::GetRHI(), ScreenSpaceAOShaderResource);
 		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceAOTextureMS, ScreenSpaceAOSTargetable);
@@ -2966,14 +2971,14 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 
 		SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTextureNonMS, CustomDepth);
 
-		if (CustomStencilTexture.IsBound())
-		{
+			if (CustomStencilTexture.IsBound())
+			{
 			if (CustomStencilSRV)
-			{
-				SetSRVParameter(RHICmdList, ShaderRHI, CustomStencilTexture, SceneContext.CustomStencilSRV);
-			}
-			else
-			{
+				{
+					SetSRVParameter(RHICmdList, ShaderRHI, CustomStencilTexture, SceneContext.CustomStencilSRV);
+				}
+				else
+				{
 				SetTextureParameter(RHICmdList, ShaderRHI, CustomStencilTexture, BlackDefault2D);
 			}
 		}

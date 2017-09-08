@@ -77,11 +77,11 @@ public:
 
 	FD3D12Viewport(class FD3D12Adapter* InParent, HWND InWindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen, EPixelFormat InPixelFormat);
 
-	void Init(IDXGIFactory* Factory, bool AssociateWindow = true);
+	void Init();
 
 	~FD3D12Viewport();
 
-	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen);
+	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen, EPixelFormat PreferredPixelFormat);
 
 	/**
 	 * If the swap chain has been invalidated by DXGI, resets the swap chain to the expected state; otherwise, does nothing.
@@ -102,10 +102,14 @@ public:
 	FD3D12Texture2D* GetBackBuffer() const { return BackBuffer; }
 	FD3D12Texture2D* GetBackBuffer(uint32 Index) const { return BackBuffers[Index % NumBackBuffers].GetReference(); }
 
+	FD3D12Texture2D* GetSDRBackBuffer() const { return (PixelFormat == SDRPixelFormat)? GetBackBuffer() : SDRBackBuffer; }
+	FD3D12Texture2D* GetSDRBackBuffer(uint32 Index) const { return (PixelFormat == SDRPixelFormat) ? GetBackBuffer(Index) : SDRBackBuffers[Index % NumBackBuffers].GetReference(); }
+
 	void WaitForFrameEventCompletion();
 	void IssueFrameEvent();
 
 	IDXGISwapChain1* GetSwapChain() const { return SwapChain1; }
+	IDXGISwapChain1* GetSDRSwapChain() const { return (PixelFormat == SDRPixelFormat) ? GetSwapChain() : SDRSwapChain1; }
 
 	virtual void* GetNativeSwapChain() const override { return GetSwapChain(); }
 	virtual void* GetNativeBackBufferTexture() const override { return GetBackBuffer()->GetResource(); }
@@ -125,6 +129,9 @@ public:
 
 	FD3D12Fence& GetFence() { return Fence; }
 
+	/** Query the swap chain's current connected output for HDR support. */
+	bool CurrentOutputSupportsHDR() const;
+
 private:
 
 	/** Presents the frame synchronizing with DWM. */
@@ -142,6 +149,8 @@ private:
 	 */
 	HRESULT PresentInternal(int32 SyncInterval);
 
+	void ResizeInternal();
+
 	uint64 LastFlipTime;
 	uint64 LastFrameComplete;
 	uint64 LastCompleteTime;
@@ -156,6 +165,14 @@ private:
 	bool bIsValid;
 	TRefCountPtr<IDXGISwapChain1> SwapChain1;
 
+#if PLATFORM_WINDOWS
+	bool bHDRMetaDataSet;
+	DXGI_COLOR_SPACE_TYPE ColorSpace;
+	TRefCountPtr<IDXGISwapChain4> SwapChain4;
+#endif
+
+	TRefCountPtr<IDXGISwapChain1> SDRSwapChain1;
+
 	static const uint32 DefaultNumBackBuffers = 3;
 	static const uint32 AFRNumBackBuffersPerNode = 1;
 
@@ -163,6 +180,14 @@ private:
 	uint32 NumBackBuffers;
 
 	FD3D12Texture2D* BackBuffer;
+
+	/** 
+	 * When HDR is enabled, SDR backbuffers may be required on some architectures for game DVR or broadcasting
+	 */
+	TArray<TRefCountPtr<FD3D12Texture2D>> SDRBackBuffers;
+	FD3D12Texture2D* SDRBackBuffer;
+	EPixelFormat SDRPixelFormat;
+
 	uint32 CurrentBackBufferIndex;
 
 	/** A fence value used to track the GPU's progress. */
@@ -180,6 +205,57 @@ private:
 #if PLATFORM_SUPPORTS_MGPU
 	FD3D12FramePacing* FramePacerRunnable;
 #endif //PLATFORM_SUPPORTS_MGPU
+
+	// Display gamut, format, and chromacities
+	// Note: Must be kept in sync with CVars and Tonemapping shaders
+	enum EDisplayGamut
+	{
+		DG_Rec709,
+		DG_DCI_P3,
+		DG_Rec2020,
+		DG_ACES,
+		DG_ACEScg
+	};
+
+	enum EDisplayFormat
+	{
+		DF_sRGB,
+		DF_Rec709,
+		DF_ExplicitGammaMapping,
+		DF_ACES1000_ST_2084,
+		DF_ACES2000_ST_2084,
+		DF_ACES1000_ScRGB,
+		DF_ACES2000_ScRGB,
+	};
+
+	struct DisplayChromacities
+	{
+		float RedX, RedY;
+		float GreenX, GreenY;
+		float BlueX, BlueY;
+		float WpX, WpY;
+	};
+
+	/** See if HDR can be enabled or not based on RHI support and current engine settings. */
+	bool CheckHDRSupport();
+
+	/** Enable HDR meta data transmission and set the necessary color space. */
+	void EnableHDR();
+
+	/** Disable HDR meta data transmission and set the necessary color space. */
+	void ShutdownHDR();
+
+#if PLATFORM_WINDOWS
+	/** Ensure the correct color space is set on the swap chain */
+	void EnsureColorSpace(EDisplayGamut DisplayGamut, EDisplayFormat OutputDevice);
+
+	/** 
+	 * Set HDR meta data. 
+	 * Note: Meta data should only be provided for TVs, not monitors. 
+	 * This is because the TV is doing the work to display the colors correctly.
+	 */
+	void SetHDRTVMode(bool bEnableHDR, EDisplayGamut DisplayGamut, float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL);
+#endif
 };
 
 template<>

@@ -115,9 +115,12 @@ void FGenericPlatformMemory::SetupMemoryPools()
 	// if the platform chooses to have a BackupOOM pool, create it now
 	if (FPlatformMemory::GetBackMemoryPoolSize() > 0)
 	{
-		LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::BackupOOMMemoryPoolPlatform, ELLMTracker::Platform);
-		LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::BackupOOMMemoryPoolDefault, ELLMTracker::Platform);
+		LLM_PLATFORM_SCOPE(ELLMTag::BackupOOMMemoryPoolPlatform);
+		LLM_SCOPE(ELLMTag::BackupOOMMemoryPool);
+
 		BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(FPlatformMemory::GetBackMemoryPoolSize());
+
+		LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize()));
 	}
 }
 
@@ -153,6 +156,7 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	{
 		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize());
 		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), FPlatformMemory::GetBackMemoryPoolSize());
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize()));
 	}
 
 	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
@@ -556,7 +560,7 @@ bool FGenericPlatformMemory::IsDebugMemoryEnabled()
 	return false;
 }
 
-bool FGenericPlatformMemory::GetLLMAllocFunctions(void*(*&AllocFunction)(size_t), void(*&FreeFunction)(void*, size_t))
+bool FGenericPlatformMemory::GetLLMAllocFunctions(void*(*&OutAllocFunction)(size_t), void(*&OutFreeFunction)(void*, size_t), int32& OutAlignment)
 {
 	return false;
 }

@@ -1391,7 +1391,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Get/Create PSO"), STAT_GetOrCreatePSO, STATGROUP
 extern RHI_API void RHIInit(bool bHasEditorToken);
 
 /** Performs additional RHI initialization before the render thread starts. */
-extern RHI_API void RHIPostInit();
+extern RHI_API void RHIPostInit(const TArray<uint32>& InPixelFormatByteWidth);
 
 /** Shuts down the RHI. */
 extern RHI_API void RHIExit();

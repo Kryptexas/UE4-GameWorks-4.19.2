@@ -548,6 +548,13 @@ namespace UnrealBuildTool
 		public bool bEventDrivenLoader;
 
 		/// <summary>
+		/// Whether the XGE controller worker and modules should be included in the engine build.
+		/// These are required for distributed shader compilation using the XGE interception interface.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public bool bUseXGEController = true;
+
+		/// <summary>
 		/// Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
 		/// </summary>
 		public bool bEnforceIWYU = true;
@@ -1686,6 +1693,11 @@ namespace UnrealBuildTool
         public bool bForceCompilePerformanceAutomationTests
 		{
 			get { return Inner.bForceCompilePerformanceAutomationTests; }
+		}
+
+		public bool bUseXGEController
+		{
+			get { return Inner.bUseXGEController; }
 		}
 
 		public bool bEventDrivenLoader

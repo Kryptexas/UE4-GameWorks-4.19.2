@@ -12,6 +12,7 @@
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if WITH_EDITOR
 #include "UObject/UnrealType.h"
@@ -460,6 +461,8 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 
 bool FConstraintInstance::CreatePxJoint_AssumesLocked(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene)
 {
+	LLM_SCOPE(ELLMTag::PhysX);
+
 	ConstraintData = nullptr;
 
 	FTransform Local1 = GetRefFrame(EConstraintFrame::Frame1);

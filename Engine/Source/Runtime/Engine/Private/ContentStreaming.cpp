@@ -636,7 +636,7 @@ void IStreamingManager::RemoveStreamingViews( ERemoveStreamingViews RemovalType 
  */
 void IStreamingManager::Tick( float DeltaTime, bool bProcessEverything/*=false*/ )
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(StreamingManager);
+	LLM_SCOPE(ELLMTag::StreamingManager);
 
 	UpdateResourceStreaming( DeltaTime, bProcessEverything );
 
@@ -688,7 +688,7 @@ void FStreamingManagerCollection::SetNumIterationsForNextFrame( int32 InNumItera
  */
 void FStreamingManagerCollection::Tick( float DeltaTime, bool bProcessEverything )
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(StreamingManager);
+	LLM_SCOPE(ELLMTag::StreamingManager);
 
 	AddOrRemoveTextureStreamingManagerIfNeeded();
 

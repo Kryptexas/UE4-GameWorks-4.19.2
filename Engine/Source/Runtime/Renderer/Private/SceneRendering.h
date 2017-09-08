@@ -1615,23 +1615,11 @@ inline void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
 	}
 }
 
-extern TAutoConsoleVariable<int32> CVarTransientResourceAliasing_RenderTargets;
 extern TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers;
 
 FORCEINLINE bool IsTransientResourceBufferAliasingEnabled()
 {
 	return (GSupportsTransientResourceAliasing && CVarTransientResourceAliasing_Buffers.GetValueOnRenderThread() != 0);
-}
-
-// Helper functions for fast vram to handle dynamic/static allocation
-FORCEINLINE uint32 GetTextureFastVRamFlag_DynamicLayout()
-{
-	return (GSupportsTransientResourceAliasing && CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread() > 0) ? ( TexCreate_FastVRAM | TexCreate_Transient ) : 0;
-}
-
-FORCEINLINE uint32 GetTextureFastVRamFlag_StaticLayout()
-{
-	return (GSupportsTransientResourceAliasing == false && CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread() == 0) ? TexCreate_FastVRAM : 0;
 }
 
 struct FFastVramConfig
@@ -1681,6 +1669,11 @@ struct FFastVramConfig
 	ETextureCreateFlags DBufferB;
 	ETextureCreateFlags DBufferC;
 	ETextureCreateFlags DBufferMask;
+
+	ETextureCreateFlags CustomDepth;
+	ETextureCreateFlags ShadowPointLight;
+	ETextureCreateFlags ShadowPerObject;
+	ETextureCreateFlags ShadowCSM;
 
 	EBufferUsageFlags DistanceFieldCulledObjectBuffers;
 	EBufferUsageFlags DistanceFieldTileIntersectionResources;

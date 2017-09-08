@@ -55,13 +55,13 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, 
 				return Result;
 			}
 
+		{
+			LLM_PLATFORM_SCOPE(ELLMTag::LargeBinnedAllocation);
+			if(void* Ptr = FPlatformMemory::BinnedAllocFromOS(Size))
 			{
-				LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::LargeBinnedAllocation, ELLMTracker::Platform);
-				if (void* Ptr = FPlatformMemory::BinnedAllocFromOS(Size))
-				{
-					return Ptr;
-				}
+				return Ptr;
 			}
+		}
 
 			// Are we holding on to much mem? Release it all.
 			for (FFreePageBlock* Block = First; Block != Last; ++Block)
@@ -75,7 +75,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, 
 		}
 	}
 
-	LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::LargeBinnedAllocation, ELLMTracker::Platform);
+	LLM_PLATFORM_SCOPE(ELLMTag::LargeBinnedAllocation);
 	return FPlatformMemory::BinnedAllocFromOS(Size);
 }
 

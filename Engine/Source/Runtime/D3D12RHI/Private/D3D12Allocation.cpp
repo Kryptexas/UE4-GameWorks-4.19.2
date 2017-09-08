@@ -116,7 +116,7 @@ void FD3D12BuddyAllocator::Initialize()
 
 		ID3D12Heap* Heap = nullptr;
 		{
-			LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG(D3D12Heap);
+			LLM_PLATFORM_SCOPE(ELLMTag::GraphicsPlatform);
 
 			// we are tracking allocations ourselves, so don't let XMemAlloc track these as well
 			LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default);
@@ -296,7 +296,7 @@ void FD3D12BuddyAllocator::Allocate(uint32 SizeInBytes, uint32 Alignment, FD3D12
 #endif
 
 	// track the allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, ResourceLocation.GetMappedBaseAddress(), SizeInBytes));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, (void*)ResourceLocation.GetGPUVirtualAddress(), SizeInBytes));
 }
 
 bool FD3D12BuddyAllocator::TryAllocate(uint32 SizeInBytes, uint32 Alignment, FD3D12ResourceLocation& ResourceLocation)
@@ -348,7 +348,7 @@ void FD3D12BuddyAllocator::Deallocate(FD3D12ResourceLocation& ResourceLocation)
 #endif
 
 	// track the allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, ResourceLocation.GetMappedBaseAddress(), 0));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, (void*)ResourceLocation.GetGPUVirtualAddress(), 0));
 }
 
 void FD3D12BuddyAllocator::DeallocateInternal(RetiredBlock& Block)

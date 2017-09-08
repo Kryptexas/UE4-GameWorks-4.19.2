@@ -202,7 +202,11 @@ private:
 };
 
 
-
+enum class ERenderTargetTransience : uint8
+{
+	NonTransient,
+	Transient,
+};
 
 /**
  * Encapsulates the render targets pools that allows easy sharing (mostly used on the render thread side)
@@ -221,7 +225,7 @@ public:
 	 * call from RenderThread only
 	 * @return true if the old element was still valid, false if a new one was assigned
 	 */
-	bool FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const TCHAR* InDebugName, bool bDoWritableBarrier = true);
+	bool FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const TCHAR* InDebugName, bool bDoWritableBarrier = true, ERenderTargetTransience TransienceHint = ERenderTargetTransience::Transient );
 
 	void CreateUntrackedElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const FSceneRenderTargetItem& Item);
 
@@ -282,6 +286,8 @@ public:
 	FVisualizeTexture VisualizeTexture;
 
 private:
+
+	bool DoesTargetNeedTransienceOverride(const FPooledRenderTargetDesc& InputDesc, ERenderTargetTransience TransienceHint) const;
 
 	friend void RenderTargetPoolEvents(const TArray<FString>& Args);
 

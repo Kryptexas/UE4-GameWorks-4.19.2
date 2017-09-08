@@ -42,11 +42,6 @@ struct TestC : public TestA, TestB
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPlatformVerificationTest, "System.Core.HAL.Platform Verification", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::SmokeFilter)
 
-// Disabled for UE-48236
-#if PLATFORM_PS4
-PRAGMA_DISABLE_OPTIMIZATION
-#endif
-
 bool FPlatformVerificationTest::RunTest (const FString& Parameters)
 {
 	PTRINT Offset1 = VTABLE_OFFSET(TestC, TestB);
@@ -111,10 +106,5 @@ bool FPlatformVerificationTest::RunTest (const FString& Parameters)
 
 	return true;
 }
-
-// Disabled for UE-48236
-#if PLATFORM_PS4
-PRAGMA_ENABLE_OPTIMIZATION
-#endif
 
 #endif //WITH_DEV_AUTOMATION_TESTS

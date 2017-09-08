@@ -263,6 +263,12 @@ ENGINE_API uint32 GGPUFrameTime = 0;
 /** System resolution instance */
 FSystemResolution GSystemResolution;
 
+static TAutoConsoleVariable<float> CVarDebugTextScale(
+	TEXT("r.DebugTextScale"),
+	1.0,
+	TEXT("Sets the scale of the debug text.\n"),
+	ECVF_Default);
+
 TAutoConsoleVariable<int32> CVarAllowOneFrameThreadLag(
 	TEXT("r.OneFrameThreadLag"),
 	1,
@@ -8529,7 +8535,7 @@ float DrawOnscreenDebugMessages(UWorld* World, FViewport* Viewport, FCanvas* Can
  */
 void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation )
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+	LLM_SCOPE(ELLMTag::Stats);
 
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "DrawStatsHUD" ), STAT_DrawStatsHUD, STATGROUP_StatSystem );
 
@@ -8546,14 +8552,18 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 
 	static const int32 MessageStartY = GIsEditor ? 35 : 100; // Account for safe frame
 	int32 MessageY = MessageStartY;
-	const int32 FontSizeY = 20;
 
+	// This is the percentage of the screen that a single line of stats should take up.
+	float TextScale = CVarDebugTextScale.GetValueOnAnyThread();
+	const FVector2D FontScale = FVector2D(TextScale, TextScale);
+	const int32 FontSizeY = 20 * FontScale.X;
 #if !UE_BUILD_SHIPPING
 	if (!GIsHighResScreenshot && !GIsDumpingMovie && GAreScreenMessagesEnabled)
 	{
 		const int32 MessageX = (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.3f : 40;
-
+		
 		FCanvasTextItem SmallTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+		SmallTextItem.Scale = FontScale;
 		SmallTextItem.EnableShadow(FLinearColor::Black);
 
 		// Draw map warnings?
@@ -8606,7 +8616,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
-			if (FLowLevelMemTracker::IsEnabled() && !FPlatformMemory::IsDebugMemoryEnabled())
+			if (FLowLevelMemTracker::Get().IsEnabled() && !FPlatformMemory::IsDebugMemoryEnabled())
 			{
 				SmallTextItem.Text = LOCTEXT("MEMPROFILINGWARNING", "LLM enabled without Debug Memory enabled!");
 				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
@@ -8632,6 +8642,12 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		}
 #endif // UE_BUILD_TEST
 
+		if (FPlatformMemory::IsDebugMemoryEnabled())
+		{
+			SmallTextItem.Text = LOCTEXT("MEMPROFILINGWARNING", "WARNING: Running with Debug Memory Enabled!");
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
 	}
 #endif // UE_BUILD_SHIPPING 
 
@@ -8646,8 +8662,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		GEngine->RenderEngineStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
 
 #if STATS
-		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SizeX);
-		RenderStats( Viewport, Canvas, StatsXOffset, Y, CanvasObject != nullptr ? CanvasObject->CachedDisplayWidth - CanvasObject->SafeZonePadX * 2 : Viewport->GetSizeXY().X );
+		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SizeX, const float TextScale);
+		RenderStats( Viewport, Canvas, StatsXOffset, Y, CanvasObject != nullptr ? CanvasObject->CachedDisplayWidth - CanvasObject->SafeZonePadX * 2 : Viewport->GetSizeXY().X, TextScale);
 #endif
 	}
 
@@ -10189,8 +10205,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap"), STAT_LoadMap, STATGROUP_LoadTime);
 
-	// example of a high level scoped tag
-	LLM_SCOPED_SINGLE_STAT_TAG(LoadMapMemory);
+	LLM_SCOPE(ELLMTag::LoadMapMisc);
 
 	NETWORK_PROFILER(GNetworkProfiler.TrackSessionChange(true,URL));
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapStart( URL.Map ) );

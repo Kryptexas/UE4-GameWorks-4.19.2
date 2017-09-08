@@ -605,11 +605,15 @@ void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePass
 	Context.RHICmdList.FlushComputeShaderCache();
 
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, SceneContext.DBufferMask->GetRenderTargetItem().UAV);
-
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture);
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture);
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture);
-
+	
+    FTextureRHIParamRef Textures[3] =
+	{
+		SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture,
+		SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture,
+		SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture
+	};
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EMetaData, Textures, 3);
+	
 	// un-set destination
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), NULL);
 }
@@ -871,8 +875,14 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			if (CurrentStage == DRS_BeforeBasePass)
 			{
 				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
-				RenderTargetManager.FlushMetaData(SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture);
-				
+				FTextureRHIParamRef Textures[3] =
+				{
+					SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture,
+					SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture,
+					SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture
+				};
+				RenderTargetManager.FlushMetaData(Textures, 3);
+
 				if (GSupportsRenderTargetWriteMask && bLastView)
 				{
 					DecodeRTWriteMask(Context);
@@ -1042,7 +1052,7 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 
 
 
-void FDecalRenderTargetManager::FlushMetaData(FTextureRHIParamRef Texture)
+void FDecalRenderTargetManager::FlushMetaData(FTextureRHIParamRef* Textures, uint32 NumTextures)
 {
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, Texture);
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EMetaData, Textures, NumTextures);
 }

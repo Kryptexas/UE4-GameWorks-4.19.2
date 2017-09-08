@@ -6,7 +6,7 @@
 
 #include "D3D12RHIPrivate.h"
 
-
+ 
 int64 FD3D12GlobalStats::GDedicatedVideoMemory = 0;
 int64 FD3D12GlobalStats::GDedicatedSystemMemory = 0;
 int64 FD3D12GlobalStats::GSharedSystemMemory = 0;
@@ -1866,25 +1866,81 @@ void FD3D12DynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 	Texture->UpdateTexture2D(nullptr, MipIndex, UpdateRegion, SourcePitch, SourceData);
 }
 
+FUpdateTexture3DData FD3D12DynamicRHI::BeginUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion)
+{
+	check(IsInRenderingThread());
+	// This stall could potentially be removed, provided the fast allocator is thread-safe. However we 
+	// currently need to stall in the End method anyway (see below)
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return BeginUpdateTexture3D_Internal(Texture, MipIndex, UpdateRegion);
+}
+
+void FD3D12DynamicRHI::EndUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FUpdateTexture3DData& UpdateData)
+{
+	check(IsInRenderingThread());
+	// TODO: move this command entirely to the RHI thread so we can remove these stalls
+	// and fix potential ordering issue with non-compute-shader version
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	EndUpdateTexture3D_Internal(UpdateData);
+}
+
 void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint32 MipIndex, const FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
 {
+	check(IsInRenderingThread());
+
+	FUpdateTexture3DData UpdateData = BeginUpdateTexture3D_Internal(TextureRHI, MipIndex, UpdateRegion);
+
+	// Copy the data into the UpdateData destination buffer
+	check(nullptr != UpdateData.Data);
+
 	FD3D12Texture3D*  Texture = FD3D12DynamicRHI::ResourceCast(TextureRHI);
+	uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
+	check(CopyPitch <= SourceRowPitch);
+	check(UpdateData.RowPitch*UpdateRegion.Depth*UpdateRegion.Height <= UpdateData.DataSizeBytes);
 
-	FD3D12Device* Device = Texture->GetParentDevice();
-	FD3D12CommandListHandle& hCommandList = Device->GetDefaultCommandContext().CommandListHandle;
-#if USE_PIX
-	PIXBeginEvent(hCommandList.GraphicsCommandList(), PIX_COLOR(255, 255, 255), TEXT("RHIUpdateTexture3D"));
-#endif
-
-	bool bDidComputeShaderUpdate = false;
-	if (CVarUseUpdateTexture3DComputeShader.GetValueOnRenderThread() != 0 && Texture->GetResource()->GetHeap() )
+	for (uint32 i = 0; i < UpdateRegion.Depth; i++)
 	{
-		// Try a compute shader update
-		bDidComputeShaderUpdate = UpdateTexture3D_ComputeShader(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
+		uint8* DestRowData = UpdateData.Data + UpdateData.DepthPitch * i;
+		const uint8* SourceRowData = SourceData + SourceDepthPitch * i;
+		for (uint32 j = 0; j < UpdateRegion.Height; j++)
+		{
+			FMemory::Memcpy(DestRowData, SourceRowData, CopyPitch);
+			SourceRowData += SourceRowPitch;
+			DestRowData += UpdateData.RowPitch;
+		}
 	}
 
-	if (!bDidComputeShaderUpdate)
+	EndUpdateTexture3D_Internal(UpdateData);
+}
+
+
+FUpdateTexture3DData FD3D12DynamicRHI::BeginUpdateTexture3D_Internal(FTexture3DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion)
+{
+	check(IsInRenderingThread());
+	FUpdateTexture3DData UpdateData(TextureRHI, MipIndex, UpdateRegion, 0, 0, nullptr, 0, GFrameNumberRenderThread);
+
+	// Initialize the platform data
+	static_assert(sizeof(FD3D12UpdateTexture3DData) < sizeof(UpdateData.PlatformData), "Platform data in FUpdateTexture3DData too small to support D3D12");
+	FD3D12UpdateTexture3DData* UpdateDataD3D12 = new (&UpdateData.PlatformData[0]) FD3D12UpdateTexture3DData;
+	UpdateDataD3D12->bComputeShaderCopy = false;
+	UpdateDataD3D12->UploadHeapResourceLocation = nullptr;
+
+	FD3D12Texture3D* Texture = FD3D12DynamicRHI::ResourceCast(TextureRHI);
+
+	bool bDoComputeShaderCopy = false;
+	if (CVarUseUpdateTexture3DComputeShader.GetValueOnRenderThread() != 0 && Texture->GetResource()->GetHeap())
 	{
+		// Try a compute shader update. This does a memory allocation internally
+		bDoComputeShaderCopy = BeginUpdateTexture3D_ComputeShader(UpdateData, UpdateDataD3D12);
+	}
+
+	if (!bDoComputeShaderCopy)
+	{
+		const int32 FormatSize = GPixelFormats[TextureRHI->GetFormat()].BlockBytes;
+		const int32 OriginalRowPitch = UpdateRegion.Width * FormatSize;
+		const int32 OriginalDepthPitch = UpdateRegion.Width * UpdateRegion.Height * FormatSize;
+
+		// No compute shader update was possible or supported, so fall back to the old method.
 		D3D12_BOX DestBox =
 		{
 			UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
@@ -1894,47 +1950,57 @@ void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint
 		check(GPixelFormats[Texture->GetFormat()].BlockSizeX == 1);
 		check(GPixelFormats[Texture->GetFormat()].BlockSizeY == 1);
 
-		const uint32 AlignedSourcePitch = Align(SourceRowPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-		const uint32 bufferSize = Align(UpdateRegion.Height*UpdateRegion.Depth*AlignedSourcePitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+		UpdateData.RowPitch = Align(OriginalRowPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		UpdateData.DepthPitch = Align(OriginalDepthPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		const uint32 BufferSize = Align(UpdateRegion.Height*UpdateRegion.Depth*UpdateData.RowPitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+		UpdateData.DataSizeBytes = BufferSize;
 
-		FD3D12ResourceLocation UploadHeapResourceLocation(GetRHIDevice());
-		void* pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate<FD3D12ScopeLock>(bufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &UploadHeapResourceLocation);
-		check(nullptr != pData);
+		UpdateDataD3D12->UploadHeapResourceLocation = new FD3D12ResourceLocation(GetRHIDevice());
+		UpdateData.Data = (uint8*)GetRHIDevice()->GetDefaultFastAllocator().Allocate<FD3D12ScopeLock>(BufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, UpdateDataD3D12->UploadHeapResourceLocation);
+		check(UpdateData.Data != nullptr);
+	}
+	return UpdateData;
+}
 
-		byte* pRowData = (byte*)pData;
-		byte* pSourceRowData = (byte*)SourceData;
-		byte* pSourceDepthSlice = (byte*)SourceData;
+void FD3D12DynamicRHI::EndUpdateTexture3D_Internal(FUpdateTexture3DData& UpdateData)
+{
+	check(IsInRenderingThread());
+	check(GFrameNumberRenderThread == UpdateData.FrameNumber);
 
-		uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
-		check(CopyPitch <= SourceRowPitch);
-		for (uint32 i = 0; i < UpdateRegion.Depth; i++)
-		{
-			for (uint32 j = 0; j < UpdateRegion.Height; j++)
-			{
-				FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
-				pSourceRowData += SourceRowPitch;
-				pRowData += AlignedSourcePitch;
-			}
-			pSourceDepthSlice += SourceDepthPitch;
-			pSourceRowData = pSourceDepthSlice;
-		}
+	FD3D12Texture3D*  Texture = FD3D12DynamicRHI::ResourceCast(UpdateData.Texture);
+
+	FD3D12Device* Device = Texture->GetParentDevice();
+	FD3D12CommandListHandle& hCommandList = Device->GetDefaultCommandContext().CommandListHandle;
+#if USE_PIX
+	PIXBeginEvent(hCommandList.GraphicsCommandList(), PIX_COLOR(255, 255, 255), TEXT("EndUpdateTexture3D"));
+#endif
+
+	FD3D12UpdateTexture3DData* UpdateDataD3D12 = reinterpret_cast<FD3D12UpdateTexture3DData*>(&UpdateData.PlatformData[0]);
+	check( UpdateDataD3D12->UploadHeapResourceLocation != nullptr );
+
+	if (UpdateDataD3D12->bComputeShaderCopy)
+	{
+		EndUpdateTexture3D_ComputeShader(UpdateData, UpdateDataD3D12);
+	}
+	else
+	{
 		D3D12_SUBRESOURCE_FOOTPRINT sourceSubresource;
-		sourceSubresource.Depth = UpdateRegion.Depth;
-		sourceSubresource.Height = UpdateRegion.Height;
-		sourceSubresource.Width = UpdateRegion.Width;
+		sourceSubresource.Depth = UpdateData.UpdateRegion.Depth;
+		sourceSubresource.Height = UpdateData.UpdateRegion.Height;
+		sourceSubresource.Width = UpdateData.UpdateRegion.Width;
 		sourceSubresource.Format = (DXGI_FORMAT)GPixelFormats[Texture->GetFormat()].PlatformFormat;
-		sourceSubresource.RowPitch = AlignedSourcePitch;
+		sourceSubresource.RowPitch = UpdateData.RowPitch;
 		check(sourceSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedTexture3D = { 0 };
-		placedTexture3D.Offset = UploadHeapResourceLocation.GetOffsetFromBaseOfResource();
+		placedTexture3D.Offset = UpdateDataD3D12->UploadHeapResourceLocation->GetOffsetFromBaseOfResource();
 		placedTexture3D.Footprint = sourceSubresource;
 
-		FD3D12Resource* UploadBuffer = UploadHeapResourceLocation.GetResource();
+		FD3D12Resource* UploadBuffer = UpdateDataD3D12->UploadHeapResourceLocation->GetResource();
 
 		while (Texture)
 		{
-			CD3DX12_TEXTURE_COPY_LOCATION DestCopyLocation(Texture->GetResource()->GetResource(), MipIndex);
+			CD3DX12_TEXTURE_COPY_LOCATION DestCopyLocation(Texture->GetResource()->GetResource(), UpdateData.MipIndex);
 			CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(UploadBuffer->GetResource(), placedTexture3D);
 
 			FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Texture->GetResource(), Texture->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, DestCopyLocation.SubresourceIndex);
@@ -1943,7 +2009,7 @@ void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint
 			hCommandList.FlushResourceBarriers();
 			hCommandList->CopyTextureRegion(
 				&DestCopyLocation,
-				UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
+				UpdateData.UpdateRegion.DestX, UpdateData.UpdateRegion.DestY, UpdateData.UpdateRegion.DestZ,
 				&SourceCopyLocation,
 				nullptr);
 
@@ -1953,11 +2019,11 @@ void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint
 
 			Texture = (FD3D12Texture3D*)Texture->GetNextObject();
 		}
+		delete UpdateDataD3D12->UploadHeapResourceLocation;
 	}
 #if USE_PIX
 	PIXEndEvent(hCommandList.GraphicsCommandList());
 #endif
-
 }
 
 /*-----------------------------------------------------------------------------

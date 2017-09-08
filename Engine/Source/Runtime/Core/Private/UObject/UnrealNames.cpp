@@ -21,6 +21,7 @@
 #include "Internationalization/Internationalization.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "HAL/IConsoleManager.h"
+#include "HAL/LowLevelMemTracker.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealNames, Log, All);
@@ -543,6 +544,8 @@ uint16 FName::GetNonCasePreservingHash(const TCharType* Source)
 
 void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName, int32 HardcodeIndex)
 {
+	LLM_SCOPE(ELLMTag::FName);
+
 	const bool bIsPureAnsi = TCString<WIDECHAR>::IsPureAnsi(InName);
 	// Switch to ANSI if possible to save memory
 	if (bIsPureAnsi)
@@ -1355,6 +1358,8 @@ FNameEntryPoolAllocator GNameEntryPoolAllocator;
 template<typename TCharType>
 FNameEntry* AllocateNameEntry(const TCharType* Name, NAME_INDEX Index)
 {
+	LLM_SCOPE(ELLMTag::FName);
+
 	const SIZE_T NameLen  = TCString<TCharType>::Strlen(Name);
 	int32 NameEntrySize	  = FNameInitHelper<TCharType>::GetSize( NameLen );
 	FNameEntry* NameEntry = GNameEntryPoolAllocator.Allocate( NameEntrySize );

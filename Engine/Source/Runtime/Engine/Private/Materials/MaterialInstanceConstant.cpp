@@ -14,8 +14,8 @@ UMaterialInstanceConstant::UMaterialInstanceConstant(const FObjectInitializer& O
 
 void UMaterialInstanceConstant::PostLoad()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(UMaterialInstanceConstant);
-	UMaterialInstance::PostLoad();
+	LLM_SCOPE(ELLMTag::Materials);
+	Super::PostLoad();
 }
 
 #if WITH_EDITOR

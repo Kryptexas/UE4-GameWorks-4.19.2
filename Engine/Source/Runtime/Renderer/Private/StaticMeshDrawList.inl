@@ -23,6 +23,7 @@
 #include "RHICommandList.h"
 #include "EngineStats.h"
 #include "Async/ParallelFor.h"
+#include "HAL/LowLevelMemTracker.h"
 
 // Expensive
 #define PER_MESH_DRAW_STATS 0
@@ -468,6 +469,8 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		LLM_SCOPE(ELLMTag::StaticMesh);
+
 		FScopeCycleCounter ScopeOuter(RHICmdList.ExecuteStat);
 		if (this->PerDrawingPolicyCounts)
 		{

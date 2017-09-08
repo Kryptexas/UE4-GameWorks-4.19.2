@@ -461,6 +461,8 @@ void UMaterialInterface::PostCDOContruct()
 
 void UMaterialInterface::PostLoadDefaultMaterials()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	// Here we prevent this function from being called recursively. Mostly this
 	// is an optimization and guarantees that default materials are post loaded
 	// in the order material domains are defined. Surface -> deferred decal -> etc.
@@ -540,6 +542,7 @@ static TAutoConsoleVariable<int32> CVarDiscardUnusedQualityLevels(
 
 void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSavePtr, FArchive& Ar, TArray<FMaterialResource>& OutLoadedResources)
 {
+	LLM_SCOPE(ELLMTag::Materials);
 	SCOPED_LOADTIMER(SerializeInlineShaderMaps);
 
 	if (Ar.IsSaving())
@@ -589,6 +592,7 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMateri
 
 void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
 {
+	LLM_SCOPE(ELLMTag::Materials);
 	check(IsInGameThread());
 
 	UMaterial* OwnerMaterial = Cast<UMaterial>(Owner);
@@ -788,6 +792,8 @@ void UMaterial::PreSave(const class ITargetPlatform* TargetPlatform)
 
 void UMaterial::PostInitProperties()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	Super::PostInitProperties();
 	if(!HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -807,6 +813,8 @@ void UMaterial::PostInitProperties()
 
 FMaterialResource* UMaterial::AllocateResource()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	return new FMaterialResource();
 }
 
@@ -2499,6 +2507,8 @@ const FMaterialResource* UMaterial::GetMaterialResource(ERHIFeatureLevel::Type I
 
 void UMaterial::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	SCOPED_LOADTIMER(MaterialSerializeTime);
 
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
@@ -2723,6 +2733,8 @@ TMap<FGuid, UMaterialInterface*> LightingGuidFixupMap;
 
 void UMaterial::PostLoad()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	SCOPED_LOADTIMER(MaterialPostLoad);
 
 	Super::PostLoad();

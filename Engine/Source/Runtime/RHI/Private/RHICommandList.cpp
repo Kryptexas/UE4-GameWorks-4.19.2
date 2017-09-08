@@ -18,13 +18,6 @@ DECLARE_CYCLE_STAT(TEXT("All Command List Execute"), STAT_ImmedCmdListExecuteTim
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST);
 
-DEFINE_STAT(STAT_MeshMemoryLLM);
-DEFINE_STAT(STAT_UniformBufferMemoryLLM);
-DEFINE_STAT(STAT_ShaderMemoryLLM);
-DEFINE_STAT(STAT_TextureMemoryLLM);
-DEFINE_STAT(STAT_RenderTargetMemoryLLM);
-DEFINE_STAT(STAT_StructuredBufferLLM);
-DEFINE_STAT(STAT_RHIMiscLLM);
 
 
 
@@ -319,9 +312,9 @@ public:
 		}
 		{
 			FScopeLock Lock(&GRHIThreadOnTasksCritical);
-			FRHICommandListExecutor::ExecuteInner_DoExecute(*RHICmdList);
-			delete RHICmdList;
-		}
+		FRHICommandListExecutor::ExecuteInner_DoExecute(*RHICmdList);
+		delete RHICmdList;
+	}
 		if (IsRunningRHIInTaskThread())
 		{
 			GRHIThreadId = 0;
@@ -391,9 +384,9 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 			{
 				RenderThreadSublistDispatchTask = nullptr;
 				if (bAsyncSubmit && RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
-				{
-					RHIThreadTask = nullptr;
-				}
+			{
+				RHIThreadTask = nullptr;
+			}
 			}
 			if (!bAsyncSubmit && RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
 			{
@@ -512,6 +505,8 @@ static FORCEINLINE bool IsInRenderingOrRHIThread()
 
 void FRHICommandListExecutor::ExecuteList(FRHICommandListBase& CmdList)
 {
+	LLM_SCOPE(ELLMTag::RHIMisc);
+
 	check(&CmdList != &GetImmediateCommandList() && (GRHISupportsParallelRHIExecute || IsInRenderingOrRHIThread()));
 
 	if (IsInRenderingThread() && !GetImmediateCommandList().IsExecuting()) // don't flush if this is a recursive call and we are already executing the immediate command list
@@ -1300,9 +1295,9 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 			return;
 		}
 		IRHICommandContextContainer* ContextContainer = nullptr;
-		bool bMerge = !!CVarRHICmdMergeSmallDeferredContexts.GetValueOnRenderThread();
-		int32 EffectiveThreads = 0;
-		int32 Start = 0;
+			bool bMerge = !!CVarRHICmdMergeSmallDeferredContexts.GetValueOnRenderThread();
+			int32 EffectiveThreads = 0;
+			int32 Start = 0;
 		int32 ThreadIndex = 0;
 		if (GRHISupportsParallelRHIExecute && CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() > 0)
 		{
@@ -1785,7 +1780,7 @@ bool FRHICommandListImmediate::StallRHIThread()
 		}
 		FPlatformAtomics::InterlockedIncrement(&StallCount);
 		{
-			SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThreadStall);
+		SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThreadStall);
 			GRHIThreadOnTasksCritical.Lock();
 		}
 		return true;
@@ -2307,10 +2302,34 @@ void FDynamicRHI::UpdateTexture2D_RenderThread(class FRHICommandListImmediate& R
 	return GDynamicRHI->RHIUpdateTexture2D(Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
 }
 
+FUpdateTexture3DData FDynamicRHI::BeginUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion)
+{
+	check(IsInRenderingThread());
+
+	const int32 FormatSize = PixelFormatBlockBytes[Texture->GetFormat()];
+	const int32 RowPitch = UpdateRegion.Width * FormatSize;
+	const int32 DepthPitch = UpdateRegion.Width * UpdateRegion.Height * FormatSize;
+
+	SIZE_T MemorySize = DepthPitch * UpdateRegion.Depth;
+	uint8* Data = (uint8*)FMemory::Malloc(MemorySize);	
+
+	return FUpdateTexture3DData(Texture, MipIndex, UpdateRegion, RowPitch, DepthPitch, Data, MemorySize, GFrameNumberRenderThread);
+}
+
+void FDynamicRHI::EndUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FUpdateTexture3DData& UpdateData)
+{
+	check(IsInRenderingThread());
+	check(GFrameNumberRenderThread == UpdateData.FrameNumber); 
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);	
+	GDynamicRHI->RHIUpdateTexture3D(UpdateData.Texture, UpdateData.MipIndex, UpdateData.UpdateRegion, UpdateData.RowPitch, UpdateData.DepthPitch, UpdateData.Data);
+	FMemory::Free(UpdateData.Data);
+	UpdateData.Data = nullptr;
+}
+
 void FDynamicRHI::UpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
 {
 	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
-	return GDynamicRHI->RHIUpdateTexture3D(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
+	GDynamicRHI->RHIUpdateTexture3D(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
 }
 
 void* FDynamicRHI::LockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush)

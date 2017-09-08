@@ -39,7 +39,13 @@
 // This value defines how many descriptors will be in the device global view heap which
 // is shared across contexts to allow the driver to eliminate redundant descriptor heap sets.
 // This should be tweaked for each title as heaps require VRAM. The default value of 512k takes up ~16MB
-#define GLOBAL_VIEW_HEAP_SIZE (1024 * 512)
+#if PLATFORM_XBOXONE
+  #define GLOBAL_VIEW_HEAP_SIZE ( 500 * 1000 ) // This should be a multiple of DESCRIPTOR_HEAP_BLOCK_SIZE
+  #define LOCAL_VIEW_HEAP_SIZE  ( 64 * 1024 )
+#else
+  #define GLOBAL_VIEW_HEAP_SIZE  ( 500 * 1000 ) // This should be a multiple of DESCRIPTOR_HEAP_BLOCK_SIZE
+  #define LOCAL_VIEW_HEAP_SIZE  ( 500 * 1000 )
+#endif
 
 // Heap for updating UAV counter values.
 #define COUNTER_HEAP_SIZE 1024 * 64
@@ -340,6 +346,9 @@ protected:
 
 			// Compute
 			FD3D12ComputeShader* CurrentComputeShader;
+
+			// Need to cache compute budget, as we need to reset if after PSO changes
+			EAsyncComputeBudget ComputeBudget;
 		} Compute;
 
 		struct
@@ -895,6 +904,11 @@ public:
 
 			bNeedSetDepthBounds = true;
 		}
+	}
+
+	void SetComputeBudget(EAsyncComputeBudget ComputeBudget)
+	{
+		PipelineState.Compute.ComputeBudget = ComputeBudget;
 	}
 
 	D3D12_STATE_CACHE_INLINE void AutoFlushComputeShaderCache(bool bEnable)

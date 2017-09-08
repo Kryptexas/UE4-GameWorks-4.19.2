@@ -971,10 +971,11 @@ void FCanvas::DrawTile( float X, float Y, float SizeX,	float SizeY, float U, flo
 	DrawItem(TileItem);
 }
 
-int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,const UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
+int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,const UFont* Font,const FLinearColor& Color, const float TextScale, const FLinearColor& ShadowColor )
 {
 	const float Z = 1.0f;
 	FCanvasTextItem TextItem( FVector2D( StartX, StartY ), FText::FromString( Text ), Font, Color );
+	TextItem.Scale = FVector2D(TextScale, TextScale);
 	// just render text in single pass for distance field drop shadow
 	if (Font && Font->ImportOptions.bUseDistanceFieldAlpha)
 	{	

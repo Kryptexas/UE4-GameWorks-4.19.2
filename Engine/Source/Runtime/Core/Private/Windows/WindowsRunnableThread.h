@@ -189,7 +189,7 @@ protected:
 
 		// Create the new thread
 		{
-			LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::ThreadStack, ELLMTracker::Platform);
+			LLM_PLATFORM_SCOPE(ELLMTag::ThreadStack);
 			// add in the thread size, since it's allocated in a black box we can't track
 			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, nullptr, InStackSize));
 

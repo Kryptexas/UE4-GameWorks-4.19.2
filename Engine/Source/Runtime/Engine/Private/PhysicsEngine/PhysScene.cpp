@@ -17,6 +17,7 @@
 #include "PhysicsEngine/RigidBodyIndexPair.h"
 #include "PhysicsPublic.h"
 #include "CustomPhysXPayload.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
@@ -1154,7 +1155,7 @@ void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FG
 
 void FPhysScene::ProcessPhysScene(uint32 SceneType)
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Phys);
+	LLM_SCOPE(ELLMTag::PhysX);
 	
 	SCOPED_NAMED_EVENT(FPhysScene_ProcessPhysScene, FColor::Orange);
 	checkSlow(SceneType < PST_MAX);

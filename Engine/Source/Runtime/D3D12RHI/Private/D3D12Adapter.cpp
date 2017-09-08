@@ -54,9 +54,7 @@ void FD3D12Adapter::Initialize(FD3D12DynamicRHI* RHI)
 
 void FD3D12Adapter::CreateRootDevice(bool bWithDebug)
 {
-#if PLATFORM_WINDOWS
-	CreateDXGIFactory(IID_PPV_ARGS(DxgiFactory.GetInitReference()));
-#endif
+	CreateDXGIFactory();
 
 	// QI for the Adapter
 	TRefCountPtr<IDXGIAdapter> TempAdapter;
@@ -489,4 +487,13 @@ FD3D12TemporalEffect* FD3D12Adapter::GetTemporalEffect(const FName& EffectName)
 
 	check(Effect);
 	return Effect;
+}
+
+void FD3D12Adapter::BlockUntilIdle()
+{
+	const uint32 NumGPUs = GetNumGPUNodes();
+	for (uint32 Index = 0; Index < NumGPUs; ++Index)
+	{
+		GetDeviceByIndex(Index)->BlockUntilIdle();
+	}
 }

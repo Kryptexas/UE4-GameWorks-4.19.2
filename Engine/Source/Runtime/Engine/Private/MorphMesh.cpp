@@ -20,7 +20,7 @@ UMorphTarget::UMorphTarget(const FObjectInitializer& ObjectInitializer)
 
 void UMorphTarget::Serialize( FArchive& Ar )
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+	LLM_SCOPE(ELLMTag::Animation);
 	
 	Super::Serialize( Ar );
 	FStripDataFlags StripFlags( Ar );

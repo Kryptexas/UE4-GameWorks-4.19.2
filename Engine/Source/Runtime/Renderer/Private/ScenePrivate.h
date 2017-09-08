@@ -620,12 +620,12 @@ private:
 			if (!PooledRenderTarget[BufferNumber].IsValid())
 			{
 				// Create the texture needed for EyeAdaptation
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F /*PF_R32_FLOAT*/, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 				if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 				{
 					Desc.TargetableFlags |= TexCreate_UAV;
 				}
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PooledRenderTarget[BufferNumber], TEXT("EyeAdaptation"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PooledRenderTarget[BufferNumber], TEXT("EyeAdaptation"), true, ERenderTargetTransience::NonTransient);
 			}
 
 			return PooledRenderTarget[BufferNumber];
@@ -979,7 +979,7 @@ public:
 
 			Desc.DebugName = TEXT("CombineLUTs");
 			
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName);
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName, true, ERenderTargetTransience::NonTransient);
 		}
 
 		FSceneRenderTargetItem& RenderTarget = CombinedLUTRenderTarget.GetReference()->GetRenderTargetItem();
@@ -2325,15 +2325,15 @@ public:
 			return SkyLight && !SkyLight->bHasStaticLighting;
 		}
 		else
-		{
-			const bool bRenderSkylight = SkyLight
-				&& !SkyLight->bHasStaticLighting
-				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+	{
+		const bool bRenderSkylight = SkyLight
+			&& !SkyLight->bHasStaticLighting
+			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
 				// bWantsStaticShadowing means 'stationary skylight'
-				&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
+			&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
 
-			return bRenderSkylight;
-		}
+		return bRenderSkylight;
+	}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override

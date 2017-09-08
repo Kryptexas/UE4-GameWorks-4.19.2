@@ -515,7 +515,7 @@ template struct FRHICommandWaitComputeFence<ECmdList::ECompute>;
 
 void FRHICommandBuildLocalGraphicsPipelineState::Execute(FRHICommandListBase& CmdList)
 {
-	LLM_SCOPED_TAG_WITH_STAT(STAT_ShaderMemoryLLM, ELLMTracker::Default);
+	LLM_SCOPE(ELLMTag::Shaders);
 	RHISTAT(BuildLocalGraphicsPipelineState);
 	check(!IsValidRef(WorkArea.ComputedGraphicsPipelineState->GraphicsPipelineState));
 	if (WorkArea.ComputedGraphicsPipelineState->UseCount)
@@ -540,7 +540,7 @@ void FRHICommandSetLocalGraphicsPipelineState::Execute(FRHICommandListBase& CmdL
 
 void FRHICommandBuildLocalUniformBuffer::Execute(FRHICommandListBase& CmdList)
 {
-	LLM_SCOPED_TAG_WITH_STAT(STAT_ShaderMemoryLLM, ELLMTracker::Default);
+	LLM_SCOPE(ELLMTag::Shaders);
 	RHISTAT(BuildLocalUniformBuffer);
 	check(!IsValidRef(WorkArea.ComputedUniformBuffer->UniformBuffer)); // should not already have been created
 	check(WorkArea.Layout);

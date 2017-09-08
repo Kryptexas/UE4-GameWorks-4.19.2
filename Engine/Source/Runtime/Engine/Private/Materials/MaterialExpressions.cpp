@@ -8604,6 +8604,8 @@ void UMaterialFunction::Serialize(FArchive& Ar)
 
 void UMaterialFunction::PostLoad()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	Super::PostLoad();
 	
 	if (!StateId.IsValid())

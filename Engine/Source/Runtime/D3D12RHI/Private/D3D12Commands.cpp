@@ -279,13 +279,9 @@ void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess Tran
 		}
 	}
 #else
-	if (TransitionType == EResourceTransitionAccess::EMetaData && InTextures[0])
+	if (TransitionType == EResourceTransitionAccess::EMetaData)
 	{
-		FD3D12Resource* Resource = RetrieveTextureBase(InTextures[0])->GetResource();
-		if (Resource->IsPlacedResource())
-		{
-			CommandListHandle.AddAliasingBarrier(Resource);
-		}
+		FlushMetadata(InTextures, NumTextures);
 	}
 #endif // !USE_D3D12RHI_RESOURCE_STATE_TRACKING
 }

@@ -1000,7 +1000,6 @@ namespace UnrealBuildTool
 			{
 				case "D3D11RHI":
 				case "D3D12RHI":
-				case "XboxOneD3D11RHI":
 				case "VulkanRHI":
 				case "OpenGLDrv":
 				case "MetalRHI":

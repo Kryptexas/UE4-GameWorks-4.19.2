@@ -85,10 +85,6 @@ void FGenericPlatformMath::FmodReportError(float X, float Y)
 #if WITH_DEV_AUTOMATION_TESTS
 extern float TheCompilerDoesntKnowThisIsAlwaysZero;
 
-// Disabled for UE-48236
-#if PLATFORM_PS4
-PRAGMA_DISABLE_OPTIMIZATION
-#endif
 
 void FGenericPlatformMath::AutoTest() 
 {
@@ -150,10 +146,5 @@ void FGenericPlatformMath::AutoTest()
 		check(Value.ToInt() == 1LL);
 	}
 }
-
-// Disabled for UE-48236
-#if PLATFORM_PS4
-PRAGMA_ENABLE_OPTIMIZATION
-#endif
 
 #endif //WITH_DEV_AUTOMATION_TESTS

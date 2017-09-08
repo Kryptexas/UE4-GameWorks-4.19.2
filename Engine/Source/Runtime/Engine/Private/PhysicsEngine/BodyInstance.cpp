@@ -22,6 +22,7 @@
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
@@ -1652,6 +1653,8 @@ struct FInitBodiesHelper
 
 	void InitBodies_PhysX() 
 	{
+		LLM_SCOPE(ELLMTag::PhysX);
+
 		static TArray<PxActor*> PSyncActors;
 		static TArray<PxActor*> PAsyncActors;
 		static TArray<PxActor*> PDynamicActors;

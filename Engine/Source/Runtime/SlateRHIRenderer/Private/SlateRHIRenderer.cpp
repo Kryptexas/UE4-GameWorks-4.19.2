@@ -875,7 +875,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	}
 	// Calculate renderthread time (excluding idle time).	
 	uint32 StartTime		= FPlatformTime::Cycles();
-
+	
 	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
 
 	uint32 EndTime		= FPlatformTime::Cycles();

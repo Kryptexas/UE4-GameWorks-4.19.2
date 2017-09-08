@@ -38,13 +38,30 @@ enum class ESCWErrorCode
 
 double LastCompileTime = 0.0;
 
-static bool GShaderCompileUseXGE = false;
+enum class EXGEMode
+{
+	None,
+	Xml,
+	Intercept
+};
+
+static EXGEMode GXGEMode = EXGEMode::None;
+
+inline bool IsUsingXGE()
+{
+	return GXGEMode != EXGEMode::None;
+}
+
 static ESCWErrorCode GFailedErrorCode = ESCWErrorCode::Success;
 
-static void WriteXGESuccessFile(const TCHAR* WorkingDirectory)
+static void OnXGEJobCompleted(const TCHAR* WorkingDirectory)
 {
+	if (GXGEMode == EXGEMode::Xml)
+	{
 	// To signal compilation completion, create a zero length file in the working directory.
+		// This is only required in Xml mode.
 	delete IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/Success"), WorkingDirectory), FILEWRITE_EvenIfReadOnly);
+	}
 }
 
 #if USING_CODE_ANALYSIS
@@ -174,10 +191,10 @@ public:
 			// Change the output file name to requested one
 			IFileManager::Get().Move(*OutputFilePath, *TempFilePath);
 
-			if (GShaderCompileUseXGE)
+			if (IsUsingXGE())
 			{
 				// To signal compilation completion, create a zero length file in the working directory.
-				WriteXGESuccessFile(*WorkingDirectory);
+				OnXGEJobCompleted(*WorkingDirectory);
 
 				// We only do one pass per process when using XGE.
 				break;
@@ -406,8 +423,9 @@ private:
 
 		// It seems XGE does not support deleting files.
 		// Don't delete the input file if we are running under Incredibuild.
-		// Instead, we signal completion by creating a zero byte "Success" file after the output file has been fully written.
-		if (!GShaderCompileUseXGE)
+		// In xml mode, we signal completion by creating a zero byte "Success" file after the output file has been fully written.
+		// In intercept mode, completion is signaled by this process terminating.
+		if (!IsUsingXGE())
 		{
 			do 
 			{
@@ -578,7 +596,6 @@ static FName NAME_PCD3D_ES3_1(TEXT("PCD3D_ES31"));
 static FName NAME_PCD3D_ES2(TEXT("PCD3D_ES2"));
 static FName NAME_GLSL_150(TEXT("GLSL_150"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
-static FName NAME_SF_XBOXONE_D3D11(TEXT("SF_XBOXONE_D3D11"));
 static FName NAME_SF_XBOXONE_D3D12(TEXT("SF_XBOXONE_D3D12"));
 static FName NAME_GLSL_430(TEXT("GLSL_430"));
 static FName NAME_GLSL_150_ES2(TEXT("GLSL_150_ES2"));
@@ -609,7 +626,6 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_PCD3D_ES2)			return SP_PCD3D_ES2;
 	if (ShaderFormat == NAME_GLSL_150)			return SP_OPENGL_SM4;
 	if (ShaderFormat == NAME_SF_PS4)			return SP_PS4;
-	if (ShaderFormat == NAME_SF_XBOXONE_D3D11)	return SP_XBOXONE_D3D11;
 	if (ShaderFormat == NAME_SF_XBOXONE_D3D12)	return SP_XBOXONE_D3D12;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
 	if (ShaderFormat == NAME_GLSL_150_ES2)		return SP_OPENGL_PCES2;
@@ -832,7 +848,18 @@ static int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOut
 {
 	// We need to know whether we are using XGE now, in case an exception
 	// is thrown before we parse the command line inside GuardedMain.
-	GShaderCompileUseXGE = (ArgC > 6) && FCString::Strcmp(ArgV[6], TEXT("-xge")) == 0;
+	if ((ArgC > 6) && FCString::Strcmp(ArgV[6], TEXT("-xge_int")) == 0)
+	{
+		GXGEMode = EXGEMode::Intercept;
+	}
+	else if ((ArgC > 6) && FCString::Strcmp(ArgV[6], TEXT("-xge_xml")) == 0)
+	{
+		GXGEMode = EXGEMode::Xml;
+	}
+	else
+	{
+		GXGEMode = EXGEMode::None;
+	}
 
 	int32 ReturnCode = 0;
 #if PLATFORM_WINDOWS
@@ -882,10 +909,10 @@ static int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOut
 			// Close the output file.
 			delete &OutputFile;
 
-			if (GShaderCompileUseXGE)
+			if (IsUsingXGE())
 			{
 				ReturnCode = 1;
-				WriteXGESuccessFile(ArgV[1]);
+				OnXGEJobCompleted(ArgV[1]);
 			}
 		}
 	}
@@ -910,34 +937,18 @@ IMPLEMENT_APPLICATION(ShaderCompileWorker, "ShaderCompileWorker")
 
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
-	// FPlatformProcess::OpenProcess only implemented for windows atm
 #if PLATFORM_WINDOWS
-	if (ArgC == 4 && FCString::Strcmp(ArgV[1], TEXT("-xgemonitor")) == 0)
+	// Redirect for special XGE utilities...
+	extern bool XGEMain(int ArgC, TCHAR* ArgV[], int32& ReturnCode);
 	{
-		// Open handles to the two processes
-		FProcHandle EngineProc = FPlatformProcess::OpenProcess(FCString::Atoi(ArgV[2]));
-		FProcHandle BuildProc = FPlatformProcess::OpenProcess(FCString::Atoi(ArgV[3]));
-
-		if (EngineProc.IsValid() && BuildProc.IsValid())
+		int32 ReturnCode;
+		if (XGEMain(ArgC, ArgV, ReturnCode))
 		{
-			// Whilst the build is still in progress
-			while (FPlatformProcess::IsProcRunning(BuildProc))
-			{
-				// Check that the engine is still alive.
-				if (!FPlatformProcess::IsProcRunning(EngineProc))
-				{
-					// The engine has shutdown before the build was stopped.
-					// Kill off the build process
-					FPlatformProcess::TerminateProc(BuildProc);
-					break;
+			return ReturnCode;
 				}
-
-				FPlatformProcess::Sleep(0.01f);
-			}
-		}
-		return 0;
 	}
 #endif
+
 	TCHAR OutputFilePath[PLATFORM_MAX_FILEPATH_LENGTH] = TEXT("");
 	bool bDirectMode = false;
 	for (int32 Index = 1; Index < ArgC; ++Index)
@@ -965,6 +976,5 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		FCString::Strncat(OutputFilePath, ArgV[5], PLATFORM_MAX_FILEPATH_LENGTH);
 	}
 
-	const int32 ReturnCode = GuardedMainWrapper(ArgC, ArgV, OutputFilePath, bDirectMode);
-	return ReturnCode;
+	return GuardedMainWrapper(ArgC, ArgV, OutputFilePath, bDirectMode);
 }

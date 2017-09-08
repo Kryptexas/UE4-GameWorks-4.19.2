@@ -67,6 +67,9 @@ void FWindowsPlatformMemory::Init()
 		MemoryConstants.TotalPhysicalGB );
 #endif //PLATFORM_32BITS
 
+	// program size is hard to ascertain and isn't so relevant on Windows. For now just set to zero.
+	LLM(FLowLevelMemTracker::Get().SetProgramSize(0));
+
 	DumpStats( *GLog );
 }
 
@@ -402,16 +405,6 @@ void FWindowsPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& Me
 }
 
 /**
-* Return true if the title has access to extra debug memory
-*/
-bool FWindowsPlatformMemory::IsDebugMemoryEnabled()
-{
-	// debug memory only applies to consoles with fixed memory.
-	// On windows we can use as much memory as we want for debug features
-	return true;
-}
-
-/**
 * LLM uses these low level functions (LLMAlloc and LLMFree) to allocate memory. It grabs
 * the function pointers by calling FPlatformMemory::GetLLMAllocFunctions. If these functions
 * are not implemented GetLLMAllocFunctions should return false and LLM will be disabled.
@@ -447,11 +440,12 @@ void LLMFree(void* Addr, size_t Size)
 
 #endif
 
-bool FWindowsPlatformMemory::GetLLMAllocFunctions(void*(*&AllocFunction)(size_t), void(*&FreeFunction)(void*, size_t))
+bool FWindowsPlatformMemory::GetLLMAllocFunctions(void*(*&OutAllocFunction)(size_t), void(*&OutFreeFunction)(void*, size_t), int32& OutAlignment)
 {
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
-	AllocFunction = LLMAlloc;
-	FreeFunction = LLMFree;
+	OutAllocFunction = LLMAlloc;
+	OutFreeFunction = LLMFree;
+	OutAlignment = LLMPageSize;
 	return true;
 #else
 	return false;

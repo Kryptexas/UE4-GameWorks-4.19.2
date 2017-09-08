@@ -37,6 +37,7 @@
 #include "EngineGlobals.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "Engine/StaticMesh.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
@@ -290,6 +291,8 @@ void UStaticMeshComponent::AddReferencedObjects(UObject* InThis, FReferenceColle
 
 void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::StaticMesh);
+
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);

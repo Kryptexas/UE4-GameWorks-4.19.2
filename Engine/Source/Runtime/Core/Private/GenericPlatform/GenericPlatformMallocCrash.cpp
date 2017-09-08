@@ -196,11 +196,16 @@ FGenericPlatformMallocCrash::FGenericPlatformMallocCrash( FMalloc* MainMalloc ) 
 	SmallMemoryPoolOffset( 0 ),
 	PreviousMalloc( MainMalloc )
 {
-	LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::GenericPlatformMallocCrash, ELLMTracker::Platform);
+	LLM_SCOPE(ELLMTag::GenericPlatformMallocCrash);
+	LLM_PLATFORM_SCOPE(ELLMTag::GenericPlatformMallocCrashPlatform);
 
 	const uint32 LargeMemoryPoolSize = Align(LARGE_MEMORYPOOL_SIZE,SafePageSize());
 	LargeMemoryPool = (uint8*)FPlatformMemory::BinnedAllocFromOS( LargeMemoryPoolSize );
 	SmallMemoryPool = (uint8*)FPlatformMemory::BinnedAllocFromOS( (SIZE_T)GetSmallPoolTotalSize() );
+
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, LargeMemoryPool, LargeMemoryPoolSize));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, SmallMemoryPool, GetSmallPoolTotalSize()));
+
 	if( !SmallMemoryPool || !LargeMemoryPool )
 	{
 		FPlatformMisc::LowLevelOutputDebugString( TEXT( "Memory pools allocations failed, exiting...\n" ) );

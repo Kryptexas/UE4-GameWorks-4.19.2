@@ -29,6 +29,7 @@
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/WorldSettings.h"
 #include "GeneralProjectSettings.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if WITH_EDITOR
 #include "AssetRegistryModule.h"
@@ -274,12 +275,12 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	//Get the requested occlusion plugin and set it up.
 	IAudioOcclusionFactory* OcclusionPluginFactory = AudioPluginUtilities::GetDesiredOcclusionPlugin(AudioPluginUtilities::CurrentPlatform);
 	if (OcclusionPluginFactory != nullptr)
-	{
+		{
 		OcclusionInterface = OcclusionPluginFactory->CreateNewOcclusionPlugin(this);
 		bOcclusionInterfaceEnabled = true;
 		bOcclusionIsExternalSend = OcclusionPluginFactory->IsExternalSend();
 		UE_LOG(LogAudio, Display, TEXT("Audio Occlusion Plugin: %s"), *(OcclusionPluginFactory->GetDisplayName()));
-	}
+		}
 	else
 	{
 		UE_LOG(LogAudio, Display, TEXT("Using built-in audio occlusion."));
@@ -3133,6 +3134,8 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 
 void FAudioDevice::Update(bool bGameTicking)
 {
+	LLM_SCOPE(ELLMTag::Audio);
+
 	SCOPED_NAMED_EVENT(FAudioDevice_Update, FColor::Blue);
 	if (!IsInAudioThread())
 	{
@@ -4240,7 +4243,7 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 
 void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrackMemory, bool bForceFullDecompression)
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+	LLM_SCOPE(ELLMTag::Audio);
 
 	if (SoundWave == nullptr)
 	{

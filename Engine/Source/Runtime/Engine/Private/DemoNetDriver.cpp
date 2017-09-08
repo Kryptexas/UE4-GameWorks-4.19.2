@@ -31,6 +31,7 @@
 #include "Net/NetworkProfiler.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY( LogDemo );
 
@@ -870,6 +871,8 @@ static float GetClampedDeltaSeconds( UWorld* World, const float DeltaSeconds )
 
 void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	// Set the context on the world for this driver's level collection.
 	const FLevelCollection* FoundCollection = nullptr;
 	if (GetWorld())

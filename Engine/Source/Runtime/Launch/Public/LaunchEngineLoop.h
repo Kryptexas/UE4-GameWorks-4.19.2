@@ -86,6 +86,9 @@ public:
 
 #endif // WITH_ENGINE
 
+	/** RHI post-init initialization */
+	static void PostInitRHI();
+
 	/** Pre-init HMD device (if necessary). */
 	static void PreInitHMDDevice();
 

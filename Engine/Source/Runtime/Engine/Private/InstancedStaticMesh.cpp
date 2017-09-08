@@ -1949,6 +1949,8 @@ void UInstancedStaticMeshComponent::PostLoad()
 
 void FAsyncBuildInstanceBuffer::DoWork()
 {
+	LLM_SCOPE(ELLMTag::StaticMesh);
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageAsyncBufferUpdate);
 
 	check(Component->PerInstanceRenderData.IsValid());

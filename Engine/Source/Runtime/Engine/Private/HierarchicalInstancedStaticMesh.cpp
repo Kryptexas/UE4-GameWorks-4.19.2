@@ -28,6 +28,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
 #include "SceneManagement.h"
+#include "HAL/LowLevelMemTracker.h"
 
 static TAutoConsoleVariable<int32> CVarFoliageSplitFactor(
 	TEXT("foliage.SplitFactor"),
@@ -1795,6 +1796,8 @@ void UHierarchicalInstancedStaticMeshComponent::PostEditChangeChainProperty(FPro
 
 void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::StaticMesh);	
+
 	// On save, if we have a pending async build we should wait for it to complete rather than saving an incomplete tree
 	if (Ar.IsSaving())
 	{
@@ -1893,6 +1896,8 @@ void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 Ins
 
 bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int32>& InstancesToRemove)
 {
+	LLM_SCOPE(ELLMTag::StaticMesh);
+
 	if (InstancesToRemove.Num() == 0)
 	{
 		return true;

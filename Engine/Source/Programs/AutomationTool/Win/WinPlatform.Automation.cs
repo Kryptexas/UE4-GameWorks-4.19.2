@@ -344,7 +344,7 @@ public abstract class BaseWinPlatform : Platform
         {
             ProcessStartInfo StartInfo = new ProcessStartInfo();
             StartInfo.FileName = SymStoreExe.FullName;
-            StartInfo.Arguments = string.Format("add /f \"{0}\" /s \"{1}\" /t \"{2}\"", File.FullName, SymbolStoreDirectory.FullName, Product);
+            StartInfo.Arguments = string.Format("add /f \"{0}\" /s \"{1}\" /t \"{2}\" /compress", File.FullName, SymbolStoreDirectory.FullName, Product);
             StartInfo.UseShellExecute = false;
             StartInfo.CreateNoWindow = true;
             if (Utils.RunLocalProcessAndLogOutput(StartInfo) != 0)

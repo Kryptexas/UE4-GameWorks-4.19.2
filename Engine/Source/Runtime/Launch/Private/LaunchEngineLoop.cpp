@@ -128,6 +128,7 @@
 	#include "IMessagingModule.h"
 	#include "Engine/DemoNetDriver.h"
 	#include "LongGPUTask.h"
+	#include "RenderUtils.h"
 
 #if !UE_SERVER
 	#include "AppMediaTimeSource.h"
@@ -153,7 +154,7 @@
 #if WITH_AUTOMATION_WORKER
 	#include "IAutomationWorkerModule.h"
 #endif
-#endif //WITH_ENGINE
+#endif  //WITH_ENGINE
 
 class FSlateRenderer;
 class SViewport;
@@ -907,7 +908,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
 	// disable/enable LLM based on commandline
 	LLM(FLowLevelMemTracker::Get().ProcessCommandLine(CmdLine));
-	LLM_SCOPED_SINGLE_STAT_TAG(EnginePreInitMemory);
+	LLM_SCOPE(ELLMTag::EnginePreInitMemory);
 
 	FPlatformMisc::InitTaggedStorage(1024);
 
@@ -1079,7 +1080,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	const SIZE_T CommandLineSize = FCString::Strlen(CmdLine)+1;
 	TCHAR* CommandLineCopy			= new TCHAR[ CommandLineSize ];
 	FCString::Strcpy( CommandLineCopy, CommandLineSize, CmdLine );
-	const TCHAR* ParsedCmdLine	= CommandLineCopy;
+	const TCHAR* ParsedCmdLine = CommandLineCopy;
 
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
 
@@ -1139,7 +1140,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// first item on command line was the game name, remove it in all cases
 		FString RemainingCommandline = ParsedCmdLine;
 		FCString::Strcpy( CommandLineCopy, CommandLineSize, *RemainingCommandline );
-		ParsedCmdLine	= CommandLineCopy;
+		ParsedCmdLine = CommandLineCopy;
 
 		// Set a new command-line that doesn't include the game name as the first argument
 		FCommandLine::Set(ParsedCmdLine);
@@ -1790,7 +1791,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		CreateMoviePlayer();
 		// If platforms support early movie playback we have to start the rendering thread much earlier
 #if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
-		RHIPostInit();
+		PostInitRHI();
 
 		if(GUseThreadedRendering)
 		{
@@ -1923,18 +1924,18 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{
 		if (FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer())
-		{
+	{
 			GetMoviePlayer()->Initialize(*Renderer);
 		}
 	}
 #endif
 
-	// do any post appInit processing, before the render thread is started.
+		// do any post appInit processing, before the render thread is started.
 	FPlatformApplicationMisc::PostInit();
 	SlowTask.EnterProgressFrame(5);
 
 #if !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
-	RHIPostInit();
+	PostInitRHI();
 
 	if (GUseThreadedRendering)
 	{
@@ -2640,7 +2641,7 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(EngineInitMemory);
+	LLM_SCOPE(ELLMTag::EngineInitMemory);
 
 	CheckImageIntegrity();
 
@@ -3095,7 +3096,7 @@ void FEngineLoop::Tick()
 	// let the low level mem tracker pump once a frame to update states
 	LLM(FLowLevelMemTracker::Get().UpdateStatsPerFrame());
 
-	LLM_SCOPED_SINGLE_STAT_TAG(EngineTickMemory);
+	LLM_SCOPE(ELLMTag::EngineMisc);
 
 	// Send a heartbeat for the diagnostics thread
 	FThreadHeartBeat::Get().HeartBeat();
@@ -3189,8 +3190,8 @@ void FEngineLoop::Tick()
 
 		// update memory allocator stats
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
-			GMalloc->UpdateStats();
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
+		GMalloc->UpdateStats();
 		}
 	}
 
@@ -3248,12 +3249,12 @@ void FEngineLoop::Tick()
 #endif //WITH_EDITOR
 
 			if( WorldToScale != nullptr )
-			{
+		{
 				if( GNewWorldToMetersScale != WorldToScale->GetWorldSettings()->WorldToMeters )
-				{
+			{
 					WorldToScale->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
-				}
 			}
+		}
 
 			GNewWorldToMetersScale = 0.0f;
 		}
@@ -3267,7 +3268,7 @@ void FEngineLoop::Tick()
 		{
 			SCOPE_TIME_GUARD(TEXT("SlateInput"));
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_SlateInput);
-			LLM_SCOPED_SINGLE_STAT_TAG(Slate);
+			LLM_SCOPE(ELLMTag::UI);
 
 			FSlateApplication& SlateApp = FSlateApplication::Get();
 			SlateApp.PollGameDeviceState();
@@ -3342,19 +3343,19 @@ void FEngineLoop::Tick()
 
 			if (CurrentDemoNetDriver && CurrentDemoNetDriver->ShouldTickFlushAsyncEndOfFrame())
 			{
-				ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+			ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
 					[CurrentDemoNetDriver, DeltaSeconds]() {
-						if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
-						{
-							FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
-						}
+					if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
+					{
+						FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
+					}
 
 						if (CurrentDemoNetDriver != nullptr)
 						{
 							CurrentDemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
-						}
+					}
 					});
-			}
+				}
 		}
 #endif
 
@@ -4039,6 +4040,18 @@ void FEngineLoop::AppExit( )
 	FInternationalization::TearDown();
 }
 
+void FEngineLoop::PostInitRHI()
+{
+#if WITH_ENGINE
+	TArray<uint32> PixelFormatByteWidth;
+	PixelFormatByteWidth.AddUninitialized(PF_MAX);
+	for (int i = 0; i < PF_MAX; i++)
+	{
+		PixelFormatByteWidth[i] = GPixelFormats[i].BlockBytes;
+	}
+	RHIPostInit(PixelFormatByteWidth);
+#endif
+}
 
 void FEngineLoop::PreInitHMDDevice()
 {

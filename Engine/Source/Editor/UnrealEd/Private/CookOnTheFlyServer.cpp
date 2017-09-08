@@ -4981,6 +4981,30 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 	if (!(FilesToCookFlags & ECookByTheBookOptions::DisableUnsolicitedPackages))
 	{
 		const FString ExternalMountPointName(TEXT("/Game/"));
+
+		if (IsCookingDLC())
+		{
+			// get the dlc and make sure we cook that directory 
+			FString DLCPath = FPaths::Combine(*GetBaseDirectoryForDLC(), TEXT("Content"));
+
+			TArray<FString> Files;
+			IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false, false);
+			IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetMapPackageExtension()), true, false, false);
+			for (int32 Index = 0; Index < Files.Num(); Index++)
+			{
+				FString StdFile = Files[Index];
+				FPaths::MakeStandardFilename(StdFile);
+				AddFileToCook(FilesInPath, StdFile);
+
+				// this asset may not be in our currently mounted content directories, so try to mount a new one now
+				FString LongPackageName;
+				if (!FPackageName::IsValidLongPackageName(StdFile) && !FPackageName::TryConvertFilenameToLongPackageName(StdFile, LongPackageName))
+				{
+					FPackageName::RegisterMountPoint(ExternalMountPointName, DLCPath);
+				}
+			}
+		}
+
 		for (const FString& CurrEntry : CookDirectories)
 		{
 			TArray<FString> Files;
@@ -5058,29 +5082,6 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 					UE_LOG(LogCook, Verbose, TEXT("Including culture information %s "), *StdFile);
 					FPaths::MakeStandardFilename(StdFile);
 					AddFileToCook(FilesInPath, StdFile);
-				}
-			}
-		}
-
-		if (IsCookingDLC())
-		{
-			// get the dlc and make sure we cook that directory 
-			FString DLCPath = FPaths::Combine(*GetBaseDirectoryForDLC(), TEXT("Content"));
-
-			TArray<FString> Files;
-			IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false, false);
-			IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetMapPackageExtension()), true, false, false);
-			for (int32 Index = 0; Index < Files.Num(); Index++)
-			{
-				FString StdFile = Files[Index];
-				FPaths::MakeStandardFilename(StdFile);
-				AddFileToCook(FilesInPath, StdFile);
-
-				// this asset may not be in our currently mounted content directories, so try to mount a new one now
-				FString LongPackageName;
-				if (!FPackageName::IsValidLongPackageName(StdFile) && !FPackageName::TryConvertFilenameToLongPackageName(StdFile, LongPackageName))
-				{
-					FPackageName::RegisterMountPoint(ExternalMountPointName, DLCPath);
 				}
 			}
 		}

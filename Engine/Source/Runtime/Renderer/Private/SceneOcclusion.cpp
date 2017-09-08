@@ -400,12 +400,12 @@ static bool AllocateProjectedShadowOcclusionQuery(
 
 	if (IntersectionMode == SOQ_LightInfluenceSphere)
 	{
-		FLightSceneProxy& LightProxy = *(ProjectedShadowInfo.GetLightSceneInfo().Proxy);
+	FLightSceneProxy& LightProxy = *(ProjectedShadowInfo.GetLightSceneInfo().Proxy);
 	
-		// Query one pass point light shadows separately because they don't have a shadow frustum, they have a bounding sphere instead.
-		FSphere LightBounds = LightProxy.GetBoundingSphere();
+	// Query one pass point light shadows separately because they don't have a shadow frustum, they have a bounding sphere instead.
+	FSphere LightBounds = LightProxy.GetBoundingSphere();
 	
-		const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.GetViewOrigin() - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
+	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.GetViewOrigin() - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
 		bIssueQuery = !bCameraInsideLightGeometry;
 	}
 	else if (IntersectionMode == SOQ_NearPlaneVsShadowFrustum)
@@ -664,7 +664,7 @@ void FHZBOcclusionTester::InitDynamicRHI()
 	{
 		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ResultsTextureCPU, TEXT("HZBResultsCPU") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ResultsTextureCPU, TEXT("HZBResultsCPU"), true, ERenderTargetTransience::NonTransient );
 	}
 }
 
@@ -1336,9 +1336,9 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 								}
 							}
 							else if (
-								// Don't query preshadows, since they are culled if their subject is occluded.
+							// Don't query preshadows, since they are culled if their subject is occluded.
 								!ProjectedShadowInfo.bPreShadow
-								// Don't query if any subjects are visible because the shadow frustum will be definitely unoccluded
+							// Don't query if any subjects are visible because the shadow frustum will be definitely unoccluded
 								&& !ProjectedShadowInfo.SubjectsVisible(View))
 							{
 								FRenderQueryRHIRef ShadowOcclusionQuery;

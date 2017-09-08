@@ -584,13 +584,13 @@ public:
 
 	bool HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type);
 	void HeapLoopedAround(D3D12_DESCRIPTOR_HEAP_TYPE Type);
-	void Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, uint32 InNumViewDescriptors, uint32 InNumSamplerDescriptors, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc);
+	void Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, uint32 InNumLocalViewDescriptors, uint32 InNumSamplerDescriptors, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc);
 	void Clear();
 	void BeginFrame();
 	void EndFrame();
 	void GatherUniqueSamplerTables();
 
-	bool SwitchToContextLocalViewHeap();
+	bool SwitchToContextLocalViewHeap(const FD3D12CommandListHandle& CommandListHandle);
 	bool SwitchToContextLocalSamplerHeap();
 	bool SwitchToGlobalSamplerHeap();
 

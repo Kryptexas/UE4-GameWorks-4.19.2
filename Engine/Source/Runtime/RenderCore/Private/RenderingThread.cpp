@@ -22,6 +22,7 @@
 #include "HAL/ThreadHeartBeat.h"
 #include "RenderResource.h"
 #include "ScopeLock.h"
+#include "HAL/LowLevelMemTracker.h"
 
 //
 // Globals
@@ -270,7 +271,7 @@ public:
 
 	virtual uint32 Run() override
 	{
-		LLM_SCOPED_TAG_WITH_STAT(STAT_RHIMiscLLM, ELLMTracker::Default);
+		LLM_SCOPE(ELLMTag::RHIMisc);
 
 		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RHIThread);
@@ -297,7 +298,7 @@ public:
 /** The rendering thread main loop */
 void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(RenderingThreadMemory);
+	LLM_SCOPE(ELLMTag::RenderingThreadMemory);
 
 	ENamedThreads::RenderThread = ENamedThreads::Type(ENamedThreads::ActualRenderingThread);
 	ENamedThreads::RenderThread_Local = ENamedThreads::Type(ENamedThreads::ActualRenderingThread_Local);
@@ -669,10 +670,10 @@ void StartRenderingThread()
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread_Local);
 		GRHIThread_InternalUseOnly = FRHIThread::Get().Thread;
 		check(GRHIThread_InternalUseOnly);
-		GRHICommandList.LatchBypass();
 		GIsRunningRHIInDedicatedThread_InternalUseOnly = true;
 		GIsRunningRHIInSeparateThread_InternalUseOnly = true;
 		GRHIThreadId = GRHIThread_InternalUseOnly->GetThreadID();
+		GRHICommandList.LatchBypass();
 	}
 	else if (GUseRHITaskThreads_InternalUseOnly)
 	{

@@ -77,7 +77,7 @@ struct FDecalRenderTargetManager
 
 	void ResolveTargets();
 
-	void FlushMetaData(FTextureRHIParamRef Texture);
+	void FlushMetaData(FTextureRHIParamRef* Textures, uint32 NumTextures);
 
 	void SetRenderTargetMode(FDecalRenderingCommon::ERenderTargetMode CurrentRenderTargetMode, bool bHasNormal);
 };

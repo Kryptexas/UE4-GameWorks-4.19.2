@@ -630,7 +630,6 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 	{
 		case SP_PCD3D_SM5:
 		case SP_PS4:
-		case SP_XBOXONE_D3D11:
 		case SP_XBOXONE_D3D12:
 		case SP_PCD3D_SM4:
 		case SP_PCD3D_ES2:

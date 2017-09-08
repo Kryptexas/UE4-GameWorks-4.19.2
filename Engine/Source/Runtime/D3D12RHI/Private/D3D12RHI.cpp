@@ -7,6 +7,7 @@
 #include "D3D12RHIPrivate.h"
 #include "RHIStaticStates.h"
 #include "OneColorShader.h"
+#include "D3D12LLM.h"
 
 #if !UE_BUILD_SHIPPING
 #include "STaskGraph.h"
@@ -36,6 +37,8 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	ViewportFrameCounter(0),
 	ChosenAdapters(ChosenAdaptersIn)
 {
+	LLM(D3D12LLM::Initialise());
+
 	FMemory::Memzero(ThreadDynamicHeapAllocatorArray, sizeof(ThreadDynamicHeapAllocatorArray));
 
 	// The FD3D12DynamicRHI must be a singleton
@@ -483,7 +486,7 @@ void FD3D12DynamicRHI::RHISwitchToAFRIfApplicable()
 		for (auto& ViewPort : Adapter.GetViewports())
 		{
 			FIntPoint Size = ViewPort->GetSizeXY();
-			ViewPort->Resize(Size.X, Size.Y, ViewPort->IsFullscreen());
+			ViewPort->Resize(Size.X, Size.Y, ViewPort->IsFullscreen(), PF_Unknown);
 		}
 	}
 }

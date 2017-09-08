@@ -18,6 +18,7 @@
 #include "AnalyticsEventAttribute.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Performance/EnginePerformanceTargets.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChartCreation, Log, All);
 
@@ -1173,6 +1174,8 @@ void FPerformanceTrackingSystem::StopCharting()
 
 void UEngine::TickPerformanceMonitoring(float DeltaSeconds)
 {
+	LLM_SCOPE(ELLMTag::Stats);
+
 	if (ActivePerformanceDataConsumers.Num() > 0)
 	{
 		const IPerformanceDataConsumer::FFrameData FrameData = GPerformanceTrackingSystem.AnalyzeFrame(DeltaSeconds);

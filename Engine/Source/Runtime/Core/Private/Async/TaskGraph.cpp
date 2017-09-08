@@ -25,6 +25,7 @@
 #include "Misc/App.h"
 #include "Containers/LockFreeFixedSizeAllocator.h"
 #include "Async/TaskGraphInterfaces.h"
+#include "HAL/LowLevelMemTracker.h"
 #include "HAL/ThreadHeartBeat.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTaskGraph, Log, All);
@@ -853,6 +854,8 @@ private:
 	**/
 	void ProcessTasks()
 	{
+		LLM_SCOPE(ELLMTag::TaskGraphTasksMisc);
+
 		TStatId StallStatId;
 		bool bCountAsStall = true;
 #if STATS

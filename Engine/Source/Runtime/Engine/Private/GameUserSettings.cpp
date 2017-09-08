@@ -823,6 +823,12 @@ void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /
 				OutputDevice = (DisplayNitLevel == 1000) ? 5 : 6;
 				ColorGamut = 1;
 			}
+#elif PLATFORM_XBOXONE
+			{
+				// PQ, 1000 or 2000 nits, Rec2020
+				OutputDevice = (DisplayNitLevel == 1000) ? 3 : 4;
+				ColorGamut = 2;
+			}
 #endif
 
 			if (ensure(OutputDevice > 0 && ColorGamut > 0))

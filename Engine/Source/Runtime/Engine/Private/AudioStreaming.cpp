@@ -520,7 +520,7 @@ void FAudioStreamingManager::ProcessPendingAsyncFileResults()
 
 void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProcessEverything /*= false*/)
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+	LLM_SCOPE(ELLMTag::Audio);
 
 	FScopeLock Lock(&CriticalSection);
 

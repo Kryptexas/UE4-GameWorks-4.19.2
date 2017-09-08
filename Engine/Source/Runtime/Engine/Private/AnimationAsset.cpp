@@ -184,7 +184,7 @@ UAnimationAsset::UAnimationAsset(const FObjectInitializer& ObjectInitializer)
 
 void UAnimationAsset::PostLoad()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+	LLM_SCOPE(ELLMTag::Animation);
 
 	Super::PostLoad();
 
@@ -219,7 +219,7 @@ void UAnimationAsset::ResetSkeleton(USkeleton* NewSkeleton)
 
 void UAnimationAsset::Serialize(FArchive& Ar)
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+	LLM_SCOPE(ELLMTag::Animation);
 
 	Super::Serialize(Ar);
 

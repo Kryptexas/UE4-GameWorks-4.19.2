@@ -233,15 +233,6 @@ static TAutoConsoleVariable<int32> CVarWideCustomResolve(
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 
-TAutoConsoleVariable<int32> CVarTransientResourceAliasing_RenderTargets(
-	TEXT("r.TransientResourceAliasing.RenderTargets"),
-	2,
-	TEXT("Enables transient resource aliasing for rendertargets. Used only if GSupportsTransientResourceAliasing is true.\n")
-	TEXT("0 : Disabled\n")
-	TEXT("1 : enable transient resource aliasing for fastVRam rendertargets\n")
-	TEXT("2 : enable transient resource aliasing for ALL rendertargets\n"),
-	ECVF_ReadOnly);
-
 TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers(
 	TEXT("r.TransientResourceAliasing.Buffers"),
 	1,
@@ -260,7 +251,7 @@ FASTVRAM_CVAR(GBufferC, 0);
 FASTVRAM_CVAR(GBufferD, 0);
 FASTVRAM_CVAR(GBufferE, 0);
 FASTVRAM_CVAR(GBufferVelocity, 0);
-FASTVRAM_CVAR(HZB, 0);
+FASTVRAM_CVAR(HZB, 1);
 FASTVRAM_CVAR(SceneDepth, 1);
 FASTVRAM_CVAR(SceneColor, 1);
 FASTVRAM_CVAR(LPV, 1);
@@ -294,6 +285,11 @@ FASTVRAM_CVAR(DBufferA, 0);
 FASTVRAM_CVAR(DBufferB, 0);
 FASTVRAM_CVAR(DBufferC, 0); 
 FASTVRAM_CVAR(DBufferMask, 0);
+
+FASTVRAM_CVAR(CustomDepth, 0);
+FASTVRAM_CVAR(ShadowPointLight, 0);
+FASTVRAM_CVAR(ShadowPerObject, 0);
+FASTVRAM_CVAR(ShadowCSM, 0);
 
 FASTVRAM_CVAR(DistanceFieldCulledObjectBuffers, 1);
 FASTVRAM_CVAR(DistanceFieldTileIntersectionResources, 1);
@@ -348,6 +344,10 @@ void FFastVramConfig::Update()
 	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DBufferB, DBufferB);
 	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DBufferC, DBufferC);
 	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DBufferMask, DBufferMask);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_CustomDepth, CustomDepth);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_ShadowPointLight, ShadowPointLight);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_ShadowPerObject, ShadowPerObject);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_ShadowCSM, ShadowCSM);
 
 	bDirty |= UpdateBufferFlagFromCVar(CVarFastVRam_DistanceFieldCulledObjectBuffers, DistanceFieldCulledObjectBuffers);
 	bDirty |= UpdateBufferFlagFromCVar(CVarFastVRam_DistanceFieldTileIntersectionResources, DistanceFieldTileIntersectionResources);
@@ -2151,8 +2151,8 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 	}
 	else
 	{
-		// this is passes to the render thread, better access that than GFrameNumberRenderThread
-		ViewFamily->FrameNumber = GFrameNumber;
+	// this is passes to the render thread, better access that than GFrameNumberRenderThread
+	ViewFamily->FrameNumber = GFrameNumber;
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2600,7 +2600,6 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	}
 }
-
 FTextureRHIParamRef FSceneRenderer::GetMultiViewSceneColor(const FSceneRenderTargets& SceneContext) const
 {
 	const FViewInfo& View = Views[0];

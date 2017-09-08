@@ -374,7 +374,7 @@ FGenericReadRequest::~FGenericReadRequest()
 
 void FGenericReadRequest::PerformRequest()
 {
-	LLM_SCOPED_SINGLE_STAT_TAG(GenericReadRequest);
+	LLM_SCOPE(ELLMTag::FileSystem);
 
 	if (!bCanceled)
 	{

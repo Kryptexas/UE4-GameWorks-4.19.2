@@ -80,6 +80,16 @@ static TAutoConsoleVariable<int32> CVarAllowMultipleAliasingDiscardsPerFrame(
 	TEXT(" 0:off (default), 1:on"),
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarRtPoolTransientMode(
+	TEXT("r.RenderTargetPool.TransientAliasingMode"),
+	2,
+	TEXT("Enables transient resource aliasing for rendertargets. Used only if GSupportsTransientResourceAliasing is true.\n")
+	TEXT("0 : Disabled\n")
+	TEXT("1 : enable transient resource aliasing for fastVRam rendertargets\n")
+	TEXT("2 : enable transient resource aliasing for fastVRam rendertargets and those with a Transient hint. Best for memory usage - has some GPU cost (~0.2ms)\n")
+	TEXT("3 : enable transient resource aliasing for ALL rendertargets (not recommended)\n"),
+	ECVF_ReadOnly);
+
 bool FRenderTargetPool::IsEventRecordingEnabled() const
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -136,6 +146,45 @@ FRenderTargetPool::FRenderTargetPool()
 {
 }
 
+// Logic for determining whether to make a rendertarget transient
+bool FRenderTargetPool::DoesTargetNeedTransienceOverride(const FPooledRenderTargetDesc& InputDesc, ERenderTargetTransience TransienceHint) const
+{
+	if (!GSupportsTransientResourceAliasing)
+	{
+		return false;
+	}
+	int32 AliasingMode = CVarRtPoolTransientMode.GetValueOnRenderThread();
+
+	// We only override transience if aliasing is supported and enabled, the format is suitable, and the target is not already transient
+	if (AliasingMode > 0 &&
+	  	(InputDesc.TargetableFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV)) && 
+		((InputDesc.Flags & TexCreate_Transient) == 0) )
+	{
+		if (AliasingMode == 1)
+		{
+			// Mode 1: Only make FastVRAM rendertargets transient
+			if (InputDesc.Flags & TexCreate_FastVRAM)
+			{
+				return true;
+			}
+		}
+		else if (AliasingMode == 2)
+		{
+			// Mode 2: Make fastvram and ERenderTargetTransience::Transient rendertargets transient
+			if (InputDesc.Flags & TexCreate_FastVRAM || TransienceHint == ERenderTargetTransience::Transient)
+			{
+				return true;
+			}
+		}
+		else if (AliasingMode == 3)
+		{
+			// Mode 3 : All rendertargets are transient
+			return true;
+		}
+	}
+	return false;
+}
+
 void FRenderTargetPool::TransitionTargetsWritable(FRHICommandListImmediate& RHICmdList)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderTargetPoolTransition);
@@ -181,7 +230,7 @@ void FRenderTargetPool::WaitForTransitionFence()
 	DeferredDeleteArray.Reset();
 }
 
-bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& InputDesc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName, bool bDoWritableBarrier)
+bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& InputDesc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName, bool bDoWritableBarrier, ERenderTargetTransience TransienceHint)
 {
 	check(IsInRenderingThread());
 
@@ -195,36 +244,16 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 	ensure(!IsDepthOrStencilFormat(InputDesc.Format) || (InputDesc.ClearValue.ColorBinding == EClearBinding::ENoneBound || InputDesc.ClearValue.ColorBinding == EClearBinding::EDepthStencilBound));
 
 	// If we're doing aliasing, we may need to override Transient flags, depending on the input format and mode
-	int32 AliasingMode = CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread();
 	FPooledRenderTargetDesc ModifiedDesc;
-	bool bModifyDesc = false;
-	if (GSupportsTransientResourceAliasing && AliasingMode > 0 && 
-	   (InputDesc.TargetableFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV) ) )
-	{
-		// Only override if the flags aren't already transient (this avoids a copy)
-		if ((InputDesc.Flags & TexCreate_Transient) == 0)
-		{
-			if (AliasingMode == 1)
+	bool bMakeTransient = DoesTargetNeedTransienceOverride(InputDesc, TransienceHint);
+	if (bMakeTransient)
 			{
-				// Mode 1: Make FastVRAM rendertargets transient
-				if (InputDesc.Flags & TexCreate_FastVRAM)
-				{
-					ModifiedDesc = InputDesc;
-					ModifiedDesc.Flags |= TexCreate_Transient;
-					bModifyDesc = true;
-				}
-			}
-			else if (AliasingMode == 2)
-			{
-				// Mode 2: Make all rendertargets transient
 				ModifiedDesc = InputDesc;
 				ModifiedDesc.Flags |= TexCreate_Transient;
-				bModifyDesc = true;
-			}
-		}
 	}
 
-	const FPooledRenderTargetDesc& Desc = bModifyDesc ? ModifiedDesc : InputDesc;
+	// Override the descriptor if necessary
+	const FPooledRenderTargetDesc& Desc = bMakeTransient ? ModifiedDesc : InputDesc;
 
 
 	// if we can keep the current one, do that
@@ -265,6 +294,7 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 		}
 	}
 
+	int32 AliasingMode = CVarRtPoolTransientMode.GetValueOnRenderThread();
 	FPooledRenderTarget* Found = 0;
 	uint32 FoundIndex = -1;
 	bool bReusingExistingTarget = false;
@@ -275,9 +305,9 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 		if (AliasingMode == 0)
 		{
 			if ((Desc.Flags & TexCreate_FastVRAM) && FPlatformMemory::SupportsFastVRAMMemory() )
-		    {
-			    PassCount = 2;
-		    }
+		{
+			PassCount = 2;
+		}
 		}
 
 		bool bAllowMultipleDiscards = ( CVarAllowMultipleAliasingDiscardsPerFrame.GetValueOnRenderThread() != 0 );
@@ -1240,6 +1270,14 @@ void FRenderTargetPool::TickPoolElements()
 	AddPhaseEvent(TEXT("FromLastFrame"));
 	AddAllocEventsFromCurrentState();
 	AddPhaseEvent(TEXT("Rendering"));
+
+#if STATS
+	uint32 Count, SizeKB, UsedKB;
+	GetStats(Count, SizeKB, UsedKB);
+	SET_MEMORY_STAT(STAT_RenderTargetPoolSize, int64(SizeKB) * 1024ll);
+	SET_MEMORY_STAT(STAT_RenderTargetPoolUsed, int64(UsedKB) * 1024ll);
+	SET_DWORD_STAT(STAT_RenderTargetPoolCount, Count);
+#endif // STATS
 }
 
 
@@ -1325,7 +1363,7 @@ void FRenderTargetPool::DumpMemoryUsage(FOutputDevice& OutputDevice)
 		{
 			check(!Element->IsSnapshot());
 			OutputDevice.Logf(
-				TEXT("  %6.3fMB %4dx%4d%s%s %2dmip(s) %s (%s)"),
+				TEXT("  %6.3fMB %4dx%4d%s%s %2dmip(s) %s (%s) %s %s"),
 				ComputeSizeInKB(*Element) / 1024.0f,
 				Element->Desc.Extent.X,
 				Element->Desc.Extent.Y,
@@ -1333,7 +1371,9 @@ void FRenderTargetPool::DumpMemoryUsage(FOutputDevice& OutputDevice)
 				Element->Desc.bIsArray ? *FString::Printf(TEXT("[%3d]"), Element->Desc.ArraySize) : TEXT("     "),
 				Element->Desc.NumMips,
 				Element->Desc.DebugName,
-				GPixelFormats[Element->Desc.Format].Name
+				GPixelFormats[Element->Desc.Format].Name,
+				Element->IsTransient() ? TEXT("(transient)") : TEXT(""),
+				GSupportsTransientResourceAliasing ? *FString::Printf(TEXT("Frames since last discard: %d"), GFrameNumberRenderThread - Element->FrameNumberLastDiscard) : TEXT("")
 				);
 		}
 	}

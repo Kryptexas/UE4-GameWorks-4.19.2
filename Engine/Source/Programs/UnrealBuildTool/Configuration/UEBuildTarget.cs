@@ -231,6 +231,16 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// 
 		/// </summary>
+		public readonly List<string> PreBuildScripts = new List<string>();
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public readonly List<string> PostBuildScripts = new List<string>();
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public BuildManifest()
 		{
 		}
@@ -1542,7 +1552,7 @@ namespace UnrealBuildTool
 
 			BuildManifest Manifest = new BuildManifest();
 
-			if(!Rules.bDisableLinking)
+			if (!Rules.bDisableLinking)
 			{
 				// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 				foreach (BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -1564,9 +1574,19 @@ namespace UnrealBuildTool
 					Manifest.AddBuildProduct(ReceiptFileName.FullName);
 				}
 
-				if(DeployTargetFile != null)
+				if (DeployTargetFile != null)
 				{
 					Manifest.DeployTargetFiles.Add(DeployTargetFile.FullName);
+				}
+
+				if (PreBuildStepScripts != null)
+				{
+					Manifest.PreBuildScripts.AddRange(PreBuildStepScripts.Select(x => x.FullName));
+				}
+
+				if(PostBuildStepScripts != null)
+				{
+					Manifest.PostBuildScripts.AddRange(PostBuildStepScripts.Select(x => x.FullName));
 				}
 			}
 
@@ -2758,7 +2778,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool ExecuteCustomPreBuildSteps()
 		{
-			return ExecuteCustomBuildSteps(PreBuildStepScripts);
+			return Utils.ExecuteCustomBuildSteps(PreBuildStepScripts);
 		}
 
 		/// <summary>
@@ -2766,39 +2786,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool ExecuteCustomPostBuildSteps()
 		{
-			return ExecuteCustomBuildSteps(PostBuildStepScripts);
-		}
-
-		/// <summary>
-		/// Executes a list of custom build step scripts
-		/// </summary>
-		/// <param name="ScriptFiles">List of script files to execute</param>
-		/// <returns>True if the steps succeeded, false otherwise</returns>
-		private bool ExecuteCustomBuildSteps(FileReference[] ScriptFiles)
-		{
-			UnrealTargetPlatform HostPlatform = BuildHostPlatform.Current.Platform;
-			foreach(FileReference ScriptFile in ScriptFiles)
-			{
-				ProcessStartInfo StartInfo = new ProcessStartInfo();
-				if(HostPlatform == UnrealTargetPlatform.Win64)
-				{
-					StartInfo.FileName = "cmd.exe";
-					StartInfo.Arguments = String.Format("/C \"{0}\"", ScriptFile.FullName);
-				}
-				else
-				{
-					StartInfo.FileName = "/bin/sh";
-					StartInfo.Arguments = String.Format("\"{0}\"", ScriptFile.FullName);
-				}
-
-				int ReturnCode = Utils.RunLocalProcessAndLogOutput(StartInfo);
-				if(ReturnCode != 0)
-				{
-					Log.TraceError("Custom build step terminated with exit code {0}", ReturnCode);
-					return false;
-				}
-			}
-			return true;
+			return Utils.ExecuteCustomBuildSteps(PostBuildStepScripts);
 		}
 
 		private static FileReference AddModuleFilenameSuffix(string ModuleName, FileReference FilePath, string Suffix)
@@ -4114,6 +4102,17 @@ namespace UnrealBuildTool
 			else
 			{
 				GlobalCompileEnvironment.Definitions.Add("WITH_CEF3=0");
+			}
+
+			if (Rules.bUseXGEController &&
+				Rules.Type == TargetType.Editor &&
+				(Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64))
+			{
+				GlobalCompileEnvironment.Definitions.Add("WITH_XGE_CONTROLLER=1");
+			}
+			else
+			{
+				GlobalCompileEnvironment.Definitions.Add("WITH_XGE_CONTROLLER=0");
 			}
 
 			// tell the compiled code the name of the UBT platform (this affects folder on disk, etc that the game may need to know)

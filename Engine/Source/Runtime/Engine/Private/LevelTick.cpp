@@ -38,6 +38,7 @@
 #include "IHeadMountedDisplay.h"
 #include "TimerManager.h"
 #include "Camera/CameraPhotography.h"
+#include "HAL/LowLevelMemTracker.h"
 
 //#include "SoundDefinitions.h"
 #include "FXSystem.h"
@@ -1287,6 +1288,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NetWorldTickTime);
 		SCOPE_TIME_GUARD(TEXT("UWorld::Tick - NetTick"));
+		LLM_SCOPE(ELLMTag::Networking);
 		// Update the net code and fetch all incoming packets.
 		BroadcastTickDispatch(DeltaSeconds);
 
