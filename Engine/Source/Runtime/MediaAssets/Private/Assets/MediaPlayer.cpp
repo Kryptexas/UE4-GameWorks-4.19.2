@@ -614,6 +614,7 @@ void UMediaPlayer::PostInitProperties()
 {
 	Super::PostInitProperties();
 
+	// Set the player GUID - required for UMediaPlayers dynamically allocated at runtime
 	PlayerFacade->SetGuid(PlayerGuid);
 
 	IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
@@ -625,6 +626,13 @@ void UMediaPlayer::PostInitProperties()
 	}
 }
 
+void UMediaPlayer::PostLoad()
+{
+	Super::PostLoad();
+
+	// Set the player GUID - required for UMediaPlayer assets
+	PlayerFacade->SetGuid(PlayerGuid);
+}
 
 #if WITH_EDITOR
 
