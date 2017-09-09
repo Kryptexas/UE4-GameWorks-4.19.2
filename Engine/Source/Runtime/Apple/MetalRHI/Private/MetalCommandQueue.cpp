@@ -109,7 +109,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
     
     if([Device supportsFeatureSet:(MTLFeatureSet)EMetalFeatureSetMacOSv3])
     {
-        Features |= EMetalFeaturesMultipleViewports | EMetalFeaturesGPUCommandBufferTimes | EMetalFeaturesGPUCaptureManager | EMetalFeaturesAbsoluteTimeQueries;
+        Features |= EMetalFeaturesMultipleViewports | EMetalFeaturesGPUCommandBufferTimes | EMetalFeaturesGPUCaptureManager | EMetalFeaturesAbsoluteTimeQueries | EMetalFeaturesSupportsVSyncToggle;
     }
     // Time query emulation breaks on AMD < 10.13 - disable by default until they can explain why, should work everywhere else.
 	else if ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location == NSNotFound || FParse::Param(FCommandLine::Get(),TEXT("metaltimequery")))
@@ -141,23 +141,6 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
     if(!GConfig->GetInt(Settings, TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
     {
         MaxShaderVersion = DefaultMaxShaderVersion;
-    }
-    
-    // This value must match between the shaders compiled & the code being run or you'll get mismatched resource bindings.
-    switch(MaxShaderVersion)
-    {
-        case 3:
-            // Linear UAVs are a bit more fragile and might not work right now - don't assume you can use them
-            Features |= EMetalFeaturesLinearTextureUAVs;
-            // Deliberate fall-through
-        case 2:
-            // It might not be publicly acknowledged but Linear textures work on Sierra.
-            Features |= EMetalFeaturesLinearTextures;
-            break;
-        case 1:
-        case 0:
-        default:
-            break;
     }
 	
 #if METAL_STATISTICS

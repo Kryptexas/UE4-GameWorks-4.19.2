@@ -610,10 +610,8 @@ public:
 	 */
 	ENGINE_API int32 GetCachedLODBias() const;
 
-	/**
-	 * Cache the combined LOD bias based on texture LOD group and LOD bias.
-	 */
-	ENGINE_API void UpdateCachedLODBias( bool bIncTextureMips = true );
+	/** Cache the combined LOD bias based on texture LOD group and LOD bias. */
+	ENGINE_API void UpdateCachedLODBias();
 
 	/**
 	 * @return The material value type of this texture.

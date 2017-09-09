@@ -162,16 +162,16 @@ void FAvfMediaPlayer::OnStatusNotification(AVPlayerItemStatus Status)
 		{
 			if (Duration == 0.0f || CurrentState == EMediaState::Closed)
 			{
-				Tracks->Initialize(PlayerItem, Info);
-			 
 				PlayerTasks.Enqueue([=]() {
+					Tracks->Initialize(PlayerItem, Info);
+					
 					EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
 				});
 				
-				Duration = FTimespan::FromSeconds(CMTimeGetSeconds(PlayerItem.asset.duration));
-				CurrentState = (CurrentState == EMediaState::Closed) ? EMediaState::Preparing : CurrentState;
-				
 				PlayerTasks.Enqueue([=]() {
+					Duration = FTimespan::FromSeconds(CMTimeGetSeconds(PlayerItem.asset.duration));
+					CurrentState = (CurrentState == EMediaState::Closed) ? EMediaState::Preparing : CurrentState;
+
 					if (!bPrerolled)
 					{
 						// Preroll for playback.

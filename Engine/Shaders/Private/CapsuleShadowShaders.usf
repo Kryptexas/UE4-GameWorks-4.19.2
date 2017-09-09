@@ -114,6 +114,11 @@ void ComputeLightDirectionFromVolumetricLightmapCS(
 			LightDirection = GetMaximumDirection(GetLuminance(IrradianceSH));
 			LightAngle = CapsuleIndirectConeAngle;
 		}
+		
+		if (dot(LightDirection, LightDirection) < .1f)
+		{
+			LightDirection = float3(0, 0, 1);
+		}
 
 		float Unused;
 		float MinVisibility;

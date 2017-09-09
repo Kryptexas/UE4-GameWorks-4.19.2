@@ -593,6 +593,25 @@ namespace CrossCompiler
 			return false;
 		}
 
+		inline bool IsSwizzleDigit(TCHAR Char)
+		{
+			switch (Char)
+			{
+			case 'r':
+			case 'g':
+			case 'b':
+			case 'a':
+			case 'x':
+			case 'y':
+			case 'z':
+			case 'w':
+				return true;
+
+			default:
+				return false;
+			}
+		}
+
 		bool MatchFloatNumber(float& OutNum)
 		{
 			auto* Original = Current;
@@ -609,12 +628,25 @@ namespace CrossCompiler
 			}
 
 			bool bExpOptional = false;
+
+			// Differentiate between 1. and 1.rr for example
+			if (Char == '.' && IsSwizzleDigit(Peek(1)))
+			{
+				goto NotFloat;
+			}
+
 			if (Match('.') && MatchAndSkipDigits())
 			{
 				bExpOptional = true;
 			}
 			else if (MatchAndSkipDigits())
 			{
+				// Differentiate between 1. and 1.rr for example
+				if (Peek() == '.' && IsSwizzleDigit(Peek(1)))
+				{
+					goto NotFloat;
+				}
+
 				if (Match('.'))
 				{
 					bExpOptional = true;

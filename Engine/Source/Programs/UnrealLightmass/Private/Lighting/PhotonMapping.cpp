@@ -186,7 +186,6 @@ void FStaticLightingSystem::EmitPhotons()
 		CalculateIrradiancePhotons(ImportanceVolumeBounds, mIrradiancePhotons);
 		Stats.IrradiancePhotonCalculatingTime = FPlatformTime::Seconds() - StartCalculateIrradiancePhotonsTime;
 		LogSolverMessage(FString::Printf(TEXT("Calculate Irradiance Photons complete, %.3f million irradiance calculations in %.1f seconds"), Stats.NumFoundIrradiancePhotons / 1000000.0f, Stats.IrradiancePhotonCalculatingTime));
-
 	}
 
 	// Verify that temporary photon memory has been freed
@@ -585,13 +584,13 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 			// Continue tracing this path if we don't have enough indirect photon paths yet
 			if (NumIndirectPathRaysGathered < WorkRange.TargetNumIndirectPhotonPaths)
 			{
-				PathIntersection.IntersectionVertex.GenerateVertexTangents();
+				FStaticLightingVertex IntersectionVertexWithTangents(PathIntersection.IntersectionVertex);
 				FVector4 NewWorldPathDirection;
 				float BRDFDirectionPDF;
 
 				// Generate a new path direction from the BRDF
 				const FLinearColor BRDF = PathIntersection.Mesh->SampleBRDF(
-					PathIntersection.IntersectionVertex, 
+					IntersectionVertexWithTangents, 
 					PathIntersection.ElementIndex,
 					-WorldPathDirection, 
 					NewWorldPathDirection, 
@@ -604,13 +603,13 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 					continue;
 				}
 
-				const float CosFactor = -Dot3(WorldPathDirection, PathIntersection.IntersectionVertex.WorldTangentZ);
+				const float CosFactor = -Dot3(WorldPathDirection, IntersectionVertexWithTangents.WorldTangentZ);
 				checkSlow(CosFactor >= 0.0f && CosFactor <= 1.0f);
 
-				const FVector4 RayStart = PathIntersection.IntersectionVertex.WorldPosition 
+				const FVector4 RayStart = IntersectionVertexWithTangents.WorldPosition 
 					+ NewWorldPathDirection * SceneConstants.VisibilityRayOffsetDistance 
-					+ PathIntersection.IntersectionVertex.WorldTangentZ * SceneConstants.VisibilityNormalOffsetDistance;
-				const FVector4 RayEnd = PathIntersection.IntersectionVertex.WorldPosition + NewWorldPathDirection * MaxRayDistance;
+					+ IntersectionVertexWithTangents.WorldTangentZ * SceneConstants.VisibilityNormalOffsetDistance;
+				const FVector4 RayEnd = IntersectionVertexWithTangents.WorldPosition + NewWorldPathDirection * MaxRayDistance;
 
 				FLightRay IndirectSampleRay(
 					RayStart,
@@ -1084,13 +1083,14 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 				break;
 			}
 
-			PathIntersection.IntersectionVertex.GenerateVertexTangents();
+			FStaticLightingVertex IntersectionVertexWithTangents(PathIntersection.IntersectionVertex);
+
 			FVector4 NewWorldPathDirection;
 			float BRDFDirectionPDF;
 
 			// Generate a new path direction from the BRDF
 			const FLinearColor BRDF = PathIntersection.Mesh->SampleBRDF(
-				PathIntersection.IntersectionVertex, 
+				IntersectionVertexWithTangents, 
 				PathIntersection.ElementIndex,
 				-WorldPathDirection, 
 				NewWorldPathDirection, 
@@ -1105,7 +1105,7 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 				break;
 			}
 
-			const float CosFactor = -Dot3(WorldPathDirection, PathIntersection.IntersectionVertex.WorldTangentZ);
+			const float CosFactor = -Dot3(WorldPathDirection, IntersectionVertexWithTangents.WorldTangentZ);
 			checkSlow(CosFactor >= 0.0f && CosFactor <= 1.0f);
 			if (NumberOfPathVertices == 1)
 			{
@@ -1138,10 +1138,10 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 
 			checkSlow(FLinearColorUtils::AreFloatsValid(PathAlpha));
 
-			const FVector4 RayStart = PathIntersection.IntersectionVertex.WorldPosition 
+			const FVector4 RayStart = IntersectionVertexWithTangents.WorldPosition 
 				+ NewWorldPathDirection * SceneConstants.VisibilityRayOffsetDistance 
-				+ PathIntersection.IntersectionVertex.WorldTangentZ * SceneConstants.VisibilityNormalOffsetDistance;
-			FVector4 RayEnd = PathIntersection.IntersectionVertex.WorldPosition + NewWorldPathDirection * MaxRayDistance;
+				+ IntersectionVertexWithTangents.WorldTangentZ * SceneConstants.VisibilityNormalOffsetDistance;
+			FVector4 RayEnd = IntersectionVertexWithTangents.WorldPosition + NewWorldPathDirection * MaxRayDistance;
 
 			// Clip photon path end points to the importance volume, so we do not bother tracing rays outside the area that photons can be deposited.
 			// If the photon path does not intersect the importance volume at all, it did not originate from inside the volume, so skip to the next photon.
@@ -2186,7 +2186,7 @@ private:
 
 /** Finds the nearest irradiance photon, if one exists. */
 FIrradiancePhoton* FStaticLightingSystem::FindNearestIrradiancePhoton(
-	const FStaticLightingVertex& Vertex, 
+	const FMinimalStaticLightingVertex& Vertex, 
 	FStaticLightingMappingContext& MappingContext, 
 	TArray<FIrradiancePhoton*>& TempIrradiancePhotons,
 	bool bVisibleOnly, 
@@ -2435,7 +2435,7 @@ FLinearColor FStaticLightingSystem::CalculatePhotonExitantRadiance(
 	int32 NumPhotonsEmitted, 
 	float SearchDistance,
 	const FStaticLightingMesh* Mesh,
-	const FStaticLightingVertex& Vertex,
+	const FMinimalStaticLightingVertex& Vertex,
 	int32 ElementIndex,
 	const FVector4& OutgoingDirection,
 	bool bDebugThisDensityEstimation) const

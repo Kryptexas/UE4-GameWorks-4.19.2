@@ -1285,7 +1285,12 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->LightmapUVVersion, Owner->ImportVersion);
+			if (!MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->LightmapUVVersion, Owner->ImportVersion))
+			{
+				UE_LOG(LogStaticMesh, Error, TEXT("Failed to build static mesh. See previous line(s) for details."));
+				return;
+			}
+
 			ComputeUVDensities();
 			if(Owner->bSupportUniformlyDistributedSampling)
 			{

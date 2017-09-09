@@ -100,7 +100,11 @@ float3 CompositeReflectionCapturesAndSkylight(
 			float CaptureArrayIndex = CaptureProperties.g;
 
 			{
+			#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 				float4 Sample = ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, float4(ProjectedCaptureVector, CaptureArrayIndex), Mip);
+			#else
+				float4 Sample = ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, ProjectedCaptureVector, Mip);
+			#endif
 
 				Sample.rgb *= CaptureProperties.r;
 				Sample *= DistanceAlpha;
@@ -115,6 +119,14 @@ float3 CompositeReflectionCapturesAndSkylight(
 			}
 		}
 	}
+
+#if FEATURE_LEVEL == FEATURE_LEVEL_SM4 && ( REFLECTION_COMPOSITE_HAS_BOX_CAPTURES || REFLECTION_COMPOSITE_HAS_SPHERE_CAPTURES )
+	Roughness = 1;
+	ImageBasedReflections.rgb += ImageBasedReflections.a * IndirectSpecularOcclusion;
+	ImageBasedReflections.a = 0.0;
+	CompositedAverageBrightness = float2(1,0);
+#endif
+
 #else
 
 	float3 ProjectedCaptureVector = RayDirection;

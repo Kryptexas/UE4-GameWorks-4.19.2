@@ -167,12 +167,6 @@ FLinearColor FLinearColor::Desaturate( float Desaturation ) const
 	return FMath::Lerp( *this, FLinearColor( Lum, Lum, Lum, 0 ), Desaturation );
 }
 
-/** Computes the perceptually weighted luminance value of a color. */
-float FLinearColor::ComputeLuminance() const
-{
-	return R * 0.3f + G * 0.59f + B * 0.11f;
-}
-
 FColor FColor::FromHex( const FString& HexString )
 {
 	int32 StartIndex = (!HexString.IsEmpty() && HexString[0] == TCHAR('#')) ? 1 : 0;

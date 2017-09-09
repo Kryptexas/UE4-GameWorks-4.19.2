@@ -11,7 +11,9 @@
 #include "MetalShaderResources.h"
 #include "HAL/FileManager.h"
 #include "Serialization/Archive.h"
+#include "ConfigCacheIni.h"
 
+extern uint16 GetXcodeVersion(uint64& BuildVersion);
 extern bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool const bNative);
 extern uint64 AppendShader_Metal(class FName const& Format, class FString const& ArchivePath, const FSHAHash& Hash, TArray<uint8>& Code);
 extern bool FinalizeLibrary_Metal(class FName const& Format, class FString const& ArchivePath, class FString const& LibraryPath, TSet<uint64> const& Shaders, class FString const& DebugOutputDir);
@@ -104,13 +106,14 @@ class FMetalShaderFormat : public IShaderFormat
 public:
 	enum
 	{
-		HEADER_VERSION = 40,
+		HEADER_VERSION = 41,
 	};
 	
 	struct FVersion
 	{
-		uint16 HLSLCCMinor		: 16;
-		uint16 Format			: 15;
+		uint16 XcodeVersion;
+		uint16 HLSLCCMinor		: 8;
+		uint16 Format			: 7;
 		uint16 OfflineCompiled	: 1;
 	};
 	
@@ -145,7 +148,7 @@ public:
 	{ 
 		return true;
 	}
-	virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const override
+    virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const override final
     {
         return new FMetalShaderFormatArchive(Format, WorkingDirectory);
     }
@@ -160,11 +163,34 @@ uint32 GetMetalFormatVersion(FName Format)
 		uint32 Raw;
 	} Version;
 	
+	// Include the Xcode version when the .ini settings instruct us to do so.
+	uint16 AppVersion = 0;
+	bool bAddXcodeVersionInShaderVersion = false;
+	if(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT)
+	{
+		GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("XcodeVersionInShaderVersion"), bAddXcodeVersionInShaderVersion, GEngineIni);
+	}
+	else
+	{
+		GConfig->GetBool(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("XcodeVersionInShaderVersion"), bAddXcodeVersionInShaderVersion, GEngineIni);
+	}
+	if (!FApp::IsEngineInstalled() && bAddXcodeVersionInShaderVersion)
+	{
+		uint64 BuildVersion = 0;
+		AppVersion = GetXcodeVersion(BuildVersion);
+		AppVersion ^= (BuildVersion & 0xff);
+		AppVersion ^= ((BuildVersion >> 16) & 0xff);
+		AppVersion ^= ((BuildVersion >> 32) & 0xff);
+		AppVersion ^= ((BuildVersion >> 48) & 0xff);
+	}
+
+	Version.Version.XcodeVersion = AppVersion;
 	Version.Version.Format = FMetalShaderFormat::HEADER_VERSION;
 	Version.Version.HLSLCCMinor = HLSLCC_VersionMinor;
 	Version.Version.OfflineCompiled = METAL_OFFLINE_COMPILE;
 	
 	// Check that we didn't overwrite any bits
+	check(Version.Version.XcodeVersion == AppVersion);
 	check(Version.Version.Format == FMetalShaderFormat::HEADER_VERSION);
 	check(Version.Version.HLSLCCMinor == HLSLCC_VersionMinor);
 	check(Version.Version.OfflineCompiled == METAL_OFFLINE_COMPILE);

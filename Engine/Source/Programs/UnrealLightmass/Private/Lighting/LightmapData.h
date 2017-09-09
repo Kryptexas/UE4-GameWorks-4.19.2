@@ -8,15 +8,6 @@
 
 namespace Lightmass
 {
-	/** The light incident for a point on a surface. */
-	class FLightSample : public FLightSampleData
-	{
-	public:
-		/** Initialization constructor. */
-		FLightSample() : FLightSampleData() {}
-		FLightSample(EForceInit) : FLightSampleData() {}
-	};
-
 	/**
 	 * The raw data which is used to construct a 2D light-map.
 	 */

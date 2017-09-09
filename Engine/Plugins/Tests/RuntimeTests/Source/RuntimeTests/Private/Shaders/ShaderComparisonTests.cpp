@@ -129,7 +129,7 @@ bool FCompareBasepassShaders::RunTest(const FString& Parameters)
     FP16AverageTimes->SetNum(4);
 
     // TODO(mlentine): Fix this so we don't need separate take and load paths
-    TArray<FString> ShaderNames = { FPaths::EngineDir() + "Shaders/Private/Common.ush" };
+    TArray<FString> ShaderNames = { FPaths::EngineDir() + "Shaders/Public/FP16Math.ush" };
     auto FileStrings = std::make_shared<TArray<FString>>();
     FileStrings->SetNum(ShaderNames.Num());
     FString MapName = "TM-ShaderModels";

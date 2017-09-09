@@ -595,12 +595,21 @@ void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 	// The update is invalid if the lighting cache allocation was not in a functional state.
 	if (bPrecomputedLightingBufferDirty && (!IndirectLightingCacheAllocation || (Scene->IndirectLightingCache.IsInitialized() && IndirectLightingCacheAllocation->bHasEverUpdatedSingleSample)))
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdatePrecomputedLightingBuffer);
+
 		EUniformBufferUsage BufferUsage = Proxy->IsOftenMoving() ? UniformBuffer_SingleFrame : UniformBuffer_MultiFrame;
 
 		// If the PrimitiveInfo has no precomputed lighting buffer, it will fallback to the global Empty buffer.
-		if (IndirectLightingCacheAllocation)
+		if (!UseGPUInterpolatedVolumetricLightmaps(Scene->GetShadingPath())
+			&& Scene->VolumetricLightmapSceneData.HasData()
+			&& (Proxy->IsMovable() || Proxy->NeedsUnbuiltPreviewLighting())
+			&& Proxy->WillEverBeLit())
 		{
-			IndirectLightingCacheUniformBuffer = CreatePrecomputedLightingUniformBuffer(BufferUsage, Scene->GetFeatureLevel(), &Scene->IndirectLightingCache, IndirectLightingCacheAllocation);
+			IndirectLightingCacheUniformBuffer = CreatePrecomputedLightingUniformBuffer(BufferUsage, Scene->GetFeatureLevel(), NULL, NULL, Proxy->GetBounds().Origin, Scene->GetFrameNumber(), &Scene->VolumetricLightmapSceneData, NULL);
+		}
+		else if (IndirectLightingCacheAllocation)
+		{
+			IndirectLightingCacheUniformBuffer = CreatePrecomputedLightingUniformBuffer(BufferUsage, Scene->GetFeatureLevel(), &Scene->IndirectLightingCache, IndirectLightingCacheAllocation, FVector(0, 0, 0), 0, NULL, NULL);
 		}
 		else
 		{
@@ -617,7 +626,7 @@ void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 			// If the LCI has no precomputed lighting buffer, it will fallback to the PrimitiveInfo buffer.
 			if (LCI->GetShadowMapInteraction().GetType() == SMIT_Texture || LCI->GetLightMapInteraction(Scene->GetFeatureLevel()).GetType() == LMIT_Texture)
 			{
-				LCI->SetPrecomputedLightingBuffer(CreatePrecomputedLightingUniformBuffer(BufferUsage, Scene->GetFeatureLevel(), &Scene->IndirectLightingCache, IndirectLightingCacheAllocation, LCI));
+				LCI->SetPrecomputedLightingBuffer(CreatePrecomputedLightingUniformBuffer(BufferUsage, Scene->GetFeatureLevel(), NULL, NULL, FVector(0, 0, 0), 0, NULL, LCI));
 			}
 			else
 			{

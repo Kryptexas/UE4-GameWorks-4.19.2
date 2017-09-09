@@ -1198,6 +1198,167 @@ namespace VulkanRHI
 
 	inline void* FBufferSuballocation::GetMappedPointer()
 	{
-		return (uint8*)Owner->GetMappedPointer() + AlignedOffset;
+		return Owner->GetMappedPointer();
+	}
+
+	enum class EImageLayoutBarrier
+	{
+		Undefined,
+		TransferDest,
+		ColorAttachment,
+		DepthStencilAttachment,
+		TransferSource,
+		Present,
+		PixelShaderRead,
+		PixelDepthStencilRead,
+		ComputeGeneralRW,
+	};
+
+	inline EImageLayoutBarrier GetImageLayoutFromVulkanLayout(VkImageLayout Layout)
+	{
+		switch (Layout)
+		{
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			return EImageLayoutBarrier::Undefined;
+
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			return EImageLayoutBarrier::TransferDest;
+
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			return EImageLayoutBarrier::ColorAttachment;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			return EImageLayoutBarrier::DepthStencilAttachment;
+
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			return EImageLayoutBarrier::TransferSource;
+
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			return EImageLayoutBarrier::Present;
+
+		//case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+		//	return EImageLayoutBarrier::PixelShaderRead;
+
+		//case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		//	return EImageLayoutBarrier::PixelDepthStencilRead;
+
+		//case VK_IMAGE_LAYOUT_GENERAL:
+		//	return EImageLayoutBarrier::ComputeGeneral;
+
+		default:
+			checkf(0, TEXT("Unknown VkImageLayout %d"), (int32)Layout);
+			break;
+		}
+
+		return EImageLayoutBarrier::Undefined;
+	}
+
+	inline VkPipelineStageFlags GetImageBarrierFlags(EImageLayoutBarrier Target, VkAccessFlags& AccessFlags, VkImageLayout& Layout)
+	{
+		VkPipelineStageFlags StageFlags = (VkPipelineStageFlags)0;
+		switch (Target)
+		{
+		case EImageLayoutBarrier::Undefined:
+			AccessFlags = 0;
+			StageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			Layout = VK_IMAGE_LAYOUT_UNDEFINED;
+			break;
+
+		case EImageLayoutBarrier::TransferDest:
+			AccessFlags = VK_ACCESS_TRANSFER_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			Layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::ColorAttachment:
+			AccessFlags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::DepthStencilAttachment:
+			AccessFlags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::TransferSource:
+			AccessFlags = VK_ACCESS_TRANSFER_READ_BIT;
+			StageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			Layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::Present:
+			AccessFlags = 0;
+			StageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			break;
+
+		case EImageLayoutBarrier::PixelShaderRead:
+			AccessFlags = VK_ACCESS_SHADER_READ_BIT;
+			StageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::PixelDepthStencilRead:
+			AccessFlags = VK_ACCESS_SHADER_READ_BIT;
+			StageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::ComputeGeneralRW:
+			AccessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			Layout = VK_IMAGE_LAYOUT_GENERAL;
+			break;
+
+		default:
+			checkf(0, TEXT("Unknown ImageLayoutBarrier %d"), (int32)Target);
+			break;
+		}
+
+		return StageFlags;
+	}
+
+	inline VkImageLayout GetImageLayout(EImageLayoutBarrier Target)
+	{
+		VkAccessFlags Flags;
+		VkImageLayout Layout;
+		GetImageBarrierFlags(Target, Flags, Layout);
+		return Layout;
+	}
+
+	inline void SetImageBarrierInfo(EImageLayoutBarrier Source, EImageLayoutBarrier Dest, VkImageMemoryBarrier& InOutBarrier, VkPipelineStageFlags& InOutSourceStage, VkPipelineStageFlags& InOutDestStage)
+	{
+		InOutSourceStage |= GetImageBarrierFlags(Source, InOutBarrier.srcAccessMask, InOutBarrier.oldLayout);
+		InOutDestStage |= GetImageBarrierFlags(Dest, InOutBarrier.dstAccessMask, InOutBarrier.newLayout);
+	}
+
+	void ImagePipelineBarrier(VkCommandBuffer CmdBuffer, VkImage Image, EImageLayoutBarrier SourceTransition, EImageLayoutBarrier DestTransition, const VkImageSubresourceRange& SubresourceRange);
+
+	inline VkImageSubresourceRange SetupImageSubresourceRange(VkImageAspectFlags Aspect = VK_IMAGE_ASPECT_COLOR_BIT, uint32 StartMip = 0)
+	{
+		VkImageSubresourceRange Range;
+		FMemory::Memzero(Range);
+		Range.aspectMask = Aspect;
+		Range.baseMipLevel = StartMip;
+		Range.levelCount = 1;
+		Range.baseArrayLayer = 0;
+		Range.layerCount = 1;
+		return Range;
+	}
+
+	inline VkImageMemoryBarrier SetupImageMemoryBarrier(VkImage Image, VkImageAspectFlags Aspect, uint32 NumMips = 1)
+	{
+		VkImageMemoryBarrier Barrier;
+		FMemory::Memzero(Barrier);
+		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		Barrier.image = Image;
+		Barrier.subresourceRange.aspectMask = Aspect;
+		Barrier.subresourceRange.levelCount = NumMips;
+		Barrier.subresourceRange.layerCount = 1;
+		Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		return Barrier;
 	}
 }

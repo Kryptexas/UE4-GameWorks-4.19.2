@@ -20,10 +20,10 @@ public class VulkanShaderFormat : ModuleRules
 			}
 			);
 
-        // GlsLang has a shadowed variable:
-        bEnableShadowVariableWarnings = false;
+		// GlsLang has a shadowed variable:
+		bEnableShadowVariableWarnings = false;
 
-        AddEngineThirdPartyPrivateStaticDependencies(Target, "HLSLCC");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "HLSLCC");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "GlsLang");
 
 		if (Target.Platform != UnrealTargetPlatform.Win64 || Target.Platform != UnrealTargetPlatform.Win32 || Target.Platform != UnrealTargetPlatform.Android || Target.Platform != UnrealTargetPlatform.Linux)

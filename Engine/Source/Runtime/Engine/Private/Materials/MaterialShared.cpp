@@ -981,6 +981,11 @@ float FMaterialResource::GetOpacityMaskClipValue() const
 	return MaterialInstance ? MaterialInstance->GetOpacityMaskClipValue() : Material->GetOpacityMaskClipValue();
 }
 
+bool FMaterialResource::GetCastDynamicShadowAsMasked() const
+{
+	return MaterialInstance ? MaterialInstance->GetCastDynamicShadowAsMasked() : Material->GetCastDynamicShadowAsMasked();
+}
+
 EBlendMode FMaterialResource::GetBlendMode() const 
 {
 	return MaterialInstance ? MaterialInstance->GetBlendMode() : Material->GetBlendMode();
@@ -1466,6 +1471,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS"), UseNormalCurvatureToRoughness() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_ALLOW_NEGATIVE_EMISSIVECOLOR"), AllowNegativeEmissiveColor());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_OUTPUT_OPACITY_AS_ALPHA"), GetBlendableOutputAlpha());
+	OutEnvironment.SetDefine(TEXT("TRANSLUCENT_SHADOW_WITH_MASKED_OPACITY"), GetCastDynamicShadowAsMasked());
 
 	if (IsUsingFullPrecision())
 	{

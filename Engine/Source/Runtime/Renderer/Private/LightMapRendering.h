@@ -60,17 +60,23 @@ uint32 GetPrecompuledLightingVersionID(const FLightCacheInterface* LCI, ERHIFeat
 void GetPrecomputedLightingParameters(
 	ERHIFeatureLevel::Type FeatureLevel,
 	FPrecomputedLightingParameters& Parameters, 
-	const class FIndirectLightingCache* LightingCache = NULL, 
-	const class FIndirectLightingCacheAllocation* LightingAllocation = NULL, 
-	const FLightCacheInterface* LCI = NULL
+	const class FIndirectLightingCache* LightingCache, 
+	const class FIndirectLightingCacheAllocation* LightingAllocation, 
+	FVector VolumetricLightmapLookupPosition,
+	uint32 SceneFrameNumber,
+	class FVolumetricLightmapSceneData* VolumetricLightmapSceneData,
+	const FLightCacheInterface* LCI
 	);
 
 FUniformBufferRHIRef CreatePrecomputedLightingUniformBuffer(
 	EUniformBufferUsage BufferUsage,
 	ERHIFeatureLevel::Type FeatureLevel,
-	const class FIndirectLightingCache* LightingCache = NULL, 
-	const class FIndirectLightingCacheAllocation* LightingAllocation = NULL, 
-	const FLightCacheInterface* LCI = NULL
+	const class FIndirectLightingCache* LightingCache, 
+	const class FIndirectLightingCacheAllocation* LightingAllocation, 
+	FVector VolumetricLightmapLookupPosition,
+	uint32 SceneFrameNumber,
+	FVolumetricLightmapSceneData* VolumetricLightmapSceneData,
+	const FLightCacheInterface* LCI
 	);
 
 /**

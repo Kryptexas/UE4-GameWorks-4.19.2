@@ -222,6 +222,7 @@ class UMaterialInstance : public UMaterialInterface
 	TEnumAsByte<EMaterialShadingModel> ShadingModel;
 	uint32 TwoSided : 1;
 	uint32 DitheredLODTransition : 1;
+	uint32 bCastDynamicShadowAsMasked : 1;
 
 	/** 
 	 * FMaterialRenderProxy derivatives that represent this material instance to the renderer, when the renderer needs to fetch parameter values. 

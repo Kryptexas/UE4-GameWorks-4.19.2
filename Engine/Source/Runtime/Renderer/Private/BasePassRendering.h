@@ -1539,7 +1539,8 @@ void ProcessBasePassMesh(
 			if (bIsLitMaterial
 				&& bAllowStaticLighting
 				&& Action.UseVolumetricLightmap()
-				&& Parameters.PrimitiveSceneProxy)
+				&& Parameters.PrimitiveSceneProxy
+				&& (Parameters.PrimitiveSceneProxy->IsMovable() || Parameters.PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
 			{
 				Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
 			}

@@ -26,7 +26,8 @@ struct APPLICATIONCORE_API FMacPlatformApplicationMisc : public FGenericPlatform
 	static void PumpMessages(bool bFromMainLoop);
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
-
+	static CGDisplayModeRef GetSupportedDisplayMode(CGDirectDisplayID DisplayID, uint32 Width, uint32 Height);
+	
 	// MAC ONLY
 
 	static UpdateCachedMacMenuStateProc UpdateCachedMacMenuState;

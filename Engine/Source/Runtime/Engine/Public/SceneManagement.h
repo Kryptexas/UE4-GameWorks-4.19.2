@@ -1016,6 +1016,7 @@ public:
 	 * Mirror the data in the scene proxy and access that instead.
 	 */
 	inline const ULightComponent* GetLightComponent() const { return LightComponent; }
+	inline FSceneInterface* GetSceneInterface() const { return SceneInterface; }
 	inline FLightSceneInfo* GetLightSceneInfo() const { return LightSceneInfo; }
 	inline const FMatrix& GetWorldToLight() const { return WorldToLight; }
 	inline const FMatrix& GetLightToWorld() const { return LightToWorld; }
@@ -1081,6 +1082,9 @@ protected:
 
 	/** The light component. */
 	const ULightComponent* LightComponent;
+
+	/** The scene the primitive is in. */
+	FSceneInterface* SceneInterface;
 
 	/** The light's scene info. */
 	class FLightSceneInfo* LightSceneInfo;

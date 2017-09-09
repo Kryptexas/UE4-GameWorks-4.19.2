@@ -305,7 +305,7 @@ public:
 	 *
 	 * @return Filename where this bulkdata can be loaded from
 	 **/
-	const FString GetFilename() const { return Filename; }
+	const FString& GetFilename() const { return Filename; }
 
 	/*-----------------------------------------------------------------------------
 		Data retrieval and manipulation.

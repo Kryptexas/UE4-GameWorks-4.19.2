@@ -85,6 +85,17 @@ inline void FVulkanRenderQuery::End(FVulkanCmdBuffer* CmdBuffer)
 	}
 }
 
+bool FVulkanRenderQuery::GetResult(FVulkanDevice* Device, uint64& Result, bool bWait)
+{
+	if (GetActiveQueryIndex() != -1)
+	{
+		check(IsInActualRenderingThread() || IsInRHIThread());
+		FVulkanCommandListContext& Context = Device->GetImmediateContext();
+		FVulkanBufferedQueryPool* Pool = (FVulkanBufferedQueryPool*)GetActiveQueryPool();
+		return Pool->GetResults(Context, this, bWait, Result);
+	}
+	return false;
+}
 
 FVulkanQueryPool::FVulkanQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries, VkQueryType InQueryType)
 	: VulkanRHI::FDeviceChild(InDevice)
@@ -121,7 +132,11 @@ void FVulkanQueryPool::Reset(FVulkanCmdBuffer* CmdBuffer)
 
 inline bool FVulkanBufferedQueryPool::GetResults(FVulkanCommandListContext& Context, FVulkanRenderQuery* Query, bool bWait, uint64& OutResult)
 {
+	VkQueryResultFlags Flags = VK_QUERY_RESULT_64_BIT;
 	if (bWait)
+	{
+		Flags |= VK_QUERY_RESULT_WAIT_BIT;
+	}
 	{
 		uint64 Bit = (uint64)(Query->GetActiveQueryIndex() % 64);
 		uint64 BitMask = (uint64)1 << Bit;
@@ -152,7 +167,21 @@ inline bool FVulkanBufferedQueryPool::GetResults(FVulkanCommandListContext& Cont
 		if ((ReadResultsBits[Word] & BitMask) == 0)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VulkanWaitQuery);
-			VERIFYVULKANRESULT(VulkanRHI::vkGetQueryPoolResults(Device->GetInstanceHandle(), QueryPool, Query->GetActiveQueryIndex(), 1, sizeof(uint64), &QueryOutput[Query->GetActiveQueryIndex()], sizeof(uint64), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT));
+			VkResult ScopedResult = VulkanRHI::vkGetQueryPoolResults(Device->GetInstanceHandle(), QueryPool, Query->GetActiveQueryIndex(),
+				1, sizeof(uint64), &QueryOutput[Query->GetActiveQueryIndex()], sizeof(uint64), Flags);
+			if (ScopedResult != VK_SUCCESS)
+			{
+				if (bWait == false && ScopedResult == VK_NOT_READY)
+				{
+					OutResult = 0;
+					return false;
+				}
+				else
+				{
+					VulkanRHI::VerifyVulkanResult(ScopedResult, "vkGetQueryPoolResults", __FILE__, __LINE__);
+				}
+			}
+
 			ReadResultsBits[Word] = ReadResultsBits[Word] | BitMask;
 		}
 
@@ -161,109 +190,30 @@ inline bool FVulkanBufferedQueryPool::GetResults(FVulkanCommandListContext& Cont
 		{
 			double NanoSecondsPerTimestamp = Device->GetDeviceProperties().limits.timestampPeriod;
 			checkf(NanoSecondsPerTimestamp > 0, TEXT("Driver said it allowed timestamps but returned invalid period %f!"), NanoSecondsPerTimestamp);
-			OutResult *= (NanoSecondsPerTimestamp / 1e3);
+			OutResult *= (NanoSecondsPerTimestamp / 1e3); // to microSec
 		}
-	}
-	else
-	{
-		// Not implemented!
-		ensure(0);
 	}
 
 	return true;
 }
-FVulkanTimestampPool::FVulkanTimestampPool(FVulkanDevice* InDevice, uint32 InNumQueries)
-	: FVulkanQueryPool(InDevice, 2 * NUM_RENDER_BUFFERS, VK_QUERY_TYPE_TIMESTAMP)
-	, BeginCounter(0)
-	, SecondsPerTimestamp(0)
-	, TimeStampsPerSeconds(0)
-{
-	QueryOutput.SetNum(InNumQueries);
-
-	// The number of nanoseconds it takes for a timestamp value to be incremented by 1 can be obtained from VkPhysicalDeviceLimits::timestampPeriod after a call to vkGetPhysicalDeviceProperties.
-	double NanoSecondsPerTimestamp = Device->GetDeviceProperties().limits.timestampPeriod;
-	checkf(NanoSecondsPerTimestamp > 0, TEXT("Driver said it allowed timestamps but returned invalid period %f!"), NanoSecondsPerTimestamp);
-	SecondsPerTimestamp = NanoSecondsPerTimestamp / 1e9;
-	TimeStampsPerSeconds = 1e9 / NanoSecondsPerTimestamp;
-}
-
-inline void FVulkanTimestampPool::Begin(FVulkanCmdBuffer* CmdBuffer)
-{
-	++BeginCounter;
-	uint32 InfoIndex = BeginCounter % NUM_RENDER_BUFFERS;
-	FInfo& Info = Infos[InfoIndex];
-	uint32 QueryIndex = InfoIndex * 2;
-	if (Info.State == EState::Read)
-	{
-		VulkanRHI::vkCmdResetQueryPool(CmdBuffer->GetHandle(), QueryPool, QueryIndex, 2);
-	}
-	else
-	{
-		ensure(Info.State == EState::Undefined || Info.State == EState::WrittenEnd);
-	}
-	VulkanRHI::vkCmdWriteTimestamp(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, QueryPool, QueryIndex);
-	Info.State = EState::WrittenBegin;
-}
-
-inline void FVulkanTimestampPool::End(FVulkanCmdBuffer* CmdBuffer)
-{
-	uint32 InfoIndex = BeginCounter % NUM_RENDER_BUFFERS;
-	FInfo& Info = Infos[InfoIndex];
-	ensure(Info.State == EState::WrittenBegin);
-	uint32 QueryIndex = InfoIndex * 2 + 1;
-	VulkanRHI::vkCmdWriteTimestamp(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, QueryPool, QueryIndex);
-	Info.State = EState::WrittenEnd;
-	Info.CmdBuffer = CmdBuffer;
-	Info.FenceCounter = CmdBuffer->GetFenceSignaledCounter();
-}
-
-bool FVulkanTimestampPool::ReadResults(uint64* OutBeginEnd)
-{
-	uint32 InfoIndex = (BeginCounter + 1) % NUM_RENDER_BUFFERS;
-	FVulkanTimestampPool::FInfo& Info = Infos[InfoIndex];
-	if (Info.State == EState::WrittenEnd && Info.FenceCounter < Info.CmdBuffer->GetFenceSignaledCounter())
-	{
-		VkResult Result = VulkanRHI::vkGetQueryPoolResults(Device->GetInstanceHandle(), GetHandle(), InfoIndex * 2, 2, sizeof(uint64) * 2, &QueryOutput[InfoIndex * 2], sizeof(uint64), VK_QUERY_RESULT_64_BIT);
-		if (Result == VK_SUCCESS)
-		{
-			Info.State = EState::Read;
-			OutBeginEnd[0] = QueryOutput[InfoIndex * 2];
-			OutBeginEnd[1] = QueryOutput[InfoIndex * 2 + 1];
-			return true;
-		}
-		else
-		{
-			ensure(0);
-		}
-	}
-	else if (Info.State == EState::Read)
-	{
-		OutBeginEnd[0] = QueryOutput[InfoIndex * 2];
-		OutBeginEnd[1] = QueryOutput[InfoIndex * 2 + 1];
-		return true;
-	}
-
-	return false;
-}
-
 
 void FVulkanCommandListContext::ReadAndCalculateGPUFrameTime()
 {
 	check(IsImmediate());
-	FVulkanTimestampPool* Pool = Device->GetTimestampQueryPool();
-	if (Pool)
+
+	if (FrameTiming)
 	{
-		uint64 Results[2];
-		if (Pool->ReadResults(Results))
-		{
-			const uint64 Delta = Results[1] - Results[0];
-			double ValueInSeconds = (double)Delta * Pool->SecondsPerTimestamp;
-			GGPUFrameTime = (uint32)(ValueInSeconds / FPlatformTime::GetSecondsPerCycle());
-		}
-		else
+		uint64 Delta = FrameTiming->GetTiming(true);
+		if (Delta == 0)
 		{
 			GGPUFrameTime = 0;
+			return;
 		}
+		GGPUFrameTime = (Delta / 1e6) / FPlatformTime::GetSecondsPerCycle();
+	}
+	else
+	{
+		GGPUFrameTime = 0;
 	}
 }
 
@@ -278,16 +228,9 @@ bool FVulkanDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI
 {
 	check(IsInRenderingThread());
 
-	FVulkanRenderQuery* Query = ResourceCast(QueryRHI);
-	if (Query->GetActiveQueryIndex() != -1)
-	{
-		check(IsInActualRenderingThread());
-		FVulkanCommandListContext& Context = Device->GetImmediateContext();
-		FVulkanBufferedQueryPool* Pool = (FVulkanBufferedQueryPool*)Query->GetActiveQueryPool();
-		return Pool->GetResults(Context, Query, bWait, OutNumPixels);
-	}
-
-	return false;
+	FVulkanRenderQuery* Query = ResourceCast(QueryRHI);	
+	check(Query);
+	return Query->GetResult(Device, OutNumPixels, bWait);
 }
 
 // Occlusion/Timer queries.
@@ -347,15 +290,12 @@ void FVulkanCommandListContext::AdvanceQuery(FVulkanRenderQuery* Query)
 	((FVulkanBufferedQueryPool*)Query->GetActiveQueryPool())->MarkQueryAsStarted(Query->GetActiveQueryIndex());
 }
 
-void FVulkanCommandListContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
+void FVulkanCommandListContext::EndRenderQueryInternal(FVulkanCmdBuffer* CmdBuffer, FVulkanRenderQuery* Query)
 {
-	FVulkanRenderQuery* Query = ResourceCast(QueryRHI);
-
 	if (Query->QueryType == RQT_Occlusion)
 	{
 		if (Query->GetActiveQueryIndex() != -1)
 		{
-			FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 			Query->End(CmdBuffer);
 		}
 	}
@@ -365,13 +305,18 @@ void FVulkanCommandListContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryR
 		{
 			return;
 		}
-		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 
 		AdvanceQuery(Query);
 
 		// now start it
 		Query->End(CmdBuffer);
 	}
+}
+
+void FVulkanCommandListContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
+{
+	FVulkanRenderQuery* Query = ResourceCast(QueryRHI);
+	return EndRenderQueryInternal(CommandBufferManager->GetActiveCmdBuffer(), Query);	
 }
 
 void FVulkanCommandListContext::RHIBeginOcclusionQueryBatch()
@@ -508,18 +453,10 @@ void FVulkanCommandListContext::RHIEndOcclusionQueryBatch()
 
 void FVulkanCommandListContext::WriteBeginTimestamp(FVulkanCmdBuffer* CmdBuffer)
 {
-	FVulkanTimestampPool* TimestampPool = Device->GetTimestampQueryPool();
-	if (TimestampPool)
-	{
-		TimestampPool->Begin(CmdBuffer);
-	}
+	FrameTiming->StartTiming(CmdBuffer);
 }
 
 void FVulkanCommandListContext::WriteEndTimestamp(FVulkanCmdBuffer* CmdBuffer)
 {
-	FVulkanTimestampPool* TimestampPool = Device->GetTimestampQueryPool();
-	if (TimestampPool)
-	{
-		TimestampPool->End(CmdBuffer);
-	}
+	FrameTiming->EndTiming();
 }

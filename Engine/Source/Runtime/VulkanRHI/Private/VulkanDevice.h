@@ -184,11 +184,6 @@ public:
 	inline FVulkanBufferedQueryPool& FindAvailableTimestampQueryPool()
 	{
 		return FindAvailableQueryPool(TimestampQueryPools, VK_QUERY_TYPE_TIMESTAMP);
- 	}
-
-	inline FVulkanTimestampPool* GetTimestampQueryPool()
-	{
-		return TimestampQueryPool;
 	}
 
 	inline class FVulkanPipelineStateCache* GetPipelineStateCache()
@@ -245,7 +240,6 @@ private:
 
 	TArray<FVulkanBufferedQueryPool*> OcclusionQueryPools;
 	TArray<FVulkanBufferedQueryPool*> TimestampQueryPools;
-	FVulkanTimestampPool* TimestampQueryPool;
 
 	FVulkanQueue* GfxQueue;
 	FVulkanQueue* ComputeQueue;

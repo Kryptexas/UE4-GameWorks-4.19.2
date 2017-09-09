@@ -107,6 +107,8 @@ struct FSkeletalMeshCustomVersion
 		NewClothingSystemAdded = 8,
 		// Cached inv mass data for clothing assets
 		CachedClothInverseMasses = 9,
+		// Compact cloth vertex buffer, without dummy entries
+		CompactClothVertexBuffer = 10,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
@@ -370,7 +372,7 @@ FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexBuffer& VertexBuffer)
 		{
 			if (VertexBuffer.VertexData != NULL)
 			{
-					VertexBuffer.VertexData->Serialize(Ar);
+				VertexBuffer.VertexData->Serialize(Ar);
 
 				// update cached buffer info
 				VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
@@ -575,7 +577,8 @@ void FSkeletalMeshVertexClothBuffer::InitRHI()
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
 		FRHIResourceCreateInfo CreateInfo(ResourceArray);
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static, CreateInfo);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FVector4), PF_R32G32B32A32_UINT);
 	}
 }
 
@@ -604,6 +607,11 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexClothBuffer& VertexBuffer
 			VertexBuffer.Data = (VertexBuffer.NumVertices > 0) ? VertexBuffer.VertexData->GetDataPointer() : nullptr;
 			VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
 		}
+
+		if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) >= FSkeletalMeshCustomVersion::CompactClothVertexBuffer)
+		{
+			Ar << VertexBuffer.ClothIndexMapping;
+		}
 	}
 
 	return Ar;
@@ -618,7 +626,7 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexClothBuffer& VertexBuffer
  * Initializes the buffer with the given vertices.
  * @param InVertices - The vertices to initialize the buffer with.
  */
-void FSkeletalMeshVertexClothBuffer::Init(const TArray<FMeshToMeshVertData>& InMappingData)
+void FSkeletalMeshVertexClothBuffer::Init(const TArray<FMeshToMeshVertData>& InMappingData, const TArray<uint64>& InClothIndexMapping)
 {
 	// Allocate new data
 	AllocateData();
@@ -639,6 +647,7 @@ void FSkeletalMeshVertexClothBuffer::Init(const TArray<FMeshToMeshVertData>& InM
 		const int32 DestVertexIndex = Index;
 		MappingData(DestVertexIndex) = SourceMapping;
 	}
+	ClothIndexMapping = InClothIndexMapping;
 }
 
 /** 
@@ -1729,28 +1738,15 @@ void FStaticLODModel::GetNonClothVertices(TArray<FSoftSkinVertex>& OutVertices) 
 	}
 }
 
-void FStaticLODModel::GetApexClothMappingData(TArray<FMeshToMeshVertData>& MappingData) const
+void FStaticLODModel::GetApexClothMappingData(TArray<FMeshToMeshVertData>& MappingData, TArray<uint64>& OutClothIndexMapping) const
 {
 	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); SectionIndex++)
 	{
 		const FSkelMeshSection& Section = Sections[SectionIndex];
-
-		if(Section.ClothMappingData.Num() == 0 )
+		if (Section.ClothMappingData.Num())
 		{
-			int32 PrevNum = MappingData.Num();
-
-			MappingData.AddZeroed(Section.SoftVertices.Num());
-			for(int32 i=PrevNum; i<MappingData.Num(); i++)
-			{
-				MappingData[i].PositionBaryCoordsAndDist[0] = 1.0f;
-				MappingData[i].NormalBaryCoordsAndDist[0] = 1.0f;
-				MappingData[i].TangentBaryCoordsAndDist[0] = 1.0f;
-				// set max number to verify this is not the clothing section
-				MappingData[i].SourceMeshVertIndices[0] = 0xFFFF;
-			}
-		}
-		else
-		{
+			uint64 KeyValue = ((uint64)Section.BaseVertexIndex << (uint32)32) | (uint64)MappingData.Num();
+			OutClothIndexMapping.Add(KeyValue);
 			MappingData += Section.ClothMappingData;
 		}
 	}
@@ -1787,8 +1783,9 @@ void FStaticLODModel::BuildVertexBuffers(uint32 BuildFlags)
 	if( HasClothData() )
 	{
 		TArray<FMeshToMeshVertData> MappingData;
-		GetApexClothMappingData(MappingData);
-		ClothVertexBuffer.Init(MappingData);
+		TArray<uint64> ClothIndexMapping;
+		GetApexClothMappingData(MappingData, ClothIndexMapping);
+		ClothVertexBuffer.Init(MappingData, ClothIndexMapping);
 	}
 }
 
@@ -3409,7 +3406,7 @@ void USkeletalMesh::PostLoad()
 
 #if WITH_EDITORONLY_DATA
 	// Rebuild vertex buffers if needed
-	if (GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::UseSeparateSkinWeightBuffer)
+	if (GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CompactClothVertexBuffer)
 	{
 		FSkeletalMeshResource* Resource = GetImportedResource();
 		if (Resource && FPlatformProperties::HasEditorOnlyData())

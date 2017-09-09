@@ -910,6 +910,28 @@ public class IOSPlatform : Platform
 			StageMovieFiles(DirectoryReference.Combine(SC.EngineRoot, "Content", "Movies"), SC);
 			StageMovieFiles(DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies"), SC);
         }
+		{
+			// Stage any *.metallib files as NonUFS.
+			// Get the final output directory for cooked data
+			DirectoryReference CookOutputDir;
+			if(!String.IsNullOrEmpty(Params.CookOutputDir))
+			{
+				CookOutputDir = DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform);
+			}
+			else if(Params.CookInEditor)
+			{
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform);
+			}
+			else
+			{
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform);
+			}
+			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*.metallib", SearchOption.AllDirectories).ToList();
+			foreach(FileReference CookedFile in CookedFiles)
+			{
+				SC.StageFile(StagedFileType.NonUFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
+			}
+		}
     }
 
 	private void StageImageAndIconFiles(DirectoryReference DataPath, bool bSupportsPortrait, bool bSupportsLandscape, DeploymentContext SC, bool bSkipIcons)

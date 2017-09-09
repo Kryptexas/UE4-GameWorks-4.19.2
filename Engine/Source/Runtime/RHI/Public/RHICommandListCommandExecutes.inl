@@ -284,7 +284,7 @@ void FRHICommandBeginRenderPass::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginRenderPass);
 	check(!LocalRenderPass->RenderPass.GetReference());
-	LocalRenderPass->RenderPass = INTERNAL_DECORATOR(RHIBeginRenderPass)(Info);
+	LocalRenderPass->RenderPass = INTERNAL_DECORATOR(RHIBeginRenderPass)(Info, Name);
 }
 
 void FRHICommandEndRenderPass::Execute(FRHICommandListBase& CmdList)
@@ -297,7 +297,7 @@ void FRHICommandEndRenderPass::Execute(FRHICommandListBase& CmdList)
 void FRHICommandBeginParallelRenderPass::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginParallelRenderPass);
-	LocalRenderPass->RenderPass = INTERNAL_DECORATOR(RHIBeginParallelRenderPass)(Info);
+	LocalRenderPass->RenderPass = INTERNAL_DECORATOR(RHIBeginParallelRenderPass)(Info, Name);
 }
 
 void FRHICommandEndParallelRenderPass::Execute(FRHICommandListBase& CmdList)

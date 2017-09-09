@@ -32,7 +32,6 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, DefaultSampler(nullptr)
 	, DefaultImage(nullptr)
 	, DefaultImageView(VK_NULL_HANDLE)
-	, TimestampQueryPool(nullptr)
 	, GfxQueue(nullptr)
 	, ComputeQueue(nullptr)
 	, TransferQueue(nullptr)
@@ -206,7 +205,7 @@ void FVulkanDevice::CreateDevice()
 	TransferQueue = new FVulkanQueue(this, TransferQueueFamilyIndex, 0);
 
 #if VULKAN_ENABLE_DRAW_MARKERS
-	if (bDebugMarkersFound || VULKAN_ENABLE_DUMP_LAYER)
+	if (bDebugMarkersFound)
 	{
 		CmdDbgMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)(void*)VulkanRHI::vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerBeginEXT");
 		CmdDbgMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)(void*)VulkanRHI::vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerEndEXT");
@@ -215,6 +214,8 @@ void FVulkanDevice::CreateDevice()
 		// We're running under RenderDoc or other trace tool, so enable capturing mode
 		GDynamicRHI->EnableIdealGPUCaptureOptions(true);
 	}
+#elif VULKAN_ENABLE_DUMP_LAYER
+	GDynamicRHI->EnableIdealGPUCaptureOptions(true);
 #endif
 }
 
@@ -562,17 +563,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	}
 	CacheFilenames.Add(FPaths::ProjectSavedDir() / TEXT("VulkanPSO.cache"));	
 
-	bool bSupportsTimestamps = (GpuProps.limits.timestampComputeAndGraphics == VK_TRUE);
-	if (bSupportsTimestamps)
-	{
-		check(!TimestampQueryPool);
-		TimestampQueryPool = new FVulkanTimestampPool(this, NUM_TIMESTAMP_QUERIES_PER_POOL);
-	}
-	else
-	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("Timestamps not supported on Device"));
-	}
-
 	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, GfxQueue, true);
 
 	if (GfxQueue->GetFamilyIndex() != ComputeQueue->GetFamilyIndex() && GRHIAllowAsyncComputeCvar.GetValueOnAnyThread() != 0)
@@ -632,12 +622,6 @@ void FVulkanDevice::Destroy()
 
 	delete ImmediateContext;
 	ImmediateContext = nullptr;
-
-	if (TimestampQueryPool)
-	{
-		TimestampQueryPool->Destroy();
-		delete TimestampQueryPool;
-	}
 
 	for (FVulkanQueryPool* QueryPool : OcclusionQueryPools)
 	{
@@ -712,6 +696,10 @@ bool FVulkanDevice::IsFormatSupported(VkFormat Format) const
 
 const VkComponentMapping& FVulkanDevice::GetFormatComponentMapping(EPixelFormat UEFormat) const
 {
+	if (UEFormat == PF_X24_G8)
+	{
+		return GetFormatComponentMapping(PF_DepthStencil);
+	}
 	check(GPixelFormats[UEFormat].Supported);
 	return PixelFormatComponentMapping[UEFormat];
 }

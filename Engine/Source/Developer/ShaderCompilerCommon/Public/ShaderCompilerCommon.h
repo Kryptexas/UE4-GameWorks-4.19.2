@@ -71,6 +71,8 @@ extern SHADERCOMPILERCOMMON_API bool RemoveUnusedOutputs(FString& InOutSourceCod
 
 extern SHADERCOMPILERCOMMON_API bool RemoveUnusedInputs(FString& InOutSourceCode, const TArray<FString>& InUsedInputs, FString& InOutEntryPoint, TArray<FString>& OutErrors);
 
+extern SHADERCOMPILERCOMMON_API bool ConvertFromFP32ToFP16(FString& InOutSourceCode, TArray<FString>& OutErrors);
+
 /**
 * Fall back to using the View uniform buffer directly for platforms that don't support instanced stereo.
 * @param ShaderSource - Preprocessed shader source

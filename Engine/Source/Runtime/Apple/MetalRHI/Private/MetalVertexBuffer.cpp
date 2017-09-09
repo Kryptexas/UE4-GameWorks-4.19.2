@@ -71,8 +71,8 @@ FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 	INC_DWORD_STAT_BY(STAT_MetalVertexMemAlloc, InSize);
 
 	// Anything less than the buffer page size - currently 4Kb - is better off going through the set*Bytes API if available.
-	// These can't be used for shader resources or UAVs if we want to use the 'Linear Texture' code path
-	if (!(InUsage & (BUF_UnorderedAccess|BUF_ShaderResource)) && InSize < MetalBufferPageSize)
+	// These can't be used for shader resources or UAVs if we want to use the 'Linear Texture' code path - this is presently disabled so don't consider it
+	if (!(InUsage & (BUF_UnorderedAccess /*|BUF_ShaderResource*/ )) && InSize < MetalBufferPageSize && (PLATFORM_MAC || (InSize < 512)))
 	{
 		Data = [[FMetalBufferData alloc] initWithSize:InSize];
 	}

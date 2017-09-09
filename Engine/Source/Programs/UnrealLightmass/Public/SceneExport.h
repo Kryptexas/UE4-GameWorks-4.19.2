@@ -54,6 +54,12 @@ public:
 	int32 NumIndirectLightingBounces;
 
 	/** 
+	 * Number of skylight and emissive bounces to simulate.  
+	 * Lightmass uses a non-distributable radiosity method for skylight bounces whose cost is proportional to the number of bounces.
+	 */
+	int32 NumSkyLightingBounces;
+
+	/** 
 	 * Whether to use Embree for ray tracing or not.
 	 */
 	bool bUseEmbree;
@@ -62,6 +68,15 @@ public:
 	 * Whether to check for Embree coherency.
 	 */
 	bool bVerifyEmbree;
+
+	/** Whether to build Embree data structures for packet tracing. WIP feature - no lightmass algorithms emit packet tracing requests yet. */
+	bool bUseEmbreePacketTracing;
+
+	/** 
+	 * Direct lighting, skylight radiosity and irradiance photons are cached on mapping surfaces to accelerate final gathering.
+	 * This controls the downsample factor for that cache, relative to the mapping's lightmap resolution.
+	 */
+	int32 MappingSurfaceCacheDownsampleFactor;
 
 	/** 
 	 * Smoothness factor to apply to indirect lighting.  This is useful in some lighting conditions when Lightmass cannot resolve accurate indirect lighting.
@@ -482,15 +497,9 @@ public:
 class FImportanceTracingSettings
 {
 public:
-	/** 
-	 * Debugging - whether to use a cosine probability distribution function when generating hemisphere samples.   
-	 * This is only usable with irradiance caching off.
-	 */
-	bool bUseCosinePDF;
 
 	/** 
 	 * Debugging - whether to stratify hemisphere samples, which reduces variance. 
-	 * This is not supported with bUseCosinePDF being true and is required when bUseIrradianceGradients is true.
 	 */
 	bool bUseStratifiedSampling;
 
@@ -499,9 +508,6 @@ public:
 	 * When photon mapping is enabled, these are called final gather rays.
 	 */
 	int32 NumHemisphereSamples;
-
-	/** Whether to use the adaptive sampling solver, which keeps all final gathering in one sampling domain and adaptively subdivides cells where needed (brightness differences, first bounce photons). */
-	bool bUseAdaptiveSolver;
 
 	/** Number of recursive levels allowed for adaptive refinement.  This has a huge impact on build time but also quality. */
 	int32 NumAdaptiveRefinementLevels;
@@ -517,6 +523,20 @@ public:
 
 	/** Starting threshold for what angle around a first bounce photon causes a refinement on all cells affected.  At each depth the effective threshold will be reduced. */
 	float AdaptiveFirstBouncePhotonConeAngle;
+
+	float AdaptiveSkyVarianceThreshold;
+
+	/** 
+	 * Whether to use radiosity iterations for solving skylight 2nd bounce and up, plus emissive 1st bounce and up. 
+	 * These light sources are not represented by photons so they need to be handled separately to have multiple bounces.
+	 */
+	bool bUseRadiositySolverForSkylightMultibounce;
+
+	/** 
+	 * Whether to cache final gather hit points for the radiosity algorithm, which reduces radiosity iteration time significantly but uses a lot of memory.
+	 * Memory use is proportional to the lightmap texels in the scene and number of final gather rays.
+	 */
+	bool bCacheFinalGatherHitPointsForRadiosity;
 };
 
 /** Settings controlling photon mapping behavior. */
@@ -662,9 +682,6 @@ public:
 
 	/** Cosine of the angle from the search normal that defines a cone which irradiance photons must be outside of to be valid for that search. */
 	float MinCosIrradiancePhotonSearchCone;
-
-	/** Downsample factor applied to each mapping's lighting resolution to get the resolution used for caching irradiance photons. */
-	float CachedIrradiancePhotonDownsampleFactor;
 
 	/** 
 	 * Whether to build a photon segment map, to guide importance sampling for volume queries.  
@@ -953,6 +970,12 @@ struct FSpotLightData
 //----------------------------------------------------------------------------
 struct FSkyLightData
 {
+	/** 
+	 * Whether to use a filtered cubemap matching the Skylight Component's CubemapResolution to represent the skylight, or a 3rd order Spherical Harmonic. 
+	 * The filtered cubemap is much more accurate than 3rd order SH, especially in mostly shadowed areas.
+	 */ 
+	bool bUseFilteredCubemap;
+	int32 RadianceEnvironmentMapDataSize;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 };
 
@@ -1106,13 +1129,17 @@ struct FStaticMeshStaticLightingMeshData
 	FSplineMeshParams SplineParameters;
 };
 
-struct FStaticLightingVertexData
+struct FMinimalStaticLightingVertex
 {
 	FVector4 WorldPosition;
-	FVector4 WorldTangentX;
-	FVector4 WorldTangentY;
 	FVector4 WorldTangentZ;
 	FVector2D TextureCoordinates[MAX_TEXCOORDS];
+};
+
+struct FStaticLightingVertexData : public FMinimalStaticLightingVertex
+{
+	FVector4 WorldTangentX;
+	FVector4 WorldTangentY;
 };
 
 struct FBSPSurfaceStaticLightingData

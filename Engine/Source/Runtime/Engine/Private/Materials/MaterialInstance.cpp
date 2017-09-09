@@ -1246,6 +1246,11 @@ float UMaterialInstanceDynamic::GetOpacityMaskClipValue() const
 	return Parent ? Parent->GetOpacityMaskClipValue() : 0.0f;
 }
 
+bool UMaterialInstanceDynamic::GetCastDynamicShadowAsMasked() const
+{
+	return Parent ? Parent->GetCastDynamicShadowAsMasked() : false;
+}
+
 EBlendMode UMaterialInstanceDynamic::GetBlendMode() const
 {
 	return Parent ? Parent->GetBlendMode() : BLEND_Opaque;
@@ -1569,6 +1574,15 @@ void UMaterialInstance::UpdateOverridableBaseProperties()
 	else
 	{
 		OpacityMaskClipValue = Parent->GetOpacityMaskClipValue();
+	}
+
+	if ( BasePropertyOverrides.bOverride_CastDynamicShadowAsMasked )
+	{
+		bCastDynamicShadowAsMasked = BasePropertyOverrides.bCastDynamicShadowAsMasked;
+	}
+	else
+	{
+		bCastDynamicShadowAsMasked = Parent->GetCastDynamicShadowAsMasked();
 	}
 
 	if (BasePropertyOverrides.bOverride_BlendMode)
@@ -2748,6 +2762,15 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		bHasOverrides = true;
 	}
 
+	bool bUsedCastDynamicShadowAsMasked = GetCastDynamicShadowAsMasked();
+	if ( bUsedCastDynamicShadowAsMasked != Mat->GetCastDynamicShadowAsMasked() )
+	{
+		const FString HashString = TEXT("bOverride_CastDynamicShadowAsMasked");
+		Hash.UpdateWithString(*HashString, HashString.Len());
+		Hash.Update((const uint8*)&bUsedCastDynamicShadowAsMasked, sizeof(bUsedCastDynamicShadowAsMasked));
+		bHasOverrides = true;
+	}
+
 	EBlendMode UsedBlendMode = GetBlendMode();
 	if (UsedBlendMode != Mat->GetBlendMode())
 	{
@@ -2755,20 +2778,20 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((const uint8*)&UsedBlendMode, sizeof(UsedBlendMode));
 		bHasOverrides = true;
- 	}
+	}
 	
 	EMaterialShadingModel UsedShadingModel = GetShadingModel();
- 	if (UsedShadingModel != Mat->GetShadingModel())
- 	{
+	if (UsedShadingModel != Mat->GetShadingModel())
+	{
 		const FString HashString = TEXT("bOverride_ShadingModel");
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((const uint8*)&UsedShadingModel, sizeof(UsedShadingModel));
 		bHasOverrides = true;
 	}
 
- 	bool bUsedIsTwoSided = IsTwoSided();
- 	if (bUsedIsTwoSided != Mat->IsTwoSided())
- 	{
+	bool bUsedIsTwoSided = IsTwoSided();
+	if (bUsedIsTwoSided != Mat->IsTwoSided())
+	{
 		const FString HashString = TEXT("bOverride_TwoSided");
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((uint8*)&bUsedIsTwoSided, sizeof(bUsedIsTwoSided));
@@ -2783,8 +2806,8 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		bHasOverrides = true;
 	}
 
- 	if (bHasOverrides)
- 	{
+	if (bHasOverrides)
+	{
 		Hash.Final();
 		Hash.GetHash(&OutHash.Hash[0]);
 	}
@@ -2800,8 +2823,9 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 		(GetBlendMode() != Parent->GetBlendMode()) ||
 		(GetShadingModel() != Parent->GetShadingModel()) ||
 		(IsTwoSided() != Parent->IsTwoSided()) ||
-		(IsDitheredLODTransition() != Parent->IsDitheredLODTransition()))
-		)
+		(IsDitheredLODTransition() != Parent->IsDitheredLODTransition()) ||
+		(GetCastDynamicShadowAsMasked() != Parent->GetCastDynamicShadowAsMasked())
+		))
 	{
 		return true;
 	}
@@ -2811,27 +2835,27 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 
 float UMaterialInstance::GetOpacityMaskClipValue() const
 {
-	return OpacityMaskClipValue;
+	return (!Parent || BasePropertyOverrides.bOverride_OpacityMaskClipValue) ? OpacityMaskClipValue : Parent->GetOpacityMaskClipValue();
 }
 
 EBlendMode UMaterialInstance::GetBlendMode() const
 {
-	return BlendMode;
+	return (!Parent || BasePropertyOverrides.bOverride_BlendMode) ? (EBlendMode)BlendMode : (EBlendMode)Parent->GetBlendMode();
 }
 
 EMaterialShadingModel UMaterialInstance::GetShadingModel() const
 {
-	return ShadingModel;
+	return (!Parent || BasePropertyOverrides.bOverride_ShadingModel) ? (EMaterialShadingModel)ShadingModel : (EMaterialShadingModel)Parent->GetShadingModel();
 }
 
 bool UMaterialInstance::IsTwoSided() const
 {
-	return TwoSided;
+	return (!Parent || BasePropertyOverrides.bOverride_TwoSided) ? TwoSided : Parent->IsTwoSided();
 }
 
 bool UMaterialInstance::IsDitheredLODTransition() const
 {
-	return DitheredLODTransition;
+	return (!Parent || BasePropertyOverrides.bOverride_DitheredLODTransition) ? DitheredLODTransition : Parent->IsDitheredLODTransition();
 }
 
 bool UMaterialInstance::IsMasked() const

@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "LightingMesh.h"
 #include "LMOctree.h"
-#include "Lighting.h"
 
 namespace Lightmass
 {
@@ -33,6 +32,73 @@ public:
 	}
 };
 
+// max absolute error 9.0x10^-3
+// Eberly's polynomial degree 1 - respect bounds
+// input [-1, 1] and output [0, PI]
+inline float acosFast(float inX) 
+{
+    float x = FMath::Abs(inX);
+    float res = -0.156583f * x + (0.5 * PI);
+    res *= sqrt(1.0f - x);
+    return (inX >= 0) ? res : PI - res;
+}
+
+class FQuantizedHemisphereDirection
+{
+public:
+
+	FQuantizedHemisphereDirection() :
+		QuantizedTheta(0),
+		QuantizedPhi(0)
+	{}
+
+	FQuantizedHemisphereDirection(const FVector4& UnitTangentSpaceDirection)
+	{
+		checkSlow(UnitTangentSpaceDirection.IsUnit3());
+		checkSlow(UnitTangentSpaceDirection.Z >= 0 && UnitTangentSpaceDirection.Z <= 1);
+		const float ThetaFloat = acosFast(UnitTangentSpaceDirection.Z);
+		const float PhiFloat = FMath::Atan2(UnitTangentSpaceDirection.Y, UnitTangentSpaceDirection.X);
+		const float NormalizedTheta = ThetaFloat / PI;
+		const float NormalizedPhi = PhiFloat / (2 * PI) + .5f;
+
+		QuantizedTheta = (uint8)FMath::Clamp<int32>(FMath::RoundToInt(NormalizedTheta * (MAX_uint8 - 1)), 0, MAX_uint8 - 1);
+		QuantizedPhi = (uint8)FMath::Clamp<int32>(FMath::RoundToInt(NormalizedPhi * (MAX_uint8 - 1)), 0, MAX_uint8 - 1);
+	}
+
+	FVector4 GetDirection() const
+	{
+		const float Uint8RangeScale = 1.0f / (float)(MAX_uint8 - 1);
+		const float RescaledTheta = QuantizedTheta * Uint8RangeScale * PI;
+		const float RescaledPhi = (QuantizedPhi * Uint8RangeScale - .5f) * 2 * PI;
+
+		const float SinTheta = FMath::Sin(RescaledTheta);
+		return FVector(SinTheta * FMath::Cos(RescaledPhi), SinTheta * FMath::Sin(RescaledPhi), FMath::Cos(RescaledTheta));
+	}
+
+private:
+	uint8 QuantizedTheta;
+	uint8 QuantizedPhi;
+};
+
+class FFinalGatherHitPoint
+{
+public:
+
+	FFinalGatherHitPoint() :
+		MappingIndex(-1),
+		MappingSurfaceCoordinate(-1),
+		Weight(0.0f)
+	{}
+
+	int32 MappingIndex;
+	int32 MappingSurfaceCoordinate;
+	FFloat16 Weight;
+};
+
+
+
+
+
 /** The information needed by the lighting cache from a uniform sampled integration of the hemisphere in order to create a lighting record at that point. */
 class FLightingCacheGatherInfo
 {
@@ -42,13 +108,15 @@ public:
 	/** Incident radiance and distance from each hemisphere sample. */
 	TArray<FLinearColor> PreviousIncidentRadiances;
 	TArray<float> PreviousDistances;
+	class FGatherHitPoints* HitPointRecorder;
 
 	FLightingCacheGatherInfo() :
 		MinDistance(FLT_MAX),
-		BackfacingHitsFraction(0)
+		BackfacingHitsFraction(0),
+		HitPointRecorder(NULL)
 	{}
 
-	void UpdateOnHit(float IntersectionDistance)
+	inline void UpdateOnHit(float IntersectionDistance)
 	{
 		MinDistance = FMath::Min(MinDistance, IntersectionDistance);
 	}
@@ -74,7 +142,6 @@ public:
 	FLightingCacheBase(const FStaticLightingSystem& InSystem, int32 InBounceNumber);
 };
 
-
 /** A lighting cache. */
 template<class SampleType>
 class TLightingCache : public FLightingCacheBase
@@ -89,6 +156,8 @@ public:
 
 		/** The static lighting vertex the irradiance record was computed for. */
 		FFullStaticLightingVertex Vertex;
+
+		int32 ElementIndex;
 
 		/** Largest radius that the sample will ever have, used for insertion into spatial data structures. */
 		float BoundingRadius;
@@ -112,8 +181,9 @@ public:
 		int32 Id;
 
 		/** Initialization constructor. */
-		FRecord(const FFullStaticLightingVertex& InVertex,const FLightingCacheGatherInfo& GatherInfo,float SampleRadius,float InOverrideRadius,const FIrradianceCachingSettings& IrradianceCachingSettings,const FStaticLightingSettings& GeneralSettings,const RecordSampleType& InLighting, const FVector4& InRotGradient, const FVector4& InTransGradient):
+		FRecord(const FFullStaticLightingVertex& InVertex,int32 InElementIndex,const FLightingCacheGatherInfo& GatherInfo,float SampleRadius,float InOverrideRadius,const FIrradianceCachingSettings& IrradianceCachingSettings,const FStaticLightingSettings& GeneralSettings,const RecordSampleType& InLighting, const FVector4& InRotGradient, const FVector4& InTransGradient):
 			Vertex(InVertex),
+			ElementIndex(InElementIndex),
 			Lighting(InLighting),
 			RotationalGradient(InRotGradient),
 			TranslationalGradient(InTransGradient),
@@ -125,6 +195,29 @@ public:
 			InterpolationRadius = Radius * FMath::Max(IrradianceCachingSettings.DistanceSmoothFactor * GeneralSettings.IndirectLightingSmoothness, 1.0f);
 
 			BoundingRadius = FMath::Max(Radius, InterpolationRadius);
+		}
+	};
+
+	struct FRecordOctreeSemantics;
+
+	/** The type of lighting cache octree nodes. */
+	typedef TOctree<FRecord<SampleType>,FRecordOctreeSemantics> LightingOctreeType;
+	
+	/** The octree semantics for irradiance records. */
+	struct FRecordOctreeSemantics
+	{
+		enum { MaxElementsPerLeaf = 4 };
+		enum { MaxNodeDepth = 12 };
+		enum { LoosenessDenominator = 16 };
+
+		typedef TInlineAllocator<MaxElementsPerLeaf> ElementAllocator;
+
+		static FBoxCenterAndExtent GetBoundingBox(const FRecord<SampleType>& LightingRecord)
+		{
+			return FBoxCenterAndExtent(
+				LightingRecord.Vertex.WorldPosition,
+				FVector4(LightingRecord.BoundingRadius, LightingRecord.BoundingRadius, LightingRecord.BoundingRadius)
+				);
 		}
 	};
 
@@ -174,6 +267,8 @@ public:
 		}
 	}
 
+	LightingOctreeType& GetOctree() { return Octree; }
+
 	/**
 	 * Interpolates nearby lighting records for a vertex.
 	 * @param Vertex - The vertex to interpolate the lighting for.
@@ -187,35 +282,67 @@ public:
 		float SecondInterpolationSmoothnessReduction,
 		SampleType& OutLighting,
 		SampleType& OutSecondLighting,
-		TArray<FDebugLightingCacheRecord>& DebugCacheRecords) const;
+		TArray<FDebugLightingCacheRecord>& DebugCacheRecords,
+		class FInfluencingRecordCollector* RecordCollector = NULL) const;
 
 private:
 
-	struct FRecordOctreeSemantics;
-
-	/** The type of lighting cache octree nodes. */
-	typedef TOctree<FRecord<SampleType>,FRecordOctreeSemantics> LightingOctreeType;
-
-	/** The octree semantics for irradiance records. */
-	struct FRecordOctreeSemantics
-	{
-		enum { MaxElementsPerLeaf = 4 };
-		enum { MaxNodeDepth = 12 };
-		enum { LoosenessDenominator = 16 };
-
-		typedef TInlineAllocator<MaxElementsPerLeaf> ElementAllocator;
-
-		static FBoxCenterAndExtent GetBoundingBox(const FRecord<SampleType>& LightingRecord)
-		{
-			return FBoxCenterAndExtent(
-				LightingRecord.Vertex.WorldPosition,
-				FVector4(LightingRecord.BoundingRadius, LightingRecord.BoundingRadius, LightingRecord.BoundingRadius)
-				);
-		}
-	};
-
 	/** The lighting cache octree. */
 	LightingOctreeType Octree;
+};
+
+class FInfluencingRecord
+{
+public:
+	int32 RecordIndex;
+	FFloat16 RecordWeight;
+
+	FInfluencingRecord(int32 InRecordIndex, FFloat16 InRecordWeight) :
+		RecordIndex(InRecordIndex),
+		RecordWeight(InRecordWeight)
+	{}
+};
+
+class FArrayRange
+{
+public:
+
+	FArrayRange(int32 InStartIndex) :
+		StartIndex(InStartIndex),
+		NumEntries(0)
+	{}
+
+	int32 StartIndex;
+	int32 NumEntries;
+};
+
+class FInfluencingRecords
+{
+public:
+
+	TArray<FArrayRange> Ranges;
+	TArray<FInfluencingRecord> Data;
+
+	size_t GetAllocatedSize() const { return Ranges.GetAllocatedSize() + Data.GetAllocatedSize(); }
+};
+
+class FInfluencingRecordCollector
+{
+public:
+
+	FInfluencingRecordCollector(FInfluencingRecords& InInfluencingRecords, int32 InCurrentRangeIndex) :
+		CurrentRangeIndex(InCurrentRangeIndex),
+		InfluencingRecords(InInfluencingRecords)
+	{}
+
+	void AddInfluencingRecord(int32 RecordId, float Weight)
+	{
+		InfluencingRecords.Ranges[CurrentRangeIndex].NumEntries++;
+		InfluencingRecords.Data.Add(FInfluencingRecord(RecordId, Weight));
+	}
+
+	int32 CurrentRangeIndex;
+	FInfluencingRecords& InfluencingRecords;
 };
 
 /**
@@ -232,7 +359,8 @@ bool TLightingCache<SampleType>::InterpolateLighting(
 	float SecondInterpolationSmoothnessReduction,
 	SampleType& OutLighting,
 	SampleType& OutSecondLighting,
-	TArray<FDebugLightingCacheRecord>& DebugCacheRecords) const
+	TArray<FDebugLightingCacheRecord>& DebugCacheRecords,
+	FInfluencingRecordCollector* RecordCollector) const
 {
 	if (bFirstPass)
 	{
@@ -312,6 +440,11 @@ bool TLightingCache<SampleType>::InterpolateLighting(
 				AccumulatedLighting = AccumulatedLighting + LightingRecord.Lighting * RecordWeight * (NonGradientLighting + RotationalGradientContribution + TranslationalGradientContribution);
 				// Accumulate the weight of all records
 				TotalWeight += RecordWeight;
+
+				if (RecordCollector)
+				{
+					RecordCollector->AddInfluencingRecord(LightingRecord.Id, RecordWeight);
+				}
 			}
 		}
 
@@ -337,7 +470,6 @@ bool TLightingCache<SampleType>::InterpolateLighting(
 			}
 		}
 
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 		if (bVisualizeIrradianceSamples && bDebugThisSample && BounceNumber == 1)
 		{
 			for (int32 i = 0; i < DebugCacheRecords.Num(); i++)
@@ -350,7 +482,6 @@ bool TLightingCache<SampleType>::InterpolateLighting(
 				}
 			}
 		}
-#endif
 	}
 
 	if (TotalWeight > DELTA)

@@ -24,7 +24,7 @@
 #include "SpriteIndexBuffer.h"
 #include "SceneFilterRendering.h"
 
-float GVolumetricLightmapVisualizationRadiusScale = 5;
+float GVolumetricLightmapVisualizationRadiusScale = .01f;
 FAutoConsoleVariableRef CVarVolumetricLightmapVisualizationRadiusScale(
 	TEXT("r.VolumetricLightmap.VisualizationRadiusScale"),
 	GVolumetricLightmapVisualizationRadiusScale,

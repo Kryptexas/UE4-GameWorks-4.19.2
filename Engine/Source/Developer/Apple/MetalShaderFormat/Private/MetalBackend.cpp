@@ -450,9 +450,9 @@ protected:
 	
 	// Need to inject the Metal vector array deref helper?
 	bool bVectorDerefHelper;
-
-	// Do we emit the static buffer sampler?
-	bool bUseBufferSampler;
+	
+	bool bExplicitEarlyFragTests;
+	bool bImplicitEarlyFragTests;
 	
     const char *shaderPrefix()
     {
@@ -1211,6 +1211,11 @@ protected:
 		scope_depth++;
 		IsMain = sig->is_main;
 
+		if (sig->is_main && sig->is_early_depth_stencil && Frequency == fragment_shader && Backend && Backend->Version >= 2)
+		{
+			bExplicitEarlyFragTests = true;
+		}
+		ralloc_asprintf_append(buffer, " FUNC_ATTRIBS ");
 		print_type_full(sig->return_type);
 		ralloc_asprintf_append(buffer, " %s(", sig->function_name());
 		
@@ -1537,9 +1542,80 @@ protected:
             expr->operands[0]->accept(this);
             ralloc_asprintf_append(buffer, ")");
         }
+		else if (numOps == 2 && (op == ir_binop_add || op == ir_binop_sub || op == ir_binop_mul || op == ir_binop_div))
+		{
+			bool bHandleFloatHalfConflict = false;
+			glsl_base_type LeftType = expr->operands[0]->type->base_type;
+			glsl_base_type RightType = expr->operands[1]->type->base_type;
+			if (LeftType == GLSL_TYPE_HALF && expr->operands[0]->as_dereference())
+			{
+				auto* Var = expr->operands[0]->variable_referenced();
+				if (Var && Var->mode == ir_var_uniform)
+				{
+					LeftType = GLSL_TYPE_FLOAT;
+				}
+			}
+			if (RightType == GLSL_TYPE_HALF && expr->operands[1]->as_dereference())
+			{
+				auto* Var = expr->operands[1]->variable_referenced();
+				if (Var && Var->mode == ir_var_uniform)
+				{
+					LeftType = GLSL_TYPE_FLOAT;
+				}
+			}
+			
+			if (expr->operands[0]->type->is_float() && expr->operands[1]->type->is_float() && LeftType != RightType)
+			{
+				bHandleFloatHalfConflict = true;
+			}
+			
+			if (bHandleFloatHalfConflict)
+			{
+				print_type_full(expr->type);
+				ralloc_asprintf_append(buffer, "(");
+				
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][0]);
+				if(LeftType == GLSL_TYPE_HALF)
+				{
+					print_type_full(glsl_type::get_instance(GLSL_TYPE_FLOAT,
+															expr->operands[0]->type->vector_elements, expr->operands[0]->type->matrix_columns));
+					ralloc_asprintf_append(buffer, "(");
+					expr->operands[0]->accept(this);
+					ralloc_asprintf_append(buffer, ")");
+				}
+				else
+				{
+					expr->operands[0]->accept(this);
+				}
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][1]);
+				if(RightType == GLSL_TYPE_HALF)
+				{
+					print_type_full(glsl_type::get_instance(GLSL_TYPE_FLOAT,
+															expr->operands[1]->type->vector_elements, expr->operands[1]->type->matrix_columns));
+					ralloc_asprintf_append(buffer, "(");
+					expr->operands[1]->accept(this);
+					ralloc_asprintf_append(buffer, ")");
+				}
+				else
+				{
+					expr->operands[1]->accept(this);
+				}
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
+
+				ralloc_asprintf_append(buffer, ")");
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][0]);
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][1]);
+				expr->operands[1]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
+			}
+		}
 		else if ((op == ir_ternop_fma || op == ir_ternop_clamp || op == ir_unop_sqrt || op == ir_unop_rsq || op == ir_unop_saturate) && expr->type->base_type == GLSL_TYPE_FLOAT)
 		{
-			if (!Backend->bAllowFastIntriniscs)
+			if (!Backend->bAllowFastIntriniscs && op != ir_ternop_fma)
 			{
 				ralloc_asprintf_append(buffer, "precise::");
 			}
@@ -1814,118 +1890,73 @@ protected:
 				check(Index >= 0);
 				
 				ralloc_asprintf_append(buffer, "(");
-				tex->sampler->accept(this);
 				
 				bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
 				bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
 				if (Backend->TypedMode != EMetalTypeBufferModeNone && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end() && !bIsStructuredBuffer && !bIsByteAddressBuffer)
 				{
-					if (Buffers.UniqueSamplerStates.Num() >= MaxMetalSamplers)
+					tex->sampler->accept(this);
+					if (Backend->bBoundsChecks)
 					{
-						if (Backend->bBoundsChecks)
-						{
-							ralloc_asprintf_append(buffer, ".read(uint2(");
-							tex->coordinate->accept(this);
-							ralloc_asprintf_append(buffer, "%%");
-							tex->sampler->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width(),min(");
-							tex->coordinate->accept(this);
-							ralloc_asprintf_append(buffer, "/");
-							tex->sampler->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width(),");
-							tex->sampler->accept(this);
-							ralloc_asprintf_append(buffer, ".get_height()-1)))");
-							
-							switch(Texture->type->inner_type->vector_elements)
-							{
-								case 1:
-								{
-									ralloc_asprintf_append(buffer, ".x");
-									break;
-								}
-								case 2:
-								{
-									ralloc_asprintf_append(buffer, ".xy");
-									break;
-								}
-								case 3:
-								{
-									ralloc_asprintf_append(buffer, ".xyz");
-									break;
-								}
-								case 4:
-								{
-									break;
-								}
-								default:
-								{
-									check(false);
-									break;
-								}
-							}
-							
-							ralloc_asprintf_append(buffer, " * int(");
-							tex->coordinate->accept(this);
-							ralloc_asprintf_append(buffer, " < (");
-							tex->sampler->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width() * ");
-							tex->sampler->accept(this);
-							ralloc_asprintf_append(buffer, ".get_height()))");
-						}
-						else
-						{
-							ralloc_asprintf_append(buffer, ".read(uint2(");
-							tex->coordinate->accept(this);
-							ralloc_asprintf_append(buffer, "%%");
-							tex->sampler->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width(),");
-							tex->coordinate->accept(this);
-							ralloc_asprintf_append(buffer, "/");
-							tex->sampler->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width()))");
-							
-							switch(Texture->type->inner_type->vector_elements)
-							{
-								case 1:
-								{
-									ralloc_asprintf_append(buffer, ".x");
-									break;
-								}
-								case 2:
-								{
-									ralloc_asprintf_append(buffer, ".xy");
-									break;
-								}
-								case 3:
-								{
-									ralloc_asprintf_append(buffer, ".xyz");
-									break;
-								}
-								case 4:
-								{
-									break;
-								}
-								default:
-								{
-									check(false);
-									break;
-								}
-							}
-						}
-					}
-					else
-					{
-						bUseBufferSampler = true;
-						
-						ralloc_asprintf_append(buffer, ".sample(GBufferSampler, float2((float)(");
+						ralloc_asprintf_append(buffer, ".read(uint2(");
 						tex->coordinate->accept(this);
 						ralloc_asprintf_append(buffer, "%%");
 						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width()),(float)(");
+						ralloc_asprintf_append(buffer, ".get_width(),min(");
 						tex->coordinate->accept(this);
 						ralloc_asprintf_append(buffer, "/");
 						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width())))");
+						ralloc_asprintf_append(buffer, ".get_width(),");
+						tex->sampler->accept(this);
+						ralloc_asprintf_append(buffer, ".get_height()-1)))");
+						
+						switch(Texture->type->inner_type->vector_elements)
+						{
+							case 1:
+							{
+								ralloc_asprintf_append(buffer, ".x");
+								break;
+							}
+							case 2:
+							{
+								ralloc_asprintf_append(buffer, ".xy");
+								break;
+							}
+							case 3:
+							{
+								ralloc_asprintf_append(buffer, ".xyz");
+								break;
+							}
+							case 4:
+							{
+								break;
+							}
+							default:
+							{
+								check(false);
+								break;
+							}
+						}
+						
+						ralloc_asprintf_append(buffer, " * int(");
+						tex->coordinate->accept(this);
+						ralloc_asprintf_append(buffer, " < (");
+						tex->sampler->accept(this);
+						ralloc_asprintf_append(buffer, ".get_width() * ");
+						tex->sampler->accept(this);
+						ralloc_asprintf_append(buffer, ".get_height()))");
+					}
+					else
+					{
+						ralloc_asprintf_append(buffer, ".read(uint2(");
+						tex->coordinate->accept(this);
+						ralloc_asprintf_append(buffer, "%%");
+						tex->sampler->accept(this);
+						ralloc_asprintf_append(buffer, ".get_width(),");
+						tex->coordinate->accept(this);
+						ralloc_asprintf_append(buffer, "/");
+						tex->sampler->accept(this);
+						ralloc_asprintf_append(buffer, ".get_width()))");
 						
 						switch(Texture->type->inner_type->vector_elements)
 						{
@@ -1956,10 +1987,20 @@ protected:
 						}
 					}
 				}
+				else if (!bIsStructuredBuffer && !bIsByteAddressBuffer && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end()
+						 && Texture->type->inner_type->is_scalar())
+				{
+					ralloc_asprintf_append(buffer, "LoadRWBuffer(");
+					tex->sampler->accept(this);
+					ralloc_asprintf_append(buffer, ", ");
+					tex->coordinate->accept(this);
+					ralloc_asprintf_append(buffer, ", %d, BufferSizes)", Index);
+				}
 				else if (Backend && Backend->bBoundsChecks)
 				{
 					check(Index <= 30);
 					
+					tex->sampler->accept(this);
 					ralloc_asprintf_append(buffer, "[");
 					ralloc_asprintf_append(buffer, "min(");
 					tex->coordinate->accept(this);
@@ -1980,6 +2021,7 @@ protected:
 				}
 				else
 				{
+					tex->sampler->accept(this);
 					ralloc_asprintf_append(buffer, "[");
 					tex->coordinate->accept(this);
 					ralloc_asprintf_append(buffer, "]");
@@ -2400,6 +2442,7 @@ protected:
 			}
 			else
 			{
+				bImplicitEarlyFragTests = false;
 				if (bIsRWTexture)
 				{
 					deref->image->accept(this);
@@ -3007,6 +3050,7 @@ protected:
 			ralloc_asprintf_append(buffer, ") ");
 		}
 		ralloc_asprintf_append(buffer, "discard_fragment()");
+		bImplicitEarlyFragTests = false;
 	}
 
 	bool try_conditional_move(ir_if *expr)
@@ -3425,9 +3469,9 @@ protected:
 						{
 							ralloc_asprintf_append(buffer, " [[ attribute(%s) ]]", s->fields.structure[j].semantic + 9);
 						}
-						else if (!strncmp(s->fields.structure[j].semantic, "gl_FragDepth", 12) || !strcmp(s->fields.structure[j].semantic, "[[ depth(any) ]]"))
+						else if (!strcmp(s->fields.structure[j].semantic, "[[ depth(any) ]]") || !strcmp(s->fields.structure[j].semantic, "[[ depth(less) ]]"))
 						{
-							ralloc_asprintf_append(buffer, " [[ depth(any) ]]");
+							ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].semantic);
 							output_variables.push_tail(new(state) extern_var(new(state)ir_variable(s->fields.structure[j].type, "FragDepth", ir_var_out)));
 						}
 						else if (!strncmp(s->fields.structure[j].semantic, "[[ color(", 9))
@@ -4106,7 +4150,8 @@ public:
 		, bCubeArrayHackFloat3(false)
 		, bReverseBitsWAR(false)
 		, bVectorDerefHelper(false)
-		, bUseBufferSampler(false)
+		, bExplicitEarlyFragTests(false)
+		, bImplicitEarlyFragTests(InBackend->Version >= 2)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -4142,10 +4187,23 @@ public:
 		char* decl_buffer = ralloc_asprintf(mem_ctx, "");
 		buffer = &decl_buffer;
 		declare_structs(ParseState);
-		if (bUseBufferSampler)
+		
+        // Use a precise fma based cross-product to avoid reassociation errors messing up WPO
+		if (Backend && Backend->Version >= 2)
 		{
-			ralloc_asprintf_append(buffer, "\nconstexpr sampler GBufferSampler(coord::pixel, address::clamp_to_zero, filter::nearest);\n");
+			ralloc_asprintf_append(buffer, "\ntemplate<typename T> static T precise_cross(T x, T y) { float3 fx = float3(x); float3 fy = float3(y); return T(fma(fx[1], fy[2], -(fy[1] * fx[2])), fma(fx[2], fy[0], -(fy[2] * fx[0])), fma(fx[0], fy[1], -(fy[0] * fx[1]))); }\n");
+			ralloc_asprintf_append(buffer, "#define cross(x, y) precise_cross(x, y)\n");
 		}
+        
+        if ((bExplicitEarlyFragTests || bImplicitEarlyFragTests) && !Backend->bExplicitDepthWrites && Frequency == fragment_shader && Backend->Version >= 2)
+		{
+			ralloc_asprintf_append(buffer, "\n#define FUNC_ATTRIBS [[early_fragment_tests]]\n\n");
+		}
+		else
+		{
+			ralloc_asprintf_append(buffer, "\n#define FUNC_ATTRIBS \n\n");
+		}
+
 		buffer = 0;
 
 		char* signature = ralloc_asprintf(mem_ctx, "");
@@ -4224,7 +4282,7 @@ public:
 		buffer = 0;
 
 		char* RWBufferLoadStoreHelper = ralloc_asprintf(mem_ctx, "");
-		if (Backend->Version < 3)
+		if (Backend->TypedMode != EMetalTypeBufferModeUAV)
 		{
 			buffer = &RWBufferLoadStoreHelper;
 			
@@ -4250,25 +4308,25 @@ public:
 			ralloc_asprintf_append(buffer, "\t	{\n");
 			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_FLOAT:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(float)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device float*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device float*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float))));\n");
 			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16F:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(half)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device half*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device half*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(half))));\n");
 			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_UINT:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uint)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device uint*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device uint*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(uint))));\n");
 			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_SINT:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(int)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device int*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device int*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(int))));\n");
 			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_UINT:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(ushort)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device ushort*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device ushort*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(ushort))));\n");
 			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_SINT:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(short)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device short*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device short*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(short))));\n");
 			ralloc_asprintf_append(buffer, "\t	\t	case PF_R8_UINT:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uchar)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device uchar*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device uchar*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(uchar))));\n");
 			ralloc_asprintf_append(buffer, "\t	\t	default:\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(T)) - 1);\n");
 			ralloc_asprintf_append(buffer, "\t	\t	\t	return RWBuffer[NewIndex] * int(Coord < (Size / sizeof(T)));\n");
@@ -4840,17 +4898,24 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	foreach_iter(exec_list_iterator, Iter, EntryPointSig->parameters)
 	{
 		const ir_variable* Variable = (ir_variable*)Iter.get();
-		if (Variable->mode == ir_var_out && Variable->semantic != NULL && FCStringAnsi::Strnicmp(Variable->semantic, "SV_ClipDistance", ClipPrefixLen) == 0)
+		if (Variable->mode == ir_var_out && Variable->semantic != NULL)
 		{
-			uint32 Index = 0;
-			if (Variable->semantic[ClipPrefixLen] >= '1' && Variable->semantic[ClipPrefixLen] <= '7')
+			if (FCStringAnsi::Strnicmp(Variable->semantic, "SV_ClipDistance", ClipPrefixLen) == 0)
 			{
-				Index = Variable->semantic[ClipPrefixLen] - '0';
+				uint32 Index = 0;
+				if (Variable->semantic[ClipPrefixLen] >= '1' && Variable->semantic[ClipPrefixLen] <= '7')
+				{
+					Index = Variable->semantic[ClipPrefixLen] - '0';
+				}
+				if (!(ClipDistancesUsed & (1 << Index)))
+				{
+					ClipDistancesUsed |= (1 << Index);
+					NumClipDistancesUsed++;
+				}
 			}
-			if (!(ClipDistancesUsed & (1 << Index)))
+			else if (FCStringAnsi::Strnicmp(Variable->semantic, "SV_Depth", 8) == 0)
 			{
-				ClipDistancesUsed |= (1 << Index);
-				NumClipDistancesUsed++;
+				bExplicitDepthWrites = true;
 			}
 		}
 	}
@@ -4859,17 +4924,24 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 		for (uint32 i = 0; i < EntryPointSig->return_type->length; ++i)
 		{
 			const char* FieldSemantic = EntryPointSig->return_type->fields.structure[i].semantic;
-			if (FieldSemantic != NULL && FCStringAnsi::Strnicmp(FieldSemantic, "SV_ClipDistance", ClipPrefixLen) == 0)
+			if (FieldSemantic != NULL)
 			{
-				uint32 Index = 0;
-				if (FieldSemantic[ClipPrefixLen] >= '1' && FieldSemantic[ClipPrefixLen] <= '7')
+				if(FCStringAnsi::Strnicmp(FieldSemantic, "SV_ClipDistance", ClipPrefixLen) == 0)
 				{
-					Index = FieldSemantic[ClipPrefixLen] - '0';
+					uint32 Index = 0;
+					if (FieldSemantic[ClipPrefixLen] >= '1' && FieldSemantic[ClipPrefixLen] <= '7')
+					{
+						Index = FieldSemantic[ClipPrefixLen] - '0';
+					}
+					if (!(ClipDistancesUsed & (1 << Index)))
+					{
+						ClipDistancesUsed |= (1 << Index);
+						NumClipDistancesUsed++;
+					}
 				}
-				if (!(ClipDistancesUsed & (1 << Index)))
+				else if (FCStringAnsi::Strnicmp(FieldSemantic, "SV_Depth", 8) == 0)
 				{
-					ClipDistancesUsed |= (1 << Index);
-					NumClipDistancesUsed++;
+					bExplicitDepthWrites = true;
 				}
 			}
 		}
@@ -6019,7 +6091,8 @@ void FMetalCodeBackend::CallPatchConstantFunction(_mesa_glsl_parse_state* ParseS
 FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, EMetalGPUSemantics bInDesktop, EMetalTypeBufferMode InTypedMode, uint32 InMaxUnrollLoops, bool bInZeroInitialise, bool bInBoundsChecks, bool bInAllFastIntriniscs) :
 	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1),
 	TessAttribs(TessOutputAttribs),
-	AtomicUAVs(0)
+	AtomicUAVs(0),
+	bExplicitDepthWrites(false)
 {
     Version = InVersion;
 	bIsDesktop = bInDesktop;

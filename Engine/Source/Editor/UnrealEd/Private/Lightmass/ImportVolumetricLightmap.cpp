@@ -15,7 +15,6 @@
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
 #include "RenderUtils.h"
-#include "Math/PackedVector.h"
 
 #define LOCTEXT_NAMESPACE "ImportVolumetricLightmap"
 
@@ -72,166 +71,6 @@ FIntVector ComputeBrickLayoutPosition(int32 BrickLayoutAllocation, FIntVector Br
 		BrickLayoutAllocation / (BrickLayoutDimensions.X * BrickLayoutDimensions.Y));
 
 	return BrickPosition;
-}
-
-template<typename T>
-FLinearColor ConvertToLinearColor(T InColor)
-{
-	return FLinearColor(InColor);
-};
-
-template<typename T>
-T ConvertFromLinearColor(const FLinearColor& InColor)
-{
-	return T(InColor);
-};
-
-template<>
-FLinearColor ConvertToLinearColor<FColor>(FColor InColor)
-{
-	return InColor.ReinterpretAsLinear();
-};
-
-template<>
-FColor ConvertFromLinearColor<FColor>(const FLinearColor& InColor)
-{
-	return InColor.QuantizeRound();
-};
-
-template<>
-FLinearColor ConvertToLinearColor<FFloat3Packed>(FFloat3Packed InColor)
-{
-	return InColor.ToLinearColor();
-};
-
-template<>
-FFloat3Packed ConvertFromLinearColor<FFloat3Packed>(const FLinearColor& InColor)
-{
-	return FFloat3Packed(InColor);
-};
-
-template<>
-FLinearColor ConvertToLinearColor<FFixedRGBASigned8>(FFixedRGBASigned8 InColor)
-{
-	return InColor.ToLinearColor();
-};
-
-template<>
-FFixedRGBASigned8 ConvertFromLinearColor<FFixedRGBASigned8>(const FLinearColor& InColor)
-{
-	return FFixedRGBASigned8(InColor);
-};
-
-template<>
-uint8 ConvertFromLinearColor<uint8>(const FLinearColor& InColor)
-{
-	return (uint8)FMath::Clamp<int32>(FMath::RoundToInt(InColor.R * MAX_uint8), 0, MAX_uint8);
-};
-
-template<>
-FLinearColor ConvertToLinearColor<uint8>(uint8 InColor)
-{
-	const float Scale = 1.0f / MAX_uint8;
-	return FLinearColor(InColor * Scale, 0, 0, 0);
-};
-
-const float GPointFilteringThreshold = .001f;
-
-template<typename VoxelDataType>
-FLinearColor FilteredVolumeLookup(FVector Coordinate, FIntVector DataDimensions, const VoxelDataType* Data)
-{
-	FVector CoordinateFraction(FMath::Frac(Coordinate.X), FMath::Frac(Coordinate.Y), FMath::Frac(Coordinate.Z));
-	FIntVector FilterNeighborSize(CoordinateFraction.X > GPointFilteringThreshold ? 2 : 1, CoordinateFraction.Y > GPointFilteringThreshold ? 2 : 1, CoordinateFraction.Z > GPointFilteringThreshold ? 2 : 1);
-	FIntVector CoordinateInt000(Coordinate);
-
-	FLinearColor FilteredValue(0, 0, 0, 0);
-	FVector FilterWeight(1.0f, 1.0f, 1.0f);
-
-	for (int32 Z = 0; Z < FilterNeighborSize.Z; Z++)
-	{
-		if (FilterNeighborSize.Z > 1)
-		{
-			FilterWeight.Z = (Z == 0 ? 1.0f - CoordinateFraction.Z : CoordinateFraction.Z);
-		}
-
-		for (int32 Y = 0; Y < FilterNeighborSize.Y; Y++)
-		{
-			if (FilterNeighborSize.Y > 1)
-			{
-				FilterWeight.Y = (Y == 0 ? 1.0f - CoordinateFraction.Y : CoordinateFraction.Y);
-			}
-
-			for (int32 X = 0; X < FilterNeighborSize.X; X++)
-			{
-				if (FilterNeighborSize.X > 1)
-				{
-					FilterWeight.X = (X == 0 ? 1.0f - CoordinateFraction.X : CoordinateFraction.X);
-				}
-
-				const FIntVector CoordinateInt = CoordinateInt000 + FIntVector(X, Y, Z);
-				const int32 LinearIndex = ((CoordinateInt.Z * DataDimensions.Y) + CoordinateInt.Y) * DataDimensions.X + CoordinateInt.X;
-
-				FilteredValue += ConvertToLinearColor<VoxelDataType>(Data[LinearIndex]) * FilterWeight.X * FilterWeight.Y * FilterWeight.Z;
-			}
-		}
-	}
-
-	return FilteredValue;
-}
-
-template<typename VoxelDataType>
-VoxelDataType FilteredVolumeLookupReconverted(FVector Coordinate, FIntVector DataDimensions, const VoxelDataType* Data)
-{
-	FVector CoordinateFraction(FMath::Frac(Coordinate.X), FMath::Frac(Coordinate.Y), FMath::Frac(Coordinate.Z));
-	FIntVector FilterNeighborSize(CoordinateFraction.X > GPointFilteringThreshold ? 2 : 1, CoordinateFraction.Y > GPointFilteringThreshold ? 2 : 1, CoordinateFraction.Z > GPointFilteringThreshold ? 2 : 1);
-
-	if (FilterNeighborSize.X == 1 && FilterNeighborSize.Y == 1 && FilterNeighborSize.Z == 1)
-	{
-		FIntVector CoordinateInt000(Coordinate);
-		const int32 LinearIndex = ((CoordinateInt000.Z * DataDimensions.Y) + CoordinateInt000.Y) * DataDimensions.X + CoordinateInt000.X;
-		return Data[LinearIndex];
-	}
-	else
-	{
-		FLinearColor FilteredValue = FilteredVolumeLookup<VoxelDataType>(Coordinate, DataDimensions, Data);
-		return ConvertFromLinearColor<VoxelDataType>(FilteredValue);
-	}
-}
-
-template<typename VoxelDataType>
-VoxelDataType NearestVolumeLookup(FVector Coordinate, FIntVector DataDimensions, const VoxelDataType* Data)
-{
-	FIntVector NearestCoordinateInt(FMath::RoundToInt(Coordinate.X), FMath::RoundToInt(Coordinate.Y), FMath::RoundToInt(Coordinate.Z));
-	const int32 LinearIndex = ((NearestCoordinateInt.Z * DataDimensions.Y) + NearestCoordinateInt.Y) * DataDimensions.X + NearestCoordinateInt.X;
-	return Data[LinearIndex];
-}
-
-void SampleIndirectionTexture(
-	FVector IndirectionDataSourceCoordinate,
-	FIntVector IndirectionTextureDimensions,
-	const uint8* IndirectionTextureData,
-	FIntVector& OutIndirectionBrickOffset,
-	int32& OutIndirectionBrickSize)
-{
-	FIntVector IndirectionDataCoordinateInt(IndirectionDataSourceCoordinate);
-	
-	const int32 IndirectionDataIndex = ((IndirectionDataCoordinateInt.Z * IndirectionTextureDimensions.Y) + IndirectionDataCoordinateInt.Y) * IndirectionTextureDimensions.X + IndirectionDataCoordinateInt.X;
-	const uint8* IndirectionVoxelPtr = (const uint8*)&IndirectionTextureData[IndirectionDataIndex * sizeof(uint8) * 4];
-	OutIndirectionBrickOffset = FIntVector(*(IndirectionVoxelPtr + 0), *(IndirectionVoxelPtr + 1), *(IndirectionVoxelPtr + 2));
-	OutIndirectionBrickSize = *(IndirectionVoxelPtr + 3);
-}
-
-FVector ComputeBrickTextureCoordinate(
-	FVector IndirectionDataSourceCoordinate,
-	FIntVector IndirectionBrickOffset, 
-	int32 IndirectionBrickSize,
-	int32 BrickSize)
-{
-	FVector IndirectionDataSourceCoordinateInBricks = IndirectionDataSourceCoordinate / IndirectionBrickSize;
-	FVector FractionalIndirectionDataCoordinate(FMath::Frac(IndirectionDataSourceCoordinateInBricks.X), FMath::Frac(IndirectionDataSourceCoordinateInBricks.Y), FMath::Frac(IndirectionDataSourceCoordinateInBricks.Z));
-	int32 PaddedBrickSize = BrickSize + 1;
-	FVector BrickTextureCoordinate = FVector(IndirectionBrickOffset * PaddedBrickSize) + FractionalIndirectionDataCoordinate * BrickSize;
-	return BrickTextureCoordinate;
 }
 
 bool CopyFromBrickmapTexel(
@@ -1054,8 +893,8 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 	BrickLayoutDimensions.Z = FMath::Min(BrickTextureLinearAllocator, MaxBricksInLayoutOneDim);
 
 	const int32 BrickSizeLog2 = FMath::FloorLog2(BrickSize);
-	const int32 DetailCellsPerTopLevelCell = 1 << (VolumetricLightmapSettings.MaxRefinementLevels * BrickSizeLog2);
-	const int32 IndirectionCellsPerTopLevelCell = DetailCellsPerTopLevelCell / BrickSize;
+	const int32 DetailCellsPerTopLevelBrick = 1 << (VolumetricLightmapSettings.MaxRefinementLevels * BrickSizeLog2);
+	const int32 IndirectionCellsPerTopLevelCell = DetailCellsPerTopLevelBrick / BrickSize;
 
 	int32 IndirectionTextureDataStride;
 	{
@@ -1161,7 +1000,7 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 	}
 
 	const float InvBrickSize = 1.0f / BrickSize;
-	const FVector DetailCellSize = VolumetricLightmapSettings.VolumeSize / FVector(VolumetricLightmapSettings.TopLevelGridSize * DetailCellsPerTopLevelCell);
+	const FVector DetailCellSize = VolumetricLightmapSettings.VolumeSize / FVector(VolumetricLightmapSettings.TopLevelGridSize * DetailCellsPerTopLevelBrick);
 
 	if (bOverwriteVoxelsInsideGeometryWithNeighbors || bFilterWithNeighbors)
 	{

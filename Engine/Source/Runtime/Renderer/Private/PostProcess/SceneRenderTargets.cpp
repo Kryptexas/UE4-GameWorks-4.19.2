@@ -378,7 +378,6 @@ uint16 FSceneRenderTargets::GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type I
 			NumSamples = 1;
 		}
 	}
-
 	if (NumSamples > 1 && !RHISupportsMSAA(GShaderPlatformForFeatureLevel[InFeatureLevel]))
 	{
 		NumSamples = 1;

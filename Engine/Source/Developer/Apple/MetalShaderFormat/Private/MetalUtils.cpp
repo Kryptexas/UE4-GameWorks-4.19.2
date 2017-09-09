@@ -197,6 +197,7 @@ namespace MetalUtils
 	static FSystemValue MobilePixelSystemValueTable[] =
 	{
 		{"SV_Depth", glsl_type::float_type, "FragDepth", ir_var_out, "[[ depth(any) ]]"},
+		{"SV_DepthLessEqual", glsl_type::float_type, "FragDepth", ir_var_out, "[[ depth(less) ]]"},
 		{"SV_Position", glsl_type::vec4_type, "IN_FragCoord", ir_var_in, "[[ position ]]"},
 		{"SV_IsFrontFace", glsl_type::bool_type, "IN_FrontFacing", ir_var_in, "[[ front_facing ]]"},
 		//{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveID", ir_var_in, "[[  ]]"},
@@ -241,6 +242,7 @@ namespace MetalUtils
 	static FSystemValue DesktopPixelSystemValueTable[] =
 	{
 		{"SV_Depth", glsl_type::float_type, "FragDepth", ir_var_out, "[[ depth(any) ]]"},
+		{"SV_DepthLessEqual", glsl_type::float_type, "FragDepth", ir_var_out, "[[ depth(less) ]]"},
 		{"SV_Position", glsl_type::vec4_type, "IN_FragCoord", ir_var_in, "[[ position ]]"},
 		{"SV_IsFrontFace", glsl_type::bool_type, "IN_FrontFacing", ir_var_in, "[[ front_facing ]]"},
 		{"SV_Coverage", glsl_type::uint_type, "IN_Coverage", ir_var_in, "[[ sample_mask ]]"},

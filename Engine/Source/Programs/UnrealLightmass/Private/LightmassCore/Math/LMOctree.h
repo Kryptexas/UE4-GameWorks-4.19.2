@@ -315,14 +315,12 @@ public:
 		mutable uint32 bIsLeaf : 1;
 	};
 
-
-
-	/** A reference to an octree node, its context, and a read lock. */
+	/** A reference to an octree node and its context. */
 	class FNodeReference
 	{
 	public:
 
-		const FNode* Node;
+		FNode* Node;
 		FOctreeNodeContext Context;
 
 		/** Default constructor. */
@@ -332,7 +330,28 @@ public:
 		{}
 
 		/** Initialization constructor. */
-		FNodeReference(const FNode* InNode,const FOctreeNodeContext& InContext):
+		FNodeReference(FNode* InNode,const FOctreeNodeContext& InContext):
+			Node(InNode),
+			Context(InContext)
+		{}
+	};	
+
+	/** A reference to an octree node, its context, and a read lock. */
+	class FConstNodeReference
+	{
+	public:
+
+		const FNode* Node;
+		FOctreeNodeContext Context;
+
+		/** Default constructor. */
+		FConstNodeReference():
+			Node(NULL),
+			Context()
+		{}
+
+		/** Initialization constructor. */
+		FConstNodeReference(const FNode* InNode,const FOctreeNodeContext& InContext):
 			Node(InNode),
 			Context(InContext)
 		{}
@@ -344,6 +363,72 @@ public:
 	/** An octree node iterator. */
 	template<typename StackAllocator = DefaultStackAllocator>
 	class TConstIterator
+	{
+	public:
+
+		/** Pushes a child of the current node onto the stack of nodes to visit. */
+		void PushChild(FOctreeChildNodeRef ChildRef)
+		{
+			NodeStack.Add(
+				FConstNodeReference(
+					CurrentNode.Node->GetChild(ChildRef),
+					CurrentNode.Context.GetChildContext(ChildRef)
+					));
+		}
+
+		/** Iterates to the next node. */
+		void Advance()
+		{
+			if(NodeStack.Num())
+			{
+				CurrentNode = NodeStack[NodeStack.Num() - 1];
+				NodeStack.RemoveAt(NodeStack.Num() - 1);
+			}
+			else
+			{
+				CurrentNode = FConstNodeReference();
+			}
+		}
+
+		/** Checks if there are any nodes left to iterate over. */
+		bool HasPendingNodes() const
+		{
+			return CurrentNode.Node != NULL;
+		}
+
+		/** Starts iterating at the root of an octree. */
+		TConstIterator(const TOctree& Tree)
+		:	CurrentNode(FConstNodeReference(&Tree.RootNode,Tree.RootNodeContext))
+		{}
+
+		/** Starts iterating at a particular node of an octree. */
+		TConstIterator(const FNode& Node,const FOctreeNodeContext& Context):
+			CurrentNode(FConstNodeReference(&Node,Context))
+		{}
+
+		// Accessors.
+		const FNode& GetCurrentNode() const
+		{
+			return *CurrentNode.Node;
+		}
+		const FOctreeNodeContext& GetCurrentContext() const
+		{
+			return CurrentNode.Context;
+		}
+
+	private:
+
+		/** The node that is currently being visited. */
+		FConstNodeReference CurrentNode;
+	
+		/** The nodes which are pending iteration. */
+		TArray<FConstNodeReference,StackAllocator> NodeStack;
+	};
+
+	
+	/** An octree node iterator. */
+	template<typename StackAllocator = DefaultStackAllocator>
+	class TIterator
 	{
 	public:
 
@@ -378,17 +463,17 @@ public:
 		}
 
 		/** Starts iterating at the root of an octree. */
-		TConstIterator(const TOctree& Tree)
+		TIterator(TOctree& Tree)
 		:	CurrentNode(FNodeReference(&Tree.RootNode,Tree.RootNodeContext))
 		{}
 
 		/** Starts iterating at a particular node of an octree. */
-		TConstIterator(const FNode& Node,const FOctreeNodeContext& Context):
+		TIterator(FNode& Node,const FOctreeNodeContext& Context):
 			CurrentNode(FNodeReference(&Node,Context))
 		{}
 
 		// Accessors.
-		const FNode& GetCurrentNode() const
+		FNode& GetCurrentNode()
 		{
 			return *CurrentNode.Node;
 		}
@@ -514,6 +599,8 @@ public:
 
 	/** Writes stats for the octree to the log. */
 	void DumpStats(bool bDetailed) const;
+
+	void GetMemoryUsage(size_t& OutSizeBytes) const;
 
 	/** Initialization constructor. */
 	TOctree(const FVector4& InOrigin, float InExtent);
@@ -767,6 +854,29 @@ void TOctree<ElementType,OctreeSemantics>::DumpStats(bool bDetailed) const
 			}
 		}
 	}
+}
+
+template<typename ElementType,typename OctreeSemantics>
+void TOctree<ElementType,OctreeSemantics>::GetMemoryUsage(size_t& OutSizeBytes) const
+{
+	size_t SizeBytes = 0;
+
+	for (TConstIterator<> NodeIt(*this);NodeIt.HasPendingNodes();NodeIt.Advance())
+	{
+		const FNode& CurrentNode = NodeIt.GetCurrentNode();
+
+		SizeBytes += sizeof(FNode) + CurrentNode.Elements.GetAllocatedSize();
+		
+		FOREACH_OCTREE_CHILD_NODE(ChildRef)
+		{
+			if(CurrentNode.HasChild(ChildRef))
+			{
+				NodeIt.PushChild(ChildRef);
+			}
+		}
+	}
+
+	OutSizeBytes = SizeBytes;
 }
 
 template<typename ElementType,typename OctreeSemantics>

@@ -51,6 +51,9 @@ public:
 
 	FDistanceFieldUploadDataResource()
 	{
+		// PS4 volatile only supports 8Mb, switch to volatile once that is fixed.
+		UploadData.bVolatile = false;
+
 		UploadData.Format = PF_A32B32G32R32F;
 		UploadData.Stride = UploadObjectDataStride;
 	}
@@ -76,6 +79,9 @@ public:
 
 	FDistanceFieldUploadIndicesResource()
 	{
+		// PS4 volatile only supports 8Mb, switch to volatile once that is fixed.
+		UploadIndices.bVolatile = false;
+
 		UploadIndices.Format = PF_R32_UINT;
 		UploadIndices.Stride = 1;
 	}
@@ -1183,7 +1189,9 @@ void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHIC
 
 		if (UploadObjectIndices.Num() > 0)
 		{
-			if (UploadObjectIndices.Num() > GDistanceFieldUploadIndices.UploadIndices.MaxElements)
+			if (UploadObjectIndices.Num() > GDistanceFieldUploadIndices.UploadIndices.MaxElements
+				// Shrink if very large
+				|| (GDistanceFieldUploadIndices.UploadIndices.MaxElements > 1000 && GDistanceFieldUploadIndices.UploadIndices.MaxElements > UploadObjectIndices.Num() * 2))
 			{
 				GDistanceFieldUploadIndices.UploadIndices.MaxElements = UploadObjectIndices.Num() * 5 / 4;
 				GDistanceFieldUploadIndices.UploadIndices.Release();

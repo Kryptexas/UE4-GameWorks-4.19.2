@@ -618,7 +618,19 @@ void make_intrinsic_degrees(exec_list *ir, _mesa_glsl_parse_state *state)
 void MakeIntrinsicSaturate(exec_list *ir, _mesa_glsl_parse_state *state, int max_type)
 {
 	void* ctx = state;
-	ir_function* func = new(ctx)ir_function("saturate");
+	ir_function* func = nullptr;
+	bool const bNativeIntrinsic = state->LanguageSpec->SupportsSaturateIntrinsic();
+	if(bNativeIntrinsic)
+	{
+		max_type = GLSL_TYPE_INT;
+		make_intrinsic_genType(ir, state, "saturate", ir_unop_saturate, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 1, 1, 4);
+		func = state->symbols->get_function("saturate");
+		assert(func);
+	}
+	else
+	{
+		func = new(ctx)ir_function("saturate");
+	}
 	
 	for (int base_type = GLSL_TYPE_UINT; base_type <= max_type; ++base_type)
 	{
@@ -665,8 +677,11 @@ void MakeIntrinsicSaturate(exec_list *ir, _mesa_glsl_parse_state *state, int max
 			}
 		}
 	}
-	state->symbols->add_global_function(func);
-	ir->push_tail(func);
+	if (!bNativeIntrinsic)
+	{
+		state->symbols->add_global_function(func);
+		ir->push_tail(func);
+	}
 }
 
 void make_intrinsic_isfinite(exec_list *ir, _mesa_glsl_parse_state *state)
@@ -1250,6 +1265,9 @@ void make_intrinsic_sm5_functions(exec_list *ir, _mesa_glsl_parse_state *state)
 		{
 			ir_unop_bitcount, ir_unop_msb, ir_unop_lsb, ir_unop_bitreverse
 		};
+		bool use_base_type[] = {
+			true, false, false, true
+		};
 
 		for (size_t i = 0; i < sizeof(funcName) / sizeof(char*); i++)
 		{
@@ -1259,7 +1277,8 @@ void make_intrinsic_sm5_functions(exec_list *ir, _mesa_glsl_parse_state *state)
 			{
 				for (int vec_size = 1; vec_size <= 4; vec_size++)
 				{
-					ir_function_signature* sig = new(ctx)ir_function_signature(glsl_type::get_instance(GLSL_TYPE_INT, vec_size, 1));
+					const glsl_type* type = use_base_type ? glsl_type::get_instance(base_type, vec_size, 1) : glsl_type::get_instance(GLSL_TYPE_INT, vec_size, 1);
+					ir_function_signature* sig = new(ctx)ir_function_signature(type);
 					sig->is_builtin = true;
 					sig->is_defined = true;
 
@@ -1484,13 +1503,7 @@ void _mesa_glsl_initialize_functions(exec_list *ir, _mesa_glsl_parse_state *stat
 	make_intrinsic_genType(ir, state, "max", ir_binop_max, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT | IR_INTRINSIC_MATRIX, 2);
 	make_intrinsic_genType(ir, state, "clamp", ir_ternop_clamp, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT | IR_INTRINSIC_MATRIX, 3);
 	
-	int saturate_max_type = GLSL_TYPE_FLOAT;
-	if (state->LanguageSpec->SupportsSaturateIntrinsic())
-	{
-		make_intrinsic_genType(ir, state, "saturate", ir_unop_saturate, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 1, 1, 4);
-		saturate_max_type = GLSL_TYPE_INT;
-	}
-	MakeIntrinsicSaturate(ir, state, saturate_max_type);
+	MakeIntrinsicSaturate(ir, state, GLSL_TYPE_FLOAT);
 	
 	make_intrinsic_genType(ir, state, "lerp", ir_ternop_lerp, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 3);
 	make_intrinsic_genType(ir, state, "step", ir_binop_step, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 2);

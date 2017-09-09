@@ -1,22 +1,86 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "CoreMinimal.h"
 #include "LockFreeList.h"
 #include "Templates/RefCounting.h"
 #include "SceneExport.h"
+#include "LightingCache.h"
+#include "GatheredLightingSample.h"
 
 namespace Lightmass
 {
 
-	class FCacheIndirectTaskDescription;
-	class FInterpolateIndirectTaskDescription;
+class FCacheIndirectTaskDescription;
+class FInterpolateIndirectTaskDescription;
+
+enum EHemisphereGatherClassification
+{
+	GLM_None = 0,
+	GLM_GatherRadiosityBuffer0 = 1,
+	GLM_GatherRadiosityBuffer1 = 2,
+	GLM_GatherLightEmitted = 4,
+	GLM_GatherLightFinalBounced = 8,
+	GLM_FinalGather = GLM_GatherLightEmitted | GLM_GatherLightFinalBounced
+};
+
+class FCompressedGatherHitPoints
+{
+public:
+
+	FCompressedGatherHitPoints() :
+		GatherHitPointRangesUncompressedSize(0),
+		GatherHitPointDataUncompressedSize(0)
+	{}
+
+	uint32 GatherHitPointRangesUncompressedSize;
+	TArray<uint8> GatherHitPointRanges;
+
+	uint32 GatherHitPointDataUncompressedSize;
+	TArray<uint8> GatherHitPointData;
+
+	void Compress(const FGatherHitPoints& Source);
+	void Decompress(FGatherHitPoints& Dest) const;
+
+	size_t GetAllocatedSize() const { return GatherHitPointRanges.GetAllocatedSize() + GatherHitPointData.GetAllocatedSize(); }
+};
+
+class FGatherHitPoints
+{
+public:
+
+	TArray<FArrayRange> GatherHitPointRanges;
+	TArray<FFinalGatherHitPoint> GatherHitPointData;
+
+	size_t GetAllocatedSize() const { return GatherHitPointRanges.GetAllocatedSize() + GatherHitPointData.GetAllocatedSize(); }
+};
+
+class FCompressedInfluencingRecords
+{
+public:
+
+	FCompressedInfluencingRecords() :
+		RangesUncompressedSize(0),
+		DataUncompressedSize(0)
+	{}
+
+	uint32 RangesUncompressedSize;
+	TArray<uint8> Ranges;
+
+	uint32 DataUncompressedSize;
+	TArray<uint8> Data;
+
+	void Compress(const FInfluencingRecords& Source);
+	void Decompress(FInfluencingRecords& Dest) const;
+
+	size_t GetAllocatedSize() const { return Ranges.GetAllocatedSize() + Data.GetAllocatedSize(); }
+};
 
 /** A mapping between world-space surfaces and a static lighting cache. */
 class FStaticLightingMapping : public virtual FRefCountedObject, public FStaticLightingMappingData
 {
 public:
+
 	/** The mesh associated with the mapping, guaranteed to be valid (non-NULL) after import. */
 	class FStaticLightingMesh* Mesh;
 
@@ -29,13 +93,25 @@ public:
 	/** A static indicating that debug borders should be used around padded mappings. */
 	static bool s_bShowLightmapBorders;
 
+	/** Index of this mapping in FStaticLightingSystem::AllMappings */
+	int32 SceneMappingIndex;
+
 protected:
 
-	/** The irradiance photons which are cached on this mapping */
+    /** The irradiance photons which are cached on this mapping */
 	TArray<const class FIrradiancePhoton*> CachedIrradiancePhotons;
 
-	/** Approximate direct lighting ached on this mapping, used by final gather rays. */
-	TArray<FLinearColor> CachedDirectLighting;
+	/** Approximate lighting cached on this mapping, used by final gather rays. */
+	TArray<FLinearColor> SurfaceCacheLighting;
+
+	TArray<FLinearColor> RadiositySurfaceCache[2];
+
+	/** Indexed by texel coordinate */
+	FCompressedInfluencingRecords CompressedInfluencingRecords;
+	FInfluencingRecords InfluencingRecordsSurfaceCache;
+
+	FCompressedGatherHitPoints CompressedGatherHitPoints;
+	FGatherHitPoints UncompressedGatherHitPoints;
 
 public:
 
@@ -43,11 +119,14 @@ public:
 	FStaticLightingMapping() :
 		  bProcessed(false)
 		, bPadded(false)
+		, SceneMappingIndex(-1)
 	{
 	}
 
 	/** Virtual destructor. */
-	virtual ~FStaticLightingMapping() {}
+	virtual ~FStaticLightingMapping() 
+	{
+	}
 
 	/** @return If the mapping is a texture mapping, returns a pointer to this mapping as a texture mapping.  Otherwise, returns NULL. */
 	virtual class FStaticLightingTextureMapping* GetTextureMapping() 
@@ -70,17 +149,17 @@ public:
 		return 0;
 	}
 
-	/** Accesses a cached photon at the given vertex, if one exists. */
-	virtual const class FIrradiancePhoton* GetCachedIrradiancePhoton(
-		int32 VertexIndex,
-		const struct FStaticLightingVertex& Vertex, 
-		const class FStaticLightingSystem& System, 
-		bool bDebugThisLookup, 
-		FLinearColor& OutDirectLighting) const = 0;
+	virtual FLinearColor GetSurfaceCacheLighting(const FMinimalStaticLightingVertex& Vertex) const = 0;
 
-	uint32 GetIrradiancePhotonCacheBytes() const { return CachedIrradiancePhotons.GetAllocatedSize(); }
+	virtual int32 GetSurfaceCacheIndex(const struct FMinimalStaticLightingVertex& Vertex) const = 0;
+	FLinearColor GetCachedRadiosity(int32 RadiosityBufferIndex, int32 SurfaceCacheIndex) const;
+	size_t FreeRadiosityTemporaries();
+
+	uint32 GetIrradiancePhotonCacheBytes() const { return SurfaceCacheLighting.GetAllocatedSize(); }
 
 	virtual void Import( class FLightmassImporter& Importer );
+
+	virtual void Initialize(FStaticLightingSystem& System) = 0;
 
 	friend class FStaticLightingSystem;
 };
@@ -116,23 +195,21 @@ public:
 		return SizeX * SizeY;
 	}
 
-	/** Accesses a cached photon at the given vertex, if one exists. */
-	virtual const class FIrradiancePhoton* GetCachedIrradiancePhoton(
-		int32 VertexIndex,
-		const FStaticLightingVertex& Vertex, 
-		const FStaticLightingSystem& System, 
-		bool bDebugThisLookup, 
-		FLinearColor& OutDirectLighting) const;
+	virtual FLinearColor GetSurfaceCacheLighting(const FMinimalStaticLightingVertex& Vertex) const override;
+
+	virtual int32 GetSurfaceCacheIndex(const struct FMinimalStaticLightingVertex& Vertex) const;
 
 	virtual void Import( class FLightmassImporter& Importer );
+
+	virtual void Initialize(FStaticLightingSystem& System);
 
 	/** The padded size of the mapping */
 	int32 CachedSizeX;
 	int32 CachedSizeY;
 
 	/** The sizes that CachedIrradiancePhotons were stored with */
-	int32 IrradiancePhotonCacheSizeX;
-	int32 IrradiancePhotonCacheSizeY;
+	int32 SurfaceCacheSizeX;
+	int32 SurfaceCacheSizeY;
 
 	/** Counts how many cache tasks this mapping needs completed. */
 	volatile int32 NumOutstandingCacheTasks;

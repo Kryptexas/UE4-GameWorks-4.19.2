@@ -760,7 +760,36 @@ public:
 		FVertexStreamComponent CoordTangentComponent;
 		/** stream which has the physical mesh vertex indices */
 		FVertexStreamComponent SimulIndicesComponent;
+
+		FShaderResourceViewRHIRef ClothBuffer;
+		// Packed Map: u32 Key, u32 Value
+		TArray<uint64> ClothIndexMapping;
 	};
+
+	inline FShaderResourceViewRHIRef GetClothBuffer()
+	{
+		return MeshMappingData.ClothBuffer;
+	}
+
+	inline const FShaderResourceViewRHIRef GetClothBuffer() const
+	{
+		return MeshMappingData.ClothBuffer;
+	}
+
+	inline uint32 GetClothIndexOffset(uint64 VertexIndex) const
+	{
+		for (uint64 Mapping : MeshMappingData.ClothIndexMapping)
+		{
+			uint64 CurrentVertexIndex = Mapping >> (uint64)32;
+			if ((CurrentVertexIndex & (uint64)0xffffffff) == VertexIndex)
+			{
+				return (uint32)(Mapping & (uint64)0xffffffff);
+			}
+		}
+
+		checkf(0, TEXT("Cloth Index Mapping not found for Vertex Index %u"), VertexIndex);
+		return 0;
+	}
 
 	/**
 	 * Constructor presizing bone matrices array to used amount.

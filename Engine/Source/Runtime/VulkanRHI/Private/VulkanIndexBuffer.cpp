@@ -93,9 +93,9 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 			const bool bUnifiedMem = InDevice->HasUnifiedMemory();
 			if (bUnifiedMem && bDynamic)
 			{
-				BufferMemFlags|= (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				BufferMemFlags |= (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			}
-			
+
 			NumBuffers = bDynamic ? NUM_RENDER_BUFFERS : 1;
 
 			Buffers.AddDefaulted(NumBuffers);
@@ -187,11 +187,14 @@ void* FVulkanResourceMultiBuffer::Lock(bool bFromRenderingThread, EResourceLockM
 				VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 				PendingLock.StagingBuffer = StagingBuffer;
 				Data = StagingBuffer->GetMappedPointer();
-		
-				FScopeLock ScopeLock(&GPendingLockIBsMutex);
-				check(!GPendingLockIBs.Contains(this));
-				GPendingLockIBs.Add(this, PendingLock);
+
+				{
+					FScopeLock ScopeLock(&GPendingLockIBsMutex);
+					check(!GPendingLockIBs.Contains(this));
+					GPendingLockIBs.Add(this, PendingLock);
+				}
 			}
+
 		}
 	}
 

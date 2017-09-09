@@ -1204,8 +1204,8 @@ public:
 };
 
 #define VARIATION1(A)																	\
-	typedef FPostProcessTonemapPS<A> FPostProcessTonemapPS##A;                          \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);			\
+	typedef FPostProcessTonemapPS<A> FPostProcessTonemapPS##A; 							\
+	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);
 
 	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
 	VARIATION1(9)

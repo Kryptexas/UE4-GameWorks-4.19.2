@@ -1641,4 +1641,22 @@ namespace VulkanRHI
 			PendingDeletionList.Pop(false);
 		}
 	}
+
+	void ImagePipelineBarrier(VkCommandBuffer CmdBuffer, VkImage Image,
+		EImageLayoutBarrier Source, EImageLayoutBarrier Dest, const VkImageSubresourceRange& SubresourceRange)
+	{
+		VkImageMemoryBarrier ImageBarrier;
+		FMemory::Memzero(ImageBarrier);
+		ImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageBarrier.image = Image;
+		ImageBarrier.subresourceRange = SubresourceRange;
+		ImageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		VkPipelineStageFlags SourceStages = (VkPipelineStageFlags)0;
+		VkPipelineStageFlags DestStages = (VkPipelineStageFlags)0;
+		SetImageBarrierInfo(Source, Dest, ImageBarrier, SourceStages, DestStages);
+
+		VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, &ImageBarrier);
+	}
 }

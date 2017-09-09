@@ -194,3 +194,35 @@ void FPrecomputedVolumetricLightmap::ApplyWorldOffset(const FVector& InOffset)
 {
 	WorldOriginOffset += InOffset;
 }
+
+void SampleIndirectionTexture(
+	FVector IndirectionDataSourceCoordinate,
+	FIntVector IndirectionTextureDimensions,
+	const uint8* IndirectionTextureData,
+	FIntVector& OutIndirectionBrickOffset,
+	int32& OutIndirectionBrickSize)
+{
+	FIntVector IndirectionDataCoordinateInt(IndirectionDataSourceCoordinate);
+	
+	IndirectionDataCoordinateInt.X = FMath::Clamp<int32>(IndirectionDataCoordinateInt.X, 0, IndirectionTextureDimensions.X - 1);
+	IndirectionDataCoordinateInt.Y = FMath::Clamp<int32>(IndirectionDataCoordinateInt.Y, 0, IndirectionTextureDimensions.Y - 1);
+	IndirectionDataCoordinateInt.Z = FMath::Clamp<int32>(IndirectionDataCoordinateInt.Z, 0, IndirectionTextureDimensions.Z - 1);
+
+	const int32 IndirectionDataIndex = ((IndirectionDataCoordinateInt.Z * IndirectionTextureDimensions.Y) + IndirectionDataCoordinateInt.Y) * IndirectionTextureDimensions.X + IndirectionDataCoordinateInt.X;
+	const uint8* IndirectionVoxelPtr = (const uint8*)&IndirectionTextureData[IndirectionDataIndex * sizeof(uint8) * 4];
+	OutIndirectionBrickOffset = FIntVector(*(IndirectionVoxelPtr + 0), *(IndirectionVoxelPtr + 1), *(IndirectionVoxelPtr + 2));
+	OutIndirectionBrickSize = *(IndirectionVoxelPtr + 3);
+}
+
+FVector ComputeBrickTextureCoordinate(
+	FVector IndirectionDataSourceCoordinate,
+	FIntVector IndirectionBrickOffset, 
+	int32 IndirectionBrickSize,
+	int32 BrickSize)
+{
+	FVector IndirectionDataSourceCoordinateInBricks = IndirectionDataSourceCoordinate / IndirectionBrickSize;
+	FVector FractionalIndirectionDataCoordinate(FMath::Frac(IndirectionDataSourceCoordinateInBricks.X), FMath::Frac(IndirectionDataSourceCoordinateInBricks.Y), FMath::Frac(IndirectionDataSourceCoordinateInBricks.Z));
+	int32 PaddedBrickSize = BrickSize + 1;
+	FVector BrickTextureCoordinate = FVector(IndirectionBrickOffset * PaddedBrickSize) + FractionalIndirectionDataCoordinate * BrickSize;
+	return BrickTextureCoordinate;
+}

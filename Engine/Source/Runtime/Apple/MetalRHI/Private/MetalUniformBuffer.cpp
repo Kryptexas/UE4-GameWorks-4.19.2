@@ -189,7 +189,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 			INC_DWORD_STAT_BY(STAT_MetalUniformMemAlloc, Layout.ConstantBufferSize);
 
 			// Anything less than the buffer page size - currently 4Kb - is better off going through the set*Bytes API if available.
-			if (Layout.ConstantBufferSize < MetalBufferPageSize)
+			if (Layout.ConstantBufferSize < MetalBufferPageSize && (PLATFORM_MAC || Layout.ConstantBufferSize < 512))
 			{
 				Data = [[FMetalBufferData alloc] initWithBytes:Contents length:Layout.ConstantBufferSize];
 			}

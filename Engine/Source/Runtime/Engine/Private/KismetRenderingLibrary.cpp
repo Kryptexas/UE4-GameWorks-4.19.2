@@ -20,6 +20,14 @@
 #include "ClearQuad.h"
 #include "Engine/Texture2D.h"
 
+#if WITH_EDITOR
+#include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
+#include "IAssetTools.h"
+#include "IContentBrowserSingleton.h"
+#include "PackageTools.h"
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // UKismetRenderingLibrary
 
@@ -220,6 +228,70 @@ void UKismetRenderingLibrary::CreateTexture2DFromRenderTarget(UObject* WorldCont
 	}
 
 }*/
+
+UTexture2D* UKismetRenderingLibrary::RenderTargetCreateStaticTexture2DEditorOnly(UTextureRenderTarget2D* RenderTarget, FString InName, enum TextureCompressionSettings CompressionSettings, enum TextureMipGenSettings MipSettings)
+{
+#if WITH_EDITOR
+	if (!RenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("RenderTargetCreateStaticTexture2D_InvalidRenderTarget", "RenderTargetCreateStaticTexture2DEditorOnly: RenderTarget must be non-null."));
+		return nullptr;
+	}
+	else if (!RenderTarget->Resource)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("RenderTargetCreateStaticTexture2D_ReleasedRenderTarget", "RenderTargetCreateStaticTexture2DEditorOnly: RenderTarget has been released."));
+		return nullptr;
+	}
+	else
+	{
+		FString Name;
+		FString PackageName;
+		IAssetTools& AssetTools = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+		//Use asset name only if directories are specified, otherwise full path
+		if (!InName.Contains(TEXT("/")))
+		{
+			FString AssetName = RenderTarget->GetOutermost()->GetName();
+			const FString SanitizedBasePackageName = PackageTools::SanitizePackageName(AssetName);
+			const FString PackagePath = FPackageName::GetLongPackagePath(SanitizedBasePackageName) + TEXT("/");
+			AssetTools.CreateUniqueAssetName(PackagePath, InName, PackageName, Name);
+		}
+		else
+		{
+			InName.RemoveFromStart(TEXT("/"));
+			InName.RemoveFromStart(TEXT("Content/"));
+			InName.StartsWith(TEXT("Game/")) == true ? InName.InsertAt(0, TEXT("/")) : InName.InsertAt(0, TEXT("/Game/"));
+			AssetTools.CreateUniqueAssetName(InName, TEXT(""), PackageName, Name);
+		}
+
+		UObject* NewObj = nullptr;
+
+		// create a static 2d texture
+		NewObj = RenderTarget->ConstructTexture2D(CreatePackage(NULL, *PackageName), Name, RenderTarget->GetMaskedFlags(), CTF_Default | CTF_AllowMips, NULL);
+		UTexture2D* NewTex = Cast<UTexture2D>(NewObj);
+
+		if (NewTex != nullptr)
+		{
+			// package needs saving
+			NewObj->MarkPackageDirty();
+
+			// Notify the asset registry
+			FAssetRegistryModule::AssetCreated(NewObj);
+
+			// Update Compression and Mip settings
+			NewTex->CompressionSettings = CompressionSettings;
+			NewTex->MipGenSettings = MipSettings;
+			NewTex->PostEditChange();
+
+			return NewTex;
+		}
+		FMessageLog("Blueprint").Warning(LOCTEXT("RenderTargetCreateStaticTexture2D_FailedToCreateTexture", "RenderTargetCreateStaticTexture2DEditorOnly: Failed to create a new texture."));
+	}
+#else
+	FMessageLog("Blueprint").Error(LOCTEXT("Texture2D's cannot be created at runtime.", "RenderTargetCreateStaticTexture2DEditorOnly: Can't create Texture2D at run time. "));
+#endif
+	return nullptr;
+}
 
 
 void UKismetRenderingLibrary::ConvertRenderTargetToTexture2DEditorOnly( UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, UTexture2D* Texture )

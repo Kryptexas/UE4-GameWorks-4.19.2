@@ -193,6 +193,7 @@ FBoxSphereBounds ULightComponentBase::GetPlacementExtent() const
 
 FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	: LightComponent(InLightComponent)
+	, SceneInterface(InLightComponent->GetScene())
 	, IndirectLightingScale(InLightComponent->IndirectLightingIntensity)
 	, VolumetricScatteringIntensity(FMath::Max(InLightComponent->VolumetricScatteringIntensity, 0.0f))
 	, ShadowResolutionScale(InLightComponent->ShadowResolutionScale)
@@ -226,6 +227,8 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, FarShadowDistance(0)
 	, FarShadowCascadeCount(0)
 {
+	check(SceneInterface);
+
 	const FLightComponentMapBuildData* MapBuildData = InLightComponent->GetLightComponentMapBuildData();
 	
 	if (MapBuildData && bStaticShadowing && !bStaticLighting)

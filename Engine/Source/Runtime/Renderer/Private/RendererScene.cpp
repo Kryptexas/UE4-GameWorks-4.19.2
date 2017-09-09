@@ -810,6 +810,12 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	// Update the primitive transform.
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
+	if (!UseGPUInterpolatedVolumetricLightmaps(GetShadingPath())
+		&& (PrimitiveSceneProxy->IsMovable() || PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
+	{
+		PrimitiveSceneProxy->GetPrimitiveSceneInfo()->MarkPrecomputedLightingBufferDirty();
+	}
+
 	DistanceFieldSceneData.UpdatePrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 
 	// If the primitive has static mesh elements, it should have returned true from ShouldRecreateProxyOnUpdateTransform!
@@ -1681,11 +1687,11 @@ void CreateVolumetricLightmapTexture(FIntVector Dimensions, FVolumetricLightmapD
 		CreateInfo);
 }
 
-void FVolumetricLightmapSceneData::AddLevelVolume(const FPrecomputedVolumetricLightmap* InVolume, ERHIFeatureLevel::Type FeatureLevel)
+void FVolumetricLightmapSceneData::AddLevelVolume(const FPrecomputedVolumetricLightmap* InVolume, EShadingPath ShadingPath)
 {
 	LevelVolumetricLightmaps.Add(InVolume);
 
-	if (PlatformSupportsGPUInterpolatedVolumetricLightmaps(FeatureLevel))
+	if (UseGPUInterpolatedVolumetricLightmaps(ShadingPath))
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		CreateInfo.BulkData = &InVolume->Data->IndirectionTexture;
@@ -1746,7 +1752,7 @@ void FScene::AddPrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightm
 	ENQUEUE_RENDER_COMMAND(AddVolumeCommand)
 		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
 		{
-			Scene->VolumetricLightmapSceneData.AddLevelVolume(Volume, Scene->GetFeatureLevel());
+			Scene->VolumetricLightmapSceneData.AddLevelVolume(Volume, Scene->GetShadingPath());
 		});
 }
 

@@ -298,19 +298,23 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingGfxState(nullptr)
 	, PendingComputeState(nullptr)
 	, FrameCounter(0)
+	, GpuProfiler(this)
 {
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingGfxState = new FVulkanPendingGfxState(Device);
-	PendingComputeState = new FVulkanPendingComputeState(Device);
+	PendingGfxState = new FVulkanPendingGfxState(Device, *this);
+	PendingComputeState = new FVulkanPendingComputeState(Device, *this);
 
 	// Add an initial pool
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
 	DescriptorPools.Add(Pool);
 
 	UniformBufferUploader = new FVulkanUniformBufferUploader(Device, VULKAN_UB_RING_BUFFER_SIZE);
+
+	FrameTiming = new FVulkanGPUTiming(this);
+	FrameTiming->Initialize();
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -646,8 +650,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GRHISupportsBaseVertexIndex = true;
 		GSupportsSeparateRenderTargetBlendState = true;
 
-		// Currently not supported as it requires changing shaders to use input_attachment instead of textures
-		GSupportsDepthFetchDuringDepthTest = false;
+		GSupportsDepthFetchDuringDepthTest = !PLATFORM_ANDROID;
 
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
@@ -709,9 +712,7 @@ void FVulkanCommandListContext::RHIBeginFrame()
 	PendingGfxState->GetGlobalUniformPool().BeginFrame();
 	PendingComputeState->GetGlobalUniformPool().BeginFrame();
 
-#if 0
-	Device->GPUProfiler.BeginFrame(this);
-#endif
+	GpuProfiler.BeginFrame();
 }
 
 
@@ -759,23 +760,20 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 	{
 		//#todo-rco: Check for r.FinishCurrentFrame
 	}
-#if VULKAN_USE_NEW_GFX_STATE
-#else
-	OLDPendingGfxState->InitFrame();
-#endif
 
 	RHI->DrawingViewport = nullptr;
 
+	ReadAndCalculateGPUFrameTime();
 	WriteBeginTimestamp(CommandBufferManager->GetActiveCmdBuffer());
 }
 
 void FVulkanCommandListContext::RHIEndFrame()
 {
 	check(IsImmediate());
-
-	ReadAndCalculateGPUFrameTime();
-
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndFrame()")));
+
+	
+	GetGPUProfiler().EndFrame();
 
 	Device->GetStagingManager().ProcessPendingFree(false, true);
 	Device->GetResourceHeapManager().ReleaseFreedPages();
@@ -811,9 +809,7 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 		}
 #endif
 
-#if 0
-		VulkanRHI::GManager.GPUProfilingData.PushEvent(Name, Color);
-#endif
+		GpuProfiler.PushEvent(Name, Color);
 	}
 }
 
@@ -833,9 +829,7 @@ void FVulkanCommandListContext::RHIPopEvent()
 		}
 #endif
 
-#if 0
-		VulkanRHI::GManager.GPUProfilingData.PopEvent();
-#endif
+		GpuProfiler.PopEvent();
 	}
 
 	check(EventStack.Num() > 0);
@@ -1128,26 +1122,24 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 
 void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
 {
+	Offset = InOffset;
+	Size = InSize;
+	check(Format != PF_Unknown);
+	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
+	check(FormatInfo.Supported);
+
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
 	ViewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
 	ViewInfo.buffer = Buffer.GetBufferHandle();
-
-	check(Format != PF_Unknown);
-	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
-	check(FormatInfo.Supported);
 	ViewInfo.format = (VkFormat)FormatInfo.PlatformFormat;
-
-	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
-	ViewInfo.offset = InOffset;
-	ViewInfo.range = InSize;
+	ViewInfo.offset = Offset;
+	ViewInfo.range = Size;
 	Flags = Buffer.GetFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
-
-    Size = InSize;
-    Offset = InOffset;
+	INC_DWORD_STAT(STAT_VulkanNumBufferViews);
 }
 
 void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
@@ -1158,32 +1150,32 @@ void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat 
 	Create((VkFormat)FormatInfo.PlatformFormat, Buffer, InOffset, InSize);
 }
 
+
 void FVulkanBufferView::Create(VkFormat Format, FVulkanResourceMultiBuffer* Buffer, uint32 InOffset, uint32 InSize)
 {
+	Offset = InOffset;
+	Size = InSize;
+	check(Format != VK_FORMAT_UNDEFINED);
+
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
 	ViewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
 	ViewInfo.buffer = Buffer->GetHandle();
-
-	check(Format != VK_FORMAT_UNDEFINED);
 	ViewInfo.format = Format;
-
-	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
-	ViewInfo.offset = InOffset;
-	ViewInfo.range = InSize;
+	ViewInfo.offset = Offset;
+	ViewInfo.range = Size;
 	Flags = Buffer->GetBufferUsageFlags() & (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
-
-    Size = InSize;
-    Offset = InOffset;
+	INC_DWORD_STAT(STAT_VulkanNumBufferViews);
 }
 
 void FVulkanBufferView::Destroy()
 {
 	if (View != VK_NULL_HANDLE)
 	{
+		DEC_DWORD_STAT(STAT_VulkanNumBufferViews);
 		Device->GetDeferredDeletionQueue().EnqueueResource(FDeferredDeletionQueue::EType::BufferView, View);
 		View = VK_NULL_HANDLE;
 	}
@@ -1248,8 +1240,6 @@ void VulkanSetImageLayout(
 	VkImageLayout NewLayout,
 	const VkImageSubresourceRange& SubresourceRange)
 {
-	check(CmdBuffer != VK_NULL_HANDLE);
-
 	VkImageMemoryBarrier ImageBarrier;
 	FMemory::Memzero(ImageBarrier);
 	ImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1263,23 +1253,10 @@ void VulkanSetImageLayout(
 	ImageBarrier.srcAccessMask = VulkanRHI::GetAccessMask(OldLayout);
 	ImageBarrier.dstAccessMask = VulkanRHI::GetAccessMask(NewLayout);
 
-	VkImageMemoryBarrier BarrierList[] ={ImageBarrier};
+	VkPipelineStageFlags SourceStages = VulkanRHI::GetStageFlags(OldLayout);
+	VkPipelineStageFlags DestStages = VulkanRHI::GetStageFlags(NewLayout);
 
-	VkPipelineStageFlags SourceStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-	VkPipelineStageFlags DestStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-	if (OldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-	{
-		SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		DestStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	}
-	else if (NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-	{
-		SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	}
-
-	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, BarrierList);
+	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, &ImageBarrier);
 }
 
 void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI)

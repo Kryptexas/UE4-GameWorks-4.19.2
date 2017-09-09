@@ -762,7 +762,14 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, SkySH, FVector4(0, 0, 0, 0), 2);
 		}
 
-		SetShaderValue(RHICmdList, ShaderRHI, StaticLightingScatteringIntensity, View.Family->EngineShowFlags.GlobalIllumination ? FogInfo.VolumetricFogStaticLightingScatteringIntensity : 0.0f);
+		float StaticLightingScatteringIntensityValue = 0;
+
+		if (View.Family->EngineShowFlags.GlobalIllumination && View.Family->EngineShowFlags.VolumetricLightmap)
+		{
+			StaticLightingScatteringIntensityValue = FogInfo.VolumetricFogStaticLightingScatteringIntensity;
+		}
+
+		SetShaderValue(RHICmdList, ShaderRHI, StaticLightingScatteringIntensity, StaticLightingScatteringIntensityValue);
 
 		SetShaderValue(RHICmdList, ShaderRHI, PhaseG, FogInfo.VolumetricFogScatteringDistribution);
 		SetShaderValue(RHICmdList, ShaderRHI, InverseSquaredLightDistanceBiasScale, GInverseSquaredLightDistanceBiasScale);
@@ -1116,6 +1123,14 @@ void FDeferredShadingSceneRenderer::ComputeVolumetricFog(FRHICommandListImmediat
 					DispatchComputeShader(RHICmdList, *ComputeShader, NumGroups.X, NumGroups.Y, NumGroups.Z);
 					ComputeShader->UnsetParameters(RHICmdList, View, VBufferA.GetReference(), VBufferB.GetReference());
 				}
+
+				FUnorderedAccessViewRHIParamRef VoxelizeUAVs[2] =
+				{
+					VBufferA->GetRenderTargetItem().UAV.GetReference(),
+					VBufferB->GetRenderTargetItem().UAV.GetReference()
+				};
+
+				RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EComputeToGfx, VoxelizeUAVs, ARRAY_COUNT(VoxelizeUAVs), nullptr);
 
 				VoxelizeFogVolumePrimitives(
 					RHICmdList, 

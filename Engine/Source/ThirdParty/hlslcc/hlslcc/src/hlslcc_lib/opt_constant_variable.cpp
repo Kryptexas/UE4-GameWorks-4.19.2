@@ -43,6 +43,7 @@
 #include "ir_visitor.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
+#include "hash_table.h"
 
 struct assignment_entry
 {
@@ -56,33 +57,45 @@ struct assignment_entry
 class ir_constant_variable_visitor : public ir_hierarchical_visitor
 {
 public:
+	ir_constant_variable_visitor();
+	virtual ~ir_constant_variable_visitor();
+	
 	virtual ir_visitor_status visit_enter(ir_dereference_variable *);
 	virtual ir_visitor_status visit(ir_variable *);
 	virtual ir_visitor_status visit_enter(ir_assignment *);
 	virtual ir_visitor_status visit_enter(ir_call *);
 
+	hash_table* ht;
 	exec_list list;
 };
 
-static struct assignment_entry * get_assignment_entry(ir_variable *var, exec_list *list)
+ir_constant_variable_visitor::ir_constant_variable_visitor()
+: ht(nullptr)
 {
-	struct assignment_entry *entry;
+	ht = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
+}
 
-	foreach_list_typed(struct assignment_entry, entry, link, list)
+ir_constant_variable_visitor::~ir_constant_variable_visitor()
+{
+	hash_table_dtor(ht);
+}
+
+static struct assignment_entry * get_assignment_entry(ir_variable *var, hash_table *ht, exec_list* list)
+{
+	struct assignment_entry *entry = (struct assignment_entry *)hash_table_find(ht, var);
+	if(!entry)
 	{
-		if (entry->var == var)
-			return entry;
+		entry = (struct assignment_entry *)calloc(1, sizeof(*entry));
+		entry->var = var;
+		hash_table_insert(ht, entry, var);
+		list->push_head(&entry->link);
 	}
-
-	entry = (struct assignment_entry *)calloc(1, sizeof(*entry));
-	entry->var = var;
-	list->push_head(&entry->link);
 	return entry;
 }
 
 ir_visitor_status ir_constant_variable_visitor::visit(ir_variable *ir)
 {
-	struct assignment_entry *entry = get_assignment_entry(ir, &this->list);
+	struct assignment_entry *entry = get_assignment_entry(ir, ht, &this->list);
 
 	// Shared variables should be considered volatile
 	if (ir->mode != ir_var_shared)
@@ -103,7 +116,7 @@ ir_visitor_status ir_constant_variable_visitor::visit_enter(ir_assignment *ir)
 	ir_constant *constval;
 	struct assignment_entry *entry;
 
-	entry = get_assignment_entry(ir->lhs->variable_referenced(), &this->list);
+	entry = get_assignment_entry(ir->lhs->variable_referenced(), ht, &this->list);
 	check(entry);
 	entry->assignment_count++;
 
@@ -150,7 +163,7 @@ ir_visitor_status ir_constant_variable_visitor::visit_enter(ir_call *ir)
 			struct assignment_entry *entry;
 
 			check(var);
-			entry = get_assignment_entry(var, &this->list);
+			entry = get_assignment_entry(var, ht, &this->list);
 			entry->assignment_count++;
 		}
 		sig_iter.next();
@@ -163,7 +176,7 @@ ir_visitor_status ir_constant_variable_visitor::visit_enter(ir_call *ir)
 		struct assignment_entry *entry;
 
 		check(var);
-		entry = get_assignment_entry(var, &this->list);
+		entry = get_assignment_entry(var, ht, &this->list);
 		entry->assignment_count++;
 	}
 

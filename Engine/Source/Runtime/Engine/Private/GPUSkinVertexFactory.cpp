@@ -746,6 +746,8 @@ public:
 		ClothSimulVertsPositionsNormalsParameter.Bind(ParameterMap,TEXT("ClothSimulVertsPositionsNormals"));
 		PreviousClothSimulVertsPositionsNormalsParameter.Bind(ParameterMap,TEXT("PreviousClothSimulVertsPositionsNormals"));
 		ClothBlendWeightParameter.Bind(ParameterMap, TEXT("ClothBlendWeight"));
+		GPUSkinApexClothParameter.Bind(ParameterMap, TEXT("GPUSkinApexCloth"));
+		GPUSkinApexClothStartIndexOffsetParameter.Bind(ParameterMap, TEXT("GPUSkinApexClothStartIndexOffset"));
 	}
 	/**
 	* Serialize shader params to an archive
@@ -757,11 +759,14 @@ public:
 		Ar << ClothSimulVertsPositionsNormalsParameter;
 		Ar << PreviousClothSimulVertsPositionsNormalsParameter;
 		Ar << ClothBlendWeightParameter;
+		Ar << GPUSkinApexClothParameter;
+		Ar << GPUSkinApexClothStartIndexOffsetParameter;
 	}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override
 	{
-		if(Shader->GetVertexShader())
+		FRHIVertexShader* VertexShader = Shader->GetVertexShader();
+		if (VertexShader)
 		{
 			// Call regular GPU skinning shader parameters
 			FGPUSkinVertexFactoryShaderParameters::SetMesh(RHICmdList, Shader, VertexFactory, View, BatchElement, DataFlags);
@@ -772,28 +777,44 @@ public:
 				? ((const TGPUSkinAPEXClothVertexFactory<true>*)GPUSkinVertexFactory)->GetClothShaderData()
 				: ((const TGPUSkinAPEXClothVertexFactory<false>*)GPUSkinVertexFactory)->GetClothShaderData();
 
-			SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(),Shader->GetUniformBufferParameter<FAPEXClothUniformShaderParameters>(),ClothShaderData.GetClothUniformBuffer());
+			SetUniformBufferParameter(RHICmdList, VertexShader, Shader->GetUniformBufferParameter<FAPEXClothUniformShaderParameters>(),ClothShaderData.GetClothUniformBuffer());
 
 			uint32 FrameNumber = View.Family->FrameNumber;
 
 			// we tell the shader where to pickup the data
 			if(ClothSimulVertsPositionsNormalsParameter.IsBound())
 			{
-				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), ClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
+				RHICmdList.SetShaderResourceViewParameter(VertexShader, ClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
 														  ClothShaderData.GetClothBufferForReading(false, FrameNumber).VertexBufferSRV);
 			}
 			if(PreviousClothSimulVertsPositionsNormalsParameter.IsBound())
 			{
-				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), PreviousClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
+				RHICmdList.SetShaderResourceViewParameter(VertexShader, PreviousClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
 														  ClothShaderData.GetClothBufferForReading(true, FrameNumber).VertexBufferSRV);
 			}
 			
 			SetShaderValue(
 				RHICmdList,
-				Shader->GetVertexShader(),
+				VertexShader,
 				ClothBlendWeightParameter,
 				ClothShaderData.ClothBlendWeight
 				);
+
+			if (GPUSkinApexClothParameter.IsBound())
+			{
+				RHICmdList.SetShaderResourceViewParameter(
+					VertexShader,
+					GPUSkinApexClothParameter.GetBaseIndex(),
+					GPUSkinVertexFactory->UsesExtraBoneInfluences()
+					? ((const TGPUSkinAPEXClothVertexFactory<true>*)GPUSkinVertexFactory)->GetClothBuffer()
+					: ((const TGPUSkinAPEXClothVertexFactory<false>*)GPUSkinVertexFactory)->GetClothBuffer());
+				int32 ClothIndexOffset =
+					GPUSkinVertexFactory->UsesExtraBoneInfluences()
+					? ((const TGPUSkinAPEXClothVertexFactory<true>*)GPUSkinVertexFactory)->GetClothIndexOffset(BatchElement.MinVertexIndex)
+					: ((const TGPUSkinAPEXClothVertexFactory<false>*)GPUSkinVertexFactory)->GetClothIndexOffset(BatchElement.MinVertexIndex);
+				FIntVector4 GPUSkinApexClothStartIndexOffset(BatchElement.MinVertexIndex, ClothIndexOffset, 0, 0);
+				SetShaderValue(RHICmdList, VertexShader, GPUSkinApexClothStartIndexOffsetParameter, GPUSkinApexClothStartIndexOffset);
+			}
 		}
 	}
 
@@ -801,6 +822,8 @@ protected:
 	FShaderResourceParameter ClothSimulVertsPositionsNormalsParameter;
 	FShaderResourceParameter PreviousClothSimulVertsPositionsNormalsParameter;
 	FShaderParameter ClothBlendWeightParameter;
+	FShaderResourceParameter GPUSkinApexClothParameter;
+	FShaderParameter GPUSkinApexClothStartIndexOffsetParameter;
 };
 
 /*-----------------------------------------------------------------------------

@@ -684,6 +684,8 @@ public:
 		SetDeclaration( GGPUSpriteVertexDeclaration.VertexDeclarationRHI );
 	}
 
+	virtual bool RendersPrimitivesAsCameraFacingSprites() const override { return true; }
+
 	/**
 	 * Set the source vertex buffer that contains particle indices.
 	 */

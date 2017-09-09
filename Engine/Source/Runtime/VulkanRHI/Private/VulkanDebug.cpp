@@ -1571,7 +1571,7 @@ namespace VulkanRHI
 			{
 				DebugLog += FString::Printf(TEXT("%s\tAttachment[%d]: ImageView=0x%016llx(I:0x%016llx)\n"), Tabs, Index, CreateInfo->pAttachments[Index], GImageViewTracker.FindChecked(CreateInfo->pAttachments[Index]).image);
 			}
-			DebugLog += FString::Printf(TEXT("%s\twidth=%d, height=%d, layers=%d"), Tabs, CreateInfo->width, CreateInfo->height, CreateInfo->layers);
+			DebugLog += FString::Printf(TEXT("%s\twidth=%d, height=%d, layers=%d\n"), Tabs, CreateInfo->width, CreateInfo->height, CreateInfo->layers);
 			FlushDebugWrapperLog();
 		}
 	}
@@ -1860,13 +1860,7 @@ namespace VulkanRHI
 						ensure(FoundImageInfo);
 						if (FoundImageInfo)
 						{
-							FImageLayout* FoundLayout = GImageLayoutTracker.Find(FoundImageInfo->image);
-							ensure(FoundLayout);
-							//if (FoundLayout && FoundLayout->VerifyAndTransition(FoundImageInfo->subresourceRange.baseArrayLayer, FoundImageInfo->subresourceRange.layerCount, FoundImageInfo->subresourceRange.baseMipLevel, FoundImageInfo->subresourceRange.levelCount, 
-							//	FoundRPInfo->Descriptions[Index].initialLayout, FoundRPInfo->Descriptions[Index].finalLayout))
-							//{
-							//	ValidationFail();
-							//}
+							DebugLog += FString::Printf(TEXT("%s\t\tAttachment[%d]: ImageView=0x%016llx(I:0x%016llx)\n"), Tabs, Index, View, FoundImageInfo->image);
 						}
 					}
 				}

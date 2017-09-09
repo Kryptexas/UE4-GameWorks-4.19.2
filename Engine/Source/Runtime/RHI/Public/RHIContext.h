@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-RHIContext.h: Interface for RHI Contexts
+	RHIContext.h: Interface for RHI Contexts
 =============================================================================*/
 
 #pragma once
@@ -316,9 +316,9 @@ public:
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) = 0;
 
 	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 LeftMinY, uint32 RightMinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 LeftMaxY, uint32 RightMaxY, float MaxZ)
-    {
-        /* empty default implementation */
-    }
+	{
+		/* empty default implementation */
+	}
 
 	// @param MinX including like Win32 RECT
 	// @param MinY including like Win32 RECT
@@ -545,14 +545,14 @@ public:
 
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;
 
-	virtual TRefCountPtr<FRHIRenderPass> RHIBeginRenderPass(const FRHIRenderPassInfo& InInfo)
+	virtual TRefCountPtr<FRHIRenderPass> RHIBeginRenderPass(const FRHIRenderPassInfo& InInfo, const TCHAR* InName)
 	{
 		// Fallback...
 		InInfo.Validate();
 
 		FRHISetRenderTargetsInfo RTInfo;
 		InInfo.ConvertToRenderTargetsInfo(RTInfo);
-		FRHIRenderPassFallback* RenderPass = new FRHIRenderPassFallback(InInfo);
+		FRHIRenderPassFallback* RenderPass = new FRHIRenderPassFallback(InInfo, InName);
 		RHISetRenderTargetsAndClear(RTInfo);
 		return RenderPass;
 	}
@@ -563,7 +563,7 @@ public:
 		Fallback->SetEnded();
 	}
 
-	virtual TRefCountPtr<FRHIParallelRenderPass> RHIBeginParallelRenderPass(const FRHIRenderPassInfo& InInfo)
+	virtual TRefCountPtr<FRHIParallelRenderPass> RHIBeginParallelRenderPass(const FRHIRenderPassInfo& InInfo, const TCHAR* InName)
 	{
 		// Fallback...
 		InInfo.Validate();
@@ -571,7 +571,7 @@ public:
 		FRHISetRenderTargetsInfo RTInfo;
 		InInfo.ConvertToRenderTargetsInfo(RTInfo);
 		RHISetRenderTargetsAndClear(RTInfo);
-		return new FRHIParallelRenderPassFallback(InInfo);
+		return new FRHIParallelRenderPassFallback(InInfo, InName);
 	}
 
 	virtual void RHIEndParallelRenderPass(FRHIParallelRenderPass* RenderPass)

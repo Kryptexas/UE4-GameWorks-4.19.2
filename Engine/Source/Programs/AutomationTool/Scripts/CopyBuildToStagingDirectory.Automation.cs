@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using AutomationTool;
 using System;
@@ -478,7 +478,9 @@ public partial class Project : CommandUtils
 			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*", SearchOption.AllDirectories).ToList();
 			foreach(FileReference CookedFile in CookedFiles)
 			{
-				if(!CookedFile.HasExtension(".json"))
+				// json files have never been staged
+				// metallib files cannot *currently* be staged as UFS as the Metal API needs to mmap them from files on disk in order to function efficiently
+				if(!CookedFile.HasExtension(".json") && !CookedFile.HasExtension(".metallib"))
 				{
 					SC.StageFile(StagedFileType.UFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
 				}

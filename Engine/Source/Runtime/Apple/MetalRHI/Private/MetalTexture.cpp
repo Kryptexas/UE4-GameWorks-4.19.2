@@ -164,7 +164,6 @@ static bool IsPixelFormatASTCCompressed(EPixelFormat Format)
 
 void SafeReleaseMetalTexture(FMetalSurface* Surface, id<MTLTexture> Texture, bool bTextureView, bool bAVFoundationTexture)
 {
-	static bool bSupportsHeaps = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesHeaps);
 	id<TMTLTexture> TTexture = (id<TMTLTexture>)Texture;
 	if(GIsRHIInitialized && GDynamicRHI && !bTextureView)
 	{

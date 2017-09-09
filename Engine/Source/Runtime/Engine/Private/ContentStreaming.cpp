@@ -60,7 +60,6 @@ struct FTrackedTextureEvent
 	,	NumResidentMips(0)
 	,	NumRequestedMips(0)
 	,	WantedMips(0)
-	,	StreamingStatus(0)
 	,	Timestamp(0.0f)
 	,	BoostFactor(1.0f)
 	{
@@ -69,7 +68,6 @@ struct FTrackedTextureEvent
 	:	NumResidentMips(0)
 	,	NumRequestedMips(0)
 	,	WantedMips(0)
-	,	StreamingStatus(0)
 	,	Timestamp(0.0f)
 	,	BoostFactor(1.0f)
 	{
@@ -84,8 +82,6 @@ struct FTrackedTextureEvent
 	int32			NumRequestedMips;
 	/** Number of wanted mips. */
 	int32			WantedMips;
-	/** Streaming status. */
-	int32			StreamingStatus;
 	/** Timestamp, in seconds from startup. */
 	float			Timestamp;
 	/** Currently used boost factor for the streaming distance. */
@@ -236,8 +232,7 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 						LastEvent = &GTrackedTextures[NewIndex];
 					}
 
-					int32 StreamingStatus	= Texture->PendingMipChangeRequestStatus.GetValue();
-					int32 WantedMips		= Texture->RequestedMips;
+					int32 WantedMips		= Texture->GetNumRequestedMips();
 					float BoostFactor		= 1.0f;
 					if ( StreamingTexture )
 					{
@@ -245,9 +240,8 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 						BoostFactor			= StreamingTexture->BoostFactor;
 					}
 
-					if ( LastEvent->NumResidentMips != Texture->ResidentMips ||
-						 LastEvent->NumRequestedMips != Texture->RequestedMips ||
-						 LastEvent->StreamingStatus != StreamingStatus ||
+					if ( LastEvent->NumResidentMips != Texture->GetNumResidentMips() ||
+						 LastEvent->NumRequestedMips != Texture->GetNumRequestedMips() ||
 						 LastEvent->WantedMips != WantedMips ||
 						 LastEvent->BoostFactor != BoostFactor ||
 						 bIsDestroying )
@@ -255,15 +249,14 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 						GTrackedTextureEventIndex		= (GTrackedTextureEventIndex + 1) % NUM_TRACKEDTEXTUREEVENTS;
 						FTrackedTextureEvent& NewEvent	= GTrackedTextureEvents[GTrackedTextureEventIndex];
 						NewEvent.TextureName			= LastEvent->TextureName;
-						NewEvent.NumResidentMips		= LastEvent->NumResidentMips	= Texture->ResidentMips;
-						NewEvent.NumRequestedMips		= LastEvent->NumRequestedMips	= Texture->RequestedMips;
+						NewEvent.NumResidentMips		= LastEvent->NumResidentMips	= Texture->GetNumResidentMips();
+						NewEvent.NumRequestedMips		= LastEvent->NumRequestedMips	= Texture->GetNumRequestedMips();
 						NewEvent.WantedMips				= LastEvent->WantedMips			= WantedMips;
-						NewEvent.StreamingStatus		= LastEvent->StreamingStatus	= StreamingStatus;
 						NewEvent.Timestamp				= LastEvent->Timestamp			= float(FPlatformTime::Seconds() - GStartTime);
 						NewEvent.BoostFactor			= LastEvent->BoostFactor		= BoostFactor;
-						UE_LOG(LogContentStreaming, Log, TEXT("Texture: \"%s\", ResidentMips: %d/%d, RequestedMips: %d, WantedMips: %d, StreamingStatus: %d, Boost: %.1f (%s)"),
+						UE_LOG(LogContentStreaming, Log, TEXT("Texture: \"%s\", ResidentMips: %d/%d, RequestedMips: %d, WantedMips: %d, Boost: %.1f (%s)"),
 							TextureName, LastEvent->NumResidentMips, Texture->GetNumMips(), bIsDestroying ? 0 : LastEvent->NumRequestedMips, LastEvent->WantedMips, 
-							LastEvent->StreamingStatus, BoostFactor, bIsDestroying ? TEXT("DESTROYED") : TEXT("updated") );
+							BoostFactor, bIsDestroying ? TEXT("DESTROYED") : TEXT("updated") );
 					}
 				}
 				return true;
@@ -1108,102 +1101,6 @@ void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(boo
 			}
 		}
 	}
-}
-
-/**
- *	Helper struct to compare two FTextureSortElement objects.
- **/
-struct FTextureStreamingCompare
-{
-	/** 
-	 *	Called by Sort() to compare two elements.
-	 *	@param Texture1		- First object to compare
-	 *	@param Texture2		- Second object to compare
-	 *	@return				- Negative value if Texture1 should be sorted earlier in the array than Texture2, zero if arbitrary order, positive if opposite order.
-	 */
-	bool operator()( const FTextureSortElement& Texture1, const FTextureSortElement& Texture2 ) const
-	{
-		// Character textures get lower priority (sorted later in the array).
-		if ( Texture1.bIsCharacterTexture != Texture2.bIsCharacterTexture )
-		{
-			return Texture1.bIsCharacterTexture < Texture2.bIsCharacterTexture;
-		}
-
-		// Larger textures get higher priority (sorted earlier in the array).
-		if ( Texture2.Size - Texture1.Size )
-		{
-			return Texture2.Size < Texture1.Size;
-		}
-
-		// Then sort on baseaddress, so that textures at the end of the texture pool gets higher priority (sorted earlier in the array).
-		// (It's faster to defrag the texture pool when the holes are at the end.)
-		return Texture2.TextureDataAddress < Texture1.TextureDataAddress;
-	}
-};
-
-/**
- *	Renderthread function: Try to stream out texture mip-levels to free up more memory.
- *	@param InCandidateTextures	- Array of possible textures to shrink
- *	@param RequiredMemorySize	- Amount of memory to try to free up, in bytes
- *	@param bSucceeded			- [out] Upon return, whether it succeeded or not
- **/
-void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TArray<FTextureSortElement>* InCandidateTextures, int64 RequiredMemorySize, volatile bool* bSucceeded)
-{
-	*bSucceeded = false;
-
-	// Makes sure that texture memory can get freed up right away.
-	RHICmdList.BlockUntilGPUIdle();
-
-	FTextureSortElement* CandidateTextures = InCandidateTextures->GetData();
-
-	// Sort the candidates.
-	InCandidateTextures->Sort( FTextureStreamingCompare() );
-
-	// Attempt to shrink enough candidates to free up the required memory size. One mip-level at a time.
-	int64 SavedMemory = 0;
-	bool bKeepShrinking = true;
-	bool bShrinkCharacterTextures = false;	// Don't shrink any character textures the first loop.
-	while ( SavedMemory < RequiredMemorySize && bKeepShrinking )
-	{
-		// If we can't shrink anything in the inner-loop, stop the outer-loop as well.
-		bKeepShrinking = !bShrinkCharacterTextures;
-
-		for ( int32 TextureIndex=0; TextureIndex < InCandidateTextures->Num() && SavedMemory < RequiredMemorySize; ++TextureIndex )
-		{
-			FTextureSortElement& SortElement = CandidateTextures[TextureIndex];
-			int32 NewMipCount = SortElement.Texture->ResidentMips - 1;
-			if ( (!SortElement.bIsCharacterTexture || bShrinkCharacterTextures) && NewMipCount >= SortElement.NumRequiredResidentMips )
-			{
-				FTexture2DResource* Resource = (FTexture2DResource*) SortElement.Texture->Resource;
-
-				bool bReallocationSucceeded = Resource->TryReallocate( SortElement.Texture->ResidentMips, NewMipCount );
-				if ( bReallocationSucceeded )
-				{
-					// Start using the new one.
-					int64 OldSize = SortElement.Size;
-					int64 NewSize = SortElement.Texture->CalcTextureMemorySize(NewMipCount);
-					int64 Savings = OldSize - NewSize;
-
-					// Set up UTexture2D
-					SortElement.Texture->ResidentMips = NewMipCount;
-					SortElement.Texture->RequestedMips = NewMipCount;
-
-					// Ok, we found at least one we could shrink. Lets try to find more! :)
-					bKeepShrinking = true;
-
-					SavedMemory += Savings;
-				}
-			}
-		}
-
-		// Start shrinking character textures as well, if we have to.
-		bShrinkCharacterTextures = true;
-	}
-
-	UE_LOG(LogContentStreaming, Log, TEXT("Streaming out texture memory! Saved %.2f MB."), float(SavedMemory)/1024.0f/1024.0f);
-
-	// Return the result.
-	*bSucceeded = SavedMemory >= RequiredMemorySize;
 }
 
 /*-----------------------------------------------------------------------------

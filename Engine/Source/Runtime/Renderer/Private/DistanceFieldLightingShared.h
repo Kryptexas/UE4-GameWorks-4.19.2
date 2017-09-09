@@ -466,6 +466,9 @@ public:
 	int32 Stride;
 	int32 MaxElements;
 
+	// Volatile must be written every frame before use.  Supports multiple writes per frame on PS4, unlike Dynamic.
+	bool bVolatile;
+
 	FVertexBufferRHIRef Buffer;
 	FShaderResourceViewRHIRef BufferSRV;
 
@@ -474,6 +477,7 @@ public:
 		Format = PF_A32B32G32R32F;
 		Stride = 1;
 		MaxElements = 0;
+		bVolatile = true;
 	}
 
 	void Initialize()
@@ -481,7 +485,7 @@ public:
 		if (MaxElements > 0 && Stride > 0)
 		{
 			FRHIResourceCreateInfo CreateInfo;
-			Buffer = RHICreateVertexBuffer(MaxElements * Stride * GPixelFormats[Format].BlockBytes, BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+			Buffer = RHICreateVertexBuffer(MaxElements * Stride * GPixelFormats[Format].BlockBytes, (bVolatile ? BUF_Volatile : BUF_Dynamic)  | BUF_ShaderResource, CreateInfo);
 			BufferSRV = RHICreateShaderResourceView(Buffer, GPixelFormats[Format].BlockBytes, Format);
 		}
 	}

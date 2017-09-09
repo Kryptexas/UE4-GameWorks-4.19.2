@@ -315,11 +315,6 @@ RENDERCORE_API FVertexDeclarationRHIRef& GetVertexDeclarationFVector4();
 
 RENDERCORE_API FVertexDeclarationRHIRef& GetVertexDeclarationFVector3();
 
-inline bool PlatformSupportsGPUInterpolatedVolumetricLightmaps(ERHIFeatureLevel::Type FeatureLevel)
-{
-	return FeatureLevel >= ERHIFeatureLevel::SM4;
-}
-
 RENDERCORE_API bool PlatformSupportsSimpleForwardShading(EShaderPlatform Platform);
 
 RENDERCORE_API bool IsSimpleForwardShadingEnabled(EShaderPlatform Platform);

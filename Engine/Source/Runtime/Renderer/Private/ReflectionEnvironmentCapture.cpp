@@ -183,6 +183,9 @@ void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Typ
 		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
+		//Use RWBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &CubeRef, 1);
+
 		// Downsample all the mips, each one reads from the mip above it
 		for (int32 MipIndex = 1; MipIndex < NumMips; MipIndex++)
 		{
@@ -192,10 +195,6 @@ void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Typ
 			{
 				SetRenderTarget(RHICmdList, Cubemap.TargetableTexture, MipIndex, CubeFace, NULL, false);
 				RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-				//this is a weired place but at the end of the scope it will not be good enough as SetRendertarget sets it to writable 
-				//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
-				RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &CubeRef, 1);
 
 				const FIntRect ViewRect(0, 0, MipSize, MipSize);
 				RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
@@ -232,6 +231,9 @@ void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Typ
 					FIntPoint(ViewRect.Width(), ViewRect.Height()),
 					FIntPoint(MipSize, MipSize),
 					*VertexShader);
+
+				//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+				RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &CubeRef, 1);
 			}
 		}
 
@@ -1483,6 +1485,30 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 	}
 }
 
+void ReadbackRadianceMap(FRHICommandListImmediate& RHICmdList, int32 CubmapSize, TArray<FFloat16Color>& OutRadianceMap)
+{
+	OutRadianceMap.Empty(CubmapSize * CubmapSize * 6);
+	OutRadianceMap.AddZeroed(CubmapSize * CubmapSize * 6);
+
+	const int32 MipIndex = 0;
+
+	FSceneRenderTargetItem& SourceCube = FSceneRenderTargets::Get(RHICmdList).ReflectionColorScratchCubemap[0]->GetRenderTargetItem();
+	check(SourceCube.ShaderResourceTexture->GetFormat() == PF_FloatRGBA);
+	const int32 CubeFaceBytes = CubmapSize * CubmapSize * OutRadianceMap.GetTypeSize();
+
+	for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
+	{
+		TArray<FFloat16Color> SurfaceData;
+
+		// Read each mip face
+		RHICmdList.ReadSurfaceFloatData(SourceCube.ShaderResourceTexture, FIntRect(0, 0, CubmapSize, CubmapSize), SurfaceData, (ECubeFace)CubeFace, 0, MipIndex);
+		const int32 DestIndex = CubeFace * CubmapSize * CubmapSize;
+		FFloat16Color* FaceData = &OutRadianceMap[DestIndex];
+		check(SurfaceData.Num() * SurfaceData.GetTypeSize() == CubeFaceBytes);
+		FMemory::Memcpy(FaceData, SurfaceData.GetData(), CubeFaceBytes);
+	}
+}
+
 void CopyToSkyTexture(FRHICommandList& RHICmdList, FScene* Scene, FTexture* ProcessedTexture)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, CopyToSkyTexture);
@@ -1506,7 +1532,14 @@ void CopyToSkyTexture(FRHICommandList& RHICmdList, FScene* Scene, FTexture* Proc
 }
 
 // Warning: returns before writes to OutIrradianceEnvironmentMap have completed, as they are queued on the rendering thread
-void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap)
+void FScene::UpdateSkyCaptureContents(
+	const USkyLightComponent* CaptureComponent, 
+	bool bCaptureEmissiveOnly, 
+	UTextureCube* SourceCubemap, 
+	FTexture* OutProcessedTexture, 
+	float& OutAverageBrightness, 
+	FSHVectorRGB3& OutIrradianceEnvironmentMap,
+	TArray<FFloat16Color>* OutRadianceMap)
 {	
 	if (GSupportsRenderTargetFormat_PF_FloatRGBA || GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
@@ -1548,6 +1581,17 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 		else
 		{
 			check(0);
+		}
+
+		if (OutRadianceMap)
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
+				ReadbackCommand,
+				int32, CubemapSize, CaptureComponent->CubemapResolution,
+				TArray<FFloat16Color>*, RadianceMap, OutRadianceMap,
+			{
+				ReadbackRadianceMap(RHICmdList, CubemapSize, *RadianceMap);
+			});
 		}
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER( 

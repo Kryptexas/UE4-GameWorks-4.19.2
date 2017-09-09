@@ -371,28 +371,20 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	UTextureCube* TextureCube = Cast<UTextureCube>(Texture);
 	UTexture2DDynamic* Texture2DDynamic = Cast<UTexture2DDynamic>(Texture);
 
-	uint32 ImportedWidth = Texture->Source.GetSizeX();
-	uint32 ImportedHeight = Texture->Source.GetSizeY();
+	const uint32 SurfaceWidth = (uint32)Texture->GetSurfaceWidth();
+	const uint32 SurfaceHeight = (uint32)Texture->GetSurfaceHeight();
 
-	// If Original Width and Height are 0, use the saved current width and height
-	if (ImportedWidth == 0 && ImportedHeight == 0)
-	{
-		ImportedWidth = Texture->GetSurfaceWidth();
-		ImportedHeight = Texture->GetSurfaceHeight();
-	}
+	const uint32 ImportedWidth = FMath::Max<uint32>(SurfaceWidth, Texture->Source.GetSizeX());
+	const uint32 ImportedHeight =  FMath::Max<uint32>(SurfaceWidth, Texture->Source.GetSizeY());
 
-	const uint32 ActualWidth = (Texture->GetSurfaceWidth() > 0) ? (uint32)Texture->GetSurfaceWidth() : ImportedWidth;
-	const uint32 ActualHeight = (Texture->GetSurfaceHeight() > 0) ? (uint32)Texture->GetSurfaceHeight() : ImportedHeight;
+	const int32 ActualMipBias = Texture2D ? (Texture2D->GetNumMips() - Texture2D->GetNumResidentMips()) : Texture->GetCachedLODBias();
+	const uint32 ActualWidth = FMath::Max<uint32>(SurfaceWidth >> ActualMipBias, 1);
+	const uint32 ActualHeight = FMath::Max<uint32>(SurfaceHeight >> ActualMipBias, 1);
 
 	// In game max bias and dimensions
-	uint32 MaxInGameWidth, MaxInGameHeight;
-	int32 MipLevel = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(Texture);
-	CalculateEffectiveTextureDimensions(MipLevel, MaxInGameWidth, MaxInGameHeight);
-
-	// Editor bias and dimensions (takes user specified mip setting into account)
-	Texture->UpdateCachedLODBias(!GetUseSpecifiedMip());
-	MipLevel = FMath::Max(GetMipLevel(), Texture->GetCachedLODBias());
-	CalculateEffectiveTextureDimensions(MipLevel, PreviewEffectiveTextureWidth, PreviewEffectiveTextureHeight);
+	const int32 MaxResMipBias = Texture2D ? (Texture2D->GetNumMips() - Texture2D->GetNumMipsAllowed(true)) : Texture->GetCachedLODBias();
+	const uint32 MaxInGameWidth = FMath::Max<uint32>(SurfaceWidth >> MaxResMipBias, 1);
+	const uint32 MaxInGameHeight = FMath::Max<uint32>(SurfaceHeight >> MaxResMipBias, 1);
 
 	// Texture asset size
 	const uint32 Size = (Texture->GetResourceSizeBytes(EResourceSizeMode::Exclusive) + 512) / 1024;
@@ -416,7 +408,7 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	}
 
 	ImportedText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Imported", "Imported: {0}x{1}"), FText::AsNumber(ImportedWidth, &Options), FText::AsNumber(ImportedHeight, &Options)));
-	CurrentText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Displayed", "Displayed: {0}x{1}{2}"), FText::AsNumber(FMath::Max((uint32)1, ActualWidth >> MipLevel), &Options ), FText::AsNumber(FMath::Max((uint32)1, ActualHeight >> MipLevel), &Options), CubemapAdd));
+	CurrentText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Displayed", "Displayed: {0}x{1}{2}"), FText::AsNumber(ActualWidth, &Options ), FText::AsNumber(ActualHeight, &Options), CubemapAdd));
 	MaxInGameText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_MaxInGame", "Max In-Game: {0}x{1}{2}"), FText::AsNumber(MaxInGameWidth, &Options), FText::AsNumber(MaxInGameHeight, &Options), CubemapAdd));
 	SizeText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_ResourceSize", "Resource Size: {0} Kb"), FText::AsNumber(Size, &SizeOptions)));
 	MethodText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_Method", "Method: {0}"), Texture->NeverStream ? NSLOCTEXT("TextureEditor", "QuickInfo_MethodNotStreamed", "Not Streamed") : NSLOCTEXT("TextureEditor", "QuickInfo_MethodStreamed", "Streamed")));
@@ -648,14 +640,6 @@ TSharedRef<SWidget> FTextureEditorToolkit::BuildTexturePropertiesWidget( )
 
 	return TexturePropertiesWidget.ToSharedRef();
 }
-
-
-void FTextureEditorToolkit::CalculateEffectiveTextureDimensions( int32 LODBias, uint32& EffectiveTextureWidth, uint32& EffectiveTextureHeight )
-{
-	//Calculate in-game max resolution and store in EffectiveTextureWidth, EffectiveTextureHeight
-	UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->ComputeInGameMaxResolution(LODBias, *Texture, (uint32 &)EffectiveTextureWidth, (uint32 &)EffectiveTextureHeight);
-}
-
 
 void FTextureEditorToolkit::CreateInternalWidgets( )
 {

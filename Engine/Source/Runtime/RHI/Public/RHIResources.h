@@ -1688,14 +1688,14 @@ enum class ERenderTargetActions : uint8
 
 	DontLoad_DontStore =	RTACTION_MAKE_MASK(ENoAction, ENoAction),
 
-	DontLoad_Store =	RTACTION_MAKE_MASK(ENoAction, EStore),
-	Clear_Store =		RTACTION_MAKE_MASK(EClear, EStore),
-	Load_Store =		RTACTION_MAKE_MASK(ELoad, EStore),
+	DontLoad_Store =		RTACTION_MAKE_MASK(ENoAction, EStore),
+	Clear_Store =			RTACTION_MAKE_MASK(EClear, EStore),
+	Load_Store =			RTACTION_MAKE_MASK(ELoad, EStore),
 
-	Clear_DontStore =	RTACTION_MAKE_MASK(EClear, ENoAction),
-	Load_DontStore =	RTACTION_MAKE_MASK(ELoad, ENoAction),
-	Clear_Resolve =		RTACTION_MAKE_MASK(EClear, EMultisampleResolve),
-	Load_Resolve =		RTACTION_MAKE_MASK(ELoad, EMultisampleResolve),
+	Clear_DontStore =		RTACTION_MAKE_MASK(EClear, ENoAction),
+	Load_DontStore =		RTACTION_MAKE_MASK(ELoad, ENoAction),
+	Clear_Resolve =			RTACTION_MAKE_MASK(EClear, EMultisampleResolve),
+	Load_Resolve =			RTACTION_MAKE_MASK(ELoad, EMultisampleResolve),
 
 #undef RTACTION_MAKE_MASK
 };
@@ -1716,17 +1716,19 @@ enum class EDepthStencilTargetActions : uint8
 
 #define RTACTION_MAKE_MASK(Depth, Stencil) (((uint8)ERenderTargetActions::Depth << (uint8)DepthMask) | (uint8)ERenderTargetActions::Stencil)
 
-	DontLoad_DontStore =			RTACTION_MAKE_MASK(DontLoad_DontStore, DontLoad_DontStore),
-	DontLoad_StoreDepthStencil =			RTACTION_MAKE_MASK(DontLoad_Store, DontLoad_Store),
-	ClearDepthStencil_StoreDepthStencil =	RTACTION_MAKE_MASK(Clear_Store, Clear_Store),
-	LoadDepthStencil_StoreDepthStencil =	RTACTION_MAKE_MASK(Load_Store, Load_Store),
-	LoadDepthNotStencil_DontStore =	RTACTION_MAKE_MASK(Load_DontStore, DontLoad_DontStore),
-	LoadDepthStencil_StoreStencilNotDepth =	RTACTION_MAKE_MASK(Load_DontStore, Load_Store),
+	DontLoad_DontStore =						RTACTION_MAKE_MASK(DontLoad_DontStore, DontLoad_DontStore),
+	DontLoad_StoreDepthStencil =				RTACTION_MAKE_MASK(DontLoad_Store, DontLoad_Store),
+	ClearDepthStencil_StoreDepthStencil =		RTACTION_MAKE_MASK(Clear_Store, Clear_Store),
+	LoadDepthStencil_StoreDepthStencil =		RTACTION_MAKE_MASK(Load_Store, Load_Store),
+	LoadDepthNotStencil_DontStore =				RTACTION_MAKE_MASK(Load_DontStore, DontLoad_DontStore),
+	LoadDepthStencil_StoreStencilNotDepth =		RTACTION_MAKE_MASK(Load_DontStore, Load_Store),
 
 	ClearDepthStencil_DontStoreDepthStencil =	RTACTION_MAKE_MASK(Clear_DontStore, Clear_DontStore),
 	LoadDepthStencil_DontStoreDepthStencil =	RTACTION_MAKE_MASK(Load_DontStore, Load_DontStore),
 	ClearDepthStencil_StoreDepthNotStencil =	RTACTION_MAKE_MASK(Clear_Store, Clear_DontStore),
 	ClearDepthStencil_StoreStencilNotDepth =	RTACTION_MAKE_MASK(Clear_DontStore, Clear_Store),
+	ClearDepthStencil_ResolveDepthNotStencil =	RTACTION_MAKE_MASK(Clear_Resolve, Clear_DontStore),
+	ClearDepthStencil_ResolveStencilNotDepth =	RTACTION_MAKE_MASK(Clear_DontStore, Clear_Resolve),
 
 #undef RTACTION_MAKE_MASK
 };
@@ -1760,9 +1762,12 @@ struct FRHIRenderPassInfo
 		EDepthStencilTargetActions Action;
 	};
 	FDepthStencilEntry DepthStencilRenderTarget;
-	bool bIsMSAA;
+
 	// Special case when we want to bind the depth target as read-only AND sample as texture
 	bool bDepthReadOnly = false;
+
+	// Some RHIs require a hint that occlusion queries will be used in this render pass
+	bool bOcclusionQueries = false;
 
 	// Color, no depth
 	explicit FRHIRenderPassInfo(FRHITexture* ColorRT, ERenderTargetActions ColorAction, FRHITexture* ResolveRT = nullptr)
@@ -1853,7 +1858,8 @@ struct FRHIRenderPassInfo
 	}
 
 	// Color and depth
-	explicit FRHIRenderPassInfo(FRHITexture* ColorRT, ERenderTargetActions ColorAction, FRHITexture* ResolveColorRT, FRHITexture* DepthRT, EDepthStencilTargetActions DepthActions, FRHITexture* ResolveDepthRT)
+	explicit FRHIRenderPassInfo(FRHITexture* ColorRT, ERenderTargetActions ColorAction, FRHITexture* ResolveColorRT,
+		FRHITexture* DepthRT, EDepthStencilTargetActions DepthActions, FRHITexture* ResolveDepthRT)
 	{
 		check(ColorRT);
 		ColorRenderTargets[0].RenderTarget = ColorRT;
@@ -1879,10 +1885,20 @@ struct FRHIRenderPassInfo
 		bDepthReadOnly = bInDepthReadOnly;
 	}
 
+	void SetOcclusionQueries(bool bInOcclusionQueries)
+	{
+		bOcclusionQueries = bInOcclusionQueries;
+	}
+
 	void DEPRECATED_SetExclusiveDepthStencil(FExclusiveDepthStencil InEDS)
 	{
 		DEPRECATED_EDS = InEDS;
 		bDEPRECATEDHasEDS = true;
+	}
+
+	inline bool IsMSAA() const
+	{
+		return bIsMSAA;
 	}
 
 	inline void Validate() const
@@ -1947,6 +1963,7 @@ struct FRHIRenderPassInfo
 private:
 	FExclusiveDepthStencil DEPRECATED_EDS;
 	bool bDEPRECATEDHasEDS = false;
+	bool bIsMSAA = false;
 };
 
 class FRHIRenderPass : public FRHIResource {};
@@ -1956,13 +1973,14 @@ class FRHIRenderSubPass : public FRHIRenderPass {};
 class FRHIRenderPassFallback : public FRHIRenderPass
 {
 public:
-	FRHIRenderPassFallback(const FRHIRenderPassInfo& InInfo)
+	explicit FRHIRenderPassFallback(const FRHIRenderPassInfo& InInfo, const TCHAR* InName)
 		: Info(InInfo)
+		, Name(InName)
 		, bEnded(false)
 	{
 	}
 
-	~FRHIRenderPassFallback()
+	virtual ~FRHIRenderPassFallback()
 	{
 		check(bEnded);
 	}
@@ -1975,19 +1993,21 @@ public:
 
 protected:
 	FRHIRenderPassInfo Info;
+	FString Name;
 	bool bEnded;
 };
 
 class FRHIParallelRenderPassFallback : public FRHIParallelRenderPass
 {
 public:
-	FRHIParallelRenderPassFallback(const FRHIRenderPassInfo& InInfo)
+	explicit FRHIParallelRenderPassFallback(const FRHIRenderPassInfo& InInfo, const TCHAR* InName)
 		: Info(InInfo)
+		, Name(InName)
 		, bEnded(false)
 	{
 	}
 
-	~FRHIParallelRenderPassFallback()
+	virtual ~FRHIParallelRenderPassFallback()
 	{
 		check(SubPasses.Num() == 0);
 		check(bEnded);
@@ -2013,19 +2033,20 @@ public:
 protected:
 	FRHIRenderPassInfo Info;
 	TArray<FRHIRenderSubPass*> SubPasses;
+	FString Name;
 	bool bEnded;
 };
 
 class FRHIRenderSubPassFallback : public FRHIRenderSubPass
 {
 public:
-	FRHIRenderSubPassFallback(FRHIParallelRenderPassFallback* InParent)
+	explicit FRHIRenderSubPassFallback(FRHIParallelRenderPassFallback* InParent)
 		: Parent(InParent)
 		, bEnded(false)
 	{
 	}
 
-	~FRHIRenderSubPassFallback()
+	virtual ~FRHIRenderSubPassFallback()
 	{
 		check(bEnded);
 	}

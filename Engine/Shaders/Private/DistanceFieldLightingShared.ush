@@ -35,7 +35,7 @@ SamplerState DistanceFieldSampler;
 
 float SampleMeshDistanceField(float3 VolumeUV, float2 ObjectDistanceFieldMAD)
 {
-	float TextureValue = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0);
+	float TextureValue = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x;
 #if EIGHT_BIT_MESH_DISTANCE_FIELDS
 	TextureValue = TextureValue * ObjectDistanceFieldMAD.x + ObjectDistanceFieldMAD.y;
 #endif

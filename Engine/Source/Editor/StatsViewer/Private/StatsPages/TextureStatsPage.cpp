@@ -221,7 +221,7 @@ struct TextureStatsGenerator : public FFindReferencedAssets
 				Entry->Type = TEXT("2D"); 
 
 				// Calculate in game current dimensions 
-				const int32 DroppedMips = Texture2D->GetNumMips() - Texture2D->ResidentMips;
+				const int32 DroppedMips = Texture2D->GetNumMips() - Texture2D->GetNumResidentMips();
 				Entry->CurrentDim.X = Texture2D->GetSizeX() >> DroppedMips;
 				Entry->CurrentDim.Y = Texture2D->GetSizeY() >> DroppedMips;
 

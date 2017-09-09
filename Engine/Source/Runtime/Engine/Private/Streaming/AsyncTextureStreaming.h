@@ -69,6 +69,35 @@ private:
 	float LastUpdateTime;
 };
 
+struct FCompareTextureByRetentionPriority // Bigger retention priority first.
+{
+	FCompareTextureByRetentionPriority(const TArray<FStreamingTexture>& InStreamingTextures) : StreamingTextures(InStreamingTextures) {}
+	const TArray<FStreamingTexture>& StreamingTextures;
+
+	FORCEINLINE bool operator()( int32 IndexA, int32 IndexB ) const
+	{
+		const int32 PrioA = StreamingTextures[IndexA].RetentionPriority;
+		const int32 PrioB = StreamingTextures[IndexB].RetentionPriority;
+		if ( PrioA > PrioB )  return true;
+		if ( PrioA == PrioB ) return IndexA > IndexB;  // Sorting by index so that it gets deterministic.
+		return false;
+	}
+};
+
+struct FCompareTextureByLoadOrderPriority // Bigger load order priority first.
+{
+	FCompareTextureByLoadOrderPriority(const TArray<FStreamingTexture>& InStreamingTextures) : StreamingTextures(InStreamingTextures) {}
+	const TArray<FStreamingTexture>& StreamingTextures;
+
+	FORCEINLINE bool operator()( int32 IndexA, int32 IndexB ) const
+	{
+		const int32 PrioA = StreamingTextures[IndexA].LoadOrderPriority;
+		const int32 PrioB = StreamingTextures[IndexB].LoadOrderPriority;
+		if ( PrioA > PrioB )  return true;
+		if ( PrioA == PrioB ) return IndexA > IndexB;  // Sorting by index so that it gets deterministic.
+		return false;
+	}
+};
 
 /** Async work class for calculating priorities for all textures. */
 // this could implement a better abandon, but give how it is used, it does that anyway via the abort mechanism
@@ -122,36 +151,6 @@ public:
 private:
 
 	friend class FAsyncTask<FAsyncTextureStreamingTask>;
-
-	struct FCompareTextureByRetentionPriority // Bigger retention priority first.
-	{
-		FCompareTextureByRetentionPriority(const TArray<FStreamingTexture>& InStreamingTextures) : StreamingTextures(InStreamingTextures) {}
-		const TArray<FStreamingTexture>& StreamingTextures;
-
-		FORCEINLINE bool operator()( int32 IndexA, int32 IndexB ) const
-		{
-			const int32 PrioA = StreamingTextures[IndexA].RetentionPriority;
-			const int32 PrioB = StreamingTextures[IndexB].RetentionPriority;
-			if ( PrioA > PrioB )  return true;
-			if ( PrioA == PrioB ) return IndexA > IndexB;  // Sorting by index so that it gets deterministic.
-			return false;
-		}
-	};
-
-	struct FCompareTextureByLoadOrderPriority // Bigger load order priority first.
-	{
-		FCompareTextureByLoadOrderPriority(const TArray<FStreamingTexture>& InStreamingTextures) : StreamingTextures(InStreamingTextures) {}
-		const TArray<FStreamingTexture>& StreamingTextures;
-
-		FORCEINLINE bool operator()( int32 IndexA, int32 IndexB ) const
-		{
-			const int32 PrioA = StreamingTextures[IndexA].LoadOrderPriority;
-			const int32 PrioB = StreamingTextures[IndexB].LoadOrderPriority;
-			if ( PrioA > PrioB )  return true;
-			if ( PrioA == PrioB ) return IndexA > IndexB;  // Sorting by index so that it gets deterministic.
-			return false;
-		}
-	};
 
 	void UpdateBudgetedMips_Async(int64& OutMemoryUsed, int64& OutTempMemoryUsed);
 

@@ -18,7 +18,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 @implementation FCocoaWindow
 
 @synthesize TargetWindowMode;
-@synthesize PreFullScreenRect;
 
 - (id)initWithContentRect:(NSRect)ContentRect styleMask:(NSUInteger)Style backing:(NSBackingStoreType)BufferingType defer:(BOOL)Flag
 {
@@ -35,7 +34,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		bIsOnActiveSpace = [super isOnActiveSpace];
 		self.TargetWindowMode = EWindowMode::Windowed;
 		[super setAlphaValue:Opacity];
-		self.PreFullScreenRect = [super frame];
 	}
 	return NewSelf;
 }
@@ -43,11 +41,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (NSRect)openGLFrame
 {
 	SCOPED_AUTORELEASE_POOL;
-	if (self.TargetWindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::Fullscreen)
-	{
-		return {{0, 0}, self.PreFullScreenRect.size};
-	}
-	else if ([self styleMask] & NSTexturedBackgroundWindowMask)
+	if ([self styleMask] & NSTexturedBackgroundWindowMask)
 	{
 		return [self frame];
 	}
@@ -208,9 +202,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	// Handle clicking on the titlebar fullscreen item
 	if (self.TargetWindowMode == EWindowMode::Windowed)
 	{
-		self.PreFullScreenRect.origin = [self frame].origin;
-		self.PreFullScreenRect.size = [self openGLFrame].size;
-		
 		// Use the current default fullscreen mode when switching via the OS button
 		static auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
 		check(CVar);
@@ -232,16 +223,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if (MacApplication)
 	{
 		MacApplication->DeferEvent(Notification);
-	}
-
-	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
-	if (MacCursor)
-	{
-		NSSize WindowSize = [self frame].size;
-		NSSize ViewSize = [self openGLFrame].size;
-		float WidthScale = ViewSize.width / WindowSize.width;
-		float HeightScale = ViewSize.height / WindowSize.height;
-		MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale), self);
 	}
 }
 
@@ -267,12 +248,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if (MacApplication)
 	{
 		MacApplication->DeferEvent(Notification);
-	}
-
-	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
-	if (MacCursor && MacCursor->GetFullScreenWindow() == self)
-	{
-		MacCursor->SetMouseScaling(FVector2D::UnitVector, nullptr);
 	}
 }
 
@@ -481,15 +456,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	if (MacApplication)
-	{
-		FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
-		if (MacCursor && MacCursor->GetFullScreenWindow() == self)
-		{
-			MacCursor->SetMouseScaling(FVector2D::UnitVector, nullptr);
-		}
-	}
-	
 	[self setDelegate:nil];
 }
 

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "FP16Math.ush"
 
 // ---------------------------------------------------- Profile or compiler specific includes
 // TODO: Have shader compiler including these platform specific USF files, that needs to work
@@ -136,11 +137,7 @@
 #define FORCE_FLOATS 0
 #endif
 
-#ifndef EXPERIMENTAL_FP16
-#define EXPERIMETNAL_FP16 0
-#endif
-
-#if !EXPERIMENTAL_FP16 && ((!(COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && !METAL_PROFILE) || FORCE_FLOATS)
+#if (!(COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || METAL_PROFILE) || FORCE_FLOATS)
 	// Always use floats when not using the ES2 compiler, because low precision modifiers are currently only tweaked for ES2, 
 	// And we don't want potential side effects on other platforms
 	#define half float
@@ -354,7 +351,7 @@
 
 #endif // SM5_PROFILE || COMPILER_SUPPORTS_ATTRIBUTES
 
-#if SM5_PROFILE
+#if SM5_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
 #define EARLYDEPTHSTENCIL [earlydepthstencil]
 #endif
 

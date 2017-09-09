@@ -16,8 +16,9 @@
 class FVulkanPendingComputeState : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanPendingComputeState(FVulkanDevice* InDevice)
+	FVulkanPendingComputeState(FVulkanDevice* InDevice, FVulkanCommandListContext& InContext)
 		: VulkanRHI::FDeviceChild(InDevice)
+		, Context(InContext)
 	{
 	}
 
@@ -49,7 +50,7 @@ public:
 		}
 	}
 
-	void PrepareForDispatch(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer);
+	void PrepareForDispatch(FVulkanCmdBuffer* CmdBuffer);
 
 	inline const FVulkanComputeShader* GetCurrentShader() const
 	{
@@ -61,63 +62,14 @@ public:
 		UAVListForAutoFlush.Add(UAV);
 	}
 
-	inline void SetUAV(uint32 UAVIndex, FVulkanUnorderedAccessView* UAV)
-	{
-		if (UAV)
-		{
-			// make sure any dynamically backed UAV points to current memory
-			UAV->UpdateView();
-			if (UAV->SourceStructuredBuffer)
-			{
-				CurrentState->SetStorageBuffer(UAVIndex, UAV->SourceStructuredBuffer->GetHandle(), UAV->SourceStructuredBuffer->GetOffset(), UAV->SourceStructuredBuffer->GetSize(), UAV->SourceStructuredBuffer->GetBufferUsageFlags());
-			}
-			else if (UAV->BufferView)
-			{
-				CurrentState->SetUAVTexelBufferViewState(UAVIndex, UAV->BufferView);
-			}
-			else if (UAV->SourceTexture)
-			{
-				CurrentState->SetUAVTextureView(UAVIndex, UAV->TextureView);
-			}
-			else
-			{
-				ensure(0);
-			}
-		}
-	}
+	void SetUAV(uint32 UAVIndex, FVulkanUnorderedAccessView* UAV);
 
 	inline void SetTexture(uint32 BindPoint, const FVulkanTextureBase* TextureBase)
 	{
 		CurrentState->SetTexture(BindPoint, TextureBase);
 	}
 
-	inline void SetSRV(uint32 BindIndex, FVulkanShaderResourceView* SRV)
-	{
-		if (SRV)
-		{
-			// make sure any dynamically backed SRV points to current memory
-			SRV->UpdateView();
-            FVulkanBufferView* BufferView = SRV->GetBufferView();
-			if (BufferView != nullptr)
-			{
-				checkf(BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVBufferViewState(BindIndex, BufferView);
-			}
-			else if (SRV->SourceStructuredBuffer)
-			{
-				CurrentState->SetStorageBuffer(BindIndex, SRV->SourceStructuredBuffer->GetHandle(), SRV->SourceStructuredBuffer->GetOffset(), SRV->SourceStructuredBuffer->GetSize(), SRV->SourceStructuredBuffer->GetBufferUsageFlags());
-			}
-			else
-			{
-				checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVTextureView(BindIndex, SRV->TextureView);
-			}
-		}
-		else
-		{
-			//CurrentState->SetSRVBufferViewState(BindIndex, nullptr);
-		}
-	}
+	void SetSRV(uint32 BindIndex, FVulkanShaderResourceView* SRV);
 
 	inline void SetShaderParameter(uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
 	{
@@ -148,6 +100,8 @@ protected:
 
 	TMap<FVulkanComputePipeline*, FVulkanComputePipelineState*> PipelineStates;
 
+	FVulkanCommandListContext& Context;
+
 	friend class FVulkanCommandListContext;
 };
 
@@ -155,8 +109,9 @@ protected:
 class FVulkanPendingGfxState : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanPendingGfxState(FVulkanDevice* InDevice)
+	FVulkanPendingGfxState(FVulkanDevice* InDevice, FVulkanCommandListContext& InContext)
 		: VulkanRHI::FDeviceChild(InDevice)
+		, Context(InContext)
 	{
 		Reset();
 	}
@@ -202,7 +157,7 @@ public:
 		{
 			Viewport.maxDepth = MaxZ;
 		}
-		
+
 		SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
 		bScissorEnable = false;
 	}
@@ -263,58 +218,9 @@ public:
 		CurrentState->SetUniformBuffer(Stage, BindPoint, UniformBuffer);
 	}
 
-	inline void SetUAV(EShaderFrequency Stage, uint32 UAVIndex, FVulkanUnorderedAccessView* UAV)
-	{
-		if (UAV)
-		{
-			// make sure any dynamically backed UAV points to current memory
-			UAV->UpdateView();
-			if (UAV->SourceStructuredBuffer)
-			{
-				CurrentState->SetStorageBuffer(Stage, UAVIndex, UAV->SourceStructuredBuffer->GetHandle(), UAV->SourceStructuredBuffer->GetOffset(), UAV->SourceStructuredBuffer->GetSize(), UAV->SourceStructuredBuffer->GetBufferUsageFlags());
-			}
-			else if (UAV->BufferView)
-			{
-				CurrentState->SetUAVTexelBufferViewState(Stage, UAVIndex, UAV->BufferView);
-			}
-			else if (UAV->SourceTexture)
-			{
-				CurrentState->SetUAVTextureView(Stage, UAVIndex, UAV->TextureView);
-			}
-			else
-			{
-				ensure(0);
-			}
-		}
-	}
+	void SetUAV(EShaderFrequency Stage, uint32 UAVIndex, FVulkanUnorderedAccessView* UAV);
 
-	inline void SetSRV(EShaderFrequency Stage, uint32 BindIndex, FVulkanShaderResourceView* SRV)
-	{
-		if (SRV)
-		{
-			// make sure any dynamically backed SRV points to current memory
-			SRV->UpdateView();
-			FVulkanBufferView* BufferView = SRV->GetBufferView();
-			if (BufferView)
-			{
-				checkf(BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVBufferViewState(Stage, BindIndex, BufferView);
-			}
-			else if (SRV->SourceStructuredBuffer)
-			{
-				CurrentState->SetStorageBuffer(Stage, BindIndex, SRV->SourceStructuredBuffer->GetHandle(), SRV->SourceStructuredBuffer->GetOffset(), SRV->SourceStructuredBuffer->GetSize(), SRV->SourceStructuredBuffer->GetBufferUsageFlags());
-			}
-			else
-			{
-				checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVTextureView(Stage, BindIndex, SRV->TextureView);
-			}
-		}
-		else
-		{
-			//CurrentState->SetSRVBufferViewState(Stage, BindIndex, nullptr);
-		}
-	}
+	void SetSRV(EShaderFrequency Stage, uint32 BindIndex, FVulkanShaderResourceView* SRV);
 
 	inline void SetSamplerState(EShaderFrequency Stage, uint32 BindPoint, FVulkanSamplerState* Sampler)
 	{
@@ -326,7 +232,7 @@ public:
 		CurrentState->SetShaderParameter(Stage, BufferIndex, ByteOffset, NumBytes, NewValue);
 	}
 
-	void PrepareForDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
+	void PrepareForDraw(FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
 
 	bool SetGfxPipeline(FVulkanGraphicsPipelineState* InGfxPipeline)
 	{
@@ -383,7 +289,7 @@ public:
 	}
 
 	inline void MarkNeedsDynamicStates()
-	{	
+	{
 	}
 
 protected:
@@ -418,9 +324,16 @@ protected:
 		uint32 BufferOffset;
 	};
 	FVertexStream PendingStreams[MaxVertexElementCount];
+	struct FTemporaryIA
+	{
+		TArray<VkBuffer> VertexBuffers;
+		TArray<VkDeviceSize> VertexOffsets;
+	} TemporaryIA;
 	bool bDirtyVertexStreams;
 
 	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd);
+
+	FVulkanCommandListContext& Context;
 
 	friend class FVulkanCommandListContext;
 };

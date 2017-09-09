@@ -3983,48 +3983,10 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 }
 #endif //WITH_PHYSX
 
-#if WITH_PHYSX
-// clang/LLVM in Xcode 9 generates bogus code in Development if the below is embedded directly within the loop
-// radr://33357076
-static bool GetSquaredDistanceToBodyHelper(const PxRigidActor* RigidActor, const PxVec3 PPoint, FVector& OutPointOnBody, float& MinDistanceSqr, bool& bFinish, bool& bSkip, PxShape* PShape)
-{
-	bool bFoundValidBody = false;
-	
-	PxGeometryHolder Holder = PShape->getGeometry();	// getGeometry() result is stored on the stack, if we don't hold on to it it may be gone next statement.
-	PxGeometry& PGeom = Holder.any();
-	PxTransform PGlobalPose = GetPxTransform_AssumesLocked(PShape, RigidActor);
-	PxGeometryType::Enum GeomType = PShape->getGeometryType();
-	
-	if (GeomType == PxGeometryType::eTRIANGLEMESH)
-	{
-		// Type unsupported for this function, but some other shapes will probably work.
-		bSkip = true;
-	}
-	else
-	{
-		bFoundValidBody = true;
-		
-		PxVec3 PClosestPoint;
-		float SqrDistance = PxGeometryQuery::pointDistance(PPoint, PGeom, PGlobalPose, &PClosestPoint);
-		// distance has valid data and smaller than mindistance
-		if (SqrDistance > 0.f && MinDistanceSqr > SqrDistance)
-		{
-			MinDistanceSqr = SqrDistance;
-			OutPointOnBody = P2UVector(PClosestPoint);
-		}
-		else if (SqrDistance == 0.f)
-		{
-			MinDistanceSqr = 0.f;
-			bFinish = true;
-		}
-	}
-	return bFoundValidBody;
-}
-#endif
-
 bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDistanceSquared, FVector& OutPointOnBody) const
 {
 	OutPointOnBody = Point;
+	float ReturnDistance = -1.f;
 	float MinDistanceSqr = BIG_NUMBER;
 	bool bFoundValidBody = false;
 	bool bEarlyOut = true;
@@ -4057,24 +4019,29 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 			{
 				continue;
 			}
-			
+
 			PxGeometryHolder Holder = PShape->getGeometry();	// getGeometry() result is stored on the stack, if we don't hold on to it it may be gone next statement.
 			PxGeometry& PGeom = Holder.any();
-			
-			bool bFinish = false;
-			bool bSkip = false;
-			
-			// clang/LLVM in Xcode 9 generates bogus code in Development if the below is embedded directly within the loop
-			// radr://33357076
-			bFoundValidBody = GetSquaredDistanceToBodyHelper(RigidActor, PPoint, OutPointOnBody, MinDistanceSqr, bFinish, bSkip, PShape);
-			
-			if (bSkip)
+
+			PxTransform PGlobalPose = GetPxTransform_AssumesLocked(PShape, RigidActor);
+			PxGeometryType::Enum GeomType = PShape->getGeometryType();
+
+			if (GeomType == PxGeometryType::eTRIANGLEMESH)
 			{
 				// Type unsupported for this function, but some other shapes will probably work. 
 				continue;
 			}
-			
-			if (bFinish)
+			bFoundValidBody = true;
+
+			PxVec3 PClosestPoint;
+			float SqrDistance = PxGeometryQuery::pointDistance(PPoint, PGeom, PGlobalPose, &PClosestPoint);
+			// distance has valid data and smaller than mindistance
+				if (SqrDistance > 0.f && MinDistanceSqr > SqrDistance)
+			{
+				MinDistanceSqr = SqrDistance;
+				OutPointOnBody = P2UVector(PClosestPoint);
+			}
+				else if (SqrDistance == 0.f)
 			{
 				MinDistanceSqr = 0.f;
 				break;

@@ -312,7 +312,9 @@ FString FMetalShaderOutputCooker::GetPluginSpecificCacheKeySuffix() const
 {
 	FString CachedOutputName;
 	{
-		uint32 Hash = GetTypeHash(PreprocessedShader);
+		FSHAHash Hash;
+		FSHA1::HashBuffer(*PreprocessedShader, PreprocessedShader.Len() * sizeof(TCHAR), Hash.Hash);
+		
 		uint32 Len = PreprocessedShader.Len();
 		
 		uint16 FormatVers = GetMetalFormatVersion(Input.ShaderFormat);
@@ -323,7 +325,7 @@ FString FMetalShaderOutputCooker::GetPluginSpecificCacheKeySuffix() const
 			Flags |= (1llu << uint64(Flag));
 		}
 		
-		CachedOutputName = FString::Printf(TEXT("%s-%s_%u%u_%hu_%llu_%hhu_%s_%s"), *Input.ShaderFormat.GetPlainNameString(), *Input.EntryPointName, Hash, Len, FormatVers, Flags, VersionEnum, *GUIDHash.ToString(), *Standard);
+		CachedOutputName = FString::Printf(TEXT("%s-%s_%s-%u_%hu_%llu_%hhu_%s_%s"), *Input.ShaderFormat.GetPlainNameString(), *Input.EntryPointName, *Hash.ToString(), Len, FormatVers, Flags, VersionEnum, *GUIDHash.ToString(), *Standard);
 	}
 	
 	return CachedOutputName;
@@ -415,10 +417,11 @@ bool FMetalShaderOutputCooker::Build(TArray<uint8>& OutData)
 		FString Tmp = ANSI_TO_TCHAR(ErrorLog);
 		TArray<FString> ErrorLines;
 		Tmp.ParseIntoArray(ErrorLines, TEXT("\n"), true);
+		bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
 		for (int32 LineIndex = 0; LineIndex < ErrorLines.Num(); ++LineIndex)
 		{
 			const FString& Line = ErrorLines[LineIndex];
-			CrossCompiler::ParseHlslccError(Output.Errors, Line);
+			CrossCompiler::ParseHlslccError(Output.Errors, Line, bDirectCompile);
 		}
 	}
 

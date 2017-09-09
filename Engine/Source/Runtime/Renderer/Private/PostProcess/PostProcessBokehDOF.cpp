@@ -23,35 +23,11 @@
 const int32 GBokehDOFSetupTileSizeX = 8;
 const int32 GBokehDOFSetupTileSizeY = 8;
 
-/**
- * Index buffer for drawing an individual sprite.
- */
-class FBokehIndexBuffer : public FIndexBuffer
-{
-public:
-	virtual void InitRHI() override
-	{
-		const uint32 Size = sizeof(uint16) * 6 * 8;
-		const uint32 Stride = sizeof(uint16);
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		IndexBufferRHI = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, CreateInfo, Buffer);
-		uint16* Indices = (uint16*)Buffer;
-		for (uint32 SpriteIndex = 0; SpriteIndex < 8; ++SpriteIndex)
-		{
-			Indices[SpriteIndex*6 + 0] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 1] = SpriteIndex*4 + 3;
-			Indices[SpriteIndex*6 + 2] = SpriteIndex*4 + 2;
-			Indices[SpriteIndex*6 + 3] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 4] = SpriteIndex*4 + 1;
-			Indices[SpriteIndex*6 + 5] = SpriteIndex*4 + 3;
-		}
-		RHIUnlockIndexBuffer( IndexBufferRHI );
-	}
-};
+// needs to be the same as QuadsPerInstance on shader side (faster on NVIDIA and AMD)
+const int32 GBokehDOFQuadsPerInstance = 256;
 
 /** Global Bokeh index buffer. */
-TGlobalResource< FSpriteIndexBuffer<8> > GBokehIndexBuffer;
+TGlobalResource< FSpriteIndexBuffer<GBokehDOFQuadsPerInstance> > GBokehIndexBuffer;
 
 /** Encapsulates the post processing depth of field setup pixel shader. */
 class PostProcessVisualizeDOFPS : public FGlobalShader
@@ -641,6 +617,7 @@ class FPostProcessBokehDOFVS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("DOF_METHOD"), DOFMethod);
+		OutEnvironment.SetDefine(TEXT("BOKEH_DOF_QUADS_PER_INSTANCE"), GBokehDOFQuadsPerInstance);
 	}
 
 	/** Default constructor. */
@@ -757,6 +734,11 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << LensTexture << LensTextureSampler;
 		return bShaderHasOutdatedParameters;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("BOKEH_DOF_QUADS_PER_INSTANCE"), GBokehDOFQuadsPerInstance);
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context, float PixelKernelSize)
@@ -935,11 +917,8 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 		SetShaderTempl<0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
 	}
 
-	// needs to be the same on shader side (faster on NVIDIA and AMD)
-	int32 QuadsPerInstance = 8;
-
 	Context.RHICmdList.SetStreamSource(0, NULL, 0);
-	Context.RHICmdList.DrawIndexedPrimitive(GBokehIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 32, 0, 2 * QuadsPerInstance, FMath::DivideAndRoundUp(TileCount.X * TileCount.Y, QuadsPerInstance));
+	Context.RHICmdList.DrawIndexedPrimitive(GBokehIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 4 * GBokehDOFQuadsPerInstance, 0, 2 * GBokehDOFQuadsPerInstance, FMath::DivideAndRoundUp(TileCount.X * TileCount.Y, GBokehDOFQuadsPerInstance));
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }

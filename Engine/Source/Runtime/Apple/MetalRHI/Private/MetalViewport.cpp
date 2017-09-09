@@ -22,6 +22,12 @@ extern float GMetalPresentFramePacing;
 
 #if PLATFORM_MAC
 
+// Quick way to disable availability warnings is to duplicate the definitions into a new type - gotta love ObjC dynamic-dispatch!
+@interface FCAMetalLayer : CALayer
+@property BOOL displaySyncEnabled;
+@property BOOL allowsNextDrawableTimeout;
+@end
+
 @implementation FMetalView
 
 - (id)initWithFrame:(NSRect)frameRect
@@ -326,7 +332,7 @@ NSWindow* FMetalViewport::GetWindow() const
 }
 #endif
 
-void FMetalViewport::Present(FMetalCommandQueue& CommandQueue)
+void FMetalViewport::Present(FMetalCommandQueue& CommandQueue, bool bLockToVsync)
 {
 	FScopeLock Lock(&Mutex);
 	
@@ -335,6 +341,11 @@ void FMetalViewport::Present(FMetalCommandQueue& CommandQueue)
 	NSNumber* ScreenId = [View.window.screen.deviceDescription objectForKey:@"NSScreenNumber"];
 	DisplayID = ScreenId.unsignedIntValue;
 	bIsLiveResize = View.inLiveResize;
+	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesSupportsVSyncToggle))
+	{
+		FCAMetalLayer* CurrentLayer = (FCAMetalLayer*)[View layer];
+		CurrentLayer.displaySyncEnabled = bLockToVsync;
+	}
 #endif
 	
 	LastCompleteFrame = GetBackBuffer(EMetalViewportAccessRHI);
@@ -518,7 +529,7 @@ void FMetalRHIImmediateCommandContext::RHIEndDrawingViewport(FViewportRHIParamRe
 {
 	@autoreleasepool {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
-	((FMetalDeviceContext*)Context)->EndDrawingViewport(Viewport, bPresent);
+	((FMetalDeviceContext*)Context)->EndDrawingViewport(Viewport, bPresent, bLockToVsync);
 	}
 }
 

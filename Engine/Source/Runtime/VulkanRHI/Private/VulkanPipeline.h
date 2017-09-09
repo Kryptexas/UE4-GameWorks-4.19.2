@@ -363,8 +363,8 @@ public:
 			uint8 bHasDepthStencil;
 			uint8 bHasResolveAttachments;
 			uint8 NumUsedClearValues;
+			uint32 OldHash;
 			uint32 RenderPassHash;
-            uint32 FramebufferHash;
 			FVector Extent3D;
 
 			void ReadFrom(const FVulkanRenderTargetLayout &InState);
@@ -381,9 +381,9 @@ public:
 					bHasDepthStencil == In.bHasDepthStencil &&
 					bHasResolveAttachments == In.bHasResolveAttachments &&
 					NumUsedClearValues == In.NumUsedClearValues &&
-					Extent3D == In.Extent3D &&
+					OldHash == In.OldHash &&
 					RenderPassHash == In.RenderPassHash &&
-                    FramebufferHash == In.FramebufferHash;
+					Extent3D == In.Extent3D;
 			}
 		};
 		FRenderTargets RenderTargets;

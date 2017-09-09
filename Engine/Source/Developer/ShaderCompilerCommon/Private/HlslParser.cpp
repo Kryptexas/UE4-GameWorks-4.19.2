@@ -757,8 +757,6 @@ namespace CrossCompiler
 
 	EParseResult ParseGeneralDeclaration(FHlslScanner& Scanner, FSymbolScope* SymbolScope, FLinearAllocator* Allocator, AST::FDeclaratorList** OutDeclaration, int32 TypeFlags, int32 DeclarationFlags)
 	{
-		auto OriginalToken = Scanner.GetCurrentTokenIndex();
-
 		auto Result = ParseGeneralDeclarationNoSemicolon(Scanner, SymbolScope, TypeFlags, DeclarationFlags, Allocator, OutDeclaration);
 		if (Result == EParseResult::NotMatched || Result == EParseResult::Error)
 		{
@@ -907,6 +905,18 @@ namespace CrossCompiler
 		{
 			AST::FDeclaratorList* Declaration = nullptr;
 			auto Result = ParseGeneralDeclaration(Parser.Scanner, Parser.CurrentScope, Allocator, &Declaration, 0, EDF_CONST_ROW_MAJOR | EDF_IN_OUT | EDF_TEXTURE_SAMPLER_OR_BUFFER | EDF_INITIALIZER | EDF_SEMANTIC | EDF_PRIMITIVE_DATA_TYPE | EDF_INTERPOLATION | EDF_UNIFORM);
+			if (Result == EParseResult::NotMatched)
+			{
+				auto* Token = Parser.Scanner.PeekToken();
+				if (Token->Token == EHlslToken::RightParenthesis)
+				{
+					break;
+				}
+
+				Parser.Scanner.SourceError(TEXT("Unknown type '") + Token->String + TEXT("'!\n"));
+				return ParseResultError();
+			}
+
 			if (Result == EParseResult::Error)
 			{
 				return ParseResultError();

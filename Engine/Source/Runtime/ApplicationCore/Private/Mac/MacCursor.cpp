@@ -28,10 +28,8 @@ FMacCursor::FMacCursor()
 ,	bUseHighPrecisionMode(false)
 ,	CurrentPosition(FVector2D::ZeroVector)
 ,	MouseWarpDelta(FVector2D::ZeroVector)
-,	MouseScale(FVector2D::UnitVector)
 ,	bIsPositionInitialised(false)
 ,	bShouldIgnoreLocking(false)
-,	FullScreenWindow(nullptr)
 ,	HIDInterface(0)
 ,	SavedAcceleration(0)
 {
@@ -219,50 +217,10 @@ FVector2D FMacCursor::GetPosition() const
 		CurrentPos = FMacApplication::ConvertCocoaPositionToSlate(CursorPos.x, CursorPos.y);
 	}
 
-	static bool bWasFullscreen = false;
-
-	const FVector2D& MouseScaling = GetMouseScaling();
-	if (FullScreenWindow && MouseScaling != FVector2D::UnitVector)
-	{
-		const FVector2D ScreenOrigin = FMacApplication::CalculateScreenOrigin(FullScreenWindow.screen);
-		const FVector2D PositionOnScreen = ((CurrentPos - ScreenOrigin) * MouseScaling) + ScreenOrigin;
-		bWasFullscreen = true;
-		return PositionOnScreen;
-	}
-	else
-	{
-		return CurrentPos;
-	}
-}
-
-FVector2D FMacCursor::GetPositionNoScaling() const
-{
-	FVector2D CurrentPos = CurrentPosition;
-	if (!bIsPositionInitialised)
-	{
-		SCOPED_AUTORELEASE_POOL;
-		NSPoint CursorPos = [NSEvent mouseLocation];
-		CurrentPos = FMacApplication::ConvertCocoaPositionToSlate(CursorPos.x, CursorPos.y);
-	}
 	return CurrentPos;
 }
 
 void FMacCursor::SetPosition(const int32 X, const int32 Y)
-{
-	const FVector2D& MouseScaling = GetMouseScaling();
-	if (FullScreenWindow && MouseScaling != FVector2D::UnitVector)
-	{
-		const FVector2D ScreenOrigin = FMacApplication::CalculateScreenOrigin(FullScreenWindow.screen);
-		const FVector2D PositionOnScreen = ((FVector2D(X, Y) - ScreenOrigin) / MouseScaling) + ScreenOrigin;
-		SetPositionNoScaling(PositionOnScreen.X, PositionOnScreen.Y);
-	}
-	else
-	{
-		SetPositionNoScaling(X, Y);
-	}
-}
-
-void FMacCursor::SetPositionNoScaling(const int32 X, const int32 Y)
 {
 	FVector2D NewPos(X, Y);
 	UpdateCursorClipping(NewPos);
@@ -333,10 +291,10 @@ void FMacCursor::Lock(const RECT* const Bounds)
 
 	MacApplication->OnCursorLock();
 
-	FVector2D Position = GetPositionNoScaling();
+	FVector2D Position = GetPosition();
 	if (UpdateCursorClipping(Position))
 	{
-		SetPositionNoScaling(Position.X, Position.Y);
+		SetPosition(Position.X, Position.Y);
 	}
 }
 
@@ -349,19 +307,6 @@ bool FMacCursor::UpdateCursorClipping(FVector2D& CursorPosition)
 		FVector2D PositionOnScreen(CursorPosition);
 		FIntRect ClipRect(CursorClipRect);
 		FVector2D ScreenOrigin(FVector2D::ZeroVector);
-
-		const FVector2D& MouseScaling = GetMouseScaling();
-		if (FullScreenWindow && MouseScaling != FVector2D::UnitVector)
-		{
-			ScreenOrigin = FMacApplication::CalculateScreenOrigin(FullScreenWindow.screen);
-			PositionOnScreen -= ScreenOrigin;
-			int32 ClipRectWidth = (ClipRect.Max.X - ClipRect.Min.X + 1) / MouseScaling.X;
-			int32 ClipRectHeight = (ClipRect.Max.Y - ClipRect.Min.Y + 1) / MouseScaling.Y;
-			ClipRect.Min.X -= ScreenOrigin.X;
-			ClipRect.Min.Y -= ScreenOrigin.Y;
-			ClipRect.Max.X = ClipRect.Min.X + ClipRectWidth - 1;
-			ClipRect.Max.Y = ClipRect.Min.Y + ClipRectHeight - 1;
-		}
 
 		if (PositionOnScreen.X < ClipRect.Min.X)
 		{
@@ -513,29 +458,10 @@ void FMacCursor::SetHighPrecisionMouseMode(const bool bEnable)
 		// On disable put the cursor where the user would expect it
 		if (!bEnable && (!CurrentCursor || !bIsVisible))
 		{
-			FVector2D Position = GetPositionNoScaling();
+			FVector2D Position = GetPosition();
 			UpdateCursorClipping(Position);
 			WarpCursor(Position.X, Position.Y);
 		}
-	}
-}
-
-void FMacCursor::SetMouseScaling(const FVector2D& Scale, FCocoaWindow* InFullScreenWindow)
-{
-	MouseScale = Scale;
-	FullScreenWindow = InFullScreenWindow;
-}
-
-const FVector2D& FMacCursor::GetMouseScaling() const
-{
-	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
-	if (FullScreenWindow && WindowNumber == FullScreenWindow.windowNumber)
-	{
-		return MouseScale;
-	}
-	else
-	{
-		return FVector2D::UnitVector;
 	}
 }
 

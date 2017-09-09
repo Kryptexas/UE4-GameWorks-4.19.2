@@ -333,7 +333,7 @@ void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Ty
 	{
 		check((int32)ERHIZBuffer::IsInverted);
 		const float OrthoWidth = InOrthoWidth / 2.0f;
-		const float OrthoHeight = InOrthoWidth / 2.0f * YAxisMultiplier;
+		const float OrthoHeight = InOrthoWidth / 2.0f * XAxisMultiplier / YAxisMultiplier;
 
 		const float NearPlane = 0;
 		const float FarPlane = WORLD_MAX / 8.0f;

@@ -179,6 +179,28 @@ public:
 	void WriteEndTimestamp(FVulkanCmdBuffer* CmdBuffer);
 
 	void ReadAndCalculateGPUFrameTime();
+	
+	inline FVulkanGPUProfiler& GetGPUProfiler() { return GpuProfiler; }
+	inline FVulkanDevice* GetDevice() const { return Device; }
+	void EndRenderQueryInternal(FVulkanCmdBuffer* CmdBuffer, FVulkanRenderQuery* Query);
+
+	inline VkImageLayout FindLayout(VkImage Image)
+	{
+		VkImageLayout* Found = TransitionState.CurrentLayout.Find(Image);
+		check(Found);
+		return *Found;
+	}
+
+	inline VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout NewLayout)
+	{
+		VkImageLayout* Found = TransitionState.CurrentLayout.Find(Image);
+		if (Found)
+		{
+			return *Found;
+		}
+		TransitionState.CurrentLayout.Add(Image, NewLayout);
+		return NewLayout;
+	}
 
 protected:
 	FVulkanDynamicRHI* RHI;
@@ -217,19 +239,19 @@ protected:
 			: CurrentRenderPass(nullptr)
 			, PreviousRenderPass(nullptr)
 			, CurrentFramebuffer(nullptr)
-            , TexturesHash(0)
 		{
 		}
 
 		void Destroy(FVulkanDevice& InDevice);
 
 		FVulkanFramebuffer* GetOrCreateFramebuffer(FVulkanDevice& InDevice, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass);
-		FVulkanRenderPass* GetOrCreateRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout, uint32 RTLayoutHash)
+		FVulkanRenderPass* GetOrCreateRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout)
 		{
+			uint32 RenderPassHash = RTLayout.GetRenderPassHash();
 			FVulkanRenderPass** FoundRenderPass = nullptr;
 			{
 				FScopeLock Lock(&RenderPassesCS);
-				FoundRenderPass = RenderPasses.Find(RTLayout.RenderPassHash);
+				FoundRenderPass = RenderPasses.Find(RenderPassHash);
 			}
 			if (FoundRenderPass)
 			{
@@ -239,18 +261,26 @@ protected:
 			FVulkanRenderPass* RenderPass = new FVulkanRenderPass(InDevice, RTLayout);
 			{
 				FScopeLock Lock(&RenderPassesCS); 
-				RenderPasses.Add(RTLayout.RenderPassHash, RenderPass);
+				RenderPasses.Add(RenderPassHash, RenderPass);
 			}
 			return RenderPass;
 		}
 
 		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass, FVulkanFramebuffer* Framebuffer);
 		void EndRenderPass(FVulkanCmdBuffer* CmdBuffer);
+		void ProcessMipChainTransitions(FVulkanCmdBuffer* CmdBuffer, FVulkanFramebuffer* FrameBuffer, uint32 DestMip);
 
 		FVulkanRenderPass* CurrentRenderPass;
 		FVulkanRenderPass* PreviousRenderPass;
 		FVulkanFramebuffer* CurrentFramebuffer;
-        uint32 TexturesHash;
+
+		struct FRenderingMipChainInfo
+		{
+			bool bInsideRenderingMipChain = false;
+			FVulkanTextureBase* Texture = nullptr;
+			uint32 LastRenderedMip = 0;
+			uint32 CurrentMip = 0;
+		} RenderingMipChainInfo;
 
 		struct FFlushMipsInfo
 		{
@@ -262,8 +292,12 @@ protected:
 
 		TMap<uint32, FVulkanRenderPass*> RenderPasses;
 		FCriticalSection RenderPassesCS;
-		
-		TMap<uint32, FVulkanFramebuffer*> Framebuffers;
+
+		struct FFramebufferList
+		{
+			TArray<FVulkanFramebuffer*> Framebuffer;
+		};
+		TMap<uint32, FFramebufferList*> Framebuffers;
 
 		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, VkImage Image);
 
@@ -283,6 +317,8 @@ protected:
 			CurrentLayout.Add(Image, LayoutIfNotFound);
 			return LayoutIfNotFound;
 		}
+
+		void TransitionResource(FVulkanCmdBuffer* CmdBuffer, FVulkanSurface& Surface, VulkanRHI::EImageLayoutBarrier DestLayout);
 	};
 	FTransitionState TransitionState;
 
@@ -373,6 +409,9 @@ private:
 
 	// Number of times EndFrame() has been called on this context
 	uint64 FrameCounter;
+
+	FVulkanGPUProfiler GpuProfiler;
+	FVulkanGPUTiming* FrameTiming;
 
 	friend struct FVulkanCommandContextContainer;
 };

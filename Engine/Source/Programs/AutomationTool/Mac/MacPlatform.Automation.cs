@@ -160,6 +160,29 @@ public class MacPlatform : Platform
 		{
 			SC.StageFile(StagedFileType.UFS, ByteCodeCacheFile);
 		}
+
+		{
+			// Stage any *.metallib files as NonUFS.
+			// Get the final output directory for cooked data
+			DirectoryReference CookOutputDir;
+			if(!String.IsNullOrEmpty(Params.CookOutputDir))
+			{
+				CookOutputDir = DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform);
+			}
+			else if(Params.CookInEditor)
+			{
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform);
+			}
+			else
+			{
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform);
+			}
+			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*.metallib", SearchOption.AllDirectories).ToList();
+			foreach(FileReference CookedFile in CookedFiles)
+			{
+				SC.StageFile(StagedFileType.NonUFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
+			}
+		}
 	}
 
 	string GetValueFromInfoPlist(string InfoPlist, string Key, string DefaultValue = "")

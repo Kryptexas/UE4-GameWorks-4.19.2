@@ -318,10 +318,8 @@ namespace CrossCompiler
 
 		case EHlslToken::Buffer:
 		case EHlslToken::AppendStructuredBuffer:
-		case EHlslToken::ByteAddressBuffer:
 		case EHlslToken::ConsumeStructuredBuffer:
 		case EHlslToken::RWBuffer:
-		case EHlslToken::RWByteAddressBuffer:
 		case EHlslToken::RWStructuredBuffer:
 		case EHlslToken::RWTexture1D:
 		case EHlslToken::RWTexture1DArray:
@@ -343,6 +341,8 @@ namespace CrossCompiler
 		case EHlslToken::SamplerCube:
 		case EHlslToken::SamplerState:
 		case EHlslToken::SamplerComparisonState:
+		case EHlslToken::ByteAddressBuffer:
+		case EHlslToken::RWByteAddressBuffer:
 			if (TypeFlags & ETF_SAMPLER_TEXTURE_BUFFER)
 			{
 				bMatched = true;

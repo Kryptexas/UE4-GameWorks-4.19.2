@@ -47,8 +47,10 @@ void VisualizeVolumetricLightmapVS(
 	bool bValidCell = all(abs(LocalCellPosition - GridLocalCellPosition) < .01f);
 
 	Output.CellSphere.xyz = (CellVector / (float3)NumHighestDensityCells - View.VolumetricLightmapWorldToUVAdd) / View.VolumetricLightmapWorldToUVScale;
-	Output.CellSphere.w = BrickOffsetAndSize.w * VisualizationRadiusScale;
-
+	float DetailVoxelWorldSize = 1.0f / ((float)View.VolumetricLightmapIndirectionTextureSize.x * View.VolumetricLightmapWorldToUVScale.x);
+	// Set visualization sphere radius as a fraction of the corresponding brick's world space size
+	Output.CellSphere.w = BrickOffsetAndSize.w * DetailVoxelWorldSize * VisualizationRadiusScale;
+	
 	{
 		float DistanceToCamera = length(Output.CellSphere.xyz - View.WorldViewOrigin);
 		float SizeOnScreen = Output.CellSphere.w * View.ViewToClip[0][0] / DistanceToCamera;
@@ -57,7 +59,7 @@ void VisualizeVolumetricLightmapVS(
 		SizeOnScreen = max(SizeOnScreen, VisualizationMinScreenFraction * sqrt(BrickOffsetAndSize.w));
 		Output.CellSphere.w = SizeOnScreen * DistanceToCamera / View.ViewToClip[0][0];
 	}
-
+	
 	float2 TexCoord = float2(
 		((VertexId >> 0) & 1) ? 1.0f : -1.0f,
 		((VertexId >> 1) & 1) ? 1.0f : -1.0f);

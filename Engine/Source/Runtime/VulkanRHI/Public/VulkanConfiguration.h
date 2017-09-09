@@ -4,7 +4,7 @@
 	VulkanConfiguration.h: Vulkan resource RHI definitions.
 =============================================================================*/
 
-// Compiled with 1.0.24.0
+// Compiled with 1.0.57.0
 
 #pragma once
 
@@ -59,7 +59,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 	case SF_Geometry:	return EDescriptorSetStage::Geometry;
 	case SF_Compute:	return EDescriptorSetStage::Compute;
 	default:
-		checkf(0, TEXT("Invalid shader Stage %d"), (int)Stage);
+		checkf(0, TEXT("Invalid shader Stage %d"), (int32)Stage);
 		break;
 	}
 
@@ -71,7 +71,6 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 // Enables logging wrappers per Vulkan call
 #define VULKAN_ENABLE_DUMP_LAYER								0
 #define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS && !VULKAN_ENABLE_DUMP_LAYER
-#define VULKAN_ALLOW_MIDPASS_CLEAR								0
 
 // Keep the Vk*CreateInfo stored per object for debugging
 #define VULKAN_KEEP_CREATE_INFO									0
@@ -89,8 +88,6 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 
 #define VULKAN_REUSE_FENCES										1
-
-#define VULKAN_USE_NEW_GFX_STATE								1
 
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()

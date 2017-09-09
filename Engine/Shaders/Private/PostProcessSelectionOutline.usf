@@ -84,7 +84,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 	// outline even between multiple selected objects (best usability)
 	Ret.ObjectId = Stencil;
 
-#if (COMPILER_GLSL == 1 && FEATURE_LEVEL < FEATURE_LEVEL_SM4) || (COMPILER_METAL && FEATURE_LEVEL < FEATURE_LEVEL_SM4)
+#if (COMPILER_GLSL == 1 && FEATURE_LEVEL < FEATURE_LEVEL_SM4) || (COMPILER_METAL && FEATURE_LEVEL < FEATURE_LEVEL_SM4) || (VULKAN_PROFILE_SM5 || VULKAN_PROFILE_SM4 || VULKAN_PROFILE)
 	// Stencil read in opengl is not supported on older versions
 	Ret.ObjectId = Ret.bObjectMask ? 2 : 0;
 #endif

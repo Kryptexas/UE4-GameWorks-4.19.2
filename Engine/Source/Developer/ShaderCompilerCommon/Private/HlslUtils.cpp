@@ -1387,3 +1387,277 @@ void StripInstancedStereo(FString& ShaderSource)
 	ShaderSource.ReplaceInline(TEXT("ResolvedView = ResolveView();"), TEXT(""));
 	ShaderSource.ReplaceInline(TEXT("ResolvedView"), TEXT("View"));
 }
+
+struct FConvertFP32ToFP16 {
+	FString Filename;
+	FString GeneratedCode;
+	bool bSuccess;
+};
+
+static void ConvertFromFP32ToFP16(const TCHAR*& TypeName, CrossCompiler::FLinearAllocator* Allocator)
+{
+	static FString FloatTypes[9] = { "float", "float2", "float3", "float4", "float2x2", "float3x3", "float4x4", "float3x4", "float4x3" };
+	static FString HalfTypes[9] = { "half", "half2", "half3", "half4", "half2x2", "half3x3", "half4x4", "half3x4", "half4x3" };
+	FString NewType;
+	for (int32 i = 0; i < 9; ++i) 
+	{
+		if (FString(TypeName).Equals(FloatTypes[i]))
+		{
+			NewType = HalfTypes[i];
+			break;
+		}
+	}
+	if (NewType.IsEmpty()) return;
+	check(Allocator);
+	*const_cast<TCHAR**>(&TypeName) = Allocator->Strdup(*NewType);
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FTypeSpecifier* Type, CrossCompiler::FLinearAllocator* Allocator)
+{
+    ConvertFromFP32ToFP16(Type->TypeName, Allocator);
+}
+
+static void ConvertFromFP32ToFP16Base(CrossCompiler::AST::FNode* Node, CrossCompiler::FLinearAllocator* Allocator);
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FFunctionDefinition* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	if (FString(Node->Prototype->Identifier).Equals("CalcSceneDepth"))
+	{
+		return;
+	}
+	ConvertFromFP32ToFP16(Node->Prototype->ReturnType->Specifier, Allocator);
+	for (auto Elem : Node->Prototype->Parameters)
+	{
+		ConvertFromFP32ToFP16Base(Elem, Allocator);
+	}
+	for (auto Elem : Node->Body->Statements)
+	{
+		ConvertFromFP32ToFP16Base(Elem, Allocator);
+	}
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FParameterDeclarator* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	if (Node->bIsArray)
+	{
+		return;
+	}
+	ConvertFromFP32ToFP16(Node->Type->Specifier, Allocator);
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FDeclaratorList* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	for (auto Elem : Node->Declarations)
+	{
+		if (Elem->AsDeclaration() && Elem->AsDeclaration()->bIsArray)
+		{
+			return;
+		}
+	}
+	ConvertFromFP32ToFP16(Node->Type->Specifier, Allocator);
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FSelectionStatement* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	if (Node->ThenStatement)
+	{
+		ConvertFromFP32ToFP16Base(Node->ThenStatement, Allocator);
+	}
+	if (Node->ElseStatement)
+	{
+		ConvertFromFP32ToFP16Base(Node->ElseStatement, Allocator);
+	}
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FIterationStatement* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	if (Node->InitStatement)
+	{
+		ConvertFromFP32ToFP16Base(Node->InitStatement, Allocator);
+	}
+	if (Node->Condition)
+	{
+		ConvertFromFP32ToFP16Base(Node->Condition, Allocator);
+	}
+	if (Node->Body)
+	{
+		ConvertFromFP32ToFP16Base(Node->Body, Allocator);
+	}
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FCompoundStatement* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	for (auto Statement : Node->Statements)
+	{
+		ConvertFromFP32ToFP16Base(Statement, Allocator);
+	}
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FSwitchStatement* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	if (Node->Body == nullptr || Node->Body->CaseList == nullptr)
+	{
+		return;
+	}
+	for (auto Elem : Node->Body->CaseList->Cases)
+	{
+		if (Elem == nullptr)
+		{
+			continue;
+		}
+		for (auto Statement : Elem->Statements)
+		{
+			if (Statement)
+			{
+				ConvertFromFP32ToFP16Base(Statement, Allocator);
+			}
+		}
+	}
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FExpression* Expression, CrossCompiler::FLinearAllocator* Allocator)
+{
+    if (Expression->Operator == CrossCompiler::AST::EOperators::Identifier)
+    {
+        ConvertFromFP32ToFP16(Expression->Identifier, Allocator);
+    }
+    if (Expression->Operator == CrossCompiler::AST::EOperators::TypeCast)
+    {
+        ConvertFromFP32ToFP16(Expression->TypeSpecifier, Allocator);
+    }
+    if (Expression->Operator == CrossCompiler::AST::EOperators::FieldSelection)
+    {
+        ConvertFromFP32ToFP16(Expression->SubExpressions[0], Allocator);
+    }
+    if (Expression->Operator == CrossCompiler::AST::EOperators::Assign)
+    {
+        ConvertFromFP32ToFP16(Expression->SubExpressions[0], Allocator);
+        ConvertFromFP32ToFP16(Expression->SubExpressions[1], Allocator);
+    }
+    if (Expression->Operator == CrossCompiler::AST::EOperators::FunctionCall)
+    {
+        if (Expression->SubExpressions[0])
+        {
+            ConvertFromFP32ToFP16(Expression->SubExpressions[0], Allocator);
+        }
+        for (auto SubExpression : Expression->Expressions)
+        {
+            ConvertFromFP32ToFP16(SubExpression, Allocator);
+        }
+    }
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FExpressionStatement* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+    if (Node->Expression == nullptr)
+    {
+        return;
+    }
+    ConvertFromFP32ToFP16(Node->Expression, Allocator);
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FJumpStatement* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+    if (Node->OptionalExpression == nullptr)
+    {
+        return;
+    }
+    ConvertFromFP32ToFP16(Node->OptionalExpression, Allocator);
+}
+
+static void ConvertFromFP32ToFP16Base(CrossCompiler::AST::FNode* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+	if (Node->AsFunctionDefinition())
+	{
+		ConvertFromFP32ToFP16(Node->AsFunctionDefinition(), Allocator);
+	}
+	if (Node->AsParameterDeclarator())
+	{
+		ConvertFromFP32ToFP16(Node->AsParameterDeclarator(), Allocator);
+	}
+	if (Node->AsDeclaratorList())
+	{
+		ConvertFromFP32ToFP16(Node->AsDeclaratorList(), Allocator);
+	}
+	if (Node->AsSelectionStatement())
+	{
+		ConvertFromFP32ToFP16(Node->AsSelectionStatement(), Allocator);
+	}
+	if (Node->AsSwitchStatement())
+	{
+		ConvertFromFP32ToFP16(Node->AsSwitchStatement(), Allocator);
+	}
+	if (Node->AsIterationStatement())
+	{
+		ConvertFromFP32ToFP16(Node->AsIterationStatement(), Allocator);
+	}
+	if (Node->AsCompoundStatement())
+	{
+		ConvertFromFP32ToFP16(Node->AsCompoundStatement(), Allocator);
+	}
+    if (Node->AsExpressionStatement())
+    {
+		ConvertFromFP32ToFP16(Node->AsExpressionStatement(), Allocator);
+    }
+    if (Node->AsJumpStatement())
+    {
+		ConvertFromFP32ToFP16(Node->AsJumpStatement(), Allocator);
+    }
+}
+
+static void ConvertFromFP32ToFP16(CrossCompiler::AST::FStructSpecifier* Node, CrossCompiler::FLinearAllocator* Allocator)
+{
+    for (auto Declaration : Node->Declarations)
+    {
+        ConvertFromFP32ToFP16Base(Declaration, Allocator);
+    }
+}
+
+static void HlslParserCallbackWrapperFP32ToFP16(void* CallbackData, CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes)
+{
+	auto* ConvertData = (FConvertFP32ToFP16*)CallbackData;
+	CrossCompiler::AST::FASTWriter writer(ConvertData->GeneratedCode);
+	for (auto Elem : ASTNodes)
+	{
+		if (Elem->AsFunctionDefinition())
+		{
+			ConvertFromFP32ToFP16(Elem->AsFunctionDefinition(), Allocator);
+		}
+		/*if (Elem->AsDeclaratorList() && Elem->AsDeclaratorList()->Type && Elem->AsDeclaratorList()->Type->Specifier->Structure)
+		{
+			ConvertFromFP32ToFP16(Elem->AsDeclaratorList()->Type->Specifier->Structure, Allocator);
+		}*/
+		Elem->Write(writer);
+	}
+	ConvertData->bSuccess = true;
+}
+
+bool ConvertFromFP32ToFP16(FString& InOutSourceCode, TArray<FString>& OutErrors)
+{
+	FString DummyFilename(TEXT("/Engine/Private/ConvertFP32ToFP16.usf"));
+	CrossCompiler::FCompilerMessages Messages;
+	FConvertFP32ToFP16 Data;
+	Data.Filename = DummyFilename;
+	Data.GeneratedCode = "";
+	if (!CrossCompiler::Parser::Parse(InOutSourceCode, DummyFilename, Messages, HlslParserCallbackWrapperFP32ToFP16, &Data))
+	{
+		OutErrors.Add(FString(TEXT("ConvertFP32ToFP16: Failed to compile!")));
+		for (auto& Message : Messages.MessageList)
+		{
+			OutErrors.Add(Message.Message);
+		}
+		return false;
+	}
+
+	for (auto& Message : Messages.MessageList)
+	{
+		OutErrors.Add(Message.Message);
+	}
+
+	if (Data.bSuccess)
+	{
+		InOutSourceCode = Data.GeneratedCode;
+		return true;
+	}
+
+	return false;
+}

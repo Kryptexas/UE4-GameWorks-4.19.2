@@ -339,6 +339,7 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FIndexBu
 	SRV->SourceIndexBuffer = Buffer;
 	SRV->TextureView = nullptr;
 	SRV->SourceStructuredBuffer = nullptr;
+	SRV->Format = (Buffer->IndexType == MTLIndexTypeUInt16) ? PF_R16_UINT : PF_R32_UINT;
 	
 	check(!FMetalCommandQueue::SupportsFeature(EMetalFeaturesLinearTextures) || Buffer->LinearTexture);
 	

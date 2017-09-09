@@ -22,6 +22,11 @@ namespace CrossCompiler
 		struct FUnaryExpression;
 		struct FAttribute;
 		struct FJumpStatement;
+		struct FSelectionStatement;
+		struct FSwitchStatement;
+		struct FIterationStatement;
+		struct FCompoundStatement;
+		struct FExpressionStatement;
 
 		struct FASTWriter
 		{
@@ -67,13 +72,41 @@ namespace CrossCompiler
 
 			inline FASTWriter& operator << (uint32 N)
 			{
-				(*this) << *FString::Printf(TEXT("%u"), N);
+				union
+				{
+					uint32 U;
+					int32 I;
+				} Alias;
+				Alias.U = N;
+				if (Alias.I < 0)
+				{
+					(*this) << *FString::Printf(TEXT("%uu"), N);
+				}
+				else
+				{
+					(*this) << *FString::Printf(TEXT("%u"), N);
+				}
 				return *this;
 			}
 
 			inline FASTWriter& operator << (float F)
 			{
-				(*this) << *FString::Printf(TEXT("%g"), F);
+				if (F == 0)
+				{
+					(*this) << TEXT("0.0");
+				}
+				else
+				{
+					float Abs = FMath::Abs(F);
+					if (Abs <= 1e-6 || Abs >= 1e6)
+					{
+						(*this) << *FString::Printf(TEXT("%g"), F);
+					}
+					else
+					{
+						(*this) << *FString::Printf(TEXT("%f"), F);
+					}
+				}
 				return *this;
 			}
 		};
@@ -111,6 +144,11 @@ namespace CrossCompiler
 			virtual FParameterDeclarator* AsParameterDeclarator() { return nullptr; }
 			virtual FUnaryExpression* AsUnaryExpression() { return nullptr; }
 			virtual FJumpStatement* AsJumpStatement() { return nullptr; }
+			virtual FSelectionStatement* AsSelectionStatement() { return nullptr; }
+			virtual FSwitchStatement* AsSwitchStatement() { return nullptr; }
+			virtual FIterationStatement* AsIterationStatement() { return nullptr; }
+			virtual FCompoundStatement* AsCompoundStatement() { return nullptr; }
+			virtual FExpressionStatement* AsExpressionStatement() { return nullptr; }
 
 			// Returns true if the expression can be evaluated to a constant int
 			virtual bool GetConstantIntValue(int32& OutValue) const { return false; }
@@ -419,6 +457,7 @@ namespace CrossCompiler
 			TLinearArray<FNode*> Statements;
 
 			virtual void Write(FASTWriter& Writer) const override;
+			virtual FCompoundStatement* AsCompoundStatement() override { return this; }
 		};
 
 		struct FDeclaration : public FNode
@@ -581,6 +620,7 @@ namespace CrossCompiler
 			~FExpressionStatement();
 
 			FExpression* Expression;
+			virtual FExpressionStatement* AsExpressionStatement() override { return this; }
 
 			virtual void Write(FASTWriter& Writer) const override;
 		};
@@ -642,6 +682,7 @@ namespace CrossCompiler
 			~FSelectionStatement();
 
 			virtual void Write(FASTWriter& Writer) const override;
+			virtual FSelectionStatement* AsSelectionStatement() override { return this; }
 
 			FExpression* Condition;
 
@@ -655,6 +696,7 @@ namespace CrossCompiler
 			~FSwitchStatement();
 
 			virtual void Write(FASTWriter& Writer) const override;
+			virtual FSwitchStatement* AsSwitchStatement() override { return this; }
 
 			FExpression* Condition;
 			FSwitchBody* Body;
@@ -673,6 +715,7 @@ namespace CrossCompiler
 			~FIterationStatement();
 
 			virtual void Write(FASTWriter& Writer) const override;
+			virtual FIterationStatement* AsIterationStatement() override { return this; }
 
 			EIterationType Type;
 

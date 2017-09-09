@@ -1491,6 +1491,11 @@ void UInstancedStaticMeshComponent::ReleasePerInstanceRenderData()
 void UInstancedStaticMeshComponent::PropagateLightingScenarioChange()
 {
 	FComponentRecreateRenderStateContext Context(this);
+
+	if (PerInstanceRenderData.IsValid())
+	{
+		PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
+	}
 }
 
 void UInstancedStaticMeshComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const

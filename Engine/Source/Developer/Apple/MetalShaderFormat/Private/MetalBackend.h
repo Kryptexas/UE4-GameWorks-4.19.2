@@ -55,7 +55,7 @@ public:
 
     virtual bool SupportsSinCosIntrinsic() const { return (Version >= 2); }
     
-    virtual bool SupportsMatrixIntrinsics() const { return true; }
+    virtual bool SupportsMatrixIntrinsics() const { return (Version < 2); }
 };
 
 struct FBuffers;
@@ -118,6 +118,7 @@ struct FMetalCodeBackend : public FCodeBackend
 	bool bZeroInitialise;
 	bool bBoundsChecks;
 	bool bAllowFastIntriniscs;
+	bool bExplicitDepthWrites;
 
 	bool bIsTessellationVSHS = false;
 	unsigned int inputcontrolpoints = 0;

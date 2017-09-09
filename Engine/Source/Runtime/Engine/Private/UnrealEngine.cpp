@@ -4160,20 +4160,19 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		UTexture2D*			Texture				= *It;
 		int32				LODGroup			= Texture->LODGroup;
-		int32				LODBias				= Texture->GetCachedLODBias();
-		int32				NumMips				= Texture->GetNumMips();	
-		int32				MaxAllowedMips		= FMath::Max( 1, FMath::Min( NumMips - LODBias, GMaxTextureMipCount ) );
-		int32				MaxAllowedSizeX		= Texture->GetSizeX() >> LODBias;
-		int32				MaxAllowedSizeY		= Texture->GetSizeY() >> LODBias;
+		int32				NumMips				= Texture->GetNumMips();
+		int32				MaxResLODBias		 = NumMips - Texture->GetNumMipsAllowed(false);
+		int32				MaxAllowedSizeX		= FMath::Max<int32>(Texture->GetSizeX() >> MaxResLODBias, 1);
+		int32				MaxAllowedSizeY		= FMath::Max<int32>(Texture->GetSizeY() >> MaxResLODBias, 1);
 		EPixelFormat		Format				= Texture->GetPixelFormat();
-		int32				DroppedMips			= Texture->GetNumMips() - Texture->ResidentMips;
-		int32				CurSizeX			= Texture->GetSizeX() >> DroppedMips;
-		int32				CurSizeY			= Texture->GetSizeY() >> DroppedMips;
+		int32				DroppedMips			= Texture->GetNumMips() - Texture->GetNumResidentMips();
+		int32				CurSizeX			= FMath::Max<int32>(Texture->GetSizeX() >> DroppedMips, 1);
+		int32				CurSizeY			= FMath::Max<int32>(Texture->GetSizeY() >> DroppedMips, 1);
 		bool			bIsStreamingTexture		= Texture->GetStreamingIndex() != INDEX_NONE;
 		int32				MaxAllowedSize		= Texture->CalcTextureMemorySizeEnum( TMC_AllMipsBiased );
 		int32				CurrentSize			= Texture->CalcTextureMemorySizeEnum( TMC_ResidentMips );
 		int32				UsageCount			= TextureToUsageMap.FindRef( Texture );
-		bool				bIsForced			= Texture->bForceMiplevelsToBeResident && bIsStreamingTexture;
+		bool				bIsForced			= Texture->ShouldMipLevelsBeForcedResident() && bIsStreamingTexture;
 
 		if( (bShouldOnlyListStreaming && bIsStreamingTexture) ||	
 			(bShouldOnlyListNonStreaming && !bIsStreamingTexture) ||
@@ -4186,7 +4185,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				Format,
 				CurSizeX,
 				CurSizeY,
-				LODBias, 
+				MaxResLODBias, 
 				MaxAllowedSize,
 				CurrentSize,
 				Texture->GetPathName(), 
@@ -4244,9 +4243,9 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		}
 
 		Ar.Logf(bCSV ? TEXT(",%i, %i, %i, %s, %i, %i, %i, %s, %s, %s, %s, %i") : TEXT("%ix%i (%i KB, %s), %ix%i (%i KB), %s, %s, %s, %s, %i"),
-			SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024, 
+			SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, (SortedTexture.MaxAllowedSize + 512) / 1024, 
 			*AuthoredBiasString,
-			SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
+			SortedTexture.CurSizeX, SortedTexture.CurSizeY, (SortedTexture.CurrentSize + 512) / 1024,
 			GetPixelFormatString(SortedTexture.Format),
 			bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
 			*SortedTexture.Name,
@@ -4371,7 +4370,7 @@ bool UEngine::HandleRemoteTextureStatsCommand( const TCHAR* Cmd, FOutputDevice& 
 			NumUses = TextureToUsageMap.FindRef( Texture2D );
 
 			// Calculate in game current dimensions 
-			const int32 DroppedMips = Texture2D->GetNumMips() - Texture2D->ResidentMips;
+			const int32 DroppedMips = Texture2D->GetNumMips() - Texture2D->GetNumResidentMips();
 			CurrentDim = FString::Printf(TEXT("%dx%d"), Texture2D->GetSizeX() >> DroppedMips, Texture2D->GetSizeY() >> DroppedMips);
 		}
 		else

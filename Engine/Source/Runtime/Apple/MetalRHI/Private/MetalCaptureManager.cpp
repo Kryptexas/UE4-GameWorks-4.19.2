@@ -51,8 +51,17 @@ void FMetalCaptureManager::PresentFrame(uint32 FrameNumber)
 	{
 		for (FMetalCaptureScope& Scope : ActiveScopes)
 		{
-			if (((FrameNumber <= Scope.LastTrigger) && ((FrameNumber - Scope.LastTrigger) >= Scope.StepCount)) ||
-				(((UINT32_MAX - Scope.LastTrigger) + FrameNumber) >= Scope.StepCount))
+			uint32 Diff = 0;
+			if (FrameNumber > Scope.LastTrigger)
+			{
+				Diff = FrameNumber - Scope.LastTrigger;
+			}
+			else
+			{
+				Diff = (UINT32_MAX - Scope.LastTrigger) + FrameNumber;
+			}
+			
+			if (Diff >= Scope.StepCount)
 			{
 				[*Scope.MTLScope endScope];
 				[*Scope.MTLScope beginScope];

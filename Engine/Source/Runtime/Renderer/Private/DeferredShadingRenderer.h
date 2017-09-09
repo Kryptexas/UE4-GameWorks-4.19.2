@@ -112,7 +112,11 @@ public:
 	/** Finishes the view family rendering. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);
 
-	void RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries);
+	bool RenderHzb(FRHICommandListImmediate& RHICmdList);
+
+	void RenderOcclusion(FRHICommandListImmediate& RHICmdList);
+
+	void FinishOcclusion(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the view family. */
 	virtual void Render(FRHICommandListImmediate& RHICmdList) override;
@@ -425,7 +429,7 @@ private:
 	void VisualizeVolumetricLightmap(FRHICommandListImmediate& RHICmdList);
 
 	/** Output SpecularColor * IndirectDiffuseGI for metals so they are not black in reflections */
-	void RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit);
+	void RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList);
 
 	/** Render image based reflections (SSR, Env, SkyLight) with compute shaders */
 	void RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT);

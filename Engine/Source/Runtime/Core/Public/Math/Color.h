@@ -312,7 +312,10 @@ struct FLinearColor
 	CORE_API FLinearColor Desaturate( float Desaturation ) const;
 
 	/** Computes the perceptually weighted luminance value of a color. */
-	CORE_API float ComputeLuminance() const;
+	inline float ComputeLuminance() const
+	{		
+		return R * 0.3f + G * 0.59f + B * 0.11f;
+	}
 
 	/**
 	 * Returns the maximum value in this color structure
@@ -389,6 +392,9 @@ FORCEINLINE FLinearColor operator*(float Scalar,const FLinearColor& Color)
 
 //
 //	FColor
+//	Stores a color with 8 bits of precision per channel.  
+//	Note: Linear color values should always be converted to gamma space before stored in an FColor, as 8 bits of precision is not enough to store linear space colors!
+//	This can be done with FLinearColor::ToFColor(true) 
 //
 
 struct FColor

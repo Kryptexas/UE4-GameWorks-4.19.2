@@ -99,9 +99,9 @@ struct FMTLHeapDescriptor
 enum
 {
 #if PLATFORM_MAC
-	NumHeapBucketSizes = 55, /** Number of pool bucket sizes */
+	NumHeapBucketSizes = 50, /** Number of pool bucket sizes */
 #else
-	NumHeapBucketSizes = 49, /** Number of pool bucket sizes */
+	NumHeapBucketSizes = 46, /** Number of pool bucket sizes */
 #endif
 };
 

@@ -25,9 +25,13 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 	UPROPERTY(EditAnywhere, Category = Material)
 	bool bOverride_ShadingModel;
 
-	/** Enables override of the two sided property. */
+	/** Enables override of the dithered LOD transition property. */
 	UPROPERTY(EditAnywhere, Category = Material)
 	bool bOverride_DitheredLODTransition;
+
+	/** Enables override of whether to shadow using masked opacity on translucent materials. */
+	UPROPERTY(EditAnywhere, Category = Material)
+	bool bOverride_CastDynamicShadowAsMasked;
 
 	/** Enables override of the two sided property. */
 	UPROPERTY(EditAnywhere, Category = Material)
@@ -52,6 +56,10 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 	/** Whether the material should support a dithered LOD transition when used with the foliage system. */
 	UPROPERTY(EditAnywhere, Category = Material, meta = (editcondition = "bOverride_DitheredLODTransition"))
 	uint32 DitheredLODTransition : 1;
+
+	/** Whether the material should cast shadows as masked even though it has a translucent blend mode. */
+	UPROPERTY(EditAnywhere, Category = Material, meta = (editcondition = "bOverride_CastShadowAsMasked", NoSpinbox = true))
+	uint32 bCastDynamicShadowAsMasked:1;
 
 	FMaterialInstanceBasePropertyOverrides();
 

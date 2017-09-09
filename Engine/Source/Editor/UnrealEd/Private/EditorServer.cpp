@@ -6527,10 +6527,13 @@ bool UEditorEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDev
 	return false;
 }
 
+bool AreCloseToOnePercent(float A, float B)
+{
+	return FMath::Abs(A - B) / FMath::Max3(FMath::Abs(A), FMath::Abs(B), 1.f) < 0.01f;
+}
+
 bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	const bool bForceRebuild = FParse::Command(&Cmd, TEXT("ALL"));
-
 	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
 	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
 
@@ -6540,7 +6543,7 @@ bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, F
 	for (TObjectIterator<UMaterialInterface> MaterialIt; MaterialIt; ++MaterialIt)
 	{
 		UMaterialInterface* Material = *MaterialIt;
-		if (Material && Material->GetOutermost() != GetTransientPackage() && Material->HasAnyFlags(RF_Public) && Material->UseAnyStreamingTexture() && (bForceRebuild || !Material->HasTextureStreamingData())) 
+		if (Material && Material->GetOutermost() != GetTransientPackage() && Material->HasAnyFlags(RF_Public) && Material->UseAnyStreamingTexture())
 		{
 			Materials.Add(Material);
 		}
@@ -6548,18 +6551,40 @@ bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, F
 
 	FScopedSlowTask SlowTask(3.f); // { Sync Pending Shader, Wait for Compilation, Export }
 	SlowTask.MakeDialog(true);
+	const float OneOverNumMaterials = 1.f / FMath::Max(1.f, (float)Materials.Num());
 
 	if (CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, true, true, Materials, SlowTask))
 	{
 		FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
 		for (UMaterialInterface* MaterialInterface : Materials)
 		{
-			if (MaterialInterface && FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors))
+			SlowTask.EnterProgressFrame(OneOverNumMaterials);
+			if (MaterialInterface)
 			{
-				// Only mark dirty if there is now data, when there wasn't before.
-				if (MaterialInterface->HasTextureStreamingData())
+				TArray<FMaterialTextureInfo> PreviousData = MaterialInterface->GetTextureStreamingData();
+				if (FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors))
 				{
-					MaterialInterface->MarkPackageDirty();
+					TArray<FMaterialTextureInfo> NewData = MaterialInterface->GetTextureStreamingData();
+				
+					bool bNeedsResave = PreviousData.Num() != NewData.Num();
+					if (!bNeedsResave)
+					{
+						for (int32 EntryIndex = 0; EntryIndex < NewData.Num(); ++EntryIndex)
+						{
+							if (NewData[EntryIndex].TextureName != PreviousData[EntryIndex].TextureName ||
+								!AreCloseToOnePercent(NewData[EntryIndex].SamplingScale, PreviousData[EntryIndex].SamplingScale) ||
+								NewData[EntryIndex].UVChannelIndex != PreviousData[EntryIndex].UVChannelIndex)
+							{
+								bNeedsResave = true;
+								break;
+							}
+						}
+					}
+
+					if (bNeedsResave)
+					{
+						MaterialInterface->MarkPackageDirty();
+					}
 				}
 			}
 		}

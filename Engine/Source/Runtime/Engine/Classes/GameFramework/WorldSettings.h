@@ -32,7 +32,7 @@ enum EVolumeLightingMethod
 	 * Lighting samples are computed in an adaptive grid which covers the entire Lightmass Importance Volume.  Higher density grids are used near geometry.
 	 * The Volumetric Lightmap is interpolated efficiently on the GPU per-pixel, allowing accurate indirect lighting for dynamic objects and volumetric fog.
 	 * Positions outside of the Importance Volume reuse the border texels of the Volumetric Lightmap (clamp addressing).
-	 * Not supported on Mobile.
+	 * On mobile, interpolation is done on the CPU at the center of each object's bounds.
 	 */
 	VLM_VolumetricLightmap,
 
@@ -40,7 +40,6 @@ enum EVolumeLightingMethod
 	 * Volume lighting samples are placed on top of static surfaces at medium density, and everywhere else in the Lightmass Importance Volume at low density.  Positions outside of the Importance Volume will have no indirect lighting.
 	 * This method requires CPU interpolation so the Indirect Lighting Cache is used to interpolate results for each dynamic object, adding Rendering Thread overhead.  
 	 * Volumetric Fog cannot be affected by precomputed lighting with this method.
-	 * Supported on all platforms.
 	 */
 	VLM_SparseVolumeLightingSamples,
 };
@@ -61,13 +60,20 @@ struct FLightmassWorldInfoSettings
 	float StaticLightingLevelScale;
 
 	/** 
-	 * Number of times light is allowed to bounce off of surfaces, starting from the light source. 
+	 * Number of light bounces to simulate for point / spot / directional lights, starting from the light source. 
 	 * 0 is direct lighting only, 1 is one bounce, etc. 
 	 * Bounce 1 takes the most time to calculate and contributes the most to visual quality, followed by bounce 2.
-	 * Successive bounces don't really affect build times, but have a much lower visual impact.
+	 * Successive bounces don't really affect build times, but have a much lower visual impact, unless the material diffuse colors are close to 1.
 	 */
-	UPROPERTY(EditAnywhere, Category=LightmassGeneral, meta=(UIMin = "1.0", UIMax = "4.0"))
+	UPROPERTY(EditAnywhere, Category=LightmassGeneral, meta=(UIMin = "1.0", UIMax = "10.0"))
 	int32 NumIndirectLightingBounces;
+
+	/** 
+	 * Number of skylight and emissive bounces to simulate.  
+	 * Lightmass uses a non-distributable radiosity method for skylight bounces whose cost is proportional to the number of bounces.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassGeneral, meta=(UIMin = "1.0", UIMax = "10.0"))
+	int32 NumSkyLightingBounces;
 
 	/** 
 	 * Warning: Setting this higher than 1 will greatly increase build times!
@@ -181,6 +187,7 @@ struct FLightmassWorldInfoSettings
 	FLightmassWorldInfoSettings()
 		: StaticLightingLevelScale(1)
 		, NumIndirectLightingBounces(3)
+		, NumSkyLightingBounces(1)
 		, IndirectLightingQuality(1)
 		, IndirectLightingSmoothness(1)
 		, EnvironmentColor(ForceInit)

@@ -113,6 +113,7 @@ FStaticLightingMappingContext::~FStaticLightingMappingContext()
 
 	for (int32 EntryIndex = 0; EntryIndex < RefinementTreeFreePool.Num(); EntryIndex++)
 	{
+		// Delete on the main thread to avoid a TBB inefficiency deleting many same-sized allocations on different threads
 		delete RefinementTreeFreePool[EntryIndex];
 	}
 }
@@ -453,6 +454,8 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 		{
 			Stats.NumTexelsProcessed += TextureMapping->CachedSizeX * TextureMapping->CachedSizeY;
 		}
+		AllMappings[MappingIndex]->SceneMappingIndex = MappingIndex;
+		AllMappings[MappingIndex]->Initialize(*this);
 	}
 
 	InitializePhotonSettings();
@@ -461,6 +464,8 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 	AggregateMesh->PrepareForRaytracing();
 	AggregateMesh->DumpStats();
 
+	NumCompletedRadiosityIterationMappings.Empty(GeneralSettings.NumSkyLightingBounces);
+	NumCompletedRadiosityIterationMappings.AddDefaulted(GeneralSettings.NumSkyLightingBounces);
 
 	Stats.SceneSetupTime = FPlatformTime::Seconds() - SceneSetupStart;
 	GStatistics.SceneSetupTime += Stats.SceneSetupTime;
@@ -492,6 +497,14 @@ void FStaticLightingSystem::MultithreadProcess()
 		// Build photon maps
 		EmitPhotons();
 	}
+
+	if (ImportanceTracingSettings.bUseRadiositySolverForSkylightMultibounce)
+	{
+		SetupRadiosity();
+		RunRadiosityIterations();
+	}
+
+	FinalizeSurfaceCache();
 
 	if (DynamicObjectSettings.bVisualizeVolumeLightInterpolation)
 	{
@@ -838,12 +851,6 @@ void FStaticLightingSystem::ValidateSettings(FScene& InScene)
 	InScene.ShadowSettings.NumPenumbraShadowRays = FMath::TruncToInt(InScene.ShadowSettings.NumPenumbraShadowRays * FMath::Sqrt(InScene.GeneralSettings.IndirectLightingQuality));
 
 	InScene.ImportanceTracingSettings.NumAdaptiveRefinementLevels = FMath::Min(InScene.ImportanceTracingSettings.NumAdaptiveRefinementLevels, MaxNumRefiningDepths);
-
-	if (!InScene.ImportanceTracingSettings.bUseAdaptiveSolver)
-	{
-		// To sortof match up in quality
-		InScene.ImportanceTracingSettings.NumHemisphereSamples *= 4;
-	}
 }
 
 /** Logs solver stats */
@@ -939,6 +946,9 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 				SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Unaccounted\n"), 100.0f * UnaccountedCalculateIrradiancePhotonsTime / Stats.IrradiancePhotonCalculatingThreadTime, UnaccountedCalculateIrradiancePhotonsTime);
 			}
 		}
+
+		SolverStats += FString::Printf( TEXT("\n") );
+		SolverStats += FString::Printf( TEXT("Radiosity Setup thread seconds: %.1f, Radiosity Iteration thread seconds: %.1f\n"), Stats.RadiositySetupThreadTime, Stats.RadiosityIterationThreadTime);
 	}
 
 	// Send the message in multiple parts since it cuts off in the middle otherwise
@@ -1117,7 +1127,7 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 		
 		if (TotalNumRefiningSamples > 0)
 		{
-			SolverStats += FString::Printf( TEXT("   %.1f%% due to brightness differences, %.1f%% due to importance photons / portals, Samples at depth: "), 100.0f * Stats.NumRefiningSamplesDueToBrightness / TotalNumRefiningSamples, 100.0f * Stats.NumRefiningSamplesDueToImportancePhotons / TotalNumRefiningSamples);
+			SolverStats += FString::Printf( TEXT("   %.1f%% due to brightness differences, %.1f%% due to importance photons, %.1f%% other reasons, Samples at depth: "), 100.0f * Stats.NumRefiningSamplesDueToBrightness / TotalNumRefiningSamples, 100.0f * Stats.NumRefiningSamplesDueToImportancePhotons / TotalNumRefiningSamples, 100.0f * Stats.NumRefiningSamplesOther / TotalNumRefiningSamples);
 
 			for (int i = 0; i < ImportanceTracingSettings.NumAdaptiveRefinementLevels; i++)
 			{
@@ -1233,7 +1243,6 @@ void FStaticLightingSystem::CacheSamples()
 	{
 		const float NumSamplesFloat = 
 			ImportanceTracingSettings.NumHemisphereSamples 
-			* (ImportanceTracingSettings.bUseAdaptiveSolver ? 1 : (1.0f - PhotonMappingSettings.FinalGatherImportanceSampleFraction))
 			* GeneralSettings.IndirectLightingQuality;
 
 		NumUniformHemisphereSamples = FMath::TruncToInt(NumSamplesFloat);
@@ -1254,22 +1263,13 @@ void FStaticLightingSystem::CacheSamples()
 		const int32 NumThetaSteps = FMath::TruncToInt(NumThetaStepsFloat);
 		const int32 NumPhiSteps = FMath::TruncToInt(NumThetaStepsFloat * (float)PI);
 
-		if (ImportanceTracingSettings.bUseCosinePDF)
-		{
-			GenerateStratifiedCosineHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, CachedHemisphereSamples);
-		}
-		else
-		{
-			GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, CachedHemisphereSamples, CachedHemisphereSampleUniforms);
-		}
+		GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, CachedHemisphereSamples, CachedHemisphereSampleUniforms);
 	}
 	else
 	{
 		for (int32 SampleIndex = 0; SampleIndex < NumUniformHemisphereSamples; SampleIndex++)
 		{
-			const FVector4& CurrentSample = ImportanceTracingSettings.bUseCosinePDF ? 
-				GetCosineHemisphereVector(RandomStream, ImportanceTracingSettings.MaxHemisphereRayAngle) : 
-				GetUniformHemisphereVector(RandomStream, ImportanceTracingSettings.MaxHemisphereRayAngle);
+			const FVector4& CurrentSample = GetUniformHemisphereVector(RandomStream, ImportanceTracingSettings.MaxHemisphereRayAngle);
 			CachedHemisphereSamples.Add(CurrentSample);
 		}
 	}
@@ -1285,16 +1285,18 @@ void FStaticLightingSystem::CacheSamples()
 		CachedSamplesMaxUnoccludedLength = (CombinedVector / CachedHemisphereSamples.Num()).Size3();
 	}
 	
+	for (int32 SampleSet = 0; SampleSet < ARRAY_COUNT(CachedHemisphereSamplesForRadiosity); SampleSet++)
 	{
-		int32 TargetNumApproximateSkyLightingSamples = FMath::Max(FMath::TruncToInt(ImportanceTracingSettings.NumHemisphereSamples / 2 * GeneralSettings.IndirectLightingQuality), 12);
-		CachedHemisphereSamplesForApproximateSkyLighting.Empty(TargetNumApproximateSkyLightingSamples);
-		CachedHemisphereSamplesForApproximateSkyLightingUniforms.Empty(TargetNumApproximateSkyLightingSamples);
+		float SampleSetScale = FMath::Lerp(.5f, .125f, SampleSet / ((float)ARRAY_COUNT(CachedHemisphereSamplesForRadiosity) - 1));
+		int32 TargetNumApproximateSkyLightingSamples = FMath::Max(FMath::TruncToInt(ImportanceTracingSettings.NumHemisphereSamples * SampleSetScale * GeneralSettings.IndirectLightingQuality), 12);
+		CachedHemisphereSamplesForRadiosity[SampleSet].Empty(TargetNumApproximateSkyLightingSamples);
+		CachedHemisphereSamplesForRadiosityUniforms[SampleSet].Empty(TargetNumApproximateSkyLightingSamples);
 
 		const float NumThetaStepsFloat = FMath::Sqrt(TargetNumApproximateSkyLightingSamples / (float)PI);
 		const int32 NumThetaSteps = FMath::TruncToInt(NumThetaStepsFloat);
 		const int32 NumPhiSteps = FMath::TruncToInt(NumThetaStepsFloat * (float)PI);
 
-		GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, CachedHemisphereSamplesForApproximateSkyLighting, CachedHemisphereSamplesForApproximateSkyLightingUniforms);
+		GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, CachedHemisphereSamplesForRadiosity[SampleSet], CachedHemisphereSamplesForRadiosityUniforms[SampleSet]);
 	}
 
 	// Cache samples on the surface of each light for area shadows
@@ -1354,6 +1356,18 @@ uint32 FMappingProcessingThreadRunnable::Run()
 			{
 				System->CacheIrradiancePhotonsThreadLoop(ThreadIndex, false);
 			}
+			else if (TaskType == StaticLightingTask_RadiositySetup)
+			{
+				System->RadiositySetupThreadLoop(ThreadIndex, false);
+			}
+			else if (TaskType == StaticLightingTask_RadiosityIterations)
+			{
+				System->RadiosityIterationThreadLoop(ThreadIndex, false);
+			}
+			else if (TaskType == StaticLightingTask_FinalizeSurfaceCache)
+			{
+				System->FinalizeSurfaceCacheThreadLoop(ThreadIndex, false);
+			}
 			else
 			{
 				UE_LOG(LogLightmass, Fatal, TEXT("Unsupported task type"));
@@ -1376,6 +1390,18 @@ uint32 FMappingProcessingThreadRunnable::Run()
 		else if (TaskType == StaticLightingTask_CacheIrradiancePhotons)
 		{
 			System->CacheIrradiancePhotonsThreadLoop(ThreadIndex, false);
+		}
+		else if (TaskType == StaticLightingTask_RadiositySetup)
+		{
+			System->RadiositySetupThreadLoop(ThreadIndex, false);
+		}
+		else if (TaskType == StaticLightingTask_RadiosityIterations)
+		{
+			System->RadiosityIterationThreadLoop(ThreadIndex, false);
+		}
+		else if (TaskType == StaticLightingTask_FinalizeSurfaceCache)
+		{
+			System->FinalizeSurfaceCacheThreadLoop(ThreadIndex, false);
 		}
 		else
 		{

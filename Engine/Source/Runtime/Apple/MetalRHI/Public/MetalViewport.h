@@ -53,7 +53,7 @@ public:
 	virtual FRHICustomPresent* GetCustomPresent() const override { return CustomPresent; }
 #endif
 	
-	void Present(FMetalCommandQueue& CommandQueue);
+	void Present(FMetalCommandQueue& CommandQueue, bool bLockToVsync);
 	void Swap();
 	
 private:

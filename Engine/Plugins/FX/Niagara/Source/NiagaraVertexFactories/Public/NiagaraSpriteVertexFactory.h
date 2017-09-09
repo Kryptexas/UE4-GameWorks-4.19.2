@@ -73,6 +73,8 @@ public:
 	// FRenderResource interface.
 	virtual void InitRHI() override;
 
+	virtual bool RendersPrimitivesAsCameraFacingSprites() const override { return true; }
+
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */

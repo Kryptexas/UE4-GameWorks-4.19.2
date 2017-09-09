@@ -19,7 +19,7 @@ static TAutoConsoleVariable<float> CVarDecalFadeDurationScale(
 FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	: DrawInGame( InComponent->bVisible && !InComponent->bHiddenInGame )
 	, DrawInEditor( InComponent->bVisible )
-	, InvFadeDuration(0.0f)
+	, InvFadeDuration(-1.0f)
 	, FadeStartDelayNormalized(1.0f)
 	, FadeScreenSize( InComponent->FadeScreenSize )
 {
@@ -40,7 +40,14 @@ FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	SetTransformIncludingDecalSize(InComponent->GetTransformIncludingDecalSize());
 	bOwnerSelected = InComponent->IsOwnerSelected();
 	SortOrder = InComponent->SortOrder;
-	InitializeFadingParameters(InComponent->GetWorld()->GetTimeSeconds(), InComponent->GetFadeDuration(), InComponent->GetFadeStartDelay());
+
+#if WITH_EDITOR
+	// We don't want to fade when we're editing, only in Simulate/PIE/Game
+	if (!GIsEditor || GIsPlayInEditorWorld)
+#endif
+	{
+		InitializeFadingParameters(InComponent->GetWorld()->GetTimeSeconds(), InComponent->GetFadeDuration(), InComponent->GetFadeStartDelay());
+	}
 	
 	if ( InComponent->GetOwner() )
 	{

@@ -19,6 +19,14 @@
 #include "ScenePrivate.h"
 #include "Containers/AllocatorFixedSizeFreeList.h"
 
+int32 GUnbuiltPreviewShadowsInGame = 1;
+FAutoConsoleVariableRef CVarUnbuiltPreviewShadowsInGame(
+	TEXT("r.Shadow.UnbuiltPreviewInGame"),
+	GUnbuiltPreviewShadowsInGame,
+	TEXT("Whether to render unbuilt preview shadows in game.  When enabled and lighting is not built, expensive preview shadows will be rendered in game.  When disabled, lighting in game and editor won't match which can appear to be a bug."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 /**
  * Fixed Size pool allocator for FLightPrimitiveInteractions
  */
@@ -190,6 +198,11 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 		{
 			// Update the game thread's counter of number of uncached static lighting interactions.
 			bUncachedStaticLighting = true;
+
+			if (!GUnbuiltPreviewShadowsInGame && !InLightSceneInfo->Scene->IsEditorScene())
+			{
+				bCastShadow = false;
+			}
 	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			LightSceneInfo->NumUnbuiltInteractions++;
 	#endif

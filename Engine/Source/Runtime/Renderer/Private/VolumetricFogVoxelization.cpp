@@ -9,6 +9,9 @@
 #include "ScenePrivate.h"
 #include "SceneUtils.h"
 #include "VolumetricFogShared.h"
+#include "LocalVertexFactory.h"
+#include "DynamicMeshBuilder.h"
+#include "SpriteIndexBuffer.h"
 
 int32 GVolumetricFogVoxelizationSlicesPerGSPass = 8;
 FAutoConsoleVariableRef CVarVolumetricFogVoxelizationSlicesPerPass(
@@ -31,13 +34,64 @@ static FORCEINLINE int32 GetVoxelizationSlicesPerPass(EShaderPlatform Platform)
 	return RHISupportsGeometryShaders(Platform) ? GVolumetricFogVoxelizationSlicesPerGSPass : 1;
 }
 
+class FQuadMeshVertexBuffer : public FVertexBuffer
+{
+public:
+	virtual void InitRHI() override
+	{
+		TArray<FDynamicMeshVertex> Vertices;
+
+		// Vertex position constructed in the shader
+		Vertices.Add(FDynamicMeshVertex(FVector(0.0f, 0.0f, 0.0f)));
+		Vertices.Add(FDynamicMeshVertex(FVector(0.0f, 0.0f, 0.0f)));
+		Vertices.Add(FDynamicMeshVertex(FVector(0.0f, 0.0f, 0.0f)));
+		Vertices.Add(FDynamicMeshVertex(FVector(0.0f, 0.0f, 0.0f)));
+
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo);
+
+		// Copy the vertex data into the vertex buffer.
+		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
+		FMemory::Memcpy(VertexBufferData, Vertices.GetData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+	}
+};
+
+TGlobalResource<FQuadMeshVertexBuffer> GQuadMeshVertexBuffer;
+
+TGlobalResource<FSpriteIndexBuffer<1>> GQuadMeshIndexBuffer;
+
+class FQuadMeshVertexFactory : public FLocalVertexFactory
+{
+public:
+
+	FQuadMeshVertexFactory()
+	{}
+
+	/** Initialization */
+	void Init(const FQuadMeshVertexBuffer* VertexBuffer)
+	{
+		// Initialize the vertex factory's stream components.
+		FDataType NewData;
+		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
+		NewData.TextureCoordinates.Add(
+			FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
+			);
+		NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
+		NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
+		SetData(NewData);
+
+		InitResource();
+	}
+};
+
+FQuadMeshVertexFactory* GQuadMeshVertexFactory = NULL;
+
 class FVoxelizeVolumeVS : public FMeshMaterialShader
 {
-	DECLARE_SHADER_TYPE(FVoxelizeVolumeVS,MeshMaterial);
-
 protected:
 
-	FVoxelizeVolumeVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	FVoxelizeVolumeVS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer)
 		:	FMeshMaterialShader(Initializer)
 	{
 		VoxelizationPassIndex.Bind(Initializer.ParameterMap, TEXT("VoxelizationPassIndex"));
@@ -117,7 +171,45 @@ protected:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumeVS,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeVS"),SF_Vertex); 
+enum EVoxelizeShapeMode
+{
+	VMode_Primitive_Sphere,
+	VMode_Object_Box
+};
+
+template<EVoxelizeShapeMode Mode>
+class TVoxelizeVolumeVS : public FVoxelizeVolumeVS
+{
+	DECLARE_SHADER_TYPE(TVoxelizeVolumeVS,MeshMaterial);
+	typedef FVoxelizeVolumeVS Super;
+
+protected:
+
+	TVoxelizeVolumeVS() {}
+	TVoxelizeVolumeVS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
+		Super(Initializer)
+	{
+	}
+
+public:
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		
+		if (Mode == VMode_Primitive_Sphere)
+		{
+			OutEnvironment.SetDefine(TEXT("VOXELIZE_SHAPE_MODE"), TEXT("PRIMITIVE_SPHERE_MODE"));
+		}
+		else if (Mode == VMode_Object_Box)
+		{
+			OutEnvironment.SetDefine(TEXT("VOXELIZE_SHAPE_MODE"), TEXT("OBJECT_BOX_MODE"));
+		}
+	}
+};
+
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVoxelizeVolumeVS<VMode_Primitive_Sphere>,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeVS"),SF_Vertex); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVoxelizeVolumeVS<VMode_Object_Box>,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeVS"),SF_Vertex); 
 
 class FVoxelizeVolumeGS : public FMeshMaterialShader
 {
@@ -125,7 +217,7 @@ class FVoxelizeVolumeGS : public FMeshMaterialShader
 
 protected:
 
-	FVoxelizeVolumeGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	FVoxelizeVolumeGS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer)
 		:	FMeshMaterialShader(Initializer)
 	{
 		VoxelizationPassIndex.Bind(Initializer.ParameterMap, TEXT("VoxelizationPassIndex"));
@@ -196,7 +288,39 @@ protected:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumeGS,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeGS"),SF_Geometry); 
+template<EVoxelizeShapeMode Mode>
+class TVoxelizeVolumeGS : public FVoxelizeVolumeGS
+{
+	DECLARE_SHADER_TYPE(TVoxelizeVolumeGS,MeshMaterial);
+	typedef FVoxelizeVolumeGS Super;
+
+protected:
+
+	TVoxelizeVolumeGS() {}
+	TVoxelizeVolumeGS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
+		Super(Initializer)
+	{
+	}
+
+public:
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		
+		if (Mode == VMode_Primitive_Sphere)
+		{
+			OutEnvironment.SetDefine(TEXT("VOXELIZE_SHAPE_MODE"), TEXT("PRIMITIVE_SPHERE_MODE"));
+		}
+		else if (Mode == VMode_Object_Box)
+		{
+			OutEnvironment.SetDefine(TEXT("VOXELIZE_SHAPE_MODE"), TEXT("OBJECT_BOX_MODE"));
+		}
+	}
+};
+
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVoxelizeVolumeGS<VMode_Primitive_Sphere>,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeGS"),SF_Geometry); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVoxelizeVolumeGS<VMode_Object_Box>,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeGS"),SF_Geometry); 
 
 class FVoxelizeVolumePS : public FMeshMaterialShader
 {
@@ -204,7 +328,7 @@ class FVoxelizeVolumePS : public FMeshMaterialShader
 
 protected:
 
-	FVoxelizeVolumePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	FVoxelizeVolumePS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer)
 		:	FMeshMaterialShader(Initializer)
 	{
 		VolumetricFogParameters.Bind(Initializer.ParameterMap);
@@ -252,7 +376,39 @@ protected:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumePS,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizePS"),SF_Pixel); 
+template<EVoxelizeShapeMode Mode>
+class TVoxelizeVolumePS : public FVoxelizeVolumePS
+{
+	DECLARE_SHADER_TYPE(TVoxelizeVolumePS,MeshMaterial);
+	typedef FVoxelizeVolumePS Super;
+
+protected:
+
+	TVoxelizeVolumePS() {}
+	TVoxelizeVolumePS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
+		Super(Initializer)
+	{
+	}
+
+public:
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		
+		if (Mode == VMode_Primitive_Sphere)
+		{
+			OutEnvironment.SetDefine(TEXT("VOXELIZE_SHAPE_MODE"), TEXT("PRIMITIVE_SPHERE_MODE"));
+		}
+		else if (Mode == VMode_Object_Box)
+		{
+			OutEnvironment.SetDefine(TEXT("VOXELIZE_SHAPE_MODE"), TEXT("OBJECT_BOX_MODE"));
+		}
+	}
+};
+
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVoxelizeVolumePS<VMode_Primitive_Sphere>,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizePS"),SF_Pixel); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVoxelizeVolumePS<VMode_Object_Box>,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizePS"),SF_Pixel); 
 
 class FVoxelizeVolumeDrawingPolicy : public FMeshDrawingPolicy
 {
@@ -320,12 +476,26 @@ FVoxelizeVolumeDrawingPolicy::FVoxelizeVolumeDrawingPolicy(
 :	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,InOverrideSettings)
 ,	GeometryShader(nullptr)
 {
-	VertexShader = InMaterialResource.GetShader<FVoxelizeVolumeVS>(InVertexFactory->GetType());
-	if (RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[InFeatureLevel]))
+	const bool bUsePrimitiveSphere = InVertexFactory != GQuadMeshVertexFactory;
+
+	if (bUsePrimitiveSphere)
 	{
-		GeometryShader = InMaterialResource.GetShader<FVoxelizeVolumeGS>(InVertexFactory->GetType());
+		VertexShader = InMaterialResource.GetShader<TVoxelizeVolumeVS<VMode_Primitive_Sphere>>(InVertexFactory->GetType());
+		if (RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[InFeatureLevel]))
+		{
+			GeometryShader = InMaterialResource.GetShader<TVoxelizeVolumeGS<VMode_Primitive_Sphere>>(InVertexFactory->GetType());
+		}
+		PixelShader = InMaterialResource.GetShader<TVoxelizeVolumePS<VMode_Primitive_Sphere>>(InVertexFactory->GetType());
 	}
-	PixelShader = InMaterialResource.GetShader<FVoxelizeVolumePS>(InVertexFactory->GetType());
+	else
+	{
+		VertexShader = InMaterialResource.GetShader<TVoxelizeVolumeVS<VMode_Object_Box>>(InVertexFactory->GetType());
+		if (RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[InFeatureLevel]))
+		{
+			GeometryShader = InMaterialResource.GetShader<TVoxelizeVolumeGS<VMode_Object_Box>>(InVertexFactory->GetType());
+		}
+		PixelShader = InMaterialResource.GetShader<TVoxelizeVolumePS<VMode_Object_Box>>(InVertexFactory->GetType());
+	}
 }
 
 FDrawingPolicyMatchResult FVoxelizeVolumeDrawingPolicy::Matches(
@@ -403,12 +573,38 @@ void VoxelizeVolumePrimitive(
 	FIntVector VolumetricFogGridSize,
 	FVector GridZParams,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	const FMeshBatch& Mesh)
+	const FMeshBatch& OriginalMesh)
 {
-	const FMaterial& Material = *Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
+	const FMaterial& Material = *OriginalMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 
 	if (Material.GetMaterialDomain() == MD_Volume)
 	{
+		FMeshBatch LocalQuadMesh;
+
+		// The voxelization shaders require camera facing quads as input
+		// Vertex factories like particle sprites can work as-is, everything else needs to override with a camera facing quad
+		const bool bOverrideWithQuadMesh = !OriginalMesh.VertexFactory->RendersPrimitivesAsCameraFacingSprites();
+
+		if (bOverrideWithQuadMesh)
+		{
+			if (!GQuadMeshVertexFactory)
+			{
+				GQuadMeshVertexFactory = new FQuadMeshVertexFactory();
+				GQuadMeshVertexFactory->Init(&GQuadMeshVertexBuffer);
+			}
+			LocalQuadMesh.VertexFactory = GQuadMeshVertexFactory;
+			LocalQuadMesh.MaterialRenderProxy = OriginalMesh.MaterialRenderProxy;
+			LocalQuadMesh.Elements[0].IndexBuffer = &GQuadMeshIndexBuffer;
+			LocalQuadMesh.Elements[0].PrimitiveUniformBufferResource = OriginalMesh.Elements[0].PrimitiveUniformBufferResource;
+			LocalQuadMesh.Elements[0].FirstIndex = 0;
+			LocalQuadMesh.Elements[0].NumPrimitives = 2;
+			LocalQuadMesh.Elements[0].MinVertexIndex = 0;
+			LocalQuadMesh.Elements[0].MaxVertexIndex = 3;
+			LocalQuadMesh.Elements[0].DynamicIndexStride = 0;
+		}
+
+		const FMeshBatch& Mesh = bOverrideWithQuadMesh ? LocalQuadMesh : OriginalMesh;
+
 		FVoxelizeVolumeDrawingPolicy DrawingPolicy(
 			Mesh.VertexFactory,
 			Mesh.MaterialRenderProxy,

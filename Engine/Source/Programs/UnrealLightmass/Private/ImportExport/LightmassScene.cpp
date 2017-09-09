@@ -373,6 +373,21 @@ bool FScene::IsPointInImportanceVolume(const FVector4& Position, float Tolerance
 	return false;
 }
 
+bool FScene::IsBoxInImportanceVolume(const FBox& QueryBox) const
+{
+	for (int32 VolumeIndex = 0; VolumeIndex < ImportanceVolumes.Num(); VolumeIndex++)
+	{
+		FBox Volume = ImportanceVolumes[VolumeIndex];
+
+		if (Volume.Intersect(QueryBox))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /** Returns true if the specified position is inside any of the visibility volumes. */
 bool FScene::IsPointInVisibilityVolume(const FVector4& Position) const
 {
@@ -1477,6 +1492,304 @@ void FSkyLight::Import( FLightmassImporter& Importer )
 	FLight::Import( Importer );
 
 	Importer.ImportData( (FSkyLightData*)this );
+
+	TArray<FFloat16Color> RadianceEnvironmentMap;
+	Importer.ImportArray(RadianceEnvironmentMap, RadianceEnvironmentMapDataSize);
+
+	CubemapSize = FMath::Sqrt(RadianceEnvironmentMapDataSize / 6);
+	NumMips = FMath::CeilLogTwo(CubemapSize) + 1;
+
+	check(FMath::IsPowerOfTwo(CubemapSize));
+	check(NumMips > 0);
+	check(RadianceEnvironmentMapDataSize == CubemapSize * CubemapSize * 6);
+
+	if (bUseFilteredCubemap && CubemapSize > 0)
+	{
+		const double StartTime = FPlatformTime::Seconds();
+
+		PrefilteredRadiance.Empty(NumMips);
+		PrefilteredRadiance.AddZeroed(NumMips);
+
+		PrefilteredRadiance[0].Empty(CubemapSize * CubemapSize * 6);
+		PrefilteredRadiance[0].AddZeroed(CubemapSize * CubemapSize * 6);
+
+		for (int32 TexelIndex = 0; TexelIndex < CubemapSize * CubemapSize * 6; TexelIndex++)
+		{
+			FLinearColor Lighting = FLinearColor(RadianceEnvironmentMap[TexelIndex]);
+			PrefilteredRadiance[0][TexelIndex] = Lighting;
+		}
+
+		FIntPoint SubCellOffsets[4] =
+		{
+			FIntPoint(0, 0),
+			FIntPoint(1, 0),
+			FIntPoint(0, 1),
+			FIntPoint(1, 1)
+		};
+
+		const float SubCellWeight = 1.0f / (float)ARRAY_COUNT(SubCellOffsets);
+
+		for (int32 MipIndex = 1; MipIndex < NumMips; MipIndex++)
+		{
+			const int32 MipSize = 1 << (NumMips - MipIndex - 1);
+			const int32 ParentMipSize = MipSize * 2;
+			const int32 CubeFaceSize = MipSize * MipSize;
+
+			PrefilteredRadiance[MipIndex].Empty(CubeFaceSize * 6);
+			PrefilteredRadiance[MipIndex].AddZeroed(CubeFaceSize * 6);
+
+			for (int32 FaceIndex = 0; FaceIndex < 6; FaceIndex++)
+			{
+				for (int32 Y = 0; Y < MipSize; Y++)
+				{
+					for (int32 X = 0; X < MipSize; X++)
+					{
+						FLinearColor FilteredValue(0, 0, 0, 0);
+
+						for (int32 OffsetIndex = 0; OffsetIndex < ARRAY_COUNT(SubCellOffsets); OffsetIndex++)
+						{
+							FIntPoint ParentOffset = FIntPoint(X, Y) * 2 + SubCellOffsets[OffsetIndex];
+							int32 ParentTexelIndex = FaceIndex * ParentMipSize * ParentMipSize + ParentOffset.Y * ParentMipSize + ParentOffset.X;
+							FLinearColor ParentLighting = PrefilteredRadiance[MipIndex - 1][ParentTexelIndex];
+							FilteredValue += ParentLighting;
+						}
+					
+						FilteredValue *= SubCellWeight;
+
+						PrefilteredRadiance[MipIndex][FaceIndex * CubeFaceSize + Y * MipSize + X] = FilteredValue;
+					}
+				}
+			}
+		}
+
+		ComputePrefilteredVariance();
+
+		const double EndTime = FPlatformTime::Seconds();
+		UE_LOG(LogLightmass, Log, TEXT("Skylight import processing %.3fs with CubemapSize %u"), (float)(EndTime - StartTime), CubemapSize);
+	}
+}
+
+void FSkyLight::ComputePrefilteredVariance()
+{
+	PrefilteredVariance.Empty(NumMips);
+	PrefilteredVariance.AddZeroed(NumMips);
+	
+	TArray<float> TempMaxVariance;
+	TempMaxVariance.Empty(NumMips);
+	TempMaxVariance.AddZeroed(NumMips);
+
+	for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
+	{
+		const int32 MipSize = 1 << (NumMips - MipIndex - 1);
+		const int32 CubeFaceSize = MipSize * MipSize;
+		const int32 BaseMipTexelSize = CubemapSize / MipSize;
+		const float NormalizeFactor = 1.0f / FMath::Max(BaseMipTexelSize * BaseMipTexelSize - 1, 1);
+
+		PrefilteredVariance[MipIndex].Empty(CubeFaceSize * 6);
+		PrefilteredVariance[MipIndex].AddZeroed(CubeFaceSize * 6);
+
+		for (int32 FaceIndex = 0; FaceIndex < 6; FaceIndex++)
+		{
+			for (int32 Y = 0; Y < MipSize; Y++)
+			{
+				for (int32 X = 0; X < MipSize; X++)
+				{
+					int32 TexelIndex = FaceIndex * CubeFaceSize + Y * MipSize + X;
+
+					float Mean = PrefilteredRadiance[MipIndex][TexelIndex].GetLuminance();
+
+					int32 BaseTexelOffset = FaceIndex * CubemapSize * CubemapSize + X * BaseMipTexelSize + Y * BaseMipTexelSize * CubemapSize;
+					float SumOfSquares = 0;
+
+					//@todo - implement in terms of the previous mip level, not the bottom mip level
+					for (int32 BaseY = 0; BaseY < BaseMipTexelSize; BaseY++)
+					{
+						for (int32 BaseX = 0; BaseX < BaseMipTexelSize; BaseX++)
+						{
+							int32 BaseTexelIndex = BaseTexelOffset + BaseY * CubemapSize + BaseX;
+							float BaseValue = PrefilteredRadiance[0][BaseTexelIndex].GetLuminance();
+
+							SumOfSquares += (BaseValue - Mean) * (BaseValue - Mean);
+						}
+					}
+
+					PrefilteredVariance[MipIndex][TexelIndex] = SumOfSquares * NormalizeFactor;
+					TempMaxVariance[MipIndex] = FMath::Max(TempMaxVariance[MipIndex], SumOfSquares * NormalizeFactor);
+				}
+			}
+		}
+	}
+}
+
+FLinearColor FSkyLight::SampleRadianceCubemap(float Mip, int32 CubeFaceIndex, FVector2D FaceUV) const
+{
+	checkSlow(bUseFilteredCubemap);
+	FLinearColor HighMipRadiance;
+	{
+		const int32 MipIndex = FMath::CeilToInt(Mip);
+		const int32 MipSize = 1 << (NumMips - MipIndex - 1);
+		const int32 CubeFaceSize = MipSize * MipSize;
+		FIntPoint FaceCoordinate(FaceUV.X * MipSize, FaceUV.Y * MipSize);
+		check(FaceCoordinate.X >= 0 && FaceCoordinate.X < MipSize);
+		check(FaceCoordinate.Y >= 0 && FaceCoordinate.Y < MipSize);
+		HighMipRadiance = PrefilteredRadiance[MipIndex][CubeFaceIndex * CubeFaceSize + FaceCoordinate.Y * MipSize + FaceCoordinate.X];
+	}
+
+	FLinearColor LowMipRadiance;
+	{
+		const int32 MipIndex = FMath::FloorToInt(Mip);
+		const int32 MipSize = 1 << (NumMips - MipIndex - 1);
+		const int32 CubeFaceSize = MipSize * MipSize;
+		FIntPoint FaceCoordinate(FaceUV.X * MipSize, FaceUV.Y * MipSize);
+		check(FaceCoordinate.X >= 0 && FaceCoordinate.X < MipSize);
+		check(FaceCoordinate.Y >= 0 && FaceCoordinate.Y < MipSize);
+		LowMipRadiance = PrefilteredRadiance[MipIndex][CubeFaceIndex * CubeFaceSize + FaceCoordinate.Y * MipSize + FaceCoordinate.X];
+	}
+
+	return FMath::Lerp(LowMipRadiance, HighMipRadiance, FMath::Fractional(Mip));
+}
+
+float FSkyLight::SampleVarianceCubemap(float Mip, int32 CubeFaceIndex, FVector2D FaceUV) const
+{
+	checkSlow(bUseFilteredCubemap);
+	float HighMipVariance;
+	{
+		const int32 MipIndex = FMath::CeilToInt(Mip);
+		const int32 MipSize = 1 << (NumMips - MipIndex - 1);
+		const int32 CubeFaceSize = MipSize * MipSize;
+		FIntPoint FaceCoordinate(FaceUV.X * MipSize, FaceUV.Y * MipSize);
+		check(FaceCoordinate.X >= 0 && FaceCoordinate.X < MipSize);
+		check(FaceCoordinate.Y >= 0 && FaceCoordinate.Y < MipSize);
+		HighMipVariance = PrefilteredVariance[MipIndex][CubeFaceIndex * CubeFaceSize + FaceCoordinate.Y * MipSize + FaceCoordinate.X];
+	}
+
+	float LowMipVariance;
+
+	{
+		const int32 MipIndex = FMath::FloorToInt(Mip);
+		const int32 MipSize = 1 << (NumMips - MipIndex - 1);
+		const int32 CubeFaceSize = MipSize * MipSize;
+		FIntPoint FaceCoordinate(FaceUV.X * MipSize, FaceUV.Y * MipSize);
+		check(FaceCoordinate.X >= 0 && FaceCoordinate.X < MipSize);
+		check(FaceCoordinate.Y >= 0 && FaceCoordinate.Y < MipSize);
+		LowMipVariance = PrefilteredVariance[MipIndex][CubeFaceIndex * CubeFaceSize + FaceCoordinate.Y * MipSize + FaceCoordinate.X];
+	}
+
+	return FMath::Lerp(LowMipVariance, HighMipVariance, FMath::Fractional(Mip));
+}
+
+void GetCubeFaceAndUVFromDirection(const FVector4& IncomingDirection, int32& CubeFaceIndex, FVector2D& FaceUVs)
+{
+	FVector AbsIncomingDirection(FMath::Abs(IncomingDirection.X), FMath::Abs(IncomingDirection.Y), FMath::Abs(IncomingDirection.Z));
+
+	int32 LargestChannelIndex = 0;
+
+	if (AbsIncomingDirection.Y > AbsIncomingDirection.X)
+	{
+		LargestChannelIndex = 1;
+	}
+
+	if (AbsIncomingDirection.Z > AbsIncomingDirection.Y && AbsIncomingDirection.Z > AbsIncomingDirection.X)
+	{
+		LargestChannelIndex = 2;
+	}
+
+	CubeFaceIndex = LargestChannelIndex * 2 + (IncomingDirection[LargestChannelIndex] < 0 ? 1 : 0);
+
+	if (CubeFaceIndex == 0)
+	{
+		FaceUVs = FVector2D(-IncomingDirection.Z, -IncomingDirection.Y);
+		//CubeCoordinates = float3(1, -ScaledUVs.y, -ScaledUVs.x);
+	}
+	else if (CubeFaceIndex == 1)
+	{
+		FaceUVs = FVector2D(IncomingDirection.Z, -IncomingDirection.Y);
+		//CubeCoordinates = float3(-1, -ScaledUVs.y, ScaledUVs.x);
+	}
+	else if (CubeFaceIndex == 2)
+	{
+		FaceUVs = FVector2D(IncomingDirection.X, IncomingDirection.Z);
+		//CubeCoordinates = float3(ScaledUVs.x, 1, ScaledUVs.y);
+	}
+	else if (CubeFaceIndex == 3)
+	{
+		FaceUVs = FVector2D(IncomingDirection.X, -IncomingDirection.Z);
+		//CubeCoordinates = float3(ScaledUVs.x, -1, -ScaledUVs.y);
+	}
+	else if (CubeFaceIndex == 4)
+	{
+		FaceUVs = FVector2D(IncomingDirection.X, -IncomingDirection.Y);
+		//CubeCoordinates = float3(ScaledUVs.x, -ScaledUVs.y, 1);
+	}
+	else
+	{
+		FaceUVs = FVector2D(-IncomingDirection.X, -IncomingDirection.Y);
+		//CubeCoordinates = float3(-ScaledUVs.x, -ScaledUVs.y, -1);
+	}
+
+	FaceUVs = FaceUVs / AbsIncomingDirection[LargestChannelIndex] * .5f + .5f;
+
+	// When exactly on the edge of two faces, snap to the nearest addressable texel
+	FaceUVs.X = FMath::Min(FaceUVs.X, .999f);
+	FaceUVs.Y = FMath::Min(FaceUVs.Y, .999f);
+}
+
+float FSkyLight::GetMipIndexForSolidAngle(float SolidAngle) const
+{
+	//@todo - corners of the cube should use a different mip
+	const float AverageTexelSolidAngle = 4 * PI / (6 * CubemapSize * CubemapSize) * 2;
+	float Mip = 0.5 * FMath::Log2(SolidAngle / AverageTexelSolidAngle);
+	return FMath::Clamp<float>(Mip, 0.0f, NumMips - 1);
+}
+
+FLinearColor FSkyLight::GetPathLighting(const FVector4& IncomingDirection, float PathSolidAngle, bool bCalculateForIndirectLighting) const
+{
+	if (CubemapSize == 0)
+	{
+		return FLinearColor::Black;
+	}
+
+	FLinearColor Lighting = FLinearColor::Black;
+
+	if (bUseFilteredCubemap)
+	{
+		int32 CubeFaceIndex;
+		FVector2D FaceUVs;
+		GetCubeFaceAndUVFromDirection(IncomingDirection, CubeFaceIndex, FaceUVs);
+
+		const float MipIndex = GetMipIndexForSolidAngle(PathSolidAngle);
+
+		Lighting = SampleRadianceCubemap(MipIndex, CubeFaceIndex, FaceUVs);
+	}
+	else
+	{
+		FSHVector3 SH = FSHVector3::SHBasisFunction(IncomingDirection);
+		Lighting = Dot(IrradianceEnvironmentMap, SH);
+	}
+
+	const float LightingScale = bCalculateForIndirectLighting ? IndirectLightingScale : 1.0f;
+	Lighting = (Lighting * Brightness * LightingScale) * FLinearColor(Color);
+
+	Lighting.R = FMath::Max(Lighting.R, 0.0f);
+	Lighting.G = FMath::Max(Lighting.G, 0.0f);
+	Lighting.B = FMath::Max(Lighting.B, 0.0f);
+
+	return Lighting;
+}
+
+float FSkyLight::GetPathVariance(const FVector4& IncomingDirection, float PathSolidAngle) const
+{
+	if (CubemapSize == 0 || !bUseFilteredCubemap)
+	{
+		return 0;
+	}
+
+	int32 CubeFaceIndex;
+	FVector2D FaceUVs;
+	GetCubeFaceAndUVFromDirection(IncomingDirection, CubeFaceIndex, FaceUVs);
+
+	const float MipIndex = GetMipIndexForSolidAngle(PathSolidAngle);
+	return SampleVarianceCubemap(MipIndex, CubeFaceIndex, FaceUVs);
 }
 
 void FMeshLightPrimitive::AddSubPrimitive(const FTexelToCorners& TexelToCorners, const FIntPoint& Coordinates, const FLinearColor& InTexelPower, float NormalOffset)

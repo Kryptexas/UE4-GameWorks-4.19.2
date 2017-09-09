@@ -11,27 +11,11 @@
 #include "RHIDefinitions.h"
 #include "Containers/StaticArray.h"
 
-#define INVALID_FENCE_ID (0xffffffffffffffffull)
-
-class FRenderTarget;
 class FResourceArrayInterface;
 class FResourceBulkDataInterface;
-struct Rect;
-
-inline const bool IsValidFenceID( const uint64 FenceID )
-{
-	return ( ( FenceID & 0x8000000000000000ull ) == 0 );
-}
-
-// 0:faster rendering (CPU) / 1:allows to get a name for resource transitions
-#define SUPPORT_RESOURCE_NAME (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 /** Uniform buffer structs must be aligned to 16-byte boundaries. */
 #define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
-
-// Forward declarations.
-class FSceneView;
-struct FMeshBatch;
 
 /** RHI Logging. */
 RHI_API DECLARE_LOG_CATEGORY_EXTERN(LogRHI,Log,VeryVerbose);
@@ -121,6 +105,19 @@ inline bool RHISupportsMultiView(const EShaderPlatform Platform)
 {
 	// Only PS4 and Metal SM5 from 10.13 onward supports Multi-View
 	return (Platform == EShaderPlatform::SP_PS4) || (Platform == EShaderPlatform::SP_METAL_SM5 && RHIGetShaderLanguageVersion(Platform) >= 3);
+}
+
+inline bool RHISupportsMSAA(EShaderPlatform Platform)
+{
+	return Platform != SP_PS4
+		//@todo-rco: Fix when iOS OpenGL supports MSAA
+		&& Platform != SP_OPENGL_ES2_IOS
+		// @todo marksatt Metal on macOS 10.12 and earlier (or Intel on any macOS) don't reliably support our MSAA usage & custom resolve.
+#if PLATFORM_MAC
+		&& IsMetalPlatform(Platform) && !IsRHIDeviceIntel() && (FPlatformMisc::MacOSXVersionCompare(10, 13, 0) >= 0)
+#endif
+		// @todo marksatt iOS Desktop Forward needs more work internally
+		&& Platform != SP_METAL_MRT;
 }
 
 // Wrapper for GRHI## global variables, allows values to be overridden for mobile preview modes.

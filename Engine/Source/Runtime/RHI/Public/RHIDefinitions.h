@@ -493,9 +493,18 @@ enum EBufferUsageFlags
 	BUF_None			  = 0x0000,
 	
 	// Mutually exclusive write-frequency flags
-	BUF_Static            = 0x0001, // The buffer will be written to once.
-	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
-	BUF_Volatile          = 0x0004, // The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame.
+
+	/** The buffer will be written to once. */
+	BUF_Static            = 0x0001, 
+
+	/** 
+	 * The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
+	 * Warning: On PS4, BUF_Dynamic do not support multiple updates per frame!  Later updates will overwrite earlier ones, causing a race condition with the GPU.
+	 */
+	BUF_Dynamic           = 0x0002, 
+
+	/** The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame. */
+	BUF_Volatile          = 0x0004, 
 
 	// Mutually exclusive bind flags.
 	BUF_UnorderedAccess   = 0x0008, // Allows an unordered access view to be created for the buffer.
@@ -878,13 +887,6 @@ inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Plat
 	// Metal mobile devices, Vulkan and Android ES2/3.1 need to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
 	const bool bMobileMetalDevice = (Platform == SP_METAL || Platform == SP_METAL_MRT);
 	return !bMobileMetalDevice && !IsVulkanPlatform(Platform) && !IsAndroidOpenGLESPlatform(Platform);
-}
-
-inline bool RHISupportsMSAA(EShaderPlatform Platform)
-{
-	return Platform != SP_PS4
-		//@todo-rco: Fix when iOS OpenGL supports MSAA
-		&& Platform != SP_OPENGL_ES2_IOS;
 }
 
 inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)

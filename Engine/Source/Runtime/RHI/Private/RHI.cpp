@@ -35,7 +35,8 @@ DEFINE_STAT(STAT_GetOrCreatePSO);
 static FAutoConsoleVariable CVarUseVulkanRealUBs(
 	TEXT("r.Vulkan.UseRealUBs"),
 	0,
-	TEXT("If true, enable using emulated uniform buffers on Vulkan ES2 mode."),
+	TEXT("0: Emulate uniform buffers on Vulkan SM4/SM5 [default]\n")
+	TEXT("1: Use real uniform buffers"),
 	ECVF_ReadOnly
 	);
 
@@ -476,15 +477,9 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 	case SP_OPENGL_ES3_1_ANDROID:
 		return NAME_GLSL_ES3_1_ANDROID;
 	case SP_VULKAN_SM4:
-	{
-		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
-		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_SM4_UB : NAME_VULKAN_SM4;
-	}
+		return (CVarUseVulkanRealUBs->GetInt() != 0) ? NAME_VULKAN_SM4_UB : NAME_VULKAN_SM4;
 	case SP_VULKAN_SM5:
-	{
-		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
-		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_SM5_UB : NAME_VULKAN_SM5;
-	}
+		return (CVarUseVulkanRealUBs->GetInt() != 0) ? NAME_VULKAN_SM5_UB : NAME_VULKAN_SM5;
 	case SP_VULKAN_PCES3_1:
 		return NAME_VULKAN_ES3_1;
 	case SP_VULKAN_ES3_1_ANDROID:
@@ -531,8 +526,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
 	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID)	return SP_OPENGL_ES3_1_ANDROID;
-	if (ShaderFormat == NAME_GLSL_SWITCH)				return SP_SWITCH;
-	if (ShaderFormat == NAME_GLSL_SWITCH_FORWARD)		return SP_SWITCH_FORWARD;
+	if (ShaderFormat == NAME_GLSL_SWITCH)			return SP_SWITCH;
+	if (ShaderFormat == NAME_GLSL_SWITCH_FORWARD)	return SP_SWITCH_FORWARD;
 	
 	return SP_NumPlatforms;
 }
@@ -575,29 +570,37 @@ RHI_API const TCHAR* RHIVendorIdToString()
 
 RHI_API uint32 RHIGetShaderLanguageVersion(const EShaderPlatform Platform)
 {
-	static int32 MaxShaderVersion = -1;
-	if (MaxShaderVersion < 0)
+	uint32 Version = 0;
+	if (IsMetalPlatform(Platform))
 	{
-		MaxShaderVersion = 0;
-        if (IsMetalPlatform(Platform))
-        {
-            if (IsPCPlatform(Platform))
-            {
-                if(!GConfig->GetInt(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
-                {
-                    MaxShaderVersion = 2;
-                }
-            }
-            else
-            {
-                if(!GConfig->GetInt(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
-                {
-                    MaxShaderVersion = 0;
-                }
-            }
-        }
+		if (IsPCPlatform(Platform))
+		{
+			static int32 MaxShaderVersion = -1;
+			if (MaxShaderVersion < 0)
+			{
+				MaxShaderVersion = 2;
+				if(!GConfig->GetInt(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+				{
+					MaxShaderVersion = 2;
+				}
+			}
+			Version = (uint32)MaxShaderVersion;
+		}
+		else
+		{
+			static int32 MaxShaderVersion = -1;
+			if (MaxShaderVersion < 0)
+			{
+				MaxShaderVersion = 0;
+				if(!GConfig->GetInt(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+				{
+					MaxShaderVersion = 0;
+				}
+			}
+			Version = (uint32)MaxShaderVersion;
+		}
 	}
-	return (uint32)MaxShaderVersion;
+	return Version;
 }
 
 RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
@@ -606,8 +609,8 @@ RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
 	{
 		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE_D3D12) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT)/* || (Platform == SP_VULKAN_SM5)*/;
 	}
-    // For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
-    // As such it becomes an opt-in project setting.
+	// For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
+	// As such it becomes an opt-in project setting.
 	else if (Platform == SP_METAL_SM5)
 	{
 		return (RHIGetShaderLanguageVersion(Platform) >= 2);

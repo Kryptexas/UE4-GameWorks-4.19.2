@@ -4,204 +4,13 @@
 #include "Raster.h"
 #include "LightingSystem.h"
 #include "LightmassSwarm.h"
+#include "ScopedPointer.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/PlatformProcess.h"
+#include "TextureMappingSetup.h"
 
 namespace Lightmass
 {
-
-/** A map from a texel to the world-space surface point which maps the texel. */
-struct FTexelToVertex
-{
-	FVector4 WorldPosition;
-	FVector4 WorldTangentX;
-	FVector4 WorldTangentY;
-	FVector4 WorldTangentZ;
-	FVector4 TriangleNormal;
-
-	/** Weight used when combining super sampled attributes and determining if the texel has been mapped. */
-	float TotalSampleWeight;
-
-	/** Tracks the max sample weight encountered. */
-	float MaxSampleWeight;
-
-	/** World space radius of the texel. */
-	float TexelRadius;
-
-	/** Whether this texel was determined to be intersecting another surface. */
-	uint32 bIntersectingSurface : 1;
-
-	uint16 ElementIndex;
-
-	/** Texture coordinates */
-	FVector2D TextureCoordinates[MAX_TEXCOORDS];
-
-	/** Create a static lighting vertex to represent the texel. */
-	inline FStaticLightingVertex GetVertex() const
-	{
-		FStaticLightingVertex Vertex;
-		Vertex.WorldPosition = WorldPosition;
-		Vertex.WorldTangentX = WorldTangentX;
-		Vertex.WorldTangentY = WorldTangentY;
-		Vertex.WorldTangentZ = WorldTangentZ;
-		for( int32 CurCoordIndex = 0; CurCoordIndex < MAX_TEXCOORDS; ++CurCoordIndex )
-		{
-			Vertex.TextureCoordinates[ CurCoordIndex ] = TextureCoordinates[ CurCoordIndex ];
-		}
-		return Vertex;
-	}
-
-	inline FFullStaticLightingVertex GetFullVertex() const
-	{
-		FFullStaticLightingVertex Vertex;
-		(FStaticLightingVertex&)Vertex = GetVertex();
-		Vertex.TriangleNormal = TriangleNormal;
-		Vertex.GenerateTriangleTangents();
-		return Vertex;
-	}
-};
-
-/** A map from light-map texels to the world-space surface points which map the texels. */
-class FTexelToVertexMap
-{
-public:
-
-	/** Initialization constructor. */
-	FTexelToVertexMap(int32 InSizeX,int32 InSizeY):
-		Data(InSizeX * InSizeY),
-		SizeX(InSizeX),
-		SizeY(InSizeY)
-	{
-		// Clear the map to zero.
-		for(int32 Y = 0;Y < SizeY;Y++)
-		{
-			for(int32 X = 0;X < SizeX;X++)
-			{
-				FMemory::Memzero(&(*this)(X,Y),sizeof(FTexelToVertex));
-			}
-		}
-	}
-
-	// Accessors.
-	FTexelToVertex& operator()(int32 X,int32 Y)
-	{
-		const uint32 TexelIndex = Y * SizeX + X;
-		return Data(TexelIndex);
-	}
-	const FTexelToVertex& operator()(int32 X,int32 Y) const
-	{
-		const int32 TexelIndex = Y * SizeX + X;
-		return Data(TexelIndex);
-	}
-
-	int32 GetSizeX() const { return SizeX; }
-	int32 GetSizeY() const { return SizeY; }
-	SIZE_T GetAllocatedSize() const { return Data.GetAllocatedSize(); }
-
-private:
-
-	/** The mapping data. */
-	TChunkedArray<FTexelToVertex> Data;
-
-	/** The width of the mapping data. */
-	int32 SizeX;
-
-	/** The height of the mapping data. */
-	int32 SizeY;
-};
-
-struct FStaticLightingInterpolant
-{
-	FStaticLightingVertex Vertex;
-	uint16 ElementIndex;
-
-	FStaticLightingInterpolant() {}
-
-	FStaticLightingInterpolant(const FStaticLightingVertex& InVertex, uint16 InElementIndex) :
-		Vertex(InVertex),
-		ElementIndex(InElementIndex)
-	{}
-
-	// Operators used for linear combinations of static lighting interpolants.
-	friend FStaticLightingInterpolant operator+(const FStaticLightingInterpolant& A,const FStaticLightingInterpolant& B)
-	{
-		FStaticLightingInterpolant Result;
-		Result.Vertex = A.Vertex + B.Vertex; 
-		Result.ElementIndex = A.ElementIndex;
-		return Result;
-	}
-
-	friend FStaticLightingInterpolant operator-(const FStaticLightingInterpolant& A,const FStaticLightingInterpolant& B)
-	{
-		FStaticLightingInterpolant Result;
-		Result.Vertex = A.Vertex - B.Vertex; 
-		Result.ElementIndex = A.ElementIndex;
-		return Result;
-	}
-
-	friend FStaticLightingInterpolant operator*(const FStaticLightingInterpolant& A,float B)
-	{
-		FStaticLightingInterpolant Result;
-		Result.Vertex = A.Vertex * B; 
-		Result.ElementIndex = A.ElementIndex;
-		return Result;
-	}
-
-	friend FStaticLightingInterpolant operator/(const FStaticLightingInterpolant& A,float B)
-	{
-		FStaticLightingInterpolant Result;
-		Result.Vertex = A.Vertex / B; 
-		Result.ElementIndex = A.ElementIndex;
-		return Result;
-	}
-};
-
-/** Used to map static lighting texels to vertices. */
-class FStaticLightingRasterPolicy
-{
-public:
-
-	typedef FStaticLightingInterpolant InterpolantType;
-
-	/** Initialization constructor. */
-	FStaticLightingRasterPolicy(
-		const FScene& InScene,
-		FTexelToVertexMap& InTexelToVertexMap,
-		float InSampleWeight,
-		const FVector4& InTriangleNormal,
-		bool bInDebugThisMapping,
-		bool bInUseMaxWeight
-		) :
-		Scene(InScene),
-		TexelToVertexMap(InTexelToVertexMap),
-		SampleWeight(InSampleWeight),
-		TriangleNormal(InTriangleNormal),
-		bDebugThisMapping(bInDebugThisMapping),
-		bUseMaxWeight(bInUseMaxWeight)
-	{}
-
-protected:
-
-	// FTriangleRasterizer policy interface.
-
-	int32 GetMinX() const { return 0; }
-	int32 GetMaxX() const { return TexelToVertexMap.GetSizeX() - 1; }
-	int32 GetMinY() const { return 0; }
-	int32 GetMaxY() const { return TexelToVertexMap.GetSizeY() - 1; }
-
-	void ProcessPixel(int32 X,int32 Y,const InterpolantType& Interpolant,bool BackFacing);
-
-private:
-
-	const FScene& Scene;
-
-	/** The texel to vertex map which is being rasterized to. */
-	FTexelToVertexMap& TexelToVertexMap;
-
-	/** The weight of the current sample. */
-	const float SampleWeight;
-	const FVector4 TriangleNormal;
-	const bool bDebugThisMapping;
-	const bool bUseMaxWeight;
-};
 
 void FStaticLightingRasterPolicy::ProcessPixel(int32 X,int32 Y,const InterpolantType& Interpolant,bool BackFacing)
 {
@@ -240,6 +49,7 @@ void FStaticLightingRasterPolicy::ProcessPixel(int32 X,int32 Y,const Interpolant
 		TexelToVertex.WorldTangentX += Interpolant.Vertex.WorldTangentX * SampleWeight;
 		TexelToVertex.WorldTangentY += Interpolant.Vertex.WorldTangentY * SampleWeight;
 		TexelToVertex.WorldTangentZ += Interpolant.Vertex.WorldTangentZ * SampleWeight;
+		checkSlow(!TriangleNormal.ContainsNaN());
 		TexelToVertex.TriangleNormal += TriangleNormal * SampleWeight;
 		TexelToVertex.TotalSampleWeight += SampleWeight;
 	}
@@ -307,6 +117,12 @@ void FFullStaticLightingVertex::ApplyVertexModifications(int32 ElementIndex, boo
 	}
 }
 
+void FStaticLightingTextureMapping::Initialize(FStaticLightingSystem& System)
+{
+	SurfaceCacheSizeX = FMath::Max(FMath::TruncToInt(CachedSizeX / System.GeneralSettings.MappingSurfaceCacheDownsampleFactor), 6);
+	SurfaceCacheSizeY = FMath::Max(FMath::TruncToInt(CachedSizeY / System.GeneralSettings.MappingSurfaceCacheDownsampleFactor), 6);
+}
+
 /** Caches irradiance photons on a single texture mapping. */
 void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLightingTextureMapping* TextureMapping)
 {
@@ -315,11 +131,7 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 	LIGHTINGSTAT(FScopedRDTSCTimer CachingTime(MappingContext.Stats.IrradiancePhotonCachingThreadTime));
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 
-	// Cache irradiance photons at a lower resolution than what lighting is being calculated for, since the extra resolution is usually not noticeable
-	TextureMapping->IrradiancePhotonCacheSizeX = FMath::Max(FMath::TruncToInt(TextureMapping->CachedSizeX / PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor), 6);
-	TextureMapping->IrradiancePhotonCacheSizeY = FMath::Max(FMath::TruncToInt(TextureMapping->CachedSizeY / PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor), 6);
-
-	FTexelToVertexMap TexelToVertexMap(TextureMapping->IrradiancePhotonCacheSizeX, TextureMapping->IrradiancePhotonCacheSizeY);
+	FTexelToVertexMap TexelToVertexMap(TextureMapping->SurfaceCacheSizeX, TextureMapping->SurfaceCacheSizeY);
 
 	bool bDebugThisMapping = false;
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
@@ -328,138 +140,21 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 	int32 IrradiancePhotonCacheDebugY = -1;
 	if (bDebugThisMapping)
 	{
-		IrradiancePhotonCacheDebugX = FMath::TruncToInt(Scene.DebugInput.LocalX / (float)TextureMapping->CachedSizeX * TextureMapping->IrradiancePhotonCacheSizeX);
-		IrradiancePhotonCacheDebugY = FMath::TruncToInt(Scene.DebugInput.LocalY / (float)TextureMapping->CachedSizeY * TextureMapping->IrradiancePhotonCacheSizeY);
+		IrradiancePhotonCacheDebugX = FMath::TruncToInt(Scene.DebugInput.LocalX / (float)TextureMapping->CachedSizeX * TextureMapping->SurfaceCacheSizeX);
+		IrradiancePhotonCacheDebugY = FMath::TruncToInt(Scene.DebugInput.LocalY / (float)TextureMapping->CachedSizeY * TextureMapping->SurfaceCacheSizeY);
 	}
 #endif
 
-	const float SampleWeight = 1.0f;
-	for (int32 TriangleIndex = 0; TriangleIndex < TextureMapping->Mesh->NumTriangles; TriangleIndex++)
-	{
-		// Query the mesh for the triangle's vertices.
-		FStaticLightingInterpolant V0;
-		FStaticLightingInterpolant V1;
-		FStaticLightingInterpolant V2;
-		int32 Element;
-		TextureMapping->Mesh->GetTriangle(TriangleIndex, V0.Vertex, V1.Vertex, V2.Vertex, Element);
-		V0.ElementIndex = V1.ElementIndex = V2.ElementIndex = Element;
-
-		const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).GetSafeNormal();
-
-		// Don't rasterize degenerates 
-		if (!TriangleNormal.IsNearlyZero3())
-		{
-			// Rasterize the triangle using the mapping's texture coordinate channel.
-			FTriangleRasterizer<FStaticLightingRasterPolicy> TexelMappingRasterizer(FStaticLightingRasterPolicy(
-					Scene,
-					TexelToVertexMap,
-					SampleWeight,
-					TriangleNormal,
-					false,
-					false
-					));
-
-			TexelMappingRasterizer.DrawTriangle(
-				V0,
-				V1,
-				V2,
-				V0.Vertex.TextureCoordinates[TextureMapping->LightmapTextureCoordinateIndex] * FVector2D(TextureMapping->IrradiancePhotonCacheSizeX,TextureMapping->IrradiancePhotonCacheSizeY) + FVector2D(-0.5f,-0.5f),
-				V1.Vertex.TextureCoordinates[TextureMapping->LightmapTextureCoordinateIndex] * FVector2D(TextureMapping->IrradiancePhotonCacheSizeX,TextureMapping->IrradiancePhotonCacheSizeY) + FVector2D(-0.5f,-0.5f),
-				V2.Vertex.TextureCoordinates[TextureMapping->LightmapTextureCoordinateIndex] * FVector2D(TextureMapping->IrradiancePhotonCacheSizeX,TextureMapping->IrradiancePhotonCacheSizeY) + FVector2D(-0.5f,-0.5f),
-				false
-				);
-		}
-	}
+	RasterizeToSurfaceCacheTextureMapping(TextureMapping, bDebugThisMapping, TexelToVertexMap);
 
 	// Allocate space for the cached irradiance photons
-	TextureMapping->CachedIrradiancePhotons.Empty(TextureMapping->IrradiancePhotonCacheSizeX * TextureMapping->IrradiancePhotonCacheSizeY);
-	TextureMapping->CachedIrradiancePhotons.AddZeroed(TextureMapping->IrradiancePhotonCacheSizeX * TextureMapping->IrradiancePhotonCacheSizeY);
-
-	TextureMapping->CachedDirectLighting.Empty(TextureMapping->IrradiancePhotonCacheSizeX * TextureMapping->IrradiancePhotonCacheSizeY);
-	TextureMapping->CachedDirectLighting.AddZeroed(TextureMapping->IrradiancePhotonCacheSizeX * TextureMapping->IrradiancePhotonCacheSizeY);
-
-	FLMRandomStream RandomStream(0);
-
-#define USE_ADAPTIVE_SOLVER_FOR_CACHED_SKYLIGHTING 1
-#if USE_ADAPTIVE_SOLVER_FOR_CACHED_SKYLIGHTING
-	TLightingCache<FFinalGatherSample> ApproximateSkyLightingCache(TextureMapping->Mesh->BoundingBox, *this, 1);
-
-	for (int32 Y = 0; Y < TextureMapping->IrradiancePhotonCacheSizeY; Y++)
-	{
-		for (int32 X = 0; X < TextureMapping->IrradiancePhotonCacheSizeX; X++)
-		{
-			bool bDebugThisTexel = false;
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-			if (bDebugThisMapping
-				&& Y == IrradiancePhotonCacheDebugY
-				&& X == IrradiancePhotonCacheDebugX)
-			{
-				bDebugThisTexel = true;
-			}
-#endif
-			const FTexelToVertex& TexelToVertex = TexelToVertexMap(X,Y);
-			if (TexelToVertex.TotalSampleWeight > 0.0f)
-			{
-				FFullStaticLightingVertex Vertex = TexelToVertex.GetFullVertex();
-				Vertex.ApplyVertexModifications(TexelToVertex.ElementIndex, MaterialSettings.bUseNormalMapsForLighting, TextureMapping->Mesh);
-				FFinalGatherSample SkyLighting;
-				FFinalGatherSample UnusedSecondLighting;
-
-				if (!ApproximateSkyLightingCache.InterpolateLighting(Vertex, true, false, 1.0f, SkyLighting, UnusedSecondLighting, MappingContext.DebugCacheRecords))
-				{
-					FFinalGatherSample UniformSampledIncomingRadiance;
-					TArray<FVector4> ImportancePhotonDirections;
-					FLightingCacheGatherInfo GatherInfo;
-					const int32 NumAdaptiveRefinementLevels = GeneralSettings.IndirectLightingQuality <= 10 ? 1 : 2;
-
-					UniformSampledIncomingRadiance = IncomingRadianceAdaptive<FFinalGatherSample>(
-						TextureMapping, 
-						Vertex, 
-						TexelToVertex.TexelRadius, 
-						false,
-						TexelToVertex.ElementIndex, 
-						1, 
-						RBM_ConstantNormalOffset,
-						NumAdaptiveRefinementLevels,
-						1.0f,
-						CachedHemisphereSamplesForApproximateSkyLighting,
-						CachedHemisphereSamplesForApproximateSkyLightingUniforms,
-						1,
-						ImportancePhotonDirections, 
-						MappingContext, 
-						RandomStream, 
-						GatherInfo, 
-						true, /* bSkyLightingOnly */
-						true, /* bGatheringForCachedDirectLighting */
-						false);
-
-
-					float OverrideRadius = 0;
-
-					TLightingCache<FFinalGatherSample>::FRecord<FFinalGatherSample> NewRecord(
-						Vertex,
-						GatherInfo,
-						TexelToVertex.TexelRadius,
-						OverrideRadius,
-						IrradianceCachingSettings,
-						GeneralSettings,
-						UniformSampledIncomingRadiance,
-						FVector4(0, 0, 0, 0),
-						FVector4(0, 0, 0, 0)
-						);
-
-					// Add the incident radiance sample to the cache.
-					ApproximateSkyLightingCache.AddRecord(NewRecord, false, false);
-				}
-			}
-		}
-	}
-#endif
+	TextureMapping->CachedIrradiancePhotons.Empty(TextureMapping->SurfaceCacheSizeX * TextureMapping->SurfaceCacheSizeY);
+	TextureMapping->CachedIrradiancePhotons.AddZeroed(TextureMapping->SurfaceCacheSizeX * TextureMapping->SurfaceCacheSizeY);
 
 	TArray<FIrradiancePhoton*> TempIrradiancePhotons;
-	for (int32 Y = 0; Y < TextureMapping->IrradiancePhotonCacheSizeY; Y++)
+	for (int32 Y = 0; Y < TextureMapping->SurfaceCacheSizeY; Y++)
 	{
-		for (int32 X = 0; X < TextureMapping->IrradiancePhotonCacheSizeX; X++)
+		for (int32 X = 0; X < TextureMapping->SurfaceCacheSizeX; X++)
 		{
 			bool bDebugThisTexel = false;
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
@@ -478,24 +173,8 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 
 				CurrentVertex.ApplyVertexModifications(TexelToVertex.ElementIndex, MaterialSettings.bUseNormalMapsForLighting, TextureMapping->Mesh);
 
-				FGatheredLightSample DirectLighting;
-				FGatheredLightSample Unused;
-				float Unused2;
-				TArray<FVector, TInlineAllocator<1>> VertexOffsets;
-				VertexOffsets.Add(FVector(0, 0, 0));
+				FIrradiancePhoton* NearestPhoton = NULL;
 
-				CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, VertexOffsets, .1f, true, true, bDebugThisTexel && PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting, MappingContext, DirectLighting, Unused, Unused2);
-
-#if USE_ADAPTIVE_SOLVER_FOR_CACHED_SKYLIGHTING
-				FFinalGatherSample SkyLighting;
-				FFinalGatherSample UnusedSecondLighting;
-				ApproximateSkyLightingCache.InterpolateLighting(CurrentVertex, false, false, IrradianceCachingSettings.SkyOcclusionSmoothnessReduction, SkyLighting, UnusedSecondLighting, MappingContext.DebugCacheRecords);
-#else
-				// Compute low quality sky lighting and cache in the direct lighting, so we get one bounce, since sky lighting isn't handled by photons
-				const FGatheredLightSample SkyLighting = CalculateApproximateSkyLighting(CurrentVertex, TexelToVertex.TexelRadius, CachedHemisphereSamplesForApproximateSkyLighting, MappingContext);
-#endif
-				TextureMapping->CachedDirectLighting[Y * TextureMapping->IrradiancePhotonCacheSizeX + X] = DirectLighting.IncidentLighting + SkyLighting.IncidentLighting + SkyLighting.StationarySkyLighting.IncidentLighting;
-				
 				// Only search the irradiance photon map if the surface cache position is inside the importance volume,
 				// Since irradiance photons are only deposited inside the importance volume.
 				if (ImportanceBounds.GetBox().IsInside(CurrentVertex.WorldPosition))
@@ -503,7 +182,8 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 					// Find the nearest irradiance photon and store it on the surface of the mapping
 					// Only find visible irradiance photons to prevent light leaking through thin surfaces
 					//Note: It's still possible for light to leak if a single texel spans two disjoint lighting areas, for example two planes coming together at a 90 degree angle.
-					FIrradiancePhoton* NearestPhoton = FindNearestIrradiancePhoton(CurrentVertex, MappingContext, TempIrradiancePhotons, true, bDebugThisTexel);
+					NearestPhoton = FindNearestIrradiancePhoton(CurrentVertex, MappingContext, TempIrradiancePhotons, true, bDebugThisTexel);
+						
 					if (NearestPhoton)
 					{
 						if (!NearestPhoton->IsUsed())
@@ -512,12 +192,275 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 							MappingContext.Stats.NumFoundIrradiancePhotons++;
 							NearestPhoton->SetUsed();
 						}
-						TextureMapping->CachedIrradiancePhotons[Y * TextureMapping->IrradiancePhotonCacheSizeX + X] = NearestPhoton;
+
+						TextureMapping->CachedIrradiancePhotons[Y * TextureMapping->SurfaceCacheSizeX + X] = NearestPhoton;
 					}
 				}
 			}
 		}
 	}
+}
+
+/** Cache irradiance photons on surfaces. */
+void FStaticLightingSystem::FinalizeSurfaceCache()
+{
+	for(int32 ThreadIndex = 1; ThreadIndex < NumStaticLightingThreads; ThreadIndex++)
+	{
+		FMappingProcessingThreadRunnable* ThreadRunnable = new(FinalizeSurfaceCacheThreads) FMappingProcessingThreadRunnable(this, ThreadIndex, StaticLightingTask_FinalizeSurfaceCache);
+		const FString ThreadName = FString::Printf(TEXT("FinalizeSurfaceCacheThread%u"), ThreadIndex);
+		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName);
+	}
+
+	// Start the static lighting thread loop on the main thread, too.
+	// Once it returns, all static lighting mappings have begun processing.
+	FinalizeSurfaceCacheThreadLoop(0, true);
+
+	// Stop the static lighting threads.
+	for(int32 ThreadIndex = 0;ThreadIndex < FinalizeSurfaceCacheThreads.Num();ThreadIndex++)
+	{
+		// Wait for the thread to exit.
+		FinalizeSurfaceCacheThreads[ThreadIndex].Thread->WaitForCompletion();
+		// Check that it didn't terminate with an error.
+		FinalizeSurfaceCacheThreads[ThreadIndex].CheckHealth();
+
+		// Destroy the thread.
+		delete FinalizeSurfaceCacheThreads[ThreadIndex].Thread;
+	}
+	FinalizeSurfaceCacheThreads.Empty();
+}
+
+void FStaticLightingSystem::FinalizeSurfaceCacheThreadLoop(int32 ThreadIndex, bool bIsMainThread)
+{
+	bool bIsDone = false;
+	while (!bIsDone)
+	{
+		// Atomically read and increment the next mapping index to process.
+		const int32 MappingIndex = NextMappingToFinalizeSurfaceCache.Increment() - 1;
+
+		if (MappingIndex < AllMappings.Num())
+		{
+			// If this is the main thread, update progress and apply completed static lighting.
+			if (bIsMainThread)
+			{
+				// Check the health of all static lighting threads.
+				for (int32 ThreadIndexIter = 0; ThreadIndexIter < FinalizeSurfaceCacheThreads.Num(); ThreadIndexIter++)
+				{
+					FinalizeSurfaceCacheThreads[ThreadIndexIter].CheckHealth();
+				}
+			}
+
+			FStaticLightingTextureMapping* TextureMapping = AllMappings[MappingIndex]->GetTextureMapping();
+
+			if (TextureMapping)
+			{
+				FinalizeSurfaceCacheTextureMapping(TextureMapping);
+			}
+		}
+		else
+		{
+			// Processing has begun for all mappings.
+			bIsDone = true;
+		}
+	}
+}
+
+void FStaticLightingSystem::RasterizeToSurfaceCacheTextureMapping(FStaticLightingTextureMapping* TextureMapping, bool bDebugThisMapping, FTexelToVertexMap& TexelToVertexMap)
+{
+	// Using conservative rasterization, which uses super sampling to try to detect all texels that should be mapped.
+	for(int32 TriangleIndex = 0;TriangleIndex < TextureMapping->Mesh->NumTriangles;TriangleIndex++)
+	{
+		// Query the mesh for the triangle's vertices.
+		FStaticLightingInterpolant V0;
+		FStaticLightingInterpolant V1;
+		FStaticLightingInterpolant V2;
+		int32 Element;
+		TextureMapping->Mesh->GetTriangle(TriangleIndex,V0.Vertex,V1.Vertex,V2.Vertex,Element);
+		V0.ElementIndex = V1.ElementIndex = V2.ElementIndex = Element;
+
+		const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).GetSafeNormal();
+
+		// Don't rasterize degenerates 
+		if (!TriangleNormal.IsNearlyZero3())
+		{
+			const FVector2D UV0 = V0.Vertex.TextureCoordinates[TextureMapping->LightmapTextureCoordinateIndex] * FVector2D(TextureMapping->SurfaceCacheSizeX,TextureMapping->SurfaceCacheSizeY);
+			const FVector2D UV1 = V1.Vertex.TextureCoordinates[TextureMapping->LightmapTextureCoordinateIndex] * FVector2D(TextureMapping->SurfaceCacheSizeX,TextureMapping->SurfaceCacheSizeY);
+			const FVector2D UV2 = V2.Vertex.TextureCoordinates[TextureMapping->LightmapTextureCoordinateIndex] * FVector2D(TextureMapping->SurfaceCacheSizeX,TextureMapping->SurfaceCacheSizeY);
+
+			// Odd number of samples so that the center of the pyramid is on one of the samples
+			const uint32 NumSamplesX = 5;
+			const uint32 NumSamplesY = 5;
+
+			// Rasterize multiple sub-texel samples and linearly combine the results
+			// Don't rasterize the first or last row and column as the weight will be 0
+			for(int32 Y = 1; Y < NumSamplesY - 1; Y++)
+			{
+				const float SampleYOffset = -Y / (float)(NumSamplesY - 1);
+				for(int32 X = 1; X < NumSamplesX - 1; X++)
+				{
+					const float SampleXOffset = -X / (float)(NumSamplesX - 1);
+					// Weight the sample based on a pyramid centered on the texel.  
+					// The sample with the maximum weight is used, which will be the center if it lies on a triangle.
+					const float SampleWeight = (1 - FMath::Abs(1 + SampleXOffset * 2)) * (1 - FMath::Abs(1 + SampleYOffset * 2));
+					checkSlow(SampleWeight > 0);
+					// Rasterize the triangle using the mapping's texture coordinate channel.
+					FTriangleRasterizer<FStaticLightingRasterPolicy> TexelMappingRasterizer(FStaticLightingRasterPolicy(
+						Scene,
+						TexelToVertexMap,
+						SampleWeight,
+						TriangleNormal,
+						bDebugThisMapping,
+						GeneralSettings.bUseMaxWeight
+						));
+
+					TexelMappingRasterizer.DrawTriangle(
+						V0,
+						V1,
+						V2,
+						UV0 + FVector2D(SampleXOffset, SampleYOffset),
+						UV1 + FVector2D(SampleXOffset, SampleYOffset),
+						UV2 + FVector2D(SampleXOffset, SampleYOffset),
+						false
+						);
+				}
+			}
+		}
+	}
+
+	for (int32 Y = 0; Y < TextureMapping->SurfaceCacheSizeY; Y++)
+	{
+		for (int32 X = 0; X < TextureMapping->SurfaceCacheSizeX; X++)
+		{
+			FTexelToVertex& TexelToVertex = TexelToVertexMap(X, Y);
+			if (TexelToVertex.TotalSampleWeight > 0.0f)
+			{
+				if (GeneralSettings.bUseMaxWeight)
+				{
+					// Weighted average
+					TexelToVertex.WorldTangentX = TexelToVertex.WorldTangentX / TexelToVertex.TotalSampleWeight;
+					TexelToVertex.WorldTangentY = TexelToVertex.WorldTangentY / TexelToVertex.TotalSampleWeight;
+					TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ / TexelToVertex.TotalSampleWeight;
+					TexelToVertex.TriangleNormal = TexelToVertex.TriangleNormal / TexelToVertex.TotalSampleWeight;
+				}
+
+				// Normalize the tangent basis and ensure it is orthonormal
+				TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.GetSafeNormal();
+
+				if (TexelToVertex.TriangleNormal.IsNearlyZero3())
+				{
+					TexelToVertex.TriangleNormal = TexelToVertex.WorldTangentZ;
+				}
+
+				const bool bUseVertexNormalForHemisphereGather = TextureMapping->Mesh->UseVertexNormalForHemisphereGather(TexelToVertex.ElementIndex);
+				TexelToVertex.TriangleNormal = bUseVertexNormalForHemisphereGather ? TexelToVertex.WorldTangentZ : TexelToVertex.TriangleNormal.GetUnsafeNormal3();
+				checkSlow(!TexelToVertex.TriangleNormal.ContainsNaN());
+
+				const FVector4 OriginalTangentX = TexelToVertex.WorldTangentX;
+				const FVector4 OriginalTangentY = TexelToVertex.WorldTangentY;
+
+				TexelToVertex.WorldTangentY = (TexelToVertex.WorldTangentZ ^ TexelToVertex.WorldTangentX).GetUnsafeNormal3();
+				// Maintain handedness
+				if (Dot3(TexelToVertex.WorldTangentY, OriginalTangentY) < 0)
+				{
+					TexelToVertex.WorldTangentY *= -1.0f;
+				}
+				TexelToVertex.WorldTangentX = TexelToVertex.WorldTangentY ^ TexelToVertex.WorldTangentZ;
+				if (Dot3(TexelToVertex.WorldTangentX, OriginalTangentX) < 0)
+				{
+					TexelToVertex.WorldTangentX *= -1.0f;
+				}
+				checkSlow(TexelToVertex.WorldTangentX.IsUnit3());
+				checkSlow(TexelToVertex.WorldTangentY.IsUnit3());
+				checkSlow(TexelToVertex.WorldTangentZ.IsUnit3());
+				checkSlow(TexelToVertex.TriangleNormal.IsUnit3());
+				checkSlow(Dot3(TexelToVertex.WorldTangentZ, TexelToVertex.WorldTangentY) < KINDA_SMALL_NUMBER);
+				checkSlow(Dot3(TexelToVertex.WorldTangentX, TexelToVertex.WorldTangentY) < KINDA_SMALL_NUMBER);
+				checkSlow(Dot3(TexelToVertex.WorldTangentX, TexelToVertex.WorldTangentZ) < KINDA_SMALL_NUMBER);
+			}
+		}
+	}
+}
+
+void FStaticLightingSystem::FinalizeSurfaceCacheTextureMapping(FStaticLightingTextureMapping* TextureMapping)
+{
+	checkSlow(TextureMapping);
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this);
+	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
+
+	FTexelToVertexMap TexelToVertexMap(TextureMapping->SurfaceCacheSizeX, TextureMapping->SurfaceCacheSizeY);
+
+	bool bDebugThisMapping = false;
+#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
+	bDebugThisMapping = TextureMapping == Scene.DebugMapping;
+	int32 CacheDebugX = -1;
+	int32 CacheDebugY = -1;
+	if (bDebugThisMapping)
+	{
+		CacheDebugX = FMath::TruncToInt(Scene.DebugInput.LocalX / (float)TextureMapping->CachedSizeX * TextureMapping->SurfaceCacheSizeX);
+		CacheDebugY = FMath::TruncToInt(Scene.DebugInput.LocalY / (float)TextureMapping->CachedSizeY * TextureMapping->SurfaceCacheSizeY);
+	}
+#endif
+
+	RasterizeToSurfaceCacheTextureMapping(TextureMapping, bDebugThisMapping, TexelToVertexMap);
+
+	for (int32 Y = 0; Y < TextureMapping->SurfaceCacheSizeY; Y++)
+	{
+		for (int32 X = 0; X < TextureMapping->SurfaceCacheSizeX; X++)
+		{
+			bool bDebugThisTexel = false;
+#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
+			if (bDebugThisMapping
+				&& Y == CacheDebugX
+				&& X == CacheDebugY)
+			{
+				bDebugThisTexel = true;
+			}
+#endif
+			const FTexelToVertex& TexelToVertex = TexelToVertexMap(X,Y);
+
+			if (TexelToVertex.TotalSampleWeight > 0.0f)
+			{
+				FFullStaticLightingVertex CurrentVertex = TexelToVertex.GetFullVertex();
+				CurrentVertex.ApplyVertexModifications(TexelToVertex.ElementIndex, MaterialSettings.bUseNormalMapsForLighting, TextureMapping->Mesh);
+
+				const int32 SurfaceCacheIndex = Y * TextureMapping->SurfaceCacheSizeX + X;
+
+				FLinearColor FinalIncidentLighting = FLinearColor::Black;
+
+				// SurfaceCacheLighting at this point contains 1st and up bounce lighting for the skylight and emissive sources, computed by the radiosity iterations
+				FinalIncidentLighting += TextureMapping->SurfaceCacheLighting[SurfaceCacheIndex];
+
+				if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber >= 2)
+				{
+					const FIrradiancePhoton* NearestPhoton = TextureMapping->CachedIrradiancePhotons[SurfaceCacheIndex];
+
+					if (NearestPhoton)
+					{
+						// The irradiance photon contains 2nd and up bounce lighting for point / spot / directional lights (since they emit photons)
+						FinalIncidentLighting += NearestPhoton->GetIrradiance();
+					}
+				}
+
+				if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber == 1)
+				{
+					FGatheredLightSample DirectLighting;
+					FGatheredLightSample Unused;
+					float Unused2;
+					TArray<FVector, TInlineAllocator<1>> VertexOffsets;
+					VertexOffsets.Add(FVector(0, 0, 0));
+
+					CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, VertexOffsets, .1f, true, true, bDebugThisTexel && PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting, MappingContext, DirectLighting, Unused, Unused2);
+					FinalIncidentLighting += DirectLighting.IncidentLighting;
+				}
+
+				const bool bTranslucent = TextureMapping->Mesh->IsTranslucent(TexelToVertex.ElementIndex);
+				const FLinearColor Reflectance = (bTranslucent ? FLinearColor::Black : TextureMapping->Mesh->EvaluateTotalReflectance(CurrentVertex, TexelToVertex.ElementIndex)) * (float)INV_PI;
+				// Combine all the lighting and surface reflectance so the final gather ray only needs one memory fetch
+				TextureMapping->SurfaceCacheLighting[SurfaceCacheIndex] = FinalIncidentLighting * Reflectance;
+			}
+		}
+	}
+
+	TextureMapping->CachedIrradiancePhotons.Empty();
 }
 
 /**
@@ -2890,7 +2833,8 @@ void FStaticLightingSystem::CalculateDirectLightingTextureMappingPhotonMap(
 						}
 
 						// Find the nearest irradiance photon that was cached on this surface
-						NearestPhoton = TextureMapping->GetCachedIrradiancePhoton(INDEX_NONE, CurrentVertex, *this, bDebugThisTexel && PhotonMappingSettings.bVisualizePhotonGathers && GeneralSettings.ViewSingleBounceNumber <= 0, DirectLighting);
+
+						checkf(0, TEXT("No longer implemented"));
 					}
 					else
 					{
@@ -2905,9 +2849,7 @@ void FStaticLightingSystem::CalculateDirectLightingTextureMappingPhotonMap(
 
 						CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, VertexOffsets, .1f, true, true, bDebugThisTexel, MappingContext, DirectLightingSample, Unused, Unused2);
 
-						const FGatheredLightSample SkyLighting = CalculateApproximateSkyLighting(TexelToVertex.GetFullVertex(), TexelToVertex.TexelRadius, CachedHemisphereSamplesForApproximateSkyLighting, MappingContext);
-
-						DirectLighting = DirectLightingSample.IncidentLighting + SkyLighting.IncidentLighting;
+						DirectLighting = DirectLightingSample.IncidentLighting;
 					}
 					const FLinearColor& PhotonIrradiance = NearestPhoton ? NearestPhoton->GetIrradiance() : FLinearColor::Black;
 					if (GeneralSettings.ViewSingleBounceNumber < 1)
@@ -2977,7 +2919,6 @@ void FStaticLightingSystem::ProcessCacheIndirectLightingTask(FCacheIndirectTaskD
 					Task->TextureMapping, 
 					TexelVertex, 
 					TexelToVertex.ElementIndex,
-					INDEX_NONE,
 					TexelToVertex.TexelRadius, 
 					TexelToVertex.bIntersectingSurface,
 					Task->MappingContext, 
@@ -2995,7 +2936,6 @@ void FStaticLightingSystem::ProcessCacheIndirectLightingTask(FCacheIndirectTaskD
 						Task->TextureMapping, 
 						TexelVertex, 
 						TexelToVertex.ElementIndex,
-						INDEX_NONE,
 						TexelToVertex.TexelRadius, 
 						TexelToVertex.bIntersectingSurface,
 						Task->MappingContext, 
@@ -3878,27 +3818,30 @@ void FStaticLightingSystem::CalculateTexelCorners(
 	}
 }
 
-/** Accesses a cached photon at the given vertex, if one exists. */
-const FIrradiancePhoton* FStaticLightingTextureMapping::GetCachedIrradiancePhoton(int32 VertexIndex, const FStaticLightingVertex& Vertex, const FStaticLightingSystem& System, bool bDebugThisLookup, FLinearColor& OutDirectLighting) const
+FLinearColor FStaticLightingMapping::GetCachedRadiosity(int32 RadiosityBufferIndex, int32 SurfaceCacheIndex) const
 {
-	checkSlow(IrradiancePhotonCacheSizeX > 0 && IrradiancePhotonCacheSizeY > 0);
+	return RadiositySurfaceCache[RadiosityBufferIndex][SurfaceCacheIndex];
+}
+
+FLinearColor FStaticLightingTextureMapping::GetSurfaceCacheLighting(const FMinimalStaticLightingVertex& Vertex) const
+{
+	checkSlow(SurfaceCacheSizeX > 0 && SurfaceCacheSizeY > 0);
 	// Clamping is necessary since the UV's may be outside the [0, 1) range
-	const int32 PhotonX = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].X * IrradiancePhotonCacheSizeX), 0, IrradiancePhotonCacheSizeX - 1);
-	const int32 PhotonY = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].Y * IrradiancePhotonCacheSizeY), 0, IrradiancePhotonCacheSizeY - 1);
-	const int32 PhotonIndex = PhotonY * IrradiancePhotonCacheSizeX + PhotonX;
+	const int32 SurfaceCacheX = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].X * SurfaceCacheSizeX), 0, SurfaceCacheSizeX - 1);
+	const int32 SurfaceCacheY = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].Y * SurfaceCacheSizeY), 0, SurfaceCacheSizeY - 1);
+	const int32 SurfaceCacheIndex = SurfaceCacheY * SurfaceCacheSizeX + SurfaceCacheX;
 
-	const FIrradiancePhoton* ClosestPhoton = CachedIrradiancePhotons[PhotonIndex];
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-	if (bDebugThisLookup && ClosestPhoton != NULL)
-	{
-		FScopeLock DebugOutputLock(&System.DebugOutputSync);
-		System.DebugOutput.GatheredPhotons.Add(FDebugPhoton(0, ClosestPhoton->GetPosition(), ClosestPhoton->GetSurfaceNormal(), ClosestPhoton->GetSurfaceNormal()));
-	}
-#endif
+	FLinearColor Lighting = SurfaceCacheLighting[SurfaceCacheIndex];
+	return Lighting;
+}
 
-	OutDirectLighting = CachedDirectLighting[PhotonIndex];
-
-	return ClosestPhoton;
+int32 FStaticLightingTextureMapping::GetSurfaceCacheIndex(const struct FMinimalStaticLightingVertex& Vertex) const
+{
+	checkSlow(SurfaceCacheSizeX > 0 && SurfaceCacheSizeY > 0);
+	// Clamping is necessary since the UV's may be outside the [0, 1) range
+	const int32 SurfaceCacheX = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].X * SurfaceCacheSizeX), 0, SurfaceCacheSizeX - 1);
+	const int32 SurfaceCacheY = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].Y * SurfaceCacheSizeY), 0, SurfaceCacheSizeY - 1);
+	return SurfaceCacheY * SurfaceCacheSizeX + SurfaceCacheX;
 }
 
 }

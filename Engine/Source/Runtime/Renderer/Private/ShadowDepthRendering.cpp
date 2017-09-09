@@ -194,7 +194,7 @@ public:
 			// Reflective shadow map shaders must be compiled for every material because they access the material normal
 			return !bUsePositionOnlyStream
 				// Don't render ShadowDepth for translucent unlit materials, unless we're injecting emissive
-				&& ((!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() 
+				&& (Material->ShouldCastDynamicShadows() || Material->ShouldInjectEmissiveIntoLPV() 
 					|| Material->ShouldBlockGI() )
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 		}
@@ -208,7 +208,7 @@ public:
 					// Only compile position-only shaders for vertex factories that support it.
 					&& (!bUsePositionOnlyStream || VertexFactoryType->SupportsPositionOnly())
 					// Don't render ShadowDepth for translucent unlit materials
-					&& (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit)
+					&& Material->ShouldCastDynamicShadows()
 					// Only compile perspective correct light shaders for feature levels >= SM4
 					&& (ShaderMode != VertexShadowDepth_PerspectiveCorrect || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4));
 		}
@@ -527,7 +527,7 @@ public:
 
 				if(Lpv)
 				{
-					SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Lpv->GetWriteUniformBuffer());
+					SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Lpv->GetRsmUniformBuffer());
 				}
 			}
 		}
@@ -589,7 +589,7 @@ public:
 				|| !Material->WritesEveryPixel(true))
 				&& ShaderMode == PixelShadowDepth_NonPerspectiveCorrect
 				// Don't render ShadowDepth for translucent unlit materials
-				&& (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit)
+				&& Material->ShouldCastDynamicShadows()
 				&& !bRenderReflectiveShadowMap;
 		}
 
@@ -599,7 +599,7 @@ public:
 			// Reflective shadow map shaders must be compiled for every material because they access the material normal
 			return 
 				// Only compile one pass point light shaders for feature levels >= SM4
-				( (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() || Material->ShouldBlockGI() )
+				( Material->ShouldCastDynamicShadows() || Material->ShouldInjectEmissiveIntoLPV() || Material->ShouldBlockGI() )
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 		}
 		else
@@ -614,7 +614,7 @@ public:
 				// Only compile one pass point light shaders for feature levels >= SM4
 				&& (ShaderMode != PixelShadowDepth_OnePassPointLight || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
 				// Don't render ShadowDepth for translucent unlit materials
-				&& (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit)
+				&& Material->ShouldCastDynamicShadows()
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 	}
@@ -2369,6 +2369,25 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, ColorTarget1.TargetableTexture);
 	}
 
+	// Get a copy of LpvWriteUniformBufferParams for parallel RSM draw-call submission
+	{
+		for (int32 ViewIdx = 0; ViewIdx < Views.Num(); ++ViewIdx)
+		{
+			FViewInfo& View = Views[ViewIdx];
+			FSceneViewState* ViewState = View.ViewState;
+
+			if (ViewState)
+			{
+				FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(FeatureLevel);
+
+				if (Lpv)
+				{
+					Lpv->SetRsmUniformBuffer();
+				}
+			}
+		}
+	}
+
 	for (int32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.RSMAtlases.Num(); AtlasIndex++)
 	{
 		const FSortedShadowMapAtlas& ShadowMapAtlas = SortedShadowsForShadowDepthPass.RSMAtlases[AtlasIndex];
@@ -2409,8 +2428,6 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 				SCOPED_DRAW_EVENT(RHICmdList, Clear);
 				SetShadowRenderTargets(RHICmdList, true);	
 			}				
-
-			LightPropagationVolume->SetVplInjectionConstants(*ProjectedShadowInfo, ProjectedShadowInfo->GetLightSceneInfo().Proxy);
 
 			ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets, ShadowDepthRenderMode_Normal);
 

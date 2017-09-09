@@ -12,6 +12,7 @@
 #include "IOSAppDelegate.h"
 #elif PLATFORM_MAC
 #include "MacApplication.h"
+#include "HAL/PlatformApplicationMisc.h"
 #endif
 #include "ShaderCache.h"
 #include "MetalProfiler.h"
@@ -583,10 +584,12 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	if (CVar->GetInt() == 0)
 	{
 		FShaderCache::InitShaderCache(SCO_NoShaderPreload, GMaxRHIShaderPlatform);
+		ImmediateContext.GetInternalContext().GetCurrentState().SetShaderCacheStateObject(FShaderCache::CreateOrFindCacheStateForContext(&ImmediateContext));
 	}
 	else
 	{
 		FShaderCache::InitShaderCache(SCO_Default, GMaxRHIShaderPlatform);
+		ImmediateContext.GetInternalContext().GetCurrentState().SetShaderCacheStateObject(FShaderCache::CreateOrFindCacheStateForContext(&ImmediateContext));
 	}
 	
 #if PLATFORM_MAC
@@ -755,34 +758,13 @@ void FMetalRHICommandContext::RHIPopEvent()
 void FMetalDynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height )
 {
 #if PLATFORM_MAC
-	uint32 InitializedMode = false;
-	uint32 BestWidth = 0;
-	uint32 BestHeight = 0;
-	
-	CFArrayRef AllModes = CGDisplayCopyAllDisplayModes(kCGDirectMainDisplay, NULL);
-	if (AllModes)
+	CGDisplayModeRef DisplayMode = FPlatformApplicationMisc::GetSupportedDisplayMode(kCGDirectMainDisplay, Width, Height);
+	if (DisplayMode)
 	{
-		int32 NumModes = CFArrayGetCount(AllModes);
-		for (int32 Index = 0; Index < NumModes; Index++)
-		{
-			CGDisplayModeRef Mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
-			int32 ModeWidth = (int32)CGDisplayModeGetWidth(Mode);
-			int32 ModeHeight = (int32)CGDisplayModeGetHeight(Mode);
-			
-			bool IsEqualOrBetterWidth = FMath::Abs((int32)ModeWidth - (int32)Width) <= FMath::Abs((int32)BestWidth - (int32)Width);
-			bool IsEqualOrBetterHeight = FMath::Abs((int32)ModeHeight - (int32)Height) <= FMath::Abs((int32)BestHeight - (int32)Height);
-			if(!InitializedMode || (IsEqualOrBetterWidth && IsEqualOrBetterHeight))
-			{
-				BestWidth = ModeWidth;
-				BestHeight = ModeHeight;
-				InitializedMode = true;
-			}
-		}
-		CFRelease(AllModes);
+		Width = CGDisplayModeGetWidth(DisplayMode);
+		Height = CGDisplayModeGetHeight(DisplayMode);
+		CGDisplayModeRelease(DisplayMode);
 	}
-	check(InitializedMode);
-	Width = BestWidth;
-	Height = BestHeight;
 #else
 	UE_LOG(LogMetal, Warning,  TEXT("RHIGetSupportedResolution unimplemented!"));
 #endif

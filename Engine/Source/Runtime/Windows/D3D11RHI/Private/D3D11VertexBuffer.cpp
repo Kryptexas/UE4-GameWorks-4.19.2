@@ -64,7 +64,11 @@ FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,uint32 I
 	D3D11_SUBRESOURCE_DATA* pInitData = NULL;
 	if(CreateInfo.ResourceArray)
 	{
-		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+		checkf(Size == CreateInfo.ResourceArray->GetResourceDataSize(),
+			TEXT("DebugName: %s, GPU Size: %d, CPU Size: %d, Is Dynamic: %s"),
+			CreateInfo.DebugName, Size, CreateInfo.ResourceArray->GetResourceDataSize(),
+			InUsage & BUF_AnyDynamic ? TEXT("Yes") : TEXT("No"));
+
 		InitData.pSysMem = CreateInfo.ResourceArray->GetResourceData();
 		InitData.SysMemPitch = Size;
 		InitData.SysMemSlicePitch = 0;

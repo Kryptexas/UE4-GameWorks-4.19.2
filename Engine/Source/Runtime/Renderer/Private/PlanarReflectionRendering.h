@@ -10,6 +10,7 @@ PlanarReflectionRendering.h: shared planar reflection rendering declarations.
 #include "ShaderParameters.h"
 
 class FShaderParameterMap;
+class FSceneView;
 
 /** Parameters needed for planar reflections, shared by multiple shaders. */
 class FPlanarReflectionParameters

@@ -926,6 +926,11 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 		}
 	}
 
+	if (CreateInfo.BulkData)
+	{
+		CreateInfo.BulkData->Discard();
+	}
+
 	return D3D12TextureOut;
 #else
 	checkf(false, TEXT("XBOX_CODE_MERGE : Removed. The Xbox platform version should be used."));
@@ -1070,6 +1075,10 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D12Texture3D(uint32 SizeX, uint32 Siz
 		FD3D12TextureStats::D3D12TextureAllocated(*D3D12TextureOut);
 	}
 
+	if (CreateInfo.BulkData)
+	{
+		CreateInfo.BulkData->Discard();
+	}
 
 	return D3D12TextureOut;
 #else

@@ -138,48 +138,26 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	float SampleAdaptiveRefinementBrightnessScale = 1.0f;
 	FLightingCacheGatherInfo UpperGatherInfo;
 
-	FFinalGatherSample3 UpperHemisphereSample;
-	
-	if (ImportanceTracingSettings.bUseAdaptiveSolver)
-	{
-		UpperHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
-			NULL, 
-			RepresentativeVertex, 
-			LightingSample.GetRadius(), 
-			false,
-			0, 
-			1, 
-			RBM_ScaledNormalOffset,
-			NumSampleAdaptiveRefinementLevels,
-			SampleAdaptiveRefinementBrightnessScale,
-			UniformHemisphereSamples,
-			UniformHemisphereSampleUniforms,
-			MaxUnoccludedLength,
-			UpperHemisphereImportancePhotonDirections, 
-			MappingContext, 
-			RandomStream, 
-			UpperGatherInfo, 
-			false,
-			false,
-			bDebugThisSample);
-	}
-	else
-	{
-		UpperHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
-			NULL,
-			RepresentativeVertex,
-			LightingSample.GetRadius(),
-			0,
-			1,
-			UniformHemisphereSamples,
-			MaxUnoccludedLength,
-			UpperHemisphereImportancePhotonDirections,
-			MappingContext,
-			RandomStream,
-			UpperGatherInfo,
-			bDebugThisSample
-			);
-	}
+	FFinalGatherSample3 UpperHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
+		NULL, 
+		RepresentativeVertex, 
+		LightingSample.GetRadius(), 
+		false,
+		0, 
+		1, 
+		RBM_ScaledNormalOffset,
+		GLM_FinalGather,
+		NumSampleAdaptiveRefinementLevels,
+		SampleAdaptiveRefinementBrightnessScale,
+		UniformHemisphereSamples,
+		UniformHemisphereSampleUniforms,
+		MaxUnoccludedLength,
+		UpperHemisphereImportancePhotonDirections, 
+		MappingContext, 
+		RandomStream, 
+		UpperGatherInfo, 
+		false,
+		bDebugThisSample);
 
 	const double EndUpperFinalGatherTime = FPlatformTime::Seconds();
 	MappingContext.Stats.VolumetricLightmapFinalGatherTime += EndUpperFinalGatherTime - EndUpperDirectLightingTime;
@@ -200,48 +178,26 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	const double EndLowerDirectLightingTime = FPlatformTime::Seconds();
 	MappingContext.Stats.VolumetricLightmapDirectLightingTime += EndLowerDirectLightingTime - EndUpperFinalGatherTime;
 
-	FFinalGatherSample3 LowerHemisphereSample;
-	
-	if (ImportanceTracingSettings.bUseAdaptiveSolver)
-	{
-		LowerHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
-			NULL, 
-			RepresentativeVertex, 
-			LightingSample.GetRadius(), 
-			false,
-			0, 
-			1, 
-			RBM_ScaledNormalOffset,
-			NumSampleAdaptiveRefinementLevels,
-			SampleAdaptiveRefinementBrightnessScale,
-			UniformHemisphereSamples,
-			UniformHemisphereSampleUniforms,
-			MaxUnoccludedLength,
-			LowerHemisphereImportancePhotonDirections, 
-			MappingContext, 
-			RandomStream, 
-			LowerGatherInfo, 
-			false,
-			false,
-			bDebugThisSample);
-	}
-	else
-	{
-		LowerHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
-			NULL,
-			RepresentativeVertex,
-			LightingSample.GetRadius(),
-			0,
-			1,
-			UniformHemisphereSamples,
-			MaxUnoccludedLength,
-			LowerHemisphereImportancePhotonDirections,
-			MappingContext,
-			RandomStream,
-			LowerGatherInfo,
-			bDebugThisSample
-			);
-	}
+	FFinalGatherSample3 LowerHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
+		NULL, 
+		RepresentativeVertex, 
+		LightingSample.GetRadius(), 
+		false,
+		0, 
+		1, 
+		RBM_ScaledNormalOffset,
+		GLM_FinalGather,
+		NumSampleAdaptiveRefinementLevels,
+		SampleAdaptiveRefinementBrightnessScale,
+		UniformHemisphereSamples,
+		UniformHemisphereSampleUniforms,
+		MaxUnoccludedLength,
+		LowerHemisphereImportancePhotonDirections, 
+		MappingContext, 
+		RandomStream, 
+		LowerGatherInfo, 
+		false,
+		bDebugThisSample);
 
 	const FGatheredLightSample3 CombinedIndirectLighting = UpperHemisphereSample + LowerHemisphereSample;
 	const FGatheredLightSample3 CombinedHighQualitySample = UpperStaticDirectLighting + LowerStaticDirectLighting + CombinedIndirectLighting;
@@ -274,90 +230,6 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	MappingContext.Stats.VolumetricLightmapFinalGatherTime += EndTime - EndLowerDirectLightingTime;
 }
 
-FGatheredLightSample FStaticLightingSystem::CalculateApproximateSkyLighting(
-	const FFullStaticLightingVertex& Vertex,
-	float SampleRadius,
-	const TArray<FVector4>& UniformHemisphereSamples,
-	FStaticLightingMappingContext& MappingContext) const
-{
-	FGatheredLightSample IncomingRadiance;
-
-	if (SkyLights.Num() > 0)
-	{
-		const float UniformPDF = 1.0f / (2.0f * (float)PI);
-		const float SampleWeight = 1.0f / (UniformPDF * UniformHemisphereSamples.Num());
-
-		for (int32 SampleIndex = 0; SampleIndex < UniformHemisphereSamples.Num(); SampleIndex++)
-		{
-			const FVector4 TriangleTangentPathDirection = UniformHemisphereSamples[SampleIndex];
-			checkSlow(TriangleTangentPathDirection.Z >= 0.0f);
-			checkSlow(TriangleTangentPathDirection.IsUnit3());
-
-			// Generate the uniform hemisphere samples from a hemisphere based around the triangle normal, not the smoothed vertex normal
-			// This is important for cases where the smoothed vertex normal is very different from the triangle normal, in which case
-			// Using the smoothed vertex normal would cause self-intersection even on a plane
-			const FVector4 WorldPathDirection = Vertex.TransformTriangleTangentVectorToWorld(TriangleTangentPathDirection);
-			checkSlow(WorldPathDirection.IsUnit3());
-
-			const FVector4 TangentPathDirection = Vertex.TransformWorldVectorToTangent(WorldPathDirection);
-			checkSlow(TangentPathDirection.IsUnit3());
-
-			const FLightRay PathRay(
-				// Apply various offsets to the start of the ray.
-				// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
-				// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
-				Vertex.WorldPosition 
-				+ WorldPathDirection * SceneConstants.VisibilityRayOffsetDistance 
-				+ Vertex.WorldTangentZ * SampleRadius * SceneConstants.VisibilityNormalOffsetSampleRadiusScale,
-				Vertex.WorldPosition + WorldPathDirection * MaxRayDistance,
-				NULL,
-				NULL
-				);
-
-			FLightRayIntersection RayIntersection;
-			AggregateMesh->IntersectLightRay(PathRay, false, false, false, MappingContext.RayCache, RayIntersection);
-
-			FLinearColor StaticSkyLighting = FLinearColor::Black;
-			FLinearColor StationarySkyLighting = FLinearColor::Black;
-			EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, false, StaticSkyLighting, StationarySkyLighting);
-
-			if (StaticSkyLighting != FLinearColor::Black)
-			{
-				IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(StaticSkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
-			}
-
-			if (StationarySkyLighting != FLinearColor::Black)
-			{
-				IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(StationarySkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
-			}
-		}
-	}
-
-	return IncomingRadiance;
-}
-
-
-/** Evaluates the PDF that was used to generate samples for the non-importance sampled final gather for the given direction. */
-float FStaticLightingSystem::EvaluatePDF(const FFullStaticLightingVertex& Vertex, const FVector4& IncomingDirection) const
-{
-	checkSlow(Vertex.TriangleNormal.IsUnit3());
-	checkSlow(IncomingDirection.IsUnit3());
-
-	if (ImportanceTracingSettings.bUseCosinePDF)
-	{
-		const float CosTheta = FMath::Max(Dot3(IncomingDirection, Vertex.TriangleNormal), 0.0f);
-		const float CosPDF = CosTheta / (float)PI;
-		checkSlow(CosPDF > 0.0f);
-		return CosPDF;
-	}
-	else
-	{
-		const float UniformPDF = 1.0f / (2.0f * (float)PI);
-		checkSlow(UniformPDF > 0.0f);
-		return UniformPDF;
-	}
-}
-
 /** Returns environment lighting for the given direction. */
 FLinearColor FStaticLightingSystem::EvaluateEnvironmentLighting(const FVector4& IncomingDirection) const
 {
@@ -365,7 +237,7 @@ FLinearColor FStaticLightingSystem::EvaluateEnvironmentLighting(const FVector4& 
 	return IncomingDirection.Z < 0 ? (MaterialSettings.EnvironmentColor / (float)PI) : FLinearColor::Black;
 }
 
-void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, bool bForDirectLighting, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const
+void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirection, float PathSolidAngle, bool bShadowed, bool bForDirectLighting, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const
 {
 	for (int32 LightIndex = 0; LightIndex < SkyLights.Num(); LightIndex++)
 	{
@@ -373,13 +245,7 @@ void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirectio
 
 		if (!bShadowed || !(SkyLight->LightFlags & GI_LIGHT_CASTSHADOWS))
 		{
-			FSHVector3 SH = FSHVector3::SHBasisFunction(IncomingDirection);
-			const float LightingScale = bForDirectLighting ? 1.0f : SkyLight->IndirectLightingScale;
-			FLinearColor Lighting = (Dot(SkyLight->IrradianceEnvironmentMap, SH) * SkyLight->Brightness * LightingScale) * FLinearColor(SkyLight->Color);
-
-			Lighting.R = FMath::Max(Lighting.R, 0.0f);
-			Lighting.G = FMath::Max(Lighting.G, 0.0f);
-			Lighting.B = FMath::Max(Lighting.B, 0.0f);
+			FLinearColor Lighting = SkyLight->GetPathLighting(IncomingDirection, PathSolidAngle, !bForDirectLighting);
 
 			if (SkyLight->LightFlags & GI_LIGHT_HASSTATICLIGHTING)
 			{
@@ -393,96 +259,57 @@ void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirectio
 	}
 }
 
+float FStaticLightingSystem::EvaluateSkyVariance(const FVector4& IncomingDirection, float PathSolidAngle) const
+{
+	float Variance = 0;
+
+	for (int32 LightIndex = 0; LightIndex < SkyLights.Num(); LightIndex++)
+	{
+		FSkyLight* SkyLight = SkyLights[LightIndex];
+
+		Variance = FMath::Max(Variance, SkyLight->GetPathVariance(IncomingDirection, PathSolidAngle));
+	}
+
+	return Variance;
+}
+
 /** Calculates exitant radiance at a vertex. */
 FLinearColor FStaticLightingSystem::CalculateExitantRadiance(
-	const FStaticLightingMapping* SourceMapping,
 	const FStaticLightingMapping* HitMapping,
 	const FStaticLightingMesh* HitMesh,
-	const FStaticLightingVertex& Vertex,
-	int32 VertexIndex,
+	const FMinimalStaticLightingVertex& Vertex,
 	int32 ElementIndex,
 	const FVector4& OutgoingDirection,
 	int32 BounceNumber,
+	EHemisphereGatherClassification GatherClassification,
 	FStaticLightingMappingContext& MappingContext,
-	FLMRandomStream& RandomStream,
-	bool bIncludeDirectLighting,
 	bool bDebugThisTexel) const
 {
 	FLinearColor AccumulatedRadiance = FLinearColor::Black;
-	// Note: Emissive is explicitly sampled and therefore not handled here
 
-	if (PhotonMappingSettings.bUsePhotonMapping)
+	if ((GatherClassification & GLM_GatherRadiosityBuffer0) || (GatherClassification & GLM_GatherRadiosityBuffer1))
 	{
-		// Using photon mapping, so all light interactions will be estimated with the photon map.
-		checkSlow(BounceNumber == 1);
-		checkSlow(PhotonMappingSettings.bUseFinalGathering);
-		if (PhotonMappingSettings.bUseIrradiancePhotons)
-		{
-			const FIrradiancePhoton* NearestPhoton = NULL;
-			FLinearColor DirectLighting;
+		const int32 BufferIndex = GatherClassification & GLM_GatherRadiosityBuffer0 ? 0 : 1;
+		const FLinearColor CachedRadiosity = HitMapping->GetCachedRadiosity(BufferIndex, HitMapping->GetSurfaceCacheIndex(Vertex));
+		AccumulatedRadiance += CachedRadiosity;
+	}
 
-			if (PhotonMappingSettings.bCacheIrradiancePhotonsOnSurfaces)
-			{
-				// Find the cached irradiance photon
-				NearestPhoton = HitMapping->GetCachedIrradiancePhoton(VertexIndex, Vertex, *this, bDebugThisTexel && PhotonMappingSettings.bVisualizePhotonGathers, DirectLighting);
-			}
-			else
-			{
-				// Find the nearest irradiance photon from the irradiance photon map
-				TArray<FIrradiancePhoton*> TempIrradiancePhotons;
-				NearestPhoton = FindNearestIrradiancePhoton(Vertex, MappingContext, TempIrradiancePhotons, false, bDebugThisTexel);
-				FGatheredLightSample DirectLightingSample;
-				FGatheredLightSample UnusedSample;
-				float UnusedShadowing;
-				TArray<FVector, TInlineAllocator<1>> VertexOffsets;
-				VertexOffsets.Add(FVector(0, 0, 0));		
+	if (GatherClassification & GLM_GatherLightFinalBounced)
+	{
+		// Reflectance is folded into the surface cache, see FinalizeSurfaceCacheTextureMapping
+		AccumulatedRadiance += HitMapping->GetSurfaceCacheLighting(Vertex);
+	}
 
-				CalculateApproximateDirectLighting(Vertex, 0, VertexOffsets, .1f, true, true, bDebugThisTexel, MappingContext, DirectLightingSample, UnusedSample, UnusedShadowing);
-				DirectLighting = DirectLightingSample.IncidentLighting;
-			}
-			const FLinearColor& PhotonIrradiance = NearestPhoton ? NearestPhoton->GetIrradiance() : FLinearColor::Black;
-			const FLinearColor Reflectance = HitMesh->EvaluateTotalReflectance(Vertex, ElementIndex);
-			// Any type of light interaction can be retrieved from the irradiance photons here except direct lighting
-			if (GeneralSettings.ViewSingleBounceNumber != 0)
-			{
-				FLinearColor FinalLighting = PhotonIrradiance;
+	const int32 BounceNumberForEmissive = BounceNumber - 1;
+	const bool bRestrictBounceNumber = GeneralSettings.ViewSingleBounceNumber >= 0 
+		// We can only restrict light gathered by bounce on the final gather, on previous radiosity iterations the gathered light contributes to multiple bounces 
+		&& GatherClassification == GLM_FinalGather;
 
-				if (bIncludeDirectLighting)
-				{
-					FinalLighting += DirectLighting;
-				}
-
-				// Estimate exitant radiance as the irradiance times the surface's hemispherical-hemispherical reflectance divided by PI.
-				AccumulatedRadiance += FinalLighting * Reflectance * (float)INV_PI;
-			}
-		}
-		else
-		{
-			if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber == 1)
-			{
-				// Search the direct photon map for direct photon contribution
-				const FLinearColor DirectPhotonExitantRadiance = CalculatePhotonExitantRadiance(DirectPhotonMap, NumPhotonsEmittedDirect, PhotonMappingSettings.DirectPhotonSearchDistance, HitMesh, Vertex, ElementIndex, OutgoingDirection, bDebugThisTexel);
-				AccumulatedRadiance += DirectPhotonExitantRadiance;
-			}
-			if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber > 1)
-			{
-				// Search the indirect photon maps for indirect photon contribution
-				const FLinearColor FirstBouncePhotonExitantRadiance = CalculatePhotonExitantRadiance(FirstBouncePhotonMap, NumPhotonsEmittedFirstBounce, PhotonMappingSettings.IndirectPhotonSearchDistance, HitMesh, Vertex, ElementIndex, OutgoingDirection, bDebugThisTexel);
-				AccumulatedRadiance += FirstBouncePhotonExitantRadiance;
-				if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber > 2)
-				{
-					const FLinearColor SecondBouncePhotonExitantRadiance = CalculatePhotonExitantRadiance(SecondBouncePhotonMap, NumPhotonsEmittedSecondBounce, PhotonMappingSettings.IndirectPhotonSearchDistance, HitMesh, Vertex, ElementIndex, OutgoingDirection, bDebugThisTexel);
-					AccumulatedRadiance += SecondBouncePhotonExitantRadiance;
-				}
-			}
-		}
-
-		FLinearColor Emissive = FLinearColor::Black;
-		if (HitMesh->IsEmissive(ElementIndex))
-		{
-			Emissive = HitMesh->EvaluateEmissive(Vertex.TextureCoordinates[0], ElementIndex);
-		}
-
+	if ((GatherClassification & GLM_GatherLightEmitted) 
+		&& (!bRestrictBounceNumber || BounceNumberForEmissive == GeneralSettings.ViewSingleBounceNumber)
+		&& HitMesh->IsEmissive(ElementIndex))
+	{
+		FLinearColor Emissive = HitMesh->EvaluateEmissive(Vertex.TextureCoordinates[0], ElementIndex);
 		AccumulatedRadiance += Emissive;
 	}
 
@@ -491,194 +318,95 @@ FLinearColor FStaticLightingSystem::CalculateExitantRadiance(
 	return AccumulatedRadiance;
 }
 
-/** Final gather using first bounce indirect photons to importance sample the incident radiance function. */
-FGatheredLightSample FStaticLightingSystem::IncomingRadianceImportancePhotons(
+void FStaticLightingSystem::IntersectLightRays(
 	const FStaticLightingMapping* Mapping,
 	const FFullStaticLightingVertex& Vertex,
 	float SampleRadius,
-	int32 ElementIndex,
-	int32 BounceNumber,
-	const TArray<FVector4>& ImportancePhotonDirections,
+	int32 NumRays,
+	const FVector4* WorldPathDirections,
+	const FVector4* TangentPathDirections,
+	EFinalGatherRayBiasMode RayBiasMode,
 	FStaticLightingMappingContext& MappingContext,
-	FLMRandomStream& RandomStream,
-	bool bDebugThisTexel
-	) const
+	FLightRay* OutLightRays,
+	FLightRayIntersection* OutLightRayIntersections) const
 {
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-	if (bDebugThisTexel)
+	for (int32 RayIndex = 0; RayIndex < NumRays; RayIndex++)
 	{
-		int32 TempBreak = 0;
-	}
-#endif
+		const FVector4 WorldPathDirection = WorldPathDirections[RayIndex];
+		const FVector4 TangentPathDirection = TangentPathDirections[RayIndex];
 
-	FGatheredLightSample IncomingRadiance;
-	const int32 PhotonImportanceHemisphereSamples = ImportancePhotonDirections.Num() > 0 ? GetNumPhotonImportanceHemisphereSamples() : 0;
-	const int32 UniformHemisphereSamples = GetNumUniformHemisphereSamples(BounceNumber);
-
-	if (PhotonImportanceHemisphereSamples > 0)
-	{
-		// Estimate the indirect part of the light transport equation using importance guided monte carlo integration
-		for (int32 SampleIndex = 0; SampleIndex < PhotonImportanceHemisphereSamples; SampleIndex++)
+		FVector4 SampleOffset(0,0,0);
+		if (GeneralSettings.bAccountForTexelSize)
 		{
-			FVector4 SampleDirection;
-			float DirectionPDF = 0.0f;
-			{
-				LIGHTINGSTAT(FScopedRDTSCTimer GenerateSampleTimer(MappingContext.Stats.CalculateImportanceSampleTime));
-				
-				// Select a direction with uniform probability in a cone around the photon's incident direction
-				// See the "Extended Photon Map Implementation" paper
-				//@todo - select a direction with probability proportional to the power of the photon from that direction
-				const int32 PhotonIndex = FMath::TruncToInt(RandomStream.GetFraction() * ImportancePhotonDirections.Num());
-				checkSlow(PhotonIndex >= 0 && PhotonIndex < ImportancePhotonDirections.Num());
-				const FVector4& CurrentPhotonDirection = ImportancePhotonDirections[PhotonIndex];
-				checkSlow(Dot3(CurrentPhotonDirection, Vertex.TriangleNormal) > 0);
-				FVector4 XAxis;
-				FVector4 YAxis;
-				GenerateCoordinateSystem(CurrentPhotonDirection, XAxis, YAxis);
-
-				// Generate a direction from the cone around the importance photon direction
-				SampleDirection = UniformSampleCone(
-					RandomStream, 
-					PhotonMappingSettings.FinalGatherImportanceSampleCosConeAngle, 
-					XAxis, 
-					YAxis, 
-					CurrentPhotonDirection);
-
-				MappingContext.Stats.NumImportancePDFCalculations++;
-				const float ConePDF = UniformConePDF(PhotonMappingSettings.FinalGatherImportanceSampleCosConeAngle);
-				// Calculate the probability that this sample was generated
-				for (int32 OtherPhotonIndex = 0; OtherPhotonIndex < ImportancePhotonDirections.Num(); OtherPhotonIndex++)
-				{
-					// Accumulate this direction's cone PDF if the direction lies in the cone
-					if (Dot3(ImportancePhotonDirections[OtherPhotonIndex], SampleDirection) > (1.0f - DELTA) * PhotonMappingSettings.FinalGatherImportanceSampleCosConeAngle)
-					{
-						DirectionPDF += ConePDF;
-					}
-				}
-				DirectionPDF /= ImportancePhotonDirections.Num();
-				checkSlow(DirectionPDF > 0.0f);
-			}
-
-			const FVector4 TangentSampleDirection = Vertex.TransformWorldVectorToTangent(SampleDirection);
-
-			// Setup a ray from the point in the sample direction
-			const FLightRay PathRay(
-				// Apply various offsets to the start of the ray.
-				// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
-				// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
-				Vertex.WorldPosition 
-					+ SampleDirection * SceneConstants.VisibilityRayOffsetDistance 
-					+ Vertex.WorldTangentZ * SampleRadius * SceneConstants.VisibilityNormalOffsetSampleRadiusScale,
-				Vertex.WorldPosition + SampleDirection * MaxRayDistance,
-				Mapping,
-				NULL
-				);
-
-			MappingContext.Stats.NumFirstBounceRaysTraced++;
-			const float LastRayTraceTime = MappingContext.RayCache.FirstHitRayTraceTime;
-			FLightRayIntersection RayIntersection;
-			AggregateMesh->IntersectLightRay(PathRay, true, false, false, MappingContext.RayCache, RayIntersection);
-			MappingContext.Stats.FirstBounceRayTraceTime += MappingContext.RayCache.FirstHitRayTraceTime - LastRayTraceTime;
-
-			bool bPositiveSample = false;
-			// Calculate the probability that this sample direction would have been generated by the uniform hemisphere final gather
-			const float UniformPDF = EvaluatePDF(Vertex, SampleDirection);
-			// Calculate the multiple importance sample weight for this sample direction using a power heuristic
-			const float MultipleImportanceSamplingWeight = PowerHeuristic(PhotonImportanceHemisphereSamples, DirectionPDF, UniformHemisphereSamples, UniformPDF);
-			const float SampleWeight = MultipleImportanceSamplingWeight / (DirectionPDF * PhotonImportanceHemisphereSamples);
-
-			if (RayIntersection.bIntersects)
-			{
-				// Only continue if the ray hit the frontface of the polygon, otherwise the ray started inside a mesh
-				if (Dot3(PathRay.Direction, -RayIntersection.IntersectionVertex.WorldTangentZ) > 0.0f)
-				{
-					LIGHTINGSTAT(FScopedRDTSCTimer CalculateExitantRadianceTimer(MappingContext.Stats.CalculateExitantRadianceTime));
-					FStaticLightingVertex IntersectionVertex = RayIntersection.IntersectionVertex;
-					// The ray intersection does not return a Tangent and Binormal so we need to create some in order to have a valid tangent space
-					IntersectionVertex.GenerateVertexTangents();
-
-					// Calculate exitant radiance at the final gather ray intersection position.
-					const FLinearColor PathVertexOutgoingRadiance = CalculateExitantRadiance(
-						Mapping, 
-						RayIntersection.Mapping, 
-						RayIntersection.Mesh, 
-						IntersectionVertex, 
-						RayIntersection.VertexIndex, 
-						RayIntersection.ElementIndex,
-						-SampleDirection, 
-						BounceNumber, 
-						MappingContext, 
-						RandomStream, 
-						true,
-						bDebugThisTexel && PhotonMappingSettings.bVisualizePhotonImportanceSamples);
-					
-					checkSlow(FLinearColorUtils::AreFloatsValid(PathVertexOutgoingRadiance));
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-					if (PathVertexOutgoingRadiance.R > DELTA || PathVertexOutgoingRadiance.G > DELTA || PathVertexOutgoingRadiance.B > DELTA)
-					{
-						bPositiveSample = true;
-					}
-#endif
-					IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(PathVertexOutgoingRadiance, TangentSampleDirection, SampleDirection), SampleWeight);
-					checkSlow(IncomingRadiance.AreFloatsValid());
-				}
-			}
-			else
-			{
-				// The ray missed any geometry in the scene, calculate the environment contribution in the sample direction
-				const FLinearColor EnvironmentLighting = EvaluateEnvironmentLighting(-SampleDirection);
-				IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(EnvironmentLighting, TangentSampleDirection, SampleDirection), SampleWeight);
-			}
-
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-			if (bDebugThisTexel 
-				&& GeneralSettings.ViewSingleBounceNumber == BounceNumber
-				&& PhotonMappingSettings.bVisualizePhotonImportanceSamples)
-			{
-				FDebugStaticLightingRay DebugRay(PathRay.Start, PathRay.End, RayIntersection.bIntersects, bPositiveSample != 0);
-				if (RayIntersection.bIntersects)
-				{
-					DebugRay.End = RayIntersection.IntersectionVertex.WorldPosition;
-				}
-				DebugOutput.PathRays.Add(DebugRay);
-			}
-#endif
+			// Offset the sample's starting point in the tangent XY plane based on the sample's area of influence. 
+			// This is particularly effective for large texels with high variance in the incoming radiance over the area of the texel.
+			SampleOffset = Vertex.WorldTangentX * TangentPathDirection.X * SampleRadius * SceneConstants.VisibilityTangentOffsetSampleRadiusScale
+				+ Vertex.WorldTangentY * TangentPathDirection.Y * SampleRadius * SceneConstants.VisibilityTangentOffsetSampleRadiusScale;
+			
+			// Experiment to distribute the starting position over the area of the texel to anti-alias, causes incorrect shadowing at intersections though
+			//@todo - use consistent sample set between irradiance cache samples
+			//const FVector2D DiskPosition = GetUniformUnitDiskPosition(RandomStream);
+			//SampleOffset = Vertex.WorldTangentX * DiskPosition.X * SampleRadius * .5f + Vertex.WorldTangentY * DiskPosition.Y * SampleRadius * .5f;
 		}
+
+		const float RayStartNormalBiasScale = RayBiasMode == RBM_ConstantNormalOffset
+			? SceneConstants.VisibilityNormalOffsetSampleRadiusScale 
+			: (SceneConstants.VisibilityTangentOffsetSampleRadiusScale * TangentPathDirection.Z);
+
+		// Apply various offsets to the start of the ray.
+		// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
+		// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
+		FVector RayStart = Vertex.WorldPosition
+			+ WorldPathDirection * SceneConstants.VisibilityRayOffsetDistance
+			+ Vertex.WorldTangentZ * RayStartNormalBiasScale * SampleRadius
+			+ SampleOffset;
+
+		OutLightRays[RayIndex] = FLightRay(
+			RayStart,
+			Vertex.WorldPosition + WorldPathDirection * MaxRayDistance,
+			Mapping,
+			NULL
+			);
 	}
-	return IncomingRadiance;
+
+	MappingContext.Stats.NumFirstBounceRaysTraced += NumRays;
+	const float LastRayTraceTime = MappingContext.RayCache.FirstHitRayTraceTime;
+
+	if (NumRays == 1)
+	{
+		AggregateMesh->IntersectLightRay(OutLightRays[0], true, false, false, MappingContext.RayCache, OutLightRayIntersections[0]);
+	}
+	else
+	{
+		checkSlow(NumRays == 4);
+		AggregateMesh->IntersectLightRays4(OutLightRays, true, false, false, MappingContext.RayCache, OutLightRayIntersections);
+	}
+	
+	MappingContext.Stats.FirstBounceRayTraceTime += MappingContext.RayCache.FirstHitRayTraceTime - LastRayTraceTime;
 }
 
 FLinearColor FStaticLightingSystem::FinalGatherSample(
 	const FStaticLightingMapping* Mapping,
 	const FFullStaticLightingVertex& Vertex,
-	const FVector4& TriangleTangentPathDirection,
-	float SampleRadius,
+	const FVector4& WorldPathDirection,
+	const FVector4& TangentPathDirection,
+	const FLightRay& PathRay,
+	const FLightRayIntersection& RayIntersection,
+	float PathSolidAngle,
 	int32 BounceNumber,
-	EFinalGatherRayBiasMode RayBiasMode,
-	bool bSkyLightingOnly,
+	EHemisphereGatherClassification GatherClassification,
 	bool bGatheringForCachedDirectLighting,
 	bool bDebugThisTexel,
 	FStaticLightingMappingContext& MappingContext,
 	FLMRandomStream& RandomStream,
 	FLightingCacheGatherInfo& RecordGatherInfo,
 	FFinalGatherInfo& FinalGatherInfo,
+	FFinalGatherHitPoint& HitPoint,
 	FVector& OutUnoccludedSkyVector,
 	FLinearColor& OutStationarySkyLighting) const
 {
 	FLinearColor Lighting = FLinearColor::Black;
 	OutStationarySkyLighting = FLinearColor::Black;
-
-	checkSlow(TriangleTangentPathDirection.Z >= 0.0f);
-	checkSlow(TriangleTangentPathDirection.IsUnit3());
-
-	// Generate the uniform hemisphere samples from a hemisphere based around the triangle normal, not the smoothed vertex normal
-	// This is important for cases where the smoothed vertex normal is very different from the triangle normal, in which case
-	// Using the smoothed vertex normal would cause self-intersection even on a plane
-	const FVector4 WorldPathDirection = Vertex.TransformTriangleTangentVectorToWorld(TriangleTangentPathDirection);
-	checkSlow(WorldPathDirection.IsUnit3());
-
-	const FVector4 TangentPathDirection = Vertex.TransformWorldVectorToTangent(WorldPathDirection);
-	checkSlow(TangentPathDirection.IsUnit3());
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisTexel)
@@ -686,45 +414,6 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		int32 asdf = 0;
 	}
 #endif
-
-	FVector4 SampleOffset(0,0,0);
-	if (GeneralSettings.bAccountForTexelSize)
-	{
-		// Offset the sample's starting point in the tangent XY plane based on the sample's area of influence. 
-		// This is particularly effective for large texels with high variance in the incoming radiance over the area of the texel.
-		SampleOffset = Vertex.WorldTangentX * TangentPathDirection.X * SampleRadius * SceneConstants.VisibilityTangentOffsetSampleRadiusScale
-			+ Vertex.WorldTangentY * TangentPathDirection.Y * SampleRadius * SceneConstants.VisibilityTangentOffsetSampleRadiusScale;
-			
-		// Experiment to distribute the starting position over the area of the texel to anti-alias, causes incorrect shadowing at intersections though
-		//@todo - use consistent sample set between irradiance cache samples
-		//const FVector2D DiskPosition = GetUniformUnitDiskPosition(RandomStream);
-		//SampleOffset = Vertex.WorldTangentX * DiskPosition.X * SampleRadius * .5f + Vertex.WorldTangentY * DiskPosition.Y * SampleRadius * .5f;
-	}
-
-	const float RayStartNormalBiasScale = RayBiasMode == RBM_ConstantNormalOffset
-		? SceneConstants.VisibilityNormalOffsetSampleRadiusScale 
-		: (SceneConstants.VisibilityTangentOffsetSampleRadiusScale * TangentPathDirection.Z);
-
-	// Apply various offsets to the start of the ray.
-	// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
-	// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
-	FVector RayStart = Vertex.WorldPosition
-		+ WorldPathDirection * SceneConstants.VisibilityRayOffsetDistance
-		+ Vertex.WorldTangentZ * RayStartNormalBiasScale * SampleRadius
-		+ SampleOffset;
-
-	const FLightRay PathRay(
-		RayStart,
-		Vertex.WorldPosition + WorldPathDirection * MaxRayDistance,
-		Mapping,
-		NULL
-		);
-
-	MappingContext.Stats.NumFirstBounceRaysTraced++;
-	const float LastRayTraceTime = MappingContext.RayCache.FirstHitRayTraceTime;
-	FLightRayIntersection RayIntersection;
-	AggregateMesh->IntersectLightRay(PathRay, true, false, false, MappingContext.RayCache, RayIntersection);
-	MappingContext.Stats.FirstBounceRayTraceTime += MappingContext.RayCache.FirstHitRayTraceTime - LastRayTraceTime;
 
 	bool bPositiveSample = false;
 
@@ -745,41 +434,46 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		// Only continue if the ray hit the frontface of the polygon, otherwise the ray started inside a mesh
 		if (Dot3(PathRay.Direction, -RayIntersection.IntersectionVertex.WorldTangentZ) > 0.0f)
 		{
-			if (GeneralSettings.NumIndirectLightingBounces > 0 && !bSkyLightingOnly && TangentPathDirection.Z > 0)
+			if (TangentPathDirection.Z > 0.0f)
 			{
-				LIGHTINGSTAT(FScopedRDTSCTimer CalculateExitantRadianceTimer(MappingContext.Stats.CalculateExitantRadianceTime));
-				FStaticLightingVertex IntersectionVertex = RayIntersection.IntersectionVertex;
-				// The ray intersection does not return a Tangent and Binormal so we need to create some in order to have a valid tangent space
-				IntersectionVertex.GenerateVertexTangents();
+				if (RecordGatherInfo.HitPointRecorder)
+				{
+					HitPoint.MappingIndex = RayIntersection.Mapping->SceneMappingIndex;
+					check(HitPoint.MappingIndex >= 0);
+					HitPoint.MappingSurfaceCoordinate = RayIntersection.Mapping->GetSurfaceCacheIndex(RayIntersection.IntersectionVertex);
+					check(HitPoint.MappingSurfaceCoordinate >= 0);
+				}
 
-				// Calculate exitant radiance at the final gather ray intersection position.
-				const FLinearColor PathVertexOutgoingRadiance = CalculateExitantRadiance(
-					Mapping, 
-					RayIntersection.Mapping, 
-					RayIntersection.Mesh, 
-					IntersectionVertex, 
-					RayIntersection.VertexIndex, 
-					RayIntersection.ElementIndex,
-					-WorldPathDirection, 
-					BounceNumber, 
-					MappingContext, 
-					RandomStream, 
-					true,
-					bDebugThisTexel && (!PhotonMappingSettings.bUsePhotonMapping || !PhotonMappingSettings.bVisualizePhotonImportanceSamples));
+				if (GeneralSettings.NumIndirectLightingBounces > 0)
+				{
+					LIGHTINGSTAT(FScopedRDTSCTimer CalculateExitantRadianceTimer(MappingContext.Stats.CalculateExitantRadianceTime));
 
-				checkSlow(FLinearColorUtils::AreFloatsValid(PathVertexOutgoingRadiance));
-				Lighting += PathVertexOutgoingRadiance;
+					// Calculate exitant radiance at the final gather ray intersection position.
+					const FLinearColor PathVertexOutgoingRadiance = CalculateExitantRadiance(
+						RayIntersection.Mapping, 
+						RayIntersection.Mesh, 
+						RayIntersection.IntersectionVertex, 
+						RayIntersection.ElementIndex,
+						-WorldPathDirection, 
+						BounceNumber, 
+						GatherClassification,
+						MappingContext, 
+						bDebugThisTexel && (!PhotonMappingSettings.bUsePhotonMapping || !PhotonMappingSettings.bVisualizePhotonImportanceSamples));
+
+					checkSlow(FLinearColorUtils::AreFloatsValid(PathVertexOutgoingRadiance));
+					Lighting += PathVertexOutgoingRadiance;
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-				if (PathVertexOutgoingRadiance.R > DELTA || PathVertexOutgoingRadiance.G > DELTA || PathVertexOutgoingRadiance.B > DELTA)
-				{
-					if (bDebugThisTexel)
+					if (PathVertexOutgoingRadiance.R > DELTA || PathVertexOutgoingRadiance.G > DELTA || PathVertexOutgoingRadiance.B > DELTA)
 					{
-						int32 TempBreak = 0;
+						if (bDebugThisTexel)
+						{
+							int32 TempBreak = 0;
+						}
+						bPositiveSample = true;
 					}
-					bPositiveSample = true;
-				}
 #endif
+				}
 			}
 		}
 		else
@@ -789,16 +483,25 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 	}
 	else
 	{
-		if (TangentPathDirection.Z > 0)
+		if (TangentPathDirection.Z > 0 && (GatherClassification & GLM_GatherLightEmitted))
 		{
 			const FLinearColor EnvironmentLighting = EvaluateEnvironmentLighting(-WorldPathDirection);
 			Lighting += EnvironmentLighting;
 		}
 	}
 
-	// When we're gathering lighting to cache it as direct lighting, we should take IndirectLightingScales into account
-	const bool bForDirectLighting = !bGatheringForCachedDirectLighting;
-	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, bForDirectLighting, Lighting, OutStationarySkyLighting);
+	const int32 BounceNumberForSkylightInFinalGather = BounceNumber - 1;
+	const bool bRestrictBounceNumber = GeneralSettings.ViewSingleBounceNumber >= 0 
+		// We can only restrict light gathered by bounce on the final gather, on previous radiosity iterations the gathered light contributes to multiple bounces 
+		&& GatherClassification == GLM_FinalGather;
+
+	if ((GatherClassification & GLM_GatherLightEmitted) 
+		&& (!bRestrictBounceNumber || BounceNumberForSkylightInFinalGather == GeneralSettings.ViewSingleBounceNumber))
+	{
+		// When we're gathering lighting to cache it as direct lighting, we should take IndirectLightingScales into account
+		const bool bForDirectLighting = !bGatheringForCachedDirectLighting;
+		EvaluateSkyLighting(WorldPathDirection, PathSolidAngle, RayIntersection.bIntersects, bForDirectLighting, Lighting, OutStationarySkyLighting);
+	}
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisTexel
@@ -817,6 +520,15 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 	return Lighting;
 }
 
+enum class EFinalGatherRefinementCause
+{
+	None,
+	BrightnessDifference,
+	ImportancePhotons,
+	Portal,
+	SkylightVariance
+};
+
 /** Stores intermediate data during a traversal of the refinement tree. */
 class FRefinementTraversalContext
 {
@@ -824,13 +536,15 @@ public:
 	FSimpleQuadTreeNode<FRefinementElement>* Node;
 	FVector2D Min;
 	FVector2D Size;
-	bool bCausedByBrightnessDifference;
+	float SolidAngle;
+	EFinalGatherRefinementCause RefinementCause;
 
-	FRefinementTraversalContext(FSimpleQuadTreeNode<FRefinementElement>* InNode, FVector2D InMin, FVector2D InSize, bool bInCausedByBrightnessDifference) :
+	FRefinementTraversalContext(FSimpleQuadTreeNode<FRefinementElement>* InNode, FVector2D InMin, FVector2D InSize, float InSolidAngle, EFinalGatherRefinementCause InRefinementCause) :
 		Node(InNode),
 		Min(InMin),
 		Size(InSize),
-		bCausedByBrightnessDifference(bInCausedByBrightnessDifference)
+		SolidAngle(InSolidAngle),
+		RefinementCause(InRefinementCause)
 	{}
 };
 
@@ -901,6 +615,11 @@ public:
 		return GetFilteredValueRecursive(&Cells[ThetaIndex * NumPhiSteps + PhiIndex].RootNode);
 	}
 
+	void UpdateHitPointWeights(TArray<FFinalGatherHitPoint>& FinalGatherHitPoints, int32 ThetaIndex, int32 PhiIndex, float GridCellWeight)
+	{
+		UpdateHitPointWeightsRecursive(FinalGatherHitPoints, &Cells[ThetaIndex * NumPhiSteps + PhiIndex].RootNode, GridCellWeight);
+	}
+
 	void SetRootElement(int32 ThetaIndex, int32 PhiIndex, const FRefinementElement& Element)
 	{
 		Cells[ThetaIndex * NumPhiSteps + PhiIndex].RootNode.Element = Element;
@@ -921,13 +640,14 @@ public:
 		float SampleRadius,
 		int32 BounceNumber,
 		EFinalGatherRayBiasMode RayBiasMode,
-		bool bSkyLightingOnly,
+		EHemisphereGatherClassification GatherClassification,
 		bool bGatheringForCachedDirectLighting,
 		int32 NumAdaptiveRefinementLevels,
 		float BrightnessThresholdScale,
 		const TArray<FVector4, TInlineAllocator<30> >& TangentImportancePhotonDirections,
 		const TArray<FSphere>& PortalBoundingSpheres,
 		FStaticLightingMappingContext& MappingContext,
+		FGatherHitPoints* HitPointRecorder,
 		FLMRandomStream& RandomStream,
 		bool bDebugThisTexel)
 	{
@@ -956,12 +676,14 @@ public:
 		const float RootCellAngle = PI * FMath::Sqrt((.5f / NumThetaSteps) * (.5f / NumThetaSteps) + (.5f / NumPhiSteps) * (.5f / NumPhiSteps));
 		const float CosRootCellAngle = FMath::Cos(RootCellAngle);
 		const float SinRootCellAngle = FMath::Sin(RootCellAngle);
+		const float RootSolidAngle = 2 * PI * (1 - CosRootCellAngle);
 		const float RootCombinedAngleThreshold = FMath::Cos(ImportanceConeAngle + RootCellAngle);
 		const float ConeIntersectionWeight = 1.0f / TangentImportancePhotonDirections.Num();
 
 		float BrightnessThreshold = LightingSystem.ImportanceTracingSettings.AdaptiveBrightnessThreshold * BrightnessThresholdScale;
 		float SkyOcclusionThreshold = LightingSystem.ImportanceTracingSettings.AdaptiveBrightnessThreshold * BrightnessThresholdScale;
 		bool bRefineForSkyOcclusion = LightingSystem.SkyLights.Num() > 0;
+		float SkyVarianceThreshold = LightingSystem.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold;
 
 		// This is basically disabled, causes too much noise in worst case scenarios (all GI coming from small bright spot)
 		float ConeWeightThreshold = .006f;
@@ -999,13 +721,14 @@ public:
 				{
 					for (int32 PhiIndex = 0; PhiIndex < NumPhiSteps; PhiIndex++)
 					{
-						const FVector4 CellCenterDirection = UniformSampleHemisphere((ThetaIndex + .5f) / (float)NumThetaSteps, (PhiIndex + .5f) / (float)NumPhiSteps);
+						const FVector4 CellCenterTangentDirection = UniformSampleHemisphere((ThetaIndex + .5f) / (float)NumThetaSteps, (PhiIndex + .5f) / (float)NumPhiSteps);
+						const FVector4 CellCenterWorldDirection = Vertex.TransformTriangleTangentVectorToWorld(CellCenterTangentDirection);
 						float IntersectingImportanceConeWeight = 0;
 
 						// Accumulate weight of intersecting photon cones
 						for (int32 ImportanceDirectionIndex = 0; ImportanceDirectionIndex < TangentImportancePhotonDirections.Num(); ImportanceDirectionIndex++)
 						{
-							const float CosAngleBetweenCones = Dot3(TangentImportancePhotonDirections[ImportanceDirectionIndex], CellCenterDirection);
+							const float CosAngleBetweenCones = Dot3(TangentImportancePhotonDirections[ImportanceDirectionIndex], CellCenterTangentDirection);
 								
 							// Cone intersection by comparing the cosines of angles
 							// In the range [0, PI], cosine is always decreasing while the input angle is increasing, so we can just flip the comparison from what we would do on the angle
@@ -1020,17 +743,20 @@ public:
 							}
 						}
 
-						const bool bSuperSampleDueToImportanceCones = IntersectingImportanceConeWeight >= ConeWeightThreshold;
+						EFinalGatherRefinementCause RefinementCause = EFinalGatherRefinementCause::None;
 
-						bool bSuperSampleDueToPortal = false;
+						if (IntersectingImportanceConeWeight >= ConeWeightThreshold)
+						{
+							RefinementCause = EFinalGatherRefinementCause::ImportancePhotons;
+						}
 
-						if (!bSuperSampleDueToImportanceCones)
+						if (RefinementCause == EFinalGatherRefinementCause::None)
 						{
 							for (int32 PortalIndex = 0; PortalIndex < PortalBoundingSpheres.Num(); PortalIndex++)
 							{
-								if (SphereIntersectCone(PortalBoundingSpheres[PortalIndex], Vertex.WorldPosition, Vertex.TransformTriangleTangentVectorToWorld(CellCenterDirection), CosRootCellAngle, SinRootCellAngle))
+								if (SphereIntersectCone(PortalBoundingSpheres[PortalIndex], Vertex.WorldPosition, CellCenterWorldDirection, CosRootCellAngle, SinRootCellAngle))
 								{
-									bSuperSampleDueToPortal = true;
+									RefinementCause = EFinalGatherRefinementCause::Portal;
 									break;
 								}
 							}
@@ -1040,7 +766,7 @@ public:
 						float MaxSkyOcclusionDifference = 0;
 
 						// Determine maximum relative brightness difference
-						if (!bSuperSampleDueToImportanceCones && !bSuperSampleDueToPortal)
+						if (RefinementCause == EFinalGatherRefinementCause::None)
 						{
 							const FLightingAndOcclusion RootElementLighting = GetRootValue(ThetaIndex, PhiIndex);
 							const FLinearColor Radiance = RootElementLighting.Lighting + RootElementLighting.StationarySkyLighting;
@@ -1063,13 +789,25 @@ public:
 									MaxSkyOcclusionDifference = FMath::Max(MaxSkyOcclusionDifference, FMath::Abs(RootElementLighting.UnoccludedSkyVector.SizeSquared() - NeighborLighting.UnoccludedSkyVector.SizeSquared()));
 								}
 							}
+
+							if (MaxRelativeDifference > BrightnessThreshold || (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold))
+							{
+								RefinementCause = EFinalGatherRefinementCause::BrightnessDifference;
+							}
+						}
+
+						if (RefinementCause == EFinalGatherRefinementCause::None)
+						{
+							float SkyVariance = LightingSystem.EvaluateSkyVariance(CellCenterWorldDirection, RootSolidAngle);
+
+							if (SkyVariance > SkyVarianceThreshold)
+							{
+								RefinementCause = EFinalGatherRefinementCause::SkylightVariance;
+							}
 						}
 
 						// Refine if the importance cone threshold is exceeded or there was a big enough brightness difference
-						if (MaxRelativeDifference > BrightnessThreshold 
-							|| (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold)
-							|| bSuperSampleDueToImportanceCones
-							|| bSuperSampleDueToPortal)
+						if (RefinementCause != EFinalGatherRefinementCause::None)
 						{
 							FSimpleQuadTreeNode<FRefinementElement>* Node = &Cells[ThetaIndex * NumPhiSteps + PhiIndex].RootNode;
 
@@ -1077,7 +815,8 @@ public:
 								Node, 
 								FVector2D(ThetaIndex / (float)NumThetaSteps, PhiIndex / (float)NumPhiSteps),
 								FVector2D(1 / (float)NumThetaSteps, 1 / (float)NumPhiSteps),
-								MaxRelativeDifference > BrightnessThreshold || MaxSkyOcclusionDifference > SkyOcclusionThreshold));
+								RootSolidAngle,
+								RefinementCause));
 						}
 					}
 				}
@@ -1091,7 +830,7 @@ public:
 				float SubCellCombinedAngleThreshold = 0;
 				float CosSubCellAngle = 0;
 				float SinSubCellAngle = 0;
-				
+				float SubCellSolidAngle = 0;
 				// The cell size will be the same for all cells of this depth, so calculate it once
 				if (CurrentNodesToRefine->Num() > 0)
 				{
@@ -1102,6 +841,7 @@ public:
 					SubCellCombinedAngleThreshold = FMath::Cos(ImportanceConeAngle + SubCellAngle);
 					CosSubCellAngle = FMath::Cos(SubCellAngle);
 					SinSubCellAngle = FMath::Sin(SubCellAngle);
+					SubCellSolidAngle = 2 * PI * (1 - CosSubCellAngle);
 				}
 
 				for (int32 NodeIndex = 0; NodeIndex < CurrentNodesToRefine->Num(); NodeIndex++)
@@ -1115,16 +855,18 @@ public:
 						{
 							FSimpleQuadTreeNode<FRefinementElement>* ChildNode = NodeContext.Node->Children[SubThetaIndex * NumSubsamples + SubPhiIndex];
 
-							const FVector4 CellCenterDirection = UniformSampleHemisphere(
+							const FVector4 CellCenterTangentDirection = UniformSampleHemisphere(
 								NodeContext.Min.X + SubThetaIndex * NodeContext.Size.X / 2 + NodeContext.Size.X / 4,
 								NodeContext.Min.Y + SubPhiIndex * NodeContext.Size.Y / 2 + NodeContext.Size.Y / 4);
+
+							const FVector4 CellCenterWorldDirection = Vertex.TransformTriangleTangentVectorToWorld(CellCenterTangentDirection);
 
 							float IntersectingImportanceConeWeight = 0;
 
 							// Accumulate weight of intersecting photon cones
 							for (int32 ImportanceDirectionIndex = 0; ImportanceDirectionIndex < TangentImportancePhotonDirections.Num(); ImportanceDirectionIndex++)
 							{
-								const float CosAngleBetweenCones = Dot3(TangentImportancePhotonDirections[ImportanceDirectionIndex], CellCenterDirection);
+								const float CosAngleBetweenCones = Dot3(TangentImportancePhotonDirections[ImportanceDirectionIndex], CellCenterTangentDirection);
 
 								// Cone intersection by comparing the cosines of angles
 								// In the range [0, PI], cosine is always decreasing while the input angle is increasing, so we can just flip the comparison from what we would do on the angle
@@ -1139,17 +881,20 @@ public:
 								}
 							}
 
-							const bool bSuperSampleDueToImportanceCones = IntersectingImportanceConeWeight >= ConeWeightThreshold;
+							EFinalGatherRefinementCause RefinementCause = EFinalGatherRefinementCause::None;
 
-							bool bSuperSampleDueToPortal = false;
+							if (IntersectingImportanceConeWeight >= ConeWeightThreshold)
+							{
+								RefinementCause = EFinalGatherRefinementCause::ImportancePhotons;
+							}
 
-							if (!bSuperSampleDueToImportanceCones)
+							if (RefinementCause == EFinalGatherRefinementCause::None)
 							{
 								for (int32 PortalIndex = 0; PortalIndex < PortalBoundingSpheres.Num(); PortalIndex++)
 								{
-									if (SphereIntersectCone(PortalBoundingSpheres[PortalIndex], Vertex.WorldPosition, Vertex.TransformTriangleTangentVectorToWorld(CellCenterDirection), CosSubCellAngle, SinSubCellAngle))
+									if (SphereIntersectCone(PortalBoundingSpheres[PortalIndex], Vertex.WorldPosition, CellCenterWorldDirection, CosSubCellAngle, SinSubCellAngle))
 									{
-										bSuperSampleDueToPortal = true;
+										RefinementCause = EFinalGatherRefinementCause::Portal;
 										break;
 									}
 								}
@@ -1159,7 +904,7 @@ public:
 							float MaxSkyOcclusionDifference = 0;
 
 							// Determine maximum relative brightness difference
-							if (!bSuperSampleDueToImportanceCones && !bSuperSampleDueToPortal)
+							if (RefinementCause == EFinalGatherRefinementCause::None)
 							{
 								const FLightingAndOcclusion ChildLighting = ChildNode->Element.Lighting;
 								const FLinearColor Radiance = ChildLighting.Lighting + ChildLighting.StationarySkyLighting;
@@ -1179,19 +924,32 @@ public:
 									MaxRelativeDifference = FMath::Max(MaxRelativeDifference, FMath::Abs(RelativeBrightness - NeighborRelativeBrightness));
 									MaxSkyOcclusionDifference = FMath::Max(MaxSkyOcclusionDifference, FMath::Abs(ChildLighting.UnoccludedSkyVector.SizeSquared() - NeighborLighting.UnoccludedSkyVector.SizeSquared()));
 								}
+
+								if (MaxRelativeDifference > BrightnessThreshold || (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold))
+								{
+									RefinementCause = EFinalGatherRefinementCause::BrightnessDifference;
+								}
+							}
+
+							if (RefinementCause == EFinalGatherRefinementCause::None)
+							{
+								float SkyVariance = LightingSystem.EvaluateSkyVariance(CellCenterWorldDirection, SubCellSolidAngle);
+
+								if (SkyVariance > SkyVarianceThreshold)
+								{
+									RefinementCause = EFinalGatherRefinementCause::SkylightVariance;
+								}
 							}
 
 							// Refine if the importance cone threshold is exceeded or there was a big enough brightness difference
-							if (MaxRelativeDifference > BrightnessThreshold 
-								|| (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold)
-								|| bSuperSampleDueToImportanceCones
-								|| bSuperSampleDueToPortal)
+							if (RefinementCause != EFinalGatherRefinementCause::None)
 							{
 								NextNodesToRefine->Add(FRefinementTraversalContext(
 									ChildNode, 
 									FVector2D(NodeContext.Min.X + SubThetaIndex * NodeContext.Size.X / 2, NodeContext.Min.Y + SubPhiIndex * NodeContext.Size.Y / 2),
 									NodeContext.Size / 2.0f,
-									MaxRelativeDifference > BrightnessThreshold || MaxSkyOcclusionDifference > SkyOcclusionThreshold));
+									SubCellSolidAngle,
+									RefinementCause));
 							}
 						}
 					}
@@ -1206,6 +964,11 @@ public:
 				int32 asdf = 0;
 			}
 
+			FVector4 WorldPathDirections[4];
+			FVector4 TangentPathDirections[4];
+			FLightRay LightRays[4];
+			FLightRayIntersection LightRayIntersections[4];
+
 			FStaticLightingMappingStats& Stats = MappingContext.Stats;
 
 			for (int32 NodeIndex = 0; NodeIndex < CurrentNodesToRefine->Num(); NodeIndex++)
@@ -1213,6 +976,7 @@ public:
 				FRefinementTraversalContext NodeContext = (*CurrentNodesToRefine)[NodeIndex];
 				FLinearColor SubsampledRadiance = FLinearColor::Black;
 				FLightingCacheGatherInfo SubsampleGatherInfo; 
+				SubsampleGatherInfo.HitPointRecorder = HitPointRecorder;
 
 				for (int32 SubThetaIndex = 0; SubThetaIndex < NumSubsamples; SubThetaIndex++)
 				{
@@ -1239,6 +1003,7 @@ public:
 							&& NodeContext.Node->Element.Uniforms.Y < ChildMin.Y + NodeContext.Size.Y / 2)
 						{
 							FreeNode->Element = NodeContext.Node->Element;
+							NodeContext.Node->Element.HitPointIndex = -1;
 						}
 						else
 						{
@@ -1252,38 +1017,69 @@ public:
 
 							const FVector4 SampleDirection = UniformSampleHemisphere(Fraction1, Fraction2);
 
+							Vertex.ComputePathDirections(SampleDirection, WorldPathDirections[0], TangentPathDirections[0]);
+
+							LightingSystem.IntersectLightRays(
+								Mapping,
+								Vertex,
+								SampleRadius,
+								1,
+								WorldPathDirections,
+								TangentPathDirections,
+								RayBiasMode,
+								MappingContext,
+								LightRays,
+								LightRayIntersections);
+
 							FVector UnoccludedSkyVector;
 							FLinearColor StationarySkyLighting;
 							FFinalGatherInfo SubsampleFinalGatherInfo;
+							FFinalGatherHitPoint HitPoint;
 
 							const FLinearColor SubsampleLighting = LightingSystem.FinalGatherSample(
 								Mapping,
 								Vertex,
-								SampleDirection,
-								SampleRadius,
+								WorldPathDirections[0],
+								TangentPathDirections[0],
+								LightRays[0],
+								LightRayIntersections[0],
+								NodeContext.SolidAngle,
 								BounceNumber,
-								RayBiasMode,
-								bSkyLightingOnly,
+								GatherClassification,
 								bGatheringForCachedDirectLighting,
 								bDebugThisTexel,
 								MappingContext,
 								RandomStream,
 								SubsampleGatherInfo,
 								SubsampleFinalGatherInfo,
+								HitPoint,
 								UnoccludedSkyVector,
 								StationarySkyLighting);
 
-							FreeNode->Element = FRefinementElement(FLightingAndOcclusion(SubsampleLighting, UnoccludedSkyVector, StationarySkyLighting, SubsampleFinalGatherInfo.NumSamplesOccluded), FVector2D(Fraction1, Fraction2));
+							int32 StoredHitPointIndex = -1;
+
+							if (SubsampleGatherInfo.HitPointRecorder && HitPoint.MappingSurfaceCoordinate >= 0)
+							{
+								StoredHitPointIndex = SubsampleGatherInfo.HitPointRecorder->GatherHitPointData.Num();
+								SubsampleGatherInfo.HitPointRecorder->GatherHitPointRanges.Last().NumEntries++;
+								SubsampleGatherInfo.HitPointRecorder->GatherHitPointData.Add(HitPoint);
+							}
+
+							FreeNode->Element = FRefinementElement(FLightingAndOcclusion(SubsampleLighting, UnoccludedSkyVector, StationarySkyLighting, SubsampleFinalGatherInfo.NumSamplesOccluded), FVector2D(Fraction1, Fraction2), StoredHitPointIndex);
 
 							Stats.NumRefiningFinalGatherSamples[RefinementDepth]++;
 
-							if (NodeContext.bCausedByBrightnessDifference)
+							if (NodeContext.RefinementCause == EFinalGatherRefinementCause::BrightnessDifference)
 							{
 								Stats.NumRefiningSamplesDueToBrightness++;
 							}
-							else
+							else if (NodeContext.RefinementCause == EFinalGatherRefinementCause::ImportancePhotons)
 							{
 								Stats.NumRefiningSamplesDueToImportancePhotons++;
+							}
+							else
+							{
+								Stats.NumRefiningSamplesOther++;
 							}
 						}
 
@@ -1294,10 +1090,12 @@ public:
 
 			// Tighten the refinement criteria for the next depth level
 			// These have a huge impact on build time with a large depth limit
+			//@todo - refine based on relative error instead of these heuristics
 			ImportanceConeAngle /= 4;
 			BrightnessThreshold *= 2;
 			ConeWeightThreshold *= 1.5f;
 			SkyOcclusionThreshold *= 16;
+			SkyVarianceThreshold *= 2;
 		}
 	}
 
@@ -1310,7 +1108,7 @@ private:
 	// 2d grid of quadtrees for refinement
 	TArray<FSimpleQuadTree<FRefinementElement> > Cells;
 
-	FLightingAndOcclusion GetFilteredValueRecursive(const FSimpleQuadTreeNode<FRefinementElement>* Parent) const
+	FLightingAndOcclusion GetFilteredValueRecursive(const FSimpleQuadTreeNode<FRefinementElement>* __restrict Parent) const
 	{
 		if (Parent->Children[0])
 		{
@@ -1328,6 +1126,29 @@ private:
 			return Parent->Element.Lighting;
 		}
 	}
+
+	void UpdateHitPointWeightsRecursive(TArray<FFinalGatherHitPoint>& FinalGatherHitPoints, FSimpleQuadTreeNode<FRefinementElement>* Parent, float ParentWeight)
+	{
+		if (Parent->Children[0])
+		{
+			if (Parent->Element.HitPointIndex >= 0)
+			{
+				FinalGatherHitPoints[Parent->Element.HitPointIndex].Weight = 0.0f;
+			}
+
+			for (int32 ChildIndex = 0; ChildIndex < ARRAY_COUNT(Parent->Children); ChildIndex++)
+			{
+				UpdateHitPointWeightsRecursive(FinalGatherHitPoints, Parent->Children[ChildIndex], ParentWeight / 4.0f);
+			}
+		}
+		else
+		{
+			if (Parent->Element.HitPointIndex >= 0)
+			{
+				FinalGatherHitPoints[Parent->Element.HitPointIndex].Weight = ParentWeight;
+			}
+		}
+	}
 };
 
 /** 
@@ -1343,6 +1164,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	int32 ElementIndex,
 	int32 BounceNumber,
 	EFinalGatherRayBiasMode RayBiasMode,
+	EHemisphereGatherClassification GatherClassification,
 	int32 NumAdaptiveRefinementLevels,
 	float BrightnessThresholdScale,
 	const TArray<FVector4>& UniformHemisphereSamples,
@@ -1352,7 +1174,6 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	FStaticLightingMappingContext& MappingContext,
 	FLMRandomStream& RandomStream,
 	FLightingCacheGatherInfo& GatherInfo,
-	bool bSkyLightingOnly,
 	bool bGatheringForCachedDirectLighting,
 	bool bDebugThisTexel) const
 {
@@ -1372,6 +1193,13 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	int32 NumBackfaceHits = 0;
 	FUniformHemisphereRefinementGrid RefinementGrid(NumThetaSteps, NumPhiSteps);
 
+	const float BaseGridSolidAngle = 2 * PI / (float)UniformHemisphereSamples.Num();
+
+	FVector4 WorldPathDirections[4];
+	FVector4 TangentPathDirections[4];
+	FLightRay LightRays[4];
+	FLightRayIntersection LightRayIntersections[4];
+
 	// Initialize the root level of the refinement grid with lighting values
 	for (int32 ThetaIndex = 0; ThetaIndex < NumThetaSteps; ThetaIndex++)
 	{
@@ -1380,29 +1208,56 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			const int32 SampleIndex = ThetaIndex * NumPhiSteps + PhiIndex;
 			const FVector4 TriangleTangentPathDirection = UniformHemisphereSamples[SampleIndex];
 			
+			Vertex.ComputePathDirections(TriangleTangentPathDirection, WorldPathDirections[0], TangentPathDirections[0]);
+
+			IntersectLightRays(
+				Mapping,
+				Vertex,
+				SampleRadius,
+				1,
+				WorldPathDirections,
+				TangentPathDirections,
+				RayBiasMode,
+				MappingContext,
+				LightRays,
+				LightRayIntersections);
+
 			FVector UnoccludedSkyVector;
 			FLinearColor StationarySkyLighting;
 			FFinalGatherInfo FinalGatherInfo;
+			FFinalGatherHitPoint HitPoint;
 
 			const FLinearColor Radiance = FinalGatherSample(
 				Mapping,
 				Vertex,
-				TriangleTangentPathDirection,
-				SampleRadius,
+				WorldPathDirections[0],
+				TangentPathDirections[0],
+				LightRays[0],
+				LightRayIntersections[0],
+				BaseGridSolidAngle,
 				BounceNumber,
-				RayBiasMode,
-				bSkyLightingOnly,
+				GatherClassification,
 				bGatheringForCachedDirectLighting,
 				bDebugThisTexel,
 				MappingContext,
 				RandomStream,
 				GatherInfo,
 				FinalGatherInfo,
+				HitPoint,
 				UnoccludedSkyVector,
 				StationarySkyLighting);
 
+			int32 StoredHitPointIndex = -1;
+
+			if (GatherInfo.HitPointRecorder && HitPoint.MappingSurfaceCoordinate >= 0)
+			{
+				StoredHitPointIndex = GatherInfo.HitPointRecorder->GatherHitPointData.Num();
+				GatherInfo.HitPointRecorder->GatherHitPointRanges.Last().NumEntries++;
+				GatherInfo.HitPointRecorder->GatherHitPointData.Add(HitPoint);
+			}
+
 			NumBackfaceHits += FinalGatherInfo.NumBackfaceHits;
-			RefinementGrid.SetRootElement(ThetaIndex, PhiIndex, FRefinementElement(FLightingAndOcclusion(Radiance, UnoccludedSkyVector, StationarySkyLighting, FinalGatherInfo.NumSamplesOccluded), UniformHemisphereSampleUniforms[SampleIndex]));
+			RefinementGrid.SetRootElement(ThetaIndex, PhiIndex, FRefinementElement(FLightingAndOcclusion(Radiance, UnoccludedSkyVector, StationarySkyLighting, FinalGatherInfo.NumSamplesOccluded), UniformHemisphereSampleUniforms[SampleIndex], StoredHitPointIndex));
 		}
 	}
 
@@ -1432,13 +1287,14 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			SampleRadius,
 			BounceNumber,
 			RayBiasMode,
-			bSkyLightingOnly,
+			GatherClassification,
 			bGatheringForCachedDirectLighting,
 			NumAdaptiveRefinementLevels,
 			BrightnessThresholdScale,
 			TangentSpaceImportancePhotonDirections,
 			Scene.Portals,
 			MappingContext,
+			GatherInfo.HitPointRecorder,
 			RandomStream,
 			bDebugThisTexel);
 	}
@@ -1475,9 +1331,14 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			const FVector4 TangentPathDirection = Vertex.TransformWorldVectorToTangent(WorldPathDirection);
 			checkSlow(TangentPathDirection.IsUnit3());
 
-			const float PDF = EvaluatePDF(Vertex, WorldPathDirection);
-			const float SampleWeight = 1.0f / (PDF * UniformHemisphereSamples.Num());
+			const float UniformPDF = 1.0f / (2.0f * (float)PI);
+			const float SampleWeight = 1.0f / (UniformPDF * UniformHemisphereSamples.Num());
 
+			if (GatherInfo.HitPointRecorder)
+			{				
+				RefinementGrid.UpdateHitPointWeights(GatherInfo.HitPointRecorder->GatherHitPointData, ThetaIndex, PhiIndex, SampleWeight * FMath::Max(TangentPathDirection.Z, 0.0f));
+			}
+			
 			const FLightingAndOcclusion FilteredLighting = RefinementGrid.GetFilteredValue(ThetaIndex, PhiIndex);
 			// Get the filtered lighting from the leaves of the refinement trees
 			const FLinearColor Radiance = FilteredLighting.Lighting;
@@ -1503,250 +1364,6 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	IncomingRadiance.SetSkyOcclusion(BentNormal);
 
 	RefinementGrid.ReturnToFreeList(MappingContext.RefinementTreeFreePool);
-
-	return IncomingRadiance;
-}
-
-
-/** Final gather using uniform sampling to estimate the incident radiance function. */
-template<class SampleType>
-SampleType FStaticLightingSystem::IncomingRadianceUniform(
-	const FStaticLightingMapping* Mapping,
-	const FFullStaticLightingVertex& Vertex,
-	float SampleRadius,
-	int32 ElementIndex,
-	int32 BounceNumber,
-	const TArray<FVector4>& UniformHemisphereSamples,
-	float MaxUnoccludedLength,
-	const TArray<FVector4>& ImportancePhotonDirections,
-	FStaticLightingMappingContext& MappingContext,
-	FLMRandomStream& RandomStream,
-	FLightingCacheGatherInfo& GatherInfo,
-	bool bDebugThisTexel) const
-{
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-	if (bDebugThisTexel)
-	{
-		int32 TempBreak = 0;
-	}
-#endif
-
-	// Photons will only be deposited on shadow casting surfaces
-	const bool bSurfaceCanReceiveIndirectPhotons = (!Mapping || (Mapping->Mesh->LightingFlags & GI_INSTANCE_CASTSHADOW)) 
-		&& ImportancePhotonDirections.Num() > 0;
-
-	SampleType IncomingRadiance;
-	const int32 PhotonImportanceHemisphereSamples = ImportancePhotonDirections.Num() > 0 ? GetNumPhotonImportanceHemisphereSamples() : 0;
-
-	// Initialize the data needed for calculating irradiance gradients
-	if (IrradianceCachingSettings.bUseIrradianceGradients)
-	{
-		GatherInfo.PreviousIncidentRadiances.AddZeroed(UniformHemisphereSamples.Num());
-		GatherInfo.PreviousDistances.AddZeroed(UniformHemisphereSamples.Num());
-	}
-	 
-	int32 NumBackfaceHits = 0;
-	float NumSamplesOccluded = 0;
-	FVector CombinedSkyUnoccludedDirection(0);
-
-	// Estimate the indirect part of the light transport equation using uniform sampled monte carlo integration
-	//@todo - use cosine sampling if possible to match the indirect integrand, the irradiance caching algorithm assumes uniform sampling
-	for (int32 SampleIndex = 0; SampleIndex < UniformHemisphereSamples.Num(); SampleIndex++)
-	{
-		const FVector4 TriangleTangentPathDirection = UniformHemisphereSamples[SampleIndex];
-		checkSlow(TriangleTangentPathDirection.Z >= 0.0f);
-		checkSlow(TriangleTangentPathDirection.IsUnit3());
-
-		// Generate the uniform hemisphere samples from a hemisphere based around the triangle normal, not the smoothed vertex normal
-		// This is important for cases where the smoothed vertex normal is very different from the triangle normal, in which case
-		// Using the smoothed vertex normal would cause self-intersection even on a plane
-		const FVector4 WorldPathDirection = Vertex.TransformTriangleTangentVectorToWorld(TriangleTangentPathDirection);
-		checkSlow(WorldPathDirection.IsUnit3());
-
-		const FVector4 TangentPathDirection = Vertex.TransformWorldVectorToTangent(WorldPathDirection);
-		checkSlow(TangentPathDirection.IsUnit3());
-
-		FVector4 SampleOffset(0,0,0);
-		if (GeneralSettings.bAccountForTexelSize)
-		{
-			// Offset the sample's starting point in the tangent XY plane based on the sample's area of influence. 
-			// This is particularly effective for large texels with high variance in the incoming radiance over the area of the texel.
-			SampleOffset = Vertex.WorldTangentX * TangentPathDirection.X * SampleRadius * SceneConstants.VisibilityTangentOffsetSampleRadiusScale
-				+ Vertex.WorldTangentY * TangentPathDirection.Y * SampleRadius * SceneConstants.VisibilityTangentOffsetSampleRadiusScale;
-		}
-
-		const FLightRay PathRay(
-			// Apply various offsets to the start of the ray.
-			// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
-			// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
-			Vertex.WorldPosition 
-				+ WorldPathDirection * SceneConstants.VisibilityRayOffsetDistance 
-				+ Vertex.WorldTangentZ * SampleRadius * SceneConstants.VisibilityNormalOffsetSampleRadiusScale 
-				+ SampleOffset,
-			Vertex.WorldPosition + WorldPathDirection * MaxRayDistance,
-			Mapping,
-			NULL
-			);
-
-		MappingContext.Stats.NumFirstBounceRaysTraced++;
-		const float LastRayTraceTime = MappingContext.RayCache.FirstHitRayTraceTime;
-		FLightRayIntersection RayIntersection;
-		AggregateMesh->IntersectLightRay(PathRay, true, false, false, MappingContext.RayCache, RayIntersection);
-		MappingContext.Stats.FirstBounceRayTraceTime += MappingContext.RayCache.FirstHitRayTraceTime - LastRayTraceTime;
-
-		float PhotonImportanceSampledPDF = 0.0f;
-		{
-			LIGHTINGSTAT(FScopedRDTSCTimer CalculateSamplePDFTimer(MappingContext.Stats.CalculateImportanceSampleTime));
-			if (PhotonImportanceHemisphereSamples > 0)
-			{
-				MappingContext.Stats.NumImportancePDFCalculations++;
-				const float ConePDF = UniformConePDF(PhotonMappingSettings.FinalGatherImportanceSampleCosConeAngle);
-
-				// Calculate the probability that this sample was generated by importance sampling using the nearby photon directions
-				for (int32 OtherPhotonIndex = 0; OtherPhotonIndex < ImportancePhotonDirections.Num(); OtherPhotonIndex++)
-				{
-					if (Dot3(ImportancePhotonDirections[OtherPhotonIndex], WorldPathDirection) > (1.0f - DELTA) * PhotonMappingSettings.FinalGatherImportanceSampleCosConeAngle)
-					{
-						PhotonImportanceSampledPDF += ConePDF;
-					}
-				}
-
-				PhotonImportanceSampledPDF /= ImportancePhotonDirections.Num();
-			}
-		}
-
-		const float PDF = EvaluatePDF(Vertex, WorldPathDirection);
-		// Calculate the multiple importance sample weight for this sample direction using a power heuristic
-		const float MultipleImportanceSamplingWeight = PowerHeuristic(UniformHemisphereSamples.Num(), PDF, PhotonImportanceHemisphereSamples, PhotonImportanceSampledPDF);
-		const float SampleWeight = MultipleImportanceSamplingWeight / (PDF * UniformHemisphereSamples.Num());
-		bool bPositiveSample = false;
-
-		if (RayIntersection.bIntersects)
-		{
-			const float IntersectionDistance = (Vertex.WorldPosition - RayIntersection.IntersectionVertex.WorldPosition).Size3();
-			GatherInfo.UpdateOnHit(IntersectionDistance);
-
-			if (IntersectionDistance < AmbientOcclusionSettings.MaxOcclusionDistance)
-			{
-				NumSamplesOccluded += 1.0f / RayIntersection.Mesh->GetFullyOccludedSamplesFraction(RayIntersection.ElementIndex);
-			}
-
-			// Only continue if the ray hit the frontface of the polygon, otherwise the ray started inside a mesh
-			if (Dot3(PathRay.Direction, -RayIntersection.IntersectionVertex.WorldTangentZ) > 0.0f && TangentPathDirection.Z > 0)
-			{
-				if (GeneralSettings.NumIndirectLightingBounces > 0)
-				{
-					LIGHTINGSTAT(FScopedRDTSCTimer CalculateExitantRadianceTimer(MappingContext.Stats.CalculateExitantRadianceTime));
-					FStaticLightingVertex IntersectionVertex = RayIntersection.IntersectionVertex;
-					// The ray intersection does not return a Tangent and Binormal so we need to create some in order to have a valid tangent space
-					IntersectionVertex.GenerateVertexTangents();
-
-					// Calculate exitant radiance at the final gather ray intersection position.
-					const FLinearColor PathVertexOutgoingRadiance = CalculateExitantRadiance(
-						Mapping, 
-						RayIntersection.Mapping, 
-						RayIntersection.Mesh, 
-						IntersectionVertex, 
-						RayIntersection.VertexIndex, 
-						RayIntersection.ElementIndex,
-						-WorldPathDirection, 
-						BounceNumber, 
-						MappingContext, 
-						RandomStream, 
-						// Exclude direct lighting when there are indirect photons, as first bounce lighting from uniform sampling tends to have very high variance
-						// While the first bounce lighting from importance sampling will be much cleaner.  This is incorrect as energy is lost, but improves quality.
-						!bSurfaceCanReceiveIndirectPhotons,
-						bDebugThisTexel && (!PhotonMappingSettings.bUsePhotonMapping || !PhotonMappingSettings.bVisualizePhotonImportanceSamples));
-
-					checkSlow(FLinearColorUtils::AreFloatsValid(PathVertexOutgoingRadiance));
-					IncomingRadiance.AddIncomingRadiance(PathVertexOutgoingRadiance, SampleWeight, TangentPathDirection, WorldPathDirection);
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-					if (PathVertexOutgoingRadiance.R > DELTA || PathVertexOutgoingRadiance.G > DELTA || PathVertexOutgoingRadiance.B > DELTA)
-					{
-						if (bDebugThisTexel)
-						{
-							int32 TempBreak = 0;
-						}
-						bPositiveSample = true;
-					}
-#endif
-					checkSlow(IncomingRadiance.AreFloatsValid());
-					if (IrradianceCachingSettings.bUseIrradianceGradients)
-					{
-						GatherInfo.PreviousIncidentRadiances[SampleIndex] = PathVertexOutgoingRadiance;
-					}
-				}
-			}
-			else
-			{
-				NumBackfaceHits++;
-			}
-
-			if (IrradianceCachingSettings.bUseIrradianceGradients)
-			{
-				GatherInfo.PreviousDistances[SampleIndex] = IntersectionDistance;
-			}
-		}
-		else
-		{
-			const FLinearColor EnvironmentLighting = EvaluateEnvironmentLighting(-WorldPathDirection);
-
-			if (TangentPathDirection.Z > 0)
-			{
-				IncomingRadiance.AddIncomingRadiance(EnvironmentLighting, SampleWeight, TangentPathDirection, WorldPathDirection);
-			}
-			
-			CombinedSkyUnoccludedDirection += WorldPathDirection;
-
-			if (IrradianceCachingSettings.bUseIrradianceGradients)
-			{
-				GatherInfo.PreviousIncidentRadiances[SampleIndex] = EnvironmentLighting;
-				GatherInfo.PreviousDistances[SampleIndex] = MaxRayDistance;
-			}
-		}
-
-		FLinearColor StaticSkyLighting = FLinearColor::Black;
-		FLinearColor StationarySkyLighting = FLinearColor::Black;
-		EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, true, StaticSkyLighting, StationarySkyLighting);
-
-		if (StaticSkyLighting != FLinearColor::Black)
-		{
-			IncomingRadiance.AddIncomingRadiance(StaticSkyLighting, SampleWeight, TangentPathDirection, WorldPathDirection);
-		}
-
-		if (StationarySkyLighting != FLinearColor::Black)
-		{
-			IncomingRadiance.AddIncomingStationarySkyLight(StationarySkyLighting, SampleWeight, TangentPathDirection, WorldPathDirection);
-		}
-
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-		if (bDebugThisTexel
-			&& GeneralSettings.ViewSingleBounceNumber == BounceNumber
-			&& (!PhotonMappingSettings.bUsePhotonMapping || !PhotonMappingSettings.bVisualizePhotonImportanceSamples))
-		{
-			FDebugStaticLightingRay DebugRay(PathRay.Start, PathRay.End, RayIntersection.bIntersects, bPositiveSample != 0);
-			if (RayIntersection.bIntersects)
-			{
-				DebugRay.End = RayIntersection.IntersectionVertex.WorldPosition;
-			}
-			DebugOutput.PathRays.Add(DebugRay);
-		}
-#endif
-	}
-
-	GatherInfo.BackfacingHitsFraction = NumBackfaceHits / (float)UniformHemisphereSamples.Num();
-	
-	// Calculate the fraction of samples which were occluded
-	const float MaterialElementFullyOccludedSamplesFraction = Mapping ? Mapping->Mesh->GetFullyOccludedSamplesFraction(ElementIndex) : 1.0f;
-	const float OcclusionFraction = FMath::Min(NumSamplesOccluded / (AmbientOcclusionSettings.FullyOccludedSamplesFraction * MaterialElementFullyOccludedSamplesFraction * UniformHemisphereSamples.Num()), 1.0f);
-	// Constant which maintains an integral of .5 for the unclamped exponential function applied to occlusion below
-	// An integral of .5 is important because it makes an image with a uniform distribution of occlusion values stay the same brightness with different exponents.
-	// As a result, OcclusionExponent just controls contrast and doesn't affect brightness.
-	const float NormalizationConstant = .5f * (AmbientOcclusionSettings.OcclusionExponent + 1);
-	IncomingRadiance.SetOcclusion(FMath::Clamp(NormalizationConstant * FMath::Pow(OcclusionFraction, AmbientOcclusionSettings.OcclusionExponent), 0.0f, 1.0f)); 
-
-	const FVector BentNormal = CombinedSkyUnoccludedDirection / (MaxUnoccludedLength * UniformHemisphereSamples.Num());
-	IncomingRadiance.SetSkyOcclusion(BentNormal);
 
 	return IncomingRadiance;
 }
@@ -1778,8 +1395,7 @@ void FStaticLightingSystem::CalculateIrradianceGradients(
 			{
 				const int32 SampleIndex = ThetaIndex * NumPhiSteps + PhiIndex;
 				const FLinearColor& IncidentRadiance = GatherInfo.PreviousIncidentRadiances[SampleIndex];
-				// These equations need to be re-derived from the paper for a non-uniform PDF
-				checkSlow(!ImportanceTracingSettings.bUseCosinePDF);
+				// Note: These equations need to be re-derived from the paper for a non-uniform PDF
 				const float TangentTerm = -FMath::Tan(ThetaIndex / (float)NumThetaSteps);
 				InnerSum += TangentTerm * FVector4(IncidentRadiance);
 			}
@@ -1852,7 +1468,6 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 	const FStaticLightingMapping* Mapping,
 	const FFullStaticLightingVertex& Vertex,
 	int32 ElementIndex,
-	int32 VertexIndex,
 	float SampleRadius,
 	bool bIntersectingSurface,
 	FStaticLightingMappingContext& MappingContext,
@@ -1882,7 +1497,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 			// Use irradiance photons for indirect lighting
 			if (PhotonMappingSettings.bUseIrradiancePhotons)
 			{
-				const FIrradiancePhoton* NearestPhoton = NULL;
+				FLinearColor Irradiance = FLinearColor::Black;
 
 				if (PhotonMappingSettings.bCacheIrradiancePhotonsOnSurfaces)
 				{
@@ -1903,23 +1518,23 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					if (Intersection.bIntersects && Mapping == Intersection.Mapping)
 					{
 						CurrentVertex = Intersection.IntersectionVertex;
-						VertexIndex = Intersection.VertexIndex;
 					}
-					// Lookup the irradiance photon that was cached on this surface point
-					// Direct lighting is not desired here, as CachePointIncomingRadiance without final gathering is only responsible for gathering indirect lighting
-					FLinearColor DirectLighting;
-					NearestPhoton = Mapping->GetCachedIrradiancePhoton(VertexIndex, Intersection.IntersectionVertex, *this, bDebugThisTexel && PhotonMappingSettings.bVisualizePhotonGathers && GeneralSettings.ViewSingleBounceNumber != 0, DirectLighting);
+
+					Irradiance = Mapping->GetSurfaceCacheLighting(CurrentVertex);
 				}
 				else
 				{
+					const FIrradiancePhoton* NearestPhoton = NULL;
+
 					TArray<FIrradiancePhoton*> TempIrradiancePhotons;
 					// Search the irradiance photon map for the nearest one
 					NearestPhoton = FindNearestIrradiancePhoton(Vertex, MappingContext, TempIrradiancePhotons, false, bDebugThisTexel);
+					Irradiance = NearestPhoton ? NearestPhoton->GetIrradiance() : FLinearColor::Black;
 				}
-				const FLinearColor& PhotonIrradiance = NearestPhoton ? NearestPhoton->GetIrradiance() : FLinearColor::Black;
+				
 				// Convert irradiance (which is incident radiance over all directions for a point) to incident radiance with the approximation 
 				// That the irradiance is actually incident radiance along the surface normal.  This will only be correct for simple lightmaps.
-				IndirectLighting.AddWeighted(FGatheredLightSampleUtil::AmbientLight<2>(PhotonIrradiance), 1.0f);
+				IndirectLighting.AddWeighted(FGatheredLightSampleUtil::AmbientLight<2>(Irradiance), 1.0f);
 			}
 			else
 			{
@@ -1995,11 +1610,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 			}
 			
 			FLightingCacheGatherInfo GatherInfo;
-			FFinalGatherSample UniformSampledIncomingRadiance;
-
-			if (ImportanceTracingSettings.bUseAdaptiveSolver)
-			{
-				UniformSampledIncomingRadiance = IncomingRadianceAdaptive<FFinalGatherSample>(
+			FFinalGatherSample UniformSampledIncomingRadiance = IncomingRadianceAdaptive<FFinalGatherSample>(
 					Mapping, 
 					Vertex, 
 					SampleRadius, 
@@ -2007,6 +1618,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					ElementIndex, 
 					BounceNumber, 
 					RBM_ConstantNormalOffset,
+					GLM_FinalGather,
 					ImportanceTracingSettings.NumAdaptiveRefinementLevels,
 					1.0f,
 					CachedHemisphereSamples,
@@ -2015,43 +1627,13 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					ImportancePhotonDirections, 
 					MappingContext, 
 					RandomStream, 
-					GatherInfo, 
-					false,
+					GatherInfo,
 					false,
 					bDebugThisTexel);
-			}
-			else
-			{
-				//@todo - remove old solver
-				UniformSampledIncomingRadiance = IncomingRadianceUniform<FFinalGatherSample>(
-					Mapping, 
-					Vertex, 
-					SampleRadius, 
-					ElementIndex, 
-					BounceNumber, 
-					CachedHemisphereSamples,
-					CachedSamplesMaxUnoccludedLength,
-					ImportancePhotonDirections, 
-					MappingContext, 
-					RandomStream, 
-					GatherInfo, 
-					bDebugThisTexel);
-			}
 
 			IndirectLighting.AddWeighted(UniformSampledIncomingRadiance, 1.0f);
 
 			const bool bInsideGeometry = GatherInfo.BackfacingHitsFraction > .5f && !bIntersectingSurface;
-
-			if (!ImportanceTracingSettings.bUseAdaptiveSolver
-				&& GeneralSettings.NumIndirectLightingBounces > 0 
-				// Skip importance sampling if we are inside another object
-				// This will create incomplete lighting for texels skipped, but it's assumed they are not visible anyway if they can see so many backfaces
-				&& !bInsideGeometry)
-			{
-				// Use importance sampled final gathering to calculate incident radiance
-				const FGatheredLightSample ImportanceSampledIncomingRadiance = IncomingRadianceImportancePhotons(Mapping, Vertex, SampleRadius, ElementIndex, BounceNumber, ImportancePhotonDirections, MappingContext, RandomStream, bDebugThisTexel);
-				IndirectLighting.AddWeighted(ImportanceSampledIncomingRadiance, 1.0f);
-			}
 
 			if (IrradianceCachingSettings.bAllowIrradianceCaching)
 			{
@@ -2122,6 +1704,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 
 				TLightingCache<FFinalGatherSample>::FRecord<FFinalGatherSample> NewRecord(
 					Vertex,
+					ElementIndex,
 					GatherInfo,
 					SampleRadius,
 					OverrideRadius,

@@ -389,8 +389,8 @@ void FSlateRHIRenderer::UpdateFullscreenState( const TSharedRef<SWindow> Window,
 
 		if( (GIsEditor && Window->IsViewportSizeDrivenByWindow()) || (Window->GetWindowMode() == EWindowMode::WindowedFullscreen))
 		{
-			ResX = ViewInfo->Width;
-			ResY = ViewInfo->Height;
+			ResX = ViewInfo->DesiredWidth;
+			ResY = ViewInfo->DesiredHeight;
 		}
 
 		ConditionalResizeViewport( ViewInfo, ResX, ResY, bFullscreen );

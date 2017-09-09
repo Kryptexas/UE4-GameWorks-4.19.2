@@ -19,7 +19,6 @@
 	bool bIsOnActiveSpace;
 }
 
-@property (assign) NSRect PreFullScreenRect;
 @property (assign) EWindowMode::Type TargetWindowMode;
 
 /** Get the frame filled by a child OpenGL view, which may cover the window or fill the content view depending upon the window style.

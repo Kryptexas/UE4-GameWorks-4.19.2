@@ -534,6 +534,7 @@ namespace Agent
 			SerialisableColours.Add( new SerialisableColour( Color.Green ) );				// PROGSTATE_Finished,
 			SerialisableColours.Add( new SerialisableColour( Color.Black ) );				// PROGSTATE_RemoteDisconnected
 			SerialisableColours.Add( new SerialisableColour( Color.Black ) );				// PROGSTATE_InstigatorDisconnected
+            SerialisableColours.Add( new SerialisableColour( Color.Black));			        // PROGSTATE_Preparing4
 
 			OptionsVersion = (int)EOptionsVersion.Current;
 		}
@@ -549,7 +550,7 @@ namespace Agent
 			}
 
 			// Ensure we have enough colours for the enum
-			for( int Index = SerialisableColours.Count; Index <= ( int )EProgressionState.InstigatorDisconnected; Index++ )
+			for( int Index = SerialisableColours.Count; Index < ( int )EProgressionState.Num; Index++ )
 			{
 				SerialisableColours.Add( new SerialisableColour( Color.Black ) );
 			}

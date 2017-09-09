@@ -630,6 +630,7 @@ public:
 	virtual enum EBlendMode GetBlendMode() const override				{ return BLEND_Opaque; }
 	virtual enum EMaterialShadingModel GetShadingModel() const override	{ return MSM_Unlit; }
 	virtual float GetOpacityMaskClipValue() const override				{ return 0.5f; }
+	virtual bool GetCastDynamicShadowAsMasked() const override					{ return false; }
 	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 	/**
 	* Should shaders compiled for this material be saved to disk?
@@ -2814,18 +2815,9 @@ void FMaterialUtilities::DetermineMaterialImportance(const TArray<UMaterialInter
 		{
 			if (UTexture2D* Texture2D = Cast<UTexture2D>(Texture))
 			{
-
-				// In game max bias and dimensions
-				uint32 MaxInGameWidth, MaxInGameHeight;
-				int32 MipLevel = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(Texture2D);
-				//Calculate in-game max resolution and store in EffectiveTextureWidth, EffectiveTextureHeight
-				UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->ComputeInGameMaxResolution(MipLevel, *Texture, (uint32 &)MaxInGameWidth, (uint32 &)MaxInGameHeight);
-				
-				int32 TotalSize = MaxInGameWidth * MaxInGameHeight;
-				if (TotalSize > MaxSize)
-				{
-					MaxSize = TotalSize;
-				}
+				const int32 MaxResMipBias = Texture2D->GetNumMips() - Texture2D->GetNumMipsAllowed(true);
+				const int32 MaxResSize = FMath::Max<int32>(Texture2D->GetSizeX() >> MaxResMipBias, 1) * FMath::Max<int32>(Texture2D->GetSizeY() >> MaxResMipBias, 1);
+				MaxSize = FMath::Max<int32>(MaxSize, MaxResSize);
 			}
 		}
 		

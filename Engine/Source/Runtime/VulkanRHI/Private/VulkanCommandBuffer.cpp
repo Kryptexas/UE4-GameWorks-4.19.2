@@ -70,7 +70,7 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 {
 	check(IsOutsideRenderPass());
 
-    VkRenderPassBeginInfo Info;
+	VkRenderPassBeginInfo Info;
 	FMemory::Memzero(Info);
 	Info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	Info.renderPass = RenderPass->GetHandle();

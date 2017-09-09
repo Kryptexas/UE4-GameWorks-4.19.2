@@ -1045,62 +1045,6 @@ void FTexturePlatformData::SerializeCooked(FArchive& Ar, UTexture* Owner, bool b
 }
 
 /*------------------------------------------------------------------------------
-	Streaming mips from the derived data cache.
-------------------------------------------------------------------------------*/
-
-#if WITH_EDITORONLY_DATA
-
-/** Initialization constructor. */
-FAsyncStreamDerivedMipWorker::FAsyncStreamDerivedMipWorker(
-	const FString& InDerivedDataKey,
-	void** InDestMipDataPointer,
-	int32 InMipSize,
-	FThreadSafeCounter* InThreadSafeCounter
-	)
-	: DerivedDataKey(InDerivedDataKey)
-	, DestMipDataPointer(InDestMipDataPointer)
-	, ExpectedMipSize(InMipSize)
-	, bRequestFailed(false)
-	, ThreadSafeCounter(InThreadSafeCounter)
-{
-	check(DestMipDataPointer != NULL);
-
-	// Make sure the pixel format enum is cached -- we access it on another thread.
-	UTexture::GetPixelFormatEnum();
-}
-
-/** Retrieves the derived mip from the derived data cache. */
-void FAsyncStreamDerivedMipWorker::DoWork()
-{
-	TArray<uint8> DerivedMipData;
-
-	if (GetDerivedDataCacheRef().GetSynchronous(*DerivedDataKey, DerivedMipData))
-	{
-		FMemoryReader Ar(DerivedMipData, true);
-
-		int32 MipSize = 0;
-		Ar << MipSize;
-		checkf(MipSize == ExpectedMipSize, TEXT("MipSize(%d) == ExpectedSize(%d)"), MipSize, ExpectedMipSize);
-
-		// Allocate memory for the mip unless the caller has already done so.
-		if (*DestMipDataPointer == NULL)
-		{
-			*DestMipDataPointer = FMemory::Malloc(MipSize);
-		}
-
-		Ar.Serialize(*DestMipDataPointer, MipSize);
-	}
-	else
-	{
-		bRequestFailed = true;
-	}
-	FPlatformMisc::MemoryBarrier();
-	ThreadSafeCounter->Decrement();
-}
-
-#endif // #if WITH_EDITORONLY_DATA
-
-/*------------------------------------------------------------------------------
 	Texture derived data interface.
 ------------------------------------------------------------------------------*/
 
@@ -1124,9 +1068,9 @@ void UTexture2D::GetMipData(int32 FirstMipToLoad, void** OutMipData)
 	}
 }
 
-void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
+void UTexture::UpdateCachedLODBias()
 {
-	CachedCombinedLODBias = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(this, bIncTextureMips);
+	CachedCombinedLODBias = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(this);
 }
 
 #if WITH_EDITOR

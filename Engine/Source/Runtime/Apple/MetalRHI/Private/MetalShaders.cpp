@@ -168,6 +168,7 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
         {
             CompressedSource.Append(LZMASource, LZMASourceSize);
             memcpy(&CodeSize, UnSourceLen, sizeof(uint32));
+			bHasShaderSource = false;
         }
         if (bForceTextShaders)
         {
@@ -200,13 +201,14 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 			bool const bHasShaderPath = (ShaderPath && FCStringAnsi::Strlen(ShaderPath) > 0);
 			
 			// on Mac if we have a path for the shader we can access the shader code
-			if (bHasShaderPath && !bForceTextShaders)
+			if (bHasShaderPath && !bForceTextShaders && (GetSourceCode() != nil))
 			{
 				FString ShaderPathString(ShaderPath);
 				
 				if (IFileManager::Get().MakeDirectory(*FPaths::GetPath(ShaderPathString), true))
 				{
-					bSavedSource = FFileHelper::SaveStringToFile(FString(GlslCodeNSString), *ShaderPathString);
+					FString Source(GetSourceCode());
+					bSavedSource = FFileHelper::SaveStringToFile(Source, *ShaderPathString);
 				}
 				
 				static bool bAttemptedAuth = false;
@@ -1014,7 +1016,7 @@ void FMetalShaderParameterCache::CommitPackedGlobals(FMetalStateCache* Cache, FM
 	}
 }
 
-void FMetalShaderParameterCache::CommitPackedUniformBuffers(FMetalStateCache* Cache, TRefCountPtr<FMetalGraphicsPipelineState> BoundShaderState, FMetalComputeShader* ComputeShader, int32 Stage, const TArray< TRefCountPtr<FRHIUniformBuffer> >& RHIUniformBuffers, const TArray<CrossCompiler::FUniformBufferCopyInfo>& UniformBuffersCopyInfo)
+void FMetalShaderParameterCache::CommitPackedUniformBuffers(FMetalStateCache* Cache, TRefCountPtr<FMetalGraphicsPipelineState> BoundShaderState, FMetalComputeShader* ComputeShader, int32 Stage, const TRefCountPtr<FRHIUniformBuffer>* RHIUniformBuffers, const TArray<CrossCompiler::FUniformBufferCopyInfo>& UniformBuffersCopyInfo)
 {
 //	SCOPE_CYCLE_COUNTER(STAT_MetalConstantBufferUpdateTime);
 	// Uniform Buffers are split into precision/type; the list of RHI UBs is traversed and if a new one was set, its
@@ -1037,7 +1039,7 @@ void FMetalShaderParameterCache::CommitPackedUniformBuffers(FMetalStateCache* Ca
 
 	if (!Bindings.bHasRegularUniformBuffers && !FShaderCache::IsPredrawCall(Cache->GetShaderCacheStateObject()))
 	{
-		check(Bindings.NumUniformBuffers <= RHIUniformBuffers.Num());
+		check(Bindings.NumUniformBuffers <= ML_MaxBuffers);
 		int32 LastInfoIndex = 0;
 		for (int32 BufferIndex = 0; BufferIndex < Bindings.NumUniformBuffers; ++BufferIndex)
 		{

@@ -86,7 +86,7 @@ void UTexture::ReleaseResource()
 	if (Resource)
 	{
 		UTexture2D* Texture2D = Cast<UTexture2D>(this);
-		checkf( Texture2D == NULL || Texture2D->PendingMipChangeRequestStatus.GetValue() <= TexState_ReadyFor_Requests, TEXT("PendingMipChangeRequestStates = %d"), Texture2D->PendingMipChangeRequestStatus.GetValue() );
+		check( !Texture2D  || !Texture2D->HasPendingUpdate() );
 
 		// Free the resource.
 		ReleaseResourceAndFlush(Resource);

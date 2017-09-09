@@ -188,7 +188,7 @@ public:
 	void EndScene();
 	
 	void BeginDrawingViewport(FMetalViewport* Viewport);
-	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent);
+	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent, bool bLockToVsync);
 	
 	/** Take a parallel FMetalContext from the free-list or allocate a new one if required */
 	FMetalRHICommandContext* AcquireContext(int32 NewIndex, int32 NewNum);
@@ -262,4 +262,7 @@ private:
 	
 	/** Count of concurrent contexts encoding commands. */
 	int32 ActiveContexts;
+	
+	/** Whether we presented this frame - only used to track when to introduce debug markers */
+	bool bPresented;
 };

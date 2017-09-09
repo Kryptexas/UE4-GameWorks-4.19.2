@@ -57,6 +57,14 @@ public:
 	
 		}
 
+		if (Material->IsPostProcessMaterial())
+		{
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("PostProcess")))
+			{
+				return true;
+			}
+		}
+
 		{
 			bool bEditorStatsMaterial = Material->bIsMaterialEditorStatsMaterial;
 

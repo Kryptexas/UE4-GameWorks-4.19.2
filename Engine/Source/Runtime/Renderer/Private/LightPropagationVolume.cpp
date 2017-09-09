@@ -845,6 +845,7 @@ FLightPropagationVolume::FLightPropagationVolume() :
 FLightPropagationVolume::~FLightPropagationVolume()
 {
 	LpvWriteUniformBuffer.ReleaseResource();
+	RsmRenderUniformBuffer.ReleaseResource();
 
 	// Note: this is double-buffered!
 	for ( int i = 0; i < 2; i++ )
@@ -1337,6 +1338,15 @@ void FLightPropagationVolume::Update( FRHICommandListImmediate& RHICmdList, FVie
 	}
 }
 
+void FLightPropagationVolume::SetRsmUniformBuffer()
+{
+	if (!RsmRenderUniformBuffer.IsInitialized())
+	{
+		RsmRenderUniformBuffer.InitResource();
+	}
+
+	RsmRenderUniformBuffer.SetContents(*LpvWriteUniformBufferParams);
+}
 
 void FLightPropagationVolume::InsertGPUWaitForAsyncUpdate(FRHICommandListImmediate& RHICmdList)
 {

@@ -1059,14 +1059,13 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkCmdDrawIndexed(CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance);
 	}
 
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndirect(
-		VkCommandBuffer                             commandBuffer,
-		VkBuffer                                    Buffer,
-		VkDeviceSize                                offset,
-		uint32                                    drawCount,
-		uint32                                    stride);
-#endif
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndirect(VkCommandBuffer CommandBuffer, VkBuffer Buffer, VkDeviceSize Offset, uint32 DrawCount, uint32 Stride)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDrawIndirect(Buffer=%p, Offset=%d, DrawCount=%d, Stride=%d)"), (void*)Buffer, Offset, DrawCount, Stride));
+
+		VULKANAPINAMESPACE::vkCmdDrawIndirect(CommandBuffer, Buffer, Offset, DrawCount, Stride);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndexedIndirect(VkCommandBuffer CommandBuffer, VkBuffer Buffer, VkDeviceSize Offset, uint32 DrawCount, uint32 Stride)
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDrawIndexedIndirect(Buffer=%p, Offset=%d, DrawCount=%d, Stride=%d)"), (void*)Buffer, Offset, DrawCount, Stride));

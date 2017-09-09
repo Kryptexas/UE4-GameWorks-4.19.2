@@ -29,7 +29,6 @@
 #include "IAssetTools.h"
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
-#include "SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
@@ -404,17 +403,6 @@ FName FAssetEditorToolkit::GetEditorName() const
 void FAssetEditorToolkit::FocusWindow(UObject* ObjectToFocusOn)
 {
 	BringToolkitToFront();
-
-	// We have brought sub-widgets to front. Now focus on the containing window.
-	TSharedPtr<SStandaloneAssetEditorToolkitHost> Tmp = StandaloneHost.Pin();
-	if (Tmp.IsValid())
-	{
-		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(Tmp.ToSharedRef());
-		if (Window.IsValid())
-		{
-			FSlateApplication::Get().SetAllUserFocus(Window);
-		}
-	}
 }
 
 

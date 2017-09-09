@@ -1023,11 +1023,16 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FSkyLightData SkyData;
 		Copy( Light, LightData ); 
 
-		// Capture the scene's emissive and send it to lightmass
-		Light->CaptureEmissiveIrradianceEnvironmentMap(SkyData.IrradianceEnvironmentMap);
+		TArray<FFloat16Color> RadianceMap;
 
+		// Capture the scene's emissive and send it to lightmass
+		Light->CaptureEmissiveRadianceEnvironmentCubeMap(SkyData.IrradianceEnvironmentMap, RadianceMap);
+
+		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseFilteredCubemapForSkylight"), SkyData.bUseFilteredCubemap, GLightmassIni));
+		SkyData.RadianceEnvironmentMapDataSize = RadianceMap.Num();
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
 		Swarm.WriteChannel( Channel, &SkyData, sizeof(SkyData) );
+		Swarm.WriteChannel( Channel, RadianceMap.GetData(), RadianceMap.Num() * RadianceMap.GetTypeSize() );
 		UpdateExportProgress();
 	}
 }
@@ -1850,8 +1855,14 @@ void FLightmassExporter::SetVolumetricLightmapSettings(Lightmass::FVolumetricLig
 		CombinedImportanceVolume += ImportanceVolumes[i];
 	}
 
+	const FVector ImportanceExtent = CombinedImportanceVolume.GetExtent();
+	// Guarantee cube voxels.  
+	// This means some parts of the volumetric lightmap volume will be outside the lightmass importance volume.
+	// We prevent refinement outside of importance volumes in FStaticLightingSystem::ShouldRefineVoxel
+	const float MaxExtent = FMath::Max(ImportanceExtent.X, FMath::Max(ImportanceExtent.Y, ImportanceExtent.Z));
+
 	OutSettings.VolumeMin = CombinedImportanceVolume.Min;
-	OutSettings.VolumeSize = CombinedImportanceVolume.GetSize();
+	const FVector RequiredVolumeSize = FVector(MaxExtent * 2);
 
 	verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("BrickSize"), OutSettings.BrickSize, GLightmassIni));
 	verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MaxRefinementLevels"), OutSettings.MaxRefinementLevels, GLightmassIni));
@@ -1870,14 +1881,16 @@ void FLightmassExporter::SetVolumetricLightmapSettings(Lightmass::FVolumetricLig
 	const float TargetDetailCellSize = World->GetWorldSettings()->LightmassSettings.VolumetricLightmapDetailCellSize;
 
 	const FIntVector FullGridSize(
-		FMath::TruncToInt(OutSettings.VolumeSize.X / TargetDetailCellSize) + 1,
-		FMath::TruncToInt(OutSettings.VolumeSize.Y / TargetDetailCellSize) + 1,
-		FMath::TruncToInt(OutSettings.VolumeSize.Z / TargetDetailCellSize) + 1);
+		FMath::TruncToInt(RequiredVolumeSize.X / TargetDetailCellSize) + 1,
+		FMath::TruncToInt(RequiredVolumeSize.Y / TargetDetailCellSize) + 1,
+		FMath::TruncToInt(RequiredVolumeSize.Z / TargetDetailCellSize) + 1);
 
 	const int32 BrickSizeLog2 = FMath::FloorLog2(OutSettings.BrickSize);
-	const int32 DetailCellsPerTopLevelCell = 1 << (OutSettings.MaxRefinementLevels * BrickSizeLog2);
+	const int32 DetailCellsPerTopLevelBrick = 1 << (OutSettings.MaxRefinementLevels * BrickSizeLog2);
 
-	OutSettings.TopLevelGridSize = FIntVector::DivideAndRoundUp(FullGridSize, DetailCellsPerTopLevelCell);
+	OutSettings.TopLevelGridSize = FIntVector::DivideAndRoundUp(FullGridSize, DetailCellsPerTopLevelBrick);
+
+	OutSettings.VolumeSize = FVector(OutSettings.TopLevelGridSize) * DetailCellsPerTopLevelBrick * TargetDetailCellSize;
 }
 
 /** Fills out the Scene's settings, read from the engine ini. */
@@ -1890,6 +1903,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.GeneralSettings.bAllowMultiThreadedStaticLighting = bConfigBool;
 		Scene.GeneralSettings.NumUnusedLocalCores = NumUnusedLocalCores;
 		Scene.GeneralSettings.NumIndirectLightingBounces = LevelSettings.NumIndirectLightingBounces;
+		Scene.GeneralSettings.NumSkyLightingBounces = LevelSettings.NumSkyLightingBounces;
 		Scene.GeneralSettings.IndirectLightingSmoothness = LevelSettings.IndirectLightingSmoothness;
 		Scene.GeneralSettings.IndirectLightingQuality = LevelSettings.IndirectLightingQuality;
 
@@ -1911,6 +1925,8 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.GeneralSettings.bUseEmbree = bConfigBool;
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bVerifyEmbree"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bVerifyEmbree = Scene.GeneralSettings.bUseEmbree && bConfigBool;
+		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseEmbreePacketTracing"), Scene.GeneralSettings.bUseEmbreePacketTracing, GLightmassIni));
+		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MappingSurfaceCacheDownsampleFactor"), Scene.GeneralSettings.MappingSurfaceCacheDownsampleFactor, GLightmassIni));
 
 		int32 CheckQualityLevel;
 		GConfig->GetInt( TEXT("LightingBuildOptions"), TEXT("QualityLevel"), CheckQualityLevel, GEditorPerProjectIni);
@@ -2093,8 +2109,6 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MinUnoccludedFraction"), Scene.ShadowSettings.MinUnoccludedFraction, GLightmassIni));
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseCosinePDF"), bConfigBool, GLightmassIni));
-		Scene.ImportanceTracingSettings.bUseCosinePDF = bConfigBool;
 		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseStratifiedSampling"), bConfigBool, GLightmassIni));
 		Scene.ImportanceTracingSettings.bUseStratifiedSampling = bConfigBool;
 		verify(GConfig->GetInt(TEXT("DevOptions.ImportanceTracing"), TEXT("NumHemisphereSamples"), Scene.ImportanceTracingSettings.NumHemisphereSamples, GLightmassIni));
@@ -2102,13 +2116,16 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		float MaxHemisphereAngleDegrees;
 		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("MaxHemisphereRayAngle"), MaxHemisphereAngleDegrees, GLightmassIni));
 		Scene.ImportanceTracingSettings.MaxHemisphereRayAngle = MaxHemisphereAngleDegrees * (float)PI / 180.0f;
-		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseAdaptiveSolver"), Scene.ImportanceTracingSettings.bUseAdaptiveSolver, GLightmassIni));
 		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveBrightnessThreshold"), Scene.ImportanceTracingSettings.AdaptiveBrightnessThreshold, GLightmassIni));
 		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveFirstBouncePhotonConeAngle"), Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle, GLightmassIni));
+		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveSkyVarianceThreshold"), Scene.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold, GLightmassIni));
 
 		float AdaptiveFirstBouncePhotonConeAngle;
 		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveFirstBouncePhotonConeAngle"), AdaptiveFirstBouncePhotonConeAngle, GLightmassIni));
 		Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle = FMath::Clamp(AdaptiveFirstBouncePhotonConeAngle, 0.0f, 90.0f) * (float)PI / 180.0f;
+
+		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseRadiositySolverForSkylightMultibounce"), Scene.ImportanceTracingSettings.bUseRadiositySolverForSkylightMultibounce, GLightmassIni));
+		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bCacheFinalGatherHitPointsForRadiosity"), Scene.ImportanceTracingSettings.bCacheFinalGatherHitPointsForRadiosity, GLightmassIni));
 	}
 	{
 		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonMapping"), bConfigBool, GLightmassIni));
@@ -2158,7 +2175,6 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		float IrradiancePhotonSearchConeAngle;
 		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IrradiancePhotonSearchConeAngle"), IrradiancePhotonSearchConeAngle, GLightmassIni));
 		Scene.PhotonMappingSettings.MinCosIrradiancePhotonSearchCone = FMath::Cos((90.0f - FMath::Clamp(IrradiancePhotonSearchConeAngle, 1.0f, 90.0f)) * (float)PI / 180.0f);
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("CachedIrradiancePhotonDownsampleFactor"), Scene.PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor, GLightmassIni));
 		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonSegmentsForVolumeLighting"), Scene.PhotonMappingSettings.bUsePhotonSegmentsForVolumeLighting, GLightmassIni));
 		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("PhotonSegmentMaxLength"), Scene.PhotonMappingSettings.PhotonSegmentMaxLength, GLightmassIni));
 		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("GeneratePhotonSegmentChance"), Scene.PhotonMappingSettings.GeneratePhotonSegmentChance, GLightmassIni));
@@ -2258,6 +2274,10 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		float AdaptiveFirstBouncePhotonConeAngleScale;
 		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveFirstBouncePhotonConeAngleScale"), AdaptiveFirstBouncePhotonConeAngleScale, GLightmassIni));
 		Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle = Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle * AdaptiveFirstBouncePhotonConeAngleScale;
+
+		float AdaptiveSkyVarianceThresholdScale;
+		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveSkyVarianceThresholdScale"), AdaptiveSkyVarianceThresholdScale, GLightmassIni));
+		Scene.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold = Scene.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold * AdaptiveSkyVarianceThresholdScale;
 	}
 }
 

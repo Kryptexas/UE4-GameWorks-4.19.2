@@ -1454,6 +1454,13 @@ half GetMaterialOpacity(FPixelMaterialInputs PixelMaterialInputs)
 	return saturate(GetMaterialOpacityRaw(PixelMaterialInputs));
 }
 
+#if TRANSLUCENT_SHADOW_WITH_MASKED_OPACITY
+half GetMaterialMaskedOpacity(FPixelMaterialInputs PixelMaterialInputs)
+{
+	return GetMaterialOpacity(PixelMaterialInputs) - GetMaterialOpacityMaskClipValue();
+}
+#endif
+
 float3 GetMaterialWorldPositionOffset(FMaterialVertexParameters Parameters)
 {
 	#if USE_INSTANCING
@@ -1678,7 +1685,9 @@ void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters, FPixelM
 {
 	ClipLODTransition(Parameters);
 	#if MATERIALBLENDING_MASKED
-		clip(GetMaterialMask(PixelMaterialInputs)); 
+		clip(GetMaterialMask(PixelMaterialInputs));
+	#elif TRANSLUCENT_SHADOW_WITH_MASKED_OPACITY
+		clip(GetMaterialMaskedOpacity(PixelMaterialInputs));
 	#elif MATERIALBLENDING_TRANSLUCENT
 		clip(GetMaterialOpacity(PixelMaterialInputs) - 1.0f / 255.0f);
 	#endif
@@ -1709,16 +1718,17 @@ void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters, FPixelM
 		234
 		401
 		*/
-		//float Dither5 = ( ( (uint)Parameters.SvPosition.x + (uint)Parameters.SvPosition.y * 2 + (uint)View.TemporalAAParams.x ) % 5 ) / 5.0;
-		float Dither5 = frac( ( Parameters.SvPosition.x + Parameters.SvPosition.y * 2 - 1.5 + View.TemporalAAParams.x ) / 5 );
-		float Noise = frac( dot( float2( 171.0, 231.0 ) / 71, Parameters.SvPosition.xy ) );
-		float Dither = ( Dither5 * 5 + Noise ) * (1.0 / 6.0);
-
+		float2 Pos = Parameters.SvPosition.xy;
+		
 		float2 DepthGrad = {
 			ddx( Parameters.SvPosition.z ),
 			ddy( Parameters.SvPosition.z )
 		};
-		Dither = frac( Dither + dot( DepthGrad, float2( 4093, 3571 ) ) );
+		//Pos = floor( Pos + DepthGrad * float2( 4093, 3571 ) );
+
+		float Dither5 = frac( ( Pos.x + Pos.y * 2 - 1.5 + View.TemporalAAParams.x ) / 5 );
+		float Noise = frac( dot( float2( 171.0, 231.0 ) / 71, Pos.xy ) );
+		float Dither = ( Dither5 * 5 + Noise ) * (1.0 / 6.0);
 
 		clip( GetMaterialMask(PixelMaterialInputs) + Dither - 0.5 );
 	#else
@@ -1869,7 +1879,7 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 
 // Whether to use the hidden d3d11 feature that supports depth writes with ZCull by only pushing into the screen
 //@todo - use for other SM5 platforms
-#define SUPPORTS_CONSERVATIVE_DEPTH_WRITES ((COMPILER_HLSL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5) || (PS4_PROFILE))
+#define SUPPORTS_CONSERVATIVE_DEPTH_WRITES ((COMPILER_HLSL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5) || (PS4_PROFILE) || (COMPILER_METAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5))
 #define USE_CONSERVATIVE_DEPTH_WRITES (OUTPUT_PIXEL_DEPTH_OFFSET && SUPPORTS_CONSERVATIVE_DEPTH_WRITES) 
 
 #if USE_CONSERVATIVE_DEPTH_WRITES
@@ -1878,6 +1888,9 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 	// Note: for some reason using SV_DepthLessEqual without these interpolation modifiers causes a compile error in d3d
 	#define INPUT_POSITION_QUALIFIERS linear noperspective centroid
 	// Use conservative depth output so we still get Z Cull.  Note, this is a reversed Z depth surface.
+	#define DEPTH_WRITE_SEMANTIC SV_DepthLessEqual
+#elif COMPILER_METAL
+	#define INPUT_POSITION_QUALIFIERS linear centroid
 	#define DEPTH_WRITE_SEMANTIC SV_DepthLessEqual
 #elif PS4_PROFILE
 	#define INPUT_POSITION_QUALIFIERS

@@ -470,6 +470,8 @@ int main(int argc, ANSICHAR* argv[])
 
 	int32 ErrorLevel = 0;
 
+	GUseCrashReportClient = false;
+
 #if PLATFORM_WINDOWS
 	// Set the error mode to avoid popping up dialog boxes on crashes
 	SetErrorMode( SEM_NOGPFAULTERRORBOX | SEM_NOGPFAULTERRORBOX );

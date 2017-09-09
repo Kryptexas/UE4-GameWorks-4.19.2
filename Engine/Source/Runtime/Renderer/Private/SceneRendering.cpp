@@ -1937,6 +1937,22 @@ void FSceneRenderer::UpdatePrimitivePrecomputedLightingBuffers()
 			}
 		}
 	}
+
+	const uint32 CurrentSceneFrameNumber = Scene->GetFrameNumber();
+
+	// Trim old CPUInterpolationCache entries occasionally
+	if (CurrentSceneFrameNumber % 10 == 0)
+	{
+		for (TMap<FVector, FVolumetricLightmapInterpolation>::TIterator It(Scene->VolumetricLightmapSceneData.CPUInterpolationCache); It; ++It)
+		{
+			FVolumetricLightmapInterpolation& Interpolation = It.Value();
+
+			if (Interpolation.LastUsedSceneFrameNumber < CurrentSceneFrameNumber - 100)
+			{
+				It.RemoveCurrent();
+			}
+		}
+	}
 }
 
 void FSceneRenderer::ClearPrimitiveSingleFramePrecomputedLightingBuffers()

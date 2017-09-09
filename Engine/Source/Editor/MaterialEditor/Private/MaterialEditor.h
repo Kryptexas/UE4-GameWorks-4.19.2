@@ -152,6 +152,7 @@ public:
 	virtual enum EBlendMode GetBlendMode() const override { return BLEND_Opaque; }
 	virtual enum EMaterialShadingModel GetShadingModel() const override { return MSM_Unlit; }
 	virtual float GetOpacityMaskClipValue() const override { return 0.5f; }
+	virtual bool GetCastDynamicShadowAsMasked() const override { return false; }
 	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
 	/**
 	 * Should shaders compiled for this material be saved to disk?

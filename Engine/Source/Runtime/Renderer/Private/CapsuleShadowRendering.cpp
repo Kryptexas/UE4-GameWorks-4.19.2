@@ -1555,6 +1555,11 @@ void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHIC
 					FShaderResourceViewRHIParamRef IndirectShadowLightDirectionSRV = NULL;
 					SetupIndirectCapsuleShadows(RHICmdList, View, NumCapsuleShapes, NumMeshesWithCapsules, NumMeshDistanceFieldCasters, IndirectShadowLightDirectionSRV);
 
+					// Don't render indirect occlusion from mesh distance fields when operating on a movable skylight,
+					// DFAO is responsible for indirect occlusion from meshes with distance fields on a movable skylight.
+					// A single mesh should only provide indirect occlusion for a given lighting component in one way.
+					NumMeshDistanceFieldCasters = 0;
+
 					if (NumCapsuleShapes > 0 || NumMeshDistanceFieldCasters > 0)
 					{
 						check(IndirectShadowLightDirectionSRV);

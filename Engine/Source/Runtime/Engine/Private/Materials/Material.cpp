@@ -750,6 +750,7 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	Opacity.Constant = 1.0f;
 	OpacityMask.Constant = 1.0f;
 	OpacityMaskClipValue = 0.3333f;
+	bCastDynamicShadowAsMasked = false;
 	bUsedWithStaticLighting = false;
 	D3D11TessellationMode = MTM_NoTessellation;
 	bEnableCrackFreeDisplacement = false;
@@ -3075,7 +3076,14 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DitherOpacityMask)
 			)
 		{
-			return BlendMode == BLEND_Masked || IsTranslucencyWritingCustomDepth();
+			return BlendMode == BLEND_Masked ||
+			bCastDynamicShadowAsMasked ||
+			IsTranslucencyWritingCustomDepth();
+		}
+
+		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bCastDynamicShadowAsMasked) )
+		{
+			return BlendMode == BLEND_Translucent;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DecalBlendMode))
@@ -4463,6 +4471,11 @@ float UMaterial::GetOpacityMaskClipValue() const
 	return OpacityMaskClipValue;
 }
 
+bool UMaterial::GetCastDynamicShadowAsMasked() const
+{
+	return bCastDynamicShadowAsMasked;
+}
+
 EBlendMode UMaterial::GetBlendMode() const
 {
 	if (EBlendMode(BlendMode) == BLEND_Masked)
@@ -4521,7 +4534,7 @@ bool UMaterial::IsTranslucencyWritingCustomDepth() const
 
 bool UMaterial::IsMasked() const
 {
-	return GetBlendMode() == BLEND_Masked;
+	return GetBlendMode() == BLEND_Masked || (GetBlendMode() == BLEND_Translucent && GetCastDynamicShadowAsMasked());
 }
 
 USubsurfaceProfile* UMaterial::GetSubsurfaceProfile_Internal() const

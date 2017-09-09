@@ -27,135 +27,6 @@ class UTexture2D;
 /** Maximum number of slices in texture source art. */
 #define MAX_TEXTURE_SOURCE_SLICES 6
 
-/** Thread-safe counter indicating the texture streaming state. The definitions below are mirrored in Texture2D.h */
-enum ETextureStreamingState
-{
-	// The renderer hasn't created the resource yet.
-	TexState_InProgress_Initialization	= -1,
-	// There are no pending requests/ all requests have been fulfilled.
-	TexState_ReadyFor_Requests			= 0,
-	// Finalization has been kicked off and is in progress.
-	TexState_InProgress_Finalization	= 1,
-	// Initial request has completed and finalization needs to be kicked off.
-	TexState_ReadyFor_Finalization		= 2,
-	// Mip data is in the process of being uploaded to the GPU.
-	TexState_InProgress_Upload			= 3,
-	// Mip data has been loaded in to system memory and is ready to be transferred to the GPU.
-	TexState_ReadyFor_Upload			= 10,
-	// We're currently loading in mip data.
-	TexState_InProgress_Loading			= 11,
-	// ...
-	// States 2+N means we're currently loading in N mips
-	// ...
-	// Memory has been allocated and we're ready to start loading in mips.
-	TexState_ReadyFor_Loading			= 100,
-	// We're currently allocating/preparing memory for the new mip count.
-	TexState_InProgress_Allocation		= 101,
-	// The RHI is asynchronously allocating/preparing memory for the new mip count.
-	TexState_InProgress_AsyncAllocation = 102
-};
-
-/**
- * Async worker to stream mips from the derived data cache.
- */
-class FAsyncStreamDerivedMipWorker : public FNonAbandonableTask
-{
-public:
-	/** Initialization constructor. */
-	FAsyncStreamDerivedMipWorker(
-		const FString& InDerivedDataKey,
-		void** InDestMipDataPointer,
-		int32 InMipSize,
-		FThreadSafeCounter* InThreadSafeCounter
-		);
-	
-	/**
-	 * Retrieves the derived mip from the derived data cache.
-	 */
-	void DoWork();
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncStreamDerivedMipWorker, STATGROUP_ThreadPoolAsyncTasks);
-	}
-
-	/**
-	 * Returns true if the streaming mip request failed.
-	 */
-	bool DidRequestFail() const
-	{
-		return bRequestFailed;
-	}
-
-private:
-	/** Key for retrieving mip data from the derived data cache. */
-	FString DerivedDataKey;
-	/** The location to which the mip data should be copied. */
-	void** DestMipDataPointer;
-	/** The size of the mip in bytes. */
-	int32 ExpectedMipSize;
-	/** true if the mip data was not present in the derived data cache. */
-	bool bRequestFailed;
-	/** Thread-safe counter to decrement when data has been copied. */
-	FThreadSafeCounter* ThreadSafeCounter;
-};
-
-/** Async task to stream mips from the derived data cache. */
-typedef FAsyncTask<FAsyncStreamDerivedMipWorker> FAsyncStreamDerivedMipTask;
-
-/**
- * Task to create a texture asynchronously.
- */
-class FCreateTextureTask : public FNonAbandonableTask
-{
-public:
-	/** Task arguments. */
-	struct FArguments
-	{
-		/** Width of the texture. */
-		uint32 SizeX;
-		/** Height of the texture. */
-		uint32 SizeY;
-		/** Format of the texture. */
-		EPixelFormat Format;
-		/** The number of mips. */
-		uint32 NumMips;
-		/** Texture creation flags. */
-		uint32 Flags;
-		/** Initial mip data. */
-		void** MipData;
-		/** The number of provided mips. */
-		uint32 NumNewMips;
-		/** Pointer to a reference where the new texture will be stored. */
-		FTexture2DRHIRef* TextureRefPtr;
-		/** Thread safe counter to decrement when complete. */
-		FThreadSafeCounter* ThreadSafeCounter;
-	};
-
-	/** Initialization constructor. */
-	FCreateTextureTask(FArguments InArgs)
-		: Args(InArgs)
-	{
-		check(Args.TextureRefPtr);
-		check(Args.ThreadSafeCounter);
-	}
-
-	/** Creates the texture. */
-	void DoWork();
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FCreateTextureTask, STATGROUP_ThreadPoolAsyncTasks);
-	}
-
-private:
-	/** Task arguments. */
-	FArguments Args;
-};
-
-/** Async task to create a texture. */
-typedef FAsyncTask<FCreateTextureTask> FAsyncCreateTextureTask;
-
 /**
  * A 2D texture mip-map.
  */
@@ -245,28 +116,6 @@ public:
 	/** Returns the height of the texture in pixels. */
 	virtual uint32 GetSizeY() const override;
 
-	/**
-	 * Called from the game thread to kick off a change in ResidentMips after modifying RequestedMips.
-	 * @param bShouldPrioritizeAsyncIORequest	- Whether the Async I/O request should have higher priority
-	 */
-	ENGINE_API void BeginUpdateMipCount( bool bShouldPrioritizeAsyncIORequest );
-	/**
-	 * Called from the game thread to kick off async I/O to load in new mips.
-	 */
-	void BeginLoadMipData();
-	/**
-	 * Called from the game thread to kick off uploading mip data to the GPU.
-	 */
-	void BeginUploadMipData();
-	/**
-	 * Called from the game thread to kick off finalization of mip change.
-	 */
-	void BeginFinalizeMipCount();
-	/**
-	 * Called from the game thread to kick off cancelation of async operations for request.
-	 */
-	void BeginCancelUpdate();
-
 	/** 
 	 * Accessor
 	 * @return Texture2DRHI
@@ -276,27 +125,7 @@ public:
 		return Texture2DRHI;
 	}
 
-	bool DidUpdateMipCountFail() const
-	{
-		return NumFailedReallocs > 0 || bDerivedDataStreamRequestFailed;
-	}
-
-	bool DidDerivedDataRequestFail() const
-	{
-		return bDerivedDataStreamRequestFailed;
-	}
-
-	/**
-	 *	Tries to reallocate the texture for a new mip count.
-	 *	@param OldMipCount	- The old mip count we're currently using.
-	 *	@param NewMipCount	- The new mip count to use.
-	 */
-	bool TryReallocate( int32 OldMipCount, int32 NewMipCount );
-
 	virtual FString GetFriendlyName() const override;
-
-	//Returns the raw data for a particular mip level
-	void* GetRawMipData( uint32 MipIndex);
 
 	//Returns the current first mip (always valid)
 	int32 GetCurrentFirstMip() const
@@ -304,62 +133,31 @@ public:
 		return CurrentFirstMip;
 	}
 
+	void UpdateTexture(FTexture2DRHIRef& InTextureRHI, int32 InFirstMip);
+
 private:
 	/** Texture streaming command classes that need to be friends in order to call Update/FinalizeMipCount.	*/
-	friend class FUpdateMipCountCommand;
-	friend class FFinalinzeMipCountCommand;
-	friend class FCancelUpdateCommand;
-	friend class FUploadMipDataCommand;
 	friend class UTexture2D;
+	friend class FTexture2DUpdate;
 
 	/** The UTexture2D which this resource represents.														*/
 	const UTexture2D*	Owner;
 	/** Resource memory allocated by the owner for serialize bulk mip data into								*/
 	FTexture2DResourceMem* ResourceMem;
-	
-	/** First miplevel used in the texture being streamed in, which is IntermediateTextureRHI when it is valid. */
-	int32	PendingFirstMip;
+
+	/** Whether the texture RHI has been initialized.														*/
+	bool bReadyForStreaming;
+
+	EMipFadeSettings MipFadeSetting;
 
 	/** First mip level used in Texture2DRHI. This is always correct as long as Texture2DRHI is allocated, regardless of streaming status. */
 	int32 CurrentFirstMip;
-
-	/** Pending async create texture task, if any.															*/
-	TUniquePtr<FAsyncCreateTextureTask> AsyncCreateTextureTask;
 	
 	/** Local copy/ cache of mip data between creation and first call to InitRHI.							*/
 	void*				MipData[MAX_TEXTURE_MIP_COUNT];
 
-	/**  Async handle */
-	class IAsyncReadFileHandle* IORequestHandle;
-	FString IORequestFilename;
-	int64 IORequestOffsetOffset;
-	FAsyncFileCallBack AsyncFileCallBack;
-
-	/** Potentially outstanding texture I/O requests.														*/
-	TArray<class IAsyncReadRequest*> IORequests;
-
-	/** Number of file I/O requests for current request. The use of this is crazy confusing.				*/
-	int32					IORequestCount;
-
-	FThreadSafeCounter AsyncReallocateCounter;
-
-#if WITH_EDITORONLY_DATA
-	/** Pending async derived data streaming tasks															*/
-	TIndirectArray<FAsyncStreamDerivedMipTask> PendingAsyncStreamDerivedMipTasks;
-#endif // #if WITH_EDITORONLY_DATA
-
 	/** 2D texture version of TextureRHI which is used to lock the 2D texture during mip transitions.		*/
 	FTexture2DRHIRef	Texture2DRHI;
-	/** Intermediate texture used to fulfill mip change requests. Swapped in FinalizeMipCount.				*/
-	FTexture2DRHIRef	IntermediateTextureRHI;
-	/** Whether the intermediate texture is being created asynchronously.									*/
-	uint32			bUsingAsyncCreation:1;
-	/** Whether the current stream request is prioritized higher than normal.	*/
-	uint32			bPrioritizedIORequest:1;
-	/** Whether the last mip streaming request failed.														*/
-	uint32			bDerivedDataStreamRequestFailed:1;
-	/** Number of times UpdateMipCount has failed to reallocate memory.										*/
-	int32					NumFailedReallocs;
 
 #if STATS
 	/** Cached texture size for stats.																		*/
@@ -378,27 +176,6 @@ private:
 	 */
 	void GetData( uint32 MipIndex,void* Dest,uint32 DestPitch );
 
-	/**
-	 * Called from the rendering thread to perform the work to kick off a change in ResidentMips.
-	 */
-	void UpdateMipCount();
-	/**
-	 * Called from the rendering thread to start async I/O to load in new mips.
-	 */
-	void LoadMipData();
-	/**
-	 * Called from the rendering thread to unlock textures and make the data visible to the GPU.
-	 */
-	void UploadMipData();
-	/**
-	 * Called from the rendering thread to finalize a mip change.
-	 */
-	void FinalizeMipCount();
-	/**
-	 * Called from the rendering thread to cancel async operations for request.
-	 */
-	void CancelUpdate();
-
 	/** Create RHI sampler states. */
 	void CreateSamplerStates(float MipMapBias);
 
@@ -408,19 +185,6 @@ private:
 	// releases and recreates sampler state objects.
 	// used when updating mip map bias offset
 	void RefreshSamplerStates();
-
-	/**
-	* Helper function for cleaning up bulk data files after streaming
-	*/
-	void HintDoneWithStreamedTextureFiles();
-
-	/**
-	* Block until all requests are done.
-	* A time limit of zero means infinite
-	*/
-	bool BlockTillAllRequestsFinished(float TimeLimit = 0.0f);
-	void AsyncPrep(const FByteBulkData& BulkData);
-
 };
 
 /** A dynamic 2D texture resource. */

@@ -612,6 +612,7 @@ public:
 		Access to overridable properties of the base material.
 	*/
 	ENGINE_API virtual float GetOpacityMaskClipValue() const;
+	ENGINE_API virtual bool GetCastDynamicShadowAsMasked() const;
 	ENGINE_API virtual EBlendMode GetBlendMode() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API virtual bool IsTwoSided() const;

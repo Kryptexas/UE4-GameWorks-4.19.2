@@ -309,8 +309,9 @@ void FSlatePostProcessor::UpsampleRect(FRHICommandListImmediate& RHICmdList, IRe
 
 	RHICmdList.SetViewport(0, 0, 0, DestTextureWidth, DestTextureHeight, 0.0f);
 
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, Params.SourceTexture);
+	// Perform Writable transitions first
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, DestTexture);
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SrcTexture);
 
 	SetRenderTarget(RHICmdList, DestTexture, FTextureRHIRef());
 	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);

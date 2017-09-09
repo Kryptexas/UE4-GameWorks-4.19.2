@@ -8,20 +8,26 @@
 
 #include "GPUProfiler.h"
 
+class FVulkanCmdBuffer;
+class FVulkanRenderQuery;
+class FVulkanCommandListContext;
+
 class FVulkanGPUTiming : public FGPUTiming
 {
 public:
-	FVulkanGPUTiming() :
-		StartTimestamp(0),
-		EndTimestamp(0),
-		bIsTiming(false),
-		bEndTimestampIssued(false)
-	{}
+	FVulkanGPUTiming(FVulkanCommandListContext* InCmd)
+		: bIsTiming(false)
+		, bEndTimestampIssued(false)
+		, CmdContext(InCmd)
+		, BeginTimer(nullptr)
+		, EndTimer(nullptr)
+	{
+	}
 
 	/**
 	 * Start a GPU timing measurement.
 	 */
-	void StartTiming();
+	void StartTiming(FVulkanCmdBuffer* CmdBuffer = nullptr);
 
 	/**
 	 * End a GPU timing measurement.
@@ -60,22 +66,21 @@ private:
 	 */
 	static void PlatformStaticInitialize(void* UserData);
 
-	/** Timestamps for all StartTimings. */
-	int32 StartTimestamp;
-	/** Timestamps for all EndTimings. */
-	int32 EndTimestamp;
-
 	/** Whether we are currently timing the GPU: between StartTiming() and EndTiming(). */
 	bool bIsTiming;
 	bool bEndTimestampIssued;
+
+	FVulkanCommandListContext* CmdContext;
+	FVulkanRenderQuery* BeginTimer;
+	FVulkanRenderQuery* EndTimer;
 };
 
 /** A single perf event node, which tracks information about a appBeginDrawEvent/appEndDrawEvent range. */
 class FVulkanEventNode : public FGPUProfilerEventNode
 {
 public:
-	FVulkanEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) :
-		FGPUProfilerEventNode(InName, InParent)
+	FVulkanEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent, FVulkanCommandListContext* InCmd) :
+		FGPUProfilerEventNode(InName, InParent), Timing(InCmd)
 	{
 		// Initialize Buffered timestamp queries 
 		Timing.Initialize();
@@ -111,7 +116,8 @@ class FVulkanEventNodeFrame : public FGPUProfilerEventNodeFrame
 {
 public:
 
-	FVulkanEventNodeFrame()
+	FVulkanEventNodeFrame(FVulkanCommandListContext* InCmd)
+		: RootEventTiming(InCmd)
 	{
 		RootEventTiming.Initialize();
 	}
@@ -145,27 +151,26 @@ struct FVulkanGPUProfiler : public FGPUProfiler
 	/** GPU hitch profile histories */
 	TIndirectArray<FVulkanEventNodeFrame> GPUHitchEventNodeFrames;
 
-	FVulkanGPUProfiler() :
+	FVulkanGPUProfiler(FVulkanCommandListContext* InCmd) :
 		FGPUProfiler(), 
 		bCommandlistSubmitted(false)
+		, CmdContext(InCmd)
 	{
 	}
 
 	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override final
 	{
-		FVulkanEventNode* EventNode = new FVulkanEventNode(InName, InParent);
+		FVulkanEventNode* EventNode = new FVulkanEventNode(InName, InParent, CmdContext);
 		return EventNode;
 	}
 
-	virtual void PushEvent(const TCHAR* Name, FColor Color) override final;
-	virtual void PopEvent() override final;
-
-	void BeginFrame(class FVulkanCommandListContext* InCmdList, class FVulkanTimestampQueryPool* InTimestampQueryPool);
+	void BeginFrame();
 
 	void EndFrameBeforeSubmit();
 	void EndFrame();
 
 	bool bCommandlistSubmitted;
+	FVulkanCommandListContext* CmdContext;
 };
 
 namespace VulkanRHI

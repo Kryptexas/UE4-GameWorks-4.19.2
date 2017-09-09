@@ -155,7 +155,7 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 		const uint32 BufferSize = Buffer->Buffer.length;
 		uint32 NewBufferSize = AlignArbitrary(BufferSize + Size, Buffer->Buffer.length / 4);
 		
-		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, NewBufferSize, Offset, Buffer->LastRead, (uint64)GFrameCounter);
+		UE_LOG(LogMetal, Verbose, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, NewBufferSize, Offset, Buffer->LastRead, (uint64)GFrameCounter);
 
 		SafeReleaseMetalResource(Buffer->Buffer);
 		TSharedPtr<FMetalRingBuffer, ESPMode::ThreadSafe> NewBuffer = MakeShared<FMetalRingBuffer, ESPMode::ThreadSafe>();

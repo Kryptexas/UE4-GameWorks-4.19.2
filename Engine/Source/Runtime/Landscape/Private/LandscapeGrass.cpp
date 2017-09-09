@@ -788,7 +788,7 @@ bool ULandscapeComponent::CanRenderGrassMap() const
 
 static bool IsTextureStreamedForGrassMapRender(UTexture2D* InTexture)
 {
-	if (!InTexture || InTexture->ResidentMips != InTexture->GetNumMips()
+	if (!InTexture || InTexture->GetNumResidentMips() != InTexture->GetNumMips()
 		|| !InTexture->Resource || ((FTexture2DResource*)InTexture->Resource)->GetCurrentFirstMip() > 0)
 	{
 		return false;

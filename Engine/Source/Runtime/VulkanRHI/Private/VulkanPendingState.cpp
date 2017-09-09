@@ -133,12 +133,76 @@ FVulkanPendingComputeState::~FVulkanPendingComputeState()
 	}
 }
 
-void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCommandListContext* Context, FVulkanCmdBuffer* InCmdBuffer)
+
+void FVulkanPendingComputeState::SetSRV(uint32 BindIndex, FVulkanShaderResourceView* SRV)
+{
+	if (SRV)
+	{
+		// make sure any dynamically backed SRV points to current memory
+		SRV->UpdateView();
+		if (SRV->BufferViews.Num() != 0)
+		{
+			FVulkanBufferView* BufferView = SRV->GetBufferView();
+			checkf(BufferView->View != VK_NULL_HANDLE, TEXT("Empty SRV"));
+			CurrentState->SetSRVBufferViewState(BindIndex, BufferView);
+		}
+		else if (SRV->SourceStructuredBuffer)
+		{
+			CurrentState->SetStorageBuffer(BindIndex, SRV->SourceStructuredBuffer->GetHandle(), SRV->SourceStructuredBuffer->GetOffset(), SRV->SourceStructuredBuffer->GetSize(), SRV->SourceStructuredBuffer->GetBufferUsageFlags());
+		}
+		else
+		{
+			checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
+			VkImageLayout Layout = Context.FindLayout(SRV->TextureView.Image);
+			CurrentState->SetSRVTextureView(BindIndex, SRV->TextureView, Layout);
+		}
+	}
+	else
+	{
+		//CurrentState->SetSRVBufferViewState(BindIndex, nullptr);
+	}
+}
+
+void FVulkanPendingComputeState::SetUAV(uint32 UAVIndex, FVulkanUnorderedAccessView* UAV)
+{
+	if (UAV)
+	{
+		// make sure any dynamically backed UAV points to current memory
+		UAV->UpdateView();
+		if (UAV->SourceStructuredBuffer)
+		{
+			CurrentState->SetStorageBuffer(UAVIndex, UAV->SourceStructuredBuffer->GetHandle(), UAV->SourceStructuredBuffer->GetOffset(), UAV->SourceStructuredBuffer->GetSize(), UAV->SourceStructuredBuffer->GetBufferUsageFlags());
+		}
+		else if (UAV->BufferView)
+		{
+			CurrentState->SetUAVTexelBufferViewState(UAVIndex, UAV->BufferView);
+		}
+		else if (UAV->SourceTexture)
+		{
+			VkImageLayout Layout = Context.FindOrAddLayout(UAV->TextureView.Image, VK_IMAGE_LAYOUT_UNDEFINED);
+			if (Layout != VK_IMAGE_LAYOUT_GENERAL)
+			{
+				FVulkanTextureBase* VulkanTexture = GetVulkanTextureFromRHITexture(UAV->SourceTexture);
+				FVulkanCmdBuffer* CmdBuffer = Context.GetCommandBufferManager()->GetActiveCmdBuffer();
+				ensure(CmdBuffer->IsOutsideRenderPass());
+				Context.GetTransitionState().TransitionResource(CmdBuffer, VulkanTexture->Surface, VulkanRHI::EImageLayoutBarrier::ComputeGeneralRW);
+			}
+			CurrentState->SetUAVTextureView(UAVIndex, UAV->TextureView);
+		}
+		else
+		{
+			ensure(0);
+		}
+	}
+}
+
+
+void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCmdBuffer* InCmdBuffer)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDispatchCallPrepareTime);
 
 	check(CurrentState);
-	const bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(Context, InCmdBuffer, &GlobalUniformPool);
+	const bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(&Context, InCmdBuffer, &GlobalUniformPool);
 
 	VkCommandBuffer CmdBuffer = InCmdBuffer->GetHandle();
 
@@ -162,13 +226,13 @@ FVulkanPendingGfxState::~FVulkanPendingGfxState()
 	}
 }
 
-void FVulkanPendingGfxState::PrepareForDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology)
+void FVulkanPendingGfxState::PrepareForDraw(FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallPrepareTime);
 
 	ensure(Topology == UEToVulkanType(CurrentPipeline->PipelineStateInitializer.PrimitiveType));
 
-	bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(CmdListContext, CmdBuffer, &GlobalUniformPool);
+	bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(&Context, CmdBuffer, &GlobalUniformPool);
 
 	UpdateDynamicStates(CmdBuffer);
 
@@ -191,14 +255,8 @@ void FVulkanPendingGfxState::PrepareForDraw(FVulkanCommandListContext* CmdListCo
 			return;
 		}
 
-		//#todo-rco: Fix this!
-		struct FTmp
-		{
-			TArray<VkBuffer> VertexBuffers;
-			TArray<VkDeviceSize> VertexOffsets;
-		} Tmp;
-		Tmp.VertexBuffers.Reset(0);
-		Tmp.VertexOffsets.Reset(0);
+		TemporaryIA.VertexBuffers.Reset(0);
+		TemporaryIA.VertexOffsets.Reset(0);
 		const VkVertexInputAttributeDescription* CurrAttribute = nullptr;
 		for (uint32 BindingIndex = 0; BindingIndex < VertexInputStateInfo.BindingsNum; BindingIndex++)
 		{
@@ -227,23 +285,23 @@ void FVulkanPendingGfxState::PrepareForDraw(FVulkanCommandListContext* CmdListCo
 				continue;
 			}
 
-			Tmp.VertexBuffers.Add(/*CurrStream.Stream
+			TemporaryIA.VertexBuffers.Add(/*CurrStream.Stream
 								  ? CurrStream.Stream->GetBufferHandle()
 								  : (*/CurrStream.Stream2
 								  ? CurrStream.Stream2->GetHandle()
 								  : CurrStream.Stream3//)
 			);
-			Tmp.VertexOffsets.Add(CurrStream.BufferOffset);
+			TemporaryIA.VertexOffsets.Add(CurrStream.BufferOffset);
 		}
 
-		if (Tmp.VertexBuffers.Num() > 0)
+		if (TemporaryIA.VertexBuffers.Num() > 0)
 		{
 			// Bindings are expected to be in ascending order with no index gaps in between:
 			// Correct:		0, 1, 2, 3
 			// Incorrect:	1, 0, 2, 3
 			// Incorrect:	0, 2, 3, 5
 			// Reordering and creation of stream binding index is done in "GenerateVertexInputStateInfo()"
-			VulkanRHI::vkCmdBindVertexBuffers(CmdBuffer->GetHandle(), 0, Tmp.VertexBuffers.Num(), Tmp.VertexBuffers.GetData(), Tmp.VertexOffsets.GetData());
+			VulkanRHI::vkCmdBindVertexBuffers(CmdBuffer->GetHandle(), 0, TemporaryIA.VertexBuffers.Num(), TemporaryIA.VertexBuffers.GetData(), TemporaryIA.VertexOffsets.GetData());
 		}
 
 		bDirtyVertexStreams = true;
@@ -281,4 +339,59 @@ void FVulkanPendingGfxState::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd)
 	}
 
 	Cmd->bNeedsDynamicStateSet = false;
+}
+
+void FVulkanPendingGfxState::SetSRV(EShaderFrequency Stage, uint32 BindIndex, FVulkanShaderResourceView* SRV)
+{
+	if (SRV)
+	{
+		// make sure any dynamically backed SRV points to current memory
+		SRV->UpdateView();
+		if (SRV->BufferViews.Num() != 0)
+		{
+			FVulkanBufferView* BufferView = SRV->GetBufferView();
+			checkf(BufferView->View != VK_NULL_HANDLE, TEXT("Empty SRV"));
+			CurrentState->SetSRVBufferViewState(Stage, BindIndex, BufferView);
+		}
+		else if (SRV->SourceStructuredBuffer)
+		{
+			CurrentState->SetStorageBuffer(Stage, BindIndex, SRV->SourceStructuredBuffer->GetHandle(), SRV->SourceStructuredBuffer->GetOffset(), SRV->SourceStructuredBuffer->GetSize(), SRV->SourceStructuredBuffer->GetBufferUsageFlags());
+		}
+		else
+		{
+			checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
+			VkImageLayout Layout = Context.FindLayout(SRV->TextureView.Image);
+			CurrentState->SetSRVTextureView(Stage, BindIndex, SRV->TextureView, Layout);
+		}
+	}
+	else
+	{
+		//CurrentState->SetSRVBufferViewState(Stage, BindIndex, nullptr);
+	}
+}
+
+void FVulkanPendingGfxState::SetUAV(EShaderFrequency Stage, uint32 UAVIndex, FVulkanUnorderedAccessView* UAV)
+{
+	if (UAV)
+	{
+		// make sure any dynamically backed UAV points to current memory
+		UAV->UpdateView();
+		if (UAV->SourceStructuredBuffer)
+		{
+			CurrentState->SetStorageBuffer(Stage, UAVIndex, UAV->SourceStructuredBuffer->GetHandle(), UAV->SourceStructuredBuffer->GetOffset(), UAV->SourceStructuredBuffer->GetSize(), UAV->SourceStructuredBuffer->GetBufferUsageFlags());
+		}
+		else if (UAV->BufferView)
+		{
+			CurrentState->SetUAVTexelBufferViewState(Stage, UAVIndex, UAV->BufferView);
+		}
+		else if (UAV->SourceTexture)
+		{
+			VkImageLayout Layout = Context.FindLayout(UAV->TextureView.Image);
+			CurrentState->SetUAVTextureView(Stage, UAVIndex, UAV->TextureView, Layout);
+		}
+		else
+		{
+			ensure(0);
+		}
+	}
 }

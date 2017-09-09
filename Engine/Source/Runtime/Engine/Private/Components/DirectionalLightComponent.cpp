@@ -358,7 +358,21 @@ private:
 
 	uint32 GetNumShadowMappedCascades(uint32 MaxShadowCascades, bool bPrecomputedLightingIsValid) const
 	{
-		const int32 EffectiveNumDynamicShadowCascades = bPrecomputedLightingIsValid ? DynamicShadowCascades : FMath::Max(0, CVarUnbuiltNumWholeSceneDynamicShadowCascades.GetValueOnAnyThread());
+		int32 EffectiveNumDynamicShadowCascades = DynamicShadowCascades;
+		
+		if (!bPrecomputedLightingIsValid)
+		{
+			EffectiveNumDynamicShadowCascades = FMath::Max(0, CVarUnbuiltNumWholeSceneDynamicShadowCascades.GetValueOnAnyThread());
+
+			static const auto CVarUnbuiltPreviewShadowsInGame = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.UnbuiltPreviewInGame"));
+			bool bUnbuiltPreviewShadowsInGame = CVarUnbuiltPreviewShadowsInGame->GetInt() != 0;
+
+			if (!bUnbuiltPreviewShadowsInGame && !GetSceneInterface()->IsEditorScene())
+			{
+				EffectiveNumDynamicShadowCascades = 0;
+			}
+		}
+
 		const int32 NumCascades = GetCSMMaxDistance(bPrecomputedLightingIsValid, MaxShadowCascades) > 0.0f ? EffectiveNumDynamicShadowCascades : 0;
 		return FMath::Min<int32>(NumCascades, MaxShadowCascades);
 	}

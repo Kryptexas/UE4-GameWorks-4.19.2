@@ -937,6 +937,8 @@ void InitAPEXClothVertexFactoryComponents(typename VertexFactoryType::FDataType*
 	// indices for reference physics mesh vertices
 	VertexFactoryData->SimulIndicesComponent = FVertexStreamComponent(
 		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FMeshToMeshVertData, SourceMeshVertIndices),sizeof(FMeshToMeshVertData),VET_UShort4);
+	VertexFactoryData->ClothBuffer = VertexBuffers.APEXClothVertexBuffer->GetSRV();
+	VertexFactoryData->ClothIndexMapping = VertexBuffers.APEXClothVertexBuffer->GetClothIndexMapping();
 }
 
 /** 

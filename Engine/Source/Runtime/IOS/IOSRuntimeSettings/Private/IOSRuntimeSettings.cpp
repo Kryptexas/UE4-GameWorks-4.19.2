@@ -42,6 +42,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
     bEnableRemoteNotificationsSupport = false;
 	bSupportsOpenGLES2 = false;
 	bSupportsMetal = true;
+	bSupportsMetalMRT = false;
 }
 
 #if WITH_EDITOR
@@ -57,7 +58,7 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	}
 
 	// Ensure that at least one API is supported
-	if (!bSupportsMetal)
+	if (!bSupportsMetal && !bSupportsMetalMRT)
 	{
 		bSupportsMetal = true;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsMetal)), GetDefaultConfigFilename());

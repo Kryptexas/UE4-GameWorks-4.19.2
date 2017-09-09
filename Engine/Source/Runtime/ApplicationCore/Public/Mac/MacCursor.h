@@ -41,16 +41,6 @@ public:
 
 	void SetHighPrecisionMouseMode(const bool bEnable);
 
-	void SetMouseScaling(const FVector2D& Scale, FCocoaWindow* InFullScreenWindow);
-
-	const FVector2D& GetMouseScaling() const;
-
-	FVector2D GetPositionNoScaling() const;
-
-	void SetPositionNoScaling(const int32 X, const int32 Y);
-
-	FCocoaWindow* GetFullScreenWindow() const { return FullScreenWindow; }
-
 	void UpdateCurrentPosition(const FVector2D& Position);
 
 	void UpdateVisibility();
@@ -74,10 +64,8 @@ private:
 
 	FVector2D CurrentPosition;
 	FVector2D MouseWarpDelta;
-	FVector2D MouseScale;
 	bool bIsPositionInitialised;
 	bool bShouldIgnoreLocking;
-	FCocoaWindow* FullScreenWindow;
 
 	io_object_t HIDInterface;
 	double SavedAcceleration;

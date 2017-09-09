@@ -7,7 +7,7 @@
 #pragma once
 
 #ifndef EXPERIMENTAL_FP16
-#define EXPERIMETNAL_FP16 0
+#define EXPERIMENTAL_FP16 1
 #endif
 
 #if EXPERIMENTAL_FP16

@@ -1033,6 +1033,21 @@ private:
 		ShaderClass::GetStreamOutElements \
 		);
 
+/** A macro to implement a shader type. Shader name is got from GetDebugName(), which is helpful for templated shaders. */
+#define IMPLEMENT_SHADER_TYPE_WITH_DEBUG_NAME(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency) \
+	TemplatePrefix \
+	typename ShaderClass::ShaderMetaType ShaderClass::StaticType( \
+		ShaderClass::GetDebugName(), \
+		SourceFilename, \
+		FunctionName, \
+		Frequency, \
+		ShaderClass::ConstructSerializedInstance, \
+		ShaderClass::ConstructCompiledInstance, \
+		ShaderClass::ModifyCompilationEnvironment, \
+		ShaderClass::ShouldCache, \
+		ShaderClass::GetStreamOutElements \
+		);
+
 /** A macro to implement a templated shader type, the function name and the source filename comes from the class. */
 #define IMPLEMENT_SHADER_TYPE2(ShaderClass,Frequency) \
 	template<> \

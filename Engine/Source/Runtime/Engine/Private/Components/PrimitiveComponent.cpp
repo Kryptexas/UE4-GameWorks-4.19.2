@@ -303,7 +303,7 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 			const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
 			if (!IsStreamingTexture(Info.Texture))
 			{
-				OutStreamingTextures.RemoveAt(Index--);
+				OutStreamingTextures.RemoveAtSwap(Index--);
 			}
 			else
 			{
@@ -311,7 +311,7 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 				const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && (Info.Bounds.SphereRadius > SMALL_NUMBER || !IsRegistered()) && ensure(FMath::IsFinite(Info.TexelFactor));
 				if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
 				{
-					OutStreamingTextures.RemoveAt(Index--);
+					OutStreamingTextures.RemoveAtSwap(Index--);
 				}
 			}
 		}
@@ -849,9 +849,17 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			return Mobility != EComponentMobility::Static;
 		}
 
-		if (PropertyName == IndirectLightingCacheQualityName || PropertyName == CastCinematicShadowName)
+		if (PropertyName == CastCinematicShadowName)
 		{
 			return Mobility == EComponentMobility::Movable;
+		}
+
+		if (PropertyName == IndirectLightingCacheQualityName)
+		{
+			UWorld* World = GetWorld();
+			AWorldSettings* WorldSettings = World ? World->GetWorldSettings() : NULL;
+			const bool bILCRelevant = WorldSettings ? (WorldSettings->LightmassSettings.VolumeLightingMethod == VLM_SparseVolumeLightingSamples) : true;
+			return bILCRelevant && Mobility == EComponentMobility::Movable;
 		}
 
 		if (PropertyName == CastInsetShadowName)

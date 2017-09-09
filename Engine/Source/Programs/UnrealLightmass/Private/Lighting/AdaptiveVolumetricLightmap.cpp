@@ -203,6 +203,14 @@ bool FStaticLightingSystem::ShouldRefineVoxel(const FBox& CellBounds, const TArr
 		int32 asdf = 0;
 	}
 
+	const bool bCellInsideImportanceVolume = Scene.IsBoxInImportanceVolume(CellBounds);
+
+	// The volumetric lightmap bounds are larger than the importance volume bounds, since we force the volumetric lightmap volume to have cube voxels
+	if (!bCellInsideImportanceVolume)
+	{
+		return false;
+	}
+
 	bool bVoxelIntersectsScene = DoesVoxelIntersectSceneGeometry(CellBounds);
 	
 	if (!bVoxelIntersectsScene)
@@ -358,7 +366,7 @@ void FStaticLightingSystem::RecursivelyBuildBrickTree(
 	const int32 BuildDataIndex = OutBrickBuildData.Num() - 1;
 
 	const int32 BrickSizeLog2 = FMath::FloorLog2(VolumetricLightmapSettings.BrickSize);
-	const int32 DetailCellsPerTopLevelCell = 1 << (VolumetricLightmapSettings.MaxRefinementLevels * BrickSizeLog2);
+	const int32 DetailCellsPerTopLevelBrick = 1 << (VolumetricLightmapSettings.MaxRefinementLevels * BrickSizeLog2);
 	const int32 DetailCellsPerCurrentLevelBrick = 1 << ((VolumetricLightmapSettings.MaxRefinementLevels - TreeDepth) * BrickSizeLog2);
 	const float InvBrickSize = 1.0f / VolumetricLightmapSettings.BrickSize;
 	const int32 NumCellsPerBrick = VolumetricLightmapSettings.BrickSize * VolumetricLightmapSettings.BrickSize * VolumetricLightmapSettings.BrickSize;
@@ -369,9 +377,9 @@ void FStaticLightingSystem::RecursivelyBuildBrickTree(
 	if (TreeDepth + 1 < VolumetricLightmapSettings.MaxRefinementLevels)
 	{
 		const int32 DetailCellsPerChildLevelBrick = DetailCellsPerCurrentLevelBrick / VolumetricLightmapSettings.BrickSize;
-		const FVector BrickNormalizedMin = (FVector)LocalCellCoordinate / (float)DetailCellsPerTopLevelCell;
+		const FVector BrickNormalizedMin = (FVector)LocalCellCoordinate / (float)DetailCellsPerTopLevelBrick;
 		const FVector WorldBrickMin = TopLevelCellBounds.Min + BrickNormalizedMin * TopLevelCellBounds.GetSize();
-		const FVector WorldChildCellSize = InvBrickSize * TopLevelCellBounds.GetSize() * DetailCellsPerCurrentLevelBrick / (float)DetailCellsPerTopLevelCell;
+		const FVector WorldChildCellSize = InvBrickSize * TopLevelCellBounds.GetSize() * DetailCellsPerCurrentLevelBrick / (float)DetailCellsPerTopLevelBrick;
 
 		for (int32 Z = 0; Z < VolumetricLightmapSettings.BrickSize; Z++)
 		{
@@ -465,8 +473,8 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 
 	const int32 BrickSize = VolumetricLightmapSettings.BrickSize;
 	const int32 BrickSizeLog2 = FMath::FloorLog2(BrickSize);
-	const int32 DetailCellsPerTopLevelCell = 1 << (VolumetricLightmapSettings.MaxRefinementLevels * BrickSizeLog2);
-	const int32 IndirectionCellsPerTopLevelCell = DetailCellsPerTopLevelCell / BrickSize;
+	const int32 DetailCellsPerTopLevelBrick = 1 << (VolumetricLightmapSettings.MaxRefinementLevels * BrickSizeLog2);
+	const int32 IndirectionCellsPerTopLevelCell = DetailCellsPerTopLevelBrick / BrickSize;
 
 	const float InvBrickSize = 1.0f / BrickSize;
 	const int32 TotalBrickSize = BrickSize * BrickSize * BrickSize;
@@ -497,10 +505,10 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 	const FVector TopLevelBrickSize = VolumetricLightmapSettings.VolumeSize / FVector(VolumetricLightmapSettings.TopLevelGridSize);
 	const FVector TopLevelBrickMin = VolumetricLightmapSettings.VolumeMin + FVector(Task->TaskIndexVector) * TopLevelBrickSize;
 
-	const FVector BrickNormalizedMin = (FVector)BuildData.LocalCellCoordinate / (float)DetailCellsPerTopLevelCell;
+	const FVector BrickNormalizedMin = (FVector)BuildData.LocalCellCoordinate / (float)DetailCellsPerTopLevelBrick;
 	const FVector WorldBrickMin = TopLevelBrickMin + BrickNormalizedMin * TopLevelBrickSize;
 	const int32 DetailCellsPerCurrentLevelBrick = 1 << ((VolumetricLightmapSettings.MaxRefinementLevels - BuildData.TreeDepth) * BrickSizeLog2);
-	const FVector WorldChildCellSize = InvBrickSize * TopLevelBrickSize * DetailCellsPerCurrentLevelBrick / (float)DetailCellsPerTopLevelCell;
+	const FVector WorldChildCellSize = InvBrickSize * TopLevelBrickSize * DetailCellsPerCurrentLevelBrick / (float)DetailCellsPerTopLevelBrick;
 	const int32 NumBottomLevelBricks = DetailCellsPerCurrentLevelBrick / BrickSize;
 	const float BoundarySize = NumBottomLevelBricks * InvBrickSize;
 
@@ -789,6 +797,8 @@ void FIrradianceBrickData::SetFromVolumeLightingSample(int32 Index, const FVolum
 		Result.V1.w = -1.092548f * InputVector.x * InputVector.z;
 		Result.V2 = 0.546274f * (VectorSquared.x - VectorSquared.y);
 	*/
+
+	// Note: encoding behavior has to match CPU decoding in InterpolateVolumetricLightmap and GPU decoding in GetVolumetricLightmapSH3
 
 	FLinearColor CoefficientNormalizationScale0(
 		0.282095f / 0.488603f,

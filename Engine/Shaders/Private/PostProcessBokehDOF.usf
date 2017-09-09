@@ -9,6 +9,10 @@
 #include "DepthOfFieldCommon.ush"
 #include "SeparateTranslucency.ush"
 
+#ifndef BOKEH_DOF_QUADS_PER_INSTANCE
+#define BOKEH_DOF_QUADS_PER_INSTANCE	256
+#endif
+
 // for the BokehDOF vertex shader, from postprocessing settings
 // .x: color threshold, .y:size threshold, zw: unused
 float4 DepthOfFieldThresholds;
@@ -53,16 +57,16 @@ void MainVS(
 	uint2 TileCount = TileCountAndSize.xy;
 	uint2 TileSize = TileCountAndSize.zw;
 
-	// needs to be the same on C++ side (faster on NVIDIA and AMD)
-	uint QuadsPerInstance = 8;
-	// remap the indices to get vertexid to VId and quadid into IId
-	IId = IId * QuadsPerInstance + (VId / 4);
-	VId = VId % 4;
+	// needs to be the same as GBokehDOFQuadsPerInstance on C++ side (faster on NVIDIA and AMD)
+	uint QuadsPerInstance = BOKEH_DOF_QUADS_PER_INSTANCE;
+	// remap the indices to get quadid and vertexid
+	uint UniqueQuadId = IId * QuadsPerInstance + (VId / 4);
+	uint VertexId = VId % 4;
 
 	// triangle A: 0:left top, 1:right top, 2: left bottom
 	// triangle B: 3:right bottom, 4:left bottom, 5: right top
-	float2 LocalPos = float2(VId % 2, VId / 2);
-	float2 TilePos = float2(IId % TileCount.x, IId / TileCount.x);
+	float2 LocalPos = float2(VertexId % 2, VertexId / 2);
+	float2 TilePos = float2(UniqueQuadId % TileCount.x, UniqueQuadId / TileCount.x);
 	
 	OutPosition =  float4(0, 0, 0, 1);
 	OutTexCoord = LocalPos.xy;
@@ -145,22 +149,18 @@ void MainVS(
 	uint2 TileCount = TileCountAndSize.xy;
 	uint2 TileSize = TileCountAndSize.zw;
 
-	// needs to be the same on C++ side (faster on NVIDIA and AMD)
-	uint QuadsPerInstance = 8;
-	// remap the indices to get vertexid to VId and quadid into IId
-	uint QuadId = VId / 4;
+	// needs to be the same as GBokehDOFQuadsPerInstance on C++ side (faster on NVIDIA and AMD)
+	uint QuadsPerInstance = BOKEH_DOF_QUADS_PER_INSTANCE;
+	// remap the indices to get quadid and vertexid
+	uint UniqueQuadId = IId * QuadsPerInstance + (VId / 4);
+	uint VertexId = VId % 4;
 
 	// triangle A: 0:left top, 1:right top, 2: left bottom
 	// triangle B: 3:right bottom, 4:left bottom, 5: right top
-	uint VertexId = VId % 4;
 	uint HalfTileCountX = TileCount.x / 2;
-	uint QuarterTileCountX = TileCount.x / 4;
+	uint UniqueQuadIdDiv4 = UniqueQuadId / 4;
 	float2 LocalPos = float2(VertexId % 2, VertexId / 2);
-	uint QuadIdIndex = QuadId%4;
-	float2 TilePos = float2(IId % QuarterTileCountX, IId / QuarterTileCountX) * uint2(4,2) + uint2(QuadId/4,0)*2;
-
-	bool bRenderAll4Quads = false;
-
+	float2 TilePos = 2 * float2(UniqueQuadIdDiv4 % HalfTileCountX, UniqueQuadIdDiv4 / HalfTileCountX);
 
 	OutPosition =  float4(0, 0, 0, 1);
 	OutTexCoord = LocalPos.xy;
@@ -174,7 +174,7 @@ void MainVS(
 
 	float2 InputTexCoord = PixelPos * PostprocessInput0Size.zw;
 
-
+	bool bRenderAll4Quads = false;
 
 	float4 ColorAndDepths[4];
 		
@@ -224,6 +224,8 @@ void MainVS(
 	// by now bRenderAll4Quads should be set --------------------------------
 
 	float4 SceneColorAndDepth;
+	uint QuadId = VId / 4;
+	uint QuadIdIndex = QuadId%4;
 
 	if(bRenderAll4Quads)
 	{

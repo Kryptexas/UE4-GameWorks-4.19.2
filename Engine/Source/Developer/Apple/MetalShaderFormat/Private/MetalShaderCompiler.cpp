@@ -207,6 +207,7 @@ FString GetMetalCompilerVers(FString const& PlatformPath)
 #endif
 		{
 			Result = (&Buffer[0]);
+			Result.RemoveFromEnd(TEXT(")"));
 		}
 		else
 		{
@@ -1631,15 +1632,13 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	{
 		case 3:
 			// Enable full SM5 feature support so tessellation & fragment UAVs compile
-            TypeMode = EMetalTypeBufferModeUAV;
-			HlslCompilerTarget = HCT_FeatureLevelSM5;
+            HlslCompilerTarget = HCT_FeatureLevelSM5;
 			StandardVersion = TEXT("2.0");
 			MinOSVersion = bIsMobile ? TEXT("") : TEXT("-mmacosx-version-min=10.13");
 			break;
 		case 2:
 			// Enable full SM5 feature support so tessellation & fragment UAVs compile
-            TypeMode = EMetalTypeBufferModeSRV;
-			HlslCompilerTarget = HCT_FeatureLevelSM5;
+            HlslCompilerTarget = HCT_FeatureLevelSM5;
 			StandardVersion = TEXT("1.2");
 			MinOSVersion = bIsMobile ? TEXT("") : TEXT("-mmacosx-version-min=10.12");
 			break;
@@ -1678,9 +1677,15 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	}
 
 	bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
-	
 	if (!Input.bSkipPreprocessedCache && !bDirectCompile)
 	{
+		FString const* UsingWPO = Input.Environment.GetDefinitions().Find(TEXT("USES_WORLD_POSITION_OFFSET"));
+		if (UsingWPO && FString("1") == *UsingWPO)
+		{
+			// FMAs are deoptimised when fast-math is enabled and arguments are literals :(
+			Input.Environment.CompilerFlags.Add(CFLAG_NoFastMath);
+		}
+		
 		FString const* UsingTessellationDefine = Input.Environment.GetDefinitions().Find(TEXT("USING_TESSELLATION"));
 		bool bUsingTessellation = (UsingTessellationDefine != nullptr && FString("1") == *UsingTessellationDefine);
 		if (bUsingTessellation && (Input.Target.Frequency == SF_Vertex))
@@ -2137,7 +2142,7 @@ bool FinalizeLibrary_Metal(FName const& Format, FString const& WorkingDir, FStri
 	
 		// Check and init remote handling
 		const bool bBuildingRemotely = (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING) && bRemoteBuildingConfigured;
-		FString RemoteDestination;
+		FString RemoteDestination = TEXT("/tmp");
 		if(bBuildingRemotely)
 		{
 			RemoteDestination = MakeRemoteTempFolder(TEXT("/tmp"));
@@ -2240,7 +2245,7 @@ bool FinalizeLibrary_Metal(FName const& Format, FString const& WorkingDir, FStri
                     // There is problem going to location with spaces using remote copy (at least on Mac no combination of \ and/or "" works) - work around this issue @todo investigate this further
                     FString LocalCopyLocation = FPaths::Combine(TEXT("/tmp"),FPaths::GetCleanFilename(LibraryPath));
 						
-                    if(CopyRemoteFileToLocal(RemoteLibPath, LocalCopyLocation))
+                    if(bBuildingRemotely && CopyRemoteFileToLocal(RemoteLibPath, LocalCopyLocation))
                     {
                         IFileManager::Get().Move(*LibraryPath, *LocalCopyLocation);
                     }

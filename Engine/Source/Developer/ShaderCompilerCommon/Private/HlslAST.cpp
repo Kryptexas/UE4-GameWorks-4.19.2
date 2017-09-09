@@ -780,14 +780,14 @@ namespace CrossCompiler
 
 		void FTypeQualifier::Write(FASTWriter& Writer) const
 		{
-			if (bConstant)
-			{
-				Writer << TEXT("const ");
-			}
-
 			if (bIsStatic)
 			{
 				Writer << TEXT("static ");
+			}
+
+			if (bConstant)
+			{
+				Writer << TEXT("const ");
 			}
 
 			if (bShared)

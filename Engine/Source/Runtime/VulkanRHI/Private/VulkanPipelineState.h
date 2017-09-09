@@ -78,9 +78,10 @@ public:
 		DSWriter.WriteUniformTexelBuffer(BindPoint, View);
 	}
 
-	inline void SetSRVTextureView(uint32 BindPoint, const FVulkanTextureView& TextureView)
+	inline void SetSRVTextureView(uint32 BindPoint, const FVulkanTextureView& TextureView, VkImageLayout Layout)
 	{
-		DSWriter.WriteImage(BindPoint, TextureView.View, VK_IMAGE_LAYOUT_GENERAL);
+		ensure(Layout == VK_IMAGE_LAYOUT_GENERAL);
+		DSWriter.WriteImage(BindPoint, TextureView.View, Layout);
 	}
 
 	inline void SetSamplerState(uint32 BindPoint, FVulkanSamplerState* Sampler)
@@ -152,9 +153,9 @@ public:
 		DSWriter[Stage].WriteStorageTexelBuffer(BindPoint, View);
 	}
 
-	inline void SetUAVTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView)
+	inline void SetUAVTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView, VkImageLayout Layout)
 	{
-		DSWriter[Stage].WriteStorageImage(BindPoint, TextureView.View, VK_IMAGE_LAYOUT_GENERAL);
+		DSWriter[Stage].WriteStorageImage(BindPoint, TextureView.View, Layout);
 	}
 
 	inline void SetTexture(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureBase* TextureBase)
@@ -170,9 +171,9 @@ public:
 		DSWriter[Stage].WriteUniformTexelBuffer(BindPoint, View);
 	}
 
-	inline void SetSRVTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView)
+	inline void SetSRVTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView, VkImageLayout Layout)
 	{
-		DSWriter[Stage].WriteImage(BindPoint, TextureView.View, VK_IMAGE_LAYOUT_GENERAL);
+		DSWriter[Stage].WriteImage(BindPoint, TextureView.View, Layout);
 	}
 
 	inline void SetSamplerState(EShaderFrequency Stage, uint32 BindPoint, FVulkanSamplerState* Sampler)

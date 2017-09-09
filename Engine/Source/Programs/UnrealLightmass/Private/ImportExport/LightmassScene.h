@@ -497,11 +497,26 @@ public:
 	virtual FVector4 GetDirectLightingDirection(const FVector4& Point, const FVector4& PointNormal) const 
 	{ checkf(0, TEXT("GetDirectLightingDirection is not supported for skylights")); return FVector4(); }
 
+	FLinearColor GetPathLighting(const FVector4& IncomingDirection, float PathSolidAngle, bool bCalculateForIndirectLighting) const;
+
+	float GetPathVariance(const FVector4& IncomingDirection, float PathSolidAngle) const;
+
 protected:
 
 	/** Generates a sample on the light's surface. */
 	virtual void SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfaceSample& Sample) const
 	{ checkf(0, TEXT("SampleLightSurface is not supported for skylights")); }
+
+	float GetMipIndexForSolidAngle(float SolidAngle) const;
+	FLinearColor SampleRadianceCubemap(float MipIndex, int32 CubeFaceIndex, FVector2D FaceUV) const;
+	float SampleVarianceCubemap(float MipIndex, int32 CubeFaceIndex, FVector2D FaceUV) const;
+
+	void ComputePrefilteredVariance();
+
+	int32 CubemapSize;
+	int32 NumMips;
+	TArray<TArray<FLinearColor>> PrefilteredRadiance;
+	TArray<TArray<float>> PrefilteredVariance;
 };
 
 class FMeshLightPrimitiveCorner
@@ -728,6 +743,8 @@ public:
 
 	/** Returns true if the specified position is inside any of the importance volumes. */
 	bool IsPointInImportanceVolume(const FVector4& Position, float Tolerance) const;
+
+	bool IsBoxInImportanceVolume(const FBox& QueryBox) const;
 
 	/** Returns true if the specified position is inside any of the visibility volumes. */
 	bool IsPointInVisibilityVolume(const FVector4& Position) const;

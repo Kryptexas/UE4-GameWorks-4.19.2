@@ -14,7 +14,7 @@ public class VulkanRHI : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
-            {
+			{
 				"Core", 
 				"CoreUObject", 
 				"Engine", 
@@ -22,8 +22,8 @@ public class VulkanRHI : ModuleRules
 				"RenderCore", 
 				"ShaderCore",
 				"UtilityShaders",
-                "HeadMountedDisplay",
-            }
+				"HeadMountedDisplay",
+			}
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
@@ -136,7 +136,7 @@ public class VulkanRHI : ModuleRules
 					PrivateIncludePathModuleNames.AddRange(
 						new string[]
 						{
-                            "TaskGraph",
+							"TaskGraph",
 						}
 					);
 				}

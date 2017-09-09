@@ -1323,6 +1323,18 @@ public:
 	void ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize);
 };
 
+class FVolumetricLightmapInterpolation
+{
+public:
+	FVector4 IndirectLightingSHCoefficients0[3];
+	FVector4 IndirectLightingSHCoefficients1[3];
+	FVector4 IndirectLightingSHCoefficients2;
+	FVector4 IndirectLightingSHSingleCoefficient;
+	FVector4 PointSkyBentNormal;
+	float DirectionalLightShadowing;
+	uint32 LastUsedSceneFrameNumber;
+};
+
 class FVolumetricLightmapSceneData
 {
 public:
@@ -1350,8 +1362,9 @@ public:
 	}
 
 	bool HasData() const { return LevelVolumetricLightmaps.Num() > 0; }
-	void AddLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume, ERHIFeatureLevel::Type FeatureLevel);
+	void AddLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume, EShadingPath ShadingPath);
 	void RemoveLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume);
+	const FPrecomputedVolumetricLightmap* GetLevelVolumetricLightmap() const { return LevelVolumetricLightmaps.Last(); }
 
 	FVector IndirectionTextureSize;
 
@@ -1367,6 +1380,8 @@ public:
 	FTexture3DRHIRef SHCoefficientsTextureRHI[6];
 	FTexture3DRHIRef SkyBentNormalTextureRHI;
 	FTexture3DRHIRef DirectionalLightShadowingTextureRHI;
+
+	TMap<FVector, FVolumetricLightmapInterpolation> CPUInterpolationCache;
 
 private:
 	TArray<const FPrecomputedVolumetricLightmap*> LevelVolumetricLightmaps;
@@ -2170,7 +2185,7 @@ public:
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent) override;
 	virtual void UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer) override;
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) override;
-	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap, TArray<FFloat16Color>* OutRadianceMap) override; 
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual bool HasPrecomputedVolumetricLightmap_RenderThread() const override;
@@ -2478,6 +2493,12 @@ inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)
 	// Non-Surface domains can be applied to static meshes for thumbnails or material editor preview
 	// Volume domain materials however must only be rendered in the voxelization pass
 	return Domain != MD_Volume;
+}
+
+// Whether to use GPU per-pixel interpolated volumetric lightmaps, or CPU per-object interpolated
+inline bool UseGPUInterpolatedVolumetricLightmaps(EShadingPath ShadingPath)
+{
+	return ShadingPath == EShadingPath::Deferred;
 }
 
 #include "BasePassRendering.inl"

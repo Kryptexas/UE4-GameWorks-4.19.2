@@ -426,6 +426,15 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI_Immediate
 				if (FSlateApplication::Get().TakeScreenshot(Viewport.ToSharedRef(), OutColorData, OutSize))
 				{
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+					// For UI, we only care about what the final image looks like. So don't compare alpha channel.
+					// In editor, scene is rendered into a PF_B8G8R8A8 RT and then copied over to the R10B10G10A2 swapchain back buffer and
+					// this copy ignores alpha. In game, however, scene is directly rendered into the back buffer and the alpha values are
+					// already meaningless at that stage.
+					for (int32 Idx = 0; Idx < OutColorData.Num(); ++Idx)
+					{
+						OutColorData[Idx].A = 0xff;
+					}
+
 					// The screenshot taker deletes itself later.
 					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(World, Name, Options);
 

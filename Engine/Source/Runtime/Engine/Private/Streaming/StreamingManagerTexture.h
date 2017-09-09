@@ -166,14 +166,6 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	/** Returns the corresponding FStreamingTexture for a UTexture2D. */
 	FStreamingTexture* GetStreamingTexture( const UTexture2D* Texture2D );
 
-	/**
-	 * Cancels the current streaming request for the specified texture.
-	 *
-	 * @param StreamingTexture		Texture to cancel streaming for
-	 * @return						true if a streaming request was canceled
-	 */
-	bool CancelStreamingRequest( FStreamingTexture& StreamingTexture );
-
 	/** Set current pause state for texture streaming */
 	virtual void PauseTextureStreaming(bool bInShouldPause) override
 	{
@@ -200,7 +192,7 @@ protected:
 		 * @param StageIndex		Current stage index
 		 * @param NumUpdateStages	Number of texture update stages
 		 */
-		void UpdateStreamingTextures( int32 StageIndex, int32 NumStages );
+		void UpdateStreamingTextures( int32 StageIndex, int32 NumStages, bool bWaitForMipFading );
 
 		void ProcessRemovedTextures();
 		void ProcessAddedTextures();

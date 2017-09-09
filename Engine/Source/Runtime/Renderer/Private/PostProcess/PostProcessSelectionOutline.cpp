@@ -49,6 +49,19 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 	// Set the render target/viewport.
 	FRHIDepthRenderTargetView DepthRT(DestRenderTarget.TargetableTexture, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::ENoAction);
 	FRHISetRenderTargetsInfo RTInfo(0, nullptr, DepthRT);
+
+	if (GRHIRequiresRenderTargetForPixelShaderUAVs)
+	{
+		FIntVector ss = PassOutputs[0].RenderTargetDesc.GetSize();
+
+		TRefCountPtr<IPooledRenderTarget> Dummy;
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(ss.X, ss.Y), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Context.RHICmdList, Desc, Dummy, TEXT("Dummy"));
+		FRHIRenderTargetView DummyRTView(Dummy->GetRenderTargetItem().TargetableTexture, ERenderTargetLoadAction::ENoAction);
+
+		RTInfo = FRHISetRenderTargetsInfo(1, &DummyRTView, DepthRT);
+	}
+
 	Context.RHICmdList.SetRenderTargetsAndClear(RTInfo);
 
 	Context.SetViewportAndCallRHI(ViewRect);

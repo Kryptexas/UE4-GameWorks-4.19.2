@@ -1114,6 +1114,7 @@ public:
 	virtual enum EMaterialShadingModel GetShadingModel() const = 0;
 	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
 	virtual float GetOpacityMaskClipValue() const = 0;
+	virtual bool GetCastDynamicShadowAsMasked() const = 0;
 	virtual bool IsDistorted() const { return false; };
 	virtual float GetTranslucencyDirectionalLightingIntensity() const { return 1.0f; }
 	virtual float GetTranslucentShadowDensityScale() const { return 1.0f; }
@@ -1175,6 +1176,15 @@ public:
 	* @return returns true if there is a GameThreadShaderMap.
 	*/
 	ENGINE_API bool HasValidGameThreadShaderMap() const;
+
+	/** Returns whether this material should be considered for casting dynamic shadows. */
+	inline bool ShouldCastDynamicShadows() const
+	{
+		return GetShadingModel() != MSM_Unlit &&
+			(GetBlendMode() == BLEND_Opaque ||
+			 GetBlendMode() == BLEND_Masked ||
+			(GetBlendMode() == BLEND_Translucent && GetCastDynamicShadowAsMasked()));
+	}
 
 
 	EMaterialQualityLevel::Type GetQualityLevel() const 
@@ -1287,9 +1297,9 @@ public:
 	ENGINE_API bool GetMaterialExpressionSource(FString& OutSource);
 
 	/* Helper function to look at both IsMasked and IsDitheredLODTransition to determine if it writes every pixel */
-	ENGINE_API bool WritesEveryPixel( bool bShadowPass = true ) const
+	ENGINE_API bool WritesEveryPixel(bool bShadowPass = false) const
 	{
-		return !IsMasked() && !( IsDitheredLODTransition() && bShadowPass ) && !IsWireframe();
+		return !IsMasked() && !(IsDitheredLODTransition() && bShadowPass) && !IsWireframe();
 	}
 
 	/** 
@@ -1772,6 +1782,7 @@ public:
 	ENGINE_API virtual enum EMaterialShadingModel GetShadingModel() const override;
 	ENGINE_API virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const override;
 	ENGINE_API virtual float GetOpacityMaskClipValue() const override;
+	ENGINE_API virtual bool GetCastDynamicShadowAsMasked() const override;
 	ENGINE_API virtual bool IsDistorted() const override;
 	ENGINE_API virtual float GetTranslucencyDirectionalLightingIntensity() const override;
 	ENGINE_API virtual float GetTranslucentShadowDensityScale() const override;

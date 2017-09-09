@@ -118,7 +118,7 @@ public:
 	const MTLViewport& GetViewport(uint32 const Index) const { check(Index < ML_MaxViewports); return Viewport[Index]; }
 	uint32 GetVertexBufferSize(uint32 const Index);
 	uint32 GetRenderTargetArraySize() const { return RenderTargetArraySize; }
-	TArray<TRefCountPtr<FRHIUniformBuffer>>& GetBoundUniformBuffers(EShaderFrequency const Freq) { return BoundUniformBuffers[Freq]; }
+	TRefCountPtr<FRHIUniformBuffer>* GetBoundUniformBuffers(EShaderFrequency const Freq) { return BoundUniformBuffers[Freq]; }
 	uint32 GetDirtyUniformBuffers(EShaderFrequency const Freq) const { return DirtyUniformBuffers[Freq]; }
 	id<MTLBuffer> GetVisibilityResultsBuffer() const { return VisibilityResults; }
 	bool GetScissorRectEnabled() const { return bScissorRectEnabled; }
@@ -202,7 +202,7 @@ private:
 		/** The bound sampler states or nil. */
 		TRefCountPtr<FMetalSamplerState> Samplers[ML_MaxSamplers];
 		/** A bitmask for which samplers were bound by the application where a bit value of 1 is bound and 0 is unbound. */
-		uint32 Bound;
+		uint16 Bound;
 	};
 	
 private:
@@ -211,7 +211,7 @@ private:
 	EMetalIndexType IndexType;
 	uint32 SampleCount;
 
-	TArray< TRefCountPtr<FRHIUniformBuffer> > BoundUniformBuffers[SF_NumFrequencies];
+	TRefCountPtr<FRHIUniformBuffer> BoundUniformBuffers[SF_NumFrequencies][ML_MaxBuffers];
 	
 	/** Bitfield for which uniform buffers are dirty */
 	uint64 DirtyUniformBuffers[SF_NumFrequencies];

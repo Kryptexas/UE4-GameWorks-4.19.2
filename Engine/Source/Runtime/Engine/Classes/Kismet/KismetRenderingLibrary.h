@@ -65,6 +65,13 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	static ENGINE_API void DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material);
 
 	/**
+	* Creates a new Static Texture from a Render Target 2D. Render Target Must be power of two and use four channels.
+	* Only works in the editor
+	*/
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Render Target Create Static Texture Editor Only", Keywords = "Create Static Texture from Render Target", UnsafeDuringActorConstruction = "true"), Category = Game)
+	static ENGINE_API UTexture2D* RenderTargetCreateStaticTexture2DEditorOnly(UTextureRenderTarget2D* RenderTarget, FString Name = "Texture", enum TextureCompressionSettings CompressionSettings = TC_Default, enum TextureMipGenSettings MipSettings = TMGS_FromTextureGroup);
+
+	/**
 	 * Copies the contents of a render target to a UTexture2D
 	 * Only works in the editor
 	 */

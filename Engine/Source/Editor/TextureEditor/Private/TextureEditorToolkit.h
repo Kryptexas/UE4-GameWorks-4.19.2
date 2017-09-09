@@ -108,15 +108,6 @@ protected:
 	TSharedRef<SWidget> BuildTexturePropertiesWidget( );
 
 	/**
-	 * Calculates the effective in-game resolution of the texture.
-	 *
-	 * @param LODBias 
-	 * @param EffectiveTextureWidth 
-	 * @param EffectiveTextureHeight 
-	 */
-	void CalculateEffectiveTextureDimensions( int32 LODBias, uint32& EffectiveTextureWidth, uint32& EffectiveTextureHeight );
-
-	/**
 	 * Creates all internal widgets for the tabs to point at.
 	 */
 	void CreateInternalWidgets( );

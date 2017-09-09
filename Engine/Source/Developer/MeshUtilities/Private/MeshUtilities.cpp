@@ -902,7 +902,7 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 				}
 				else
 				{
-                                        // Store first texture coordinate index not in use
+					// Store first texture coordinate index not in use
 					MaxInUseTextureCoordinate = FMath::Max(MaxInUseTextureCoordinate, TexCoordIndex);
 				}
 			}
@@ -2951,8 +2951,14 @@ public:
 		check(LODOverlappingCorners.Num() == SourceModels.Num());
 
 		// Bail if there is no raw mesh data from which to build a renderable mesh.
-		if (LODMeshes.Num() == 0 || LODMeshes[0].WedgeIndices.Num() == 0)
+		if (LODMeshes.Num() == 0)
 		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Raw Mesh data contains no mesh data to build a mesh that can be rendered."));
+			return false;
+		}
+		else if (LODMeshes[0].WedgeIndices.Num() == 0)
+		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Raw Mesh data contains no wedge index data to build a mesh that can be rendered."));
 			return false;
 		}
 
@@ -2963,6 +2969,12 @@ public:
 	bool ReduceLODs(TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup, IMeshReduction* MeshReduction, bool& bOutWasReduced)
 	{
 		check(Stage == EStage::Gathered);
+
+		if (SourceModels.Num() == 0)
+		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Mesh contains zero source models."));
+			return false;
+		}
 
 		FMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<FMeshUtilities>("MeshUtilities");
 
@@ -3007,6 +3019,7 @@ public:
 
 		if (NumValidLODs < 1)
 		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Mesh reduction produced zero LODs."));
 			return false;
 		}
 		Stage = EStage::Reduce;

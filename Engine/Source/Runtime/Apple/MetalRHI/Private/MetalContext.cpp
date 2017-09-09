@@ -484,17 +484,18 @@ void FMetalDeviceContext::DrainHeap()
 
 void FMetalDeviceContext::EndFrame()
 {
-	bool const bFrameEnd = (FrameCounter != GFrameNumberRenderThread);
-	if(bFrameEnd)
-	{
-		FrameCounter = GFrameNumberRenderThread;
-		
-		Heap.Compact(*this, false);
-	}
+	Heap.Compact(*this, false);
 	
 	FlushFreeList();
 	
 	ClearFreeList();
+	
+	if (bPresented)
+	{
+		FMetalGPUProfiler::IncrementFrameIndex();
+		CaptureManager.PresentFrame(FrameCounter++);
+		bPresented = false;
+	}
 	
 	// Latched update of whether to use runtime debugging features
 	uint32 SubmitFlags = EMetalSubmitFlagsNone;
@@ -519,12 +520,6 @@ void FMetalDeviceContext::EndFrame()
 		}
 	}
 #endif
-	
-	if (bFrameEnd)
-	{
-		FMetalGPUProfiler::IncrementFrameIndex();
-		CaptureManager.PresentFrame(FrameCounter);
-	}
 	
 	InitFrame(true);
 	
@@ -677,7 +672,7 @@ void FMetalDeviceContext::FlushFreeList()
 	DelayedFreeLists.Add(NewList);
 }
 
-void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPresent)
+void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPresent, bool bLockToVsync)
 {
 	// enqueue a present if desired
 	static bool const bOffscreenOnly = FParse::Param(FCommandLine::Get(), TEXT("MetalOffscreenOnly"));
@@ -707,8 +702,10 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 		
 		RenderPass.Submit(EMetalSubmitFlagsCreateCommandBuffer);
 		
-		Viewport->Present(GetCommandQueue());
+		Viewport->Present(GetCommandQueue(), bLockToVsync);
 	}
+	
+	bPresented = bPresent;
 	
 	// We may be limiting our framerate to the display link
 	if( FrameReadyEvent != nullptr && !GMetalSeparatePresentThread )

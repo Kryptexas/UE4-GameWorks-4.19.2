@@ -10,8 +10,8 @@
 #include "VulkanGlobals.h"
 #include "VulkanConfiguration.h"
 #include "VulkanState.h"
-#include "VulkanUtil.h"
 #include "VulkanResources.h"
+#include "VulkanUtil.h"
 #include "VulkanViewport.h"
 #include "VulkanDynamicRHI.h"
 

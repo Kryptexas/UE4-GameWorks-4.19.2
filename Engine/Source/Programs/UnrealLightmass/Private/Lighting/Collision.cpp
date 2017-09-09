@@ -369,7 +369,7 @@ bool FDefaultAggregateMesh::IntersectLightRay(
 		if (bHit)
 		{
 			// Setup a vertex to represent the intersection.
-			FStaticLightingVertex IntersectionVertex;
+			FMinimalStaticLightingVertex IntersectionVertex;
 			IntersectionVertex.WorldPosition = ClippedLightRay.Start + ClippedLightRay.Direction * ClippedLightRay.Length * Result.Time;
 			IntersectionVertex.WorldTangentZ = kDOPCheck.LocalHitNormal;
 			const FTriangleSOAPayload& Payload = TrianglePayloads[ Result.Item ];
@@ -399,27 +399,8 @@ bool FDefaultAggregateMesh::IntersectLightRay(
 				IntersectionVertex.TextureCoordinates[0] = FVector2D(0,0);
 				IntersectionVertex.TextureCoordinates[1] = FVector2D(0,0);
 			}
-			// Return the index of the vertex closest to the hit point
-			int32 AbsoluteVertexIndex = Payload.VertexIndex[0];
-			if (BaryCentricWeights.Y > BaryCentricWeights.X)
-			{
-				if (BaryCentricWeights.Z > BaryCentricWeights.Y)
-				{
-					AbsoluteVertexIndex = Payload.VertexIndex[2];
-				}
-				else
-				{
-					AbsoluteVertexIndex = Payload.VertexIndex[1];
-				}
-			}
-			else if (BaryCentricWeights.Z > BaryCentricWeights.X)
-			{
-				AbsoluteVertexIndex = Payload.VertexIndex[2];
-			}
-			// Convert the index into the kDOP tree's vertices into an index into the hit mesh's vertices
-			const int32 RelativeVertexIndex = AbsoluteVertexIndex - Payload.MeshInfo->BaseIndex;
-			checkSlow(RelativeVertexIndex >= 0 && RelativeVertexIndex < Payload.MeshInfo->Mesh->NumVertices);
-			ClosestIntersection = FLightRayIntersection(true, IntersectionVertex, Payload.MeshInfo->Mesh, Payload.Mapping, RelativeVertexIndex, Payload.ElementIndex);
+
+			ClosestIntersection = FLightRayIntersection(true, IntersectionVertex, Payload.MeshInfo->Mesh, Payload.Mapping, Payload.ElementIndex);
 			if (bFindClosestIntersection)
 			{
 				ClippedLightRay.ClipAgainstIntersectionFromStart(ClosestIntersection.IntersectionVertex.WorldPosition);

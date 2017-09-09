@@ -152,6 +152,15 @@ namespace Lightmass
 		}
 	};
 
+	/** The light incident for a point on a surface. */
+	class FLightSample : public FLightSampleData
+	{
+	public:
+		/** Initialization constructor. */
+		FLightSample() : FLightSampleData() {}
+		FLightSample(EForceInit) : FLightSampleData() {}
+	};
+
 	/**
 	 * The quantized coefficients for a single light-map texel.
 	 */

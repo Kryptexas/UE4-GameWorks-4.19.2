@@ -13,6 +13,8 @@
 #include "SceneTypes.h"
 #include "Engine/EngineTypes.h"
 
+class FSceneView;
+
 /**
  * A vertex shader for rendering a texture on a simple element.
  */

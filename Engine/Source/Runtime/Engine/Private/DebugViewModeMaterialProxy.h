@@ -116,6 +116,7 @@ public:
 	virtual enum EBlendMode GetBlendMode() const override;
 	virtual enum EMaterialShadingModel GetShadingModel() const override;
 	virtual float GetOpacityMaskClipValue() const override;
+	virtual bool GetCastDynamicShadowAsMasked() const override;
 	virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const override;
 	virtual void GatherExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const override;
 

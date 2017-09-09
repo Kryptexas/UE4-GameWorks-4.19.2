@@ -12,7 +12,7 @@ FStreamingTexture::FStreamingTexture(UTexture2D* InTexture, const int32 NumStrea
 : Texture(InTexture)
 {
 	UpdateStaticData(Settings);
-	UpdateDynamicData(NumStreamedMips, Settings);
+	UpdateDynamicData(NumStreamedMips, Settings, false);
 
 	InstanceRemovedTimestamp = -FLT_MAX;
 	DynamicBoostFactor = 1.f;
@@ -67,18 +67,18 @@ void FStreamingTexture::UpdateStaticData(const FTextureStreamingSettings& Settin
 	}
 }
 
-void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings)
+void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings, bool bWaitForMipFading)
 {
 	// Note that those values are read from the async task and must not be assigned temporary values!!
 	if (Texture)
 	{
-		UpdateStreamingStatus();
+		UpdateStreamingStatus(bWaitForMipFading);
 
 		// The last render time of this texture. Can be FLT_MAX when texture has no resource.
 		const float LastRenderTimeForTexture = Texture->GetLastRenderTimeForStreaming();
 		LastRenderTime = (FApp::GetCurrentTime() > LastRenderTimeForTexture) ? float( FApp::GetCurrentTime() - LastRenderTimeForTexture ) : 0.0f;
 
-		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || LODGroup == TEXTUREGROUP_Skybox;
+		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident();
 
 		const int32 NumCinematicMipLevels = (bForceFullyLoad && Texture->bUseCinematicMipLevels) ? Texture->NumCinematicMipLevels : 0;
 
@@ -88,9 +88,9 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 			LODBias = FMath::Max<int32>(Texture->GetCachedLODBias() - NumCinematicMipLevels, 0);
 
 			// Reduce the max allowed resolution according to LODBias if the texture group allows it.
-			if (IsMaxResolutionAffectedByGlobalBias())
+			if (IsMaxResolutionAffectedByGlobalBias() && !Settings.bUsePerTextureBias)
 			{
-				LODBias += Settings.GlobalMipBiasAsInt();
+				LODBias += Settings.GlobalMipBias;
 			}
 
 			LODBias += BudgetMipBias;
@@ -112,7 +112,6 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 	{
 		bReadyForStreaming = false;
 		bInFlight = false;
-		bCancelRequestAttempted = false;
 		bForceFullyLoad = false;
 		ResidentMips = 0;
 		RequestedMips = 0;
@@ -122,39 +121,21 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 	}
 }
 
-void FStreamingTexture::UpdateStreamingStatus()
+void FStreamingTexture::UpdateStreamingStatus(bool bWaitForMipFading)
 {
 	if (Texture)
 	{
 		bReadyForStreaming = Texture->IsReadyForStreaming();
-		if (bReadyForStreaming)
-		{
-			bInFlight = Texture->UpdateStreamingStatus(true);
-		}
-		else
-		{
-			ensure(Texture->PendingMipChangeRequestStatus.GetValue() <= TexState_ReadyFor_Requests); // Could also be TexState_InProgress_Initialization
-			bInFlight = false;
-		}
-
-		 // Allow a future cancel request only once the texture has returned to a fully ready state.
-		if (bReadyForStreaming && !bInFlight)
-		{
-			bCancelRequestAttempted = false;
-		}
-
+		bInFlight = Texture->UpdateStreamingStatus(bWaitForMipFading);
 
 		// This must be updated after UpdateStreamingStatus
-		ResidentMips = Texture->ResidentMips;
-		RequestedMips = Texture->RequestedMips;
-
-		ensure(bInFlight || ResidentMips == RequestedMips);
+		ResidentMips = Texture->GetNumResidentMips();
+		RequestedMips = Texture->GetNumRequestedMips();
 	}
 	else
 	{
 		bReadyForStreaming = false;
 		bInFlight = false;
-		bCancelRequestAttempted = false;
 	}
 }
 
@@ -179,7 +160,7 @@ float FStreamingTexture::GetExtraBoost(TextureGroup	LODGroup, const FTextureStre
 	}
 	else
 	{
-		return DistanceScale * Settings.GlobalMipBiasAsScale();
+		return DistanceScale;
 	}
 }
 
@@ -339,35 +320,27 @@ bool FStreamingTexture::UpdateLoadOrderPriority_Async(int32 MinMipForSplitReques
 
 void FStreamingTexture::CancelPendingMipChangeRequest()
 {
-	if (Texture && bReadyForStreaming && bInFlight && !bCancelRequestAttempted)
+	if (Texture)
 	{
-		// Try to cancel at most once per request.
-		bCancelRequestAttempted = true;
 		Texture->CancelPendingMipChangeRequest();
+		UpdateStreamingStatus(false);
 	}
 }
 
 void FStreamingTexture::StreamWantedMips(FStreamingManagerTexture& Manager)
 {
-	if (Texture && bReadyForStreaming && !bInFlight && WantedMips != ResidentMips)
+	if (Texture && WantedMips != ResidentMips)
 	{
-		ensure(ResidentMips == RequestedMips);
-
-		if (Texture->Resource && Texture->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests)
+		const bool bShouldPrioritizeAsyncIORequest = (bForceFullyLoadHeuristic || bIsTerrainTexture || bIsCharacterTexture) && WantedMips <= VisibleWantedMips;
+		if (WantedMips < ResidentMips)
 		{
-			Texture->RequestedMips = WantedMips;
-
-			FTexture2DResource* Texture2DResource = (FTexture2DResource*)Texture->Resource;
-			Texture2DResource->BeginUpdateMipCount( (bForceFullyLoadHeuristic || bIsTerrainTexture || bIsCharacterTexture) && WantedMips <= VisibleWantedMips );
-
-			UpdateStreamingStatus();
-
-			TrackTextureEvent( this, Texture, bForceFullyLoadHeuristic != 0, &Manager );
+			Texture->StreamOut(WantedMips);
 		}
-		else
+		else // WantedMips > ResidentMips
 		{
-			// Did UpdateStreamingTextures() miss a texture? Should never happen!
-			UE_LOG(LogContentStreaming, Warning, TEXT("BeginUpdateMipCount failure! PendingMipChangeRequestStatus == %d, Resident=%d, Requested=%d, Wanted=%d"), Texture->PendingMipChangeRequestStatus.GetValue(), Texture->ResidentMips, Texture->RequestedMips, WantedMips );
+			Texture->StreamIn(WantedMips, bShouldPrioritizeAsyncIORequest);
 		}
+		UpdateStreamingStatus(false);
+		TrackTextureEvent( this, Texture, bForceFullyLoadHeuristic != 0, &Manager );
 	}
 }

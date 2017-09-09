@@ -236,6 +236,7 @@ protected:
 	/** True if material will output accurate velocities during base pass rendering. */
 	uint32 bOutputsBasePassVelocities : 1;
 	uint32 bUsesPixelDepthOffset : 1;
+	uint32 bUsesWorldPositionOffset : 1;
 	uint32 bUsesEmissiveColor : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
@@ -287,6 +288,7 @@ public:
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
 	,	bUsesPixelDepthOffset(false)
+    ,   bUsesWorldPositionOffset(false)
 	,	bUsesEmissiveColor(0)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
@@ -507,7 +509,7 @@ public:
 			bUsesPixelDepthOffset = IsMaterialPropertyUsed(MP_PixelDepthOffset, Chunk[MP_PixelDepthOffset], FLinearColor(0, 0, 0, 0), 1)
 				|| (Domain == MD_DeferredDecal && Material->GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
 
-			const bool bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
+			bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
 			MaterialCompilationOutput.bModifiesMeshPosition = bUsesPixelDepthOffset || bUsesWorldPositionOffset;
 			MaterialCompilationOutput.bUsesWorldPositionOffset = bUsesWorldPositionOffset;
 			MaterialCompilationOutput.bUsesPixelDepthOffset = bUsesPixelDepthOffset;
@@ -944,7 +946,11 @@ public:
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor); 
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_TRANSFORM"), bUsesParticleTransform);
 		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector);
-		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset); 
+		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset);
+		if (IsMetalPlatform(InPlatform))
+		{
+			OutEnvironment.SetDefine(TEXT("USES_WORLD_POSITION_OFFSET"), bUsesWorldPositionOffset);
+		}
 		OutEnvironment.SetDefine(TEXT("USES_EMISSIVE_COLOR"), bUsesEmissiveColor);
 		// Distortion uses tangent space transform 
 		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted()); 
@@ -4457,7 +4463,7 @@ protected:
 				{
 					const EMaterialDomain Domain = (const EMaterialDomain)Material->GetMaterialDomain();
 
-					if(Domain != MD_Surface)
+					if(Domain != MD_Surface && Domain != MD_Volume)
 					{
 						// TODO: for decals we could support it
 						Errorf(TEXT("This transformation is only supported in the 'Surface' material domain."));
@@ -5355,9 +5361,9 @@ protected:
 	{
 		const EMaterialDomain Domain = (const EMaterialDomain)Material->GetMaterialDomain();
 
-		if(Domain != MD_Surface)
+		if(Domain != MD_Surface && Domain != MD_Volume)
 		{
-			Errorf(TEXT("The material expression '%s' is only supported in the 'Surface' material domain."), ExpressionName);
+			Errorf(TEXT("The material expression '%s' is only supported in the 'Surface' or 'Volume' material domain."), ExpressionName);
 			return INDEX_NONE;
 		}
 

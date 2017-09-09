@@ -238,8 +238,8 @@ uint64 FD3D11DynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Forma
 void FD3D11DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
 	OutStats.DedicatedVideoMemory = FD3D11GlobalStats::GDedicatedVideoMemory;
-    OutStats.DedicatedSystemMemory = FD3D11GlobalStats::GDedicatedSystemMemory;
-    OutStats.SharedSystemMemory = FD3D11GlobalStats::GSharedSystemMemory;
+	OutStats.DedicatedSystemMemory = FD3D11GlobalStats::GDedicatedSystemMemory;
+	OutStats.SharedSystemMemory = FD3D11GlobalStats::GSharedSystemMemory;
 	OutStats.TotalGraphicsMemory = FD3D11GlobalStats::GTotalGraphicsMemory ? FD3D11GlobalStats::GTotalGraphicsMemory : -1;
 
 	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
@@ -870,6 +870,12 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		NvU32 ManualAFR = 1;
 		NvAPI_D3D_SetResourceHint(Direct3DDevice, (NVDX_ObjectHandle)IHVHandle, NVAPI_D3D_SRH_CATEGORY_SLI, NVAPI_D3D_SRH_SLI_APP_CONTROLLED_INTERFRAME_CONTENT_SYNC, &ManualAFR);
 	}
+
+	if (CreateInfo.BulkData)
+	{
+		CreateInfo.BulkData->Discard();
+	}
+
 	return Texture2D;
 }
 
@@ -1009,6 +1015,12 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 		NvU32 ManualAFR = 1;
 		NvAPI_D3D_SetResourceHint(Direct3DDevice, (NVDX_ObjectHandle)IHVHandle, NVAPI_D3D_SRH_CATEGORY_SLI, NVAPI_D3D_SRH_SLI_APP_CONTROLLED_INTERFRAME_CONTENT_SYNC, &ManualAFR);
 	}
+
+	if (CreateInfo.BulkData)
+	{
+		CreateInfo.BulkData->Discard();
+	}
+
 	return Texture3D;
 }
 
@@ -1554,12 +1566,12 @@ void FD3D11DynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef Textur
 
 void FD3D11DynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,const FUpdateTextureRegion2D& UpdateRegion,uint32 SourcePitch,const uint8* SourceData)
 {
-    FD3D11Texture2D* Texture = ResourceCast(TextureRHI);
+	FD3D11Texture2D* Texture = ResourceCast(TextureRHI);
 
-    D3D11_BOX DestBox =
+	D3D11_BOX DestBox =
 	{
 		UpdateRegion.DestX,                      UpdateRegion.DestY,                       0,
-        UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, 1
+		UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, 1
 	};
 
 	check(GPixelFormats[Texture->GetFormat()].BlockSizeX == 1);

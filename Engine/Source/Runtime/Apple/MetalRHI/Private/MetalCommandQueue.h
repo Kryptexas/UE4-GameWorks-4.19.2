@@ -78,6 +78,8 @@ enum EMetalFeatures
     EMetalFeaturesPresentMinDuration = 1 << 31,
     /** Supports programmatic frame capture API */
     EMetalFeaturesGPUCaptureManager = 1 << 32,
+	/** Supports toggling V-Sync on & off */
+	EMetalFeaturesSupportsVSyncToggle = 1 << 33,
 };
 
 /**

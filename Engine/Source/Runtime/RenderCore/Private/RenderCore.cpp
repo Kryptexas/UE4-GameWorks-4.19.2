@@ -77,6 +77,7 @@ DEFINE_STAT(STAT_BuildCombinedStaticAndCSMVisibilityState);
 DEFINE_STAT(STAT_UpdateIndirectLightingCache);
 DEFINE_STAT(STAT_UpdateIndirectLightingCachePrims);
 DEFINE_STAT(STAT_UpdateIndirectLightingCacheBlocks);
+DEFINE_STAT(STAT_InterpolateVolumetricLightmapOnCPU);
 DEFINE_STAT(STAT_UpdateIndirectLightingCacheTransitions);
 DEFINE_STAT(STAT_UpdateIndirectLightingCacheFinalize);
 DEFINE_STAT(STAT_SortStaticDrawLists);

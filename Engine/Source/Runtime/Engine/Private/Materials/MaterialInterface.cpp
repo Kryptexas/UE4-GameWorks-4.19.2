@@ -365,6 +365,10 @@ bool UMaterialInterface::IsDeferredDecal() const
 {
 	return false;
 }
+bool UMaterialInterface::GetCastDynamicShadowAsMasked() const
+{
+	return false;
+}
 
 EMaterialShadingModel UMaterialInterface::GetShadingModel() const
 {

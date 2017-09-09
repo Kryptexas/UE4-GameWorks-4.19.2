@@ -846,8 +846,8 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 				ViewMask |= (1 << ViewIndex);
 			}
 
-			bOpaqueRelevance |= ViewRelevance.bOpaqueRelevance;
-			bTranslucentRelevance |= ViewRelevance.HasTranslucency();
+			bOpaqueRelevance |= ViewRelevance.bOpaqueRelevance || ViewRelevance.bMaskedRelevance;
+			bTranslucentRelevance |= ViewRelevance.HasTranslucency() && !ViewRelevance.bMaskedRelevance;
 			bShadowRelevance |= ViewRelevance.bShadowRelevance;
 		}
 
@@ -1023,7 +1023,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							const EBlendMode BlendMode = Material->GetBlendMode();
 							const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
-							if(((!IsTranslucentBlendMode(BlendMode)) && ShadingModel != MSM_Unlit) || (bReflectiveShadowmap && Material->ShouldInjectEmissiveIntoLPV())) 
+							if(Material->ShouldCastDynamicShadows() || (bReflectiveShadowmap && Material->ShouldInjectEmissiveIntoLPV())) 
 							{
 								const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
 								OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, FeatureLevel);

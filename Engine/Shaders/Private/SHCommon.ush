@@ -140,7 +140,9 @@ FTwoBandSHVector GetLuminance(FTwoBandSHVectorRGB InRGBVector)
 float3 GetMaximumDirection(FTwoBandSHVector SHVector)
 {
 	// This is an approximation which only takes into account first and second order spherical harmonics.
-	return normalize(float3(-SHVector.V.w, -SHVector.V.y, SHVector.V.z));
+	float3 MaxDirection = float3(-SHVector.V.w, -SHVector.V.y, SHVector.V.z);
+	float Length = length(MaxDirection);
+	return MaxDirection / max(Length, .0001f);
 }
 
 /** Computes the value of the SH basis functions for a given direction. */

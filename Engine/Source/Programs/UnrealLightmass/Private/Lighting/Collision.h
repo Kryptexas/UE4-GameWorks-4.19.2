@@ -173,6 +173,17 @@ public:
 		class FCoherentRayCache& CoherentRayCache,
 		FLightRayIntersection& Intersection) const = 0;
 
+	virtual void IntersectLightRays4(
+		const FLightRay* LightRays,
+		bool bFindClosestIntersection,
+		bool bCalculateTransmission,
+		bool bDirectShadowingRay,
+		FCoherentRayCache& CoherentRayCache,
+		FLightRayIntersection* ClosestIntersections) const
+	{
+		check(0);
+	}
+
 	FBox GetBounds() const;
 
 	/** The total surface area of everything in the aggregate mesh */

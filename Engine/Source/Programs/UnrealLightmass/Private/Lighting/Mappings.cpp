@@ -21,8 +21,8 @@ void FStaticLightingTextureMapping::Import( class FLightmassImporter& Importer )
 	Importer.ImportData( (FStaticLightingTextureMappingData*) this );
 	CachedSizeX = SizeX;
 	CachedSizeY = SizeY;
-	IrradiancePhotonCacheSizeX = 0;
-	IrradiancePhotonCacheSizeY = 0;
+	SurfaceCacheSizeX = 0;
+	SurfaceCacheSizeY = 0;
 }
 
 } //namespace Lightmass

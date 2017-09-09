@@ -230,6 +230,15 @@ public:
 		return Alloc(sizeof(T), alignof(T));
 	}
 
+
+	FORCEINLINE_DEBUGGABLE TCHAR* AllocString(const TCHAR* Name)
+	{
+		int32 Len = FCString::Strlen(Name) + 1;
+		TCHAR* NameCopy  = (TCHAR*)Alloc(Len * (int32)sizeof(TCHAR), (int32)sizeof(TCHAR));
+		FCString::Strcpy(NameCopy, Len, Name);
+		return NameCopy;
+	}
+
 	template <typename TCmd>
 	FORCEINLINE_DEBUGGABLE void* AllocCommand()
 	{
@@ -742,12 +751,12 @@ struct FRHICommandSetStereoViewport : public FRHICommand<FRHICommandSetStereoVie
 	uint32 LeftMinX;
 	uint32 RightMinX;
 	uint32 LeftMinY;
-    uint32 RightMinY;
+	uint32 RightMinY;
 	float MinZ;
 	uint32 LeftMaxX;
 	uint32 RightMaxX;
 	uint32 LeftMaxY;
-    uint32 RightMaxY;
+	uint32 RightMaxY;
 	float MaxZ;
 	FORCEINLINE_DEBUGGABLE FRHICommandSetStereoViewport(uint32 InLeftMinX, uint32 InRightMinX, uint32 InLeftMinY, uint32 InRightMinY, float InMinZ, uint32 InLeftMaxX, uint32 InRightMaxX, uint32 InLeftMaxY, uint32 InRightMaxY, float InMaxZ)
 		: LeftMinX(InLeftMinX)
@@ -833,10 +842,12 @@ struct FRHICommandBeginRenderPass : public FRHICommand<FRHICommandBeginRenderPas
 {
 	FRHIRenderPassInfo Info;
 	FLocalCmdListRenderPass* LocalRenderPass;
+	const TCHAR* Name;
 
-	FRHICommandBeginRenderPass(const FRHIRenderPassInfo& InInfo, FLocalCmdListRenderPass* InLocalRenderPass)
+	FRHICommandBeginRenderPass(const FRHIRenderPassInfo& InInfo, FLocalCmdListRenderPass* InLocalRenderPass, const TCHAR* InName)
 		: Info(InInfo)
 		, LocalRenderPass(InLocalRenderPass)
+		, Name(InName)
 	{
 	}
 
@@ -864,10 +875,12 @@ struct FRHICommandBeginParallelRenderPass : public FRHICommand<FRHICommandBeginP
 {
 	FRHIRenderPassInfo Info;
 	FLocalCmdListParallelRenderPass* LocalRenderPass;
+	const TCHAR* Name;
 
-	FRHICommandBeginParallelRenderPass(const FRHIRenderPassInfo& InInfo, FLocalCmdListParallelRenderPass* InLocalRenderPass)
+	FRHICommandBeginParallelRenderPass(const FRHIRenderPassInfo& InInfo, FLocalCmdListParallelRenderPass* InLocalRenderPass, const TCHAR* InName)
 		: Info(InInfo)
 		, LocalRenderPass(InLocalRenderPass)
+		, Name(InName)
 	{
 	}
 
@@ -1924,12 +1937,6 @@ public:
 		new (AllocCommand<FRHICommandSetStreamSource>()) FRHICommandSetStreamSource(StreamIndex, VertexBuffer, Offset);
 	}
 
-	DEPRECATED(4.17, "Stride is ignored")
-		FORCEINLINE_DEBUGGABLE void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset)
-	{
-		SetStreamSource(StreamIndex, VertexBuffer, Offset);
-	}
-
 	FORCEINLINE_DEBUGGABLE void SetStencilRef(uint32 StencilRef)
 	{
 		if (Bypass())
@@ -2103,9 +2110,7 @@ public:
 			CMD_CONTEXT(RHIPushEvent)(Name, Color);
 			return;
 		}
-		int32 Len = FCString::Strlen(Name) + 1;
-		TCHAR* NameCopy  = (TCHAR*)Alloc(Len * (int32)sizeof(TCHAR), (int32)sizeof(TCHAR));
-		FCString::Strcpy(NameCopy, Len, Name);
+		TCHAR* NameCopy  = AllocString(Name);
 		new (AllocCommand<FRHICommandPushEvent<ECmdList::EGfx>>()) FRHICommandPushEvent<ECmdList::EGfx>(NameCopy, Color);
 	}
 
@@ -2268,12 +2273,12 @@ public:
 
 	/** Custom new/delete with recycling */
 	void* operator new(size_t Size);
-    void operator delete(void *RawMemory);
-    
-    inline bool IsOutsideRenderPass() const
-    {
-        return Data.LocalRHIRenderPass == nullptr && Data.LocalRHIParallelRenderPass == nullptr;
-    }
+	void operator delete(void *RawMemory);
+	
+	inline bool IsOutsideRenderPass() const
+	{
+		return Data.LocalRHIRenderPass == nullptr && Data.LocalRHIParallelRenderPass == nullptr;
+	}
 
 	FORCEINLINE_DEBUGGABLE void BeginUpdateMultiFrameResource( FTextureRHIParamRef Texture)
 	{
@@ -2537,7 +2542,7 @@ public:
 	}
 
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	DEPRECATED(4.15, "Use functionality in PipelineStateCache.h")
+	DEPRECATED(4.18, "Use alternate SetStreamSource() call with no Stride parameter.")
 	FORCEINLINE_DEBUGGABLE void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset)
 	{
 		check(IsOutsideRenderPass());
@@ -3091,7 +3096,7 @@ public:
 		new (AllocCommand<FRHICommandWaitComputeFence<ECmdList::EGfx>>()) FRHICommandWaitComputeFence<ECmdList::EGfx>(WaitFence);
 	}
 
-	FRHIRenderPassCommandList& BeginRenderPass(const FRHIRenderPassInfo& InInfo)
+	FRHIRenderPassCommandList& BeginRenderPass(const FRHIRenderPassInfo& InInfo, const TCHAR* Name)
 	{
 		check(IsOutsideRenderPass());
 		FRHIRenderPassCommandList& RenderPassCmdList = *(FRHIRenderPassCommandList*)this;
@@ -3102,13 +3107,12 @@ public:
 		if (Bypass())
 		{
 			check(!Data.LocalRHIRenderPass->RenderPass.GetReference());
-			Data.LocalRHIRenderPass->RenderPass = CMD_CONTEXT(RHIBeginRenderPass)(InInfo);
-			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("BYPASS Begin RP, CmdList %p, RP container %p, RP %p\n"), this, Data.LocalRHIRenderPass, Data.LocalRHIRenderPass->RenderPass.GetReference());
+			Data.LocalRHIRenderPass->RenderPass = CMD_CONTEXT(RHIBeginRenderPass)(InInfo, Name);
 		}
 		else
 		{
-			auto* Cmd = new (AllocCommand<FRHICommandBeginRenderPass>()) FRHICommandBeginRenderPass(InInfo, Data.LocalRHIRenderPass);
-			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Begin RP, CmdList %p, CMD %p, RP container %p\n"), this, Cmd, Data.LocalRHIRenderPass);
+			TCHAR* NameCopy  = AllocString(Name);
+			new (AllocCommand<FRHICommandBeginRenderPass>()) FRHICommandBeginRenderPass(InInfo, Data.LocalRHIRenderPass, NameCopy);
 		}
 		return RenderPassCmdList;
 	}
@@ -3118,19 +3122,17 @@ public:
 		check(Data.LocalRHIRenderPass);
 		if (Bypass())
 		{
-			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("BYPASS End RP, CmdList %p, RP container %p, RP %p\n"), this, Data.LocalRHIRenderPass, Data.LocalRHIRenderPass->RenderPass.GetReference());
 			CMD_CONTEXT(RHIEndRenderPass)(Data.LocalRHIRenderPass->RenderPass);
 		}
 		else
 		{
-			auto* Cmd = new (AllocCommand<FRHICommandEndRenderPass>()) FRHICommandEndRenderPass(Data.LocalRHIRenderPass);
-			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("End RP, CmdList %p, CMD %p, RP container %p, RP %p\n"), this, Cmd, Data.LocalRHIRenderPass, Data.LocalRHIRenderPass->RenderPass.GetReference());
+			new (AllocCommand<FRHICommandEndRenderPass>()) FRHICommandEndRenderPass(Data.LocalRHIRenderPass);
 		}
 
 		Data.LocalRHIRenderPass = nullptr;
 	}
 
-	FRHIParallelRenderPassCommandList& BeginParallelRenderPass(const FRHIRenderPassInfo& InInfo)
+	FRHIParallelRenderPassCommandList& BeginParallelRenderPass(const FRHIRenderPassInfo& InInfo, const TCHAR* InName)
 	{
 		check(IsOutsideRenderPass());
 		FRHIParallelRenderPassCommandList& ParallelRenderPassCmdList = *(FRHIParallelRenderPassCommandList*)this;
@@ -3140,11 +3142,12 @@ public:
 
 		if (Bypass())
 		{
-			Data.LocalRHIParallelRenderPass->RenderPass = CMD_CONTEXT(RHIBeginParallelRenderPass)(InInfo);
+			Data.LocalRHIParallelRenderPass->RenderPass = CMD_CONTEXT(RHIBeginParallelRenderPass)(InInfo, InName);
 		}
 		else
 		{
-			new (AllocCommand<FRHICommandBeginParallelRenderPass>()) FRHICommandBeginParallelRenderPass(InInfo, Data.LocalRHIParallelRenderPass);
+			TCHAR* NameCopy  = AllocString(InName);
+			new (AllocCommand<FRHICommandBeginParallelRenderPass>()) FRHICommandBeginParallelRenderPass(InInfo, Data.LocalRHIParallelRenderPass, NameCopy);
 		}
 		return ParallelRenderPassCmdList;
 	}
@@ -3181,9 +3184,7 @@ public:
 			CMD_CONTEXT(RHIPushEvent)(Name, Color);
 			return;
 		}
-		int32 Len = FCString::Strlen(Name) + 1;
-		TCHAR* NameCopy  = (TCHAR*)Alloc(Len * (int32)sizeof(TCHAR), (int32)sizeof(TCHAR));
-		FCString::Strcpy(NameCopy, Len, Name);
+		TCHAR* NameCopy  = AllocString(Name);
 		new (AllocCommand<FRHICommandPushEvent<ECmdList::EGfx>>()) FRHICommandPushEvent<ECmdList::EGfx>(NameCopy, Color);
 	}
 
@@ -3415,9 +3416,7 @@ public:
 			COMPUTE_CONTEXT(RHIPushEvent)(Name, Color);
 			return;
 		}
-		int32 Len = FCString::Strlen(Name) + 1;
-		TCHAR* NameCopy = (TCHAR*)Alloc(Len * (int32)sizeof(TCHAR), (int32)sizeof(TCHAR));
-		FCString::Strcpy(NameCopy, Len, Name);
+		TCHAR* NameCopy  = AllocString(Name);
 		new (AllocCommand<FRHICommandPushEvent<ECmdList::ECompute> >()) FRHICommandPushEvent<ECmdList::ECompute>(NameCopy, Color);
 	}
 

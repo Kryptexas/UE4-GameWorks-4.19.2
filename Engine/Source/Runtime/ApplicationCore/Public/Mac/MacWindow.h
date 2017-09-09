@@ -7,7 +7,7 @@
 #include "CocoaWindow.h"
 
 /**
- * A platform specific implementation of FNativeWindow.
+ * A platform specific implementation of FGenericWindow.
  * Native Windows provide platform-specific backing for and are always owned by an SWindow.
  */
 class APPLICATIONCORE_API FMacWindow : public FGenericWindow, public TSharedFromThis<FMacWindow>
@@ -22,6 +22,8 @@ public:
 	void Initialize( class FMacApplication* const Application, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FMacWindow >& InParent, const bool bShowImmediately );
 	
 	void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags);
+
+	void OnWindowDidChangeScreen();
 
 public:
 
@@ -71,15 +73,8 @@ public:
 
 	virtual void SetText(const TCHAR* const Text) override;
 
-	virtual void AdjustCachedSize( FVector2D& Size ) const override;
-
 	virtual float GetDPIScaleFactor() const override;
 
-	/**
-	 * Sets the window text - usually the title but can also be text content for things like controls
-	 *
-	 * @param Text	The window's title or content text
-	 */
 	bool IsRegularWindow() const;
 
 	int32 PositionX;
@@ -93,6 +88,10 @@ private:
 	 */
 	FMacWindow();
 
+	const CGDirectDisplayID GetDisplayID() const { return DisplayID; }
+
+	void ApplySizeAndModeChanges(int32 X, int32 Y, int32 Width, int32 Height, EWindowMode::Type WindowMode);
+	void UpdateFullScreenState(bool bToggleFullScreen);
 
 private:
 
@@ -101,7 +100,16 @@ private:
 	/** Mac window handle */
 	FCocoaWindow* WindowHandle;
 
-	NSRect PreFullscreenWindowRect;
+	CGDirectDisplayID DisplayID;
+
+	struct FWindowedModeSavedState
+	{
+		CGDirectDisplayID CapturedDisplayID;
+		CGDisplayModeRef DesktopDisplayMode;
+		int32 WindowLevel;
+
+		FWindowedModeSavedState() : CapturedDisplayID(kCGNullDirectDisplay), DesktopDisplayMode(nullptr), WindowLevel(NSNormalWindowLevel) {}
+	} WindowedModeSavedState;
 
 	bool bIsVisible : 1;
 	bool bIsClosed : 1;

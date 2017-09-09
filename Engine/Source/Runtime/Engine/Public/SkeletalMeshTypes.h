@@ -1019,8 +1019,9 @@ public:
 	/**
 	 * Initializes the buffer with the given vertices.
 	 * @param InVertices - The vertices to initialize the buffer with.
+	 * @param InClothIndexMapping - Packed Map: u32 Key, u32 Value.
 	 */
-	void Init(const TArray<FMeshToMeshVertData>& InMappingData);
+	void Init(const TArray<FMeshToMeshVertData>& InMappingData, const TArray<uint64>& InClothIndexMapping);
 
 	/**
 	 * Serializer for this class
@@ -1079,9 +1080,24 @@ public:
 		return NumVertices * Stride;
 	}
 
+	inline FShaderResourceViewRHIRef GetSRV() const
+	{
+		return VertexBufferSRV;
+	}
+
+	inline const TArray<uint64>& GetClothIndexMapping() const
+	{
+		return ClothIndexMapping;
+	}
+
 private:
 	/** The vertex data storage type */
 	FSkeletalMeshVertexDataInterface* VertexData;
+	FShaderResourceViewRHIRef VertexBufferSRV;
+
+	// Packed Map: u32 Key, u32 Value
+	TArray<uint64> ClothIndexMapping;
+
 	/** The cached vertex data pointer. */
 	uint8* Data;
 	/** The cached vertex stride. */
@@ -1386,7 +1402,7 @@ public:
 	*
 	* @param MappingData Array to fill.
 	*/
-	void GetApexClothMappingData(TArray<FMeshToMeshVertData>& MappingData) const;
+	void GetApexClothMappingData(TArray<FMeshToMeshVertData>& MappingData, TArray<uint64>& OutClothIndexMapping) const;
 
 	/** Flags used when building vertex buffers. */
 	struct EVertexFlags

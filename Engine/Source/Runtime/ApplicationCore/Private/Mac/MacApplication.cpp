@@ -229,11 +229,6 @@ void FMacApplication::ProcessDeferredEvents(const float TimeDelta)
 	const bool bAlreadyProcessingDeferredEvents = bIsProcessingDeferredEvents;
 	bIsProcessingDeferredEvents = true;
 
-	if (!bAlreadyProcessingDeferredEvents)
-	{
-		UpdateScreensArray();
-	}
-
 	for (int32 Index = 0; Index < EventsToProcess.Num(); ++Index)
 	{
 		ProcessEvent(EventsToProcess[Index]);
@@ -531,6 +526,8 @@ void FMacApplication::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisp
 	FMacApplication* App = (FMacApplication*)UserInfo;
 	if (Flags & kCGDisplayDesktopShapeChangedFlag)
 	{
+		App->UpdateScreensArray();
+
 		// Slate needs to know when desktop size changes.
 		FDisplayMetrics DisplayMetrics;
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
@@ -737,7 +734,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 	if (bUsingHighPrecisionMouseInput)
 	{
 		// Get the mouse position
-		FVector2D HighPrecisionMousePos = MacCursor->GetPositionNoScaling();
+		FVector2D HighPrecisionMousePos = MacCursor->GetPosition();
 
 		// Find the visible frame of the screen the cursor is currently on.
 		TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(HighPrecisionMousePos.X, HighPrecisionMousePos.Y);
@@ -771,11 +768,11 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 			}
 			int32 ClampedPosX = FMath::Clamp((int32)HighPrecisionMousePos.X, (int32)VisibleFrame.origin.x, (int32)(VisibleFrame.origin.x + VisibleFrame.size.width)-1);
 			int32 ClampedPosY = FMath::Clamp((int32)HighPrecisionMousePos.Y, (int32)VisibleFrame.origin.y, (int32)(VisibleFrame.origin.y + VisibleFrame.size.height)-1);
-			MacCursor->SetPositionNoScaling(ClampedPosX, ClampedPosY);
+			MacCursor->SetPosition(ClampedPosX, ClampedPosY);
 		}
 		else
 		{
-			MacCursor->SetPositionNoScaling(HighPrecisionMousePos.X, HighPrecisionMousePos.Y);
+			MacCursor->SetPosition(HighPrecisionMousePos.X, HighPrecisionMousePos.Y);
 		}
 
 		// Forward the delta on to Slate
@@ -785,10 +782,10 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 	{
 		NSPoint CursorPos = [NSEvent mouseLocation];
 		FVector2D NewPosition = ConvertCocoaPositionToSlate(CursorPos.x, CursorPos.y);
-		const FVector2D MouseDelta = NewPosition - MacCursor->GetPositionNoScaling();
+		const FVector2D MouseDelta = NewPosition - MacCursor->GetPosition();
 		if (MacCursor->UpdateCursorClipping(NewPosition))
 		{
-			MacCursor->SetPositionNoScaling(NewPosition.X, NewPosition.Y);
+			MacCursor->SetPosition(NewPosition.X, NewPosition.Y);
 		}
 		else
 		{

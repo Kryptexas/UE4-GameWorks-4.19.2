@@ -375,6 +375,13 @@ public:
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
 	float OpacityMaskClipValue;
 
+	/**
+	* If true, translucent materials will cast dynamic shadows according to their opacity.
+	* OpacityMaskClipValue is used as the threshold value.
+	*/
+	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
+	uint32 bCastDynamicShadowAsMasked:1;
+
 	/** Adds to world position in the vertex shader. */
 	UPROPERTY()
 	FVectorMaterialInput WorldPositionOffset;
@@ -895,6 +902,7 @@ public:
 	ENGINE_API virtual void RecacheUniformExpressions() const override;
 
 	ENGINE_API virtual float GetOpacityMaskClipValue() const override;
+	ENGINE_API virtual bool GetCastDynamicShadowAsMasked() const override;
 	ENGINE_API virtual EBlendMode GetBlendMode() const override;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
@@ -902,6 +910,7 @@ public:
 	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const override;
 	ENGINE_API virtual bool IsMasked() const override;
 	ENGINE_API virtual bool IsUIMaterial() const { return MaterialDomain == MD_UI; }
+	ENGINE_API virtual bool IsPostProcessMaterial() const { return MaterialDomain == MD_PostProcess; }
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
