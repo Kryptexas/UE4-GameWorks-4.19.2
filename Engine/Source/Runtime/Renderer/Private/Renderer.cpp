@@ -63,7 +63,17 @@ public:
 	}
 };
 
-static TGlobalResource<FMinimalDummyForwardLightingResources>* GMinimalDummyForwardLightingResources = NULL;
+FForwardLightingViewResources* GetMinimalDummyForwardLightingResources()
+{
+	static TGlobalResource<FMinimalDummyForwardLightingResources>* GMinimalDummyForwardLightingResources = nullptr;
+
+	if (!GMinimalDummyForwardLightingResources)
+	{
+		GMinimalDummyForwardLightingResources = new TGlobalResource<FMinimalDummyForwardLightingResources>();
+	}
+
+	return &GMinimalDummyForwardLightingResources->ForwardLightingResources;
+}
 
 DEFINE_LOG_CATEGORY(LogRenderer);
 
@@ -101,16 +111,11 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, FDrawin
 		//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 		FViewInfo View(&SceneView);
 		
-		if (!GMinimalDummyForwardLightingResources)
-		{
-			GMinimalDummyForwardLightingResources = new TGlobalResource<FMinimalDummyForwardLightingResources>();
-		}
-
 		FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
 
 		//Apply the minimal forward lighting resources
-		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources->ForwardLightingResources;
-		
+		View.ForwardLightingResources = GetMinimalDummyForwardLightingResources();
+
 		View.InitRHIResources();
 
 		const auto FeatureLevel = View.GetFeatureLevel();
