@@ -129,6 +129,7 @@ extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 class UFlexContainer;
 struct FFlexContainerInstance;
 extern ENGINE_API bool GFlexIsInitialized;
+struct NvFlexExtSoftJoint;
 #endif
 
 /** Information about a specific object involved in a rigid body collision */
@@ -495,6 +496,10 @@ public:
 #if WITH_FLEX
 	/** Retrive the container instance for a template, will create the instance if it doesn't already exist */
 	FFlexContainerInstance*	GetFlexContainer(UFlexContainer* Template);
+
+	/** Retrive the container instance for a soft joint, will return a nullptr if it doesn't already exist */
+	FFlexContainerInstance*	GetSoftJointContainer(UFlexContainer* Template);
+
 	void StartFlexRecord();
 	void StopFlexRecord();
 

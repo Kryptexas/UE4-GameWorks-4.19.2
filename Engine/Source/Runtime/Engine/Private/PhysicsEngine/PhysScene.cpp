@@ -1924,6 +1924,22 @@ FFlexContainerInstance*	FPhysScene::GetFlexContainer(UFlexContainer* Template)
 	}
 }
 
+FFlexContainerInstance*	FPhysScene::GetSoftJointContainer(UFlexContainer* Template)
+{
+	if (GFlexIsInitialized == false)
+		return NULL;
+
+	FFlexContainerInstance** Instance = FlexContainerMap.Find(Template);
+	if (Instance)
+	{
+		return *Instance;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 void FPhysScene::StartFlexRecord()
 {
 	/*

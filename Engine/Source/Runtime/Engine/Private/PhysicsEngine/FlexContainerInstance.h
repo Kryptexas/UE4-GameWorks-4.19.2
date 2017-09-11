@@ -13,6 +13,7 @@
 class UFlexContainer;
 class UFlexComponent;
 class UFlexAsset;
+class USoftJointComponent;
 struct FFlexPhase;
 struct IFlexContainerClient;
 
@@ -63,6 +64,10 @@ struct FFlexContainerInstance : public PxDeletionListener
 	// spawns a new instance of an asset into the container
 	NvFlexExtInstance* CreateInstance(const NvFlexExtAsset* Asset, const FMatrix& Mat, const FVector& Velocity, int32 Phase);
 	void DestroyInstance(NvFlexExtInstance* Asset);
+
+	// spawns a new instance of a soft joint into the container
+	NvFlexExtSoftJoint* CreateSoftJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	void DestroySoftJointInstance(NvFlexExtSoftJoint* joint);
 
 	// convert a phase to the solver format, will allocate a new group if requested
 	int32 GetPhase(const FFlexPhase& Phase);
@@ -143,6 +148,8 @@ struct FFlexContainerInstance : public PxDeletionListener
 	FBoxSphereBounds Bounds;
 
 	TArray<IFlexContainerClient*> Components;
+
+	TArray<USoftJointComponent*> SoftJointComponents;
 
 	TWeakObjectPtr<UFlexContainer> TemplateRef;
 	UFlexContainer* Template;
