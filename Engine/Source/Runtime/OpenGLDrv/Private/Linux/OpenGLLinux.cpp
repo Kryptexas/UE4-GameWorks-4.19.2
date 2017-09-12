@@ -888,7 +888,7 @@ bool PlatformInitOpenGL()
 		if (SDL_GL_LoadLibrary(NULL))
 		{
 			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,
-				*FString::Printf(TEXT("%s. SDL error: \"%s\""), *(NSLOCTEXT("Renderer", "LinuxInsufficientDriversText", "Unable to dynamically load libGL").ToString()), UTF8_TO_TCHAR(SDL_GetError())),
+				*FString::Printf(TEXT("%s. SDL error: \"%s\""), *(NSLOCTEXT("Renderer", "LinuxCannotLoadLibGLText", "Unable to dynamically load libGL").ToString()), UTF8_TO_TCHAR(SDL_GetError())),
 				*(NSLOCTEXT("Renderer", "LinuxInsufficientDriversTitle", "Insufficient drivers or hardware").ToString()));
 			FPlatformMisc::RequestExit(true);
 			// unreachable
