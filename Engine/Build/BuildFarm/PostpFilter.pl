@@ -7,11 +7,14 @@ select(STDERR);
 $| = 1;
 select($previous_handle);
 
+# check for a flag to filter out warning lines
+my $no_warnings = grep(/--no-warnings/, @ARGV);
+
 # keep track of whether to output messages
 my $output_enabled = 1;
 
 # read everything from stdin
-while(<>)
+while(<STDIN>)
 {
 	# remove timestamps added by gubp
 	s/^\[[0-9:.]+\] //;
@@ -29,6 +32,12 @@ while(<>)
 	if($1 && $1 =~ /^UE4Editor/)
 	{
 		s/^\[[0-9.:-]+\]\[\s*\d+\]//;
+	}
+
+	# skip over warnings if necessary
+	if($no_warnings)
+	{
+		s/(?<![A-Za-z])[Ww]arning://g;
 	}
 
 	# look for a special marker to disable output
