@@ -86,7 +86,7 @@ static TAutoConsoleVariable<int32> CVarDistFieldAtlasResZ(
 	TEXT("Max size of the global mesh distance field atlas volume texture in Z."),
 	ECVF_ReadOnly);
 
-int32 GDistanceFieldForceAtlasRealloc = 1; 
+int32 GDistanceFieldForceAtlasRealloc = 0;
 FAutoConsoleVariableRef CVarDistFieldForceAtlasRealloc(
 	TEXT("r.DistanceFields.ForceAtlasRealloc"),
 	GDistanceFieldForceAtlasRealloc,
