@@ -1374,7 +1374,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		});
 	}
 
-	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int inInputType, String Label, String Contents)
+	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int inInputType, String inLabel, String inContents)
 	{
 		if (virtualKeyboardAlert.isShowing() == true)
 		{
@@ -1382,23 +1382,27 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			return;
 		}
 
-		// Set label and starting contents
-		virtualKeyboardAlert.setTitle(Label);
-
-		// @HSL_BEGIN - Josh.May - 11/01/2016 - Ensure the input mode of the text box is set before setting the contents.
-		// configure for type of input
-		virtualKeyboardInputBox.setRawInputType(inInputType);
-		virtualKeyboardInputBox.setTransformationMethod((inInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? null : PasswordTransformationMethod.getInstance());
-		
-		virtualKeyboardInputBox.setText("");
-		virtualKeyboardInputBox.append(Contents);
-		virtualKeyboardPreviousContents = Contents;
-		// @HSL_END - Josh.May - 11/01/2016
+		// Capture to pass into ui thread
+		final int uiInputType = inInputType;
+		final String uiLabel = inLabel;
+		final String uiContents = inContents;
 
 		_activity.runOnUiThread(new Runnable()
 		{
 			public void run()
 			{
+				// Set label and starting contents
+				virtualKeyboardAlert.setTitle(uiLabel);
+
+				// Ensure the input mode of the text box is set before setting the contents.
+				// configure for type of input
+				virtualKeyboardInputBox.setRawInputType(uiInputType);
+				virtualKeyboardInputBox.setTransformationMethod((uiInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? null : PasswordTransformationMethod.getInstance());
+
+				virtualKeyboardInputBox.setText("");
+				virtualKeyboardInputBox.append(uiContents);
+				virtualKeyboardPreviousContents = uiContents;
+
 				if (virtualKeyboardAlert.isShowing() == false)
 				{
 					Log.debug("Virtual keyboard not showing yet");
