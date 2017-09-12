@@ -6,7 +6,6 @@
 #include "OVR_Platform_Defs.h"
 #include "OVR_PermissionGrantStatus.h"
 #include <stdbool.h>
-#include <stddef.h>
 
 typedef struct ovrSystemPermission *ovrSystemPermissionHandle;
 

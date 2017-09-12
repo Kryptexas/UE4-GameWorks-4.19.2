@@ -787,12 +787,12 @@ FTexture2DRHIRef FVulkanDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRe
 	return Viewport->GetBackBuffer(FRHICommandListExecutor::GetImmediateCommandList());
 }
 
-void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
+void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {
-	for (FVulkanViewport* Viewport : Viewports)
-	{
-		Viewport->AdvanceBackBufferFrame();
-	}
+	check(IsInRenderingThread());
+	check(ViewportRHI);
+	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
+	Viewport->AdvanceBackBufferFrame();
 
 	{
 		FRHICommandList& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();

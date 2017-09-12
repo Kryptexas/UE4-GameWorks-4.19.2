@@ -33,6 +33,7 @@
 #include "PostProcess/PostProcessCompositeEditorPrimitives.h"
 #include "PostProcess/PostProcessHMD.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "SceneViewExtension.h"
 #include "ScreenRendering.h"
 #include "PipelineStateCache.h"
@@ -260,7 +261,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderTranslucency(RHICmdList, ViewList);
 	}
 
-	if (ViewFamily.IsMonoscopicFarFieldEnabled())
+	if (ViewFamily.IsMonoscopicFarFieldEnabled() && ViewFamily.Views.Num() == 3)
 	{
 		TArray<const FViewInfo*> MonoViewList;
 		MonoViewList.Add(&Views[2]);
@@ -382,7 +383,7 @@ void FMobileSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList
 	if (bStereoRenderingAndHMD)
 	{
 		FRenderingCompositePass* Node = NULL;
-		const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+		const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
 		if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh ||
 			DeviceType == EHMDDeviceType::DT_OculusRift ||
 			DeviceType == EHMDDeviceType::DT_GoogleVR) // PC Preview

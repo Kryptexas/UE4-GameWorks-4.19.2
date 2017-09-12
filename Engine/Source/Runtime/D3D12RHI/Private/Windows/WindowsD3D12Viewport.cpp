@@ -28,15 +28,18 @@ FD3D12Viewport::FD3D12Viewport(class FD3D12Adapter* InParent, HWND InWindowHandl
 	ColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709),
 	bIsValid(true),
 	NumBackBuffers(DefaultNumBackBuffers),
-	BackBuffer(nullptr),
-	CurrentBackBufferIndex(0),
+	CurrentBackBufferIndex_RenderThread(0),
+	BackBuffer_RenderThread(nullptr),
+	CurrentBackBufferIndex_RHIThread(0),
+	BackBuffer_RHIThread(nullptr),
 	Fence(InParent, L"Viewport Fence"),
 	LastSignaledValue(0),
 	pCommandQueue(nullptr),
 #if PLATFORM_SUPPORTS_MGPU
 	FramePacerRunnable(nullptr),
 #endif //PLATFORM_SUPPORTS_MGPU
-	SDRBackBuffer(nullptr),
+	SDRBackBuffer_RenderThread(nullptr),
+	SDRBackBuffer_RHIThread(nullptr),
 	SDRPixelFormat(PF_B8G8R8A8),
 	FD3D12AdapterChild(InParent)
 {
@@ -47,13 +50,36 @@ FD3D12Viewport::FD3D12Viewport(class FD3D12Adapter* InParent, HWND InWindowHandl
 //Init for a Viewport that will do the presenting
 void FD3D12Viewport::Init()
 {
+
 	FD3D12Adapter* Adapter = GetParentAdapter();
+
+	bAllowTearing = false;
+	IDXGIFactory* Factory = Adapter->GetDXGIFactory2();
+	if(Factory)
+	{
+		TRefCountPtr<IDXGIFactory5> Factory5;
+		Factory->QueryInterface(IID_PPV_ARGS(Factory5.GetInitReference()));
+		if (Factory5.IsValid())
+		{
+			BOOL AllowTearing;
+			if(SUCCEEDED(Factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &AllowTearing, sizeof(AllowTearing))) && AllowTearing)
+			{
+				bAllowTearing = true;
+			}
+		}
+	}
 
 	Fence.CreateFence();
 
 	CalculateSwapChainDepth();
 
-	const DXGI_SWAP_CHAIN_FLAG SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	UINT SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+
+	if (bAllowTearing)
+	{
+		SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+	}
+
 	const DXGI_MODE_DESC BufferDesc = SetupDXGI_MODE_DESC();
 
 	// Create the swapchain.
@@ -103,7 +129,11 @@ void FD3D12Viewport::ResizeInternal()
 
 	CalculateSwapChainDepth();
 
-	const DXGI_SWAP_CHAIN_FLAG SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	UINT SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	if (bAllowTearing)
+	{
+		SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+	}
 
 #if PLATFORM_SUPPORTS_MGPU
 	if (Adapter->AlternateFrameRenderingEnabled())
@@ -153,13 +183,27 @@ void FD3D12Viewport::ResizeInternal()
 			BackBuffers[i] = GetSwapChainSurface(Device, PixelFormat, SwapChain1, i);
 		}
 	}
-	CurrentBackBufferIndex = 0;
-	BackBuffer = BackBuffers[CurrentBackBufferIndex].GetReference();
+
+	CurrentBackBufferIndex_RenderThread = 0;
+	BackBuffer_RenderThread = BackBuffers[CurrentBackBufferIndex_RenderThread].GetReference();
+	CurrentBackBufferIndex_RHIThread = 0;
+	BackBuffer_RHIThread = BackBuffers[CurrentBackBufferIndex_RHIThread].GetReference();
+
+	SDRBackBuffer_RenderThread = SDRBackBuffers[CurrentBackBufferIndex_RenderThread].GetReference();
+	SDRBackBuffer_RHIThread = SDRBackBuffers[CurrentBackBufferIndex_RHIThread].GetReference();
+
 }
 
 HRESULT FD3D12Viewport::PresentInternal(int32 SyncInterval)
 {
-	return SwapChain1->Present(SyncInterval, 0);
+	UINT Flags = 0;
+
+	if(!SyncInterval && !bIsFullscreen && bAllowTearing)
+	{
+		Flags |= DXGI_PRESENT_ALLOW_TEARING;
+	}
+
+	return SwapChain1->Present(SyncInterval, Flags);
 }
 
 void FD3D12Viewport::EnableHDR()

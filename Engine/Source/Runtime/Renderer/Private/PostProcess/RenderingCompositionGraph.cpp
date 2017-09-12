@@ -14,6 +14,7 @@
 #include "RendererModule.h"
 #include "HighResScreenshot.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "PostProcess/SceneRenderTargets.h"
 #include "SceneRendering.h"
 
@@ -187,8 +188,8 @@ void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, cons
 	bHasHmdMesh = (HiddenAreaMaskCVar != nullptr &&
 		HiddenAreaMaskCVar->GetValueOnRenderThread() == 1 &&
 		GEngine &&
-		GEngine->HMDDevice.IsValid() &&
-		GEngine->HMDDevice->HasVisibleAreaMesh());
+		GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() &&
+		GEngine->XRSystem->GetHMDDevice()->HasVisibleAreaMesh());
 
 	if(Root)
 	{

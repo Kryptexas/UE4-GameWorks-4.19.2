@@ -8,7 +8,6 @@
 #include "OVR_Types.h"
 #include "OVR_User.h"
 #include "OVR_UserArray.h"
-#include <stddef.h>
 
 typedef struct ovrParty *ovrPartyHandle;
 

@@ -34,6 +34,7 @@
 #include "MotionControllerComponent.h"
 #include "EngineAnalytics.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Interfaces/IAnalyticsProvider.h"
 
 #include "IViewportInteractionModule.h"
@@ -231,7 +232,7 @@ void UVREditorMode::Enter()
 			if (FEngineAnalytics::IsAvailable())
 			{
 				TArray< FAnalyticsEventAttribute > Attributes;
-				FString HMDName = GEditor->HMDDevice->GetDeviceName().ToString();
+				FString HMDName = GEditor->XRSystem->GetSystemName().ToString();
 				Attributes.Add(FAnalyticsEventAttribute(TEXT("HMDDevice"), HMDName));
 				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.EnterVRMode"), Attributes);
 			}
@@ -685,7 +686,7 @@ void UVREditorMode::CycleTransformGizmoHandleType()
 
 EHMDDeviceType::Type UVREditorMode::GetHMDDeviceType() const
 {
-	return GEngine->HMDDevice.IsValid() ? GEngine->HMDDevice->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR;
+	return GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR;
 }
 
 FLinearColor UVREditorMode::GetColor( const EColors Color ) const
@@ -837,7 +838,7 @@ void UVREditorMode::TogglePIEAndVREditor()
 	{
 		const FVector* StartLoc = NULL;
 		const FRotator* StartRot = NULL;
-		const bool bHMDIsReady = (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected());
+		const bool bHMDIsReady = (GEngine && GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected());
 		GEditor->RequestPlaySession(true, VREditorLevelViewportWeakPtr.Pin(), false /*bSimulateInEditor*/, StartLoc, StartRot, -1, false, bHMDIsReady);
 		bRequestedPIE = true;
 	}
@@ -900,7 +901,7 @@ void UVREditorMode::StartViewport(TSharedPtr<SLevelViewport> Viewport)
 		FVector2D WindowSize;
 		{
 			IHeadMountedDisplay::MonitorInfo HMDMonitorInfo;
-			if (bActuallyUsingVR && GEngine->HMDDevice->GetHMDMonitorInfo(HMDMonitorInfo))
+			if (bActuallyUsingVR && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->GetHMDMonitorInfo(HMDMonitorInfo))
 			{
 				WindowSize = FVector2D(HMDMonitorInfo.ResolutionX, HMDMonitorInfo.ResolutionY);
 			}
@@ -1015,8 +1016,8 @@ void UVREditorMode::StartViewport(TSharedPtr<SLevelViewport> Viewport)
 
 		if (bActuallyUsingVR)
 		{
-			SavedEditorState.TrackingOrigin = GEngine->HMDDevice->GetTrackingOrigin();
-			GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Floor);
+			SavedEditorState.TrackingOrigin = GEngine->XRSystem->GetTrackingOrigin();
+			GEngine->XRSystem->SetTrackingOrigin(EHMDTrackingOrigin::Floor);
 		}
 
 		// Make the new viewport the active level editing viewport right away
@@ -1040,7 +1041,7 @@ void UVREditorMode::StartViewport(TSharedPtr<SLevelViewport> Viewport)
 		Viewport->EnableStereoRendering( bActuallyUsingVR );
 		Viewport->SetRenderDirectlyToWindow( bActuallyUsingVR );
 
-		GEngine->HMDDevice->EnableStereo(true);
+		GEngine->StereoRenderingDevice->EnableStereo(true);
 	}
 
 	if (WorldInteraction != nullptr)
@@ -1052,9 +1053,9 @@ void UVREditorMode::StartViewport(TSharedPtr<SLevelViewport> Viewport)
 
 void UVREditorMode::CloseViewport( const bool bShouldDisableStereo )
 {
-	if (bActuallyUsingVR && GEngine->HMDDevice.IsValid() && bShouldDisableStereo)
+	if (bActuallyUsingVR && GEngine->XRSystem.IsValid() && bShouldDisableStereo)
 	{
-		GEngine->HMDDevice->EnableStereo(false);
+		GEngine->StereoRenderingDevice->EnableStereo(false);
 	}
 
 	TSharedPtr<SLevelViewport> VREditorLevelViewport(VREditorLevelViewportWeakPtr.Pin());
@@ -1097,7 +1098,7 @@ void UVREditorMode::CloseViewport( const bool bShouldDisableStereo )
 
 			if (bActuallyUsingVR)
 			{
-				GEngine->HMDDevice->SetTrackingOrigin(SavedEditorState.TrackingOrigin);
+				GEngine->XRSystem->SetTrackingOrigin(SavedEditorState.TrackingOrigin);
 			}
 
 			RestoreWorldToMeters();

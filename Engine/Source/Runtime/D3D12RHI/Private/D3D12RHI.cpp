@@ -34,7 +34,6 @@ using namespace D3D12RHI;
 
 FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	NumThreadDynamicHeapAllocators(0),
-	ViewportFrameCounter(0),
 	ChosenAdapters(ChosenAdaptersIn)
 {
 	LLM(D3D12LLM::Initialise());

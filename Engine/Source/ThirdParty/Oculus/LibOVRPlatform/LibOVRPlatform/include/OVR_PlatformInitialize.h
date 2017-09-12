@@ -5,7 +5,6 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_PlatformInitializeResult.h"
-#include <stddef.h>
 
 typedef struct ovrPlatformInitialize *ovrPlatformInitializeHandle;
 

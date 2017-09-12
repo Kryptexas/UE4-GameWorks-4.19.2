@@ -7,6 +7,7 @@
 #include <android/native_window.h> 
 #include <android/native_window_jni.h> 
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "RenderingThread.h"
 #include "UnrealEngine.h"
 
@@ -65,7 +66,7 @@ void FAppEventManager::Tick()
 			}
 			else
 			{
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+				if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected())
 				{
 					// delay the destruction until after the renderer teardown on GearVR
 					bDestroyWindow = true;
@@ -443,9 +444,9 @@ void FAppEventManager::PauseAudio()
 			AudioDevice->SuspendContext();
 		}
 		else
-		{
-			GEngine->GetMainAudioDevice()->Suspend(false);
-		}
+	{
+		GEngine->GetMainAudioDevice()->Suspend(false);
+	}
 	}
 }
 
@@ -464,9 +465,9 @@ void FAppEventManager::ResumeAudio()
 			AudioDevice->ResumeContext();
 		}
 		else
-		{
-			GEngine->GetMainAudioDevice()->Suspend(true);
-		}
+	{
+		GEngine->GetMainAudioDevice()->Suspend(true);
+	}
 	}
 }
 

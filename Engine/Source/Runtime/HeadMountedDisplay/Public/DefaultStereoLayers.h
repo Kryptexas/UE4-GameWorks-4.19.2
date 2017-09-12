@@ -10,10 +10,10 @@ class FHeadMountedDisplayBase;
  *
  *	FHeadmountedDisplayBase subclasses will use this implementation by default unless overridden.
  */
-class HEADMOUNTEDDISPLAY_API FDefaultStereoLayers : public FSimpleLayerManager, public ISceneViewExtension, public TSharedFromThis<FDefaultStereoLayers, ESPMode::ThreadSafe>
+class HEADMOUNTEDDISPLAY_API FDefaultStereoLayers : public FSimpleLayerManager, public FSceneViewExtensionBase
 {
 public:
-	FDefaultStereoLayers(FHeadMountedDisplayBase* InHMDDevice);
+	FDefaultStereoLayers(const FAutoRegister& AutoRegister, FHeadMountedDisplayBase* InHMDDevice);
 
 	virtual void UpdateSplashScreen() override;
 
@@ -24,6 +24,7 @@ public:
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override {}
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 	virtual void PostRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
+	virtual bool IsActiveThisFrame(class FViewport* InViewport) const override;
 
 protected:
 	
@@ -45,7 +46,6 @@ protected:
 
 	FHeadMountedDisplayBase* HMDDevice;
 	FTransform HmdTransform;
-	float IPD;
 
 	TArray<FLayerDesc> RenderThreadLayers;
 	TArray<uint32> SortedSceneLayers;

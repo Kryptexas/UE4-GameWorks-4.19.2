@@ -30,6 +30,8 @@
 #include "HAL/PlatformApplicationMisc.h"
 
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
+#include "IXRCamera.h"
 #include "SceneViewExtension.h"
 #include "Net/DataChannel.h"
 #include "GameFramework/PlayerState.h"
@@ -637,10 +639,10 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass
 		}
 	}
 
-	for (int ViewExt = 0; ViewExt < GEngine->ViewExtensions.Num(); ViewExt++)
+	for (auto& ViewExt : GEngine->ViewExtensions->GatherActiveExtensions())
 	{
-		GEngine->ViewExtensions[ViewExt]->SetupViewPoint(PlayerController, OutViewInfo);
-	}
+		ViewExt->SetupViewPoint(PlayerController, OutViewInfo);
+	};
 }
 
 bool ULocalPlayer::CalcSceneViewInitOptions(
@@ -1013,6 +1015,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 
 	// If stereo rendering is enabled, update the size and offset appropriately for this pass
 	const bool bNeedStereo = (StereoPass != eSSP_FULL) && GEngine->IsStereoscopic3D();
+	const bool bIsHeadTrackingAllowed = GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed();
 	if (bNeedStereo)
 	{
 		GEngine->StereoRenderingDevice->AdjustViewRect(StereoPass, X, Y, SizeX, SizeY);
@@ -1022,12 +1025,20 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
 
     FVector StereoViewLocation = ViewInfo.Location;
-    if (bNeedStereo || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
+    if (bNeedStereo || bIsHeadTrackingAllowed)
+    {
+		auto XRCamera = GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetXRCamera() : nullptr;
+		if (XRCamera.IsValid())
     {
 		AActor* ViewTarget = PlayerController->GetViewTarget();
 		const bool bHasActiveCamera = ViewTarget && ViewTarget->HasActiveCameraComponent();
-		GEngine->StereoRenderingDevice->UseImplicitHmdPosition(bHasActiveCamera);
+			XRCamera->UseImplicitHMDPosition(bHasActiveCamera);
+		}
+
+		if (GEngine->StereoRenderingDevice.IsValid())
+		{
         GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
+    }
     }
 
 	// Create the view matrix
@@ -1038,21 +1049,21 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 		FPlane(0,	1,	0,	0),
 		FPlane(0,	0,	0,	1));
 
+	// @todo viewext this use case needs to be revisited
 	if (!bNeedStereo)
 	{
 		// Create the projection matrix (and possibly constrain the view rectangle)
 		FMinimalViewInfo::CalculateProjectionMatrixGivenView(ViewInfo, AspectRatioAxisConstraint, ViewportClient->Viewport, /*inout*/ ProjectionData);
 
-        // ViewExtension may need to update the projection matrix when not using stereo rendering. for example when doing monocular AR.
-        for (int ViewExt = 0; ViewExt < GEngine->ViewExtensions.Num(); ViewExt++)
+		for (auto& ViewExt : GEngine->ViewExtensions->GatherActiveExtensions())
         {
-            GEngine->ViewExtensions[ViewExt]->SetupViewProjectionMatrix(ProjectionData);
-        }
+			ViewExt->SetupViewProjectionMatrix(ProjectionData);
+		};
 	}
 	else
 	{
 		// Let the stereoscopic rendering device handle creating its own projection matrix, as needed
-		ProjectionData.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix(StereoPass, ViewInfo.FOV);
+		ProjectionData.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix(StereoPass);
 
 		// calculate the out rect
 		ProjectionData.SetViewRectangle(FIntRect(X, Y, X + SizeX, Y + SizeY));

@@ -46,6 +46,7 @@
 #include "PostProcess/PostProcessSubsurface.h"
 #include "PostProcess/PostProcessMorpheus.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "BufferVisualizationData.h"
 #include "CompositionLighting/PostProcessLpvIndirect.h"
 #include "PostProcess/PostProcessStreamingAccuracyLegend.h"
@@ -1321,7 +1322,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		bool bDoScreenPercentage;
 		{
 			//
-			bool bHMDWantsUpscale = bStereoRenderingAndHMD && GEngine->HMDDevice->NeedsUpscalePostProcessPass();
+			bool bHMDWantsUpscale = bStereoRenderingAndHMD && GEngine->XRSystem->GetHMDDevice()->NeedsUpscalePostProcessPass();
 			// Do not use upscale if SeparateRenderTarget is in use! (stereo rendering wants to control this)
 			bool bAllowScreenPercentage = bHMDWantsUpscale || !View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget);
 			// is Upscale from a lower resolution needed and allowed
@@ -1947,12 +1948,12 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		if (bStereoRenderingAndHMD)
 		{
 			FRenderingCompositePass* Node = NULL;
-			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+			const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
 			if((DeviceType == EHMDDeviceType::DT_OculusRift) || (DeviceType == EHMDDeviceType::DT_GoogleVR))
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			}
-			else if(DeviceType == EHMDDeviceType::DT_Morpheus && GEngine->HMDDevice->IsStereoEnabled())
+			else if(DeviceType == EHMDDeviceType::DT_Morpheus && GEngine->StereoRenderingDevice->IsStereoEnabled())
 			{
 				
 #if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
@@ -2589,7 +2590,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		if (bStereoRenderingAndHMD)
 		{
 			FRenderingCompositePass* Node = NULL;
-			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+			const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
 			if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh)
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());

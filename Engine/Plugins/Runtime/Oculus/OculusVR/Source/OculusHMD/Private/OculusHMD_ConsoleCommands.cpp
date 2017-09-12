@@ -53,14 +53,6 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::ShowQuitMenuCommandHandler))
 
 #if !UE_BUILD_SHIPPING
-	, UpdateOnGameThreadCommand(TEXT("vr.oculus.bUpdateOnGameThread"),
-		*NSLOCTEXT("OculusRift", "CCommandText_UpdateGT",
-			"Oculus Rift specific extension.\nEnables or disables updating on the game thread.").ToString(),
-		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::UpdateOnGameThreadCommandHandler))
-	, PositionOffsetCommand(TEXT("vr.oculus.Debug.PositionOffset"),
-		*NSLOCTEXT("OculusRift", "CCommandText_PosOff",
-			"Oculus Rift specific extension.\nAdd an offset tp the current position.").ToString(),
-		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::PositionOffsetCommandHandler))
 	, EnforceHeadTrackingCommand(TEXT("vr.oculus.Debug.EnforceHeadTracking"),
 		*NSLOCTEXT("OculusRift", "CCommandText_EnforceTracking",
 			"Oculus Rift specific extension.\nSet to on to enforce head tracking even when not in stereo mode.").ToString(),
@@ -69,10 +61,6 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		*NSLOCTEXT("OculusRift", "CCommandText_Stats",
 			"Oculus Rift specific extension.\nEnable or disable rendering of stats.").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::StatsCommandHandler))
-	, GridCommand(TEXT("vr.oculus.Debug.bDrawGrid"),
-		*NSLOCTEXT("OculusRift", "CCommandText_Grid",
-			"Oculus Rift specific extension.\nEnable or disable rendering of debug grid.").ToString(),
-		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::GridCommandHandler))
 	, CubemapCommand(TEXT("vr.oculus.Debug.CaptureCubemap"),
 		*NSLOCTEXT("OculusRift", "CCommandText_Cubemap",
 			"Oculus Rift specific extension.\nCaptures a cubemap for Oculus Home.\nOptional arguments (default is zero for all numeric arguments):\n  xoff=<float> -- X axis offset from the origin\n  yoff=<float> -- Y axis offset\n  zoff=<float> -- Z axis offset\n  yaw=<float>  -- the direction to look into (roll and pitch is fixed to zero)\n  gearvr       -- Generate a GearVR format cubemap\n    (height of the captured cubemap will be 1024 instead of 2048 pixels)\n").ToString(),

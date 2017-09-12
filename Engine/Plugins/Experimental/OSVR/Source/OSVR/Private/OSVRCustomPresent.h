@@ -70,7 +70,12 @@ public:
     {
     }
 
-    virtual bool Present(int32 &inOutSyncInterval) override
+	virtual bool NeedsNativePresent() override
+	{
+		return true;
+	}
+
+	virtual bool Present(int32 &inOutSyncInterval) override
     {
         check(IsInRenderingThread());
         FScopeLock lock(&mOSVRMutex);

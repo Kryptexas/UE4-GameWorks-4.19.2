@@ -119,6 +119,10 @@ static const ANSICHAR* GInstanceExtensions[] =
 #if VULKAN_HAS_DEBUGGING_ENABLED
 	VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 #endif
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+	VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+#endif
 	nullptr
 };
 
@@ -142,6 +146,7 @@ static const ANSICHAR* GDeviceExtensions[] =
 	nullptr
 };
 
+TSharedPtr< IHeadMountedDisplayVulkanExtensions, ESPMode::ThreadSafe > FVulkanDynamicRHI::HMDVulkanExtensions;
 
 struct FLayerExtension
 {
@@ -294,11 +299,11 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	// Check to see if the HMD requires any specific Vulkan extensions to operate
 	if (IHeadMountedDisplayModule::IsAvailable())
 	{
-		IHeadMountedDisplayVulkanExtensions* VulkanExtensions = IHeadMountedDisplayModule::Get().GetVulkanExtensions();
+		HMDVulkanExtensions = IHeadMountedDisplayModule::Get().GetVulkanExtensions();
 	
-		if (VulkanExtensions)
+		if (HMDVulkanExtensions.IsValid())
 		{
-			if (!VulkanExtensions->GetVulkanInstanceExtensionsRequired(OutInstanceExtensions))
+			if (!HMDVulkanExtensions->GetVulkanInstanceExtensionsRequired(OutInstanceExtensions))
 			{
 				UE_LOG(LogVulkanRHI, Warning, TEXT("Trying to use Vulkan with an HMD, but required extensions aren't supported!"));
 			}
@@ -335,7 +340,6 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 		}
 	}
 }
-
 
 void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers)
 {
@@ -434,20 +438,15 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Device Extension %s"), ANSI_TO_TCHAR(Extensions.ExtensionProps[Index].extensionName));
 	}
 
-	// Check to see if the HMD requires any specific Vulkan extensions to operate
-	if (IHeadMountedDisplayModule::IsAvailable())
+	if ( FVulkanDynamicRHI::HMDVulkanExtensions.IsValid() )
 	{
-		IHeadMountedDisplayVulkanExtensions* VulkanExtensions = IHeadMountedDisplayModule::Get().GetVulkanExtensions();
-
-		if (VulkanExtensions)
+		if ( !FVulkanDynamicRHI::HMDVulkanExtensions->GetVulkanDeviceExtensionsRequired( Gpu, OutDeviceExtensions ) )
 		{
-			if (!VulkanExtensions->GetVulkanDeviceExtensionsRequired(Gpu, OutDeviceExtensions))
-			{
-				UE_LOG(LogVulkanRHI, Warning, TEXT("Trying to use Vulkan with an HMD, but required extensions aren't supported on the selected device!"));
-			}
+			UE_LOG( LogVulkanRHI, Warning, TEXT( "Trying to use Vulkan with an HMD, but required extensions aren't supported on the selected device!" ) );
 		}
 	}
 
+	// ARRAY_COUNT is unnecessary, but MSVC analyzer doesn't seem to be happy with just a null check
 	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions) && GDeviceExtensions[Index] != nullptr; ++Index)
 	{
 		for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
@@ -512,6 +511,12 @@ void FVulkanDevice::ParseOptionalDeviceExtensions(const TArray<const ANSICHAR *>
 	OptionalDeviceExtensions.HasKHRMaintenance1 = HasExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 #endif
 	OptionalDeviceExtensions.HasMirrorClampToEdge = HasExtension(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
+
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	OptionalDeviceExtensions.HasKHRExternalMemoryCapabilities = HasExtension(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
+	OptionalDeviceExtensions.HasKHRGetPhysicalDeviceProperties2 = HasExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+#endif
+
 #if !PLATFORM_ANDROID
 	// Verify the assumption on FVulkanSamplerState::FVulkanSamplerState()!
 	ensure(OptionalDeviceExtensions.HasMirrorClampToEdge != 0);

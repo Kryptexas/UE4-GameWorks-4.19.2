@@ -104,6 +104,7 @@
 #include "StereoRendering.h"
 #include "IHeadMountedDisplayModule.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Stats/StatsData.h"
 #include "Stats/StatsFile.h"
 #include "AudioThread.h"
@@ -1450,17 +1451,12 @@ void UEngine::ShutdownHMD()
 {
 	// we can't just nulify these pointers here since RenderThread still might use them.
 	auto SavedStereo = StereoRenderingDevice;
-	auto SavedHMD = HMDDevice;
+	auto SavedHMD = XRSystem;
 	auto SavedViewExtentions = ViewExtensions;
 	{
 		FSuspendRenderingThread Suspend(false);
 		StereoRenderingDevice.Reset();
-		HMDDevice.Reset();
-		for (auto& ViewExt : ViewExtensions)
-		{
-			ViewExt.Reset();
-		}
-		ViewExtensions.Empty();
+		XRSystem.Reset();
 	}
 	// shutdown will occur here.
 }
@@ -2418,7 +2414,7 @@ public:
 		}
 	}
 
-	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override
+	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override
 	{
 		if (StereoPassType != eSSP_FULL && StereoPassType != eSSP_MONOSCOPIC_EYE)
 		{
@@ -2428,7 +2424,7 @@ public:
 		}
 	}
 
-	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType, const float FOV) const override
+	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType) const override
 	{
 		const float HalfFov = FMath::DegreesToRadians(FOVInDegrees) / 2.f;
 		const float InWidth = Width;
@@ -2451,19 +2447,6 @@ public:
 			const FSceneViewFamily& ViewFamily = *InView->Family;
 			MonoCullingDistance = ViewFamily.MonoParameters.CullingDistance - ViewFamily.MonoParameters.OverlapDistance;
 		}
-	}
-
-	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override
-	{
-		EyeToSrcUVOffsetValue = FVector2D::ZeroVector;
-		EyeToSrcUVScaleValue = FVector2D(1.0f, 1.0f);
-	}
-
-	virtual bool ShouldUseSeparateRenderTarget() const override 
-	{ 
-		// should return true to test rendering into a separate texture; however, there is a bug
-		// in DrawNormalizedScreenQuad (FScreenVS shader), TTP #338597, so false for now.
-		return false; //true; 
 	}
 
 	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override
@@ -2494,7 +2477,7 @@ bool UEngine::InitializeHMDDevice()
 			StereoRenderingDevice = FakeStereoDevice;
 		}
 		// No reason to connect an HMD on a dedicated server.  Also fixes dedicated servers stealing the oculus connection.
-		else if (!HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !IsRunningDedicatedServer())
+		else if (!XRSystem.IsValid() && !FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !IsRunningDedicatedServer())
 		{
 			// Get a list of modules that implement this feature
 			FName Type = IHeadMountedDisplayModule::GetModularFeatureName();
@@ -2526,7 +2509,7 @@ bool UEngine::InitializeHMDDevice()
 					bool bMatchesExplicitDevice = false;
 					for (const FString& HMDModuleName : HMDAliases)
 					{
-						if (ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+						if (ExplicitHMDName.Equals(HMDModuleName, ESearchCase::IgnoreCase))
 						{
 							bMatchesExplicitDevice = true;
 							break;
@@ -2541,9 +2524,9 @@ bool UEngine::InitializeHMDDevice()
 
 				if(HMDModule->IsHMDConnected())
 				{
-					HMDDevice = HMDModule->CreateHeadMountedDisplay();
+					XRSystem = HMDModule->CreateTrackingSystem();
 
-					if (HMDDevice.IsValid())
+					if (XRSystem.IsValid())
 					{
 						HMDModuleSelected = HMDModule;
 						break;
@@ -2562,9 +2545,9 @@ bool UEngine::InitializeHMDDevice()
 				{
 					IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
-					HMDDevice = HMDModule->CreateHeadMountedDisplay();
+					XRSystem = HMDModule->CreateTrackingSystem();
 
-					if (HMDDevice.IsValid())
+					if (XRSystem.IsValid())
 					{
 						HMDModuleSelected = HMDModule;
 						break;
@@ -2583,14 +2566,14 @@ bool UEngine::InitializeHMDDevice()
 				}
 			}
 
-			// If we found a valid HMDDevice, use this as our StereoRenderingDevice
-			if (HMDDevice.IsValid())
+			// If we found a valid XRSystem, use it to get a stereo rendering device, if available
+			if (XRSystem.IsValid())
 			{
-				StereoRenderingDevice = HMDDevice;
-				const bool bShouldStartInVR = FParse::Param(FCommandLine::Get(), TEXT("vr")) || GetDefault<UGeneralProjectSettings>()->bStartInVR;
+				StereoRenderingDevice = XRSystem->GetStereoRenderingDevice();
+				const bool bShouldStartInVR = StereoRenderingDevice.IsValid() && (FParse::Param(FCommandLine::Get(), TEXT("vr")) || GetDefault<UGeneralProjectSettings>()->bStartInVR);
 				if (bShouldStartInVR)
 				{
-					HMDDevice->EnableStereo(true);
+					StereoRenderingDevice->EnableStereo(true);
 				}
 			}
 			// Else log an error if we got an explicit module name on the command line
@@ -2608,9 +2591,9 @@ bool UEngine::InitializeHMDDevice()
 
 void UEngine::RecordHMDAnalytics()
 {
-	if(HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")) && HMDDevice->IsHMDConnected())
+	if (XRSystem.IsValid() && !FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && XRSystem->GetHMDDevice() && XRSystem->GetHMDDevice()->IsHMDConnected())
 	{
-		HMDDevice->RecordAnalytics();
+		XRSystem->GetHMDDevice()->RecordAnalytics();
 	}
 }
 
@@ -9610,24 +9593,24 @@ bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *In
 #if WITH_EDITOR
 		else
 		{
-			// Next comes a complicated but necessary way of blocking a crash caused by opening a level when playing multiprocess as a client (that's not allowed because of streaming levels)
-			ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
-			check(PlayInSettings);
-			bool bMultiProcess = !([&PlayInSettings] { bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }());
+	// Next comes a complicated but necessary way of blocking a crash caused by opening a level when playing multiprocess as a client (that's not allowed because of streaming levels)
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	check(PlayInSettings);
+	bool bMultiProcess = !([&PlayInSettings] { bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }());
 
-			const EPlayNetMode PlayNetMode = [&PlayInSettings] { EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
-			bool bClientMode = PlayNetMode == EPlayNetMode::PIE_Client;
+	const EPlayNetMode PlayNetMode = [&PlayInSettings] { EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	bool bClientMode = PlayNetMode == EPlayNetMode::PIE_Client;
 
-			if (bMultiProcess && bClientMode)
-			{
-				UE_LOG(LogNet, Log, TEXT("%s"), TEXT("Opening a map is not allowed in this play mode (client mode + multiprocess)!"));
+	if (bMultiProcess && bClientMode)
+	{
+		UE_LOG(LogNet, Log, TEXT("%s"), TEXT("Opening a map is not allowed in this play mode (client mode + multiprocess)!"));
 				return true;
 			}
-		}
+	}
 #endif
 	}
 
-	SetClientTravel(InWorld, Cmd, TRAVEL_Absolute);
+		SetClientTravel(InWorld, Cmd, TRAVEL_Absolute);
 	return true;
 }
 
@@ -10679,9 +10662,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Prime texture streaming.
 	IStreamingManager::Get().NotifyLevelChange();
 
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
-		GEngine->HMDDevice->OnBeginPlay(WorldContext);
+		GEngine->XRSystem->OnBeginPlay(WorldContext);
 	}
 	WorldContext.World()->BeginPlay();
 

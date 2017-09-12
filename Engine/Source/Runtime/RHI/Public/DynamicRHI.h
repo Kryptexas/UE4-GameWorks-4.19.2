@@ -682,7 +682,7 @@ public:
 
 	// Only relevant with an RHI thread, this advances the backbuffer for the purpose of GetViewportBackBuffer
 	// FlushType: Thread safe
-	virtual void RHIAdvanceFrameForGetViewportBackBuffer() = 0;
+	virtual void RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef Viewport) = 0;
 
 	/*
 	* Acquires or releases ownership of the platform-specific rendering context for the calling thread
@@ -988,9 +988,9 @@ FORCEINLINE FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewp
 	return GDynamicRHI->RHIGetViewportBackBuffer(Viewport);
 }
 
-FORCEINLINE void RHIAdvanceFrameForGetViewportBackBuffer()
+FORCEINLINE void RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef Viewport)
 {
-	return GDynamicRHI->RHIAdvanceFrameForGetViewportBackBuffer();
+	return GDynamicRHI->RHIAdvanceFrameForGetViewportBackBuffer(Viewport);
 }
 
 FORCEINLINE uint32 RHIGetGPUFrameCycles()

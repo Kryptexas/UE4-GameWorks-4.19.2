@@ -41,7 +41,6 @@ void FDefaultSpectatorScreenController::SetSpectatorScreenMode(ESpectatorScreenM
 void FDefaultSpectatorScreenController::SetSpectatorScreenTexture(UTexture* SrcTexture)
 {
 	SpectatorScreenTexture = SrcTexture;
-	SetSpectatorScreenTextureRenderCommand(SrcTexture);
 }
 
 UTexture* FDefaultSpectatorScreenController::GetSpectatorScreenTexture() const
@@ -170,6 +169,13 @@ void FDefaultSpectatorScreenController::SetSpectatorScreenModeTexturePlusEyeLayo
 	SpectatorScreenModeTexturePlusEyeLayout_RenderThread = Layout;
 }
 
+void FDefaultSpectatorScreenController::BeginRenderViewFamily()
+{
+	check(IsInGameThread());
+
+	SetSpectatorScreenTextureRenderCommand(SpectatorScreenTexture.Get());
+}
+
 // It is imporant that this function be called early in the render frame, ie in PreRenderViewFamily_RenderThread so that
 // SpectatorScreenMode_RenderThread is set before other render frame work is done.
 void FDefaultSpectatorScreenController::UpdateSpectatorScreenMode_RenderThread()
@@ -250,7 +256,7 @@ void FDefaultSpectatorScreenController::RenderSpectatorModeUndistorted(FRHIComma
 
 void FDefaultSpectatorScreenController::RenderSpectatorModeDistorted(FRHICommandListImmediate& RHICmdList, FTexture2DRHIRef TargetTexture, FTexture2DRHIRef EyeTexture, FTexture2DRHIRef OtherTexture)
 {
-	// Note undistorted mode is supported on only on oculus
+	// Note distorted mode is supported on only on oculus
 	// The default implementation falls back to RenderSpectatorModeSingleEyeCroppedToFill.
 	RenderSpectatorModeSingleEyeCroppedToFill(RHICmdList, TargetTexture, EyeTexture, OtherTexture);
 }
@@ -286,7 +292,7 @@ void FDefaultSpectatorScreenController::RenderSpectatorModeTexture(FRHICommandLi
 	FRHITexture2D* SrcTexture = OtherTexture;
 	if (!SrcTexture)
 	{
-		SrcTexture = GBlackTexture->TextureRHI->GetTexture2D();
+		SrcTexture = GetFallbackRHITexture();
 	}
 
 	const FIntRect SrcRect(0, 0, SrcTexture->GetSizeX(), SrcTexture->GetSizeY());
@@ -300,7 +306,7 @@ void FDefaultSpectatorScreenController::RenderSpectatorModeMirrorAndTexture(FRHI
 	FRHITexture2D* OtherTextureLocal = OtherTexture;
 	if (!OtherTextureLocal)
 	{
-		OtherTextureLocal = GBlackTexture->TextureRHI->GetTexture2D();
+		OtherTextureLocal = GetFallbackRHITexture();
 	}
 
 	const FIntRect EyeDstRect = SpectatorScreenModeTexturePlusEyeLayout_RenderThread.GetScaledEyeRect(TargetTexture->GetSizeX(), TargetTexture->GetSizeY());
@@ -322,6 +328,12 @@ void FDefaultSpectatorScreenController::RenderSpectatorModeMirrorAndTexture(FRHI
 		HMDDevice->CopyTexture_RenderThread(RHICmdList, OtherTextureLocal, OtherSrcRect, TargetTexture, OtherDstRect, bClearBlack);
 		HMDDevice->CopyTexture_RenderThread(RHICmdList, EyeTexture, CroppedEyeSrcRect, TargetTexture, EyeDstRect, false);
 	}
+}
+
+FRHITexture2D* FDefaultSpectatorScreenController::GetFallbackRHITexture() const
+{
+	//return GWhiteTexture->TextureRHI->GetTexture2D();
+	return GBlackTexture->TextureRHI->GetTexture2D();
 }
 
 

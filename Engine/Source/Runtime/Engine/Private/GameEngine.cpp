@@ -38,6 +38,7 @@
 
 #include "SynthBenchmark.h"
 
+#include "SceneViewExtension.h"
 #include "Misc/HotReloadInterface.h"
 #include "Engine/LocalPlayer.h"
 #include "Slate/SGameLayerManager.h"
@@ -51,6 +52,7 @@
 
 #include "Tickable.h"
 #include "AssetRegistryModule.h"
+
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -561,6 +563,7 @@ void UGameEngine::RedrawViewports( bool bShouldPresent /*= true*/ )
 -----------------------------------------------------------------------------*/
 UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, ViewExtensions( new FSceneViewExtensions() )
 {
 	C_WorldBox = FColor(0, 0, 40, 255);
 	C_BrushWire = FColor(192, 0, 0, 255);

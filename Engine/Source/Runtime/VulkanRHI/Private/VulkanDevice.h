@@ -65,6 +65,14 @@ public:
 		return GpuProps.limits;
 	}
 
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	inline const VkPhysicalDeviceIDPropertiesKHR& GetDeviceIdProperties() const
+	{
+		check(GetOptionalExtensions().HasKHRGetPhysicalDeviceProperties2);
+		return GpuIdProps;
+	}
+#endif
+
 	inline const VkPhysicalDeviceFeatures& GetFeatures() const
 	{
 		return Features;
@@ -201,6 +209,8 @@ public:
 	{
 		uint32 HasKHRMaintenance1 : 1;
 		uint32 HasMirrorClampToEdge : 1;
+		uint32 HasKHRExternalMemoryCapabilities : 1;
+		uint32 HasKHRGetPhysicalDeviceProperties2 : 1;
 	};
 	inline const FOptionalVulkanDeviceExtensions& GetOptionalExtensions() const { return OptionalDeviceExtensions;  }
 
@@ -215,6 +225,9 @@ private:
 
 	VkPhysicalDevice Gpu;
 	VkPhysicalDeviceProperties GpuProps;
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	VkPhysicalDeviceIDPropertiesKHR GpuIdProps;
+#endif
 	VkPhysicalDeviceFeatures Features;
 	
 	VkDevice Device;

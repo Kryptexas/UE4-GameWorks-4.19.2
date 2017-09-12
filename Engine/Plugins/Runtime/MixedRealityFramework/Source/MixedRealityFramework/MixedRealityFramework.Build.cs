@@ -31,7 +31,8 @@ public class MixedRealityFramework : ModuleRules
 				"Media",
 				"MediaAssets",
 				"HeadMountedDisplay",
-				"InputCore"
+				"InputCore",
+                "MediaUtils"
 			}
 		);
 	}

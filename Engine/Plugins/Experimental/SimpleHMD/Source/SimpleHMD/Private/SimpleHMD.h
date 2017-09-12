@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "HeadMountedDisplayBase.h"
+#include "XRTrackingSystemBase.h"
 #include "SceneViewExtension.h"
 
 class APlayerController;
@@ -14,65 +15,65 @@ class UCanvas;
 /**
  * Simple Head Mounted Display
  */
-class FSimpleHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public TSharedFromThis<FSimpleHMD, ESPMode::ThreadSafe>
+class FSimpleHMD : public FHeadMountedDisplayBase, public FSceneViewExtensionBase
 {
 public:
-	/** IHeadMountedDisplay interface */
-	virtual FName GetDeviceName() const override
+	/** IXRTrackingSystem interface */
+	virtual FName GetSystemName() const override
 	{
 		static FName DefaultName(TEXT("SimpleHMD"));
 		return DefaultName;
 	}
 
-	virtual bool IsHMDConnected() override { return true; }
-	virtual bool IsHMDEnabled() const override;
-	virtual void EnableHMD(bool allow = true) override;
-	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
-	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
-
-	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
-
-	virtual bool DoesSupportPositionalTracking() const override;
-	virtual bool HasValidTrackingPosition() override;
-	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
-	virtual void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
+	virtual void RefreshPoses() override;
+	virtual bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type = EXRTrackedDeviceType::Any) override;
 
 	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
 	virtual float GetInterpupillaryDistance() const override;
-
-	virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
-	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() override;
-	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) override;
-	virtual bool UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
-
-	virtual bool IsChromaAbCorrectionEnabled() const override;
-
-	virtual bool IsPositionalTrackingEnabled() const override;
-
 	virtual bool IsHeadTrackingAllowed() const override;
 
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 	virtual void ResetOrientation(float Yaw = 0.f) override;
 	virtual void ResetPosition() override;
 
-	virtual void SetClippingPlanes(float NCP, float FCP) override;
-
+	virtual bool GetCurrentPose(int32 DeviceId, FQuat& CurrentOrientation, FVector& CurrentPosition) override;
 	virtual void SetBaseRotation(const FRotator& BaseRot) override;
 	virtual FRotator GetBaseRotation() const override;
 
 	virtual void SetBaseOrientation(const FQuat& BaseOrient) override;
 	virtual FQuat GetBaseOrientation() const override;
 
+	virtual class IHeadMountedDisplay* GetHMDDevice() override
+	{ 
+		return this;
+	}
+
+	virtual class TSharedPtr< class IStereoRendering, ESPMode::ThreadSafe > GetStereoRenderingDevice() override
+	{
+		return SharedThis(this);
+	}
+protected:
+	/** FXRTrackingSystemBase protected interface */
+	virtual float GetWorldToMetersScale() const override;
+
+public:
+	/** IHeadMountedDisplay interface */
+	virtual bool IsHMDConnected() override { return true; }
+	virtual bool IsHMDEnabled() const override;
+	virtual void EnableHMD(bool allow = true) override;
+	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
+	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
+	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
+	virtual bool IsChromaAbCorrectionEnabled() const override;
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
 
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;
 	virtual bool EnableStereo(bool stereo = true) override;
 	virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const override;
-	virtual void CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation,
+	virtual void CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, FRotator& ViewRotation,
 		const float MetersToWorld, FVector& ViewLocation) override;
-	virtual FMatrix GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType, const float FOV) const override;
-	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
+	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType) const override;
 	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
 
 	/** ISceneViewExtension interface */
@@ -81,10 +82,11 @@ public:
 	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) {}
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
+	virtual bool IsActiveThisFrame(class FViewport* InViewport) const;
 
 public:
 	/** Constructor */
-	FSimpleHMD();
+	FSimpleHMD(const FAutoRegister&);
 
 	/** Destructor */
 	virtual ~FSimpleHMD();
@@ -102,6 +104,6 @@ private:
 
 	double					LastSensorTime;
 
-	void GetCurrentPose(FQuat& CurrentOrientation);
+	void GetHMDOrientation(FQuat& CurrentOrientation);
 };
 

@@ -7,6 +7,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "SceneViewExtension.h"
 #include "IMotionController.h"
+#include "LateUpdateManager.h"
 #include "MotionControllerComponent.generated.h"
 
 class FPrimitiveSceneInfo;
@@ -65,10 +66,13 @@ private:
 	FVector RenderThreadComponentScale;
 
 	/** View extension object that can persist on the render thread without the motion controller component */
-	class FViewExtension : public ISceneViewExtension, public TSharedFromThis<FViewExtension, ESPMode::ThreadSafe>
+	class FViewExtension : public FSceneViewExtensionBase
 	{
 	public:
-		FViewExtension(UMotionControllerComponent* InMotionControllerComponent) { MotionControllerComponent = InMotionControllerComponent; }
+		FViewExtension(const FAutoRegister& AutoRegister, UMotionControllerComponent* InMotionControllerComponent)
+			: FSceneViewExtensionBase(AutoRegister)
+			, MotionControllerComponent(InMotionControllerComponent)
+		{}
 		virtual ~FViewExtension() {}
 
 		/** ISceneViewExtension interface */
@@ -78,31 +82,14 @@ private:
 		virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override {}
 		virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 		virtual int32 GetPriority() const override { return -10; }
+		virtual bool IsActiveThisFrame(class FViewport* InViewport) const;
 
 	private:
 		friend class UMotionControllerComponent;
 
 		/** Motion controller component associated with this view extension */
 		UMotionControllerComponent* MotionControllerComponent;
-
-		/*
-		 *	Late update primitive info for accessing valid scene proxy info. From the time the info is gathered
-		 *  to the time it is later accessed the render proxy can be deleted. To ensure we only access a proxy that is
-		 *  still valid we cache the primitive's scene info AND a pointer to it's own cached index. If the primitive
-		 *  is deleted or removed from the scene then attempting to access it via it's index will result in a different
-		 *  scene info than the cached scene info.
-		 */
-		struct LateUpdatePrimitiveInfo
-		{
-			const int32*			IndexAddress;
-			FPrimitiveSceneInfo*	SceneInfo;
-		};
-
-		/** Walks the component hierarchy gathering scene proxies */
-		void GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives);
-
-		/** Primitives that need late update before rendering */
-		TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives;
+		FLateUpdateManager LateUpdate;
 	};
 	TSharedPtr< FViewExtension, ESPMode::ThreadSafe > ViewExtension;
 };

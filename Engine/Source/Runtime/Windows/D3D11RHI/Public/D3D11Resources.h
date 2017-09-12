@@ -297,6 +297,24 @@ public:
 		return ( NumDepthStencilViews > 0 );
 	}	
 
+	void AliasResources(FD3D11TextureBase* Texture)
+	{
+		check(MemorySize == Texture->MemorySize);
+		check(bCreatedRTVsPerSlice == Texture->bCreatedRTVsPerSlice);
+		check(RTVArraySize == Texture->RTVArraySize);
+		check(NumDepthStencilViews == Texture->NumDepthStencilViews);
+
+		Resource = Texture->Resource;
+		BaseShaderResource = Texture->BaseShaderResource;
+		ShaderResourceView = Texture->ShaderResourceView;
+		RenderTargetViews = Texture->RenderTargetViews;
+
+		for (uint32 Index = 0; Index < NumDepthStencilViews; Index++)
+		{
+			DepthStencilViews[Index] = Texture->DepthStencilViews[Index];
+		}
+	}
+
 protected:
 
 	/** The D3D11 RHI that created this texture. */

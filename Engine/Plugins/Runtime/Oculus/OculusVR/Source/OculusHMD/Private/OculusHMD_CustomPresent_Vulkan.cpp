@@ -25,128 +25,94 @@ public:
 	FVulkanCustomPresent(FOculusHMD* InOculusHMD);
 
 	// Implementation of FCustomPresent, called by Plugin itself
-	virtual ovrpRenderAPIType GetRenderAPI() const override;
-	virtual bool IsUsingCorrectDisplayAdapter() override;
-	virtual void UpdateMirrorTexture_RenderThread() override;
-
+	virtual bool IsUsingCorrectDisplayAdapter() const override;
+	virtual void* GetOvrpInstance() const override;
 	virtual void* GetOvrpDevice() const override;
-	virtual EPixelFormat GetDefaultPixelFormat() const override;
-	virtual FTextureSetProxyPtr CreateTextureSet_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, bool bIsCubemap, const TArray<ovrpTextureHandle>& InTextures) override;
+	virtual void* GetOvrpCommandQueue() const override;
+	virtual FTextureRHIRef CreateTexture_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, ovrpTextureHandle InTexture, uint32 InTexCreateFlags) override;
+	virtual void AliasTextureResources_RHIThread(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture) override;
 };
 
 
 FVulkanCustomPresent::FVulkanCustomPresent(FOculusHMD* InOculusHMD) :
-	FCustomPresent(InOculusHMD)
+	FCustomPresent(InOculusHMD, ovrpRenderAPI_Vulkan, PF_R8G8B8A8, false)
 {
-	CheckInGameThread();
-
-#ifdef DISABLE_RHI_THREAD
-	if (GRHISupportsRHIThread && GIsThreadedRendering && GUseRHIThread)
-	{
-		FSuspendRenderingThread SuspendRenderingThread(true);
-		GUseRHIThread = false;
-	}
-#endif
 }
 
 
-ovrpRenderAPIType FVulkanCustomPresent::GetRenderAPI() const
-{
-	return ovrpRenderAPI_Vulkan;
-}
-
-
-bool FVulkanCustomPresent::IsUsingCorrectDisplayAdapter()
+bool FVulkanCustomPresent::IsUsingCorrectDisplayAdapter() const
 {
 #if PLATFORM_WINDOWS
-	// UNDONE
+	const void* luid;
+
+	FVulkanDynamicRHI* const DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
+	if (OVRP_SUCCESS(ovrp_GetDisplayAdapterId2(&luid)) && 
+		luid && 
+		DynamicRHI->GetDevice()->GetOptionalExtensions().HasKHRGetPhysicalDeviceProperties2)
+	{
+		const VkPhysicalDeviceIDPropertiesKHR& vkPhysicalDeviceIDProperties = DynamicRHI->GetDevice()->GetDeviceIdProperties();
+		if (vkPhysicalDeviceIDProperties.deviceLUIDValid)
+		{
+			return !FMemory::Memcmp(luid, &vkPhysicalDeviceIDProperties.deviceLUID, sizeof(LUID));
+		}
+	}
 #endif
+
+	// Not enough information.  Assume that we are using the correct adapter.
 	return true;
 }
 
-void FVulkanCustomPresent::UpdateMirrorTexture_RenderThread()
+
+void* FVulkanCustomPresent::GetOvrpInstance() const
 {
-	SCOPE_CYCLE_COUNTER(STAT_BeginRendering);
-
-	CheckInRenderThread();
-
-	const ESpectatorScreenMode MirrorWindowMode = OculusHMD->GetSpectatorScreenMode();
-	const FVector2D MirrorWindowSize = OculusHMD->GetFrame_RenderThread()->WindowSize;
-
-	if (ovrp_GetInitialized())
-	{
-		// Need to destroy mirror texture?
-		if (MirrorTextureRHI.IsValid() && (MirrorWindowMode != ESpectatorScreenMode::Distorted ||
-			MirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY())))
-		{
-			ExecuteOnRHIThread([]()
-			{
-				ovrp_DestroyMirrorTexture2();
-			});
-
-			MirrorTextureRHI = nullptr;
-		}
-
-		// Need to create mirror texture?
-		if (!MirrorTextureRHI.IsValid() &&
-			MirrorWindowMode == ESpectatorScreenMode::Distorted &&
-			MirrorWindowSize.X != 0 && MirrorWindowSize.Y != 0)
-		{
-			FVulkanDynamicRHI* DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
-			int Width = (int)MirrorWindowSize.X;
-			int Height = (int)MirrorWindowSize.Y;
-			ovrpTextureHandle TextureHandle;
-
-			ExecuteOnRHIThread([&]()
-			{
-				ovrp_SetupMirrorTexture2(GetOvrpDevice(), Height, Width, ovrpTextureFormat_B8G8R8A8_sRGB, &TextureHandle);
-			});
-
-			UE_LOG(LogHMD, Log, TEXT("Allocated a new mirror texture (size %d x %d)"), Width, Height);
-
-			MirrorTextureRHI = DynamicRHI->RHICreateTexture2DFromVkImage(
-				PF_R8G8B8A8,
-				Width,
-				Height,
-				(VkImage) TextureHandle,
-				TexCreate_ShaderResource);
-		}
-	}
+	FVulkanDynamicRHI* DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
+	return DynamicRHI->GetInstance();
 }
 
 
 void* FVulkanCustomPresent::GetOvrpDevice() const
 {
-	return RHIGetNativeDevice();
+	FVulkanDynamicRHI* DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
+	return DynamicRHI->GetDevice()->GetInstanceHandle();
 }
 
 
-EPixelFormat FVulkanCustomPresent::GetDefaultPixelFormat() const
+void* FVulkanCustomPresent::GetOvrpCommandQueue() const
 {
-	return PF_R8G8B8A8;
+	FVulkanDynamicRHI* DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
+	return DynamicRHI->GetDevice()->GetGraphicsQueue()->GetHandle();
 }
 
 
-FTextureSetProxyPtr FVulkanCustomPresent::CreateTextureSet_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, bool bIsCubemap, const TArray<ovrpTextureHandle>& InTextures)
+FTextureRHIRef FVulkanCustomPresent::CreateTexture_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, ovrpTextureHandle InTexture, uint32 InTexCreateFlags)
 {
 	CheckInRenderThread();
 
 	FVulkanDynamicRHI* DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
 
-	FTexture2DRHIRef RHITexture;
+	switch (InResourceType)
 	{
-		RHITexture = DynamicRHI->RHICreateTexture2DFromVkImage(InFormat, InSizeX, InSizeY, (VkImage) InTextures[0], TexCreate_ShaderResource);
-	}
+	case RRT_Texture2D:
+		return DynamicRHI->RHICreateTexture2DFromResource(InFormat, InSizeX, InSizeY, InNumMips, InNumSamples, (VkImage) InTexture, InTexCreateFlags).GetReference();
 
-	TArray<FTexture2DRHIRef> RHITextureSwapChain;
-	{
-		for (int32 TextureIndex = 0; TextureIndex < InTextures.Num(); ++TextureIndex)
-		{
-			RHITextureSwapChain.Add(DynamicRHI->RHICreateTexture2DFromVkImage(InFormat, InSizeX, InSizeY, (VkImage) InTextures[TextureIndex], TexCreate_ShaderResource));
-		}
-	}
+	case RRT_Texture2DArray:
+		return DynamicRHI->RHICreateTexture2DArrayFromResource(InFormat, InSizeX, InSizeY, 2, InNumMips, (VkImage) InTexture, InTexCreateFlags).GetReference();
 
-	return CreateTextureSetProxy_Vulkan(RHITexture, RHITextureSwapChain);
+	case RRT_TextureCube:
+		return DynamicRHI->RHICreateTextureCubeFromResource(InFormat, InSizeX, false, 1, InNumMips, (VkImage) InTexture, InTexCreateFlags).GetReference();
+
+	default:
+		return nullptr;
+	}
+}
+
+
+void FVulkanCustomPresent::AliasTextureResources_RHIThread(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture)
+{
+	CheckInRHIThread();
+
+	FVulkanDynamicRHI* DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
+	DynamicRHI->RHIAliasTextureResources(DestTexture, SrcTexture);
 }
 
 

@@ -10,10 +10,10 @@
 
 #include "IHeadMountedDisplayVulkanExtensions.h"
 
-class IHeadMountedDisplay;
+class IXRTrackingSystem;
 
 /**
- * The public interface of the MotionControlsModule
+ * The public interface of the HeadmountedDisplay Module
  */
 class IHeadMountedDisplayModule : public IModuleInterface, public IModularFeature
 {
@@ -108,9 +108,21 @@ public:
 	virtual bool IsHMDConnected() { return false; }
 
 	/**
-	 * Get index of graphics adapter where the HMD was last connected
+	 * Get LUID of graphics adapter where the HMD was last connected.
+	 *
+	 * @TODO  currently, for mac, GetGraphicsAdapterLuid() is used to return a device index (how the function
+	 *        "GetGraphicsAdapter" used to work), not a ID... eventually we want the HMD module to return the
+	 *        MTLDevice's registryID, but we cannot fully handle that until we drop support for 10.12
+	 *  NOTE: this is why we  use -1 as a sentinel value representing "no device" (instead of 0, which is used in the LUID case)
 	 */
-	virtual int32 GetGraphicsAdapter() { return -1; }
+	virtual uint64 GetGraphicsAdapterLuid() 
+	{ 
+#if PLATFORM_MAC
+		return (uint64)-1;
+#else
+		return 0;
+#endif
+	}
 
 	/**
 	 * Get name of audio input device where the HMD was last connected
@@ -127,11 +139,11 @@ public:
 	 *
 	 * @return	Interface to the new head tracking device, if we were able to successfully create one
 	 */
-	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() = 0;
+	virtual TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > CreateTrackingSystem() = 0;
 
 	/**
 	 * Extensions:
 	 * If the HMD supports the various extensions listed below, it should return a valid pointer to an implementation contained within it.
 	 */
-	virtual IHeadMountedDisplayVulkanExtensions* GetVulkanExtensions() { return nullptr; }
+	virtual TSharedPtr< IHeadMountedDisplayVulkanExtensions, ESPMode::ThreadSafe > GetVulkanExtensions() { return nullptr; }
 };

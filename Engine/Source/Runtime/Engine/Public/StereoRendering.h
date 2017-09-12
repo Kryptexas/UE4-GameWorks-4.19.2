@@ -7,9 +7,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/GameViewportClient.h"
 
 class IStereoLayers;
+class IStereoRenderTargetManager;
+
+/**
+* Stereoscopic rendering passes.  FULL implies stereoscopic rendering isn't enabled for this pass
+*/
+enum EStereoscopicPass
+{
+	eSSP_FULL,
+	eSSP_LEFT_EYE,
+	eSSP_RIGHT_EYE,
+	eSSP_MONOSCOPIC_EYE
+};
 
 class IStereoRendering
 {
@@ -45,42 +56,17 @@ public:
 	/**
 	 * Calculates the offset for the camera position, given the specified position, rotation, and world scale
 	 */
-	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) = 0;
+	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) = 0;
 
 	/**
 	 * Gets a projection matrix for the device, given the specified eye setup
 	 */
-	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType, const float FOV) const = 0;
+	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType) const = 0;
 
 	/**
 	 * Sets view-specific params (such as view projection matrix) for the canvas.
 	 */
 	virtual void InitCanvasFromView(class FSceneView* InView, class UCanvas* Canvas) = 0;
-
-	/**
-	 * Returns eye render params, used from PostProcessHMD, RenderThread.
-	 */
-	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const {}
-
-	// Optional methods to support rendering into a texture.
-	/**
-	 * Updates viewport for direct rendering of distortion. Should be called on a game thread.
-	 * Optional SViewport* parameter can be used to access SWindow object.
-	 */
-	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const class FViewport& Viewport, class SViewport* = nullptr) {}
-
-	/**
-	 * Calculates dimensions of the render target texture for direct rendering of distortion.
-	 */
-	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) {}
-
-	/**
-	 * Returns true, if render target texture must be re-calculated. 
-	 */
-	virtual bool NeedReAllocateViewportRenderTarget(const class FViewport& Viewport) { return false; }
-
-	// Whether separate render target should be used or not.
-	virtual bool ShouldUseSeparateRenderTarget() const { return false; }
 
 	// Are we outputting so a Spectator Screen now.
 	virtual bool IsSpectatorScreenActive() const { return false; }
@@ -99,62 +85,18 @@ public:
 	}
 
 	/**
-	 * Sets screen percentage to be used for stereo rendering.
-	 *
-	 * @param ScreenPercentage	(in) Specifies the screen percentage to be used in VR mode. Use 0.0f value to reset to default value.
-	 */
-	DEPRECATED(4.15, "Please modify the r.ScreenPercentage console variable instead.")
-	virtual void SetScreenPercentage(float InScreenPercentage) {}
-	
-	/** 
-	 * Returns screen percentage to be used for stereo rendering.
-	 *
-	 * @return (float)	The screen percentage to be used in stereo mode. 0.0f, if default value is used.
-	 */
-	DEPRECATED(4.15, "Please refer to the r.ScreenPercentage console variable instead.")
-	virtual float GetScreenPercentage() const { return 0.0f; }
-
-	/** 
-	 * Sets near and far clipping planes (NCP and FCP) for stereo rendering. Similar to 'stereo ncp= fcp' console command, but NCP and FCP set by this
-	 * call won't be saved in .ini file.
-	 *
-	 * @param NCP				(in) Near clipping plane, in centimeters
-	 * @param FCP				(in) Far clipping plane, in centimeters
-	 */
-	virtual void SetClippingPlanes(float NCP, float FCP) {}
-
-	/**
 	 * Returns currently active custom present. 
 	 */
 	virtual FRHICustomPresent* GetCustomPresent() { return nullptr; }
 
 	/**
-	 * Returns number of required buffered frames.
+	 * Returns currently active render target manager.
 	 */
-	virtual uint32 GetNumberOfBufferedFrames() const { return 1;  }
+	virtual IStereoRenderTargetManager* GetRenderTargetManager() { return nullptr; }
 
 	/**
 	* Returns an IStereoLayers implementation, if one is present
 	*/
 	virtual IStereoLayers* GetStereoLayers () { return nullptr; }
 
-	/**
-	 * Allocates a render target texture. 
-	 *
-	 * @param Index			(in) index of the buffer, changing from 0 to GetNumberOfBufferedFrames()
-	 * @return				true, if texture was allocated; false, if the default texture allocation should be used.
-	 */
-	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1)
-	{
-		return false;
-	}
-
-	/**
-	 * Set the view offset mode to assume an implied hmd position
-	 */
-	virtual void UseImplicitHmdPosition (bool bInImplicitHmdPosition) { bImplicitHmdPosition = bInImplicitHmdPosition; }
-
-protected:
-
-	bool bImplicitHmdPosition;
 };

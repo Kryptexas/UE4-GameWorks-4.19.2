@@ -34,17 +34,18 @@ namespace OculusHMD
 class FCustomPresent : public FRHICustomPresent
 {
 public:
-	FCustomPresent(class FOculusHMD* InOculusHMD);
+	FCustomPresent(class FOculusHMD* InOculusHMD, ovrpRenderAPIType InRenderAPI, EPixelFormat InDefaultPixelFormat, bool InSupportsSRGB);
 
 	// FRHICustomPresent
 	virtual void OnBackBufferResize() override;
+	virtual bool NeedsNativePresent() override;
 	virtual bool Present(int32& SyncInterval) override;
 	// virtual void PostPresent() override;
 
-	virtual ovrpRenderAPIType GetRenderAPI() const = 0;
-	virtual bool IsUsingCorrectDisplayAdapter() = 0;
+	ovrpRenderAPIType GetRenderAPI() const { return RenderAPI; }
+	virtual bool IsUsingCorrectDisplayAdapter() const { return true; }
 
-	virtual void UpdateMirrorTexture_RenderThread() = 0;
+	void UpdateMirrorTexture_RenderThread();
 	void FinishRendering_RHIThread();
 	void ReleaseResources_RHIThread();
 	void Shutdown();
@@ -53,20 +54,27 @@ public:
 
 	FTexture2DRHIRef GetMirrorTexture() { return MirrorTextureRHI; }
 
-	virtual void* GetOvrpDevice() const = 0;
-	virtual EPixelFormat GetDefaultPixelFormat() const = 0;
+	virtual void* GetOvrpInstance() const { return nullptr; }
+	virtual void* GetOvrpDevice() const { return nullptr; }
+	virtual void* GetOvrpCommandQueue() const { return nullptr; }
 	EPixelFormat GetPixelFormat(EPixelFormat InFormat) const;
 	EPixelFormat GetPixelFormat(ovrpTextureFormat InFormat) const;
-	ovrpTextureFormat GetOvrpTextureFormat(EPixelFormat InFormat, bool InSRGB) const;
+	EPixelFormat GetDefaultPixelFormat() const { return DefaultPixelFormat; }
+	ovrpTextureFormat GetOvrpTextureFormat(EPixelFormat InFormat) const;
+	ovrpTextureFormat GetDefaultOvrpTextureFormat() const { return DefaultOvrpTextureFormat; }
+	static bool IsSRGB(ovrpTextureFormat InFormat);
 
-	// Create texture set
-	virtual FTextureSetProxyPtr CreateTextureSet_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, bool bIsCubemap, const TArray<ovrpTextureHandle>& InTextures) = 0;
-
-	// Copies one texture to another
-	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false, bool bNoAlphaWrite = false) const;
+	virtual FTextureRHIRef CreateTexture_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, ovrpTextureHandle InTexture, uint32 TexCreateFlags) = 0;
+	FTextureSetProxyPtr CreateTextureSetProxy_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, const TArray<ovrpTextureHandle>& InTextures, uint32 InTexCreateFlags);
+	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false, bool bNoAlphaWrite = false, bool bInvertY = true) const;
+	virtual void AliasTextureResources_RHIThread(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture) = 0;
 
 protected:
 	FOculusHMD* OculusHMD;
+	ovrpRenderAPIType RenderAPI;
+	EPixelFormat DefaultPixelFormat;
+	ovrpTextureFormat DefaultOvrpTextureFormat;
+	bool bSupportsSRGB;
 	IRendererModule* RendererModule;
 	FTexture2DRHIRef MirrorTextureRHI;
 };

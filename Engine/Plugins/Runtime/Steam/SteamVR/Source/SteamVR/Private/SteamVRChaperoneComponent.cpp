@@ -24,7 +24,7 @@ void USteamVRChaperoneComponent::TickComponent(float DeltaTime, enum ELevelTick 
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 	//@todo Make this safe once we can add something to the DeviceType enum.  For now, make the terrible assumption this is a SteamVR device.
- 	FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(GEngine->HMDDevice.Get());
+ 	FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(GEngine->XRSystem.Get());
  	if (SteamVRHMD && SteamVRHMD->IsStereoEnabled())
  	{
  		bool bInBounds = SteamVRHMD->IsInsideBounds();
@@ -51,11 +51,20 @@ TArray<FVector> USteamVRChaperoneComponent::GetBounds() const
 	TArray<FVector> RetValue;
 
 #if STEAMVR_SUPPORTED_PLATFORMS
-	FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(GEngine->HMDDevice.Get());
-	if (SteamVRHMD && SteamVRHMD->IsStereoEnabled())
+	if (GEngine->XRSystem.IsValid())
 	{
-		RetValue = SteamVRHMD->GetBounds();
-	}
+		static FName SteamHMDName(TEXT("SteamVR"));
+
+		IXRTrackingSystem* XRSystem = GEngine->XRSystem.Get();
+		if (XRSystem->GetSystemName() == SteamHMDName)
+		{
+			FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(XRSystem);
+			if (SteamVRHMD->IsStereoEnabled())
+			{
+				RetValue = SteamVRHMD->GetBounds();
+			}
+		}
+	}	
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 
 	return RetValue;

@@ -46,6 +46,9 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, PipelineStateCache(nullptr)
 {
 	FMemory::Memzero(GpuProps);
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	FMemory::Memzero(GpuIdProps);
+#endif
 	FMemory::Memzero(Features);
 	FMemory::Memzero(FormatProperties);
 	FMemory::Memzero(PixelFormatComponentMapping);
@@ -490,7 +493,23 @@ void FVulkanDevice::MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanForma
 bool FVulkanDevice::QueryGPU(int32 DeviceIndex)
 {
 	bool bDiscrete = false;
-	VulkanRHI::vkGetPhysicalDeviceProperties(Gpu, &GpuProps);
+
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	if (GetOptionalExtensions().HasKHRGetPhysicalDeviceProperties2)
+	{
+		VkPhysicalDeviceProperties2KHR GpuProps2;
+		GpuProps2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+		GpuProps2.pNext = &GpuIdProps;
+		GpuIdProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES_KHR;
+		GpuIdProps.pNext = nullptr;
+		VulkanRHI::vkGetPhysicalDeviceProperties2KHR(Gpu, &GpuProps2);
+		FMemory::Memcpy(GpuProps, GpuProps2.properties);
+	}
+	else
+#endif
+	{
+		VulkanRHI::vkGetPhysicalDeviceProperties(Gpu, &GpuProps);
+	}
 
 	auto GetDeviceTypeString = [&]()
 	{

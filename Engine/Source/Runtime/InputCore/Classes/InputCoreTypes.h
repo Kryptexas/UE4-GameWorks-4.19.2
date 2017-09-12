@@ -30,7 +30,9 @@ enum class EControllerHand : uint8
 	Special_6,
 	Special_7,
 	Special_8,
-	Special_9
+	Special_9,
+	Special_10,
+	Special_11
 };
 
 USTRUCT(BlueprintType)

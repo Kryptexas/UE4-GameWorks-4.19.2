@@ -11,6 +11,7 @@
 #include "SceneRendering.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
@@ -98,10 +99,10 @@ public:
 		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		{
-			check(GEngine->HMDDevice.IsValid());
-			TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice = GEngine->HMDDevice;
+			check(GEngine->XRSystem.IsValid());
+			IHeadMountedDisplay* HMDDevice = GEngine->XRSystem->GetHMDDevice();
 
-			check(HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_Morpheus);
+			check(HMDDevice && HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_Morpheus); // TODO: use XRSystem->GetSystemName() instead
 
 			auto RCoefs = HMDDevice->GetRedDistortionParameters();
 			auto GCoefs = HMDDevice->GetGreenDistortionParameters();

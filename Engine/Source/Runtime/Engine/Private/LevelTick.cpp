@@ -36,6 +36,7 @@
 #include "PhysicsPublic.h"
 #include "Tickable.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "TimerManager.h"
 #include "Camera/CameraPhotography.h"
 #include "HAL/LowLevelMemTracker.h"
@@ -1259,9 +1260,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	SCOPE_CYCLE_COUNTER(STAT_WorldTickTime);
 
 	// @todo vreditor: In the VREditor, this isn't actually wrapping the whole frame.  That would have to happen in EditorEngine.cpp's Tick.  However, it didn't seem to affect anything when I tried that.
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		GEngine->HMDDevice->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
+		GEngine->XRSystem->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
 
 #if ENABLE_SPAWNACTORTIMER
@@ -1638,9 +1639,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	// Dump the viewpoints with which we were rendered last frame. They will be updated when the world is next rendered.
 	ViewLocationsRenderedLastFrame.Reset();
 
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		GEngine->HMDDevice->OnEndGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
+		GEngine->XRSystem->OnEndGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(

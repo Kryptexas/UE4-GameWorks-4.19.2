@@ -38,6 +38,9 @@
 #include "Net/OnlineEngineInterface.h"
 #include "GameFramework/OnlineSession.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
+#include "IXRCamera.h"
+#include "IXRInput.h"
 #include "GameFramework/TouchInterface.h"
 #include "DisplayDebugHelpers.h"
 #include "Matinee/InterpTrackInstDirector.h"
@@ -943,9 +946,13 @@ void APlayerController::UpdateRotation( float DeltaTime )
 	AActor* ViewTarget = GetViewTarget();
 	if (!PlayerCameraManager || !ViewTarget || !ViewTarget->HasActiveCameraComponent() || ViewTarget->HasActivePawnControlCameraComponent())
 	{
-		if (IsLocalPlayerController() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+		if (IsLocalPlayerController() && GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed())
 		{
-			GEngine->HMDDevice->ApplyHmdRotation(this, ViewRotation);
+			auto XRCamera = GEngine->XRSystem->GetXRCamera();
+			if (XRCamera.IsValid())
+			{
+				XRCamera->ApplyHMDRotation(this, ViewRotation);
+			}
 		}
 	}
 
@@ -2185,17 +2192,17 @@ void APlayerController::FlushPressedKeys()
 
 bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
-	bool bResult = false;
 	
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		bResult = GEngine->HMDDevice->HandleInputKey(PlayerInput, Key, EventType, AmountDepressed, bGamepad);
-		if (bResult)
+		auto XRInput = GEngine->XRSystem->GetXRInput();
+		if (XRInput && XRInput->HandleInputKey(PlayerInput, Key, EventType, AmountDepressed, bGamepad))
 		{
-			return bResult;
+			return true;
 		}
 	}
 
+	bool bResult = false;
 	if (PlayerInput)
 	{
 		bResult = PlayerInput->InputKey(Key, EventType, AmountDepressed, bGamepad);
@@ -2268,17 +2275,16 @@ bool APlayerController::InputAxis(FKey Key, float Delta, float DeltaTime, int32 
 
 bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex)
 {
-	bool bResult = false;
-
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		bResult = GEngine->HMDDevice->HandleInputTouch(Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex);
-		if (bResult)
+		auto XRInput = GEngine->XRSystem->GetXRInput();
+		if(XRInput && XRInput->HandleInputTouch(Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex))
 		{
-			return bResult;
+			return true;
 		}
 	}
 
+	bool bResult = false;
 	if (PlayerInput)
 	{
 		bResult = PlayerInput->InputTouch(Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex);
@@ -5078,7 +5084,9 @@ void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLoggi
 
 bool APlayerController::ShouldPerformFullTickWhenPaused() const
 {
-	return bShouldPerformFullTickWhenPaused || (/*bIsInVr =*/GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled() && GEngine->HMDDevice->IsHMDConnected());
+	return bShouldPerformFullTickWhenPaused || 
+		(/*bIsInVr =*/GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled() && 
+			GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected());
 }
 
 #undef LOCTEXT_NAMESPACE

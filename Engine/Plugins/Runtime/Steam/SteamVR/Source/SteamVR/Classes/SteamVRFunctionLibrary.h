@@ -62,6 +62,6 @@ public:
 	 * @param	OutRotation		(out) Current rotation of the device
 	 * @return	True if the specified controller index has a valid tracked device ID
 	 */
-	UFUNCTION(BlueprintPure, Category = "SteamVR")
+	UFUNCTION(BlueprintPure, Category = "SteamVR", meta = (DeprecatedFunction, DeprecationMessage = "Use motion controller components instead"))
 	static bool GetHandPositionAndOrientation(int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FRotator& OutOrientation);
 };

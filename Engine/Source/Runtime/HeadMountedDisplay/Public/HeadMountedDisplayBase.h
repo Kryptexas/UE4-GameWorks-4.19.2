@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IHeadMountedDisplay.h"
+#include "XRTrackingSystemBase.h"
 #include "DefaultSpectatorScreenController.h"
 
 /**
@@ -10,7 +11,7 @@
  * You can extend this class instead of IHeadMountedDisplay directly when implementing support for new HMD devices.
  */
 
-class HEADMOUNTEDDISPLAY_API FHeadMountedDisplayBase : public IHeadMountedDisplay
+class HEADMOUNTEDDISPLAY_API FHeadMountedDisplayBase : public FXRTrackingSystemBase, public IHeadMountedDisplay, public IStereoRendering
 {
 
 public:
@@ -26,10 +27,13 @@ public:
 	 * Default stereo layer implementation
 	 */
 	virtual IStereoLayers* GetStereoLayers() override;
-	virtual void GatherViewExtensions(TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe>>& OutViewExtensions) override;
 
-	/** Overridden so the late update HMD transform can be passed on to the default stereo layers implementation */
-	virtual void ApplyLateUpdate(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform) override;
+	virtual bool GetHMDDistortionEnabled() const override;
+	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
+	virtual void BeginRendering_GameThread() override;
+
+	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override;
+	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
 
 	virtual bool IsSpectatorScreenActive() const override;
 

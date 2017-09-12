@@ -16,12 +16,16 @@ UOculusFunctionLibrary::UOculusFunctionLibrary(const FObjectInitializer& ObjectI
 OculusHMD::FOculusHMD* UOculusFunctionLibrary::GetOculusHMD()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
-		auto HMDType = GEngine->HMDDevice->GetHMDDeviceType();
-		if (HMDType == EHMDDeviceType::DT_OculusRift || HMDType == EHMDDeviceType::DT_GearVR)
+		IHeadMountedDisplay* HMDDevice = GEngine->XRSystem->GetHMDDevice();
+		if(HMDDevice)
 		{
-			return static_cast<OculusHMD::FOculusHMD*>(GEngine->HMDDevice.Get());
+			EHMDDeviceType::Type HMDDeviceType = HMDDevice->GetHMDDeviceType();
+			if (HMDDeviceType == EHMDDeviceType::DT_OculusRift || HMDDeviceType == EHMDDeviceType::DT_GearVR)
+			{
+				return static_cast<OculusHMD::FOculusHMD*>(HMDDevice);
+			}
 		}
 	}
 #endif
@@ -34,23 +38,21 @@ void UOculusFunctionLibrary::GetPose(FRotator& DeviceRotation, FVector& DevicePo
 	OculusHMD::FOculusHMD* OculusHMD = GetOculusHMD();
 	if (OculusHMD && OculusHMD->IsHeadTrackingAllowed())
 	{
-		FQuat OrientationAsQuat;
+		FQuat HeadOrientation = FQuat::Identity;
+		FVector HeadPosition = FVector::ZeroVector;
 
-		OculusHMD->GetCurrentHMDPose(OrientationAsQuat, DevicePosition, bUseOrienationForPlayerCamera, bUsePositionForPlayerCamera, PositionScale);
+		OculusHMD->GetCurrentPose(OculusHMD->HMDDeviceId, HeadOrientation, HeadPosition);
 
-		DeviceRotation = OrientationAsQuat.Rotator();
-
-		NeckPosition = OculusHMD->GetNeckPosition(OrientationAsQuat, DevicePosition, PositionScale);
-
-		//UE_LOG(LogUHeadMountedDisplay, Log, TEXT("POS: %.3f %.3f %.3f"), DevicePosition.X, DevicePosition.Y, DevicePosition.Z);
-		//UE_LOG(LogUHeadMountedDisplay, Log, TEXT("NECK: %.3f %.3f %.3f"), NeckPosition.X, NeckPosition.Y, NeckPosition.Z);
-		//UE_LOG(LogUHeadMountedDisplay, Log, TEXT("ROT: sYaw %.3f Pitch %.3f Roll %.3f"), DeviceRotation.Yaw, DeviceRotation.Pitch, DeviceRotation.Roll);
+		DeviceRotation = HeadOrientation.Rotator();
+		DevicePosition = HeadPosition;
+		NeckPosition = OculusHMD->GetNeckPosition(HeadOrientation, HeadPosition);
 	}
 	else
 #endif // #if OCULUS_HMD_SUPPORTED_PLATFORMS
 	{
 		DeviceRotation = FRotator::ZeroRotator;
 		DevicePosition = FVector::ZeroVector;
+		NeckPosition = FVector::ZeroVector;
 	}
 }
 
@@ -95,7 +97,7 @@ void UOculusFunctionLibrary::GetRawSensorData(FVector& AngularAcceleration, FVec
 	OculusHMD::FOculusHMD* OculusHMD = GetOculusHMD();
 	if (OculusHMD != nullptr && OculusHMD->IsHMDActive())
 	{
-		ovrpPoseStatef state;		
+		ovrpPoseStatef state;
 		if (OVRP_SUCCESS(ovrp_GetNodePoseState2(ovrpStep_Game, OculusHMD::ToOvrpNode(DeviceType), &state)))
 		{
 			AngularAcceleration = OculusHMD::ToFVector(state.AngularAcceleration);
@@ -118,7 +120,7 @@ bool UOculusFunctionLibrary::IsDeviceTracked(ETrackedDeviceType DeviceType)
 		if (OVRP_SUCCESS(ovrp_GetNodePresent2(OculusHMD::ToOvrpNode(DeviceType), &present)))
 		{
 			return present == ovrpBool_True;
-		} 
+		}
 		else
 		{
 			return false;
@@ -170,11 +172,7 @@ void UOculusFunctionLibrary::SetBaseRotationAndPositionOffset(FRotator BaseRot, 
 	{
 		if (Options == EOrientPositionSelector::Orientation || Options == EOrientPositionSelector::OrientationAndPosition)
 		{
-			GEngine->HMDDevice->SetBaseRotation(BaseRot);
-		}
-		if (Options == EOrientPositionSelector::Position || Options == EOrientPositionSelector::OrientationAndPosition)
-		{
-			OculusHMD->GetSettings()->PositionOffset = PosOffset;
+			OculusHMD->SetBaseRotation(BaseRot);
 		}
 	}
 #endif // OCULUS_HMD_SUPPORTED_PLATFORMS
@@ -187,7 +185,7 @@ void UOculusFunctionLibrary::GetBaseRotationAndPositionOffset(FRotator& OutRot, 
 	if (OculusHMD != nullptr)
 	{
 		OutRot = OculusHMD->GetBaseRotation();
-		OutPosOffset = OculusHMD->GetSettings()->PositionOffset;
+		OutPosOffset = FVector::ZeroVector;
 	}
 #endif // OCULUS_HMD_SUPPORTED_PLATFORMS
 }

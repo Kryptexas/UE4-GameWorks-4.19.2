@@ -40,6 +40,8 @@
 #include "AssetEditorModeManager.h"
 #include "PixelInspectorModule.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
+#include "IXRCamera.h"
 #include "SceneViewExtension.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "EditorBuildUtils.h"
@@ -707,11 +709,11 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 
 	// Apply head tracking!  Note that this won't affect what the editor *thinks* the view location and rotation is, it will
 	// only affect the rendering of the scene.
-	if( bStereoRendering && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() )
+	if( bStereoRendering && GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed() )
 	{
 		FQuat CurrentHmdOrientation;
 		FVector CurrentHmdPosition;
-		GEngine->HMDDevice->GetCurrentOrientationAndPosition( CurrentHmdOrientation, CurrentHmdPosition );
+		GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, CurrentHmdOrientation, CurrentHmdPosition );
 
 		const FQuat VisualRotation = ViewRotation.Quaternion() * CurrentHmdOrientation;
 		ViewRotation = VisualRotation.Rotator();
@@ -794,7 +796,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		    {
 			    // @todo vreditor: bConstrainAspectRatio is ignored in this path, as it is in the game client as well currently
 			    // Let the stereoscopic rendering device handle creating its own projection matrix, as needed
-			    ViewInitOptions.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix( StereoPass, ViewFOV );
+			    ViewInitOptions.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix(StereoPass);
 		    }
 		    else
 		    {
@@ -1126,18 +1128,20 @@ void FEditorViewportClient::Tick(float DeltaTime)
 		EndCameraMovement();
 	}
 
-	const bool bStereoRendering = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D( Viewport );
+	const bool bStereoRendering = GEngine->XRSystem.IsValid() && GEngine->IsStereoscopic3D( Viewport );
 	if( bStereoRendering )
 	{
 		// Every frame, we'll push our camera position to the HMD device, so that it can properly compute a head-relative offset for each eye
-		if( GEngine->HMDDevice->IsHeadTrackingAllowed() )
+		if( GEngine->XRSystem->IsHeadTrackingAllowed() )
 		{
-			GEngine->HMDDevice->UseImplicitHmdPosition( false );
-
+			auto XRCamera = GEngine->XRSystem->GetXRCamera();
+			if (XRCamera.IsValid())
+		{
 			FQuat PlayerOrientation = GetViewRotation().Quaternion();
 			FVector PlayerLocation = GetViewLocation();
-
-			GEngine->HMDDevice->UpdatePlayerCamera( PlayerOrientation, PlayerLocation );
+				XRCamera->UseImplicitHMDPosition(false);
+				XRCamera->UpdatePlayerCamera(PlayerOrientation, PlayerLocation);
+			}
 		}
 	}
 
@@ -3389,19 +3393,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		}
 	}
 
-	// Allow HMD to modify the view later, just before rendering
-	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
-	{
-		GEngine->HMDDevice->GatherViewExtensions(ViewFamily.ViewExtensions);
-
-		// Allow HMD to modify screen settings
-		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
-	}
-
-	if (GEngine->ViewExtensions.Num())
-	{
-		ViewFamily.ViewExtensions.Append(GEngine->ViewExtensions.GetData(), GEngine->ViewExtensions.Num());
-	}
+	ViewFamily.ViewExtensions = GEngine->ViewExtensions->GatherActiveExtensions(InViewport);
 
 	for (auto ViewExt : ViewFamily.ViewExtensions)
 	{
@@ -3539,10 +3531,10 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		DrawStatsHUD( World, Viewport, DebugCanvas, NULL, EmptyPropertyArray, GetViewLocation(), GetViewRotation() );
 	}
 
-	if( bStereoRendering && GEngine->HMDDevice.IsValid() )
+	if( bStereoRendering && GEngine->XRSystem.IsValid() )
 	{
-#if !UE_BUILD_SHIPPING
-		GEngine->HMDDevice->DrawDebug(DebugCanvasObject);
+#if 0 && !UE_BUILD_SHIPPING // TODO remove DrawDebug from the IHeadmountedDisplayInterface
+		GEngine->XRSystem->DrawDebug(DebugCanvasObject);
 #endif
 	}
 

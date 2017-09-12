@@ -416,7 +416,6 @@ public:
 	uint32 GetSizeZ() const { return 0; }
 };
 
-typedef TD3D12Texture2D<FRHITexture>              FD3D12Texture;
 typedef TD3D12Texture2D<FD3D12BaseTexture2D>      FD3D12Texture2D;
 typedef TD3D12Texture2D<FD3D12BaseTexture2DArray> FD3D12Texture2DArray;
 typedef TD3D12Texture2D<FD3D12BaseTextureCube>    FD3D12TextureCube;
@@ -502,11 +501,6 @@ template<>
 struct TD3D12ResourceTraits<FRHITexture3D>
 {
 	typedef FD3D12Texture3D TConcreteType;
-};
-template<>
-struct TD3D12ResourceTraits<FRHITexture>
-{
-	typedef FD3D12Texture TConcreteType;
 };
 template<>
 struct TD3D12ResourceTraits<FRHITexture2D>

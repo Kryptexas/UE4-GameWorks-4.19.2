@@ -96,9 +96,10 @@ class FSteamVRController : public IInputDevice, public IMotionController, public
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	FSteamVRHMD* GetSteamVRHMD() const
 	{
-		if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
+		static FName SystemName(TEXT("SteamVR"));
+		if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == SystemName))
 		{
-			return static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
+			return static_cast<FSteamVRHMD*>(GEngine->XRSystem.Get());
 		}
 
 		return nullptr;
@@ -261,6 +262,16 @@ public:
 
 	virtual void Tick( float DeltaTime ) override
 	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
+		vr::IVRSystem* VRSystem = GetVRSystem();
+
+		if (VRSystem != nullptr)
+		{
+			RegisterDeviceChanges(VRSystem);
+			DetectHandednessSwap(VRSystem);
+		}
+
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	}
 
 	virtual void SendControllerEvents() override
@@ -274,185 +285,15 @@ public:
 		{
 			const double CurrentTime = FPlatformTime::Seconds();
 
-			bool bNewDeviceConnected = false;
-
-			for (uint32 DeviceIndex=0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
+			for (uint32 DeviceIndex = 0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
 			{
 				// see what kind of hardware this is
 				vr::ETrackedDeviceClass DeviceClass = VRSystem->GetTrackedDeviceClass(DeviceIndex);
 
-				// skip non-controllers
+				// skip non-controller or non-tracker devices
 				if (DeviceClass != vr::TrackedDeviceClass_Controller && DeviceClass != vr::TrackedDeviceClass_GenericTracker)
 				{
 					continue;
-				}
-
-				// update the mappings if this is a new device
-				if (DeviceToControllerMap[DeviceIndex] == INDEX_NONE )
-				{
-					// skip unregistered devices that are not connected.
-					// This lets connected devices claim their preferred hands.
-					if (!VRSystem->IsTrackedDeviceConnected(DeviceIndex))
-					{
-						continue;
-					}
-
-					// don't map too many controllers
-					// @todo: this may need to be looked at, vive tracker documentation states that up to 11 trackers and 2 controllers can be connected
-					if (NumControllersMapped >= MaxControllers)
-					{
-						UE_LOG(LogSteamVRController, Warning, TEXT("Found more controllers than we support (%i vs %i)!  Probably need to fix this."), NumControllersMapped + 1, MaxControllers);
-						continue;
-					}
-
-					// if this device is a controller
-					if (DeviceClass == vr::TrackedDeviceClass_Controller)
-					{
-						// Decide which hand to associate this controller with
-						EControllerHand ChosenHand = EControllerHand::Special_9;
-						{
-							const vr::ETrackedControllerRole Role = VRSystem->GetControllerRoleForTrackedDeviceIndex(DeviceIndex);
-							UE_LOG(LogSteamVRController, Log, TEXT("Controller role for device %i is %i (invalid=0, left=1, right=2)."), DeviceIndex, (int32)Role);
-
-							// if we already have one hand we have to put the controller on the other hand
-							if (UnrealControllerHandUsageCount[(int32)EControllerHand::Right] != 0 && UnrealControllerHandUsageCount[(int32)EControllerHand::Left] == 0)
-							{
-								UE_LOG(LogSteamVRController, Log, TEXT("Putting controller %i on the left hand because there is already a controller for the right."), DeviceIndex);
-								if (Role == vr::TrackedControllerRole_RightHand)
-								{
-									UE_LOG(LogSteamVRController, Warning, TEXT("We are ignoring the steam api controller role for device %i, because we have already used that spot."), DeviceIndex);
-								}
-								ChosenHand = EControllerHand::Left;
-							}
-							else if (UnrealControllerHandUsageCount[(int32)EControllerHand::Left] != 0 && UnrealControllerHandUsageCount[(int32)EControllerHand::Right] == 0)
-							{
-								UE_LOG(LogSteamVRController, Log, TEXT("Putting controller %i on the right hand because there is already a controller for the left."), DeviceIndex);
-								if (Role == vr::TrackedControllerRole_LeftHand)
-								{
-									UE_LOG(LogSteamVRController, Warning, TEXT("We are ignoring the steam api controller role for device %i, because we have already used that spot."), DeviceIndex);
-								}
-								ChosenHand = EControllerHand::Right;
-							}
-							else
-							{
-								// Either both controller hands are unused or both are used.
-
-								// Try to give the controller to the role it prefers.
-								switch (Role)
-								{
-								case vr::TrackedControllerRole_LeftHand:
-									UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i is being assigned to its prefered role 'left'."), DeviceIndex);
-									ChosenHand = EControllerHand::Left;
-									break;
-								case vr::TrackedControllerRole_RightHand:
-									UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i is being assigned to its prefered role 'right'."), DeviceIndex);
-									ChosenHand = EControllerHand::Right;
-									break;
-								case vr::TrackedControllerRole_Invalid:
-								{
-									const uint32 LeftDeviceIndex = VRSystem->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
-									const uint32 RightDeviceIndex = VRSystem->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
-									if (RightDeviceIndex == vr::k_unTrackedDeviceIndexInvalid)
-									{
-										UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i has no role set.  There is no 'right' controller according to steamvr, so we are pickign that."), DeviceIndex);
-										ChosenHand = EControllerHand::Right;
-									}
-									else if (LeftDeviceIndex == vr::k_unTrackedDeviceIndexInvalid)
-									{
-										UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i has no role set.  There is no 'left' controller according to steamvr, so we are pickign that."), DeviceIndex);
-										ChosenHand = EControllerHand::Left;
-									}
-									else
-									{
-										UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i has no role set.  We could not find an unused role, so picking Right.  This controller may not function correctly."), DeviceIndex);
-										ChosenHand = EControllerHand::Right;
-									}
-								}
-								break;
-								default:
-									UE_LOG(LogSteamVRController, Warning, TEXT("Controller device with unknown role %i encountered.  Ignoring it."), (int32)Role);
-									continue;
-								}
-							}
-						}
-
-						// determine which player controller to assign the device to
-						int32 ControllerIndex = FMath::FloorToInt(NumControllersMapped / CONTROLLERS_PER_PLAYER);
-
-						UE_LOG(LogSteamVRController, Verbose, TEXT("Controller device %i is being assigned unreal hand %i (left=0, right=1), for player %i."), DeviceIndex, (int32)ChosenHand, ControllerIndex);
-						ControllerStates[DeviceIndex].Hand = ChosenHand;
-						UnrealControllerHandUsageCount[(int32)ChosenHand] += 1;
-
-						DeviceToControllerMap[DeviceIndex] = ControllerIndex;
-
-						++NumControllersMapped;
-
-						// a new valid controller was mapped
-						bNewDeviceConnected = true;
-
-						UnrealControllerIdAndHandToDeviceIdMap[DeviceToControllerMap[DeviceIndex]][(int32)ControllerStates[DeviceIndex].Hand] = DeviceIndex;
-					}
-					// or if the device is a tracker
-					else if (DeviceClass == vr::TrackedDeviceClass_GenericTracker)
-					{
-						// check to see if there are any Special designations left, skip mapping it if there are not
-						if (NumTrackersMapped >= MaxSpecialDesignations)
-						{
-							// go ahead and increment, so we can display a little more info in the log
-							++NumTrackersMapped;
-							UE_LOG(LogSteamVRController, Warning, TEXT("Unable to map VR tracker (#%i) to Special hand designation!"), NumTrackersMapped);
-							continue;
-						}
-
-						// add the tracker to player 0
-						DeviceToControllerMap[DeviceIndex] = GENERIC_TRACKER_PLAYER_NUM;
-
-						// select next special #
-						switch (NumTrackersMapped)
-						{
-						case 0:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_1;
-							break;
-						case 1:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_2;
-							break;
-						case 2:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_3;
-							break;
-						case 3:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_4;
-							break;
-						case 4:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_5;
-							break;
-						case 5:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_6;
-							break;
-						case 6:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_7;
-							break;
-						case 7:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_8;
-							break;
-						case 8:
-							ControllerStates[DeviceIndex].Hand = EControllerHand::Special_9;
-							break;
-						default:
-							// initial mapping verification above should catch any erroneous NumTrackersMapped
-							check(false);
-							break;
-						}
-
-						++NumTrackersMapped;
-						UE_LOG(LogSteamVRController, Log, TEXT("Tracker device %i is being assigned unreal hand: Special %i, for player %i"), DeviceIndex, NumTrackersMapped, GENERIC_TRACKER_PLAYER_NUM);
-
-						// a new valid tracker was mapped
-						bNewDeviceConnected = true;
-
-						UnrealControllerIdAndHandToDeviceIdMap[DeviceToControllerMap[DeviceIndex]][(int32)ControllerStates[DeviceIndex].Hand] = DeviceIndex;
-					}
-
-					
 				}
 
 				// get the controller index for this device
@@ -573,7 +414,7 @@ public:
 						{
 							if (CurrentStates[ButtonIndex] != ControllerState.ButtonStates[ButtonIndex])
 							{
-								const FGamepadKeyNames::Type ButtonId = Buttons[(int32)HandToUse][ButtonIndex];
+								const FGamepadKeyNames::Type ButtonId = Buttons[(uint8)HandToUse][ButtonIndex];
 								if (ButtonId != FGamepadKeyNames::Invalid)
 								{
 									if (CurrentStates[ButtonIndex])
@@ -605,7 +446,7 @@ public:
 				{
 					if ( ControllerState.ButtonStates[ButtonIndex] != 0 && ControllerState.NextRepeatTime[ButtonIndex] <= CurrentTime)
 					{
-						const FGamepadKeyNames::Type ButtonId = Buttons[(int32)HandToUse][ButtonIndex];
+						const FGamepadKeyNames::Type ButtonId = Buttons[(uint8)HandToUse][ButtonIndex];
 						if (ButtonId != FGamepadKeyNames::Invalid)
 						{
 							MessageHandler->OnControllerButtonPressed(ButtonId, ControllerIndex, /*IsRepeat =*/true);
@@ -615,12 +456,6 @@ public:
 						ControllerState.NextRepeatTime[ButtonIndex] = CurrentTime + ButtonRepeatDelay;
 					}
 				}
-			}
-
-			// if a new device was connected, update the SteamVR plugin with the new mapping
-			if (bNewDeviceConnected == true)
-			{
-				SteamVRPlugin->SetUnrealControllerIdAndHandToDeviceIdMap(UnrealControllerIdAndHandToDeviceIdMap);
 			}
 		}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
@@ -806,9 +641,10 @@ public:
  		FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
  		if (SteamVRHMD)
  		{
+			int32 DeviceId = UnrealControllerIdAndHandToDeviceIdMap[ControllerIndex][(int32)DeviceHand];
  			FQuat DeviceOrientation = FQuat::Identity;
 			// Steam handles WorldToMetersScale when it reads the controller posrot, so we do not need to use it again here.  Debugging found that they are the same.
- 			RetVal = SteamVRHMD->GetControllerHandPositionAndOrientation(ControllerIndex, DeviceHand, OutPosition, DeviceOrientation);
+			RetVal = SteamVRHMD->GetCurrentPose(DeviceId, DeviceOrientation, OutPosition);
  			OutOrientation = DeviceOrientation.Rotator();
  		}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
@@ -824,7 +660,8 @@ public:
 		FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
  		if (SteamVRHMD)
  		{
-			TrackingStatus = SteamVRHMD->GetControllerTrackingStatus(ControllerIndex, DeviceHand);
+			int32 DeviceId = UnrealControllerIdAndHandToDeviceIdMap[ControllerIndex][(int32)DeviceHand];
+			TrackingStatus = SteamVRHMD->GetControllerTrackingStatus(DeviceId);
  		}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 
@@ -862,6 +699,220 @@ private:
 		}
 
 		return SteamVRPlugin->GetVRSystem();
+	}
+
+	void RegisterDeviceChanges(vr::IVRSystem* VRSystem)
+	{
+		for (uint32 DeviceIndex = 0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
+		{
+			// see what kind of hardware this is
+			vr::ETrackedDeviceClass DeviceClass = VRSystem->GetTrackedDeviceClass(DeviceIndex);
+
+			switch (DeviceClass)
+			{
+			case vr::TrackedDeviceClass_Controller:
+			{
+				// Check connection status
+				if (VRSystem->IsTrackedDeviceConnected(DeviceIndex))
+				{
+				// has the controller not been mapped yet
+				if (DeviceToControllerMap[DeviceIndex] == INDEX_NONE)
+				{
+						RegisterController(DeviceIndex, VRSystem);
+					}
+				}
+				// the controller has been disconnected, unmap it 
+				else if (DeviceToControllerMap[DeviceIndex] != INDEX_NONE)
+				{
+					UnregisterController(DeviceIndex);
+				}
+			}
+			break;
+			case vr::TrackedDeviceClass_GenericTracker:
+			{
+				// Check connection status
+				if (VRSystem->IsTrackedDeviceConnected(DeviceIndex))
+				{
+				// has the tracker not been mapped yet
+				if (DeviceToControllerMap[DeviceIndex] == INDEX_NONE)
+				{
+						RegisterTracker(DeviceIndex);
+					}
+				}
+				// the tracker has been disconnected, unmap it 
+				else if (DeviceToControllerMap[DeviceIndex] != INDEX_NONE)
+				{
+					UnregisterTracker(DeviceIndex);
+				}
+			}
+			break;
+			case vr::TrackedDeviceClass_Invalid:
+				// falls through
+			case vr::TrackedDeviceClass_HMD:
+				// falls through
+			case vr::TrackedDeviceClass_TrackingReference:
+				break;
+			default:
+				UE_LOG(LogSteamVRController, Warning, TEXT("Encountered unsupported device class of %i!"), (int32)DeviceClass);
+				break;
+			}
+		}
+	}
+
+	bool RegisterController(uint32 DeviceIndex, vr::IVRSystem* VRSystem)
+	{
+		// don't map too many controllers
+		if (NumControllersMapped >= MaxControllers)
+		{
+			UE_LOG(LogSteamVRController, Warning, TEXT("Found more controllers than we support (%i vs %i)!  Probably need to fix this."), NumControllersMapped + 1, MaxControllers);
+			return false;
+		}
+
+		// Decide which hand to associate this controller with
+		EControllerHand ChosenHand = EControllerHand::Special_9;
+		{
+			vr::ETrackedControllerRole Role = VRSystem->GetControllerRoleForTrackedDeviceIndex(DeviceIndex);
+			UE_LOG(LogSteamVRController, Verbose, TEXT("Controller role for device %i is %i (invalid=0, left=1, right=2)."), DeviceIndex, (int32)Role);
+
+			switch (Role)
+			{
+			case vr::ETrackedControllerRole::TrackedControllerRole_LeftHand:
+				ChosenHand = EControllerHand::Left;
+				break;
+			case vr::ETrackedControllerRole::TrackedControllerRole_RightHand:
+				ChosenHand = EControllerHand::Right;
+				break;
+			case vr::ETrackedControllerRole::TrackedControllerRole_Invalid:
+				// falls through
+			default:
+				return false;
+			}
+		}
+
+		// determine which player controller to assign the device to
+		int32 ControllerIndex = FMath::FloorToInt(NumControllersMapped / CONTROLLERS_PER_PLAYER);
+
+		UE_LOG(LogSteamVRController, Verbose, TEXT("Controller device %i is being assigned unreal hand %i (left=0, right=1), for player %i."), DeviceIndex, (int32)ChosenHand, ControllerIndex);
+		ControllerStates[DeviceIndex].Hand = ChosenHand;
+		UnrealControllerHandUsageCount[(int32)ChosenHand] += 1;
+
+		DeviceToControllerMap[DeviceIndex] = ControllerIndex;
+
+		++NumControllersMapped;
+
+		UnrealControllerIdAndHandToDeviceIdMap[DeviceToControllerMap[DeviceIndex]][(int32)ControllerStates[DeviceIndex].Hand] = DeviceIndex;
+
+		return true;
+	}
+
+	void DetectHandednessSwap(vr::IVRSystem* VRSystem)
+	{
+		const uint32 LeftDeviceIndex = VRSystem->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
+		const uint32 RightDeviceIndex = VRSystem->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
+
+		// both hands need to be assigned
+		if (LeftDeviceIndex != vr::k_unTrackedDeviceIndexInvalid && RightDeviceIndex != vr::k_unTrackedDeviceIndexInvalid)
+		{
+			// see if our mappings don't match
+			if (ControllerStates[LeftDeviceIndex].Hand != EControllerHand::Left || ControllerStates[RightDeviceIndex].Hand != EControllerHand::Right)
+			{
+				// explicitly assign the handedness
+				ControllerStates[LeftDeviceIndex].Hand = EControllerHand::Left;
+				ControllerStates[RightDeviceIndex].Hand = EControllerHand::Right;
+
+				int32 ControllerIndex = DeviceToControllerMap[LeftDeviceIndex];
+
+				UnrealControllerIdAndHandToDeviceIdMap[ControllerIndex][(int32)EControllerHand::Left] = LeftDeviceIndex;
+				UnrealControllerIdAndHandToDeviceIdMap[ControllerIndex][(int32)EControllerHand::Right] = RightDeviceIndex;
+			}
+		}
+	}
+
+	bool RegisterTracker(uint32 DeviceIndex)
+	{
+		// check to see if there are any Special designations left, skip mapping it if there are not
+		if (NumTrackersMapped >= MaxSpecialDesignations)
+		{
+			// go ahead and increment, so we can display a little more info in the log
+			++NumTrackersMapped;
+			UE_LOG(LogSteamVRController, Warning, TEXT("Unable to map VR tracker (#%i) to Special hand designation!"), NumTrackersMapped);
+			return false;
+		}
+
+		// add the tracker to player 0
+		DeviceToControllerMap[DeviceIndex] = GENERIC_TRACKER_PLAYER_NUM;
+
+		// select next special #
+		switch (NumTrackersMapped)
+		{
+		case 0:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_1;
+			break;
+		case 1:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_2;
+			break;
+		case 2:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_3;
+			break;
+		case 3:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_4;
+			break;
+		case 4:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_5;
+			break;
+		case 5:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_6;
+			break;
+		case 6:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_7;
+			break;
+		case 7:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_8;
+			break;
+		case 8:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_9;
+			break;
+		case 9:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_10;
+			break;
+		case 10:
+			ControllerStates[DeviceIndex].Hand = EControllerHand::Special_11;
+			break;
+		default:
+			// initial mapping verification above should catch any erroneous NumTrackersMapped
+			check(false);
+			break;
+		}
+
+		++NumTrackersMapped;
+		UE_LOG(LogSteamVRController, Log, TEXT("Tracker device %i is being assigned unreal hand: Special %i, for player %i"), DeviceIndex, NumTrackersMapped, GENERIC_TRACKER_PLAYER_NUM);
+
+		UnrealControllerIdAndHandToDeviceIdMap[DeviceToControllerMap[DeviceIndex]][(int32)ControllerStates[DeviceIndex].Hand] = DeviceIndex;
+
+		return true;
+	}
+
+	void UnregisterController(uint32 DeviceIndex)
+	{
+		UnrealControllerHandUsageCount[(int32)ControllerStates[DeviceIndex].Hand] -= 1;
+		UnregisterDevice(DeviceIndex);
+		NumControllersMapped--;
+	}
+
+	void UnregisterTracker(uint32 DeviceIndex)
+	{
+		UnregisterDevice(DeviceIndex);
+		NumTrackersMapped--;
+	}
+
+	void UnregisterDevice(uint32 DeviceIndex)
+	{
+		// undo the mappings
+		UnrealControllerIdAndHandToDeviceIdMap[DeviceToControllerMap[DeviceIndex]][(int32)ControllerStates[DeviceIndex].Hand] = INDEX_NONE;
+		DeviceToControllerMap[DeviceIndex] = INDEX_NONE;
+
+		// re-zero out the controller state
+		FMemory::Memzero(&ControllerStates[DeviceIndex], sizeof(FControllerState));
 	}
 
 	struct FControllerState
@@ -914,7 +965,7 @@ private:
 	float ButtonRepeatDelay;
 
 	/** Mapping of controller buttons */
-	FGamepadKeyNames::Type Buttons[ MAX_TRACKED_DEVICES ][ ESteamVRControllerButton::TotalButtonCount ];
+	FGamepadKeyNames::Type Buttons[ vr::k_unMaxTrackedDeviceCount ][ ESteamVRControllerButton::TotalButtonCount ];
 
 	/** weak pointer to the IVRSystem owned by the HMD module */
 	TWeakPtr<vr::IVRSystem> HMDVRSystem;

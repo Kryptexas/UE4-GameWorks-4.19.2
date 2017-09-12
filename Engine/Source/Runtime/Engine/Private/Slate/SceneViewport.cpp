@@ -17,6 +17,8 @@
 #include "Slate/DebugCanvas.h"
 
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
+#include "StereoRenderTargetManager.h"
 
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
@@ -1241,7 +1243,7 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 
 #if !PLATFORM_MAC
 			IHeadMountedDisplay::MonitorInfo MonitorInfo;
-			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
+			if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->GetHMDMonitorInfo(MonitorInfo))
 			{
 				if (MonitorInfo.DesktopX > 0 || MonitorInfo.DesktopY > 0)
 				{
@@ -1469,6 +1471,10 @@ void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 
 void FSceneViewport::EnqueueBeginRenderFrame()
 {
 	check( IsInGameThread() );
+	const bool bStereoRenderingAvailable = GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed();
+	const bool bStereoRenderingEnabled = bStereoRenderingAvailable && GEngine->StereoRenderingDevice->IsStereoEnabled();
+
+	IStereoRenderTargetManager* StereoRenderTargetManager = bStereoRenderingAvailable ? GEngine->StereoRenderingDevice->GetRenderTargetManager(): nullptr;
 
 	CurrentBufferedTargetIndex = NextBufferedTargetIndex;
 	NextBufferedTargetIndex = (CurrentBufferedTargetIndex + 1) % BufferedSlateHandles.Num();
@@ -1478,11 +1484,11 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	}
 
 	// check if we need to reallocate rendertarget for HMD and update HMD rendering viewport 
-	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
+	if (bStereoRenderingAvailable)
 	{
-		bool bHMDWantsSeparateRenderTarget = GEngine->StereoRenderingDevice->ShouldUseSeparateRenderTarget();
+		bool bHMDWantsSeparateRenderTarget = StereoRenderTargetManager != nullptr ? StereoRenderTargetManager->ShouldUseSeparateRenderTarget() : false;
 		if (bHMDWantsSeparateRenderTarget != bForceSeparateRenderTarget ||
-		    (bHMDWantsSeparateRenderTarget && GEngine->StereoRenderingDevice->NeedReAllocateViewportRenderTarget(*this)))
+		    (bHMDWantsSeparateRenderTarget && StereoRenderTargetManager->NeedReAllocateViewportRenderTarget(*this)))
 		{
 			// This will cause RT to be allocated (or freed)
 			bForceSeparateRenderTarget = bHMDWantsSeparateRenderTarget;
@@ -1497,7 +1503,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// If we dont have the ViewportRHI then we need to get it before rendering
 	// Note, we need ViewportRHI even if UseSeparateRenderTarget() is true when stereo rendering
 	// is enabled.
-	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled() && IsStereoRenderingAllowed())) )
+	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || bStereoRenderingEnabled))
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
 		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
@@ -1530,9 +1536,9 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 
 	FViewport::EnqueueBeginRenderFrame();
 
-	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
+	if (StereoRenderTargetManager != nullptr)
 	{
-		GEngine->StereoRenderingDevice->UpdateViewport(UseSeparateRenderTarget(), *this, ViewportWidget.Pin().Get());	
+		StereoRenderTargetManager->UpdateViewport(UseSeparateRenderTarget(), *this, ViewportWidget.Pin().Get());
 	}
 }
 
@@ -1720,14 +1726,15 @@ void FSceneViewport::InitDynamicRHI()
 		NumBufferedFrames = 1;
 		
 		// @todo vreditor switch: This code needs to be called when switching between stereo/non when going immersive.  Seems to always work out that way anyway though? (Probably due to resize)
-		const bool bStereo = (IsStereoRenderingAllowed() && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabledOnNextFrame());
-		bool bUseCustomPresentTexture = false;
+		IStereoRenderTargetManager * const StereoRenderTargetManager = 
+			(IsStereoRenderingAllowed() && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabledOnNextFrame())
+				? GEngine->StereoRenderingDevice->GetRenderTargetManager() 
+				: nullptr;
 
-		if (bStereo)
+		if (StereoRenderTargetManager != nullptr)
 		{
-			GEngine->StereoRenderingDevice->CalculateRenderTargetSize(*this, TexSizeX, TexSizeY);
-			
-			NumBufferedFrames = GEngine->StereoRenderingDevice->GetNumberOfBufferedFrames();
+			StereoRenderTargetManager->CalculateRenderTargetSize(*this, TexSizeX, TexSizeY);
+			NumBufferedFrames = StereoRenderTargetManager->GetNumberOfBufferedFrames();
 		}
 		
 		check(BufferedSlateHandles.Num() == BufferedRenderTargetsRHI.Num() && BufferedSlateHandles.Num() == BufferedShaderResourceTexturesRHI.Num());
@@ -1768,7 +1775,7 @@ void FSceneViewport::InitDynamicRHI()
 		for (int32 i = 0; i < NumBufferedFrames; ++i)
 		{
 			// try to allocate texture via StereoRenderingDevice; if not successful, use the default way
-			if (!bStereo || !GEngine->StereoRenderingDevice->AllocateRenderTargetTexture(i, TexSizeX, TexSizeY, SceneTargetFormat, 1, TexCreate_None, TexCreate_RenderTargetable, BufferedRTRHI, BufferedSRVRHI))
+			if (StereoRenderTargetManager == nullptr || !StereoRenderTargetManager->AllocateRenderTargetTexture(i, TexSizeX, TexSizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, BufferedRTRHI, BufferedSRVRHI))
 			{
 				RHICreateTargetableShaderResource2D(TexSizeX, TexSizeY, SceneTargetFormat, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, BufferedRTRHI, BufferedSRVRHI);
 			}
@@ -1832,6 +1839,8 @@ void FSceneViewport::ReleaseDynamicRHI()
 	FViewport::ReleaseDynamicRHI();
 
 	ViewportRHI.SafeRelease();
+
+	DebugCanvasDrawer->ReleaseResources();
 
 	for (int32 i = 0; i < BufferedSlateHandles.Num(); ++i)
 	{

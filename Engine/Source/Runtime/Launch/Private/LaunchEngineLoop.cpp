@@ -4083,7 +4083,7 @@ void FEngineLoop::PreInitHMDDevice()
 				bUnregisterHMDModule = true;
 				for (const FString& HMDModuleName : HMDAliases)
 				{
-					if (ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+					if (ExplicitHMDName.Equals(HMDModuleName, ESearchCase::IgnoreCase))
 					{
 						bUnregisterHMDModule = false;
 						break;

@@ -77,6 +77,16 @@ void FSteamVRHMD::DrawVisibleAreaMesh_RenderThread(FRHICommandList& RHICmdList, 
 	DrawOcclusionMesh(RHICmdList, StereoPass, VisibleAreaMeshes);
 }
 
+bool FSteamVRHMD::BridgeBaseImpl::NeedsNativePresent()
+{
+    if (Plugin->VRCompositor == nullptr)
+    {
+        return false;
+    }
+    
+    return true;
+}
+
 void FSteamVRHMD::BridgeBaseImpl::UpdateFrameSettings(FSteamVRHMD::FFrameSettings& NewSettings)
 {
 	FrameSettingsStack.Add(NewSettings);
@@ -130,17 +140,17 @@ void FSteamVRHMD::D3D11Bridge::FinishRendering()
 
 	vr::VRTextureBounds_t LeftBounds;
     LeftBounds.uMin = 0.0f;
-    LeftBounds.uMax = (float)FS.EyeViewports[0].Max.X / (float)FS.RenderTargetSize.X;
+	LeftBounds.uMax = 0.5f;
     LeftBounds.vMin = 0.0f;
-    LeftBounds.vMax = (float)FS.EyeViewports[0].Max.Y / (float)FS.RenderTargetSize.Y;
+    LeftBounds.vMax = 1.0f;
 	
     vr::EVRCompositorError Error = Plugin->VRCompositor->Submit(vr::Eye_Left, &Texture, &LeftBounds);
 
 	vr::VRTextureBounds_t RightBounds;
-	RightBounds.uMin = (float)FS.EyeViewports[1].Min.X / (float)FS.RenderTargetSize.X;;
+	RightBounds.uMin = 0.5f;
     RightBounds.uMax = 1.0f;
     RightBounds.vMin = 0.0f;
-    RightBounds.vMax = (float)FS.EyeViewports[1].Max.Y / (float)FS.RenderTargetSize.Y;
+    RightBounds.vMax = 1.0f;
 	
     
 	Texture.handle = RenderTargetTexture;
@@ -232,15 +242,15 @@ void FSteamVRHMD::VulkanBridge::FinishRendering()
 
 		vr::VRTextureBounds_t LeftBounds;
 		LeftBounds.uMin = 0.0f;
-		LeftBounds.uMax = (float)FS.EyeViewports[0].Max.X / (float)FS.RenderTargetSize.X;
+		LeftBounds.uMax = 0.5f;
 		LeftBounds.vMin = 0.0f;
-		LeftBounds.vMax = (float)FS.EyeViewports[0].Max.Y / (float)FS.RenderTargetSize.Y;
+		LeftBounds.vMax = 1.0f;
 
 		vr::VRTextureBounds_t RightBounds;
-		RightBounds.uMin = (float)FS.EyeViewports[1].Min.X / (float)FS.RenderTargetSize.X;;
+		RightBounds.uMin = 0.5f;
 		RightBounds.uMax = 1.0f;
 		RightBounds.vMin = 0.0f;
-		RightBounds.vMax = (float)FS.EyeViewports[1].Max.Y / (float)FS.RenderTargetSize.Y;
+		RightBounds.vMax = 1.0f;
 
 		vr::VRVulkanTextureData_t vulkanData {};
 		vulkanData.m_pInstance			= vlkRHI->GetInstance();
@@ -329,14 +339,14 @@ void FSteamVRHMD::OpenGLBridge::FinishRendering()
 
 	vr::VRTextureBounds_t LeftBounds;
 	LeftBounds.uMin = 0.0f;
-	LeftBounds.uMax = (float)FS.EyeViewports[0].Max.X / (float)FS.RenderTargetSize.X;
-	LeftBounds.vMin = (float)FS.EyeViewports[0].Max.Y / (float)FS.RenderTargetSize.Y;
+	LeftBounds.uMax = 0.5f;
+	LeftBounds.vMin = 1.0f;
 	LeftBounds.vMax = 0.0f;
 
 	vr::VRTextureBounds_t RightBounds;
-	RightBounds.uMin = (float)FS.EyeViewports[1].Min.X / (float)FS.RenderTargetSize.X;;
+	RightBounds.uMin = 0.5f;
 	RightBounds.uMax = 1.0f;
-	RightBounds.vMin = (float)FS.EyeViewports[1].Max.Y / (float)FS.RenderTargetSize.Y;
+	RightBounds.vMin = 1.0f;
 	RightBounds.vMax = 0.0f;
 
 	vr::Texture_t Texture;
@@ -423,10 +433,10 @@ void FSteamVRHMD::MetalBridge::FinishRendering()
 	FFrameSettings FS = GetFrameSettings();
 
 	vr::VRTextureBounds_t LeftBounds;
-    LeftBounds.uMin = 0.0f;
-    LeftBounds.uMax = (float)FS.EyeViewports[0].Max.X / (float)FS.RenderTargetSize.X;
-    LeftBounds.vMin = 0.0f;
-    LeftBounds.vMax = (float)FS.EyeViewports[0].Max.Y / (float)FS.RenderTargetSize.Y;
+	LeftBounds.uMin = 0.0f;
+	LeftBounds.uMax = 0.5f;
+	LeftBounds.vMin = 0.0f;
+	LeftBounds.vMax = 1.0f;
 	
 	id<MTLTexture> TextureHandle = (id<MTLTexture>)TextureSet->GetNativeResource();
 	
@@ -437,10 +447,10 @@ void FSteamVRHMD::MetalBridge::FinishRendering()
 	vr::EVRCompositorError Error = Plugin->VRCompositor->Submit(vr::Eye_Left, &Texture, &LeftBounds);
 
 	vr::VRTextureBounds_t RightBounds;
-	RightBounds.uMin = (float)FS.EyeViewports[1].Min.X / (float)FS.RenderTargetSize.X;
-    RightBounds.uMax = 1.0f;
-    RightBounds.vMin = 0.0f;
-    RightBounds.vMax = (float)FS.EyeViewports[1].Max.Y / (float)FS.RenderTargetSize.Y;
+	RightBounds.uMin = 0.5f;
+	RightBounds.uMax = 1.0f;
+	RightBounds.vMin = 0.0f;
+	RightBounds.vMax = 1.0f;
 	
 	Error = Plugin->VRCompositor->Submit(vr::Eye_Right, &Texture, &RightBounds);
 	if (Error != vr::VRCompositorError_None)

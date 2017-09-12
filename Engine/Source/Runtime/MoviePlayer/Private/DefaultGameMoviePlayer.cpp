@@ -14,6 +14,7 @@
 #include "MoviePlayerSettings.h"
 #include "ShaderCompiler.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "IStereoLayers.h"
 #include "ConfigCacheIni.h"
 #include "FileManager.h"
@@ -204,10 +205,10 @@ void FDefaultGameMoviePlayer::Initialize(FSlateRenderer& InSlateRenderer)
 			[
 				SAssignNew(UserWidgetDPIScaler, SDPIScaler)
 				[
-					SAssignNew(UserWidgetHolder, SBorder)
-					.BorderImage(FCoreStyle::Get().GetBrush(TEXT("NoBorder")))
-					.Padding(0)
-				]
+				SAssignNew(UserWidgetHolder, SBorder)
+				.BorderImage(FCoreStyle::Get().GetBrush(TEXT("NoBorder")))
+				.Padding(0)
+			]
 			]
 		];
 
@@ -284,7 +285,7 @@ void FDefaultGameMoviePlayer::SetupLoadingScreen(const FLoadingScreenAttributes&
 	}
 	else
 	{
-		LoadingScreenAttributes = InLoadingScreenAttributes;
+	LoadingScreenAttributes = InLoadingScreenAttributes;
 }
 }
 
@@ -474,7 +475,7 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		LoadingIsDone.Set(1);
 
 		IStereoLayers* StereoLayers;
-		if (GEngine && GEngine->HMDDevice.IsValid() && (StereoLayers = GEngine->HMDDevice->GetStereoLayers()) != nullptr && SyncMechanism == nullptr)
+		if (GEngine && GEngine->StereoRenderingDevice.IsValid() && (StereoLayers = GEngine->StereoRenderingDevice->GetStereoLayers()) != nullptr && SyncMechanism == nullptr)
 		{
 			StereoLayers->SetSplashScreenMovie(FTextureRHIRef());
 		}
@@ -558,7 +559,7 @@ void FDefaultGameMoviePlayer::TickStreamer(float DeltaTime)
 		}
 
 		IStereoLayers* StereoLayers;
-		if (GEngine && GEngine->HMDDevice.IsValid() && (StereoLayers = GEngine->HMDDevice->GetStereoLayers()) != nullptr)
+		if (GEngine && GEngine->StereoRenderingDevice.IsValid() && (StereoLayers = GEngine->StereoRenderingDevice->GetStereoLayers()) != nullptr)
 		{
 			FTexture2DRHIRef Movie2DTexture = MovieStreamer->GetTexture();
 			FTextureRHIRef MovieTexture;

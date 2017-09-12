@@ -16,6 +16,10 @@
 #include "Modules/ModuleManager.h"
 #include "VulkanPipelineState.h"
 
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "VulkanRHI"
 
 #ifdef VK_API_VERSION
@@ -224,8 +228,33 @@ static bool LoadVulkanLibrary()
 	return GVulkanDLLModule != nullptr;
 }
 
+// Annoyingly, some functions do not have static bindings
+namespace VulkanRHI
+{
+	PFN_vkGetPhysicalDeviceProperties2KHR GVkGetPhysicalDeviceProperties2KHR = nullptr;
+}
+
 static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
 {
+	if (!GVulkanDLLModule)
+	{
+		return false;
+	}
+
+	PFN_vkGetInstanceProcAddr GetInstanceProcAddr =  (PFN_vkGetInstanceProcAddr) FPlatformProcess::GetDllExport(GVulkanDLLModule, TEXT("vkGetInstanceProcAddr"));
+
+	if (!GetInstanceProcAddr)
+	{
+		return false;
+	}
+
+#pragma warning(push)
+#pragma warning(disable : 4191) // warning C4191: 'type cast': unsafe conversion
+
+	VulkanRHI::GVkGetPhysicalDeviceProperties2KHR = (PFN_vkGetPhysicalDeviceProperties2KHR) GetInstanceProcAddr(inInstance, "vkGetPhysicalDeviceProperties2KHR");
+
+#pragma warning(pop) // restore 4191
+
 	return true;
 }
 
@@ -549,8 +578,10 @@ void FVulkanDynamicRHI::InitInstance()
 
 		GRHISupportsAsyncTextureCreation = false;
 
-		bool bDeviceSupportsGeometryShaders = true;
-		bool bDeviceSupportsTessellation = true;
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+		// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
+		uint64 HmdGraphicsAdapterLuid  = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapterLuid() : 0;
+#endif
 
 		{
 			CreateInstance();
@@ -563,25 +594,65 @@ void FVulkanDynamicRHI::InitInstance()
 			PhysicalDevices.AddZeroed(GpuCount);
 			VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkEnumeratePhysicalDevices(Instance, &GpuCount, PhysicalDevices.GetData()));
 
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+			FVulkanDevice* HmdDevice = nullptr;
+			uint32 HmdDeviceIndex = 0;
+#endif
+			FVulkanDevice* DiscreteDevice = nullptr;
+			uint32 DiscreteDeviceIndex = 0;
+
 			UE_LOG(LogVulkanRHI, Display, TEXT("Found %d device(s)"), GpuCount);
 			for (uint32 Index = 0; Index < GpuCount; ++Index)
 			{
 				FVulkanDevice* NewDevice = new FVulkanDevice(PhysicalDevices[Index]);
 				Devices.Add(NewDevice);
 
-				bool bCouldBeMainDevice = NewDevice->QueryGPU(Index);
-				if (Index == GpuCount - 1 || bCouldBeMainDevice)
-				{
-					NewDevice->InitGPU(Index);
-					Device = NewDevice;
+				bool bIsDiscrete = NewDevice->QueryGPU(Index);
 
-					bDeviceSupportsGeometryShaders = bDeviceSupportsGeometryShaders && NewDevice->GetFeatures().geometryShader;
-					bDeviceSupportsTessellation = bDeviceSupportsTessellation && NewDevice->GetFeatures().tessellationShader;
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+				if (!HmdDevice && HmdGraphicsAdapterLuid != 0 && 
+					NewDevice->GetOptionalExtensions().HasKHRGetPhysicalDeviceProperties2 && 
+					FMemory::Memcmp(&HmdGraphicsAdapterLuid, &NewDevice->GetDeviceIdProperties().deviceLUID, VK_LUID_SIZE_KHR) == 0)
+				{
+					HmdDevice = NewDevice;
+					HmdDeviceIndex = Index;
+				}
+#endif
+
+				if (!DiscreteDevice && bIsDiscrete)
+				{
+					DiscreteDevice = NewDevice;
+					DiscreteDeviceIndex = Index;
 				}
 			}
 
+			uint32 DeviceIndex;
+
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+			if (HmdDevice)
+			{
+				Device = HmdDevice;
+				DeviceIndex = HmdDeviceIndex;
+			} 
+			else
+#endif
+			if (DiscreteDevice)
+			{
+				Device = DiscreteDevice;
+				DeviceIndex = DiscreteDeviceIndex;
+			}
+			else
+			{
+				Device = Devices[0];
+				DeviceIndex = 0;
+			}
+
 			check(Device);
+			Device->InitGPU(DeviceIndex);
 		}
+
+		bool bDeviceSupportsGeometryShaders = Device->GetFeatures().geometryShader != 0;
+		bool bDeviceSupportsTessellation = Device->GetFeatures().tessellationShader != 0;
 
 		const VkPhysicalDeviceProperties& Props = Device->GetDeviceProperties();
 
@@ -675,6 +746,9 @@ void FVulkanDynamicRHI::InitInstance()
 		FHardwareInfo::RegisterHardwareInfo(NAME_RHI, TEXT("Vulkan"));
 
 		GProjectionSignY = 1.0f;
+
+		// Release the early HMD interface used to query extra extensions - if any was used
+		HMDVulkanExtensions = nullptr;
 
 		GIsRHIInitialized = true;
 
@@ -887,19 +961,32 @@ void FVulkanDynamicRHI::RHISubmitCommandsAndFlushGPU()
 	Device->SubmitCommandsAndFlushGPU();
 }
 
-FTexture2DRHIRef FVulkanDynamicRHI::RHICreateTexture2DFromVkImage(uint8 Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 Flags)
+FTexture2DRHIRef FVulkanDynamicRHI::RHICreateTexture2DFromResource(EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, VkImage Resource, uint32 Flags)
 {
-	return new FVulkanBackBuffer(*Device, (EPixelFormat)Format, SizeX, SizeY, Image, Flags);
+	return new FVulkanTexture2D(*Device, Format, SizeX, SizeY, NumMips, NumSamples, Resource, Flags, FRHIResourceCreateInfo());
 }
 
-void FVulkanDynamicRHI::RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2DRHI, FTexture2DRHIParamRef SrcTexture2DRHI)
+FTexture2DArrayRHIRef FVulkanDynamicRHI::RHICreateTexture2DArrayFromResource(EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 ArraySize, uint32 NumMips, VkImage Resource, uint32 Flags)
 {
-	FVulkanTexture2D* DestTexture2D = static_cast<FVulkanTexture2D*>(DestTexture2DRHI);
-	FVulkanTexture2D* SrcTexture2D = static_cast<FVulkanTexture2D*>(SrcTexture2DRHI);
+	return new FVulkanTexture2DArray(*Device, Format, SizeX, SizeY, ArraySize, NumMips, Resource, Flags, nullptr, FClearValueBinding());
+}
 
-	if (DestTexture2D && SrcTexture2D)
+FTextureCubeRHIRef FVulkanDynamicRHI::RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 Size, bool bArray, uint32 ArraySize, uint32 NumMips, VkImage Resource, uint32 Flags)
+{
+	return new FVulkanTextureCube(*Device, Format, Size, bArray, ArraySize, NumMips, Resource, Flags, nullptr, FClearValueBinding());
+}
+
+void FVulkanDynamicRHI::RHIAliasTextureResources(FTextureRHIParamRef DestTextureRHI, FTextureRHIParamRef SrcTextureRHI)
+{
+	if (DestTextureRHI && SrcTextureRHI)
 	{
-		// UNDONE DestTexture2D->AliasResources(SrcTexture2D);
+		FVulkanTextureBase* DestTextureBase = (FVulkanTextureBase*) DestTextureRHI->GetTextureBaseRHI();
+		FVulkanTextureBase* SrcTextureBase = (FVulkanTextureBase*) SrcTextureRHI->GetTextureBaseRHI();
+
+		if (DestTextureBase && SrcTextureBase)
+		{
+			DestTextureBase->AliasTextureResources(SrcTextureBase);
+		}
 	}
 }
 

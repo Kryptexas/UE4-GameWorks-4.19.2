@@ -2312,3 +2312,89 @@ void FOpenGLDynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef T
 		TextureRef->SetReferencedTexture(NewTextureRHI);
 	}
 }
+
+FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2DFromResource(EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, uint32 NumSamplesTileMem, const FClearValueBinding& ClearValueBinding, GLuint Resource, uint32 TexCreateFlags)
+{
+	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(
+		this,
+		Resource,
+		(NumSamples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D,
+		GL_NONE,
+		SizeX,
+		SizeY,
+		0,
+		NumMips,
+		NumSamples,
+		NumSamplesTileMem,
+		1,
+		Format,
+		false,
+		false,
+		TexCreateFlags,
+		nullptr,
+		ClearValueBinding);
+
+	OpenGLTextureAllocated(Texture2D, TexCreateFlags);
+	return Texture2D;
+}
+
+FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArrayFromResource(EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 ArraySize, uint32 NumMips, uint32 NumSamples, uint32 NumSamplesTileMem, const FClearValueBinding& ClearValueBinding, GLuint Resource, uint32 TexCreateFlags)
+{
+	FOpenGLTexture2D* Texture2DArray = new FOpenGLTexture2D(
+		this,
+		Resource,
+		GL_TEXTURE_2D_ARRAY,
+		GL_NONE,
+		SizeX,
+		SizeY,
+		0,
+		NumMips,
+		NumSamples,
+		NumSamplesTileMem,
+		ArraySize,
+		Format,
+		false,
+		false,
+		TexCreateFlags,
+		nullptr,
+		ClearValueBinding);
+
+	OpenGLTextureAllocated(Texture2DArray, TexCreateFlags);
+	return Texture2DArray;
+}
+
+FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 Size, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 NumSamples, uint32 NumSamplesTileMem, const FClearValueBinding& ClearValueBinding, GLuint Resource, uint32 TexCreateFlags)
+{
+	FOpenGLTextureCube* TextureCube = new FOpenGLTextureCube(
+		this,
+		Resource,
+		GL_TEXTURE_CUBE_MAP,
+		GL_NONE,
+		Size,
+		Size,
+		0,
+		NumMips,
+		NumSamples,
+		NumSamplesTileMem,
+		1,
+		Format,
+		false,
+		false,
+		TexCreateFlags,
+		nullptr,
+		ClearValueBinding);
+
+	OpenGLTextureAllocated(TextureCube, TexCreateFlags);
+	return TextureCube;
+}
+
+void FOpenGLDynamicRHI::RHIAliasTextureResources(FTextureRHIParamRef DestRHITexture, FTextureRHIParamRef SrcRHITexture)
+{
+	FOpenGLTextureBase* DestTexture = GetOpenGLTextureFromRHITexture(DestRHITexture);
+	FOpenGLTextureBase* SrcTexture = GetOpenGLTextureFromRHITexture(SrcRHITexture);
+
+	if (DestTexture && SrcTexture)
+	{
+		DestTexture->AliasResources(SrcTexture);
+	}
+}

@@ -72,6 +72,7 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentStreaming.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "ActorGroupingUtils.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
@@ -2443,7 +2444,7 @@ static bool CommandAcceptsInput( FLevelEditorViewportClient& ViewportClient, FKe
 			&& (!Chord.NeedsAlt() || ViewportClient.IsAltPressed())
 			&& (!Chord.NeedsShift() || ViewportClient.IsShiftPressed())
 			&& (!Chord.NeedsCommand() || ViewportClient.IsCmdPressed())
-			&& Chord.Key == Key;
+		&& Chord.Key == Key;
 	}
 	return bAccepted;
 }
@@ -4222,12 +4223,12 @@ void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 		{
 			FVector ViewLocation = GetViewLocation();
 
-			const bool bStereoRendering = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D( Viewport );
-			if( bStereoRendering && GEngine->HMDDevice->IsHeadTrackingAllowed() )
+			const bool bStereoRendering = GEngine->XRSystem.IsValid() && GEngine->IsStereoscopic3D( Viewport );
+			if( bStereoRendering && GEngine->XRSystem->IsHeadTrackingAllowed() )
 			{
 				FQuat RoomSpaceHeadOrientation;
 				FVector RoomSpaceHeadLocation;
-				GEngine->HMDDevice->GetCurrentOrientationAndPosition( /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation );
+				GEngine->XRSystem->GetCurrentPose( IXRTrackingSystem::HMDDeviceId, /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation );
 
 				// NOTE: The RoomSpaceHeadLocation has already been adjusted for WorldToMetersScale
 				const FVector WorldSpaceHeadLocation = GetViewLocation() + GetViewRotation().RotateVector( RoomSpaceHeadLocation );

@@ -56,12 +56,8 @@ UMotionControllerComponent::~UMotionControllerComponent()
 			ViewExtension->MotionControllerComponent = NULL;
 		}
 
-		if (GEngine)
-		{
-			GEngine->ViewExtensions.Remove(ViewExtension);
-		}
-	}
-	ViewExtension.Reset();
+		ViewExtension.Reset();
+	}	
 }
 
 void UMotionControllerComponent::SendRenderTransform_Concurrent()
@@ -89,9 +85,7 @@ void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick 
 
 		if (!ViewExtension.IsValid() && GEngine)
 		{
-			TSharedPtr< FViewExtension, ESPMode::ThreadSafe > NewViewExtension(new FViewExtension(this));
-			ViewExtension = NewViewExtension;
-			GEngine->ViewExtensions.Add(ViewExtension);
+			ViewExtension = FSceneViewExtensions::NewExtension<FViewExtension>(this);
 		}
 	}
 }
@@ -142,14 +136,9 @@ void UMotionControllerComponent::FViewExtension::BeginRenderViewFamily(FSceneVie
 	{
 		return;
 	}
-	FScopeLock ScopeLock(&CritSect);
-	if (!MotionControllerComponent || MotionControllerComponent->bDisableLowLatencyUpdate || !CVarEnableMotionControllerLateUpdate.GetValueOnGameThread())
-	{
-		return;
-	}
 
-	LateUpdatePrimitives.Reset();
-	GatherLateUpdatePrimitives(MotionControllerComponent, LateUpdatePrimitives);
+	// Set up the late update state for the controller component
+	LateUpdate.Setup(MotionControllerComponent->CalcNewComponentToWorld(FTransform()), MotionControllerComponent);
 }
 
 //=============================================================================
@@ -159,85 +148,52 @@ void UMotionControllerComponent::FViewExtension::PreRenderViewFamily_RenderThrea
 	{
 		return;
 	}
-	FScopeLock ScopeLock(&CritSect);
-	if (!MotionControllerComponent || MotionControllerComponent->bDisableLowLatencyUpdate || !CVarEnableMotionControllerLateUpdate.GetValueOnRenderThread())
-	{
-		return;
-	}
 
-	// Find a view that is associated with this player.
-	float WorldToMetersScale = -1.0f;
-	for (const FSceneView* SceneView : InViewFamily.Views)
+	FTransform OldTransform;
+	FTransform NewTransform;
 	{
-		if (SceneView && SceneView->PlayerIndex == MotionControllerComponent->PlayerIndex)
+		FScopeLock ScopeLock(&CritSect);
+		if (!MotionControllerComponent)
 		{
-			WorldToMetersScale = SceneView->WorldToMetersScale;
-			break;
+			return;
 		}
-	}
-	// If there are no views associated with this player use view 0.
-	if (WorldToMetersScale < 0.0f)
-	{
-		check(InViewFamily.Views.Num() > 0);
-		WorldToMetersScale = InViewFamily.Views[0]->WorldToMetersScale;
-	}
 
-	// Poll state for the most recent controller transform
-	FVector Position;
-	FRotator Orientation;
-	if (!MotionControllerComponent->PollControllerState(Position, Orientation, WorldToMetersScale))
-	{
-		return;
-	}
-	
-	if (LateUpdatePrimitives.Num())
-	{
-		// Calculate the late update transform that will rebase all children proxies within the frame of reference
-		const FTransform OldLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(MotionControllerComponent->RenderThreadRelativeTransform);
-		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position, MotionControllerComponent->RenderThreadComponentScale));
-		const FMatrix LateUpdateTransform = (OldLocalToWorldTransform.Inverse() * NewLocalToWorldTransform).ToMatrixWithScale();
-
-		// Apply delta to the affected scene proxies
-		for (auto PrimitiveInfo : LateUpdatePrimitives)
+		// Find a view that is associated with this player.
+		float WorldToMetersScale = -1.0f;
+		for (const FSceneView* SceneView : InViewFamily.Views)
 		{
-			FPrimitiveSceneInfo* RetrievedSceneInfo = InViewFamily.Scene->GetPrimitiveSceneInfo(*PrimitiveInfo.IndexAddress);
-			FPrimitiveSceneInfo* CachedSceneInfo = PrimitiveInfo.SceneInfo;
-			// If the retrieved scene info is different than our cached scene info then the primitive was removed from the scene
-			if (CachedSceneInfo == RetrievedSceneInfo && CachedSceneInfo->Proxy)
+			if (SceneView && SceneView->PlayerIndex == MotionControllerComponent->PlayerIndex)
 			{
-				CachedSceneInfo->Proxy->ApplyLateUpdateTransform(LateUpdateTransform);
+				WorldToMetersScale = SceneView->WorldToMetersScale;
+				break;
 			}
 		}
-		LateUpdatePrimitives.Reset();
-	}
+		// If there are no views associated with this player use view 0.
+		if (WorldToMetersScale < 0.0f)
+		{
+			check(InViewFamily.Views.Num() > 0);
+			WorldToMetersScale = InViewFamily.Views[0]->WorldToMetersScale;
+		}
+
+		// Poll state for the most recent controller transform
+		FVector Position;
+		FRotator Orientation;
+		if (!MotionControllerComponent->PollControllerState(Position, Orientation, WorldToMetersScale))
+		{
+			return;
+		}
+
+		OldTransform = MotionControllerComponent->RenderThreadRelativeTransform;
+		NewTransform = FTransform(Orientation, Position, MotionControllerComponent->RenderThreadComponentScale);
+	} // Release the lock on the MotionControllerComponent
+
+	// Tell the late update manager to apply the offset to the scene components
+	LateUpdate.Apply_RenderThread(InViewFamily.Scene, OldTransform, NewTransform);
 }
 
-void UMotionControllerComponent::FViewExtension::GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives)
+bool UMotionControllerComponent::FViewExtension::IsActiveThisFrame(class FViewport* InViewport) const
 {
-	// If a scene proxy is present, cache it
-	UPrimitiveComponent* PrimitiveComponent = dynamic_cast<UPrimitiveComponent*>(Component);
-	if (PrimitiveComponent && PrimitiveComponent->SceneProxy)
-	{
-		FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveComponent->SceneProxy->GetPrimitiveSceneInfo();
-		if (PrimitiveSceneInfo)
-		{
-			LateUpdatePrimitiveInfo PrimitiveInfo;
-			PrimitiveInfo.IndexAddress = PrimitiveSceneInfo->GetIndexAddress();
-			PrimitiveInfo.SceneInfo = PrimitiveSceneInfo;
-			Primitives.Add(PrimitiveInfo);
-		}
-	}
-
-	// Gather children proxies
-	const int32 ChildCount = Component->GetNumChildrenComponents();
-	for (int32 ChildIndex = 0; ChildIndex < ChildCount; ++ChildIndex)
-	{
-		USceneComponent* ChildComponent = Component->GetChildComponent(ChildIndex);
-		if (!ChildComponent)
-		{
-			continue;
-		}
-
-		GatherLateUpdatePrimitives(ChildComponent, Primitives);
-	}
+	check(IsInGameThread());
+	return MotionControllerComponent && !MotionControllerComponent->bDisableLowLatencyUpdate && CVarEnableMotionControllerLateUpdate.GetValueOnGameThread();
 }
+

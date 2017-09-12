@@ -5,7 +5,6 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_MatchmakingAdminSnapshotCandidateArray.h"
-#include <stddef.h>
 
 typedef struct ovrMatchmakingAdminSnapshot *ovrMatchmakingAdminSnapshotHandle;
 

@@ -15,6 +15,9 @@
 #include "Classes/GoogleVRHMDFunctionLibrary.h"
 #include "GoogleVRSplash.h"
 #include "Containers/Queue.h"
+#include "XRRenderTargetManager.h"
+#include "IXRInput.h"
+
 
 #define LOG_VIEWER_DATA_FOR_GENERATION 0
 
@@ -145,9 +148,16 @@ public:
 	// Called when viewport is resized.
 	virtual void OnBackBufferResize() override;
 
+	// Called from render thread to see if a native present will be requested for this frame.
+	// @return	true if native Present will be requested for this frame; false otherwise.  Must
+	// match value subsequently returned by Present for this frame.
+	virtual bool NeedsNativePresent() override;
+
+	// Called from RHI thread to perform custom present.
 	// @param InOutSyncInterval - in out param, indicates if vsync is on (>0) or off (==0).
-	// @return	true if normal Present should be performed; false otherwise. If it returns
-	// true, then InOutSyncInterval could be modified to switch between VSync/NoVSync for the normal Present.
+	// @return	true if native Present should be also be performed; false otherwise. If it returns
+	// true, then InOutSyncInterval could be modified to switch between VSync/NoVSync for the normal 
+	// Present.  Must match value previously returned by NeedsNormalPresent for this frame.
 	virtual bool Present(int32& InOutSyncInterval) override;
 
 	//// Called when rendering thread is acquired
@@ -165,16 +175,16 @@ public:
 /**
  * GoogleVR Head Mounted Display
  */
-class FGoogleVRHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public FSelfRegisteringExec, public TSharedFromThis<FGoogleVRHMD, ESPMode::ThreadSafe>
+class FGoogleVRHMD : public FHeadMountedDisplayBase, public FXRRenderTargetManager, public IXRInput, public FSelfRegisteringExec, public FSceneViewExtensionBase
 {
 	friend class FGoogleVRHMDCustomPresent;
 	friend class FGoogleVRSplash;
 public:
 
-	FGoogleVRHMD();
+	FGoogleVRHMD(const FAutoRegister&);
 	~FGoogleVRHMD();
 
-	virtual FName GetDeviceName() const override
+	virtual FName GetSystemName() const override
 	{
 		static FName DefaultName(TEXT("FGoogleVRHMD"));
 		return DefaultName;
@@ -183,14 +193,8 @@ public:
 	/** @return	True if the HMD was initialized OK */
 	bool IsInitialized() const;
 
-	/** Get current pose */
-	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition);
-
 	/** Update viewportlist */
 	void UpdateGVRViewportList() const;
-
-	/** Update head pose, Should be called at the beginning of a frame**/
-	void UpdateHeadPose();
 
 	/** Helper method to get renderer module */
 	IRendererModule* GetRendererModule();
@@ -208,7 +212,7 @@ public:
 	FIntPoint GetGVRHMDRenderTargetSize();
 
 	/** Get the maximal effective render target size for the current windows size(surface size).
-	 *  This value is got from gvr sdk. Which may change based on the viewer.
+	 *  This value is got from GVR SDK. Which may change based on the viewer.
 	 */
 	FIntPoint GetGVRMaxRenderTargetSize();
 
@@ -223,7 +227,7 @@ public:
 
 	/** Set the RenderTargetSize with the desired value.
 	 *  Note that the size will be rounded up to the next multiple of 4.
-	 *  This is because Unreal need the rendertarget size is dividable by 4 for post process.
+	 *  This is because Unreal need the render target size is dividable by 4 for post process.
 	 */
 	bool SetGVRHMDRenderTargetSize(int DesiredWidth, int DesiredHeight, FIntPoint& OutRenderTargetSize);
 
@@ -251,7 +255,7 @@ public:
 	/** Get the scaling factor used for applying the neck model offset */
 	float GetNeckModelScale() const;
 
-	/** Check if application was launched in Vr." */
+	/** Check if application was launched in VR." */
 	bool IsVrLaunch() const;
 
 	/** Check if the application is running in Daydream mode*/
@@ -298,12 +302,12 @@ private:
 	float GetWorldToMetersScale() const;
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	/** Get the Viewport Rect from GVR */
-	FIntRect CalculateGVRViewportRect(int RenderTargetSizeX, int RenderTargetSizeY, EStereoscopicPass StereoPassType);
-
 	/** Get the Eye FOV from GVR SDK */
 	gvr_rectf GetGVREyeFOV(int EyeIndex) const;
 #endif
+
+	/** Helper method implementing GetRelativeEyePose and GetInterpupillaryDistance */
+	void GetRelativeHMDEyePose(EStereoscopicPass Eye, FQuat& OutOrientation, FVector& OutPosition) const;
 
 	/** Function get called when start loading a map*/
 	void OnPreLoadMap(const FString&);
@@ -313,6 +317,7 @@ private:
 	void DistortMethodCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void RenderTargetSizeCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void NeckModelScaleCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	void DistortMeshSizeCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
@@ -373,10 +378,6 @@ private:
 	bool		bForceStopPresentScene;
 	bool		bIsMobileMultiViewDirect;
 	float		NeckModelScale;
-	FQuat		CurHmdOrientation;
-	FVector		CurHmdPosition;
-	FRotator	DeltaControlRotation;    // same as DeltaControlOrientation but as rotator
-	FQuat		DeltaControlOrientation; // same as DeltaControlRotation but as quat
 	FQuat		BaseOrientation;
 
 	// Drawing Data
@@ -451,35 +452,27 @@ private:
 #endif
 
 public:
-
 	//////////////////////////////////////////////////////
 	// Begin ISceneViewExtension Pure-Virtual Interface //
 	//////////////////////////////////////////////////////
 
+#if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 	/**
-	 * Called on game thread when creating the view family.
-	 */
-	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) override;
-	/**
-	 * Called on game thread when creating the view.
-	 */
-	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
-	/**
-	 * Called on game thread when view family is about to be rendered.
-	 */
-	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) override;
-	/**
-	 * Called on render thread at the start of rendering.
-	 */
-	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
-	/**
-	 * Called on render thread at the start of rendering, for each view, after PreRenderViewFamily_RenderThread call.
-	 */
-	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
-	/**
-	* Called on render thread after rendering.
+	* Called on render thread after rendering. Used to copy instant preview framebuffer to the viewer application.
 	*/
 	virtual void PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
+#endif  // GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+
+	// This view extension should only be allowed when stereo is enabled.
+	virtual bool IsActiveThisFrame(class FViewport* InViewport) const override;
+
+	// Remaining pure virtual methods are not used
+	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) override {}
+	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override {}
+	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) override {}
+	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override {}
+	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override {}
+
 
 	///////////////////////////////////////////////////
 	// Begin IStereoRendering Pure-Virtual Interface //
@@ -502,116 +495,46 @@ public:
 	virtual void AdjustViewRect(enum EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const override;
 
 	/**
-	 * Calculates the offset for the camera position, given the specified position, rotation, and world scale
-	 */
-	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override;
-
-	/**
 	 * Gets a projection matrix for the device, given the specified eye setup
 	 */
-	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType, const float FOV) const override;
-
-	/**
-	 * Sets view-specific params (such as view projection matrix) for the canvas.
-	 */
-	virtual void InitCanvasFromView(class FSceneView* InView, class UCanvas* Canvas) override;
+	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType) const override;
 
 	//////////////////////////////////////////////
 	// Begin IStereoRendering Virtual Interface //
 	//////////////////////////////////////////////
-
-	///**
-	// * Whether or not stereo rendering is on on next frame. Useful to determine if some preparation work
-	// * should be done before stereo got enabled in next frame.
-	// */
-	//virtual bool IsStereoEnabledOnNextFrame() const { return IsStereoEnabled(); }
-
-	///**
-	// * Gets the percentage bounds of the safe region to draw in.  This allows things like stat rendering to appear within the readable portion of the stereo view.
-	// * @return	The centered percentage of the view that is safe to draw readable text in
-	// */
-	//virtual FVector2D GetTextSafeRegionBounds() const { return FVector2D(0.75f, 0.75f); }
 
 	/**
 	 * Returns eye render params, used from PostProcessHMD, RenderThread.
 	 */
 	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
 
-	///**
-	// * Returns timewarp matrices, used from PostProcessHMD, RenderThread.
-	// */
-	//virtual void GetTimewarpMatrices_RenderThread(const struct FRenderingCompositePassContext& Context, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const {}
-
-	// Optional methods to support rendering into a texture.
-	/**
-	 * Updates viewport for direct rendering of distortion. Should be called on a game thread.
-	 * Optional SViewport* parameter can be used to access SWindow object.
-	 */
-	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const class FViewport& Viewport, class SViewport* = nullptr) override;
-
-	/**
-	 * Calculates dimensions of the render target texture for direct rendering of distortion.
-	 */
-	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
-
-	/**
-	 * Returns true, if render target texture must be re-calculated.
-	 */
-	virtual bool NeedReAllocateViewportRenderTarget(const class FViewport& Viewport) override;
-
-	// Whether separate render target should be used or not.
-	virtual bool ShouldUseSeparateRenderTarget() const override;
-
 	// Renders texture into a backbuffer. Could be empty if no rendertarget texture is used, or if direct-rendering
 	// through RHI bridge is implemented.
 	virtual void RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture) const override;
-
-	///**
-	// * Called after Present is called.
-	// */
-	//virtual void FinishRenderingFrame_RenderThread(class FRHICommandListImmediate& RHICmdList) {}
-
-	///**
-	// * Returns orthographic projection , used from Canvas::DrawItem.
-	// */
-	//virtual void GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const
-	//{
-	//	OrthoProjection[0] = OrthoProjection[1] = FMatrix::Identity;
-	//	OrthoProjection[1] = FTranslationMatrix(FVector(OrthoProjection[1].M[0][3] * RTWidth * .25 + RTWidth * .5, 0, 0));
-	//}
-
-	///**
-	// * Sets screen percentage to be used for stereo rendering.
-	// *
-	// * @param ScreenPercentage	(in) Specifies the screen percentage to be used in VR mode. Use 0.0f value to reset to default value.
-	// */
-	//virtual void SetScreenPercentage(float InScreenPercentage) {}
-	//
-	///**
-	// * Returns screen percentage to be used for stereo rendering.
-	// *
-	// * @return (float)	The screen percentage to be used in stereo mode. 0.0f, if default value is used.
-	// */
-	//virtual float GetScreenPercentage() const { return 0.0f; }
-
-	/**
-	 * Sets near and far clipping planes (NCP and FCP) for stereo rendering. Similar to 'stereo ncp= fcp' console command, but NCP and FCP set by this
-	 * call won't be saved in .ini file.
-	 *
-	 * @param NCP				(in) Near clipping plane, in centimeters
-	 * @param FCP				(in) Far clipping plane, in centimeters
-	 */
-	virtual void SetClippingPlanes(float NCP, float FCP) override;
 
 	/**
 	 * Returns currently active custom present.
 	 */
 	virtual FRHICustomPresent* GetCustomPresent() override;
 
+	virtual IStereoRenderTargetManager* GetRenderTargetManager() override { return this; }
+
+	////////////////////////////////////////////
+	// Begin FXRRenderTargetManager Interface //
+	////////////////////////////////////////////
+
 	/**
-	 * Returns number of required buffered frames.
+	* Updates viewport for direct rendering of distortion. Should be called on a game thread.
 	 */
-	virtual uint32 GetNumberOfBufferedFrames() const override;
+	virtual void UpdateViewportRHIBridge(bool bUseSeparateRenderTarget, const class FViewport& Viewport, FRHIViewport* const ViewportRHI) override;
+
+	/**
+	* Calculates dimensions of the render target texture for direct rendering of distortion.
+	*/
+	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
+
+	// Whether separate render target should be used or not.
+	virtual bool ShouldUseSeparateRenderTarget() const override;
 
 	/**
 	 * Allocates a render target texture.
@@ -621,106 +544,58 @@ public:
 	 */
 	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1) override;
 
-	//////////////////////////////////////////////////////
-	// Begin IHeadMountedDisplay Pure-Virtual Interface //
-	//////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+	// Begin IXRTrackingSystem Pure-Virtual Interface //
+	////////////////////////////////////////////////////
 
 	/**
-	 * Returns true if HMD is currently connected.
+	 * Returns version string.
 	 */
-	virtual bool IsHMDConnected() override;
+	virtual FString GetVersionString() const override;
 
 	/**
-	 * Whether or not switching to stereo is enabled; if it is false, then EnableStereo(true) will do nothing.
+	 * Reports all devices currently available to the system, optionally limiting the result to a given class of devices.
+	 *
+	 * @param OutDevices The device ids of available devices will be appended to this array.
+	 * @param Type Optionally limit the list of devices to a certain type.
 	 */
-	virtual bool IsHMDEnabled() const override;
+	virtual bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type = EXRTrackedDeviceType::Any) override;
 
 	/**
-	 * Enables or disables switching to stereo.
+	 * Refresh poses. Tells the system to update the poses for its tracked devices.
+	 * May be called both from the game and the render thread.
 	 */
-	virtual void EnableHMD(bool bEnable = true) override;
-
-	/**
-	 * Returns the family of HMD device implemented
-	 */
-	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
-
-    /**
-     * Get the name or id of the display to output for this HMD.
-     */
-	virtual bool	GetHMDMonitorInfo(MonitorInfo&) override;
-
-    /**
-	 * Calculates the FOV, based on the screen dimensions of the device. Original FOV is passed as params.
-	 */
-	virtual void	GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const override;
-
-	/**
-	 * Whether or not the HMD supports positional tracking (either via camera or other means)
-	 */
-	virtual bool	DoesSupportPositionalTracking() const override;
-
-	/**
-	 * If the device has positional tracking, whether or not we currently have valid tracking
-	 */
-	virtual bool	HasValidTrackingPosition() override;
-
-	/**
-	 * If the HMD supports positional tracking via a camera, this returns the frustum properties (all in game-world space) of the tracking camera.
-	 */
-	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
-
-	/**
-	 * Accessors to modify the interpupillary distance (meters)
-	 */
-	virtual void	SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
-	virtual float	GetInterpupillaryDistance() const override;
-
-    /**
-     * Get the current orientation and position reported by the HMD.
-     */
-    virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
-
-	/**
-	 * Rebase the input position and orientation to that of the HMD's base
-	 */
-	virtual void RebaseObjectOrientationAndPosition(FVector& Position, FQuat& Orientation) const override;
-
-	/**
-	 * Get the ISceneViewExtension for this HMD, or none.
-	 */
-	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() override;
-
-	/**
-     * Apply the orientation of the headset to the PC's rotation.
-     * If this is not done then the PC will face differently than the camera,
-     * which might be good (depending on the game).
-     */
-	virtual void ApplyHmdRotation(class APlayerController* PC, FRotator& ViewRotation) override;
-
-	/**
-	 * Apply the orientation and position of the headset to the Camera.
-	 */
-	virtual bool UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
-
-	/**
-	 * Returns 'false' if chromatic aberration correction is off.
-	 */
-	virtual bool IsChromaAbCorrectionEnabled() const override;
-
-	/**
-	 * Exec handler to allow console commands to be passed through to the HMD for debugging
-	 */
-    virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-
-	/** Returns true if positional tracking enabled and working. */
-	virtual bool IsPositionalTrackingEnabled() const override;
+	virtual void RefreshPoses() override;
 
 	/**
 	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
 	 * but some overrides are possible.
 	 */
 	virtual bool IsHeadTrackingAllowed() const override;
+	
+    /**
+	 * Get the current pose for a device.
+	 * This method must be callable both on the render thread and the game thread.
+	 * For devices that don't support positional tracking, OutPosition will be at the base position.
+	 *
+	 * @param DeviceId the device to request the pose for.
+	 * @param OutOrientation The current orientation of the device
+	 * @param OutPosition The current position of the device
+	 * @return true if the pose is valid or not.
+     */
+	virtual bool GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& OutPosition) override;
+
+    /**
+	 * If the device id represents a head mounted display, fetches the relative position of the given eye relative to the eye.
+	 * If the device is does not represent a stereoscopic tracked camera, orientation and position should be identity and zero and the return value should be false.
+	 *
+	 * @param DeviceId the device to request the eye pose for.
+	 * @param Eye the eye the pose should be requested for, if passing in any other value than eSSP_LEFT_EYE or eSSP_RIGHT_EYE, the method should return a zero offset.
+	 * @param OutOrientation The orientation of the eye relative to the device orientation.
+	 * @param OutPosition The position of the eye relative to the tracked device
+	 * @return true if the pose is valid or not. If the device is not a stereoscopic device, return false.
+	 */
+	virtual bool GetRelativeEyePose(int32 DeviceId, EStereoscopicPass Eye, FQuat& OutOrientation, FVector& OutPosition) override;
 
 	/**
 	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction and assuming
@@ -730,37 +605,9 @@ public:
 	 */
 	virtual void ResetOrientationAndPosition(float Yaw = 0.f) override;
 
-	/////////////////////////////////////////////////
-	// Begin IHeadMountedDisplay Virtual Interface //
-	/////////////////////////////////////////////////
-
- // 	/**
-	// * Gets the scaling factor, applied to the post process warping effect
-	// */
-	//virtual float GetDistortionScalingFactor() const { return 0; }
-
-	///**
-	// * Gets the offset (in clip coordinates) from the center of the screen for the lens position
-	// */
-	//virtual float GetLensCenterOffset() const { return 0; }
-
-	///**
-	// * Gets the barrel distortion shader warp values for the device
-	// */
-	//virtual void GetDistortionWarpValues(FVector4& K) const  { }
-
-	///**
-	// * Gets the chromatic aberration correction shader values for the device.
-	// * Returns 'false' if chromatic aberration correction is off.
-	// */
-	//virtual bool GetChromaAbCorrectionValues(FVector4& K) const  { return false; }
-
-	///**
-	// * Saves / loads pre-fullscreen rectangle. Could be used to store saved original window position
-	// * before switching to fullscreen mode.
-	// */
-	//virtual void PushPreFullScreenRect(const FSlateRect& InPreFullScreenRect);
-	//virtual void PopPreFullScreenRect(FSlateRect& OutPreFullScreenRect);
+	///////////////////////////////////////////////
+	// Begin IXRTrackingSystem Virtual Interface //
+	///////////////////////////////////////////////
 
 	/**
 	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction. Position is not changed.
@@ -768,11 +615,6 @@ public:
 	 * @param Yaw				(in) the desired yaw to be set after orientation reset.
 	 */
 	virtual void ResetOrientation(float Yaw = 0.f) override;
-
-	/**
-	 * Resets position, assuming current position as a 'zero-point'.
-	 */
-	virtual void ResetPosition() override;
 
 	/**
 	 * Sets base orientation by setting yaw, pitch, roll, assuming that this is forward direction.
@@ -801,99 +643,128 @@ public:
 	virtual FQuat GetBaseOrientation() const override;
 
 	/**
-	* @return true if a hidden area mesh is available for the device.
+	 * This method is called when new game frame begins (called on a game thread).
 	*/
-	virtual bool HasHiddenAreaMesh() const override;
+	virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
 
 	/**
-	* @return true if a visible area mesh is available for the device.
+	 * Access optional HMD input override interface.
+	 *
+	 * @return a IXRInput pointer or a nullptr if not supported
 	*/
-	virtual bool HasVisibleAreaMesh() const override;
+	virtual class IXRInput* GetXRInput() { return this; }
+
+	virtual class IHeadMountedDisplay* GetHMDDevice() override { return this; }
+
+	virtual class TSharedPtr< class IStereoRendering, ESPMode::ThreadSafe > GetStereoRenderingDevice() override { return SharedThis(this); }
+
+	//////////////////////////////////////
+	// Begin IXRInput Virtual Interface //
+	//////////////////////////////////////
 
 	/**
-	* Optional method to draw a view's hidden area mesh where supported.
-	* This can be used to avoid rendering pixels which are not included as input into the final distortion pass.
+	 * Passing key events to HMD.
+	 * If returns 'false' then key will be handled by PlayerController;
+	 * otherwise, key won't be handled by the PlayerController.
 	*/
-	virtual void DrawHiddenAreaMesh_RenderThread(class FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const override;
-
-	/**
-	* Optional method to draw a view's visible area mesh where supported.
-	* This can be used instead of a full screen quad to avoid rendering pixels which are not included as input into the final distortion pass.
-	*/
-	virtual void DrawVisibleAreaMesh_RenderThread(class FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const override;
-
-	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
-
-	///**
-	// * This method is able to change screen settings right before any drawing occurs.
-	// * It is called at the beginning of UGameViewportClient::Draw() method.
-	// * We might remove this one as UpdatePostProcessSettings should be able to capture all needed cases
-	// */
-	//virtual void UpdateScreenSettings(const FViewport* InViewport) {}
-
-	///**
-	// * Allows to override the PostProcessSettings in the last moment e.g. allows up sampled 3D rendering
-	// */
-	//virtual void UpdatePostProcessSettings(FPostProcessSettings*) {}
-
-	///**
-	// * Draw desired debug information related to the HMD system.
-	// * @param Canvas The canvas on which to draw.
-	// */
-	//virtual void DrawDebug(UCanvas* Canvas) {}
-
-	///**
-	// * Passing key events to HMD.
-	// * If returns 'false' then key will be handled by PlayerController;
-	// * otherwise, key won't be handled by the PlayerController.
-	// */
 	virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
 	/**
 	 * Passing touch events to HMD.
 	 * If returns 'false' then touch will be handled by PlayerController;
 	 * otherwise, touch won't be handled by the PlayerController.
-	 */
+	*/
 	virtual bool HandleInputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex) override;
 
-	///**
-	// * This method is called when playing begins. Useful to reset all runtime values stored in the plugin.
-	// */
-	//virtual void OnBeginPlay() {}
 
-	///**
-	// * This method is called when playing ends. Useful to reset all runtime values stored in the plugin.
-	// */
-	//virtual void OnEndPlay() {}
+	//////////////////////////////////////////////////////
+	// Begin IHeadMountedDisplay Pure-Virtual Interface //
+	//////////////////////////////////////////////////////
 
 	/**
-	 * This method is called when new game frame begins (called on a game thread).
+	 * Called on the game thread when view family is about to be rendered.
 	 */
-	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
+
+	virtual void BeginRendering_GameThread() override;
+	
+	/**
+	 * Called on the render thread at the start of rendering.
+	 */
+	
+	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
 
 	/**
-	 * This method is called when game frame ends (called on a game thread).
+	 * Returns whether HMDDistortion post processing should be enabled or not.
 	 */
-	virtual bool OnEndGameFrame( FWorldContext& WorldContext ) override;
-
-	///**
-	// * Additional optional distorion rendering parameters
-	// * @todo:  Once we can move shaders into plugins, remove these!
-	// */
-	//virtual FTexture* GetDistortionTextureLeft() const {return NULL;}
-	//virtual FTexture* GetDistortionTextureRight() const {return NULL;}
-	//virtual FVector2D GetTextureOffsetLeft() const {return FVector2D::ZeroVector;}
-	//virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
-	//virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
-	//virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
-
-	//virtual bool NeedsUpscalePostProcessPass()  { return false; }
-
+	virtual bool GetHMDDistortionEnabled() const override;
 
 	/**
-	 * Returns version string.
+	 * Returns true if HMD is currently connected.
 	 */
-	virtual FString GetVersionString() const override;
+	virtual bool IsHMDConnected() override;
+
+	/**
+	 * Whether or not switching to stereo is enabled; if it is false, then EnableStereo(true) will do nothing.
+	 */
+	virtual bool IsHMDEnabled() const override;
+
+	/**
+	 * Enables or disables switching to stereo.
+	 */
+	virtual void EnableHMD(bool bEnable = true) override;
+
+	/**
+	 * Returns the family of HMD device implemented
+	 */
+	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
+
+    /**
+     * Get the name or id of the display to output for this HMD.
+     */
+	virtual bool	GetHMDMonitorInfo(MonitorInfo&) override;
+
+	/**
+	 * Calculates the FOV, based on the screen dimensions of the device. Original FOV is passed as params.
+	 */
+	virtual void	GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const override;
+
+	/**
+	 * Accessors to modify the interpupillary distance (meters)
+	 */
+	virtual void	SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
+	virtual float	GetInterpupillaryDistance() const override;
+
+	/**
+	 * Returns 'false' if chromatic aberration correction is off.
+	 */
+	virtual bool IsChromaAbCorrectionEnabled() const override;
+
+	/////////////////////////////////////////////////
+	// Begin IHeadMountedDisplay Virtual Interface //
+	/////////////////////////////////////////////////
+	
+	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
+
+	///////////////////////////////////////////////////////
+	// Begin FSelfRegisteringExec Pure-Virtual Interface //
+	///////////////////////////////////////////////////////
+
+	/**
+	* Exec handler to allow console commands to be passed through to the HMD for debugging
+	 */
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	static FORCEINLINE FMatrix ToFMatrix(const gvr_mat4f& tm)
+	{
+		// Rows and columns are swapped between gvr_mat4f and FMatrix
+		return FMatrix(
+			FPlane(tm.m[0][0], tm.m[1][0], tm.m[2][0], tm.m[3][0]),
+			FPlane(tm.m[0][1], tm.m[1][1], tm.m[2][1], tm.m[3][1]),
+			FPlane(tm.m[0][2], tm.m[1][2], tm.m[2][2], tm.m[3][2]),
+			FPlane(tm.m[0][3], tm.m[1][3], tm.m[2][3], tm.m[3][3]));
+	}
+#endif
 
 #if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 	bool GetCurrentReferencePose(FQuat& CurrentOrientation, FVector& CurrentPosition) const;

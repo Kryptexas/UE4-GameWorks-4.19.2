@@ -16,6 +16,8 @@
 #include "Misc/MapErrors.h"
 #include "Components/DrawFrustumComponent.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
+#include "IXRCamera.h"
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 
@@ -234,20 +236,25 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() && GetWorld()->WorldType != EWorldType::Editor)
+	if (bLockToHmd && GEngine->XRSystem.IsValid() && GetWorld()->WorldType != EWorldType::Editor)
 	{
-		const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
-		GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
+		auto XRCamera = GEngine->XRSystem->GetXRCamera();
+		if (XRCamera.IsValid())
+		{
+			const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
 
-		FQuat Orientation;
-		FVector Position;
-		if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
-		{
-			SetRelativeTransform(FTransform(Orientation, Position));
-		}
-		else
-		{
-			ResetRelativeTransform();
+			XRCamera->SetupLateUpdate(ParentWorld, this);
+
+			FQuat Orientation;
+			FVector Position;
+			if (XRCamera->UpdatePlayerCamera(Orientation, Position))
+			{
+				SetRelativeTransform(FTransform(Orientation, Position));
+			}
+			else
+			{
+				ResetRelativeTransform();
+			}
 		}
 	}
 

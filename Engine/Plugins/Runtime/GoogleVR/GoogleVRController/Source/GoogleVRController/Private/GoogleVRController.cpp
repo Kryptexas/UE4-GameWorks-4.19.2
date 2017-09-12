@@ -3,7 +3,7 @@
 #include "GoogleVRController.h"
 #include "GoogleVRControllerPrivate.h"
 #include "CoreDelegates.h"
-#include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
 #include "Classes/GoogleVRControllerEventManager.h"
 //#include "Engine/Engine.h"
@@ -335,11 +335,11 @@ void FGoogleVRController::PollController(float DeltaTime)
 		}
 
 		// Get head direction and position of the HMD, used for FollowGaze options
-		if (GEngine->HMDDevice.IsValid())
+		if (GEngine->XRSystem.IsValid())
 		{
 			FQuat HmdOrientation;
 			FVector HmdPosition;
-			GEngine->HMDDevice->GetCurrentOrientationAndPosition(HmdOrientation, HmdPosition);
+			GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, HmdOrientation, HmdPosition);
 			FVector HmdDirection = HmdOrientation * FVector::ForwardVector;
 
 			const float WorldToMetersScale = GetWorldToMetersScale();
@@ -517,13 +517,17 @@ void FGoogleVRController::ProcessControllerEvents()
 	{
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
 		// Perform recenter when using in editor controller emulation
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GoogleVR")) )
+		if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetSystemName() == FName("FGoogleVRHMD"))
 		{
-			GEngine->HMDDevice.Get()->ResetOrientation();
+			GEngine->XRSystem->ResetOrientation();
 		}
 		BaseEmulatorOrientation.Yaw += LastOrientation.Yaw;
 #endif
-		UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerEventManager()->OnControllerRecenteredDelegate.Broadcast();
+
+		FCoreDelegates::VRControllerRecentered.Broadcast();
+
+		// Deprecate me!
+		UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerEventManager()->OnControllerRecenteredDelegate_DEPRECATED.Broadcast();
 	}
 
 
@@ -729,12 +733,12 @@ bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 Contro
 
 			FQuat BaseOrientation;
 			const bool bUsingGoogleVRHMD =
-				GEngine->HMDDevice.IsValid() &&
-				(GEngine->HMDDevice->GetDeviceName() == FName(TEXT("FGoogleVRHMD")));
+				GEngine->XRSystem.IsValid() &&
+				(GEngine->XRSystem->GetSystemName() == FName(TEXT("FGoogleVRHMD")));
 
 			if (bUsingGoogleVRHMD)
 			{
-				BaseOrientation = GEngine->HMDDevice->GetBaseOrientation();
+				BaseOrientation = GEngine->XRSystem->GetBaseOrientation();
 			}
 
 			OutOrientation = (BaseOrientation * Orientation).Rotator();

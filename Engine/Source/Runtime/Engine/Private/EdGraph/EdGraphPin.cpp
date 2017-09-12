@@ -482,10 +482,10 @@ void TransferPersistentDataFromOldPin(UEdGraphPin& DestPin, T& SourcePin, const 
 		const int32 Index = OtherPin->LinkedTo.IndexOfByKey(&SourcePin);
 		if (Index != INDEX_NONE)
 		{
-			switch(TransferMode)
+			switch (TransferMode)
 			{
 			case ETransferPersistentDataMode::Move:
-				
+
 				OtherPin->LinkedTo[Index] = &DestPin;
 				break;
 
@@ -504,7 +504,7 @@ void TransferPersistentDataFromOldPin(UEdGraphPin& DestPin, T& SourcePin, const 
 			OtherPin->LinkedTo.Add(&DestPin);
 		}
 	}
-	
+
 	// If the source pin is split, then split the new one, but don't split multiple times, typically splitting is done
 	// by UK2Node::ReallocatePinsDuringReconstruction or FBlueprintEditor::OnSplitStructPin, but there are several code
 	// paths into this, and split state should be persistent:

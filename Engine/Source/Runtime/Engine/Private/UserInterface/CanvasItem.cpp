@@ -845,6 +845,10 @@ void FCanvasTextItemBase::Draw( class FCanvas* InCanvas )
 		EnableShadow( FLinearColor::Black );
 	}
 	BlendMode = GetTextBlendMode( bHasShadow );
+	if (InCanvas->IsUsingInternalTexture())
+	{
+		BlendMode = SE_BLEND_TranslucentAlphaOnlyWriteAlpha;
+	}
 
 	FVector2D DrawPos( Position.X , Position.Y );
 
@@ -939,7 +943,7 @@ ESimpleElementBlendMode FCanvasTextItem::GetTextBlendMode( const bool bHasShadow
 	if (GetFontCacheType() == EFontCacheType::Runtime)
 	{
 		// The runtime font cache uses an alpha-only texture, so we have to force this blend mode so we use the correct shader
-		check(BlendModeToUse == SE_BLEND_Translucent || BlendModeToUse == SE_BLEND_TranslucentAlphaOnly);
+		check(BlendModeToUse == SE_BLEND_Translucent || BlendModeToUse == SE_BLEND_TranslucentAlphaOnly || BlendModeToUse == SE_BLEND_TranslucentAlphaOnlyWriteAlpha);
 		BlendModeToUse = SE_BLEND_TranslucentAlphaOnly;
 	}
 	return BlendModeToUse;

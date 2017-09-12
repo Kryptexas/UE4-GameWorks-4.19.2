@@ -325,24 +325,6 @@ void FGoogleVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	}
 }
 
-bool FGoogleVRHMD::HasHiddenAreaMesh() const
-{
-	return false;
-}
-
-void FGoogleVRHMD::DrawHiddenAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const
-{
-}
-
-bool FGoogleVRHMD::HasVisibleAreaMesh() const
-{
-	return false;
-}
-
-void FGoogleVRHMD::DrawVisibleAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const
-{
-}
-
 FRHICustomPresent* FGoogleVRHMD::GetCustomPresent()
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
@@ -353,11 +335,6 @@ FRHICustomPresent* FGoogleVRHMD::GetCustomPresent()
 #endif
 
 	return nullptr;
-}
-
-uint32 FGoogleVRHMD::GetNumberOfBufferedFrames() const
-{
-	return 1;
 }
 
 bool FGoogleVRHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
@@ -655,6 +632,18 @@ void FGoogleVRHMDCustomPresent::FinishRendering()
 			gvr_frame_submit(&CurrentFrame, CurrentFrameViewportList, CurrentFrameRenderHeadPose);
 			TextureSet->Resource = 0;
 		}
+	}
+}
+
+bool FGoogleVRHMDCustomPresent::NeedsNativePresent()
+{
+	if(SwapChain)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
 	}
 }
 

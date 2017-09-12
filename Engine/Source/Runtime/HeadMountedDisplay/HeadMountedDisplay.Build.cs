@@ -12,7 +12,13 @@ public class HeadMountedDisplay : ModuleRules
 			}
 		);
 
-		PrivateDependencyModuleNames.AddRange(
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "Runtime/Renderer/Private"
+            }
+        );
+
+        PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",

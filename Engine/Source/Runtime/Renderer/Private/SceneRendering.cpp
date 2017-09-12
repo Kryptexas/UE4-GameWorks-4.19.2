@@ -121,6 +121,13 @@ static TAutoConsoleVariable<int32> CVarMonoscopicFarFieldMode(
 	TEXT(", 4 mono far field only"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarDebugCanvasInLayer(
+	TEXT("vr.DebugCanvasInLayer"),
+	0,
+	TEXT("Experimental")
+	TEXT("0 to disable (default), 1 to enable."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
 	TEXT("r.GeneralPurposeTweak"),
@@ -2173,7 +2180,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		extern TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension();
+		extern TSharedRef<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension();
 
 		ViewFamily->ViewExtensions.Add(GetRendererViewExtension());
 	}
@@ -2475,7 +2482,7 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 #endif
 }
 
-TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
+TSharedRef<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
 {
 	class FRendererViewExtension : public ISceneViewExtension
 	{
@@ -2491,8 +2498,8 @@ TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
 			DisplayInternals(RHICmdList, InView);
 		}
 	};
-	TSharedPtr<FRendererViewExtension, ESPMode::ThreadSafe> ptr(new FRendererViewExtension);
-	return StaticCastSharedPtr<ISceneViewExtension>(ptr);
+	TSharedRef<FRendererViewExtension, ESPMode::ThreadSafe> ref(new FRendererViewExtension);
+	return StaticCastSharedRef<ISceneViewExtension>(ref);
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

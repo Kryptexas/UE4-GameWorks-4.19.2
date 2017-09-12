@@ -192,6 +192,7 @@ typedef enum ovrMessageType_ {
   /// Extract the payload from the message handle with ::ovr_Message_GetSystemVoipState().
   ovrMessage_Notification_Voip_SystemVoipState = 0x58D254A5,
 
+  ovrMessage_PlatformInitializeWithAccessToken = 0x35692F2B,
   ovrMessage_Platform_InitializeStandaloneOculus = 0x51F8CE0C,
   ovrMessage_PlatformInitializeAndroidAsynchronous = 0x1AD307B4,
   ovrMessage_PlatformInitializeWindowsAsynchronous = 0x6DA7BA8F,

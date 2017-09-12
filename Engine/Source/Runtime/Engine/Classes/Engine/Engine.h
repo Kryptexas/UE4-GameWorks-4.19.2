@@ -31,7 +31,7 @@ class IMessageRpcClient;
 class IPerformanceDataConsumer;
 class IPortalRpcLocator;
 class IPortalServiceLocator;
-class ISceneViewExtension;
+class FSceneViewExtensions;
 class IStereoRendering;
 class SViewport;
 class UEditorEngine;
@@ -1576,14 +1576,14 @@ public:
 	/** A collection of messages to display on-screen. */
 	TMap<int32, FScreenMessageString> ScreenMessages;
 
-	/** Reference to the stereoscopic rendering interace, if any */
+	/** Reference to the stereoscopic rendering interface, if any */
 	TSharedPtr< class IStereoRendering, ESPMode::ThreadSafe > StereoRenderingDevice;
 
-	/** Reference to the HMD device that is attached, if any */
-	TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice;
+	/** Reference to the VR/AR/MR tracking system that is attached, if any */
+	TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > XRSystem;
 
 	/** Extensions that can modify view parameters on the render thread. */
-	TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
+	TSharedPtr<FSceneViewExtensions> ViewExtensions;
 
 	/** Triggered when a world is added. */	
 	DECLARE_EVENT_OneParam( UEngine, FWorldAddedEvent , UWorld* );

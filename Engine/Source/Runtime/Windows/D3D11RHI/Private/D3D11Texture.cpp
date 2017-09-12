@@ -1732,3 +1732,211 @@ void FD3D11DynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef Te
 		TextureRef->SetReferencedTexture(NewTextureRHI,NewTexture,NewSRV);
 	}
 }
+
+
+template<typename BaseResourceType>
+TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateTextureFromResource(bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 TexCreateFlags, const FClearValueBinding& ClearValueBinding, ID3D11Texture2D* TextureResource)
+{
+	D3D11_TEXTURE2D_DESC TextureDesc;
+	TextureResource->GetDesc(&TextureDesc);
+
+	const bool bSRGB = (TexCreateFlags & TexCreate_SRGB) != 0;
+
+	const DXGI_FORMAT PlatformResourceFormat = FD3D11DynamicRHI::GetPlatformTextureResourceFormat((DXGI_FORMAT)GPixelFormats[Format].PlatformFormat, TexCreateFlags);
+	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+
+	// Determine the MSAA settings to use for the texture.
+	D3D11_DSV_DIMENSION DepthStencilViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	D3D11_RTV_DIMENSION RenderTargetViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	D3D11_SRV_DIMENSION ShaderResourceViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+
+	if(TextureDesc.SampleDesc.Count > 1)
+	{
+		DepthStencilViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+		RenderTargetViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+		ShaderResourceViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+	}
+
+	TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
+	TArray<TRefCountPtr<ID3D11RenderTargetView> > RenderTargetViews;
+	TRefCountPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
+
+	bool bCreatedRTVPerSlice = false;
+
+	if(TextureDesc.BindFlags & D3D11_BIND_RENDER_TARGET)
+	{
+		// Create a render target view for each mip
+		for (uint32 MipIndex = 0; MipIndex < TextureDesc.MipLevels; MipIndex++)
+		{
+			if ((TexCreateFlags & TexCreate_TargetArraySlicesIndependently) && (bTextureArray || bCubeTexture))
+			{
+				bCreatedRTVPerSlice = true;
+
+				for (uint32 SliceIndex = 0; SliceIndex < TextureDesc.ArraySize; SliceIndex++)
+				{
+					D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+					FMemory::Memzero(&RTVDesc,sizeof(RTVDesc));
+					RTVDesc.Format = PlatformRenderTargetFormat;
+					RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+					RTVDesc.Texture2DArray.FirstArraySlice = SliceIndex;
+					RTVDesc.Texture2DArray.ArraySize = 1;
+					RTVDesc.Texture2DArray.MipSlice = MipIndex;
+
+					TRefCountPtr<ID3D11RenderTargetView> RenderTargetView;
+					VERIFYD3D11RESULT_EX(Direct3DDevice->CreateRenderTargetView(TextureResource,&RTVDesc,RenderTargetView.GetInitReference()), Direct3DDevice);
+					RenderTargetViews.Add(RenderTargetView);
+				}
+			}
+			else
+			{
+				D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+				FMemory::Memzero(&RTVDesc,sizeof(RTVDesc));
+				RTVDesc.Format = PlatformRenderTargetFormat;
+				if (bTextureArray || bCubeTexture)
+				{
+					RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+					RTVDesc.Texture2DArray.FirstArraySlice = 0;
+					RTVDesc.Texture2DArray.ArraySize = TextureDesc.ArraySize;
+					RTVDesc.Texture2DArray.MipSlice = MipIndex;
+				}
+				else
+				{
+					RTVDesc.ViewDimension = RenderTargetViewDimension;
+					RTVDesc.Texture2D.MipSlice = MipIndex;
+				}
+
+				TRefCountPtr<ID3D11RenderTargetView> RenderTargetView;
+				VERIFYD3D11RESULT_EX(Direct3DDevice->CreateRenderTargetView(TextureResource,&RTVDesc,RenderTargetView.GetInitReference()), Direct3DDevice);
+				RenderTargetViews.Add(RenderTargetView);
+			}
+		}
+	}
+
+	if(TextureDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+	{
+		// Create a depth-stencil-view for the texture.
+		D3D11_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+		FMemory::Memzero(&DSVDesc,sizeof(DSVDesc));
+		DSVDesc.Format = FindDepthStencilDXGIFormat(PlatformResourceFormat);
+		if(bTextureArray || bCubeTexture)
+		{
+			DSVDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+			DSVDesc.Texture2DArray.FirstArraySlice = 0;
+			DSVDesc.Texture2DArray.ArraySize = TextureDesc.ArraySize;
+			DSVDesc.Texture2DArray.MipSlice = 0;
+		}
+		else
+		{
+			DSVDesc.ViewDimension = DepthStencilViewDimension;
+			DSVDesc.Texture2D.MipSlice = 0;
+		}
+
+		for (uint32 AccessType = 0; AccessType < FExclusiveDepthStencil::MaxIndex; ++AccessType)
+		{
+			// Create a read-only access views for the texture.
+			// Read-only DSVs are not supported in Feature Level 10 so 
+			// a dummy DSV is created in order reduce logic complexity at a higher-level.
+			if(Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
+			{
+				DSVDesc.Flags = (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite) ? D3D11_DSV_READ_ONLY_DEPTH : 0;
+				if(HasStencilBits(DSVDesc.Format))
+				{
+					DSVDesc.Flags |= (AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) ? D3D11_DSV_READ_ONLY_STENCIL : 0;
+				}
+			}
+			VERIFYD3D11RESULT_EX(Direct3DDevice->CreateDepthStencilView(TextureResource,&DSVDesc,DepthStencilViews[AccessType].GetInitReference()), Direct3DDevice);
+		}
+	}
+
+	// Create a shader resource view for the texture.
+	if (TextureDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		{
+			D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+			SRVDesc.Format = PlatformShaderResourceFormat;
+
+			if (bCubeTexture && bTextureArray)
+			{
+				SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
+				SRVDesc.TextureCubeArray.MostDetailedMip = 0;
+				SRVDesc.TextureCubeArray.MipLevels = TextureDesc.MipLevels;
+				SRVDesc.TextureCubeArray.First2DArrayFace = 0;
+				SRVDesc.TextureCubeArray.NumCubes = TextureDesc.ArraySize / 6;
+			}
+			else if(bCubeTexture)
+			{
+				SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+				SRVDesc.TextureCube.MostDetailedMip = 0;
+				SRVDesc.TextureCube.MipLevels = TextureDesc.MipLevels;
+			}
+			else if(bTextureArray)
+			{
+				SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+				SRVDesc.Texture2DArray.MostDetailedMip = 0;
+				SRVDesc.Texture2DArray.MipLevels = TextureDesc.MipLevels;
+				SRVDesc.Texture2DArray.FirstArraySlice = 0;
+				SRVDesc.Texture2DArray.ArraySize = TextureDesc.ArraySize;
+			}
+			else
+			{
+				SRVDesc.ViewDimension = ShaderResourceViewDimension;
+				SRVDesc.Texture2D.MostDetailedMip = 0;
+				SRVDesc.Texture2D.MipLevels = TextureDesc.MipLevels;
+			}
+			VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(TextureResource,&SRVDesc,ShaderResourceView.GetInitReference()), Direct3DDevice);
+		}
+
+		check(IsValidRef(ShaderResourceView));
+	}
+
+	TD3D11Texture2D<BaseResourceType>* Texture2D = new TD3D11Texture2D<BaseResourceType>(
+		this,
+		TextureResource,
+		ShaderResourceView,
+		bCreatedRTVPerSlice,
+		TextureDesc.ArraySize,
+		RenderTargetViews,
+		DepthStencilViews,
+		TextureDesc.Width,
+		TextureDesc.Height,
+		0,
+		TextureDesc.MipLevels,
+		TextureDesc.SampleDesc.Count,
+		Format,
+		bCubeTexture,
+		TexCreateFlags,
+		/*bPooledTexture=*/ false,
+		ClearValueBinding
+		);
+
+	if (TexCreateFlags & TexCreate_RenderTargetable)
+	{
+		Texture2D->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
+	}
+
+	D3D11TextureAllocated(*Texture2D);
+
+	return Texture2D;
+}
+
+FTexture2DRHIRef FD3D11DynamicRHI::RHICreateTexture2DFromResource(EPixelFormat Format, uint32 TexCreateFlags, const FClearValueBinding& ClearValueBinding, ID3D11Texture2D* TextureResource)
+{
+	return CreateTextureFromResource<FD3D11BaseTexture2D>(false, false, Format, TexCreateFlags, ClearValueBinding, TextureResource);
+}
+
+FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 TexCreateFlags, const FClearValueBinding& ClearValueBinding, ID3D11Texture2D* TextureResource)
+{
+	return CreateTextureFromResource<FD3D11BaseTextureCube>(false, true, Format, TexCreateFlags, ClearValueBinding, TextureResource);
+}
+
+void FD3D11DynamicRHI::RHIAliasTextureResources(FTextureRHIParamRef DestTextureRHI, FTextureRHIParamRef SrcTextureRHI)
+{
+	FD3D11TextureBase* DestTexture = GetD3D11TextureFromRHITexture(DestTextureRHI);
+	FD3D11TextureBase* SrcTexture = GetD3D11TextureFromRHITexture(SrcTextureRHI);
+
+	if (DestTexture && SrcTexture)
+	{
+		DestTexture->AliasResources(SrcTexture);
+	}
+}

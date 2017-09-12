@@ -10,6 +10,7 @@
 #include "RenderingThread.h"
 #include "Engine/Texture.h"
 #include "DefaultSpectatorScreenController.h"
+#include "DefaultXRCamera.h"
 
 // including interface headers without their own implementation file, so that 
 // functions (default ctors, etc.) get compiled into this module
@@ -31,7 +32,7 @@ bool FHeadMountedDisplayBase::PopulateAnalyticsAttributes(TArray<FAnalyticsEvent
 	IHeadMountedDisplay::MonitorInfo MonitorInfo;
 	GetHMDMonitorInfo(MonitorInfo);
 
-	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DeviceName"), GetDeviceName().ToString()));
+	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DeviceName"), GetSystemName().ToString()));
 	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DisplayDeviceName"), *MonitorInfo.MonitorName));
 #if PLATFORM_WINDOWS
 	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DisplayId"), MonitorInfo.MonitorId));
@@ -53,27 +54,36 @@ IStereoLayers* FHeadMountedDisplayBase::GetStereoLayers()
 {
 	if (!DefaultStereoLayers.IsValid())
 	{
-		DefaultStereoLayers = MakeShared<FDefaultStereoLayers, ESPMode::ThreadSafe>(this);
+		DefaultStereoLayers = FSceneViewExtensions::NewExtension<FDefaultStereoLayers>(this);
 	}
 	return DefaultStereoLayers.Get();
 }
 
-void FHeadMountedDisplayBase::GatherViewExtensions(TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe>>& OutViewExtensions)
+bool FHeadMountedDisplayBase::GetHMDDistortionEnabled() const
 {
-	if (DefaultStereoLayers.IsValid())
-	{
-		OutViewExtensions.Add(StaticCastSharedPtr<ISceneViewExtension>(DefaultStereoLayers));
-	}
-	IHeadMountedDisplay::GatherViewExtensions(OutViewExtensions);
+	return true;
 }
 
-void FHeadMountedDisplayBase::ApplyLateUpdate(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform)
+
+void FHeadMountedDisplayBase::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& /* RHICmdList */, FSceneViewFamily& /* ViewFamily */)
 {
 	if (DefaultStereoLayers.IsValid())
 	{
 		DefaultStereoLayers->UpdateHmdTransform(NewRelativeTransform);
 	}
-	IHeadMountedDisplay::ApplyLateUpdate(Scene, OldRelativeTransform, NewRelativeTransform);
+}
+
+void FHeadMountedDisplayBase::BeginRendering_GameThread()
+{
+}
+
+void FHeadMountedDisplayBase::CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
+{
+	GetXRCamera()->CalculateStereoCameraOffset(StereoPassType, ViewRotation, ViewLocation);
+}
+
+void FHeadMountedDisplayBase::InitCanvasFromView(FSceneView* InView, UCanvas* Canvas)
+{
 }
 
 bool FHeadMountedDisplayBase::IsSpectatorScreenActive() const

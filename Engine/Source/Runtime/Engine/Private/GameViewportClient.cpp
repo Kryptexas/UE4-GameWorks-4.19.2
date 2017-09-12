@@ -34,6 +34,7 @@
 #include "ImageUtils.h"
 #include "SceneViewExtension.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "EngineModule.h"
 #include "AudioDeviceManager.h"
 #include "AudioDevice.h"
@@ -969,33 +970,6 @@ static UCanvas* GetCanvasByName(FName CanvasName)
 	return *FoundCanvas;
 }
 
-/** Util to gather and sort view extensions */
-static void GatherViewExtensions(FViewport* InViewport, TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> >& OutViewExtensions)
-{
-	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
-	{
-		GEngine->HMDDevice->GatherViewExtensions(OutViewExtensions);
-	}
-
-	for (auto ViewExt : GEngine->ViewExtensions)
-	{
-		if (ViewExt.IsValid())
-		{
-			OutViewExtensions.Add(ViewExt);
-		}
-	}
-
-	struct SortPriority
-	{
-		bool operator () (const TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe>& A, const TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe>& B) const
-		{
-			return A->GetPriority() > B->GetPriority();
-		}
-	};
-
-	Sort(OutViewExtensions.GetData(), OutViewExtensions.Num(), SortPriority());
-}
-
 void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 {
 	//Valid SceneCanvas is required.  Make this explicit.
@@ -1018,10 +992,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	DebugCanvasObject->Canvas = DebugCanvas;	
 	DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL);
 
+	static const auto DebugCanvasInLayerCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.DebugCanvasInLayer"));
+	const bool bDebugInLayer = bStereoRendering && (DebugCanvasInLayerCVar && DebugCanvasInLayerCVar->GetValueOnAnyThread() != 0);
+
 	if (DebugCanvas)
 	{
 		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
 		DebugCanvas->SetStereoRendering(bStereoRendering);
+		DebugCanvas->SetUseInternalTexture(bDebugInLayer);
 	}
 	if (SceneCanvas)
 	{
@@ -1041,17 +1019,17 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
-	GatherViewExtensions(InViewport, ViewFamily.ViewExtensions);
+	ViewFamily.ViewExtensions = GEngine->ViewExtensions->GatherActiveExtensions(InViewport);
 
 	for (auto ViewExt : ViewFamily.ViewExtensions)
 	{
 		ViewExt->SetupViewFamily(ViewFamily);
 	}
 
-	if (bStereoRendering && GEngine->HMDDevice.IsValid())
+	if (bStereoRendering && GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice())
 	{
 		// Allow HMD to modify screen settings
-		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
+		GEngine->XRSystem->GetHMDDevice()->UpdateScreenSettings(Viewport);
 	}
 
 	ESplitScreenType::Type SplitScreenConfig = GetCurrentSplitscreenConfiguration();
@@ -1210,9 +1188,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 								FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
 
 								// Allow the HMD to adjust based on the head position of the player, as opposed to the view location
-								if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled())
+								if (GEngine->XRSystem.IsValid() && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())
 								{
-									const FVector Offset = GEngine->HMDDevice->GetAudioListenerOffset();
+									const FVector Offset = GEngine->XRSystem->GetAudioListenerOffset();
 									Location += ListenerTransform.TransformPositionNoScale(Offset);
 								}
 
@@ -1456,10 +1434,11 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	if (GEngine->IsStereoscopic3D(InViewport))
 	{
-#if !UE_BUILD_SHIPPING
-		if (GEngine->HMDDevice.IsValid())
+#if 0 //!UE_BUILD_SHIPPING
+		// TODO: replace implementation in OculusHMD with a debug renderer
+		if (GEngine->XRSystem.IsValid())
 		{
-			GEngine->HMDDevice->DrawDebug(DebugCanvasObject);
+			GEngine->XRSystem->DrawDebug(DebugCanvasObject);
 		}
 #endif
 	}

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Runtime/Core/Private/HAL/PThreadRunnableThread.h"
+#include "AndroidMisc.h"
 
 /**
 * Android implementation of the pthread functions
@@ -68,6 +69,8 @@ private:
 		{
 			UE_LOG(LogHAL, Warning, TEXT("pthread_setname_np(, '%s') failed with error %d (%s)."), *ThreadName, ErrCode, ANSI_TO_TCHAR(strerror(ErrCode)));
 		}
+
+		FAndroidMisc::SetThreadName(TCHAR_TO_ANSI(*SizeLimitedThreadName));
 	}
 
 	/**

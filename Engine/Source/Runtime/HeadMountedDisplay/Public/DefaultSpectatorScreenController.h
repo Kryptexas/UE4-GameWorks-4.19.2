@@ -30,6 +30,7 @@ public:
 
 
 	// Implementation methods called by HMD
+	virtual void BeginRenderViewFamily();
 	virtual void UpdateSpectatorScreenMode_RenderThread();
 	virtual void RenderSpectatorScreen_RenderThread(FRHICommandListImmediate& RHICmdList, FRHITexture2D* BackBuffer, FTexture2DRHIRef RenderTarget) const;
 
@@ -51,6 +52,8 @@ protected:
 	virtual void RenderSpectatorModeTexture(FRHICommandListImmediate& RHICmdList, FTexture2DRHIRef TargetTexture, FTexture2DRHIRef EyeTexture, FTexture2DRHIRef OtherTexture);
 	virtual void RenderSpectatorModeMirrorAndTexture(FRHICommandListImmediate& RHICmdList, FTexture2DRHIRef TargetTexture, FTexture2DRHIRef EyeTexture, FTexture2DRHIRef OtherTexture);
 	virtual void RenderSpectatorModeSingleEyeCroppedToFill(FRHICommandListImmediate& RHICmdList, FTexture2DRHIRef TargetTexture, FTexture2DRHIRef EyeTexture, FTexture2DRHIRef OtherTexture);
+
+	virtual FRHITexture2D* GetFallbackRHITexture() const;
 
 	mutable FCriticalSection NewSpectatorScreenModeLock;
 	ESpectatorScreenMode NewSpectatorScreenMode = ESpectatorScreenMode::SingleEyeCroppedToFill;

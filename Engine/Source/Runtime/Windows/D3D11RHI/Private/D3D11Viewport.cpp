@@ -627,7 +627,7 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 #endif
 }
 
-void FD3D11DynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
+void FD3D11DynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef Viewport)
 {
 }
 

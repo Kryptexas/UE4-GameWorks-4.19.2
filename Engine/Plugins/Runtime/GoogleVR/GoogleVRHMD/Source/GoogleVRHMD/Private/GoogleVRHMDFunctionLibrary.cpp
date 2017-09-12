@@ -10,9 +10,9 @@ UGoogleVRHMDFunctionLibrary::UGoogleVRHMDFunctionLibrary(const FObjectInitialize
 
 static FGoogleVRHMD* GetHMD()
 {
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GoogleVR")) )
+	if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetSystemName() == FName("FGoogleVRHMD"))
 	{
-		return static_cast<FGoogleVRHMD*>(GEngine->HMDDevice.Get());
+		return static_cast<FGoogleVRHMD*>(GEngine->XRSystem.Get());
 	}
 
 	return nullptr;

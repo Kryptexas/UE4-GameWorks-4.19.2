@@ -6,8 +6,6 @@
 #include "OVR_Platform_Defs.h"
 #include "OVR_MatchmakingEnqueueResult.h"
 #include "OVR_MatchmakingRoomArray.h"
-#include "OVR_Types.h"
-#include <stddef.h>
 
 typedef struct ovrMatchmakingBrowseResult *ovrMatchmakingBrowseResultHandle;
 

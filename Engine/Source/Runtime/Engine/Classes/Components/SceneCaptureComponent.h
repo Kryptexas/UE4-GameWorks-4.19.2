@@ -44,7 +44,7 @@ struct FEngineShowFlagsSetting
 };
 
 UENUM()
-enum ESceneCapturePrimitiveRenderMode
+enum class ESceneCapturePrimitiveRenderMode : uint8
 {
 	/** Legacy */
 	PRM_LegacySceneCapture UMETA(DisplayName = "Render Scene Primitives"),
@@ -62,7 +62,7 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 
 	/** Controls what primitives get rendered into the scene capture. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
-	TEnumAsByte<enum ESceneCapturePrimitiveRenderMode> PrimitiveRenderMode;
+	ESceneCapturePrimitiveRenderMode PrimitiveRenderMode;
 
 	/** The components won't rendered by current component.*/
  	UPROPERTY()

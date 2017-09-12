@@ -7,20 +7,52 @@
 #include "MediaPlayer.h"
 #include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
-#include "GameFramework/Pawn.h" // for GetWorld()
+#include "GameFramework/Pawn.h" // for GetWorld() 
 #include "Engine/World.h" // for GetPlayerControllerIterator()
 #include "GameFramework/PlayerController.h" // for GetPawn()
+#include "MixedRealityUtilLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "MixedRealityConfigurationSaveGame.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "MediaCaptureSupport.h"
+#include "MixedRealityGarbageMatteCaptureComponent.h"
+#include "Engine/StaticMesh.h"
 
 #if WITH_EDITORONLY_DATA
-#include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/CollisionProfile.h"
 #endif
 
+DEFINE_LOG_CATEGORY_STATIC(LogMixedReality, Log, All);
+
+/* FChromaKeyParams
+ *****************************************************************************/
+
+//------------------------------------------------------------------------------
+void FChromaKeyParams::ApplyToMaterial(UMaterialInstanceDynamic* Material) const
+{
+	if (Material)
+	{
+		static FName ColorName("ChromaColor");
+		Material->SetVectorParameterValue(ColorName, ChromaColor);
+
+		static FName ClipThresholdName("ChromaClipThreshold");
+		Material->SetScalarParameterValue(ClipThresholdName, ChromaClipThreshold);
+
+		static FName ToleranceCapName("ChromaToleranceCap");
+		Material->SetScalarParameterValue(ToleranceCapName, ChromaToleranceCap);
+
+		static FName EdgeSoftnessName("EdgeSoftness");
+		Material->SetScalarParameterValue(EdgeSoftnessName, EdgeSoftness);
+	}
+}
+
+/* UMixedRealityCaptureComponent
+ *****************************************************************************/
+
 //------------------------------------------------------------------------------
 UMixedRealityCaptureComponent::UMixedRealityCaptureComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, ChromaColor(0.122f, 0.765f, 0.261, 1.f)
 	, bAutoTracking(false)
 	, TrackingDevice(EControllerHand::Special_1)
 {
@@ -28,13 +60,19 @@ UMixedRealityCaptureComponent::UMixedRealityCaptureComponent(const FObjectInitia
 	{
 		ConstructorHelpers::FObjectFinder<UMediaPlayer> DefaultMediaSource;
 		ConstructorHelpers::FObjectFinder<UMaterial>    DefaultVideoProcessingMaterial;
+		ConstructorHelpers::FObjectFinder<UTextureRenderTarget2D> DefaultRenderTarget;
+		ConstructorHelpers::FObjectFinder<UTextureRenderTarget2D> DefaultGarbageMatteRenderTarget;
+		ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultGarbageMatteMesh;
 #if WITH_EDITORONLY_DATA
 		ConstructorHelpers::FObjectFinder<UStaticMesh>  EditorCameraMesh;
 #endif
 
 		FConstructorStatics()
-			: DefaultMediaSource(TEXT("/MixedRealityFramework/MRVideoSource"))
-			, DefaultVideoProcessingMaterial(TEXT("/MixedRealityFramework/M_MRVidProcessing"))
+			: DefaultMediaSource(TEXT("/MixedRealityFramework/MRCameraSource"))
+			, DefaultVideoProcessingMaterial(TEXT("/MixedRealityFramework/M_MRCamSrcProcessing"))
+			, DefaultRenderTarget(TEXT("/MixedRealityFramework/T_MRRenderTarget"))
+			, DefaultGarbageMatteRenderTarget(TEXT("/MixedRealityFramework/T_MRGarbageMatteRenderTarget"))
+			, DefaultGarbageMatteMesh(TEXT("/MixedRealityFramework/GarbageMattePlane"))
 #if WITH_EDITORONLY_DATA
 			, EditorCameraMesh(TEXT("/Engine/EditorMeshes/MatineeCam_SM"))
 #endif
@@ -44,6 +82,9 @@ UMixedRealityCaptureComponent::UMixedRealityCaptureComponent(const FObjectInitia
 
 	MediaSource = ConstructorStatics.DefaultMediaSource.Object;
 	VideoProcessingMaterial = ConstructorStatics.DefaultVideoProcessingMaterial.Object;
+	TextureTarget = ConstructorStatics.DefaultRenderTarget.Object;
+	GarbageMatteCaptureTextureTarget = ConstructorStatics.DefaultGarbageMatteRenderTarget.Object;
+	GarbageMatteMesh = ConstructorStatics.DefaultGarbageMatteMesh.Object;
 
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())
@@ -70,65 +111,26 @@ void UMixedRealityCaptureComponent::AddReferencedObjects(UObject* InThis, FRefer
 //------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::OnRegister()
 {
-	USceneComponent* Parent = GetAttachParent();
-	UMotionControllerComponent* TrackingComponent = Cast<UMotionControllerComponent>(Parent);
-
-	AActor* MyOwner = GetOwner();
-#if WITH_EDITOR
-	UWorld* MyWOrld = MyOwner->GetWorld();
-	const bool bIsEditorInst = MyWOrld && (MyWOrld->WorldType == EWorldType::Editor || MyWOrld->WorldType == EWorldType::EditorPreview);
-
-	if (!bIsEditorInst)
-#endif
-	{
-		if (bAutoTracking && (TrackingComponent == nullptr || TrackingComponent->Hand != TrackingDevice))
-		{
-			TrackingComponent = NewObject<UMotionControllerComponent>(this, TEXT("MixedRealityMotionController"), RF_Transient | RF_TextExportTransient);
-			TrackingComponent->Hand = TrackingDevice;
-			if (Parent)
-			{
-				TrackingComponent->SetupAttachment(Parent, GetAttachSocketName());
-			}
-			else
-			{
-				MyOwner->SetRootComponent(TrackingComponent);
-			}
-
-			FAttachmentTransformRules ReattachRules(EAttachmentRule::KeepRelative, /*bWeldSimulatedBodies =*/false);
-			AttachToComponent(TrackingComponent, ReattachRules);
-
-			TrackingComponent->RegisterComponent();
-		}
-	}
+	// may reattach this component:
+	RefreshDevicePairing();
 
 	Super::OnRegister();
 
-	if (VideoProcessingMaterial)
+	if (!ProjectionActor)
 	{
-		//UMaterialInterface*
-		//UMaterialInstanceDynamic* BillboardMaterial = UMaterialInstanceDynamic::Create(VideoProcessingMaterial);
+		ProjectionActor = NewObject<UChildActorComponent>(this, TEXT("MR_ProjectionPlane"), RF_Transient | RF_TextExportTransient);
+		ProjectionActor->SetChildActorClass(AMixedRealityProjectionActor::StaticClass());
+		ProjectionActor->SetupAttachment(this);
 
-		VideoProjectionComponent = NewObject<UMixedRealityBillboard>(this, TEXT("ProjectionPlane"), RF_Transient | RF_TextExportTransient);
-		VideoProjectionComponent->AddElement(VideoProcessingMaterial, /*DistanceToOpacityCurve =*/nullptr, /*bSizeIsInScreenSpace =*/true, /*BaseSizeX =*/1.0f, /*BaseSizeY=*/GetDesiredAspectRatio(), /*DistanceToSizeCurve =*/nullptr);
-		//VideoProjectionComponent->SetTranslucentSortPriority();
-		VideoProjectionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		VideoProjectionComponent->CastShadow = false;
-		VideoProjectionComponent->SetupAttachment(this);
-		// arbitrary distance (somewhere beyond the near plane so the scene cap sees it)
-		VideoProjectionComponent->SetRelativeLocation(FVector(10.f, 0.f, 0.f));
+		ProjectionActor->RegisterComponent();
 
-#if WITH_EDITOR
-		// UMixedRealityBillboard is already hidden from all editor views (see UMixedRealityBillboard::GetHiddenEditorViews)
-		// in editor, we want it displaying in the preview viewport, so for that we don't hide it from anyone but his owner
-		VideoProjectionComponent->bOnlyOwnerSee = !bIsEditorInst;
-#else 
-		VideoProjectionComponent->bOnlyOwnerSee = true;
-#endif 
-		VideoProjectionComponent->RegisterComponent();
+		AMixedRealityProjectionActor* ProjectionActorObj = CastChecked<AMixedRealityProjectionActor>(ProjectionActor->GetChildActor());
+		ProjectionActorObj->SetProjectionMaterial(VideoProcessingMaterial);
+		ProjectionActorObj->SetProjectionAspectRatio(GetDesiredAspectRatio());
 	}
-	
 
 #if WITH_EDITORONLY_DATA
+	AActor* MyOwner = GetOwner();
 	if (MyOwner)
 	{
 		if (ProxyMeshComponent == nullptr)
@@ -139,21 +141,23 @@ void UMixedRealityCaptureComponent::OnRegister()
 			ProxyMeshComponent->SetStaticMesh(ProxyMesh);
 			ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 			ProxyMeshComponent->bHiddenInGame = true;
-			ProxyMeshComponent->CastShadow = false;
+			ProxyMeshComponent->CastShadow    = false;
 			ProxyMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
 			ProxyMeshComponent->CreationMethod = CreationMethod;
 			ProxyMeshComponent->RegisterComponent();
 		}
 	}
-
-	if (ProxyMeshComponent)
-	{
-		ProxyMeshComponent->ResetRelativeTransform();
-	}
 #endif
 
-	
-
+	if (!GarbageMatteCaptureComponent)
+	{
+		GarbageMatteCaptureComponent = NewObject<UMixedRealityGarbageMatteCaptureComponent>(this, TEXT("MR_GarbageMatteCapture"), RF_Transient | RF_TextExportTransient);
+		GarbageMatteCaptureComponent->CaptureSortPriority = CaptureSortPriority + 1;
+		GarbageMatteCaptureComponent->TextureTarget = GarbageMatteCaptureTextureTarget;
+		GarbageMatteCaptureComponent->GarbageMatteMesh = GarbageMatteMesh;
+		GarbageMatteCaptureComponent->SetupAttachment(this);
+		GarbageMatteCaptureComponent->RegisterComponent();
+	}
 
 	AttachMediaListeners();
 }
@@ -166,22 +170,26 @@ void UMixedRealityCaptureComponent::InitializeComponent()
 	if (MediaSource)
 	{
 		AttachMediaListeners();
-		MediaSource->OpenUrl(TEXT("vidcap://"));
 	}
-}
 
-//------------------------------------------------------------------------------
-void UMixedRealityCaptureComponent::BeginPlay()
-{
-	// has to happen after the player pawn is spawned/registered (this is not reliable in InitializeComponent)
-	APlayerController* TargetPlayer = FindTargetPlayer();
-	if (TargetPlayer && VideoProjectionComponent)
+	if (!VideoProcessingMaterial->IsA<UMaterialInstanceDynamic>())
 	{
-		VideoProjectionComponent->SetTargetPawn(TargetPlayer->GetPawn());
-		TargetPlayer->HiddenPrimitiveComponents.AddUnique(VideoProjectionComponent);
+		SetVidProjectionMat(UMaterialInstanceDynamic::Create(VideoProcessingMaterial, this));
 	}
 
-	Super::BeginPlay();
+	LoadDefaultConfiguration();
+
+	if (CaptureDeviceURL.IsEmpty())
+	{
+		TArray<FMediaCaptureDeviceInfo> CaptureDevices;
+		MediaCaptureSupport::EnumerateVideoCaptureDevices(CaptureDevices);
+
+		if (CaptureDevices.Num() > 0)
+		{
+			CaptureDeviceURL = CaptureDevices[0].Url;
+		}
+	}
+	RefreshCameraFeed();
 }
 
 //------------------------------------------------------------------------------
@@ -210,9 +218,20 @@ void UMixedRealityCaptureComponent::OnComponentDestroyed(bool bDestroyingHierarc
 	}
 #endif 
 
-	if (VideoProjectionComponent)
+	if (ProjectionActor)
 	{
-		VideoProjectionComponent->DestroyComponent();
+		ProjectionActor->DestroyComponent();
+	}
+
+	if (PairedTracker)
+	{
+		PairedTracker->DestroyComponent();
+	}
+
+	if (GarbageMatteCaptureComponent)
+	{
+		GarbageMatteCaptureComponent->ShowOnlyActors.Empty();
+		GarbageMatteCaptureComponent->DestroyComponent();
 	}
 
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
@@ -285,6 +304,166 @@ bool UMixedRealityCaptureComponent::GetEditorPreviewInfo(float /*DeltaTime*/, FM
 #endif	// WITH_EDITOR
 
 //------------------------------------------------------------------------------
+const AActor* UMixedRealityCaptureComponent::GetViewOwner() const
+{
+	return GetProjectionActor();
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::RefreshCameraFeed()
+{
+	SetCaptureDevice(CaptureDeviceURL);
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::RefreshDevicePairing()
+{
+	AActor* MyOwner = GetOwner();
+#if WITH_EDITORONLY_DATA
+	UWorld* MyWorld = (MyOwner) ? MyOwner->GetWorld() : nullptr;
+	const bool bIsGameInst = MyWorld && MyWorld->WorldType != EWorldType::Editor && MyWorld->WorldType != EWorldType::EditorPreview;
+
+	if (bIsGameInst)
+#else 
+	if (MyOwner)
+#endif
+	{
+		if (bAutoTracking)
+		{
+			USceneComponent* Parent = GetAttachParent();
+			UMotionControllerComponent* PreDefinedTracker = Cast<UMotionControllerComponent>(Parent);
+			const bool bNeedsInternalController = (!PreDefinedTracker || PreDefinedTracker->Hand != TrackingDevice);
+
+			if (bNeedsInternalController)
+			{
+				if (!PairedTracker)
+				{
+					PairedTracker = NewObject<UMotionControllerComponent>(this, TEXT("MR_MotionController"), RF_Transient | RF_TextExportTransient);
+					
+					USceneComponent* HMDRoot = UMixedRealityUtilLibrary::FindAssociatedHMDRoot(MyOwner);
+					if (HMDRoot && HMDRoot->GetOwner() == MyOwner)
+					{
+						PairedTracker->SetupAttachment(HMDRoot);
+					}
+					else if (Parent)
+					{
+						PairedTracker->SetupAttachment(Parent, GetAttachSocketName());
+					}
+					else
+					{
+						MyOwner->SetRootComponent(PairedTracker);
+					}
+					PairedTracker->RegisterComponent();
+
+					FAttachmentTransformRules ReattachRules(EAttachmentRule::KeepRelative, /*bWeldSimulatedBodies =*/false);
+					AttachToComponent(PairedTracker, ReattachRules);
+				}
+
+				PairedTracker->Hand = TrackingDevice;
+			}			
+		}
+		else if (PairedTracker)
+		{
+			PairedTracker->DestroyComponent(/*bPromoteChildren =*/true);
+			PairedTracker = nullptr;
+		}
+	}
+}
+
+//------------------------------------------------------------------------------
+AMixedRealityProjectionActor* UMixedRealityCaptureComponent::GetProjectionActor() const
+{
+	return ProjectionActor ? Cast<AMixedRealityProjectionActor>(ProjectionActor->GetChildActor()) : nullptr;
+}
+
+//------------------------------------------------------------------------------
+AActor* UMixedRealityCaptureComponent::GetProjectionActor_K2() const
+{
+	return GetProjectionActor();
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::SetVidProjectionMat(UMaterialInterface* NewMaterial)
+{
+	UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(NewMaterial);
+	if (MID != nullptr)
+	{
+		ChromaKeySettings.ApplyToMaterial(MID);
+	}
+	// else, should we convert it to be a MID?
+
+	VideoProcessingMaterial = NewMaterial;
+	if (AMixedRealityProjectionActor* ProjectionTarget = GetProjectionActor())
+	{
+		ProjectionTarget->SetProjectionMaterial(NewMaterial);
+	}
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::SetChromaSettings(const FChromaKeyParams& NewChromaSettings)
+{
+	NewChromaSettings.ApplyToMaterial(Cast<UMaterialInstanceDynamic>(VideoProcessingMaterial));
+	ChromaKeySettings = NewChromaSettings;
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::SetUnmaskedPixelHighlightColor(const FLinearColor& NewColor)
+{
+	UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(VideoProcessingMaterial);
+	if (MID != nullptr)
+	{
+		static FName ParamName("UnmaskedPixelHighlightColor");
+		MID->SetVectorParameterValue(ParamName, NewColor);
+	}
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::SetDeviceAttachment(EControllerHand DeviceId)
+{
+	bAutoTracking = true;
+	TrackingDevice = DeviceId;
+
+	RefreshDevicePairing();
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::DetatchFromDevice()
+{
+	bAutoTracking = false;
+	RefreshDevicePairing();
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::SetCaptureDevice(const FString& DeviceURL)
+{
+	const bool bIsInitialized = HasBeenInitialized();
+	if (bIsInitialized && MediaSource && MediaSource->GetUrl() != DeviceURL)
+	{
+		MediaSource->Close();
+		if (!DeviceURL.IsEmpty())
+		{
+			
+#if WITH_EDITORONLY_DATA
+			AActor* MyOwner = GetOwner();
+			UWorld* MyWorld = (MyOwner) ? MyOwner->GetWorld() : nullptr;
+			const bool bIsGameInst = MyWorld && MyWorld->WorldType != EWorldType::Editor && MyWorld->WorldType != EWorldType::EditorPreview;
+
+			if (bIsGameInst)
+#endif
+			{
+				if (!MediaSource->OpenUrl(DeviceURL))
+				{
+					UE_LOG(LogMixedReality, Warning, TEXT("Failed to open the specified capture device ('%s'). Falling back to the default."), *DeviceURL);
+					MediaSource->OpenUrl(CaptureDeviceURL);
+					return;
+				}
+			}
+		}
+	}
+	CaptureDeviceURL = DeviceURL;
+}
+
+//------------------------------------------------------------------------------
 float UMixedRealityCaptureComponent::GetDesiredAspectRatio() const
 {
 	float DesiredAspectRatio = 0.0f;
@@ -337,64 +516,132 @@ void UMixedRealityCaptureComponent::OnVideoFeedOpened(FString MediaUrl)
 //------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::RefreshProjectionDimensions()
 {
-	if (VideoProjectionComponent)
+	if (AMixedRealityProjectionActor* VidProjection = GetProjectionActor())
 	{
-		const float NewAspectRatio = GetDesiredAspectRatio();
-
-		bool bDirtiedRenderState = false;
-		for (FMaterialSpriteElement& VidMat : VideoProjectionComponent->Elements)
-		{
-			if (ensure(VidMat.bSizeIsInScreenSpace && VidMat.BaseSizeX == 1.0f) && NewAspectRatio != VidMat.BaseSizeY)
-			{
-				bDirtiedRenderState = true;
-				VidMat.BaseSizeY = NewAspectRatio;
-			}
-		}	
-
-		if (bDirtiedRenderState)
-		{
-			VideoProjectionComponent->MarkRenderStateDirty();
-		}
+		VidProjection->SetProjectionAspectRatio( GetDesiredAspectRatio() );
 	}
 }
 
 //------------------------------------------------------------------------------
-APlayerController* UMixedRealityCaptureComponent::FindTargetPlayer() const
+bool UMixedRealityCaptureComponent::SaveAsDefaultConfiguration_K2()
 {
-	APlayerController* TargetPlayer = nullptr;
-	if (AActor* MyOwner = GetOwner())
+	return SaveAsDefaultConfiguration();
+}
+
+//------------------------------------------------------------------------------
+bool UMixedRealityCaptureComponent::SaveAsDefaultConfiguration() const
+{
+	FString EmptySlotName;
+	return SaveConfiguration(EmptySlotName, INDEX_NONE);
+}
+
+//------------------------------------------------------------------------------
+bool UMixedRealityCaptureComponent::SaveConfiguration_K2(const FString& SlotName, int32 UserIndex)
+{
+	return SaveConfiguration(SlotName, UserIndex);
+}
+
+//------------------------------------------------------------------------------
+bool UMixedRealityCaptureComponent::SaveConfiguration(const FString& SlotName, int32 UserIndex) const
+{
+	const UMixedRealityConfigurationSaveGame* DefaultSaveData = GetDefault<UMixedRealityConfigurationSaveGame>();
+	check(DefaultSaveData);
+	const FString& LocalSlotName = SlotName.Len() > 0 ? SlotName : DefaultSaveData->SaveSlotName;
+	const uint32 LocalUserIndex = SlotName.Len() > 0 ? UserIndex : DefaultSaveData->UserIndex;
+
+	UMixedRealityConfigurationSaveGame* SaveGameInstance = Cast<UMixedRealityConfigurationSaveGame>(UGameplayStatics::LoadGameFromSlot(LocalSlotName, LocalUserIndex));
+	if (SaveGameInstance)
 	{
-		UWorld* MyWorld = MyOwner->GetWorld();
-
-		APlayerController* AutoTargetPlayer = nullptr;
-		const int32 AutoTargetIndex = (AutoAttach == EAutoReceiveInput::Disabled) ? INDEX_NONE : int32(AutoAttach.GetValue()) - 1;
-
-		int32 PlayerIndex = 0;
-		for (auto PlayerControllerIt = MyWorld->GetPlayerControllerIterator(); PlayerControllerIt; ++PlayerControllerIt, ++PlayerIndex)
-		{
-			++PlayerIndex;
-			if (!PlayerControllerIt->IsValid())
-			{
-				continue;
-			}
-			APlayerController* PlayerController = PlayerControllerIt->Get();
-			
-			const APawn* PlayerPawn = PlayerController->GetPawn();
-			if (PlayerPawn == MyOwner)
-			{
-				TargetPlayer = PlayerController;
-				break;
-			}
-			else if (PlayerIndex == AutoTargetIndex)
-			{
-				AutoTargetPlayer = PlayerController;
-			}
-		}
-
-		if (!TargetPlayer)
-		{
-			TargetPlayer = AutoTargetPlayer;
-		}
+		UE_LOG(LogMixedReality, Log, TEXT("UMixedRealityCaptureComponent::SaveConfiguration to slot %s user %i has loaded the pre-existing save so we can update it."), *SlotName, UserIndex);
 	}
-	return TargetPlayer;
+	else
+	{
+		UE_LOG(LogMixedReality, Log, TEXT("UMixedRealityCaptureComponent::SaveConfiguration to slot %s user %i found no pre-existing save.  Creating a new one."), *SlotName, UserIndex);
+		SaveGameInstance = Cast<UMixedRealityConfigurationSaveGame>(UGameplayStatics::CreateSaveGameObject(UMixedRealityConfigurationSaveGame::StaticClass()));
+	}
+	check(SaveGameInstance);
+
+	// Clear as necessary before writing new information into the SaveGameInstance.
+
+	// Write as necessary into the SaveGameInstance.
+	// alignment data
+	{
+		const FTransform RelativeXform = GetRelativeTransform();
+		SaveGameInstance->AlignmentData.CameraOrigin = RelativeXform.GetLocation();
+		SaveGameInstance->AlignmentData.LookAtDir = RelativeXform.GetUnitAxis(EAxis::X);
+		SaveGameInstance->AlignmentData.FOV = FOVAngle;
+	}
+	// compositing data
+	{
+		SaveGameInstance->CompositingData.ChromaKeySettings = ChromaKeySettings;
+		SaveGameInstance->CompositingData.CaptureDeviceURL  = CaptureDeviceURL; 
+	}	
+	// garbage matte data is only read by this component.
+
+	const bool Success = UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveSlotName, SaveGameInstance->UserIndex);
+	if (Success)
+	{
+		UE_LOG(LogMixedReality, Log, TEXT("UMixedRealityCaptureComponent::SaveConfiguration to slot %s user %i Succeeded."), *SlotName, UserIndex);
+	} 
+	else
+	{
+		UE_LOG(LogMixedReality, Warning, TEXT("UMixedRealityCaptureComponent::SaveConfiguration to slot %s user %i Failed!"), *SlotName, UserIndex);
+	}
+	return Success;
+}
+
+//------------------------------------------------------------------------------
+bool UMixedRealityCaptureComponent::LoadDefaultConfiguration()
+{
+	FString EmptySlotName;
+	return LoadConfiguration(EmptySlotName, INDEX_NONE);
+}
+
+//------------------------------------------------------------------------------
+bool UMixedRealityCaptureComponent::LoadConfiguration(const FString& SlotName, int32 UserIndex)
+{
+	const UMixedRealityConfigurationSaveGame* DefaultSaveData = GetDefault<UMixedRealityConfigurationSaveGame>();
+	check(DefaultSaveData);
+	const FString& LocalSlotName = SlotName.Len() > 0 ? SlotName : DefaultSaveData->SaveSlotName;
+	const uint32 LocalUserIndex = SlotName.Len() > 0 ? UserIndex : DefaultSaveData->UserIndex;
+
+	UMixedRealityConfigurationSaveGame* SaveGameInstance = Cast<UMixedRealityConfigurationSaveGame>(UGameplayStatics::LoadGameFromSlot(LocalSlotName, LocalUserIndex));
+	if (SaveGameInstance == nullptr)
+	{
+		UE_LOG(LogMixedReality, Warning, TEXT("UMixedRealityCaptureComponent::LoadConfiguration from slot %s user %i Failed!"), *SlotName, UserIndex);
+		return false;
+	}
+
+	// Here one applies the information from the SaveGameInstance.
+	// alignment data
+	{
+		SetRelativeLocation(SaveGameInstance->AlignmentData.CameraOrigin);
+		SetRelativeRotation(FRotationMatrix::MakeFromX(SaveGameInstance->AlignmentData.LookAtDir).Rotator());
+		FOVAngle = SaveGameInstance->AlignmentData.FOV;
+	}
+	// compositing data
+	{
+		SetChromaSettings(SaveGameInstance->CompositingData.ChromaKeySettings);
+		SetCaptureDevice(SaveGameInstance->CompositingData.CaptureDeviceURL);
+	}
+	// GarbageMatteCaptureComponent
+	{
+		GarbageMatteCaptureComponent->ApplyConfiguration(*SaveGameInstance);
+	}
+	bCalibrated = true;
+
+	UE_LOG(LogMixedReality, Log, TEXT("UMixedRealityCaptureComponent::LoadConfiguration from slot %s user %i Succeeded."), *SlotName, UserIndex);
+	return true;
+}
+
+void UMixedRealityCaptureComponent::SetExternalGarbageMatteActor(AActor* Actor)
+{
+	check(GarbageMatteCaptureComponent);
+	GarbageMatteCaptureComponent->SetExternalGarbageMatteActor(Actor);
+}
+
+void UMixedRealityCaptureComponent::ClearExternalGarbageMatteActor()
+{
+	check(GarbageMatteCaptureComponent);
+	GarbageMatteCaptureComponent->ClearExternalGarbageMatteActor();
 }

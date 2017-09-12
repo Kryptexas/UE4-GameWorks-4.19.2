@@ -35,6 +35,7 @@
 
 // For actor placement
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "EngineUtils.h"
 #include "ActorViewportTransformable.h"
 
@@ -658,7 +659,7 @@ FTransform UViewportWorldInteraction::GetRoomSpaceHeadTransform() const
 	{
 		FQuat RoomSpaceHeadOrientation;
 		FVector RoomSpaceHeadLocation;
-		GEngine->HMDDevice->GetCurrentOrientationAndPosition( /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation );
+		GEngine->XRSystem->GetCurrentPose( IXRTrackingSystem::HMDDeviceId, /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation );
 
 		HeadTransform = FTransform(
 			RoomSpaceHeadOrientation,
@@ -678,7 +679,7 @@ FTransform UViewportWorldInteraction::GetHeadTransform() const
 
 bool UViewportWorldInteraction::HaveHeadTransform() const
 {
-	return DefaultOptionalViewportClient != nullptr && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled();
+	return DefaultOptionalViewportClient != nullptr && GEngine->XRSystem.IsValid() && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled();
 }
 
 

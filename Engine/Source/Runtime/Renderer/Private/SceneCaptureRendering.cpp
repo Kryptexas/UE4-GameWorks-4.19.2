@@ -450,7 +450,7 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 			}
 		}
 
-		if (SceneCaptureComponent->PrimitiveRenderMode == PRM_UseShowOnlyList)
+		if (SceneCaptureComponent->PrimitiveRenderMode == ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList)
 		{
 			View->ShowOnlyPrimitives.Emplace();
 

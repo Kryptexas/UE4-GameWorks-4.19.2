@@ -31,11 +31,7 @@
 			"Name" : "OculusEditor",
 			"Type" : "Editor",
 			"LoadingPhase" : "PreDefault",
-			"WhitelistPlatforms" :
-			[
-				"Win64"
-			]
+			"WhitelistPlatforms" : [ "Win64" ]
 		},
-
 	]
 }

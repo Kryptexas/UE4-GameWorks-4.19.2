@@ -287,6 +287,11 @@ public:
 		DefaultDepthClear = DepthClear;
 	}
 
+	FClearValueBinding GetDefaultDepthClear()
+	{
+		return DefaultDepthClear;
+	}
+
 	FORCEINLINE void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale) const
 	{
 		OutScaledSize = SeparateTranslucencyBufferSize;

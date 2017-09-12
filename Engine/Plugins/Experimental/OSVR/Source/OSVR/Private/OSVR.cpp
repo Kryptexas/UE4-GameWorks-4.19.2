@@ -43,7 +43,7 @@ public:
 	{
 		return FString(TEXT("OSVR"));
 	}
-    virtual TSharedPtr<class IHeadMountedDisplay, ESPMode::ThreadSafe> CreateHeadMountedDisplay() override;
+    virtual TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe> CreateTrackingSystem() override;
 #if OSVR_UNREAL_4_12
     virtual bool IsHMDConnected() override;
 #endif
@@ -145,7 +145,7 @@ void FOSVR::LoadOSVRClientKitModule()
     }
 }
 
-TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FOSVR::CreateHeadMountedDisplay()
+TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > FOSVR::CreateTrackingSystem()
 {
     return GetHMD();
 }

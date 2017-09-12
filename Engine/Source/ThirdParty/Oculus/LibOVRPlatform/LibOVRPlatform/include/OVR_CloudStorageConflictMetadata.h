@@ -5,7 +5,6 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_CloudStorageMetadata.h"
-#include <stddef.h>
 
 typedef struct ovrCloudStorageConflictMetadata *ovrCloudStorageConflictMetadataHandle;
 

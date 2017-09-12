@@ -16,7 +16,9 @@
 #include "BufferVisualizationData.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
 #include "Engine/TextureCube.h"
+#include "StereoRendering.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Engine/RendererSettings.h"
 #include "LightPropagationVolumeSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -918,13 +920,15 @@ void FViewMatrices::UpdateViewMatrix(const FVector& ViewLocation, const FRotator
 void FSceneView::UpdateViewMatrix()
 {
 	FVector StereoViewLocation = ViewLocation;
+	FRotator StereoViewRotation = ViewRotation;
 	if (GEngine->StereoRenderingDevice.IsValid() && StereoPass != eSSP_FULL)
 	{
-		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewRotation, WorldToMetersScale, StereoViewLocation);
+		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, StereoViewRotation, WorldToMetersScale, StereoViewLocation);
 		ViewLocation = StereoViewLocation;
+		ViewRotation = StereoViewRotation;
 	}
 
-	ViewMatrices.UpdateViewMatrix(StereoViewLocation, ViewRotation);
+	ViewMatrices.UpdateViewMatrix(StereoViewLocation, StereoViewRotation);
 
 	// Derive the view frustum from the view projection matrix.
 	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->IsMonoscopicFarFieldEnabled())
@@ -1809,14 +1813,14 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		float ScreenPercentageValue = 100.f;
 #if WITH_EDITOR
 		// Let the editor override screen percentage per view if needed.  Otherwise check the global cvar
-		if (ViewInitOptions.EditorViewScreenPercentage.IsSet())
+		if (ViewInitOptions.EditorViewScreenPercentage.IsSet() && (!GEngine->StereoRenderingDevice.IsValid() || !GEngine->StereoRenderingDevice->IsStereoEnabled()))
 		{
 			ScreenPercentageValue = ViewInitOptions.EditorViewScreenPercentage.GetValue();
 		}
 		else
 #endif
 		{
-			static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
 			ScreenPercentageValue = ScreenPercentageCVar->GetValueOnGameThread();
 		}
 
@@ -1828,10 +1832,10 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 
 	{
 		const bool bStereoEnabled = StereoPass != eSSP_FULL;
-		const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && bStereoEnabled;
+		const bool bScaledToRenderTarget = GEngine->XRSystem.IsValid() && bStereoEnabled && GEngine->XRSystem->GetHMDDevice();
 		if (bScaledToRenderTarget)
 		{
-			GEngine->HMDDevice->UpdatePostProcessSettings(&FinalPostProcessSettings);
+			GEngine->XRSystem->GetHMDDevice()->UpdatePostProcessSettings(&FinalPostProcessSettings);
 		}
 	}
 

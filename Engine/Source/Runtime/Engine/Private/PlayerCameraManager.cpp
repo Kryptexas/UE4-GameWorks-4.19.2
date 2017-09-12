@@ -1062,7 +1062,7 @@ void APlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutVie
 	OutViewRotation += OutDeltaRot;
 	OutDeltaRot = FRotator::ZeroRotator;
 
-	if(GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+	if(GEngine->XRSystem.IsValid() && GEngine->IsStereoscopic3D())
 	{
 		// With the HMD devices, we can't limit the view pitch, because it's bound to the player's head.  A simple normalization will suffice
 		OutViewRotation.Normalize();

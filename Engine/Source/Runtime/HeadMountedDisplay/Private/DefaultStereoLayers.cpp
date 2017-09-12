@@ -5,6 +5,7 @@
 
 #include "EngineModule.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "RendererInterface.h"
 #include "StereoLayerRendering.h"
 #include "RHIStaticStates.h"
@@ -44,8 +45,9 @@ namespace
 
 }
 
-FDefaultStereoLayers::FDefaultStereoLayers(FHeadMountedDisplayBase* InHMDDevice)
-	: HMDDevice(InHMDDevice)
+FDefaultStereoLayers::FDefaultStereoLayers(const FAutoRegister& AutoRegister, FHeadMountedDisplayBase* InHMDDevice) 
+	: FSceneViewExtensionBase(AutoRegister)
+	, HMDDevice(InHMDDevice)
 {
 
 }
@@ -67,14 +69,14 @@ void FDefaultStereoLayers::StereoLayerRender(FRHICommandListImmediate& RHICmdLis
 	bool bLastNoAlpha = (RenderThreadLayers[LayersToRender[0]].Flags & LAYER_FLAG_TEX_NO_ALPHA_CHANNEL) != 0;
 	if (bLastNoAlpha)
 	{
-		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 	}
 	else
 	{
-		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI();
 	}
 
-	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, false, false>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, true, false>::GetRHI();
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	RHICmdList.SetViewport(RenderParams.Viewport.Min.X, RenderParams.Viewport.Min.Y, 0, RenderParams.Viewport.Max.X, RenderParams.Viewport.Max.Y, 1.0f);
@@ -101,11 +103,11 @@ void FDefaultStereoLayers::StereoLayerRender(FRHICommandListImmediate& RHICmdLis
 			// Updater render state
 			if (bNoAlpha)
 			{
-				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
+				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_InverseSourceAlpha, BF_Zero>::GetRHI();
 			}
 			else
 			{
-				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI();
 			}
 			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 			bLastNoAlpha = bNoAlpha;
@@ -211,8 +213,11 @@ void FDefaultStereoLayers::PostRenderView_RenderThread(FRHICommandListImmediate&
 	const FMatrix& ViewProjectionMatrix = ModifiedViewMatrices.GetViewProjectionMatrix();
 
 	// Calculate a view matrix that only adjusts for eye position, ignoring head position, orientation and world position.
-	FVector EyeShift = FVector(0, (InView.StereoPass == EStereoscopicPass::eSSP_LEFT_EYE ? .5 : -.5) * IPD * InView.WorldToMetersScale, 0);	
-	FMatrix EyeMatrix = FTranslationMatrix(EyeShift) * FMatrix(
+	FVector EyeShift;
+	FQuat EyeOrientation;
+	HMDDevice->GetRelativeEyePose(IXRTrackingSystem::HMDDeviceId, InView.StereoPass, EyeOrientation, EyeShift);
+
+	FMatrix EyeMatrix = FTranslationMatrix(-EyeShift) * FInverseRotationMatrix(EyeOrientation.Rotator()) * FMatrix(
 		FPlane(0, 0, 1, 0),
 		FPlane(1, 0, 0, 0),
 		FPlane(0, 1, 0, 0),
@@ -252,6 +257,11 @@ void FDefaultStereoLayers::PostRenderView_RenderThread(FRHICommandListImmediate&
 	StereoLayerRender(RHICmdList, SortedOverlayLayers, RenderParams);
 }
 
+bool FDefaultStereoLayers::IsActiveThisFrame(class FViewport* InViewport) const
+{
+	return GEngine && GEngine->IsStereoscopic3D(InViewport);
+}
+
 void FDefaultStereoLayers::UpdateSplashScreen()
 {
 	FTexture2DRHIRef Texture = (bSplashShowMovie && SplashMovie.IsValid()) ? SplashMovie : SplashTexture;
@@ -260,7 +270,7 @@ void FDefaultStereoLayers::UpdateSplashScreen()
 		FQuat Orientation;
 		FVector Position;
 
-		HMDDevice->GetCurrentOrientationAndPosition(Orientation, Position);
+		HMDDevice->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, Orientation, Position);
 		FLayerDesc LayerDesc;
 		LayerDesc.Flags = ELayerFlags::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL;
 		LayerDesc.PositionType = ELayerType::TrackerLocked;
@@ -296,12 +306,10 @@ void FDefaultStereoLayers::UpdateSplashScreen()
 
 void FDefaultStereoLayers::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
-	IPD = HMDDevice->GetInterpupillaryDistance();
-
 	// Initialize HMD position.
 	FQuat HmdOrientation = FQuat::Identity;
 	FVector HmdPosition = FVector::ZeroVector;
-	HMDDevice->GetCurrentOrientationAndPosition(HmdOrientation, HmdPosition);
+	HMDDevice->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, HmdOrientation, HmdPosition);
 	HmdTransform = FTransform(HmdOrientation, HmdPosition);
 }
 

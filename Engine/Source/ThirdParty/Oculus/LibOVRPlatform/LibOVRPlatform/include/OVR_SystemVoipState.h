@@ -6,8 +6,6 @@
 #include "OVR_Platform_Defs.h"
 #include "OVR_SystemVoipStatus.h"
 #include "OVR_VoipMuteState.h"
-#include <stdbool.h>
-#include <stddef.h>
 
 typedef struct ovrSystemVoipState *ovrSystemVoipStateHandle;
 

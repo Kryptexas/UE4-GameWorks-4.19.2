@@ -167,7 +167,12 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
 	check(GPUs.Num() > 0);
 
-	int32 HmdGraphicsAdapter  = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
+	// @TODO  here, GetGraphicsAdapterLuid() is used as a device index (how the function "GetGraphicsAdapter" used to work)
+	//        eventually we want the HMD module to return the MTLDevice's registryID, but we cannot fully handle that until
+	//        we drop support for 10.12
+	//  NOTE: this means any implementation of GetGraphicsAdapterLuid() for Mac should return an index, and use -1 as a 
+	//        sentinel value representing "no device" (instead of 0, which is used in the LUID case)
+	int32 HmdGraphicsAdapter  = IHeadMountedDisplayModule::IsAvailable() ? (int32)IHeadMountedDisplayModule::Get().GetGraphicsAdapterLuid() : -1;
  	int32 OverrideRendererId = FPlatformMisc::GetExplicitRendererIndex();
 	
 	int32 ExplicitRendererId = OverrideRendererId >= 0 ? OverrideRendererId : HmdGraphicsAdapter;

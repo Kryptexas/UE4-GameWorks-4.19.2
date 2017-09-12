@@ -876,6 +876,12 @@ public:
 
 	void InvalidateTextureResourceInCache();
 
+	void AliasResources(FOpenGLTextureBase* Texture)
+	{
+		Resource = Texture->Resource;
+		SRVResource = Texture->SRVResource;
+	}
+
 private:
 	uint32 MemorySize		: 31;
 	uint32 bIsPowerOfTwo	: 1;

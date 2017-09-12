@@ -4137,9 +4137,9 @@ public:
 		return RHIGetViewportBackBuffer(Viewport);
 	}
 	
-	FORCEINLINE void AdvanceFrameForGetViewportBackBuffer()
+	FORCEINLINE void AdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef Viewport)
 	{
-		return RHIAdvanceFrameForGetViewportBackBuffer();
+		return RHIAdvanceFrameForGetViewportBackBuffer(Viewport);
 	}
 	
 	FORCEINLINE void AcquireThreadOwnership()

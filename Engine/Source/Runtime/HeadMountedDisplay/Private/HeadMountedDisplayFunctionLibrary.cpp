@@ -5,6 +5,7 @@
 #include "Engine/Engine.h"
 #include "GameFramework/WorldSettings.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "ISpectatorScreenController.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUHeadMountedDisplay, Log, All);
@@ -16,27 +17,26 @@ UHeadMountedDisplayFunctionLibrary::UHeadMountedDisplayFunctionLibrary(const FOb
 
 bool UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled()
 {
-	return GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed();
+	return GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed();
 }
 
 bool UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayConnected()
 {
-	return GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected();
+	return GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected();
 }
 
 bool UHeadMountedDisplayFunctionLibrary::EnableHMD(bool bEnable)
 {
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice())
 	{
-		GEngine->HMDDevice->EnableHMD(bEnable);
-		if (bEnable)
+		GEngine->XRSystem->GetHMDDevice()->EnableHMD(bEnable);
+		if (GEngine->StereoRenderingDevice.IsValid())
 		{
-			return GEngine->HMDDevice->EnableStereo(true);
+			return GEngine->StereoRenderingDevice->EnableStereo(bEnable) || !bEnable; // EnableStereo returns the actual value. When disabling, we always report success.
 		}
 		else
 		{
-			GEngine->HMDDevice->EnableStereo(false);
-			return true;
+			return true; // Assume that if we have a valid HMD but no stereo rendering that the operation succeeded.
 		}
 	}
 	return false;
@@ -46,9 +46,9 @@ FName UHeadMountedDisplayFunctionLibrary::GetHMDDeviceName()
 {
 	FName DeviceName(NAME_None);
 
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		DeviceName = GEngine->HMDDevice->GetDeviceName();
+		DeviceName = GEngine->XRSystem->GetSystemName();
 	}
 
 	return DeviceName;
@@ -56,9 +56,9 @@ FName UHeadMountedDisplayFunctionLibrary::GetHMDDeviceName()
 
 EHMDWornState::Type UHeadMountedDisplayFunctionLibrary::GetHMDWornState()
 {
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice())
 	{
-		return GEngine->HMDDevice->GetHMDWornState();
+		return GEngine->XRSystem->GetHMDDevice()->GetHMDWornState();
 	}
 
 	return EHMDWornState::Unknown;
@@ -66,12 +66,12 @@ EHMDWornState::Type UHeadMountedDisplayFunctionLibrary::GetHMDWornState()
 
 void UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(FRotator& DeviceRotation, FVector& DevicePosition)
 {
-	if(GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+	if(GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed())
 	{
 		FQuat OrientationAsQuat;
 		FVector Position(0.f);
 
-		GEngine->HMDDevice->GetCurrentOrientationAndPosition(OrientationAsQuat, Position);
+		GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, OrientationAsQuat, Position);
 
 		DeviceRotation = OrientationAsQuat.Rotator();
 		DevicePosition = Position;
@@ -85,9 +85,9 @@ void UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(FRotator& Dev
 
 bool UHeadMountedDisplayFunctionLibrary::HasValidTrackingPosition()
 {
-	if(GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+	if(GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed())
 	{
-		return GEngine->HMDDevice->HasValidTrackingPosition();
+		return GEngine->XRSystem->HasValidTrackingPosition();
 	}
 
 	return false;
@@ -95,9 +95,9 @@ bool UHeadMountedDisplayFunctionLibrary::HasValidTrackingPosition()
 
 int32 UHeadMountedDisplayFunctionLibrary::GetNumOfTrackingSensors()
 {
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		return GEngine->HMDDevice->GetNumOfTrackingSensors();
+		return GEngine->XRSystem->CountTrackedDevices(EXRTrackedDeviceType::TrackingReference);
 	}
 	return 0;
 }
@@ -117,11 +117,23 @@ void UHeadMountedDisplayFunctionLibrary::GetPositionalTrackingCameraParameters(F
 void UHeadMountedDisplayFunctionLibrary::GetTrackingSensorParameters(FVector& Origin, FRotator& Rotation, float& LeftFOV, float& RightFOV, float& TopFOV, float& BottomFOV, float& Distance, float& NearPlane, float& FarPlane, bool& IsActive, int32 Index)
 {
 	IsActive = false;
-	if (Index >= 0 && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() && GEngine->HMDDevice->DoesSupportPositionalTracking())
+
+	if (Index >= 0 && GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed() && GEngine->XRSystem->DoesSupportPositionalTracking())
 	{
+		TArray<int32> TrackingSensors;
+		GEngine->XRSystem->EnumerateTrackedDevices(TrackingSensors, EXRTrackedDeviceType::TrackingReference);
+
 		FQuat Orientation;
-		IsActive = GEngine->HMDDevice->GetTrackingSensorProperties((uint8)Index, Origin, Orientation, LeftFOV, RightFOV, TopFOV, BottomFOV, Distance, NearPlane, FarPlane);
+		FXRSensorProperties SensorProperties;
+		IsActive = GEngine->XRSystem->GetTrackingSensorProperties(TrackingSensors[Index], Orientation, Origin, SensorProperties);
 		Rotation = Orientation.Rotator();
+		LeftFOV = SensorProperties.LeftFOV;
+		RightFOV = SensorProperties.RightFOV;
+		TopFOV = SensorProperties.TopFOV;
+		BottomFOV = SensorProperties.BottomFOV;
+		Distance = SensorProperties.CameraDistance;
+		NearPlane = SensorProperties.NearPlane;
+		FarPlane = SensorProperties.FarPlane;
 	}
 	else
 	{
@@ -137,27 +149,29 @@ void UHeadMountedDisplayFunctionLibrary::GetTrackingSensorParameters(FVector& Or
 
 void UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition(float Yaw, EOrientPositionSelector::Type Options)
 {
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+	if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed())
 	{
 		switch (Options)
 		{
 		case EOrientPositionSelector::Orientation:
-			GEngine->HMDDevice->ResetOrientation(Yaw);
+			GEngine->XRSystem->ResetOrientation(Yaw);
 			break;
 		case EOrientPositionSelector::Position:
-			GEngine->HMDDevice->ResetPosition();
+			GEngine->XRSystem->ResetPosition();
 			break;
 		default:
-			GEngine->HMDDevice->ResetOrientationAndPosition(Yaw);
+			GEngine->XRSystem->ResetOrientationAndPosition(Yaw);
 		}
 	}
 }
 
 void UHeadMountedDisplayFunctionLibrary::SetClippingPlanes(float Near, float Far)
 {
-	if (GEngine->HMDDevice.IsValid())
+	IHeadMountedDisplay* HMD = GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetHMDDevice() : nullptr;
+
+	if (HMD)
 	{
-		GEngine->HMDDevice->SetClippingPlanes(Near, Far);
+		HMD->SetClippingPlanes(Near, Far);
 	}
 }
 
@@ -211,7 +225,7 @@ float UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(UObject* WorldCo
 
 void UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(TEnumAsByte<EHMDTrackingOrigin::Type> InOrigin)
 {
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
 		EHMDTrackingOrigin::Type Origin = EHMDTrackingOrigin::Eye;
 		switch (InOrigin)
@@ -225,7 +239,7 @@ void UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(TEnumAsByte<EHMDTrack
 		default:
 			break;
 		}
-		GEngine->HMDDevice->SetTrackingOrigin(Origin);
+		GEngine->XRSystem->SetTrackingOrigin(Origin);
 	}
 }
 
@@ -233,9 +247,9 @@ TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTra
 {
 	EHMDTrackingOrigin::Type Origin = EHMDTrackingOrigin::Eye;
 
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		Origin = GEngine->HMDDevice->GetTrackingOrigin();
+		Origin = GEngine->XRSystem->GetTrackingOrigin();
 	}
 
 	return Origin;
@@ -243,10 +257,11 @@ TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTra
 
 void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)
 {
-	if (GEngine->HMDDevice.IsValid())
+	IHeadMountedDisplay* HMD = GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetHMDDevice() : nullptr;
+	if (HMD)
 	{
-		bUseFocus = GEngine->HMDDevice->DoesAppUseVRFocus();
-		bHasFocus = GEngine->HMDDevice->DoesAppHaveVRFocus();
+		bUseFocus = HMD->DoesAppUseVRFocus();
+		bHasFocus = HMD->DoesAppHaveVRFocus();
 	}
 	else
 	{
@@ -258,9 +273,10 @@ namespace HMDFunctionLibraryHelpers
 {
 	ISpectatorScreenController* GetSpectatorScreenController()
 	{
-		if (GEngine->HMDDevice.IsValid())
+		IHeadMountedDisplay* HMD = GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetHMDDevice() : nullptr;
+		if (HMD)
 		{
-			return GEngine->HMDDevice->GetSpectatorScreenController();
+			return HMD->GetSpectatorScreenController();
 		}
 		return nullptr;
 	}

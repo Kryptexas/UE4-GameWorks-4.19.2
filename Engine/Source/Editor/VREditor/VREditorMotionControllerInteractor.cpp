@@ -23,6 +23,7 @@
 #include "EngineGlobals.h"
 #include "IMotionController.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "MotionControllerComponent.h"
 #include "Features/IModularFeatures.h"
 #include "Engine/Selection.h"
@@ -625,7 +626,7 @@ void UVREditorMotionControllerInteractor::CalculateDragRay( float& InOutDragRayL
 
 EHMDDeviceType::Type UVREditorMotionControllerInteractor::GetHMDDeviceType() const
 {
-	return (GEngine && GEngine->HMDDevice.IsValid()) ? GEngine->HMDDevice->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR; //@todo: ViewportInteraction, assumption that it's steamvr ??
+	return (GEngine && GEngine->XRSystem.IsValid()) && GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR; //@todo: ViewportInteraction, assumption that it's steamvr ??
 }
 
 

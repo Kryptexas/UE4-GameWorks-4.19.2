@@ -19,7 +19,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Scalability.h"
 #include "Matinee/MatineeActor.h"
-#include "IHeadMountedDisplay.h"
+#include "StereoRendering.h"
 #include "PackageName.h"
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
@@ -106,7 +106,7 @@ namespace AutomationCommon
 		Data.Platform = FPlatformProperties::IniPlatformName();
 		Data.Rhi = FHardwareInfo::GetHardwareInfo(NAME_RHI);
 		GetFeatureLevelName(GMaxRHIFeatureLevel, Data.FeatureLevel);
-		Data.bIsStereo = GEngine->HMDDevice.IsValid() ? GEngine->HMDDevice->IsStereoEnabled() : false;
+		Data.bIsStereo = GEngine->StereoRenderingDevice.IsValid() ? GEngine->StereoRenderingDevice->IsStereoEnabled() : false;
 		Data.Vendor = RHIVendorIdToString();
 		Data.AdapterName = GRHIAdapterName;
 		Data.AdapterInternalDriverVersion = GRHIAdapterInternalDriverVersion;

@@ -97,13 +97,11 @@ public:
 
 	// Accessors.
 	FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
-	SIZE_T GetBackBufferIndex() const { return CurrentBackBufferIndex; }
+	FD3D12Texture2D* GetBackBuffer_RenderThread() const { return BackBuffer_RenderThread; }
+	FD3D12Texture2D* GetBackBuffer_RHIThread() const { return BackBuffer_RHIThread; }
 
-	FD3D12Texture2D* GetBackBuffer() const { return BackBuffer; }
-	FD3D12Texture2D* GetBackBuffer(uint32 Index) const { return BackBuffers[Index % NumBackBuffers].GetReference(); }
-
-	FD3D12Texture2D* GetSDRBackBuffer() const { return (PixelFormat == SDRPixelFormat)? GetBackBuffer() : SDRBackBuffer; }
-	FD3D12Texture2D* GetSDRBackBuffer(uint32 Index) const { return (PixelFormat == SDRPixelFormat) ? GetBackBuffer(Index) : SDRBackBuffers[Index % NumBackBuffers].GetReference(); }
+	FD3D12Texture2D* GetSDRBackBuffer_RenderThread() const { return (PixelFormat == SDRPixelFormat)? GetBackBuffer_RenderThread() : SDRBackBuffer_RenderThread; }
+	FD3D12Texture2D* GetSDRBackBuffer_RHIThread() const { return (PixelFormat == SDRPixelFormat) ? GetBackBuffer_RHIThread() : SDRBackBuffer_RHIThread; }
 
 	void WaitForFrameEventCompletion();
 	void IssueFrameEvent();
@@ -112,8 +110,8 @@ public:
 	IDXGISwapChain1* GetSDRSwapChain() const { return (PixelFormat == SDRPixelFormat) ? GetSwapChain() : SDRSwapChain1; }
 
 	virtual void* GetNativeSwapChain() const override { return GetSwapChain(); }
-	virtual void* GetNativeBackBufferTexture() const override { return GetBackBuffer()->GetResource(); }
-	virtual void* GetNativeBackBufferRT() const override { return GetBackBuffer()->GetRenderTargetView(0, 0); }
+	virtual void* GetNativeBackBufferTexture() const override { return GetBackBuffer_RHIThread()->GetResource(); }
+	virtual void* GetNativeBackBufferRT() const override { return GetBackBuffer_RHIThread()->GetRenderTargetView(0, 0); }
 
 	virtual void SetCustomPresent(FRHICustomPresent* InCustomPresent) override
 	{
@@ -131,6 +129,8 @@ public:
 
 	/** Query the swap chain's current connected output for HDR support. */
 	bool CurrentOutputSupportsHDR() const;
+
+	void AdvanceBackBufferFrame_RenderThread();
 
 private:
 
@@ -163,6 +163,7 @@ private:
 	bool bIsFullscreen;
 	EPixelFormat PixelFormat;
 	bool bIsValid;
+	bool bAllowTearing;
 	TRefCountPtr<IDXGISwapChain1> SwapChain1;
 
 #if PLATFORM_WINDOWS
@@ -179,16 +180,19 @@ private:
 	TArray<TRefCountPtr<FD3D12Texture2D>> BackBuffers;
 	uint32 NumBackBuffers;
 
-	FD3D12Texture2D* BackBuffer;
+	uint32 CurrentBackBufferIndex_RenderThread;
+	FD3D12Texture2D* BackBuffer_RenderThread;
+	uint32 CurrentBackBufferIndex_RHIThread;
+	FD3D12Texture2D* BackBuffer_RHIThread;
 
 	/** 
 	 * When HDR is enabled, SDR backbuffers may be required on some architectures for game DVR or broadcasting
 	 */
 	TArray<TRefCountPtr<FD3D12Texture2D>> SDRBackBuffers;
-	FD3D12Texture2D* SDRBackBuffer;
+	FD3D12Texture2D* SDRBackBuffer_RenderThread;
+	FD3D12Texture2D* SDRBackBuffer_RHIThread;
 	EPixelFormat SDRPixelFormat;
 
-	uint32 CurrentBackBufferIndex;
 
 	/** A fence value used to track the GPU's progress. */
 	FD3D12Fence Fence;

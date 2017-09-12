@@ -1407,7 +1407,7 @@ public:
 	FExposureSettings ExposureSettings;
 
     /** Extensions that can modify view parameters on the render thread. */
-    TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
+    TArray<TSharedRef<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
 
 	// for r.DisplayInternals (allows for easy passing down data from main to render thread)
 	FDisplayInternalsData DisplayInternalsData;

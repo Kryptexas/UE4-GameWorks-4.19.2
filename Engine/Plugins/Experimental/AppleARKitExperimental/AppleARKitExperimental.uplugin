@@ -1,0 +1,29 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "Apple ARKit (Experimental)",
+	"Description": "Support for Apple's ARKit augmented reality system",
+	"Category": "Augmented Reality",
+	"CreatedBy": "",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"Modules": [
+		{
+			"Name": "AppleARKitExperimental",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms" : [ "IOS", "Mac", "Win64" ]
+		},
+		{
+			"Name": "AppleARKitExperimentalEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms" : [ "Mac", "Win64" ]
+		}
+	]
+}

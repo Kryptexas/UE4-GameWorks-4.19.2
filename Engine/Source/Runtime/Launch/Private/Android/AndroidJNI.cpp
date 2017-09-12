@@ -116,6 +116,12 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	LaunchNotificationEvent = FJavaWrapper::FindField(Env, LaunchNotificationClass, "event", "Ljava/lang/String;", bIsOptional);
 	LaunchNotificationFireDate = FJavaWrapper::FindField(Env, LaunchNotificationClass, "fireDate", "I", bIsOptional);
 
+	jclass localThreadClass = FindClass(Env, "java/lang/Thread", bIsOptional);
+	ThreadClass = (jclass)Env->NewGlobalRef(localThreadClass);
+	Env->DeleteLocalRef(localThreadClass);
+	CurrentThreadMethod = FindStaticMethod(Env, ThreadClass, "currentThread", "()Ljava/lang/Thread;", bIsOptional);
+	SetNameMethod = FindMethod(Env, ThreadClass, "setName", "(Ljava/lang/String;)V", bIsOptional);
+
 	// the rest are optional
 	bIsOptional = true;
 
@@ -331,6 +337,9 @@ jfieldID FJavaWrapper::LaunchNotificationUsed;
 jfieldID FJavaWrapper::LaunchNotificationEvent;
 jfieldID FJavaWrapper::LaunchNotificationFireDate;
 
+jclass FJavaWrapper::ThreadClass;
+jmethodID FJavaWrapper::CurrentThreadMethod;
+jmethodID FJavaWrapper::SetNameMethod;
 
 //Game-specific crash reporter
 void EngineCrashHandler(const FGenericCrashContext& GenericContext)
@@ -1207,6 +1216,18 @@ bool AndroidThunkCpp_HasActiveWiFiConnection()
 	return bIsActive;
 }
 
+void AndroidThunkCpp_SetThreadName(const char * name)
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		jstring jname = Env->NewStringUTF(name);
+		jobject currentThread = Env->CallStaticObjectMethod(FJavaWrapper::ThreadClass, FJavaWrapper::CurrentThreadMethod, nullptr);
+		Env->CallVoidMethod(currentThread, FJavaWrapper::SetNameMethod, jname);
+		Env->DeleteLocalRef(jname);
+		Env->DeleteLocalRef(currentThread);
+	}
+}
+
 //The JNI_OnLoad function is triggered by loading the game library from 
 //the Java source file.
 //	static
@@ -1271,6 +1292,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	OnAndroidLaunchURL = FAndroidLaunchURLDelegate::CreateStatic(&AndroidThunkCpp_LaunchURL);
 
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("In the JNI_OnLoad function 5"));
+	
+	char mainThreadName[] = "MainThread-UE4";
+	AndroidThunkCpp_SetThreadName(mainThreadName);
 
 	return JNI_CURRENT_VERSION;
 }

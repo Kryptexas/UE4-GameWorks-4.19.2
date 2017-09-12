@@ -11,6 +11,7 @@
 #include "RHIStaticStates.h"
 #include "PipelineStateCache.h"
 #include "Runtime/UtilityShaders/Public/OculusShaders.h"
+#include "SceneUtils.h" // for SCOPED_DRAW_EVENT()
 
 DECLARE_STATS_GROUP(TEXT("Oculus"), STATGROUP_Oculus, STATCAT_Advanced);
 DECLARE_CYCLE_STAT(TEXT("GPUStressRendering"), STAT_GPUStressRendering, STATGROUP_Oculus);
@@ -76,25 +77,28 @@ static TGlobalResource<FTextureVertexDeclaration> GOculusTextureVertexDeclaratio
 
 
 //-------------------------------------------------------------------------------------------------
-// FPixelShaderDeclaration
+// FOculusStressShadersPS
 //-------------------------------------------------------------------------------------------------
 
-class FPixelShaderDeclaration : public FGlobalShader
+class FOculusStressShadersPS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FPixelShaderDeclaration, Global);
+	DECLARE_SHADER_TYPE(FOculusStressShadersPS, Global);
 
 public:
 
-	FPixelShaderDeclaration() {}
+	FOculusStressShadersPS() {}
 
-	explicit FPixelShaderDeclaration(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+	explicit FOculusStressShadersPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FGlobalShader(Initializer)
 	{
 		// Bind shader's params
 		TextureParameter.Bind(Initializer.ParameterMap, TEXT("TextureParameter"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return true;
+	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
@@ -145,8 +149,7 @@ private:
 	FShaderResourceParameter TextureParameter;
 };
 
-IMPLEMENT_SHADER_TYPE(, FPixelShaderDeclaration, TEXT("/Engine/Private/OculusStressShaders.usf"), TEXT("MainPixelShader"), SF_Pixel);
-
+IMPLEMENT_SHADER_TYPE(, FOculusStressShadersPS, TEXT("/Plugin/OculusVR/Private/OculusStressShaders.usf"), TEXT("MainPixelShader"), SF_Pixel);
 
 //-------------------------------------------------------------------------------------------------
 // FStressTester
@@ -328,7 +331,7 @@ void FStressTester::DoTickGPU_RenderThread(FRHICommandListImmediate& RHICmdList,
 
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
 		TShaderMapRef<FOculusVertexShader> VertexShader(GetGlobalShaderMap(FeatureLevel));
-		TShaderMapRef<FPixelShaderDeclaration> PixelShader(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef<FOculusStressShadersPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 
 		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GOculusTextureVertexDeclaration.VertexDeclarationRHI;
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);

@@ -16,6 +16,7 @@ FOculusHMDModule::FOculusHMDModule()
 	bPreInit = false;
 	bPreInitCalled = false;
 	OVRPluginHandle = nullptr;
+	GraphicsAdapterLuid = 0;
 #endif
 }
 
@@ -87,15 +88,13 @@ bool FOculusHMDModule::PreInit()
 				return false;
 			}
 
-#if OCULUS_HMD_SUPPORTED_PLATFORMS_D3D11 || OCULUS_HMD_SUPPORTED_PLATFORMS_D3D12
+#if PLATFORM_WINDOWS
 			const LUID* displayAdapterId;
 			if (OVRP_SUCCESS(ovrp_GetDisplayAdapterId2((const void**) &displayAdapterId)) && displayAdapterId)
 			{
-				SetGraphicsAdapter(displayAdapterId);
+				SetGraphicsAdapterLuid(*(const uint64*) displayAdapterId);
 			}
-#endif
 
-#if PLATFORM_WINDOWS
 			const WCHAR* audioInDeviceId;
 			if (OVRP_SUCCESS(ovrp_GetAudioInDeviceId2((const void**) &audioInDeviceId)) && audioInDeviceId)
 			{
@@ -132,13 +131,35 @@ bool FOculusHMDModule::IsHMDConnected()
 }
 
 
-int FOculusHMDModule::GetGraphicsAdapter()
+uint64 FOculusHMDModule::GetGraphicsAdapterLuid()
 {
-	int GraphicsAdapter = -1;
-#if OCULUS_HMD_SUPPORTED_PLATFORMS
-	GConfig->GetInt(TEXT("Oculus.Settings"), TEXT("GraphicsAdapter"), GraphicsAdapter, GEngineIni);
+#if OCULUS_HMD_SUPPORTED_PLATFORMS_D3D11 || OCULUS_HMD_SUPPORTED_PLATFORMS_D3D12
+	if (!GraphicsAdapterLuid)
+	{
+		int GraphicsAdapter;
+
+		if (GConfig->GetInt(TEXT("Oculus.Settings"), TEXT("GraphicsAdapter"), GraphicsAdapter, GEngineIni) &&
+			GraphicsAdapter >= 0)
+		{
+			TRefCountPtr<IDXGIFactory> DXGIFactory;
+			TRefCountPtr<IDXGIAdapter> DXGIAdapter;
+			DXGI_ADAPTER_DESC DXGIAdapterDesc;
+
+			if (SUCCEEDED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)DXGIFactory.GetInitReference())) &&
+				SUCCEEDED(DXGIFactory->EnumAdapters(GraphicsAdapter, DXGIAdapter.GetInitReference())) &&
+				SUCCEEDED(DXGIAdapter->GetDesc(&DXGIAdapterDesc)))
+			{
+				FMemory::Memcpy(&GraphicsAdapterLuid, &DXGIAdapterDesc.AdapterLuid, sizeof(GraphicsAdapterLuid));
+			}
+		}
+	}
 #endif
-	return GraphicsAdapter;
+
+#if OCULUS_HMD_SUPPORTED_PLATFORMS
+	return GraphicsAdapterLuid;
+#else
+	return 0;
+#endif
 }
 
 
@@ -162,12 +183,12 @@ FString FOculusHMDModule::GetAudioOutputDevice()
 }
 
 
-TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FOculusHMDModule::CreateHeadMountedDisplay()
+TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > FOculusHMDModule::CreateTrackingSystem()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
 	if (PreInit())
 	{
-		OculusHMD::FOculusHMDPtr OculusHMD(new OculusHMD::FOculusHMD());
+		OculusHMD::FOculusHMDPtr OculusHMD = FSceneViewExtensions::NewExtension<OculusHMD::FOculusHMD>();
 
 		if (OculusHMD->Startup())
 		{
@@ -176,7 +197,21 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FOculusHMDModule::C
 		}
 	}
 	HeadMountedDisplay = nullptr;
-#endif//OCULUS_HMD_SUPPORTED_PLATFORMS
+#endif
+	return nullptr;
+}
+
+
+TSharedPtr< IHeadMountedDisplayVulkanExtensions, ESPMode::ThreadSafe >  FOculusHMDModule::GetVulkanExtensions()
+{
+#if OCULUS_HMD_SUPPORTED_PLATFORMS
+	if (!VulkanExtensions.IsValid())
+	{
+		VulkanExtensions = MakeShareable(new OculusHMD::FVulkanExtensions);
+	}
+
+	return VulkanExtensions;
+#endif
 	return nullptr;
 }
 
@@ -206,14 +241,13 @@ bool FOculusHMDModule::PoseToOrientationAndPosition(const FQuat& InOrientation, 
 {
 	OculusHMD::CheckInGameThread();
 
-	IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
-	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
+	OculusHMD::FOculusHMD* OculusHMD = static_cast<OculusHMD::FOculusHMD*>(HeadMountedDisplay.Pin().Get());
+
+	if (OculusHMD)
 	{
 		ovrpPosef InPose;
 		InPose.Orientation = OculusHMD::ToOvrpQuatf(InOrientation);
 		InPose.Position = OculusHMD::ToOvrpVector3f(InPosition);
-
-		OculusHMD::FOculusHMD* OculusHMD = static_cast<OculusHMD::FOculusHMD*>(HMD);
 		OculusHMD::FPose OutPose;
 
 		if (OculusHMD->ConvertPose(InPose, OutPose))
@@ -228,8 +262,10 @@ bool FOculusHMDModule::PoseToOrientationAndPosition(const FQuat& InOrientation, 
 }
 
 
-void FOculusHMDModule::SetGraphicsAdapter(const void* luid)
+void FOculusHMDModule::SetGraphicsAdapterLuid(uint64 InLuid)
 {
+	GraphicsAdapterLuid = InLuid;
+
 #if OCULUS_HMD_SUPPORTED_PLATFORMS_D3D11 || OCULUS_HMD_SUPPORTED_PLATFORMS_D3D12
 	TRefCountPtr<IDXGIFactory> DXGIFactory;
 
@@ -246,7 +282,7 @@ void FOculusHMDModule::SetGraphicsAdapter(const void* luid)
 				break;
 			}
 
-			if (!FMemory::Memcmp(luid, &DXGIAdapterDesc.AdapterLuid, sizeof(LUID)))
+			if (!FMemory::Memcmp(&GraphicsAdapterLuid, &DXGIAdapterDesc.AdapterLuid, sizeof(GraphicsAdapterLuid)))
 			{
 				// Remember this adapterIndex so we use the right adapter, even when we startup without HMD connected
 				GConfig->SetInt(TEXT("Oculus.Settings"), TEXT("GraphicsAdapter"), adapterIndex, GEngineIni);

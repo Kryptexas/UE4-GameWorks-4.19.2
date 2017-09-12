@@ -26,7 +26,8 @@ public class TangoSDK : ModuleRules
 			PublicLibraryPaths.Add(TangoSDKArmLibPath);
 			PublicLibraryPaths.Add(TangoSDKArm64LibPath);
 
-			PublicAdditionalLibraries.Add("tango_support_api");
+			PublicAdditionalLibraries.Add("tango_support");
+			PublicAdditionalLibraries.Add("tango_client_api2");
 			PublicAdditionalLibraries.Add("tango_3d_reconstruction");
 		}
 	}

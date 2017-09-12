@@ -19,6 +19,8 @@
 #include "UObject/Package.h"
 #include "EngineGlobals.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
+#include "IXRCamera.h"
 #include "VREditorAssetContainer.h"
 #include "VRModeSettings.h"
 
@@ -266,14 +268,18 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 
 		// @todo vreditor urgent: Head disabled until we can fix late frame update issue
 		check( HeadMeshComponent != nullptr );
-		if( false ) // && VRMode->IsActuallyUsingVR() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() )
+		if( false ) // && VRMode->IsActuallyUsingVR() && GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed() )
 		{
 			HeadMeshComponent->SetVisibility( true );
 
 			// Apply late frame update to the head mesh
 			HeadMeshComponent->ResetRelativeTransform( );
 			const FTransform ParentToWorld = HeadMeshComponent->GetComponentToWorld( );
-			GEngine->HMDDevice->SetupLateUpdate( ParentToWorld, HeadMeshComponent );
+			auto XRCamera = GEngine->XRSystem->GetXRCamera();
+			if (XRCamera.IsValid())
+			{
+				XRCamera->SetupLateUpdate(ParentToWorld, HeadMeshComponent);
+			}
 			HeadMeshComponent->SetRelativeTransform( RoomSpaceTransformWithWorldToMetersScaling );
 		}
 		else

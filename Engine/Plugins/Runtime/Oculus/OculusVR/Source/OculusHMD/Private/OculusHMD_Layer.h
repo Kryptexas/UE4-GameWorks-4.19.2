@@ -43,20 +43,21 @@ public:
 	const IStereoLayers::FLayerDesc& GetDesc() const { return Desc; }
 	void SetEyeLayerDesc(const ovrpLayerDesc_EyeFov& InEyeLayerDesc, const ovrpRecti InViewportRect[ovrpEye_Count]);
 	const FTextureSetProxyPtr& GetTextureSetProxy() const { return TextureSetProxy; }
+	const FTextureSetProxyPtr& GetDepthTextureSetProxy() const { return DepthTextureSetProxy; }
 	void MarkTextureForUpdate() { bUpdateTexture = true; }
 	bool NeedsPokeAHole() { return (Desc.Flags & IStereoLayers::LAYER_FLAG_SUPPORT_DEPTH) != 0; }
 	FTextureRHIRef GetTexture() { return Desc.Texture; }
 
 	TSharedPtr<FLayer, ESPMode::ThreadSafe> Clone() const;
 
-	void Initialize_RenderThread(FCustomPresent* CustomPresent, const FLayer* InLayer = nullptr);
+	void Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandListImmediate& RHICmdList, const FLayer* InLayer = nullptr);
 	void UpdateTexture_RenderThread(FCustomPresent* CustomPresent, FRHICommandListImmediate& RHICmdList);
 
 	const ovrpLayerSubmit* UpdateLayer_RHIThread(const FSettings* Settings, const FGameFrame* Frame);
-	void IncrementSwapChainIndex_RHIThread();
+	void IncrementSwapChainIndex_RHIThread(FCustomPresent* CustomPresent);
 	void ReleaseResources_RHIThread();
 
-	void DrawPokeAHoleMesh(FRHICommandList& RHICmdList, const FMatrix& InMatrix, float scale, bool invertCoords);
+	void DrawPokeAHoleMesh(FRHICommandList& RHICmdList, const FMatrix& matrix, float scale, bool invertCoords);
 
 protected:
 	uint32 Id;
@@ -66,8 +67,12 @@ protected:
 	ovrpLayerSubmitUnion OvrpLayerSubmit;
 	FOvrpLayerPtr OvrpLayer;
 	FTextureSetProxyPtr TextureSetProxy;
+	FTextureSetProxyPtr DepthTextureSetProxy;
 	FTextureSetProxyPtr RightTextureSetProxy;
+	FTextureSetProxyPtr RightDepthTextureSetProxy;
 	bool bUpdateTexture;
+	bool bInvertY;
+	bool bHasDepth;
 };
 
 typedef TSharedPtr<FLayer, ESPMode::ThreadSafe> FLayerPtr;

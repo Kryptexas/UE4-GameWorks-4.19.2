@@ -95,30 +95,14 @@ void FOSVRHMD::GetEyeRenderParams_RenderThread(const struct FRenderingCompositeP
 	}
 }
 
-void FOSVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
+void FOSVRHMD::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
+	FHeadMountedDisplayBase::BeginRendering_RenderThread(NewRelativeTransform, RHICmdList, ViewFamily);
 	if (mCustomPresent && !mCustomPresent->IsInitialized())
 	{
 		mCustomPresent->Initialize();
 	}
-
-	FQuat lastHmdOrientation, hmdOrientation;
-	FVector lastHmdPosition, hmdPosition;
-	UpdateHeadPose(lastHmdOrientation, lastHmdPosition, hmdOrientation, hmdPosition);
-	CurHmdOrientationRT = hmdOrientation;
-	const FTransform oldRelativeTransform(lastHmdOrientation, lastHmdPosition);
-	const FTransform newRelativeTransform(hmdOrientation, hmdPosition);
-
-	ApplyLateUpdate(ViewFamily.Scene, oldRelativeTransform, newRelativeTransform);
-}
-
-void FOSVRHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
-{
-	check(IsInRenderingThread());
-	const FQuat deltaOriention = View.BaseHmdOrientation.Inverse() * CurHmdOrientationRT;
-	View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * deltaOriention);
-	View.UpdateViewMatrix();
 }
 
 void FOSVRHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
@@ -153,48 +137,22 @@ void FOSVRHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOu
 	}
 }
 
-bool FOSVRHMD::NeedReAllocateViewportRenderTarget(const FViewport &viewport)
+void FOSVRHMD::UpdateViewportRHIBridge(bool /* bUseSeparateRenderTarget */, const class FViewport& InViewport, FRHIViewport* const ViewportRHI)
 {
 	check(IsInGameThread());
-	if (IsStereoEnabled())
-	{
-		const uint32 inSizeX = viewport.GetSizeXY().X;
-		const uint32 inSizeY = viewport.GetSizeXY().Y;
-		FIntPoint renderTargetSize;
-		renderTargetSize.X = viewport.GetRenderTargetTexture()->GetSizeX();
-		renderTargetSize.Y = viewport.GetRenderTargetTexture()->GetSizeY();
-
-		uint32 newSizeX = inSizeX, newSizeY = inSizeY;
-		CalculateRenderTargetSize(viewport, newSizeX, newSizeY);
-		if (newSizeX != renderTargetSize.X || newSizeY != renderTargetSize.Y)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-void FOSVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, class SViewport*)
-{
-	check(IsInGameThread());
-
-	auto viewportRHI = InViewport.GetViewportRHI().GetReference();
-	if (!mCustomPresent || (GIsEditor && !bPlaying) || (!IsStereoEnabled() && !bUseSeparateRenderTarget))
-	{
-		if (viewportRHI)
-		{
-			viewportRHI->SetCustomPresent(nullptr);
-		}
-		return;
-	}
 
 	if (mCustomPresent && mCustomPresent->IsInitialized())
 	{
-		if (!mCustomPresent->UpdateViewport(InViewport, viewportRHI))
+		if (!mCustomPresent->UpdateViewport(InViewport, ViewportRHI))
 		{
 			delete mCustomPresent;
 			mCustomPresent = nullptr;
 		}
+	}
+	
+	if (!mCustomPresent)
+	{
+		ViewportRHI->SetCustomPresent(nullptr);
 	}
 }
 

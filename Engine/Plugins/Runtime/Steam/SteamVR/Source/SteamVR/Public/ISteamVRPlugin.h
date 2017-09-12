@@ -57,11 +57,6 @@ public:
 	 */
 	virtual void Reset() = 0;
 
-	/**
-	 * Update the Controller to Device mapping.
-	 * The controller passes this to the HMD.
-	 */
-	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ vr::k_unMaxTrackedDeviceCount ] ) = 0;
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 
 private:

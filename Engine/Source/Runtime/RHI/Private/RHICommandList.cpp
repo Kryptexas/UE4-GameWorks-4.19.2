@@ -1630,7 +1630,7 @@ void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPr
 		GRHIThreadEndDrawingViewportFenceIndex = PreviousFrameFenceIndex;
 	}
 
-	RHIAdvanceFrameForGetViewportBackBuffer();
+	RHIAdvanceFrameForGetViewportBackBuffer(Viewport);
 }
 
 void FRHICommandList::BeginFrame()

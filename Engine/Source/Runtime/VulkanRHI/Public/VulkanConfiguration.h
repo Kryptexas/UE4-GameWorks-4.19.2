@@ -89,6 +89,8 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_REUSE_FENCES										1
 
+#define VULKAN_ENABLE_DESKTOP_HMD_SUPPORT						PLATFORM_WINDOWS
+
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()
 #elif PLATFORM_LINUX

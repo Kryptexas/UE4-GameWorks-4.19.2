@@ -8,6 +8,7 @@
 #include "UObject/Package.h"
 #include "HeadMountedDisplayTypes.h"
 #include "ISpectatorScreenController.h"
+#include "IXRTrackingSystem.h"
 
 //#include "UObject/UObjectGlobals.h"
 
@@ -44,10 +45,11 @@ static TAutoConsoleVariable<int32> CVarMixLayerPriorities(
 #if !UE_BUILD_SHIPPING
 static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController* PlayerController)
 {
-	if (!GEngine || !GEngine->HMDDevice.IsValid() || !GEngine->HMDDevice->IsStereoEnabled())
+	if (!GEngine || !GEngine->XRSystem.IsValid())
 	{
 		return;
 	}
+
 	if (!PlayerController)
 	{
 		PlayerController = GWorld->GetFirstPlayerController();
@@ -56,7 +58,15 @@ static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController*
 			return;
 		}
 	}
-	const FColor FrustrumColor = (GEngine->HMDDevice->HasValidTrackingPosition() ? FColor::Green : FColor::Red);
+
+	TArray<int32> SensorDeviceIDs;
+	GEngine->XRSystem->EnumerateTrackedDevices(SensorDeviceIDs, EXRTrackedDeviceType::TrackingReference);
+	if (SensorDeviceIDs.Num() == 0)
+	{
+		return;
+	}
+
+	const FColor FrustrumColor = (GEngine->XRSystem->HasValidTrackingPosition() ? FColor::Green : FColor::Red);
 	const FColor CenterLineColor = FColor::Yellow;
 
 	APawn* Pawn = PlayerController->GetPawn();
@@ -72,28 +82,26 @@ static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController*
 	{
 		FVector HeadPosition; /* unsused */
 		FQuat HeadOrient;
-		GEngine->HMDDevice->GetCurrentOrientationAndPosition(HeadOrient, HeadPosition);
+		GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, HeadOrient, HeadPosition);
 		DeltaControlOrientation = DeltaControlOrientation * HeadOrient.Inverse();
 	}
 
-	uint32 NumSensors = GEngine->HMDDevice->GetNumOfTrackingSensors();
-	for (uint8 SensorIndex = 0; SensorIndex < NumSensors; ++SensorIndex)
+	for (int32 SensorID : SensorDeviceIDs)
 	{
-		float LFovDeg, RFovDeg, TFovDeg, BFovDeg, NearPlane, FarPlane, CameraDist;
 		FVector SensorOrigin;
 		FQuat SensorOrient;
-
-		GEngine->HMDDevice->GetTrackingSensorProperties(SensorIndex, SensorOrigin, SensorOrient, LFovDeg, RFovDeg, TFovDeg, BFovDeg, CameraDist, NearPlane, FarPlane);
+		FXRSensorProperties SensorProperties;
+		GEngine->XRSystem->GetTrackingSensorProperties(SensorID, SensorOrient, SensorOrigin, SensorProperties);
 
 
 		SensorOrient = DeltaControlOrientation * SensorOrient;
 		SensorOrigin = DeltaControlOrientation.RotateVector(SensorOrigin);
 
 		// Calculate the edge vectors of the pyramid from the FoV angles
-		const float LeftTan = -FMath::Tan(FMath::DegreesToRadians(LFovDeg));
-		const float RightTan = FMath::Tan(FMath::DegreesToRadians(RFovDeg));
-		const float TopTan = FMath::Tan(FMath::DegreesToRadians(TFovDeg));
-		const float BottomTan = -FMath::Tan(FMath::DegreesToRadians(BFovDeg));
+		const float LeftTan = -FMath::Tan(FMath::DegreesToRadians(SensorProperties.LeftFOV));
+		const float RightTan = FMath::Tan(FMath::DegreesToRadians(SensorProperties.RightFOV));
+		const float TopTan = FMath::Tan(FMath::DegreesToRadians(SensorProperties.TopFOV));
+		const float BottomTan = -FMath::Tan(FMath::DegreesToRadians(SensorProperties.BottomFOV));
 		FVector EdgeTR(1, RightTan, TopTan);
 		FVector EdgeTL(1, LeftTan, TopTan);
 		FVector EdgeBL(1, LeftTan, BottomTan);
@@ -106,16 +114,16 @@ static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController*
 
 		// Calculate coordinates of the tip (location of the sensor) and the base of the pyramid (far plane)
 		FVector Tip = Matrix.TransformPosition(FVector::ZeroVector);
-		FVector BaseTR = Matrix.TransformPosition(EdgeTR * FarPlane);
-		FVector BaseTL = Matrix.TransformPosition(EdgeTL * FarPlane);
-		FVector BaseBL = Matrix.TransformPosition(EdgeBL * FarPlane);
-		FVector BaseBR = Matrix.TransformPosition(EdgeBR * FarPlane);
+		FVector BaseTR = Matrix.TransformPosition(EdgeTR * SensorProperties.FarPlane);
+		FVector BaseTL = Matrix.TransformPosition(EdgeTL * SensorProperties.FarPlane);
+		FVector BaseBL = Matrix.TransformPosition(EdgeBL * SensorProperties.FarPlane);
+		FVector BaseBR = Matrix.TransformPosition(EdgeBR * SensorProperties.FarPlane);
 
 		// Calculate coordinates of where the near plane intersects the pyramid
-		FVector NearTR = Matrix.TransformPosition(EdgeTR * NearPlane);
-		FVector NearTL = Matrix.TransformPosition(EdgeTL * NearPlane);
-		FVector NearBL = Matrix.TransformPosition(EdgeBL * NearPlane);
-		FVector NearBR = Matrix.TransformPosition(EdgeBR * NearPlane);
+		FVector NearTR = Matrix.TransformPosition(EdgeTR * SensorProperties.NearPlane);
+		FVector NearTL = Matrix.TransformPosition(EdgeTL * SensorProperties.NearPlane);
+		FVector NearBL = Matrix.TransformPosition(EdgeBL * SensorProperties.NearPlane);
+		FVector NearBR = Matrix.TransformPosition(EdgeBR * SensorProperties.NearPlane);
 
 		// Draw a point at the sensor position
 		DrawDebugPoint(GWorld, Tip, 5, FrustrumColor);
@@ -139,7 +147,7 @@ static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController*
 		DrawDebugLine(GWorld, NearBR, NearTR, FrustrumColor);
 
 		// Draw a center line from the sensor to the focal point
-		FVector CenterLine = Matrix.TransformPosition(FVector(CameraDist, 0, 0));
+		FVector CenterLine = Matrix.TransformPosition(FVector(SensorProperties.CameraDistance, 0, 0));
 		DrawDebugLine(GWorld, Tip, CenterLine, CenterLineColor);
 		DrawDebugPoint(GWorld, CenterLine, 5, CenterLineColor);
 	}
@@ -192,16 +200,16 @@ static void TrackingOrigin(const TArray<FString>& Args, UWorld* , FOutputDevice&
 			Ar.Logf(ELogVerbosity::Error, TEXT("Invalid tracking orgin, %s"), *Args[0]);
 		}
 
-		if (GEngine && GEngine->HMDDevice.IsValid())
+		if (GEngine && GEngine->XRSystem.IsValid())
 		{
-			GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Type(Origin));
+			GEngine->XRSystem->SetTrackingOrigin(EHMDTrackingOrigin::Type(Origin));
 		}
 	}
 	else
 	{
-		if (GEngine && GEngine->HMDDevice.IsValid())
+		if (GEngine && GEngine->XRSystem.IsValid())
 		{
-			Origin = GEngine->HMDDevice->GetTrackingOrigin();
+			Origin = GEngine->XRSystem->GetTrackingOrigin();
 		}
 		Ar.Logf(TEXT("Tracking orgin is set to %s"), *TrackingOriginEnum->GetNameStringByIndex(Origin));
 	}
@@ -216,9 +224,9 @@ namespace HMDConsoleCommandsHelpers
 {
 	ISpectatorScreenController* GetSpectatorScreenController()
 	{
-		if (GEngine->HMDDevice.IsValid())
+		if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice())
 		{
-			return GEngine->HMDDevice->GetSpectatorScreenController();
+			return GEngine->XRSystem->GetHMDDevice()->GetSpectatorScreenController();
 		}
 		return nullptr;
 	}
@@ -254,7 +262,7 @@ static void SpectatorScreenMode(const TArray<FString>& Args, UWorld* , FOutputDe
 	}
 	else
 	{
-		if (GEngine && GEngine->HMDDevice.IsValid())
+		if (GEngine && GEngine->XRSystem.IsValid())
 		{
 			ModeVal = (int)Controller->GetSpectatorScreenMode();
 		}
@@ -270,9 +278,9 @@ static FAutoConsoleCommand CSpectatorModeCmd(
 
 static void HMDResetPosition(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
-		GEngine->HMDDevice->ResetPosition();
+		GEngine->XRSystem->ResetPosition();
 	}
 }
 
@@ -284,14 +292,14 @@ static FAutoConsoleCommand CHMDResetPositionCmd(
 
 static void HMDResetOrientation(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
 		float Yaw = 0.f;
 		if (Args.Num() > 0)
 		{
 			Yaw = FCString::Atof(*Args[0]);
 		}
-		GEngine->HMDDevice->ResetOrientation(Yaw);
+		GEngine->XRSystem->ResetOrientation(Yaw);
 	}
 }
 
@@ -302,14 +310,14 @@ static FAutoConsoleCommand CHMDResetOrientationCmd(
 
 static void HMDReset(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
 		float Yaw = 0.f;
 		if (Args.Num() > 0)
 		{
 			Yaw = FCString::Atof(*Args[0]);
 		}
-		GEngine->HMDDevice->ResetOrientationAndPosition(Yaw);
+		GEngine->XRSystem->ResetOrientationAndPosition(Yaw);
 	}
 }
 
@@ -321,13 +329,13 @@ static FAutoConsoleCommand CHMDResetCmd(
 
 static void HMDStatus(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
-		auto HMD = GEngine->HMDDevice;
+		auto HMD = GEngine->XRSystem;
 		Ar.Logf(TEXT("Position tracking status: %s\nHead tracking allowed: %s\nNumber of tracking sensors: %d"), 
 			HMD->DoesSupportPositionalTracking() ? (HMD->HasValidTrackingPosition() ? TEXT("active") : TEXT("lost")) : TEXT("not supported"),
 			HMD->IsHeadTrackingAllowed() ? TEXT("yes") : TEXT("no"),
-			HMD->GetNumOfTrackingSensors());
+			HMD->CountTrackedDevices(EXRTrackedDeviceType::TrackingReference));
 	}
 }
 
@@ -339,21 +347,27 @@ static FAutoConsoleCommand CHMDStatusCmd(
 static void EnableHMD(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
 	bool bEnable = 0;
+	IHeadMountedDisplay* HMD = GEngine && GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetHMDDevice() : nullptr;
+	if (!HMD)
+	{
+		return;
+	}
+	
 	if (Args.Num())
 	{
 		bEnable = FCString::ToBool(*Args[0]);
+		HMD->EnableHMD(bEnable);
 
-		if (GEngine && GEngine->HMDDevice.IsValid())
+		/* TODO: calling EnableStereo after calling EnableHMD replicates the function library behavior:
+		if (GEngine->StereoRenderingDevice.IsValid())
 		{
-			GEngine->HMDDevice->EnableHMD(bEnable);
+			GEngine->StereoRenderingDevice->EnableStereo(bEnable);
 		}
+		*/
 	}
 	else
 	{
-		if (GEngine && GEngine->HMDDevice.IsValid())
-		{
-			bEnable = GEngine->HMDDevice->IsHMDEnabled();
-		}
+		bEnable = HMD->IsHMDEnabled();
 		Ar.Logf(TEXT("HMD device is %s"), bEnable?TEXT("enabled"):TEXT("disabled"));
 	}
 }
@@ -366,24 +380,26 @@ static FAutoConsoleCommand CEnableHMDCmd(
 static void EnableStereo(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
 	bool bEnable = 0;
+	IHeadMountedDisplay* HMD = GEngine && GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetHMDDevice() : nullptr;
+
 	if (Args.Num())
 	{
 		bEnable = FCString::ToBool(*Args[0]);
 
-		if (GEngine && GEngine->HMDDevice.IsValid())
+		if (GEngine && GEngine->StereoRenderingDevice.IsValid())
 		{
-			if (!GEngine->HMDDevice->IsHMDEnabled())
+			if (HMD && !HMD->IsHMDEnabled())
 			{
 				Ar.Logf(TEXT("HMD is disabled. Use 'vr.bEnableHMD True' to re-enable it."));
 			}
-			GEngine->HMDDevice->EnableStereo(bEnable);
+			GEngine->StereoRenderingDevice->EnableStereo(bEnable);
 		}
 	}
 	else
 	{
-		if (GEngine && GEngine->HMDDevice.IsValid())
+		if (GEngine && GEngine->StereoRenderingDevice.IsValid())
 		{
-			bEnable = GEngine->HMDDevice->IsStereoEnabled();
+			bEnable = GEngine->StereoRenderingDevice->IsStereoEnabled();
 		}
 		Ar.Logf(TEXT("Stereo is %s"), bEnable ? TEXT("enabled") : TEXT("disabled"));
 	}
@@ -396,9 +412,9 @@ static FAutoConsoleCommand CEnableStereoCmd(
 
 static void HMDVersion(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
-		Ar.Logf(*GEngine->HMDDevice->GetVersionString());
+		Ar.Logf(*GEngine->XRSystem->GetVersionString());
 	}
 }
 

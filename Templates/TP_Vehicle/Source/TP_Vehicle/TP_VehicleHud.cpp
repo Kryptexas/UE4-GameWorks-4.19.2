@@ -12,11 +12,6 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/Engine.h"
 
-// Needed for VR Headset
-#if HMD_MODULE_INCLUDED
-#include "IHeadMountedDisplay.h"
-#endif // HMD_MODULE_INCLUDED 
-
 #define LOCTEXT_NAMESPACE "VehicleHUD"
 
 ATP_VehicleHud::ATP_VehicleHud()
@@ -35,10 +30,7 @@ void ATP_VehicleHud::DrawHUD()
 
 	bool bWantHUD = true;
 #if HMD_MODULE_INCLUDED
-	if (GEngine->HMDDevice.IsValid() == true)
-	{
-		bWantHUD = GEngine->HMDDevice->IsStereoEnabled();
-	}
+	bWantHUD = !GEngine->IsStereoscopic3D();
 #endif // HMD_MODULE_INCLUDED
 	// We dont want the onscreen hud when using a HMD device	
 	if (bWantHUD == true)

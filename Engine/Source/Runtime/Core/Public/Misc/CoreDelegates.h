@@ -299,6 +299,10 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetRemovedFromHead);
 	static FVRHeadsetRemovedFromHead VRHeadsetRemovedFromHead;
 
+	/** Sent when a 3DOF VR controller is recentered */
+	DECLARE_MULTICAST_DELEGATE(FVRControllerRecentered);
+	static FVRControllerRecentered VRControllerRecentered;
+
 	/** Sent when application code changes the user activity hint string for analytics, crash reports, etc */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserActivityStringChanged, const FString&);
 	static FOnUserActivityStringChanged UserActivityStringChanged;

@@ -234,7 +234,7 @@ void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
 	if (InComponent)
 	{
 		// Backward compatibility - set PrimitiveRenderMode to PRM_UseShowOnlyList if BP / game code tries to add a ShowOnlyComponent
-		PrimitiveRenderMode = PRM_UseShowOnlyList;
+		PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
 		ShowOnlyComponents.Add(InComponent);
 	}
 }
@@ -244,7 +244,7 @@ void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
 	if (InActor)
 	{
 		// Backward compatibility - set PrimitiveRenderMode to PRM_UseShowOnlyList if BP / game code tries to add a ShowOnlyComponent
-		PrimitiveRenderMode = PRM_UseShowOnlyList;
+		PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
 
 		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 		InActor->GetComponents(PrimitiveComponents);
@@ -337,12 +337,12 @@ bool USceneCaptureComponent::CanEditChange(const UProperty* InProperty) const
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent, HiddenActors))
 		{
-			return PrimitiveRenderMode == PRM_RenderScenePrimitives;
+			return PrimitiveRenderMode == ESceneCapturePrimitiveRenderMode::PRM_RenderScenePrimitives;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent, ShowOnlyActors))
 		{
-			return PrimitiveRenderMode == PRM_UseShowOnlyList;
+			return PrimitiveRenderMode == ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
 		}
 	}
 
@@ -374,7 +374,7 @@ void USceneCaptureComponent::Serialize(FArchive& Ar)
 	{
 		if (ShowOnlyActors.Num() > 0 || ShowOnlyComponents.Num() > 0)
 		{
-			PrimitiveRenderMode = PRM_UseShowOnlyList;
+			PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
 		}
 	}
 }

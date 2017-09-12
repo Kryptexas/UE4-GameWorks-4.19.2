@@ -839,6 +839,12 @@ bool FAndroidMisc::ShouldDisablePluginAtRuntime(const FString& PluginName)
 	return false;
 }
 
+extern void AndroidThunkCpp_SetThreadName(const char * name);
+void FAndroidMisc::SetThreadName(const char* name)
+{
+	AndroidThunkCpp_SetThreadName(name);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // Extracted from vk_platform.h and vulkan.h with modifications just to allow
