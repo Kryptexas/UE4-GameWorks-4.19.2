@@ -3,9 +3,9 @@
 using UnrealBuildTool;
 using System;
 
-public class FLEX : ModuleRules
+public class FLEX0 : ModuleRules
 {
-	public FLEX(ReadOnlyTargetRules Target) : base(Target)
+	public FLEX0(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

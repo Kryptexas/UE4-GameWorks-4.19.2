@@ -549,7 +549,7 @@ namespace UnrealBuildTool
 
             if (Target.bCompileNvFlexD3D == true || Target.bCompileNvFlexCUDA == true)
             {
-                AddEngineThirdPartyPrivateStaticDependencies(Target, "FLEX");
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "FLEX0");
                 Definitions.Add("WITH_FLEX=1");
 
                 if (Target.bCompileNvFlexD3D == true)
