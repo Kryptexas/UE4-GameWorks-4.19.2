@@ -188,10 +188,11 @@ bool UPackage::IsFullyLoaded() const
 	if( !bHasBeenFullyLoaded && !HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading) )
 	{
 		FString DummyFilename;
+		FString SourcePackageName = FileName != NAME_None ? FileName.ToString() : GetName();
 		// Try to find matching package in package file cache. We use the source package name here as it may be loaded into a temporary package
 		if (	!GetConvertedDynamicPackageNameToTypeName().Contains(GetFName()) &&
 				(
-					!FPackageName::DoesPackageExist( *FileName.ToString(), NULL, &DummyFilename ) || 
+					!FPackageName::DoesPackageExist(*SourcePackageName, NULL, &DummyFilename ) ||
 					(GIsEditor && IFileManager::Get().FileSize(*DummyFilename) < 0) 
 				)
 			)
