@@ -216,7 +216,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 
 			// make sure we only allow the message log to be shown when we have a level editor main tab
 			FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>(TEXT("MessageLog"));
-			MessageLogModule.EnableMessageLogDisplay(true);
+			MessageLogModule.EnableMessageLogDisplay(!FApp::IsUnattended());
 		}
 
 		// Initialize the main frame window
