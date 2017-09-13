@@ -17,7 +17,7 @@
 			"Name": "AppleARKit",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"WhitelistPlatforms" : [ "IOS", "Mac", "Win64" ]
+			"WhitelistPlatforms" : [ "Mac", "Win64" ]
 		},
 		{
 			"Name": "AppleARKitEditor",
