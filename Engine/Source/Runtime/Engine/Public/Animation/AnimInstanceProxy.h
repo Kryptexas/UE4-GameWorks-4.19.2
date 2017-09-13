@@ -218,6 +218,8 @@ public:
 	const FGraphTraversalCounter& GetUpdateCounter() const  { return UpdateCounter; }
 	const FGraphTraversalCounter& GetEvaluationCounter() const { return EvaluationCounter; }
 	const FGraphTraversalCounter& GetSlotNodeInitializationCounter() const { return SlotNodeInitializationCounter; }
+	
+	void ResetUpdateCounter() { UpdateCounter.Reset(); }
 
 	/** Access root motion params */
 	FRootMotionMovementParams& GetExtractedRootMotion() { return ExtractedRootMotion; }

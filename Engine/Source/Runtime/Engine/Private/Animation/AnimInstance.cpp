@@ -339,6 +339,9 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 	SCOPE_CYCLE_COUNTER(STAT_UpdateAnimation);
 	FScopeCycleCounterUObject AnimScope(this);
 
+	// acquire the proxy as we need to update
+	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+
 	if (const USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent())
 	{
 		/**
@@ -356,6 +359,12 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 			*/
 			NotifyQueue.Reset(GetSkelMeshComponent());
 
+			/** 
+				Reset UpdateCounter(), this will force Update to occur if Eval is triggered without an Update.
+				This is to ensure that SlotNode EvaluationData is resynced to evaluate properly.
+			*/
+			Proxy.ResetUpdateCounter();
+
 			UpdateMontage(DeltaSeconds);
 
 			/**
@@ -372,9 +381,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 			return;
 		}
 	}
-
-	// acquire the proxy as we need to update
-	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
 #if WITH_EDITOR
 	if (GIsEditor)
