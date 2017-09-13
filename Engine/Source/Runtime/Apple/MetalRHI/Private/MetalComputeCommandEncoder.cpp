@@ -645,6 +645,25 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 }
 #endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
 
+#if METAL_SUPPORTS_TILE_SHADERS
+- (void)setImageblockWidth:(NSUInteger)width height : (NSUInteger)height
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setImageblockWidth : width height : height];
+	}
+}
+#endif
+
+#if METAL_SUPPORTS_CAPTURE_MANAGER
+- (void)dispatchThreads:(MTLSize)threadsPerGrid threadsPerThreadgroup : (MTLSize)threadsPerThreadgroup
+{
+	if (@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
+	{
+	[Inner dispatchThreads : threadsPerGrid threadsPerThreadgroup : threadsPerThreadgroup];
+	}
+}
+#endif
 
 @end
 
