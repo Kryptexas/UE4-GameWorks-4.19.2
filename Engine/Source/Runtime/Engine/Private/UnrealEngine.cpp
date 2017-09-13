@@ -8600,7 +8600,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
 			if (FLowLevelMemTracker::Get().IsEnabled() && !FPlatformMemory::IsDebugMemoryEnabled())
 			{
-				SmallTextItem.Text = LOCTEXT("MEMPROFILINGWARNING", "LLM enabled without Debug Memory enabled!");
+				SmallTextItem.Text = LOCTEXT("MEMPROFILINGWARNINGLLM", "LLM enabled without Debug Memory enabled!");
 				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 				MessageY += FontSizeY;
 			}

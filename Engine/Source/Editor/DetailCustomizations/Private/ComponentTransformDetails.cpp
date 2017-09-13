@@ -1311,7 +1311,7 @@ void FComponentTransformDetails::OnBeginRotatonSlider()
 			{
 				if(Object->IsA<AActor>())
 				{
-					GEditor->BeginTransaction( LOCTEXT( "OnSetRotation", "Set actor rotation" ) );
+					GEditor->BeginTransaction( LOCTEXT( "OnSetRotation", "Set Rotation" ) );
 				}
 				else
 				{
@@ -1344,7 +1344,7 @@ void FComponentTransformDetails::OnBeginRotatonSlider()
 	// Just in case we couldn't start a new transaction for some reason
 	if(!bBeganTransaction)
 	{
-		GEditor->BeginTransaction( LOCTEXT( "OnSetRotation", "Set actor rotation" ) );
+		GEditor->BeginTransaction( LOCTEXT( "OnSetRotation", "Set Rotation" ) );
 	}	
 }
 

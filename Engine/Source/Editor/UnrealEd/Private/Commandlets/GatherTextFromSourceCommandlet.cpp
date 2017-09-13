@@ -1421,7 +1421,8 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 		TArray<FString> Arguments;
 		if (ParseArgsFromMacro(StripCommentsFromToken(Text, Context), Arguments, Context))
 		{
-			if (Arguments.Num() != 5)
+			// 5 or 6 arguments depending on whether or not there are one or two bindings
+			if (Arguments.Num() != 5 || Arguments.Num() != 6)
 			{
 				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Too many arguments in command %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
 			}

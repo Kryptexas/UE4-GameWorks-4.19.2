@@ -3512,7 +3512,7 @@ FText FLevelOfDetailSettingsLayout::GetLODCustomModeNameContent(int32 LODIndex) 
 	{
 		return LOCTEXT("GetLODCustomModeNameContent", "Custom");
 	}
-	return FText::Format(LOCTEXT("GetLODCustomModeNameContent", "LOD{0}"), LODIndex);
+	return FText::Format(LOCTEXT("GetLODModeNameContent", "LOD{0}"), LODIndex);
 }
 
 ECheckBoxState FLevelOfDetailSettingsLayout::IsLODCustomModeCheck(int32 LODIndex) const
