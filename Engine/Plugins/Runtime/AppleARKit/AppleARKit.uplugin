@@ -17,13 +17,13 @@
 			"Name": "AppleARKit",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"WhitelistPlatforms" : [ "Mac", "Win64" ]
+			"WhitelistPlatforms" : [ "Win64" ]
 		},
 		{
 			"Name": "AppleARKitEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms" : [ "Mac", "Win64" ]
+			"WhitelistPlatforms" : [ "Win64" ]
 		}
 	]
 }
