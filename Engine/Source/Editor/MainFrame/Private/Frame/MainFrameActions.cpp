@@ -333,7 +333,7 @@ const TCHAR* GetUATCompilationFlags()
 {
 	// We never want to compile editor targets when invoking UAT in this context.
 	// If we are installed or don't have a compiler, we must assume we have a precompiled UAT.
-	return (FApp::GetEngineIsPromotedBuild() || FApp::IsEngineInstalled() || FPlatformMisc::IsDebuggerPresent())
+	return (FApp::GetEngineIsPromotedBuild() || FApp::IsEngineInstalled())
 		? TEXT("-nocompile -nocompileeditor")
 		: TEXT("-nocompileeditor");
 }
