@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "FlexAssetPreviewComponent.generated.h"
 
 /* Component to render flex particles in the static mesh editor. */

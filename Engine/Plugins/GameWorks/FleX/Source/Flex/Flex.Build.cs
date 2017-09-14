@@ -37,6 +37,7 @@ namespace UnrealBuildTool.Rules
                     "CoreUObject",
                     "Engine",
                     "RHI",
+                    "FLEX0",
 					// ... add private dependencies that you statically link with here ...
 				}
                 );

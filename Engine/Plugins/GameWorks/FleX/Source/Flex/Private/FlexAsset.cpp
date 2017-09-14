@@ -33,19 +33,15 @@ UFlexAsset::UFlexAsset(const FObjectInitializer& ObjectInitializer)
 
 void UFlexAsset::PostInitProperties()
 {
-#if WITH_FLEX
 	// allocate an extensions object to represent particles and constraints for this asset
 	Asset = new NvFlexExtAsset();
-#endif
 
 	Super::PostInitProperties();
 }
 
 void UFlexAsset::BeginDestroy()
 {
-#if WITH_FLEX
 	delete Asset;
-#endif
 
 	Super::BeginDestroy();
 }
@@ -94,7 +90,6 @@ UFlexAssetCloth::UFlexAssetCloth(const FObjectInitializer& ObjectInitializer)
 
 void UFlexAssetCloth::ReImport(const UStaticMesh* Mesh)
 {
-#if WITH_FLEX
 	Particles.Empty();
 
 	SpringIndices.Empty();
@@ -197,13 +192,10 @@ void UFlexAssetCloth::ReImport(const UStaticMesh* Mesh)
 	}
 
 	UE_LOG(LogFlex, Display, TEXT("Created a FlexAsset with %d Particles, %d Springs, %d Triangles\n"), Particles.Num(), SpringRestLengths.Num(), Triangles.Num() / 3);
-
-#endif //WITH_FLEX
 }
 
 const NvFlexExtAsset* UFlexAssetCloth::GetFlexAsset()
 {
-#if WITH_FLEX
 	// reset Asset
 	FMemory::Memset(Asset, 0, sizeof(NvFlexExtAsset));
 
@@ -261,8 +253,6 @@ const NvFlexExtAsset* UFlexAssetCloth::GetFlexAsset()
 		Asset->shapeCoefficients = &ShapeCoefficients[0];
 		Asset->shapeCenters = (float*)&ShapeCenters[0];
 	}
-
-	#endif //WITH_FLEX
 	return Asset;
 }
 
@@ -283,7 +273,6 @@ UFlexAssetSolid::UFlexAssetSolid(const FObjectInitializer& ObjectInitializer)
 
 void UFlexAssetSolid::ReImport(const UStaticMesh* Mesh)
 {
-#if WITH_FLEX
 	Particles.Empty();
 	ShapeCenters.Empty();
 	ShapeIndices.Empty();
@@ -344,7 +333,6 @@ void UFlexAssetSolid::ReImport(const UStaticMesh* Mesh)
 	}
 
 	UE_LOG(LogFlex, Display, TEXT("Created a FlexAsset with %d Particles, %d Springs, %d Triangles\n"), Particles.Num(), 0, 0);
-#endif //WITH_FLEX
 }
 
 void UFlexAssetSolid::PostLoad()
@@ -354,7 +342,6 @@ void UFlexAssetSolid::PostLoad()
 
 const NvFlexExtAsset* UFlexAssetSolid::GetFlexAsset()
 {
-#if WITH_FLEX
 	// reset Asset
 	FMemory::Memset(Asset, 0, sizeof(NvFlexExtAsset));
 
@@ -388,7 +375,6 @@ const NvFlexExtAsset* UFlexAssetSolid::GetFlexAsset()
 	Asset->shapeCoefficients = &ShapeCoefficients[0];
 	Asset->shapeCenters = (float*)&ShapeCenters[0];
 
-#endif //WITH_FLEX
 	return Asset;
 }
 
@@ -464,9 +450,6 @@ UFlexAssetSoft::UFlexAssetSoft(const FObjectInitializer& ObjectInitializer)
 
 void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 {
-
-#if WITH_FLEX
-
 	FlushRenderingCommands();
 
 	Particles.Empty();
@@ -583,8 +566,6 @@ void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 		BeginUpdateResourceRHI(&IndicesVertexBuffer);
 	else
 		BeginInitResource(&IndicesVertexBuffer);
-
-#endif //WITH_FLEX
 }
 
 void UFlexAssetSoft::PostLoad()
@@ -609,8 +590,6 @@ void UFlexAssetSoft::BeginDestroy()
 
 const NvFlexExtAsset* UFlexAssetSoft::GetFlexAsset()
 {
-#if WITH_FLEX
-
 	// reset Asset
 	FMemory::Memset(Asset, 0, sizeof(NvFlexExtAsset));
 
@@ -640,9 +619,6 @@ const NvFlexExtAsset* UFlexAssetSoft::GetFlexAsset()
 		Asset->shapeCoefficients = &ShapeCoefficients[0];
 		Asset->shapeCenters = (float*)&ShapeCenters[0];
 	}
-
-#endif //WITH_FLEX
-
 	return Asset;
 }
 

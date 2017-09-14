@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Engine/StaticMeshActor.h"
 #include "FlexActor.generated.h"
 
@@ -11,6 +13,4 @@ class AFlexActor : public AStaticMeshActor
 	GENERATED_UCLASS_BODY()
 
 private:
-
-
 };

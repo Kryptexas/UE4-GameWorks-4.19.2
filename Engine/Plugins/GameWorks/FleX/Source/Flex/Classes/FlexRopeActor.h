@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "FlexRopeActor.generated.h"
 
 /** An actor that renders a simulated FlexRope */

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "FlexContainer.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogFlex, Log, All);

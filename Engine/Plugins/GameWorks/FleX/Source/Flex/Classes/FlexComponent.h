@@ -15,7 +15,7 @@ struct NvFlexExtMovingFrame;
 struct NvFlexExtTearingMeshEdit;
 
 UCLASS(Blueprintable, hidecategories = (Object), meta=(BlueprintSpawnableComponent))
-class ENGINE_API UFlexComponent : public UStaticMeshComponent, public IFlexContainerClient
+class FLEX_API UFlexComponent : public UStaticMeshComponent, public IFlexContainerClient
 {
 	GENERATED_UCLASS_BODY()		
 

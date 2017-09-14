@@ -7,8 +7,6 @@
 
 #include "PhysicsPublic.h"
 
-#if WITH_FLEX
-
 #include "FlexContainerInstance.h"
 #include "FlexRender.h"
 
@@ -63,8 +61,6 @@ void UFlexComponent::OnRegister()
 	}
 #endif
 
-#if WITH_FLEX
-
 	if (GEngine && GetStaticMesh() && GetStaticMesh()->FlexAsset)
 	{
 		// use the actor's settings instead of the defaults from the asset
@@ -116,15 +112,11 @@ void UFlexComponent::OnRegister()
 
 		NvFlexExtMovingFrameInit(MovingFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
 	}
-
-#endif // WITH_FLEX
 }
 
 void UFlexComponent::OnUnregister()
 {
 	Super::OnUnregister();
-
-#if WITH_FLEX
 
 	if (ContainerInstance && AssetInstance)
 	{
@@ -142,9 +134,6 @@ void UFlexComponent::OnUnregister()
 	}
 
 	delete MovingFrame;
-
-#endif // WITH_FLEX
-
 }
 
 void UFlexComponent::ApplyLocalSpace()
@@ -181,7 +170,6 @@ void UFlexComponent::ApplyLocalSpace()
 // modify particles freely, create instances, etc
 void UFlexComponent::Synchronize()
 {
-#if WITH_FLEX
 	if (!IsRegistered())
 		return;
 
@@ -401,7 +389,6 @@ void UFlexComponent::Synchronize()
 		}
 	}
 	*/
-#endif // WITH_FLEX
 }
 
 void UFlexComponent::UpdateSceneProxy(FFlexMeshSceneProxy* Proxy)
@@ -539,7 +526,6 @@ void UFlexComponent::SendRenderTransform_Concurrent()
 
 FBoxSphereBounds UFlexComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-#if WITH_FLEX
 	if (GetStaticMesh() && ( ContainerInstance || PreSimPositions.Num() != 0 ) && Bounds.SphereRadius > 0.0f 
 		&& (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass() || GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSoft::StaticClass()))
 	{
@@ -556,7 +542,6 @@ FBoxSphereBounds UFlexComponent::CalcBounds(const FTransform & LocalToWorld) con
 
 void UFlexComponent::DisableSim()
 {
-#if WITH_FLEX
 	if (ContainerInstance && AssetInstance)
 	{
 		DEC_DWORD_STAT_BY(STAT_Flex_ActiveParticleCount, AssetInstance->numParticles);
@@ -565,7 +550,6 @@ void UFlexComponent::DisableSim()
 		ContainerInstance->DestroyInstance(AssetInstance);
 		AssetInstance = NULL;
 	}
-#endif // WITH_FLEX
 }
 
 bool UFlexComponent::IsTearingCloth()
@@ -595,7 +579,6 @@ void UFlexComponent::OnTear_Implementation()
 
 void UFlexComponent::EnableSim()
 {
-#if WITH_FLEX
 	if (ContainerInstance && !AssetInstance)
 	{
 		// SimPositions count can be zero if asset internal FlexExtObject creation failed.
@@ -728,7 +711,6 @@ void UFlexComponent::EnableSim()
 			UpdateBounds();
 		}
 	}
-#endif // WITH_FLEX
 }
 
 void UFlexComponent::AttachToComponent(USceneComponent* Component, float Radius)
@@ -765,7 +747,6 @@ void UFlexComponent::AttachToComponent(USceneComponent* Component, float Radius)
 
 FMatrix UFlexComponent::GetRenderMatrix() const
 {
-#if WITH_FLEX
 	// Flex components components created in an editor world, do not have FFlexSceneMeshProxy - and so cannot simulate
 	// Only need to return the Identity when we know the SceneProxy is full flex proxy
 	if (GetStaticMesh() && GetStaticMesh()->FlexAsset &&  !IsInEditorWorld())
@@ -791,7 +772,6 @@ bool UFlexComponent::IsInEditorWorld() const
 
 FPrimitiveSceneProxy* UFlexComponent::CreateSceneProxy()
 {
-#if WITH_FLEX
 	// if this component has a flex asset then use the subtitute scene proxy for rendering (cloth and soft bodies only)
 	if (GetStaticMesh() && GetStaticMesh()->FlexAsset && !IsInEditorWorld())
 	{
@@ -805,7 +785,6 @@ FPrimitiveSceneProxy* UFlexComponent::CreateSceneProxy()
 			return Proxy;
 		}
 	}
-#endif // WITH_FLEX
 
 	//@todo: figure out why i need a ::new (gcc3-specific)
 	return Super::CreateSceneProxy();
@@ -813,7 +792,6 @@ FPrimitiveSceneProxy* UFlexComponent::CreateSceneProxy()
 }
 bool UFlexComponent::ShouldRecreateProxyOnUpdateTransform() const
 {
-#if WITH_FLEX
 	// if this component has a flex asset then don't recreate the proxy
 	if (GetStaticMesh() && GetStaticMesh()->FlexAsset && (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass() ||
 											   GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSoft::StaticClass()))
@@ -980,5 +958,3 @@ UFlexContainer* UFlexComponent::GetContainerTemplate()
 {
 	return ContainerInstance ? ContainerInstance->Template : nullptr;
 }
-
-#endif // WITH_FLEX

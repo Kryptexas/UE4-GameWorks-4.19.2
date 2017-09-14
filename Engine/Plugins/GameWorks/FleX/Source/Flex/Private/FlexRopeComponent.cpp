@@ -487,7 +487,6 @@ void UFlexRopeComponent::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 void UFlexRopeComponent::OnRegister()
 {
 	Super::OnRegister();
-#if WITH_FLEX
 
 	// create initial geometry
 	CreateRopeGeometry();
@@ -524,14 +523,11 @@ void UFlexRopeComponent::OnRegister()
 			}
 		}
 	}
-#endif //WITH_FLEX
 }
 
 void UFlexRopeComponent::OnUnregister()
 {
 	Super::OnUnregister();
-
-#if WITH_FLEX
 
 	if (ContainerInstance && AssetInstance)
 	{
@@ -546,9 +542,6 @@ void UFlexRopeComponent::OnUnregister()
 		ContainerInstance->Unregister(this);
 		ContainerInstance = NULL;
 	}
-
-#endif // WITH_FLEX
-
 }
 
 void UFlexRopeComponent::GetEndPositions(FVector& OutStartPosition, FVector& OutEndPosition)
@@ -610,7 +603,6 @@ void UFlexRopeComponent::CreateRopeGeometry()
 
 void UFlexRopeComponent::Synchronize()
 {
-#if WITH_FLEX
 	if (ContainerInstance && Asset && !AssetInstance)
 	{
 		// try to create asset if not already created
@@ -723,7 +715,6 @@ void UFlexRopeComponent::Synchronize()
 			}
 		}
 	}
-#endif //WITH_FLEX
 }
 
 void UFlexRopeComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
