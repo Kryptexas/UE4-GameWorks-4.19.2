@@ -363,7 +363,14 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 {
 	UE_LOG(LogHTML5OpenGL, Verbose, TEXT("PlatformCreateBuiltinBackBuffer(%d, %d)"), SizeX, SizeY);
 	uint32 Flags = TexCreate_RenderTargetable;
-	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, 0, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
+	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, 0, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0,
+			SizeX, SizeY, 0, 1, 1, 1, 1,
+			PF_B8G8R8A8, // format indicates this is WITH transparent values
+			false, false, Flags, nullptr,
+			FClearValueBinding::Black	// UE-49622: Chrome renderes transparent on OSX - even though canvas has been set with alpha:false
+										// in other words, if backbuffer is needed with alpha values -- this will need to be rewritten...
+										// for now, UE4 HTML5 seems to be using only a single backbuffer texture
+		);
 	OpenGLTextureAllocated(Texture2D, Flags);
 
 	return Texture2D;
