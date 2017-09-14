@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "FlexAsset.generated.h"
 
 // Flex extensions types
@@ -11,6 +13,8 @@ struct NvFlexExtAsset;
 struct NvFlexExtInstance;
 
 class UFlexContainer;
+
+class UStaticMesh;
 
 /** Defines flags that control how the particle behaves */
 USTRUCT()
@@ -61,7 +65,7 @@ struct FFlexInertialScale
 /* A Flex asset contains the particle and constraint data for a shape, such as cloth, rigid body or inflatable, an asset 
    is added to a container by spawning through a particle system or Flex actor. */
 UCLASS(Abstract, config = Engine, editinlinenew)
-class ENGINE_API UFlexAsset : public UObject
+class FLEX_API UFlexAsset : public UObject
 {
 public:
 

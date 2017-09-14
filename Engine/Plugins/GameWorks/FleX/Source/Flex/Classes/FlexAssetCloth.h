@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "FlexAsset.h"
 #include "FlexAssetCloth.generated.h"
+
 
 /* A Flex cloth asset is a specialized Flex asset that creates one particle per mesh vertex and contains parameter 
 to configure cloth behavior. */
 UCLASS(config = Engine, editinlinenew, meta = (DisplayName = "Flex Cloth Asset"))
-class ENGINE_API UFlexAssetCloth : public UFlexAsset
+class FLEX_API UFlexAssetCloth : public UFlexAsset
 {
 public:
 

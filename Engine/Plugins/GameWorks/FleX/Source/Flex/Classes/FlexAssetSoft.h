@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "FlexAsset.h"
+
 #include "FlexAssetSoft.generated.h"
 
 
@@ -28,7 +30,7 @@ public:
 /* A Flex Soft asset is a specialized Flex asset that creates particles on a regular grid within a mesh and contains parameter
 to configure rigid behavior. */
 UCLASS(config = Engine, editinlinenew, meta = (DisplayName = "Flex Soft Asset"))
-class ENGINE_API UFlexAssetSoft : public UFlexAsset
+class FLEX_API UFlexAssetSoft : public UFlexAsset
 {
 public:
 

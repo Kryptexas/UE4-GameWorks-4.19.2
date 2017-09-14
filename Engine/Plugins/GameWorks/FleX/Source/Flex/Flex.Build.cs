@@ -8,16 +8,19 @@ namespace UnrealBuildTool.Rules
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {
+                    "Flex/Public",
 					// ... add public include paths required here ...
 				}
 				);
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
-					"Developer/BlankPlugin/Private",
+					"Flex/Private",
+                    "../../../../Source/Runtime/Engine/Private",
+                    "../../../../Source/Runtime/Renderer/Private",
 					// ... add other private include paths required here ...
 				}
-				);
+                );
 
 			PublicDependencyModuleNames.AddRange(
 				new string[]
@@ -30,9 +33,13 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
+                    "Core",
+                    "CoreUObject",
+                    "Engine",
+                    "RHI",
 					// ... add private dependencies that you statically link with here ...
 				}
-				);
+                );
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[]
@@ -40,6 +47,8 @@ namespace UnrealBuildTool.Rules
 					// ... add any modules that your module loads dynamically here ...
 				}
 				);
-		}
-	}
+
+            SetupModulePhysXAPEXSupport(Target);
+        }
+    }
 }

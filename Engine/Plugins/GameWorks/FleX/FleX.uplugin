@@ -6,7 +6,6 @@
 	"VersionName" : "1.0",
 	"CreatedBy" : "nVidia",
 	"CreatedByURL" : "https://developer.nvidia.com/flex",
-	"EngineVersion" : "4.17.1",
 	"Description" : "FleX",
 	"Category" : "Visual FX",
 	"EnabledByDefault" : true,

@@ -1,12 +1,12 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysicsEngine/FlexAsset.h"
-#include "PhysicsEngine/FlexAssetSolid.h"
-#include "PhysicsEngine/FlexAssetCloth.h"
-#include "PhysicsEngine/FlexAssetSoft.h"
-#include "PhysicsEngine/FlexAssetPreviewComponent.h"
+#include "FlexAsset.h"
+#include "FlexAssetSolid.h"
+#include "FlexAssetCloth.h"
+#include "FlexAssetSoft.h"
+#include "FlexAssetPreviewComponent.h"
 
-#include "PhysXSupport.h"
+#include "PhysicsEngine/PhysXSupport.h"
 
 #include "StaticMeshResources.h"
 

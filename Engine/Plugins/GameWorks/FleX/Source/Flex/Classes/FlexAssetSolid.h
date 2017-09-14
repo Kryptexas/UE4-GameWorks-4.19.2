@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "FlexAsset.h"
 #include "FlexAssetSolid.generated.h"
 
 /* A Flex solid asset is a specialized Flex asset that creates particles on a regular grid within a mesh and contains parameter
 to configure rigid behavior. */
 UCLASS(config = Engine, editinlinenew, meta = (DisplayName = "Flex Solid Asset"))
-class ENGINE_API UFlexAssetSolid : public UFlexAsset
+class FLEX_API UFlexAssetSolid : public UFlexAsset
 {
 public:
 
