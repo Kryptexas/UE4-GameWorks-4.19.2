@@ -6732,40 +6732,40 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 
 	if (Pin->Direction == EGPD_Input)
 	{
-		UScriptStruct* StructType = CastChecked<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get());
+		if (UScriptStruct* StructType = Cast<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get()))
+		{
+			if (StructType == TBaseStructure<FVector>::Get())
+			{
+				ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[2]->DefaultValue;
+			}
+			else if (StructType == TBaseStructure<FRotator>::Get())
+			{
+				// Our pins are in the form X,Y,Z but the Rotator pin type expects the form Y,Z,X
+				// so we need to make sure they are added in that order here
+				ParentPin->DefaultValue = ParentPin->SubPins[1]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[2]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[0]->DefaultValue;
+			}
+			else if (StructType == TBaseStructure<FVector2D>::Get())
+			{
+				FVector2D V2D;
+				V2D.X = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
+				V2D.Y = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
 
-		TArray<FString> OriginalDefaults;
-		if (StructType == TBaseStructure<FVector>::Get())
-		{
-			ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",") 
-									+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
-									+ ParentPin->SubPins[2]->DefaultValue;
-		}
-		else if (StructType == TBaseStructure<FRotator>::Get())
-		{
-			// Our pins are in the form X,Y,Z but the Rotator pin type expects the form Y,Z,X
-			// so we need to make sure they are added in that order here
-			ParentPin->DefaultValue = ParentPin->SubPins[1]->DefaultValue + TEXT(",")
-									+ ParentPin->SubPins[2]->DefaultValue + TEXT(",")
-									+ ParentPin->SubPins[0]->DefaultValue;
-		}
-		else if (StructType == TBaseStructure<FVector2D>::Get())
-		{
-			FVector2D V2D;
-			V2D.X = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
-			V2D.Y = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
-			
-			ParentPin->DefaultValue = V2D.ToString();
-		}
-		else if (StructType == TBaseStructure<FLinearColor>::Get())
-		{
-			FLinearColor LC;
-			LC.R = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
-			LC.G = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
-			LC.B = FCString::Atof(*ParentPin->SubPins[2]->DefaultValue);
-			LC.A = FCString::Atof(*ParentPin->SubPins[3]->DefaultValue);
+				ParentPin->DefaultValue = V2D.ToString();
+			}
+			else if (StructType == TBaseStructure<FLinearColor>::Get())
+			{
+				FLinearColor LC;
+				LC.R = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
+				LC.G = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
+				LC.B = FCString::Atof(*ParentPin->SubPins[2]->DefaultValue);
+				LC.A = FCString::Atof(*ParentPin->SubPins[3]->DefaultValue);
 
-			ParentPin->DefaultValue = LC.ToString();
+				ParentPin->DefaultValue = LC.ToString();
+			}
 		}
 	}
 
