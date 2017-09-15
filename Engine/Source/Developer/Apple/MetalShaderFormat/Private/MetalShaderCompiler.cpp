@@ -1,5 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-// ..
+// ...
 
 #include "CoreMinimal.h"
 #include "MetalShaderFormat.h"
@@ -2048,8 +2048,9 @@ uint64 AppendShader_Metal(FName const& Format, FString const& WorkingDir, const 
 				const uint8* SourceCodePtr = (uint8*)InShaderCode.GetData() + CodeOffset;
 				
 				// Copy the non-optional shader bytecode
-				int32 ObjectCodeDataSize = ShaderCode.GetActualShaderCodeSize() - CodeOffset;
-				TArrayView<const uint8> ObjectCodeArray(SourceCodePtr, ObjectCodeDataSize);
+				int32 ObjectCodeDataSize = 0;
+				uint8 const* Object = ShaderCode.FindOptionalDataAndSize('o', ObjectCodeDataSize);
+				TArrayView<const uint8> ObjectCodeArray(Object, ObjectCodeDataSize);
 				
 				// Object code segment
 				FString ObjFilename = WorkingDir / FString::Printf(TEXT("Main_%0.8x_%0.8x.o"), Header.SourceLen, Header.SourceCRC);
@@ -2195,7 +2196,7 @@ bool FinalizeLibrary_Metal(FName const& Format, FString const& WorkingDir, FStri
 					ExecRemoteProcess( *MetalArPath, *Params, &ReturnCode, &Results, &Errors );
 					bArchiveFileValid = RemoteFileExists(*ArchivePath);
 					
-                    if (ReturnCode != 0 || !bArchiveFileValid)
+					if (ReturnCode != 0 || !bArchiveFileValid)
 					{
 						UE_LOG(LogShaders, Error, TEXT("Archiving failed: metal-ar failed with code %d: %s"), ReturnCode, *Errors);
 						Params.Empty();
@@ -2239,8 +2240,8 @@ bool FinalizeLibrary_Metal(FName const& Format, FString const& WorkingDir, FStri
 				FString Params = FString::Printf(TEXT("-o=\"%s\" \"%s\""), *RemoteLibPath, *ArchivePath);
 					
 				ExecRemoteProcess( *MetalLibPath, *Params, &ReturnCode, &Results, &Errors );
-					
-                if(ReturnCode == 0)
+				
+				if(ReturnCode == 0)
                 {
                     // There is problem going to location with spaces using remote copy (at least on Mac no combination of \ and/or "" works) - work around this issue @todo investigate this further
                     FString LocalCopyLocation = FPaths::Combine(TEXT("/tmp"),FPaths::GetCleanFilename(LibraryPath));
