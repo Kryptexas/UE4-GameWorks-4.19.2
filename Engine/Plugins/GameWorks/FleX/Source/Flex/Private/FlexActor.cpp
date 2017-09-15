@@ -1,7 +1,8 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysicsEngine/FlexActor.h"
-#include "PhysicsEngine/FlexComponent.h"
+#include "FlexActor.h"
+#include "FlexComponent.h"
+#include "Engine/CollisionProfile.h"
 
 AFlexActor::AFlexActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UFlexComponent>(TEXT("StaticMeshComponent0")))

@@ -5,7 +5,7 @@ FlexFluidSurfaceComponent.cpp: Fluid surface implementation.
 =============================================================================*/
 
 #include "PhysicsEngine/FlexFluidSurfaceComponent.h"
-#include "PhysicsEngine/FlexContainerInstance.h"
+#include "FlexContainerInstance.h"
 #include "PhysicsEngine/FlexFluidSurface.h"
 #include "PhysicsEngine/FlexFluidSurfaceActor.h"
 

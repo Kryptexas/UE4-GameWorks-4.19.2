@@ -32,8 +32,8 @@
 #include "Components/PointLightComponent.h"
 
 #if WITH_FLEX
-#include "PhysicsEngine/FlexContainer.h"
-#include "PhysicsEngine/FlexContainerInstance.h"
+#include "FlexContainer.h"
+#include "FlexContainerInstance.h"
 #include "PhysicsEngine/FlexFluidSurfaceComponent.h"
 #endif
 

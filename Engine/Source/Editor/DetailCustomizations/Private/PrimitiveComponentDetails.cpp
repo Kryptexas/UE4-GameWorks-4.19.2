@@ -11,7 +11,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/DestructibleComponent.h"
-#include "PhysicsEngine/FlexComponent.h"
+#include "FlexComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "IDocumentation.h"
 

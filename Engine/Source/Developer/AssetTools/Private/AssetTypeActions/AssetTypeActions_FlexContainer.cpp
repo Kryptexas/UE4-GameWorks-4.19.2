@@ -2,7 +2,7 @@
 
 #include "AssetTypeActions_FlexContainer.h"
 
-#include "PhysicsEngine/FlexContainer.h"
+#include "FlexContainer.h"
 
 UClass* FAssetTypeActions_FlexContainer::GetSupportedClass() const
 {

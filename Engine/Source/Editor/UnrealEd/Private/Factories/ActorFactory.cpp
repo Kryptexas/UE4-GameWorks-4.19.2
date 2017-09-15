@@ -129,10 +129,12 @@ ActorFactory.cpp:
 
 DEFINE_LOG_CATEGORY(LogActorFactory);
 
+// NvFlex begin
 #if WITH_FLEX
 #include "ActorFactories/ActorFactoryFlex.h"
-#include "PhysicsEngine/FlexActor.h"
+#include "FlexActor.h"
 #endif
+// NvFlex end
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
 

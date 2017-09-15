@@ -81,7 +81,9 @@
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "PhysicsEngine/FlexActor.h"
+// NvFlex begin
+#include "FlexActor.h"
+// NvFlex end
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "BSPOps.h"

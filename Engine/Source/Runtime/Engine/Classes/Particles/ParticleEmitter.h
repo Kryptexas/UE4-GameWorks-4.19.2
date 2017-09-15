@@ -12,7 +12,9 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Components/SceneComponent.h"
-#include "PhysicsEngine/FlexAsset.h"
+// NvFlex begin
+#include "GameWorks/FlexPluginCommon.h"
+// NvFlex end
 
 #include "ParticleEmitterInstances.h"
 #include "ParticleEmitter.generated.h"
@@ -168,6 +170,7 @@ class UParticleEmitter : public UObject
 	uint32 bCollapsed:1;
 #endif // WITH_EDITORONLY_DATA
 
+	// NvFlex begin
 	/** The Flex container to emit into */
 	UPROPERTY(EditAnywhere, Category = Flex)
 	class UFlexContainer* FlexContainerTemplate;
@@ -191,6 +194,7 @@ class UParticleEmitter : public UObject
 	/** Optional Flex fluid surface for rendering */
 	UPROPERTY(EditAnywhere, Category = Flex)
 	class UFlexFluidSurface* FlexFluidSurfaceTemplate;
+	// NvFlex end
 
 	/** If true, then show only this emitter in the editor */
 	UPROPERTY(transient)

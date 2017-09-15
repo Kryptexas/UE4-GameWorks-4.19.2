@@ -6,8 +6,6 @@
 #include "PhysXSupport.h"
 
 
-#if WITH_FLEX
-
 bool FFlexContainerInstance::sGlobalDebugDraw = false;
 
 #if STATS
@@ -1418,7 +1416,3 @@ int FFlexContainerInstance::GetMaxParticleCount()
 {
 	return Template->MaxParticles;
 }
-
-
-#endif //WITH_FLEX
-

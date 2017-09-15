@@ -214,7 +214,7 @@
 #if WITH_FLEX
 #include "Factories/FlexContainerFactory.h"
 #include "Factories/FlexFluidSurfaceFactory.h"
-#include "PhysicsEngine/FlexContainer.h"
+#include "FlexContainer.h"
 #include "PhysicsEngine/FlexFluidSurface.h"
 #endif
 

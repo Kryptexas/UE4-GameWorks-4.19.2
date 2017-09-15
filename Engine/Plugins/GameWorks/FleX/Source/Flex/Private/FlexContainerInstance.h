@@ -2,8 +2,6 @@
 
 #pragma once
 
-#if WITH_FLEX
-
 #include "NvFlex.h"
 #include "NvFlexExt.h"
 
@@ -181,6 +179,3 @@ struct FFlexContainerInstance : public PxDeletionListener
 	static bool sGlobalDebugDraw;
 
 };
-
-
-#endif //WITH_FLEX

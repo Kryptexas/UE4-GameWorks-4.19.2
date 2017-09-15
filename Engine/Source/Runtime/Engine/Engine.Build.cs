@@ -428,5 +428,9 @@ public class Engine : ModuleRules
 		}
 
         DynamicallyLoadedModuleNames.Add("Niagara");
+
+        // NvFlex begin
+        PrivateIncludePathModuleNames.Add("Flex");
+        // NvFlxe end
     }
 }

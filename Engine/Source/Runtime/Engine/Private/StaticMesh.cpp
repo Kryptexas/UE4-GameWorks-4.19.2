@@ -43,7 +43,7 @@
 #endif // #if WITH_EDITOR
 
 #if WITH_FLEX
-#include "PhysicsEngine/FlexAsset.h"
+#include "FlexAsset.h"
 #endif
 
 #include "Engine/StaticMeshSocket.h"

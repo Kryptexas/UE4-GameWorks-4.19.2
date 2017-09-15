@@ -85,7 +85,7 @@
 #if WITH_FLEX
 #include "PhysicsEngine/FlexFluidSurface.h"
 #include "PhysicsEngine/FlexFluidSurfaceComponent.h"
-#include "PhysicsEngine/FlexContainerInstance.h"
+#include "FlexContainerInstance.h"
 #endif
 #include "PhysicsPublic.h"
 

@@ -10,21 +10,6 @@
 
 #include "StaticMeshResources.h"
 
-FFlexPhase::FFlexPhase()
-{
-	AutoAssignGroup = true;
-	Group = 0;
-	SelfCollide = false;
-	IgnoreRestCollisions = false;
-	Fluid = false;
-}
-
-FFlexInertialScale::FFlexInertialScale()
-{
-	LinearInertialScale = 0.35f;
-	AngularInertialScale = 0.75f;
-}
-
 UFlexAsset::UFlexAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

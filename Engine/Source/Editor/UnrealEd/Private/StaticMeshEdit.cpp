@@ -21,7 +21,9 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "PhysicsEngine/FlexAsset.h"
+// NvFlex begin
+#include "FlexAsset.h"
+// NvFlex end
 
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"

@@ -8,8 +8,8 @@
 #include "Particles/Modules/Flex/ParticleModuleFlexShapeSpawn.h"
 #include "Particles/Modules/Flex/ParticleModuleFlexFluidSpawn.h"
 
-#include "PhysicsEngine/FlexContainer.h"
-#include "PhysicsEngine/FlexAsset.h"
+#include "FlexContainer.h"
+#include "FlexAsset.h"
 
 /*-----------------------------------------------------------------------------
 UParticleModuleFlexShapeSpawn implementation.
