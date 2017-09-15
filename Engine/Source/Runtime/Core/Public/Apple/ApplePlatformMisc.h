@@ -123,9 +123,6 @@ struct CORE_API FApplePlatformMisc : public FGenericPlatformMisc
 	static TArray<uint8> GetSystemFontBytes();
 	static FString GetDefaultLocale();
 	static FString GetDefaultLanguage();
-	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
-	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
-	static bool DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName);
 	static TArray<FString> GetPreferredLanguages();
 	static FString GetLocalCurrencyCode();
 	static FString GetLocalCurrencySymbol();

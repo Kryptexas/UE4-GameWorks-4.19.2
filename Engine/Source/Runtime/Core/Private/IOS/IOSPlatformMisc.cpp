@@ -916,6 +916,48 @@ void FIOSPlatformMisc::PlatformPreInit()
     signal(SIGPIPE, SIG_IGN);
 }
 
+// Make sure that SetStoredValue and GetStoredValue generate the same key
+static NSString* MakeStoredValueKeyName(const FString& SectionName, const FString& KeyName)
+{
+	return [NSString stringWithFString:(SectionName + "/" + KeyName)];
+}
+
+bool FIOSPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
+{
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+
+	// convert input to an NSString
+	NSString* StoredValue = [NSString stringWithFString:InValue];
+
+	// store it
+	[UserSettings setObject:StoredValue forKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
+
+	return true;
+}
+
+bool FIOSPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
+{
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+
+	// get the stored NSString
+	NSString* StoredValue = [UserSettings objectForKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
+
+	// if it was there, convert back to FString
+	if (StoredValue != nil)
+	{
+		OutValue = StoredValue;
+		return true;
+	}
+
+	return false;
+}
+
+bool FIOSPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
+{
+	// No Implementation (currently only used by editor code so not needed on iOS)
+	return false;
+}
+
 void FIOSPlatformMisc::SetGracefulTerminationHandler()
 {
     struct sigaction Action;
