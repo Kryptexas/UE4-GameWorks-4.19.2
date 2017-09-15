@@ -495,7 +495,7 @@ public:
 
 #if WITH_FLEX
 	/** Retrive the container instance for a template, will create the instance if it doesn't already exist */
-	FFlexContainerInstance*	GetFlexContainer(UFlexContainer* Template);
+	ENGINE_API FFlexContainerInstance*	GetFlexContainer(UFlexContainer* Template);
 
 	/** Retrive the container instance for a soft joint, will return a nullptr if it doesn't already exist */
 	FFlexContainerInstance*	GetSoftJointContainer(UFlexContainer* Template);

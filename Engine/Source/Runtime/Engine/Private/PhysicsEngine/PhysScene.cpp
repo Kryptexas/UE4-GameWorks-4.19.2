@@ -24,7 +24,7 @@
 
 #include "PhysicsEngine/PhysSubstepTasks.h"
 #if WITH_FLEX
-	#include "PhysicsEngine/FlexContainer.h"
+	#include "FlexContainer.h"
 	#include "FlexContainerInstance.h"	
 	#include "DrawDebugHelpers.h" // FlushPersistentDebugLines
 #endif

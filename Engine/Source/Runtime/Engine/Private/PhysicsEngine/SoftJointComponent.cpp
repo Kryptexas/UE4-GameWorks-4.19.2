@@ -12,8 +12,8 @@
 #include "PhysicsPublic.h"
 
 #if WITH_FLEX
-#include "PhysicsEngine/FlexActor.h"
-#include "PhysicsEngine/FlexComponent.h"
+#include "FlexActor.h"
+#include "FlexComponent.h"
 #include "Particles/ParticleSystemComponent.h"
 #endif
 

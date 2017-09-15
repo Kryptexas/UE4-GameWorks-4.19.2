@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 
-#include "PhysicsEngine/FlexRopeComponent.h"
-#include "PhysicsEngine/FlexContainerInstance.h"
+#include "FlexRopeComponent.h"
+#include "FlexContainerInstance.h"
 
-#include "PhysXSupport.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "DynamicMeshBuilder.h"
 
 

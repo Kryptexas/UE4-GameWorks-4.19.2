@@ -13,6 +13,12 @@
 #include "Containers/Queue.h"
 #include "Physics/PhysicsFiltering.h"
 
+#if WITH_FLEX
+#include "NvFlex.h"
+#include "NvFlexExt.h"
+#include "NvFlexDevice.h"
+#endif // #if WITH_FLEX
+
 class UBodySetup;
 class UPhysicalMaterial;
 struct FByteBulkData;

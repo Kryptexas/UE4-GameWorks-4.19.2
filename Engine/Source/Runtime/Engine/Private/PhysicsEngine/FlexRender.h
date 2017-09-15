@@ -183,7 +183,7 @@ protected:
 };
 
 /** Scene proxy, overrides default static mesh behavior */
-class FFlexMeshSceneProxy : public FStaticMeshSceneProxy
+class ENGINE_API FFlexMeshSceneProxy : public FStaticMeshSceneProxy
 {
 public:
 

@@ -49,7 +49,7 @@ enum EFlexStats
 
 
 // one container per-phys scene
-struct FFlexContainerInstance : public PxDeletionListener
+struct FLEX_API FFlexContainerInstance : public PxDeletionListener
 {
 	FFlexContainerInstance(UFlexContainer* Template, FPhysScene* Owner);
 	virtual ~FFlexContainerInstance();

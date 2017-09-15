@@ -18,9 +18,9 @@
 #include "Engine/StaticMeshSocket.h"
 
 #if WITH_FLEX
-#include "Runtime/Engine/Classes/PhysicsEngine/FlexAssetPreviewComponent.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/FlexAsset.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/FlexContainer.h"
+#include "FlexAssetPreviewComponent.h"
+#include "FlexAsset.h"
+#include "FlexContainer.h"
 #endif
 
 #define HITPROXY_SOCKET	1

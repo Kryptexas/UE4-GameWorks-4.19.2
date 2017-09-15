@@ -1,8 +1,8 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysicsEngine/FlexContainer.h"
+#include "FlexContainer.h"
 
-#include "PhysXSupport.h"
+#include "PhysicsEngine/PhysXSupport.h"
 
 DEFINE_LOG_CATEGORY(LogFlex);
 

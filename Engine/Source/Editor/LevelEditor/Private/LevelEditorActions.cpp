@@ -52,8 +52,8 @@
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 
 #if WITH_FLEX
-#include "Runtime/Engine/Classes/PhysicsEngine/FlexComponent.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/FlexActor.h"
+#include "FlexComponent.h"
+#include "FlexActor.h"
 #endif
 
 #include "Editor/NewLevelDialog/Public/NewLevelDialogModule.h"

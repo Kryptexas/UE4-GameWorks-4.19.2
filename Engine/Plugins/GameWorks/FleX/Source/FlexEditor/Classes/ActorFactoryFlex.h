@@ -1,6 +1,10 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "ActorFactories/ActorFactory.h"
 #include "ActorFactoryFlex.generated.h"
 
 UCLASS(MinimalAPI, config=Editor)

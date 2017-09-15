@@ -8,6 +8,7 @@ namespace UnrealBuildTool.Rules
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {
+					"FlexEditor/Public",
 					// ... add public include paths required here ...
 				}
 				);
@@ -22,7 +23,12 @@ namespace UnrealBuildTool.Rules
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"Core",
+					"Flex",
+				    	"Core",
+					"CoreUObject",
+					"AssetTools",
+					"Engine",
+					"UnrealEd",
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);
@@ -31,6 +37,13 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					// ... add private dependencies that you statically link with here ...
+				}
+				);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[]
+				{
+					"Flex",
 				}
 				);
 

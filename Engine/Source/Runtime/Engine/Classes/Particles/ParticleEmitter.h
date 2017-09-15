@@ -13,7 +13,7 @@
 #include "UObject/Object.h"
 #include "Components/SceneComponent.h"
 // NvFlex begin
-#include "GameWorks/FlexPluginCommon.h"
+#include "FlexAsset.h"
 // NvFlex end
 
 #include "ParticleEmitterInstances.h"

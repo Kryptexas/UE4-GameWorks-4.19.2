@@ -2,7 +2,9 @@
 
 #include "FlexRender.h"
 
-#include "PhysicsEngine/FlexComponent.h"
+#include "FlexComponent.h"
+#include "FlexAssetSoft.h"
+#include "FlexAssetCloth.h"
 
 #if WITH_FLEX
 

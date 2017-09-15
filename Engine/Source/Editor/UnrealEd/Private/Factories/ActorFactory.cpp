@@ -103,7 +103,9 @@ ActorFactory.cpp:
 
 #include "AssetRegistryModule.h"
 
-
+#if WITH_FLEX
+#include "FlexActor.h"
+#endif
 
 #include "VectorField/VectorField.h"
 
@@ -128,13 +130,6 @@ ActorFactory.cpp:
 #include "Factories/ActorFactoryMovieScene.h"
 
 DEFINE_LOG_CATEGORY(LogActorFactory);
-
-// NvFlex begin
-#if WITH_FLEX
-#include "ActorFactories/ActorFactoryFlex.h"
-#include "FlexActor.h"
-#endif
-// NvFlex end
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
 
@@ -1641,52 +1636,6 @@ UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const FObjectIn
 {
 	DisplayName = LOCTEXT("InteractiveFoliageDisplayName", "Interactive Foliage");
 	NewActorClass = AInteractiveFoliageActor::StaticClass();
-}
-
-/*-----------------------------------------------------------------------------
-UActorFactoryFlex
------------------------------------------------------------------------------*/
-UActorFactoryFlex::UActorFactoryFlex(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
-{
-	DisplayName = LOCTEXT("FlexDisplayName", "Flex Actor");
-	NewActorClass = AFlexActor::StaticClass();
-}
-
-bool UActorFactoryFlex::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
-{
-	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UStaticMesh::StaticClass()))
-	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoStaticMesh", "A valid static mesh must be specified.");
-		return false;
-	}
-
-	return true;
-}
-
-void UActorFactoryFlex::PostSpawnActor(UObject* Asset, AActor* NewActor)
-{
-	Super::PostSpawnActor(Asset, NewActor);
-
-	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
-
-	if (StaticMesh)
-	{
-		UE_LOG(LogActorFactory, Log, TEXT("Actor Factory created %s"), *StaticMesh->GetName());
-
-		// Change properties
-		AFlexActor* FlexActor = CastChecked<AFlexActor>(NewActor);
-		UStaticMeshComponent* StaticMeshComponent = FlexActor->GetStaticMeshComponent();
-		check(StaticMeshComponent);
-
-		StaticMeshComponent->UnregisterComponent();
-
-		StaticMeshComponent->SetStaticMesh(StaticMesh);
-		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
-
-		// Init Component
-		StaticMeshComponent->RegisterComponent();
-	}
 }
 
 /*-----------------------------------------------------------------------------

@@ -3,7 +3,8 @@
 #include "FlexContainerInstance.h"
 
 #include "DrawDebugHelpers.h"
-#include "PhysXSupport.h"
+#include "PhysicsEngine/PhysXSupport.h"
+#include "PhysXPublic.h"
 
 
 bool FFlexContainerInstance::sGlobalDebugDraw = false;

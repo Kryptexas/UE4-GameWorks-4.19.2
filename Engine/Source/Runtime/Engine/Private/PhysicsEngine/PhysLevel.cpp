@@ -31,7 +31,12 @@
 
 #if WITH_FLEX
 // fwd declare error func
-void FlexErrorFunc(NvFlexErrorSeverity level, const char* msg, const char* file, int line);
+//void FlexErrorFunc(NvFlexErrorSeverity level, const char* msg, const char* file, int line);
+void FlexErrorFunc(NvFlexErrorSeverity, const char* msg, const char* file, int line)
+{
+	//UE_LOG(LogFlex, Warning, TEXT("Flex Error: %s, %s:%d"), ANSI_TO_TCHAR(msg), ANSI_TO_TCHAR(file), line);
+}
+
 #endif
 
 FPhysCommandHandler * GPhysCommandHandler = NULL;

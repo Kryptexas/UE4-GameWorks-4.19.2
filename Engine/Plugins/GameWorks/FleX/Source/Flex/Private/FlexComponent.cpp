@@ -2,13 +2,13 @@
 
 #include "FlexComponent.h"
 
-#include "PhysXSupport.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "StaticMeshResources.h"
 
 #include "PhysicsPublic.h"
 
 #include "FlexContainerInstance.h"
-#include "FlexRender.h"
+#include "PhysicsEngine/FlexRender.h"
 
 #if STATS
 
@@ -535,9 +535,6 @@ FBoxSphereBounds UFlexComponent::CalcBounds(const FTransform & LocalToWorld) con
 	{
 		return Super::CalcBounds(LocalToWorld);
 	}
-#else
-	return Super::CalcBounds(LocalToWorld);
-#endif
 }
 
 void UFlexComponent::DisableSim()
@@ -758,7 +755,6 @@ FMatrix UFlexComponent::GetRenderMatrix() const
 			return FMatrix::Identity;
 		}
 	}
-#endif
 
 	return Super::GetRenderMatrix();
 }
@@ -805,7 +801,6 @@ bool UFlexComponent::ShouldRecreateProxyOnUpdateTransform() const
 			return true;
 		}
 	}
-#endif
 	
 	return Super::ShouldRecreateProxyOnUpdateTransform();
 }
