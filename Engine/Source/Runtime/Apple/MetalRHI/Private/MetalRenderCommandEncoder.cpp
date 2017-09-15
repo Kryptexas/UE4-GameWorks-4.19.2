@@ -14,6 +14,68 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#if METAL_DEBUG_OPTIONS
+static NSString* GMetalDebugVertexShader = @"#include <metal_stdlib>\n"
+@"using namespace metal;\n"
+@"struct VertexInput\n"
+@"{\n"
+@"};\n"
+@"vertex void WriteCommandIndexVS(VertexInput StageIn [[stage_in]], constant uint* Input [[ buffer(0) ]], device uint* Output  [[ buffer(1) ]])\n"
+@"{\n"
+@"	Output[0] = Input[0];\n"
+@"}\n";
+
+static id <MTLRenderPipelineState> GetDebugVertexShaderState(id<MTLDevice> Device, MTLRenderPassDescriptor* PassDesc)
+{
+	static id<MTLFunction> Func = nil;
+	static FCriticalSection Mutex;
+	static NSMutableDictionary* Dict = [NSMutableDictionary new];
+	if(!Func)
+	{
+		id<MTLLibrary> Lib = [Device newLibraryWithSource:GMetalDebugVertexShader options:nil error:nullptr];
+		check(Lib);
+		Func = [Lib newFunctionWithName:@"WriteCommandIndexVS"];
+		check(Func);
+		[Lib release];
+	}
+	
+	FScopeLock Lock(&Mutex);
+	id<MTLRenderPipelineState> State = [Dict objectForKey:PassDesc];
+	if (!State)
+	{
+		MTLRenderPipelineDescriptor* Desc = [MTLRenderPipelineDescriptor new];
+		
+		Desc.vertexFunction = Func;
+		
+		if (PassDesc.depthAttachment)
+		{
+			Desc.depthAttachmentPixelFormat = PassDesc.depthAttachment.texture.pixelFormat;
+		}
+		if (PassDesc.stencilAttachment)
+		{
+			Desc.stencilAttachmentPixelFormat = PassDesc.stencilAttachment.texture.pixelFormat;
+		}
+		if (PassDesc.colorAttachments)
+		{
+			MTLRenderPassColorAttachmentDescriptor* CD = [PassDesc.colorAttachments objectAtIndexedSubscript:0];
+			MTLRenderPipelineColorAttachmentDescriptor* CD0 = [[MTLRenderPipelineColorAttachmentDescriptor new] autorelease];
+			CD0.pixelFormat = CD.texture.pixelFormat;
+			[Desc.colorAttachments setObject:CD0 atIndexedSubscript:0];
+		}
+		Desc.rasterizationEnabled = false;
+		
+		State = [[Device newRenderPipelineStateWithDescriptor:Desc error:nil] autorelease];
+		check(State);
+		
+		[Dict setObject:State forKey:PassDesc];
+		
+		[Desc release];
+	}
+	check(State);
+	return State;
+}
+#endif
+
 @implementation FMetalDebugRenderCommandEncoder
 
 @synthesize Inner;
@@ -22,13 +84,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
--(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder andCommandBuffer:(FMetalDebugCommandBuffer*)SourceBuffer
+-(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder fromDescriptor:(MTLRenderPassDescriptor*)Desc andCommandBuffer:(FMetalDebugCommandBuffer*)SourceBuffer
 {
 	id Self = [super init];
 	if (Self)
 	{
         Inner = [Encoder retain];
 		Buffer = [SourceBuffer retain];
+		RenderPassDesc = [Desc retain];
+#if METAL_DEBUG_OPTIONS
+		DebugState = Buffer->DebugLevel >= EMetalDebugLevelValidation ? [GetDebugVertexShaderState(Buffer.device, Desc) retain] : nil;
+#endif
         Pipeline = nil;
 	}
 	return Self;
@@ -38,6 +104,10 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 {
 	[Inner release];
 	[Buffer release];
+	[RenderPassDesc release];
+#if METAL_DEBUG_OPTIONS
+	[DebugState release];
+#endif
 	[Pipeline release];
 	[super dealloc];
 }
@@ -75,9 +145,64 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner pushDebugGroup:string];
 }
 
+#if METAL_DEBUG_OPTIONS
+- (void)insertDebugDraw
+{
+	switch (Buffer->DebugLevel)
+	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
+		case EMetalDebugLevelValidation:
+		{
+			uint32 const Index = Buffer->DebugCommands.Num();
+#if PLATFORM_MAC
+			[Inner textureBarrier];
+#endif
+			[Inner setVertexBytes:&Index length:sizeof(Index) atIndex:0];
+			[Inner setVertexBuffer:Buffer->DebugInfoBuffer offset:0 atIndex:1];
+			[Inner setRenderPipelineState:DebugState];
+			[Inner drawPrimitives:MTLPrimitiveTypePoint vertexStart:0 vertexCount:1];
+#if PLATFORM_MAC
+			[Inner textureBarrier];
+#endif
+			if (Pipeline && Pipeline.RenderPipelineState)
+			{
+				[Inner setRenderPipelineState:Pipeline.RenderPipelineState];
+			}
+			
+			if (ShaderBuffers[EMetalShaderVertex].Buffers[0])
+			{
+				[Inner setVertexBuffer:ShaderBuffers[EMetalShaderVertex].Buffers[0] offset:ShaderBuffers[EMetalShaderVertex].Offsets[0] atIndex:0];
+			}
+			else if (ShaderBuffers[EMetalShaderVertex].Bytes[0])
+			{
+				[Inner setVertexBytes:ShaderBuffers[EMetalShaderVertex].Bytes[0] length:ShaderBuffers[EMetalShaderVertex].Offsets[0] atIndex:0];
+			}
+			
+			if (ShaderBuffers[EMetalShaderVertex].Buffers[1])
+			{
+				[Inner setVertexBuffer:ShaderBuffers[EMetalShaderVertex].Buffers[1] offset:ShaderBuffers[EMetalShaderVertex].Offsets[1] atIndex:1];
+			}
+			else if (ShaderBuffers[EMetalShaderVertex].Bytes[1])
+			{
+				[Inner setVertexBytes:ShaderBuffers[EMetalShaderVertex].Bytes[1] length:ShaderBuffers[EMetalShaderVertex].Offsets[1] atIndex:1];
+			}
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+#endif
+
 - (void)popDebugGroup
 {
-    [Buffer popDebugGroup];
+	[Buffer popDebugGroup];
+#if METAL_DEBUG_OPTIONS
+	[self insertDebugDraw];
+#endif
     [Inner popDebugGroup];
 }
 

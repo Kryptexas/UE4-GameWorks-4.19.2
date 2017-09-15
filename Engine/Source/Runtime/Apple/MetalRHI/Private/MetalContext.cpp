@@ -338,6 +338,13 @@ FMetalDeviceContext* FMetalDeviceContext::CreateDeviceContext()
 	FMetalCommandQueue* Queue = new FMetalCommandQueue(Device, GMetalCommandQueueSize);
 	check(Queue);
 	
+	uint32 MetalDebug = GMetalRuntimeDebugLevel;
+	const bool bOverridesMetalDebug = FParse::Value( FCommandLine::Get(), TEXT( "MetalRuntimeDebugLevel=" ), MetalDebug );
+	if (bOverridesMetalDebug)
+	{
+		GMetalRuntimeDebugLevel = MetalDebug;
+	}
+	
 	return new FMetalDeviceContext(Device, DeviceIndex, Queue);
 }
 
