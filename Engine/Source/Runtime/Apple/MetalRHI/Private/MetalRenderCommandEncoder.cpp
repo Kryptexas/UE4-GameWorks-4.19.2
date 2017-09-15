@@ -453,7 +453,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 - (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode
 {
 #if __clang_major__ >= 9
-	if(@available(iOS 11.0, macOS 10.11, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.11, *))
 #endif
 	{
     	[Inner setDepthClipMode:depthClipMode];
@@ -1274,7 +1274,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS
 - (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useResource:resource usage:usage];
 	}
@@ -1282,7 +1282,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)useResources:(const id <MTLResource> [])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useResources:resources count:count usage:usage];
 	}
@@ -1290,7 +1290,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)useHeap:(id <MTLHeap>)heap
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useHeap:heap];
 	}
@@ -1298,7 +1298,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)useHeaps:(const id <MTLHeap> [])heaps count:(NSUInteger)count
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useHeaps:heaps count:count];
 	}
@@ -1500,7 +1500,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if (METAL_NEW_NONNULL_DECL)
 - (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
 	}
@@ -1508,7 +1508,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner setDepthStoreActionOptions:storeActionOptions];
 	}
@@ -1516,13 +1516,111 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner setStencilStoreActionOptions:storeActionOptions];
 	}
 }
 #endif //(METAL_NEW_NONNULL_DECL)
 
+#if METAL_SUPPORTS_TILE_SHADERS
+- (void)setTileBytes:(const void *)bytes length:(NSUInteger)length atIndex:(NSUInteger)index
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileBytes:bytes length:length atIndex:index];
+	}
+}
+
+- (void)setTileBuffer:(nullable id <MTLBuffer>)buffer offset:(NSUInteger)offset atIndex:(NSUInteger)index
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileBuffer:buffer offset:offset atIndex:index];
+	}
+}
+
+- (void)setTileBufferOffset:(NSUInteger)offset atIndex:(NSUInteger)index
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileBufferOffset:offset atIndex:index];
+	}
+}
+
+- (void)setTileBuffers:(const id <MTLBuffer> __nullable [__nonnull])buffers offsets:(const NSUInteger [__nonnull])offset withRange:(NSRange)range
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileBuffers:buffers offsets:offset withRange:range];
+	}
+}
+
+- (void)setTileTexture:(nullable id <MTLTexture>)texture atIndex:(NSUInteger)index
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileTexture:texture atIndex:index];
+	}
+}
+
+- (void)setTileTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileTextures:textures withRange:range];
+	}
+}
+
+- (void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler atIndex:(NSUInteger)index
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileSamplerState:sampler atIndex:index];
+	}
+}
+
+- (void)setTileSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileSamplerStates:samplers withRange:range];
+	}
+}
+
+- (void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler lodMinClamp:(float)lodMinClamp lodMaxClamp:(float)lodMaxClamp atIndex:(NSUInteger)index
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileSamplerState:sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
+	}
+}
+
+- (void)setTileSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setTileSamplerStates:samplers lodMinClamps:lodMinClamps lodMaxClamps:lodMaxClamps withRange:range];
+	}
+}
+
+- (void)dispatchThreadsPerTile:(MTLSize)threadsPerTile
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner dispatchThreadsPerTile:threadsPerTile];
+	}
+}
+
+- (void)setThreadgroupMemoryLength:(NSUInteger)length offset:(NSUInteger)offset atIndex:(NSUInteger)index
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setThreadgroupMemoryLength:length offset:offset atIndex:index];
+	}
+}
+
+#endif
 @end
 
 #if !METAL_SUPPORTS_HEAPS

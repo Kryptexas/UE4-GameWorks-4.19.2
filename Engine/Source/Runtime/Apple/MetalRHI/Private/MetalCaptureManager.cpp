@@ -9,7 +9,7 @@ FMetalCaptureManager::FMetalCaptureManager(id<MTLDevice> InDevice, FMetalCommand
 , Queue(InQueue)
 {
 #if METAL_SUPPORTS_CAPTURE_MANAGER
-	if (@available(iOS 11.0, macOS 10.13, *))
+	if (@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		MTLCaptureManager* Manager = [MTLCaptureManager sharedCaptureManager];
 		
@@ -47,7 +47,7 @@ FMetalCaptureManager::~FMetalCaptureManager()
 void FMetalCaptureManager::PresentFrame(uint32 FrameNumber)
 {
 #if METAL_SUPPORTS_CAPTURE_MANAGER
-	if (@available(iOS 11.0, macOS 10.13, *))
+	if (@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		for (FMetalCaptureScope& Scope : ActiveScopes)
 		{
@@ -79,7 +79,7 @@ void FMetalCaptureManager::PresentFrame(uint32 FrameNumber)
 void FMetalCaptureManager::BeginCapture(void)
 {
 #if METAL_SUPPORTS_CAPTURE_MANAGER
-	if (@available(iOS 11.0, macOS 10.13, *))
+	if (@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[[MTLCaptureManager sharedCaptureManager] startCaptureWithDevice:Device];
 	}
@@ -89,7 +89,7 @@ void FMetalCaptureManager::BeginCapture(void)
 void FMetalCaptureManager::EndCapture(void)
 {
 #if METAL_SUPPORTS_CAPTURE_MANAGER
-	if (@available(iOS 11.0, macOS 10.13, *))
+	if (@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[[MTLCaptureManager sharedCaptureManager] stopCapture];
 	}

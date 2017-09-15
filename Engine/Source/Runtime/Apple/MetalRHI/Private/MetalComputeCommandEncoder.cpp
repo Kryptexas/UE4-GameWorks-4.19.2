@@ -546,7 +546,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 #if METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS
 - (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useResource:resource usage:usage];
 	}
@@ -554,7 +554,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 
 - (void)useResources:(const id <MTLResource> [])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useResources:resources count:count usage:usage];
 	}
@@ -562,7 +562,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 
 - (void)useHeap:(id <MTLHeap>)heap
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useHeap:heap];
 	}
@@ -570,7 +570,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 
 - (void)useHeaps:(const id <MTLHeap> [])heaps count:(NSUInteger)count
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
 	{
 		[Inner useHeaps:heaps count:count];
 	}
@@ -721,6 +721,26 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 {
 	return self;
 }
+
+#if METAL_SUPPORTS_TILE_SHADERS
+- (void)setImageblockWidth:(NSUInteger)width height:(NSUInteger)height
+{
+	if(@available(iOS 11.0, tvOS 11.0, *))
+	{
+		[Inner setImageblockWidth:width height:height];
+	}
+}
+#endif
+
+#if METAL_SUPPORTS_CAPTURE_MANAGER
+- (void)dispatchThreads:(MTLSize)threadsPerGrid threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
+{
+	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
+	{
+		[Inner dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
+	}
+}
+#endif
 
 @end
 
