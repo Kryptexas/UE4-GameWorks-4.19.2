@@ -1341,11 +1341,13 @@ void FPhysicsAssetEditorSharedData::DeleteCurrentPrim()
 			}
 		}
 	}
-	
-	HierarchyChangedEvent.Broadcast();
+
 	ClearSelectedBody(); // Will call UpdateViewport
 	RefreshPhysicsAssetChange(PhysicsAsset);
+
+	HierarchyChangedEvent.Broadcast();
 }
+
 FTransform FPhysicsAssetEditorSharedData::GetConstraintBodyTM(const UPhysicsConstraintTemplate* ConstraintSetup, EConstraintFrame::Type Frame) const
 {
 	if (ConstraintSetup == NULL)
