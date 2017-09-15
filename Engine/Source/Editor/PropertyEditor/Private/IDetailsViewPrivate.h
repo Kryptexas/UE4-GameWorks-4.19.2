@@ -122,4 +122,7 @@ public:
 	virtual void UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, struct FDetailLayoutData& LayoutData) = 0;
 
 	virtual const FCustomPropertyTypeLayoutMap& GetCustomPropertyTypeLayoutMap() const = 0;
+
+	/** Saves the expansion state of property nodes for the selected object set */
+	virtual void SaveExpandedItems(TSharedRef<FPropertyNode> StartNode) = 0;
 };
