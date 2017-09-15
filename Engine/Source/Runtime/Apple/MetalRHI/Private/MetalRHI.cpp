@@ -320,7 +320,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	{
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
 #if WITH_EDITORONLY_DATA
-		GRHISupportsRHIThread = true;
+		GRHISupportsRHIThread = false;
 #else
 		GRHISupportsRHIThread = bSupportsRHIThread;
 #endif
