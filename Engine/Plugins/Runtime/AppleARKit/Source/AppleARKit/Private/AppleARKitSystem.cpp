@@ -62,7 +62,11 @@ private:
 	
 	virtual bool IsActiveThisFrame(class FViewport* InViewport) const override
 	{
+#if ARKIT_SUPPORT
 		return true;
+#else
+		return false;
+#endif //ARKIT_SUPPORT
 	}
 	//~ FDefaultXRCamera
 	
