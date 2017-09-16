@@ -1,10 +1,10 @@
-#if ARKIT_SUPPORT
-
 // AppleARKit
 #include "AppleARKitSessionDelegate.h"
 #include "AppleARKitSystem.h"
 #include "AppleARKitPrivate.h"
 #include "AppleARKitFrame.h"
+
+#if ARKIT_SUPPORT
 
 @implementation FAppleARKitSessionDelegate
 {
