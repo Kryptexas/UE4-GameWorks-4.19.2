@@ -1,9 +1,9 @@
-#if ARKIT_SUPPORT
-
 // AppleARKit
 #include "AppleARKitSessionDelegate.h"
 #include "AppleARKit.h"
 #include "AppleARKitSession.h"
+
+#if ARKIT_SUPPORT
 
 @implementation FAppleARKitSessionDelegate
 {
