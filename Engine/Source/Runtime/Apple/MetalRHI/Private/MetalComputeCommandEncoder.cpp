@@ -809,7 +809,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 }
 #endif
 
-#if METAL_SUPPORTS_CAPTURE_MANAGER
+#if METAL_SUPPORTS_CAPTURE_MANAGER && !PLATFORM_TVOS
 - (void)dispatchThreads:(MTLSize)threadsPerGrid threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
 {
 	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
