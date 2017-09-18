@@ -52,7 +52,7 @@
 		Samples/MobileStarterContent/MobileStarterContent.uproject
 	</Property>
 	<!-- Don't add VR template for Mac and Linux -->
-	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC)" If="'$(HostPlatform)' != 'Mac' and '$(HostPlatform)' != 'Linux'">
+	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC)" If="'$(HostPlatform)' != 'Linux'">
 		Templates/TP_VirtualRealityBP/TP_VirtualRealityBP.uproject
 	</Property>
 	
