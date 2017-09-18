@@ -71,19 +71,18 @@ void AFunctionalUIScreenshotTest::PrepareTest()
 	// Spawn the widget
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	SpawnedWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
-	check(SpawnedWidget)
-
-	if (WidgetLocation == EWidgetTestAppearLocation::Viewport)
-	{
-		SpawnedWidget->AddToViewport();
-	}
-	else
-	{
-		SpawnedWidget->AddToPlayerScreen();
-	}
-
+	
 	if (SpawnedWidget)
 	{
+		if (WidgetLocation == EWidgetTestAppearLocation::Viewport)
+		{
+			SpawnedWidget->AddToViewport();
+		}
+		else
+		{
+			SpawnedWidget->AddToPlayerScreen();
+		}
+
 		SpawnedWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 

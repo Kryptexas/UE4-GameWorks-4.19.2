@@ -59,7 +59,7 @@ protected:
 
 protected:
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Screenshot")
 	class UCameraComponent* ScreenshotCamera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Screenshot", SimpleDisplay)
