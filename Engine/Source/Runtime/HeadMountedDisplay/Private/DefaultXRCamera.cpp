@@ -40,7 +40,10 @@ bool FDefaultXRCamera::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& Cu
 {
 	FQuat DeviceOrientation;
 	FVector DevicePosition;
-	TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
+	if (!TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition))
+	{
+		return false;
+	}
 
 	if (GEnableVREditorHacks && !bUseImplicitHMDPosition)
 	{
