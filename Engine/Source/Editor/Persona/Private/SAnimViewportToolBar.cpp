@@ -235,7 +235,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 
 TSharedRef<SWidget> SAnimViewportToolBar::MakeViewportToolbar(TSharedPtr<class SEditorViewport> InRealViewport)
 {
-	FMenuBarBuilder MenuBarBuilder(CommandList, Extenders, &FEditorStyle::Get(), false);
+	FMenuBarBuilder MenuBarBuilder(CommandList, Extenders, &FEditorStyle::Get(), false, EMultiBoxType::ToolMenuBar);
 
 	FName MenuBarStyle("ViewportMenu");
 	MenuBarBuilder.SetStyle(&FEditorStyle::Get(), MenuBarStyle);
