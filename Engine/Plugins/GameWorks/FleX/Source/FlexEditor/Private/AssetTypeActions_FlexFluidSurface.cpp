@@ -2,7 +2,7 @@
 
 #include "AssetTypeActions_FlexFluidSurface.h"
 
-#include "PhysicsEngine/FlexFluidSurface.h"
+#include "FlexFluidSurface.h"
 
 UClass* FAssetTypeActions_FlexFluidSurface::GetSupportedClass() const
 {

@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "AssetTypeCategories.h"
+#include "AssetTypeActions_Base.h"
+
 class FAssetTypeActions_FlexFluidSurface : public FAssetTypeActions_Base
 {
 public:

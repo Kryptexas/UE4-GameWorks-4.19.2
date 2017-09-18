@@ -3,15 +3,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Components/PrimitiveComponent.h"
-
 #include "FlexFluidSurfaceComponent.generated.h"
 
 /**
  *	Used to render a screen space fluid surface for particles.
  */
 UCLASS(ClassGroup = Rendering, collapsecategories, hidecategories = (Object, Mobility, Collision, Physics, PhysicsVolume, Actor))
-class ENGINE_API UFlexFluidSurfaceComponent : public UPrimitiveComponent
+class FLEX_API UFlexFluidSurfaceComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 

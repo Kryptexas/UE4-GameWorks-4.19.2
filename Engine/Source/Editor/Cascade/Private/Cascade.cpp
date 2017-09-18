@@ -65,7 +65,7 @@
 #include "UnrealEngine.h"
 
 #if WITH_FLEX
-#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "FlexFluidSurfaceComponent.h"
 #endif
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");

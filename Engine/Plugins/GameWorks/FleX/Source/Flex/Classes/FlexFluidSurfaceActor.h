@@ -1,7 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "FlexFluidSurfaceActor.generated.h"
 
 UCLASS(notplaceable, transient, MinimalAPI)
@@ -31,7 +33,7 @@ public:
 	//End AActor Interface
 
 	/** Returns Component subobject **/
-	ENGINE_API class UFlexFluidSurfaceComponent* GetComponent() const;
+	FLEX_API class UFlexFluidSurfaceComponent* GetComponent() const;
 };
 
 

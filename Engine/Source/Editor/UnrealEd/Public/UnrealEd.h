@@ -285,12 +285,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Classes/UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Classes/Commandlets/WrangleContentCommandlet.h"
 
-#if WITH_FLEX
-#include "Classes/Factories/FlexFluidSurfaceFactory.h"
-#include "Classes/Factories/FlexContainerFactory.h"
-#include "Classes/ActorFactories/ActorFactoryFlex.h"
-#endif
-
 //////////////////////	@todo Classes.h
 
 #include "Kismet2/ComponentEditorUtils.h"

@@ -8,7 +8,7 @@
 #include "PhysicsPublic.h"
 
 #include "FlexContainerInstance.h"
-#include "PhysicsEngine/FlexRender.h"
+#include "FlexRender.h"
 
 #if STATS
 

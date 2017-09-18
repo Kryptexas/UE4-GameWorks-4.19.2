@@ -1,9 +1,7 @@
 #pragma once
 
-#include "PhysXSupport.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "StaticMeshResources.h"
-
-#if WITH_FLEX
 
 // if true GPU skinning will be used for soft bodies on SM4+ devices
 #define USE_FLEX_GPU_SKINNING 1	
@@ -183,7 +181,7 @@ protected:
 };
 
 /** Scene proxy, overrides default static mesh behavior */
-class ENGINE_API FFlexMeshSceneProxy : public FStaticMeshSceneProxy
+class FLEX_API FFlexMeshSceneProxy : public FStaticMeshSceneProxy
 {
 public:
 
@@ -219,5 +217,3 @@ public:
 	UFlexComponent* FlexComponent;
 	uint32 LastFrame;
 };
-
-#endif // WITH FLEX

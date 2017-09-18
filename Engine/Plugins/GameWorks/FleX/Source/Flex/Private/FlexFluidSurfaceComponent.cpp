@@ -4,10 +4,10 @@
 FlexFluidSurfaceComponent.cpp: Fluid surface implementation.
 =============================================================================*/
 
-#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "FlexFluidSurfaceComponent.h"
 #include "FlexContainerInstance.h"
-#include "PhysicsEngine/FlexFluidSurface.h"
-#include "PhysicsEngine/FlexFluidSurfaceActor.h"
+#include "FlexFluidSurface.h"
+#include "FlexFluidSurfaceActor.h"
 
 #include "Components/BillboardComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -17,15 +17,18 @@ FlexFluidSurfaceComponent.cpp: Fluid surface implementation.
 #include "ParticleEmitterInstances.h"
 #include "FlexFluidSurfaceSceneProxy.h"
 
+#include "UObject/ConstructorHelpers.h"
+
 /*=============================================================================
 Helper
 =============================================================================*/
-
-const FTexture2DRHIRef& GetTexture(TRefCountPtr<IPooledRenderTarget>& RenderTarget)
+#ifndef FLEX_GET_TEXTURE
+#define FLEX_GET_TEXTURE
+inline const FTexture2DRHIRef& GetTexture(TRefCountPtr<IPooledRenderTarget>& RenderTarget)
 {
 	return (const FTexture2DRHIRef&)RenderTarget->GetRenderTargetItem().ShaderResourceTexture;
 }
-
+#endif
 /*=============================================================================
 FFlexFluidSurfaceVertexFactory
 =============================================================================*/
@@ -334,7 +337,7 @@ FPrimitiveViewRelevance FFlexFluidSurfaceSceneProxy::GetViewRelevance(const FSce
 	return Result;
 }
 
-extern TGlobalResource<FIdentityPrimitiveUniformBuffer> GIdentityPrimitiveUniformBuffer;
+extern ENGINE_API TGlobalResource<FIdentityPrimitiveUniformBuffer> GIdentityPrimitiveUniformBuffer;
 
 /*=============================================================================
 UFlexFluidSurface

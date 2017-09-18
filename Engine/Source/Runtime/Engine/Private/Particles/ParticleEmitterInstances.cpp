@@ -34,7 +34,7 @@
 #if WITH_FLEX
 #include "FlexContainer.h"
 #include "FlexContainerInstance.h"
-#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "FlexFluidSurfaceComponent.h"
 #endif
 
 /*-----------------------------------------------------------------------------

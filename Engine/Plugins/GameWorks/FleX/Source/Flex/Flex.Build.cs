@@ -39,6 +39,7 @@ namespace UnrealBuildTool.Rules
 					"RHI",
 					"RenderCore",
                     "ShaderCore",
+                    //"Renderer",
 					"FLEX0",
 					// ... add private dependencies that you statically link with here ...
 				}

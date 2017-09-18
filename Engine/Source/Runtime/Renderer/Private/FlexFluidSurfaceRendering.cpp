@@ -14,7 +14,7 @@ FlexFluidSurfaceRendering.cpp: Flex fluid surface rendering implementation.
 #include "RenderingCompositionGraph.h"
 #include "ParticleHelper.h"
 #include "FlexFluidSurfaceSceneProxy.h"
-#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "FlexFluidSurfaceComponent.h"
 #include "PipelineStateCache.h"
 
 FFlexFluidSurfaceRenderer GFlexFluidSurfaceRenderer;

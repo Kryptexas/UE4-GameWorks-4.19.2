@@ -13,7 +13,7 @@
 #include "Particles/Emitter.h"
 
 #if WITH_FLEX
-#include "PhysicsEngine/FlexFluidSurface.h"
+#include "FlexFluidSurface.h"
 #endif // WITH_FLEX
 
 #include "ParticleSystemComponent.generated.h"

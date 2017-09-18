@@ -83,8 +83,8 @@
 #include "GameFramework/GameState.h"
 #include "FrameworkObjectVersion.h"
 #if WITH_FLEX
-#include "PhysicsEngine/FlexFluidSurface.h"
-#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "FlexFluidSurface.h"
+#include "FlexFluidSurfaceComponent.h"
 #include "FlexContainerInstance.h"
 #endif
 #include "PhysicsPublic.h"

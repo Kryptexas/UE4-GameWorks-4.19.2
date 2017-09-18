@@ -114,8 +114,8 @@
 #include "Engine/AssetManager.h"
 
 #if WITH_FLEX
-#include "PhysicsEngine/FlexFluidSurfaceActor.h"
-#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "FlexFluidSurfaceActor.h"
+#include "FlexFluidSurfaceComponent.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);

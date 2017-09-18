@@ -6,8 +6,6 @@
 #include "FlexAssetSoft.h"
 #include "FlexAssetCloth.h"
 
-#if WITH_FLEX
-
 #if STATS
 DECLARE_CYCLE_STAT(TEXT("Skin Mesh Time (CPU)"), STAT_Flex_RenderMeshTime, STATGROUP_Flex);
 #endif
@@ -638,5 +636,3 @@ bool FFlexMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchIndex,
 {
 	return false;
 }
-
-#endif // WITH_FLEX
