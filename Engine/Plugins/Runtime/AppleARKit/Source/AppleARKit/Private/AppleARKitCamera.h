@@ -7,7 +7,7 @@
 #include "Engine/GameViewportClient.h"
 
 // ARKit
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 #import <ARKit/ARKit.h>
 #endif // ARKIT_SUPPORT
 
@@ -48,7 +48,7 @@ struct APPLEARKIT_API FAppleARKitCamera
 	// Default constructor
 	FAppleARKitCamera() {};
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 	/** 
 	 * This is a conversion copy-constructor that takes a raw ARCamera and fills this structs members

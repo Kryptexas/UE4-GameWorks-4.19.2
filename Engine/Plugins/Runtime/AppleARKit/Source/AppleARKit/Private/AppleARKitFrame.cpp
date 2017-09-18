@@ -5,14 +5,14 @@
 
 // Default constructor
 FAppleARKitFrame::FAppleARKitFrame()
-#if ARKIT_SUPPORT
-: CapturedYImage( nullptr )
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+	: CapturedYImage(nullptr)
 , CapturedCbCrImage( nullptr )
 #endif
 {
 };
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 FAppleARKitFrame::FAppleARKitFrame( ARFrame* InARFrame, CVMetalTextureCacheRef MetalTextureCache )
   : Camera( InARFrame.camera )

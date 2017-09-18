@@ -8,6 +8,9 @@
 #include "AppleARKitTransform.h"
 #include "AppleARKitVideoOverlay.h"
 #include "AppleARKitFrame.h"
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+#include "IOSAppDelegate.h"
+#endif
 
 //
 //  FAppleARKitXRCamera
@@ -62,8 +65,15 @@ private:
 	
 	virtual bool IsActiveThisFrame(class FViewport* InViewport) const override
 	{
-#if ARKIT_SUPPORT
-		return true;
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+		if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 #else
 		return false;
 #endif //ARKIT_SUPPORT
@@ -144,11 +154,18 @@ void FAppleARKitSystem::ResetOrientationAndPosition(float Yaw)
 
 bool FAppleARKitSystem::IsHeadTrackingAllowed() const
 {
-#if ARKIT_SUPPORT
-	return true;
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+	if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 #else
 	return false;
-#endif
+#endif //ARKIT_SUPPORT
 }
 
 TSharedPtr<class IXRCamera, ESPMode::ThreadSafe> FAppleARKitSystem::GetXRCamera(int32 DeviceId)
@@ -175,61 +192,64 @@ void FAppleARKitSystem::Run()
 	RunWithConfiguration( Config );
 }
 
-bool FAppleARKitSystem::RunWithConfiguration( const FAppleARKitConfiguration& InConfiguration )
+bool FAppleARKitSystem::RunWithConfiguration(const FAppleARKitConfiguration& InConfiguration)
 {
 
 	if (IsRunning())
 	{
 		UE_LOG(LogAppleARKit, Log, TEXT("Session already running"), this);
-		
+
 		return true;
 	}
 
-#if ARKIT_SUPPORT
-	
-	ARSessionRunOptions options = 0;
-	
-	// Create our ARSessionDelegate
-	if (Delegate == nullptr)
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+	if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
 	{
-		Delegate =[[FAppleARKitSessionDelegate alloc] initWithAppleARKitSystem:this];
+
+		ARSessionRunOptions options = 0;
+
+		// Create our ARSessionDelegate
+		if (Delegate == nullptr)
+		{
+			Delegate = [[FAppleARKitSessionDelegate alloc] initWithAppleARKitSystem:this];
+		}
+
+		if (Session == nullptr)
+		{
+			// Start a new ARSession
+			Session = [ARSession new];
+			Session.delegate = Delegate;
+			Session.delegateQueue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
+		}
+		else
+		{
+			// pause and start with new options
+			options = ARSessionRunOptionResetTracking | ARSessionRunOptionRemoveExistingAnchors;
+			[Session pause];
+		}
+
+		// Create MetalTextureCache
+		if (IsMetalPlatform(GMaxRHIShaderPlatform))
+		{
+			id<MTLDevice> Device = (id<MTLDevice>)GDynamicRHI->RHIGetNativeDevice();
+			check(Device);
+
+			CVReturn Return = CVMetalTextureCacheCreate(nullptr, nullptr, Device, nullptr, &MetalTextureCache);
+			check(Return == kCVReturnSuccess);
+			check(MetalTextureCache);
+
+			// Pass to session delegate to use for Metal texture creation
+			[Delegate setMetalTextureCache : MetalTextureCache];
+		}
+
+		// Convert to native ARWorldTrackingSessionConfiguration
+		ARConfiguration* Configuration = FAppleARKitConfiguration::ToARConfiguration(InConfiguration);
+
+		UE_LOG(LogAppleARKit, Log, TEXT("Starting session: %p with options %d"), this, options);
+
+		// Start the session with the configuration
+		[Session runWithConfiguration : Configuration options : options];
 	}
-	
-	if (Session == nullptr)
-	{
-		// Start a new ARSession
-		Session = [ARSession new];
-		Session.delegate = Delegate;
-		Session.delegateQueue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
-	}
-	else
-	{
-		// pause and start with new options
-		options = ARSessionRunOptionResetTracking | ARSessionRunOptionRemoveExistingAnchors;
-		[Session pause];
-	}
-	
-	// Create MetalTextureCache
-	if (IsMetalPlatform(GMaxRHIShaderPlatform))
-	{
-		id<MTLDevice> Device = (id<MTLDevice>)GDynamicRHI->RHIGetNativeDevice();
-		check(Device);
-		
-		CVReturn Return = CVMetalTextureCacheCreate(nullptr, nullptr, Device, nullptr, &MetalTextureCache);
-		check(Return == kCVReturnSuccess);
-		check(MetalTextureCache);
-		
-		// Pass to session delegate to use for Metal texture creation
-		[Delegate setMetalTextureCache:MetalTextureCache];
-	}
-	
-	// Convert to native ARWorldTrackingSessionConfiguration
-	ARConfiguration* Configuration = FAppleARKitConfiguration::ToARConfiguration(InConfiguration);
-	
-	UE_LOG(LogAppleARKit, Log, TEXT("Starting session: %p with options %d"), this, options);
-	
-	// Start the session with the configuration
-	[Session runWithConfiguration:Configuration options:options];
 	
 #endif // ARKIT_SUPPORT
 	
@@ -256,19 +276,21 @@ bool FAppleARKitSystem::Pause()
 	
 	UE_LOG(LogAppleARKit, Log, TEXT("Stopping session: %p"), this);
 	
-#if ARKIT_SUPPORT
-	
-	// Suspend the session
-	[Session pause];
-	
-	// Release MetalTextureCache created in Start
-	if (MetalTextureCache)
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+	if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
 	{
-		// Tell delegate to release it
-		[Delegate setMetalTextureCache:nullptr];
+		// Suspend the session
+		[Session pause];
+	
+		// Release MetalTextureCache created in Start
+		if (MetalTextureCache)
+		{
+			// Tell delegate to release it
+			[Delegate setMetalTextureCache:nullptr];
 		
-		CFRelease(MetalTextureCache);
-		MetalTextureCache = nullptr;
+			CFRelease(MetalTextureCache);
+			MetalTextureCache = nullptr;
+		}
 	}
 	
 #endif // ARKIT_SUPPORT
@@ -292,7 +314,7 @@ void FAppleARKitSystem::SessionDidFailWithError_DelegateThread(const FString& Er
 	UE_LOG(LogAppleARKit, Warning, TEXT("Session failed with error: %s"), *Error);
 }
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 void FAppleARKitSystem::SessionDidAddAnchors_DelegateThread( NSArray<ARAnchor*>* anchors )
 {

@@ -4,7 +4,7 @@
 #include "AppleARKitPrivate.h"
 #include "AppleARKitFrame.h"
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 @implementation FAppleARKitSessionDelegate
 {

@@ -6,7 +6,7 @@
 #include "AppleARKitConfiguration.h"
 
 // ARKit
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 #import <ARKit/ARKit.h>
 #include "AppleARKitSessionDelegate.h"
 #endif // ARKIT_SUPPORT
@@ -46,7 +46,7 @@ public:
 	// Session delegate callbacks
 	void SessionDidUpdateFrame_DelegateThread( TSharedPtr< FAppleARKitFrame, ESPMode::ThreadSafe > Frame );
 	void SessionDidFailWithError_DelegateThread( const FString& Error );
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 	void SessionDidAddAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 	void SessionDidUpdateAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 	void SessionDidRemoveAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
@@ -56,8 +56,8 @@ private:
 	
 	bool bIsRunning = false;
 	
-#if ARKIT_SUPPORT
-	
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+
 	// ARKit Session
 	ARSession* Session = nullptr;
 	
