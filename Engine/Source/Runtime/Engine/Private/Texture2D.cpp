@@ -1186,7 +1186,7 @@ void FTexture2DResource::InitRHI()
 	uint32 SizeY = OwnerMips[CurrentFirstMip].SizeY;
 
 	// Create the RHI texture.
-	uint32 TexCreateFlags = (Owner->SRGB ? TexCreate_SRGB : 0) | TexCreate_OfflineProcessed;
+	uint32 TexCreateFlags = (Owner->SRGB ? TexCreate_SRGB : 0) | TexCreate_OfflineProcessed | TexCreate_Streamable;
 	// if no miptail is available then create the texture without a packed miptail
 	if( Owner->GetMipTailBaseIndex() == -1 )
 	{
