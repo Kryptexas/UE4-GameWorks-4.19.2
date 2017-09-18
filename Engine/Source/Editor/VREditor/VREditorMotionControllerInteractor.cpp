@@ -291,11 +291,9 @@ void UVREditorMotionControllerInteractor::SetupComponent( AActor* OwningActor )
 		for (int32 i = 0; i < NumLaserSplinePoints; i++)
 		{
 			USplineMeshComponent* SplineSegment = NewObject<USplineMeshComponent>(OwningActor);
-			OwningActor->AddOwnedComponent(SplineSegment);
 			SplineSegment->SetMobility(EComponentMobility::Movable);
 			SplineSegment->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			SplineSegment->PostPhysicsComponentTick.bCanEverTick = false;
-			SplineSegment->SetupAttachment(MotionControllerComponent);
 
 			UStaticMesh* StaticMesh = nullptr;
 			if (i == 0)
