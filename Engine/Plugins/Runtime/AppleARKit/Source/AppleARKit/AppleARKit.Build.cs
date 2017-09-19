@@ -45,7 +45,9 @@ public class AppleARKit : ModuleRules
                 "Renderer",
                 "RenderCore",
                 "ShaderCore",
-                "HeadMountedDisplay"
+                "HeadMountedDisplay",
+                // @todo arkit We depend on MRMesh because that's where IARHitTestingSupport is
+                "MRMesh"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

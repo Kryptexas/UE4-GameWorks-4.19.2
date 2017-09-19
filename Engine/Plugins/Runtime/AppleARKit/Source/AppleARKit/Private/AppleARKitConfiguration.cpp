@@ -2,7 +2,7 @@
 
 // AppleARKit
 #include "AppleARKitConfiguration.h"
-#include "AppleARKitPrivate.h"
+#include "AppleARKitModule.h"
 
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 

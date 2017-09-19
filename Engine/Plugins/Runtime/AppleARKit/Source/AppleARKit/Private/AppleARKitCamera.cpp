@@ -1,6 +1,6 @@
 // AppleARKit
 #include "AppleARKitCamera.h"
-#include "AppleARKitPrivate.h"
+#include "AppleARKitModule.h"
 #include "AppleARKitTransform.h"
 	
 // UE4

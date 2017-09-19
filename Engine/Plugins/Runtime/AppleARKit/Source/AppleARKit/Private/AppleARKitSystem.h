@@ -4,6 +4,8 @@
 
 #include "XRTrackingSystemBase.h"
 #include "AppleARKitConfiguration.h"
+#include "ARHitTestingSupport.h"
+#include "AppleARKitHitTestResult.h"
 
 // ARKit
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
@@ -17,14 +19,17 @@
 
 struct FAppleARKitFrame;
 
-class FAppleARKitSystem : public FXRTrackingSystemBase, public TSharedFromThis<FAppleARKitSystem, ESPMode::ThreadSafe>
+class FAppleARKitSystem : public FXRTrackingSystemBase, public IARHitTestingSupport, public TSharedFromThis<FAppleARKitSystem, ESPMode::ThreadSafe>
 {
 	friend class FAppleARKitXRCamera;
 	
 public:
 	FAppleARKitSystem();
+	~FAppleARKitSystem();
 	
-private:
+	/** Thread safe anchor map getter */
+	TMap< FGuid, UAppleARKitAnchor* > GetAnchors() const;
+	
 	//~ IXRTrackingSystem
 	FName GetSystemName() const override;
 	bool GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& OutPosition) override;
@@ -37,6 +42,11 @@ private:
 	float GetWorldToMetersScale() const override;
 	//~ IXRTrackingSystem
 	
+	//~ IARHitTestingSupport
+	virtual bool ARLineTraceFromScreenPoint(UObject* WorldContextObject, const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
+	//~ IARHitTestingSupport
+
+private:
 	void Run();
 	bool RunWithConfiguration(const FAppleARKitConfiguration& InConfiguration);
 	bool IsRunning() const;
@@ -51,6 +61,23 @@ public:
 	void SessionDidUpdateAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 	void SessionDidRemoveAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 #endif // ARKIT_SUPPORT
+
+	
+private:
+	/**
+	 * Searches the last processed frame for anchors corresponding to a point in the captured image.
+	 *
+	 * A 2D point in the captured image's coordinate space can refer to any point along a line segment
+	 * in the 3D coordinate space. Hit-testing is the process of finding anchors of a frame located along this line segment.
+	 *
+	 * NOTE: The hit test locations are reported in ARKit space. For hit test results
+	 * in game world coordinates, you're after UAppleARKitCameraComponent::HitTestAtScreenPosition
+	 *
+	 * @param ScreenPosition The viewport pixel coordinate of the trace origin.
+	 */
+	UFUNCTION( BlueprintCallable, Category="AppleARKit|Session" )
+	bool HitTestAtScreenPosition( const FVector2D ScreenPosition, EAppleARKitHitTestResultType Types, TArray< FARHitTestResult >& OutResults );
+	
 	
 private:
 	
@@ -69,6 +96,11 @@ private:
 	
 #endif // ARKIT_SUPPORT
 	
+	// Internal list of current known anchors
+	mutable FCriticalSection AnchorsLock;
+	UPROPERTY( Transient )
+	TMap< FGuid, UAppleARKitAnchor* > Anchors;
+	
 	
 	// The frame number when LastReceivedFrame was last updated
 	uint32 GameThreadFrameNumber;
@@ -86,6 +118,6 @@ private:
 
 namespace AppleARKitSupport
 {
-	APPLEARKIT_API TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe> CreateAppleARKitSystem();
+	APPLEARKIT_API TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> CreateAppleARKitSystem();
 }
 
