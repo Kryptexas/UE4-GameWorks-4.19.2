@@ -177,7 +177,7 @@ bool FMetalShaderBytecodeCooker::Build(TArray<uint8>& OutData)
 	FString MetalParams;
 	if (Job.bCompileAsPCH)
 	{
-		MetalParams = FString::Printf(TEXT("-x metal-header %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.MathMode, *Job.Standard, *Job.InputFile, *Job.OutputFile);
+		MetalParams = FString::Printf(TEXT("-x metal-header %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.MathMode, *Job.Standard, *Job.InputFile, *RemoteOutputFilename);
 	}
 	else
 	{
