@@ -57,7 +57,7 @@ bool IsRemoteBuildingConfigured()
 	{
 		return false;
 	}
-	
+
 	GRemoteBuildServerHost = "";
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), GRemoteBuildServerHost, GEngineIni);
 	if(GRemoteBuildServerHost.Len() == 0)
@@ -144,7 +144,8 @@ bool IsRemoteBuildingConfigured()
 	
 #endif
 
-	return true;
+	UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote shader compilation temporarily unavailable for 4.18 preview builds.  In previous builds it was almost certainly falling back to a local compile which we no longer allow. Compilation on a Mac will still properly build native shaders."));
+	return false;	
 }
 
 static bool CompileProcessAllowsRuntimeShaderCompiling(const FShaderCompilerInput& InputCompilerEnvironment)
