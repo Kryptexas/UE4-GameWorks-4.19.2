@@ -14,6 +14,7 @@
 #include "ARHitTestingSupport.h"
 #include "AppleARKitAnchor.h"
 #include "AppleARKitPlaneAnchor.h"
+#include "GeneralProjectSettings.h"
 
 
 //
@@ -80,7 +81,7 @@ private:
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 		if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
 		{
-			return true;
+			return GetDefault<UGeneralProjectSettings>()->bStartInAR;
 		}
 		else
 		{
