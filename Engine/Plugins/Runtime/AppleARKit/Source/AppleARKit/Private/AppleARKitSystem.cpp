@@ -173,12 +173,6 @@ void FAppleARKitSystem::RefreshPoses()
 		FScopeLock ScopeLock( &FrameLock );
 		GameThreadFrame = LastReceivedFrame;
 	}
-	
-	// @todo arkit remove this debug
-	if (GameThreadFrame.IsValid() && GameThreadFrame->Camera.TrackingQuality != EAppleARKitTrackingQuality::Good)
-	{
-		UE_LOG(LogAppleARKit, Log, TEXT("Tracking quality %d"), GameThreadFrame->Camera.TrackingQuality);
-	}
 }
 
 
