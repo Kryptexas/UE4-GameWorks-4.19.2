@@ -1712,8 +1712,8 @@ void FIOSTargetSettingsCustomization::SetShaderStandard(int32 Value)
 		}
 		else if (Value < 2 && bMRTEnabled)
 		{
-			FPropertyAccess::Result Res = ShaderVersionPropertyHandle->SetValue((uint8)2);
-			check(Res == FPropertyAccess::Success);
+			FPropertyAccess::Result ResMRT = ShaderVersionPropertyHandle->SetValue((uint8)2);
+			check(ResMRT == FPropertyAccess::Success);
 
 			Message = LOCTEXT("MetalMRTStandardv1.2","Enabling the Desktop Forward Renderer Metal requires Shader Standard v1.2 which increases the minimum operating system requirement for Metal from iOS 8.0 or later to iOS 10.0 or later.");
 			SetMinVersion((int32)EIOSVersion::IOS_10);
