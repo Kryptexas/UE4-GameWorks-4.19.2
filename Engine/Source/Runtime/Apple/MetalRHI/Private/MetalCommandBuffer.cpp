@@ -435,7 +435,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 -(CFTimeInterval) kernelStartTime
 {
 #if METAL_NEW_NONNULL_DECL
-	if (@available(iOS 10.3, tvOS 10.3, macOS 10.13, *))
+	if (GMetalCommandBufferHasStartEndTimeAPI)
 #endif
 	{
 		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).kernelStartTime;
@@ -451,7 +451,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 -(CFTimeInterval) kernelEndTime
 {
 #if METAL_NEW_NONNULL_DECL
-	if (@available(iOS 10.3, tvOS 10.3, macOS 10.13, *))
+	if (GMetalCommandBufferHasStartEndTimeAPI)
 #endif
 	{
 		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).kernelEndTime;
@@ -467,7 +467,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 -(CFTimeInterval) GPUStartTime
 {
 #if METAL_NEW_NONNULL_DECL
-	if (@available(iOS 10.3, tvOS 10.3, macOS 10.13, *))
+	if (GMetalCommandBufferHasStartEndTimeAPI)
 #endif
 	{
 		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).GPUStartTime;
@@ -483,7 +483,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 -(CFTimeInterval) GPUEndTime
 {
 #if METAL_NEW_NONNULL_DECL
-	if (@available(iOS 10.3, tvOS 10.3, macOS 10.13, *))
+	if (GMetalCommandBufferHasStartEndTimeAPI)
 #endif
 	{
 		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).GPUEndTime;

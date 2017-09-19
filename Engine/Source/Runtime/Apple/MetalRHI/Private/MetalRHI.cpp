@@ -20,6 +20,14 @@
 
 DEFINE_LOG_CATEGORY(LogMetal)
 
+bool GMetalSupportsHeaps = false;
+bool GMetalSupportsIndirectArgumentBuffers = false;
+bool GMetalSupportsCaptureManager = false;
+bool GMetalSupportsTileShaders = false;
+bool GMetalSupportsStoreActionOptions = false;
+bool GMetalSupportsDepthClipMode = false;
+bool GMetalCommandBufferHasStartEndTimeAPI = false;
+
 static void ValidateTargetedRHIFeatureLevelExists(EShaderPlatform Platform)
 {
 	bool bSupportsShaderPlatform = false;
@@ -298,7 +306,26 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	}
 	
 #endif
-		
+
+	if (FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){10, 13, 0}, (uint32[]){11, 0, 0}, (uint32[]){11, 0, 0}))
+	{
+		GMetalSupportsIndirectArgumentBuffers = true;
+		GMetalSupportsCaptureManager = true;
+		GMetalSupportsStoreActionOptions = true;
+	}
+	if (FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){0, 0, 0}, (uint32[]){11, 0, 0}, (uint32[]){11, 0, 0}))
+	{
+		GMetalSupportsTileShaders = true;
+	}
+	if (FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){10, 11, 0}, (uint32[]){11, 0, 0}, (uint32[]){11, 0, 0}))
+	{
+		GMetalSupportsDepthClipMode = true;
+	}
+	if (FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){10, 13, 0}, (uint32[]){10, 3, 0}, (uint32[]){10, 3, 0}))
+	{
+		GMetalCommandBufferHasStartEndTimeAPI = true;
+	}
+
 	GPoolSizeVRAMPercentage = 0;
 	GTexturePoolSize = 0;
 	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSizeVRAMPercentage"), GPoolSizeVRAMPercentage, GEngineIni);

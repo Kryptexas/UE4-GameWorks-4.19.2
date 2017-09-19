@@ -126,7 +126,9 @@ struct CORE_API FApplePlatformMisc : public FGenericPlatformMisc
 	static TArray<FString> GetPreferredLanguages();
 	static FString GetLocalCurrencyCode();
 	static FString GetLocalCurrencySymbol();
-	
+
+	static bool IsOSAtLeastVersion(const uint32 MacOSVersion[3], const uint32 IOSVersion[3], const uint32 TVOSVersion[3]);
+
 #if APPLE_PROFILING_ENABLED
 	static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text);
 	static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text);

@@ -106,7 +106,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
 #if (METAL_NEW_NONNULL_DECL)
 - (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
 {
-	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsStoreActionOptions)
 	{
 		[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
 	}
@@ -114,7 +114,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
 
 - (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsStoreActionOptions)
 	{
 		[Inner setDepthStoreActionOptions:storeActionOptions];
 	}
@@ -122,7 +122,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
 
 - (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	if(@available(iOS 11.0, tvOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsStoreActionOptions)
 	{
 		[Inner setStencilStoreActionOptions:storeActionOptions];
 	}

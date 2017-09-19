@@ -291,6 +291,25 @@ FString FApplePlatformMisc::GetLocalCurrencySymbol()
 	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencySymbol]);
 }
 
+bool FApplePlatformMisc::IsOSAtLeastVersion(const uint32 MacOSVersion[3], const uint32 IOSVersion[3], const uint32 TVOSVersion[3])
+{
+	static const uint32 OSVersion[3] = { (uint32)[NSProcessInfo processInfo].operatingSystemVersion.majorVersion, (uint32)[NSProcessInfo processInfo].operatingSystemVersion.minorVersion, (uint32)[NSProcessInfo processInfo].operatingSystemVersion.patchVersion };
+	const uint32* VersionToCompare = PLATFORM_MAC ? MacOSVersion : (PLATFORM_IOS ? IOSVersion : TVOSVersion);
+
+	for (uint32 Index = 0; Index < 3; Index++)
+	{
+		if (OSVersion[Index] < VersionToCompare[Index])
+		{
+			return false;
+		}
+		else if (OSVersion[Index] > VersionToCompare[Index])
+		{
+			return true;
+		}
+	}
+	return true;
+}
+
 #if APPLE_PROFILING_ENABLED
 void FApplePlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
 {
