@@ -1194,40 +1194,42 @@ void BuildMetalShaderOutput(
 		FString MetalToolsPath = GetMetalToolsPath(ShaderInput.Target.Platform);
 		
 		bool bMetalCompilerAvailable = false;
-		if((PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING) || bRemoteBuildingConfigured)
+
+		if (((PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING) || bRemoteBuildingConfigured) && (MetalPath.Len() > 0 && MetalToolsPath.Len() > 0))
 		{
-			if(MetalPath.Len() == 0 || MetalToolsPath.Len() == 0)
-			{
-				TCHAR const* Message = nullptr;
-				if (bRemoteBuildingConfigured)
-				{
-					Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on the Mac used for remote compilation and that the Mac is accessible via SSH from this machine.");
-				}
-				else
-				{
-					Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on this Mac and that it has been selected in Xcode > Preferences > Locations > Command-line Tools.");
-				}
-				
-				FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
-				Error->ErrorVirtualFilePath = InputFilename;
-				Error->ErrorLineString = TEXT("0");
-				Error->StrippedErrorMessage = FString(Message);
-				
-				bRemoteBuildingConfigured = false;
-				bCompileAtRuntime = false;
-				bSucceeded = false;
-			}
-			else
-			{
-				bMetalCompilerAvailable = true;
-				bCompileAtRuntime = false;
-				bSucceeded = false;
-			}
+			bMetalCompilerAvailable = true;
+			bCompileAtRuntime = false;
+			bSucceeded = false;
 		}
-		else if(CompileProcessAllowsRuntimeShaderCompiling(ShaderInput))
+		else if (CompileProcessAllowsRuntimeShaderCompiling(ShaderInput))
 		{
 			bCompileAtRuntime = true;
 			bSucceeded = true;
+		}
+		else
+		{
+			TCHAR const* Message = nullptr;
+			if (PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+			{
+				Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on this Mac and that it has been selected in Xcode > Preferences > Locations > Command-line Tools.");
+			}
+			else if (!bRemoteBuildingConfigured)
+			{
+				Message = TEXT("Remote shader compilation has not been configured in the Editor settings for this project. Please follow the instructions for enabling remote compilation for iOS.");
+			}
+			else
+			{
+				Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on the Mac used for remote compilation and that the Mac is accessible via SSH from this machine.");
+			}
+
+			FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+			Error->ErrorVirtualFilePath = InputFilename;
+			Error->ErrorLineString = TEXT("0");
+			Error->StrippedErrorMessage = FString(Message);
+
+			bRemoteBuildingConfigured = false;
+			bCompileAtRuntime = false;
+			bSucceeded = false;
 		}
 		
 		bool bDebugInfoSucceded = false;
