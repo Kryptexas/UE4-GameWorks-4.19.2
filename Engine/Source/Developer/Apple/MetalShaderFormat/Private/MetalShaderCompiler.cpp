@@ -152,7 +152,7 @@ static bool CompileProcessAllowsRuntimeShaderCompiling(const FShaderCompilerInpu
     bool bArchiving = InputCompilerEnvironment.Environment.CompilerFlags.Contains(CFLAG_Archive);
     bool bDebug = InputCompilerEnvironment.Environment.CompilerFlags.Contains(CFLAG_Debug);
     
-    return !bArchiving || bDebug;
+    return !bArchiving && bDebug;
 }
 
 bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr)
@@ -1193,26 +1193,33 @@ void BuildMetalShaderOutput(
 		FString MetalPath = GetMetalBinaryPath(ShaderInput.Target.Platform);
 		FString MetalToolsPath = GetMetalToolsPath(ShaderInput.Target.Platform);
 		
+		bool bMetalCompilerAvailable = false;
 		if((PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING) || bRemoteBuildingConfigured)
 		{
 			if(MetalPath.Len() == 0 || MetalToolsPath.Len() == 0)
 			{
-				if(!GMetalLoggedRemoteCompileNotConfigured)
+				TCHAR const* Message = nullptr;
+				if (bRemoteBuildingConfigured)
 				{
-					if (bRemoteBuildingConfigured)
-					{
-						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on the Mac used for remote compilation. Falling back to online compiled text shaders which will be slower on first launch."));
-					}
-					else
-					{
-						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on this Mac. Falling back to online compiled text shaders which will be slower on first launch."));
-					}
-					GMetalLoggedRemoteCompileNotConfigured = true;
+					Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on the Mac used for remote compilation and that the Mac is accessible via SSH from this machine.");
 				}
+				else
+				{
+					Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on this Mac and that it has been selected in Xcode > Preferences > Locations > Command-line Tools.");
+				}
+				
+				FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+				Error->ErrorVirtualFilePath = InputFilename;
+				Error->ErrorLineString = TEXT("0");
+				Error->StrippedErrorMessage = FString(Message);
+				
 				bRemoteBuildingConfigured = false;
+				bCompileAtRuntime = false;
+				bSucceeded = false;
 			}
 			else
 			{
+				bMetalCompilerAvailable = true;
 				bCompileAtRuntime = false;
 				bSucceeded = false;
 			}
@@ -1226,7 +1233,7 @@ void BuildMetalShaderOutput(
 		bool bDebugInfoSucceded = false;
 		FMetalShaderBytecode Bytecode;
 		FMetalShaderDebugInfo DebugCode;
-		if (bCompileAtRuntime == false && ((PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING) || bRemoteBuildingConfigured))
+		if (bCompileAtRuntime == false && bMetalCompilerAvailable == true)
 		{
 			bool bUseSharedPCH = false;
 			FString MetalPCHFile;
@@ -1618,13 +1625,6 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		return;
 	}
 	
-	// Force floats if the material requests it
-	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
-	if (bUseFullPrecisionInPS)
-	{
-		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
-	}
-	
     EMetalTypeBufferMode TypeMode = EMetalTypeBufferModeNone;
 	FString MinOSVersion;
 	FString StandardVersion;
@@ -1653,6 +1653,13 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 			StandardVersion = TEXT("1.0");
 			MinOSVersion = TEXT("");
 			break;
+	}
+	
+	// Force floats if the material requests it
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS || (VersionEnum < 2)) // Too many bugs in Metal 1.0 & 1.1 with half floats the more time goes on and the compiler stack changes
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
 	}
 	
 	FString Standard = FString::Printf(TEXT("-std=%s-metal%s"), StandardPlatform, *StandardVersion);

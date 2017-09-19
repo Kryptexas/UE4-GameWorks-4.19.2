@@ -2800,12 +2800,22 @@ void GlobalBeginCompileShader(
 			}
 		}
 		
+		// Check whether we can compile metal shaders to bytecode - avoids poisoning the DDC
+		static ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+		const FName Format = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
+		const IShaderFormat* Compiler = TPM.FindShaderFormat(Format);
+        static const bool bCanCompileOfflineMetalShaders = Compiler && Compiler->CanCompileBinaryShaders();
+        if (!bCanCompileOfflineMetalShaders)
+        {
+            Input.Environment.CompilerFlags.Add(CFLAG_Debug);
+        }
+		
 		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
 		bool bArchive = false;
 		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bSharedMaterialNativeLibraries"), bArchive, GGameIni);
-		if (bArchive)
+		if (bCanCompileOfflineMetalShaders && bArchive)
 		{
-			Input.Environment.CompilerFlags.Add(CFLAG_Archive);
+            Input.Environment.CompilerFlags.Add(CFLAG_Archive);
 		}
 		
 		{
