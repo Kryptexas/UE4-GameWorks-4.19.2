@@ -16,7 +16,6 @@
 #include "AppleARKitPlaneAnchor.h"
 #include "GeneralProjectSettings.h"
 
-
 //
 //  FAppleARKitXRCamera
 //
@@ -187,7 +186,7 @@ bool FAppleARKitSystem::IsHeadTrackingAllowed() const
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 	if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
 	{
-		return true;
+        return GetDefault<UGeneralProjectSettings>()->bStartInAR;
 	}
 	else
 	{
