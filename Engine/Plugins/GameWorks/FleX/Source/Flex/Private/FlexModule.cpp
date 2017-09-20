@@ -4,6 +4,8 @@
 #include "Modules/ModuleManager.h"
 #include "IFlexModule.h"
 
+#include "FlexPluginBridge.h"
+
 
 class FFlexModule : public IFlexModule
 {
@@ -18,12 +20,12 @@ IMPLEMENT_MODULE( FFlexModule, Flex )
 
 void FFlexModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
+	GFlexPluginBridge = new FFlexPluginBridge();
 }
 
 
 void FFlexModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+	delete GFlexPluginBridge;
+	GFlexPluginBridge = nullptr;
 }

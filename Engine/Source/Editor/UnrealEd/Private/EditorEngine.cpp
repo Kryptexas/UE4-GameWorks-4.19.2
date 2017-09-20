@@ -81,9 +81,11 @@
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
+
 // NvFlex begin
-#include "FlexActor.h"
+#include "GameWorks/IFlexEditorPluginBridge.h"
 // NvFlex end
+
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "BSPOps.h"
@@ -3610,7 +3612,9 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 	const bool bToInteractiveFoliage = ToClass == AInteractiveFoliageActor::StaticClass();
 	const bool bToStaticMesh = ToClass->IsChildOf( AStaticMeshActor::StaticClass() );
 	const bool bToSkeletalMesh = ToClass->IsChildOf(ASkeletalMeshActor::StaticClass());
-	const bool bToFlex = ToClass->IsChildOf(AFlexActor::StaticClass());
+	// NvFlex begin
+	const bool bToFlex = GFlexEditorPluginBridge && GFlexEditorPluginBridge->IsFlexActor(ToClass);
+	// NvFlex end
 
 	const bool bFoundTarget = bToInteractiveFoliage || bToStaticMesh || bToSkeletalMesh;
 
@@ -3706,12 +3710,13 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					GEditor->SelectActor( SMActor, true, false );
 					Actor = SMActor;
 
+					// NvFlex begin
 					if (bToFlex)
 					{
 						// always reset collision to default for Flex actors
-						AFlexActor* FlexActor = CastChecked<AFlexActor>(SMActor);
-						FlexActor->GetStaticMeshComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+						GFlexEditorPluginBridge->SetFlexActorCollisionProfileName(SMActor, UCollisionProfile::NoCollision_ProfileName);
 					}
+					// NvFlex end
 				}
 				else if(bToInteractiveFoliage)
 				{

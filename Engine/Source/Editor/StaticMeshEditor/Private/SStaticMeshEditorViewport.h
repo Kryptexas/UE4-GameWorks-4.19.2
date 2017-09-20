@@ -53,13 +53,15 @@ public:
 	/** Component for the preview static mesh. */
 	TArray<UStaticMeshComponent*> SocketPreviewMeshComponents;
 
+	// NvFlex begin
 #if WITH_FLEX
 	/** Component for the preview of an associated flex asset. */
-	class UFlexAssetPreviewComponent* FlexPreviewComponent;
+	class UPrimitiveComponent* FlexPreviewComponent;
 
 	/** flag to toggle flex preview. */
 	uint32 bDrawFlexPreview : 1;
 #endif
+	// NvFlex end
 
 	/** 
 	 *	Forces a specific LOD level onto the static mesh component.

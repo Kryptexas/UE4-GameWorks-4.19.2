@@ -103,9 +103,11 @@ ActorFactory.cpp:
 
 #include "AssetRegistryModule.h"
 
+// NvFlex begin
 #if WITH_FLEX
-#include "FlexActor.h"
+#include "GameWorks/IFlexEditorPluginBridge.h"
 #endif
+// NvFlex end
 
 #include "VectorField/VectorField.h"
 
@@ -389,23 +391,23 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
 }
 
+// NvFlex begin
 #if WITH_FLEX
-
 AActor* UActorFactoryStaticMesh::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlagsIn, const FName Name)
 {
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
-	if (StaticMesh && StaticMesh->FlexAsset && NewActorClassName == TEXT(""))
+	if (GFlexEditorPluginBridge && StaticMesh && StaticMesh->FlexAsset && NewActorClassName == TEXT(""))
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = InLevel;
 		SpawnInfo.ObjectFlags = ObjectFlagsIn;
 		SpawnInfo.Name = Name;
-		return InLevel->OwningWorld->SpawnActor(AFlexActor::StaticClass(), &Transform, SpawnInfo);
+		return GFlexEditorPluginBridge->SpawnFlexActor(InLevel->OwningWorld, &Transform, SpawnInfo);
 	}
 	return Super::SpawnActor(Asset, InLevel, Transform, ObjectFlagsIn, Name);
 }
-
 #endif // WITH_FLEX
+// NvFlex end
 
 /*-----------------------------------------------------------------------------
 UActorFactoryBasicShape

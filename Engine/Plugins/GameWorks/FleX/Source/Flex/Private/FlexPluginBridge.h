@@ -6,6 +6,7 @@
 class FFlexPluginBridge : public IFlexPluginBridge
 {
 public:
+	virtual void ReImportAsset(class UFlexAsset* FlexAsset, class UStaticMesh* StaticMesh);
 
 private:
 };

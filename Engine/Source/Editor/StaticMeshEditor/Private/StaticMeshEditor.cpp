@@ -42,6 +42,13 @@
 
 #include "AdvancedPreviewSceneModule.h"
 
+// NvFlex begin
+#if WITH_FLEX
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+// NvFlex end
+
+
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStaticMeshEditor, Log, All);
@@ -2000,13 +2007,18 @@ void FStaticMeshEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyC
 		StaticMesh->BodySetup->CreatePhysicsMeshes();
 	}
 
+	// NvFlex begin
 #if WITH_FLEX
 	//update preview flex mesh post UFlexAsset::ReImport
-	if (PropertyThatChanged->GetOwnerClass()->IsChildOf(UFlexAsset::StaticClass()) || *PropertyThatChanged->GetName() == FName(TEXT("FlexAsset")))
+	if (GFlexEditorPluginBridge)
 	{
-		Viewport->UpdateFlexPreviewComponent();
+		if (GFlexEditorPluginBridge->IsChildOfFlexAsset(PropertyThatChanged->GetOwnerClass()) || *PropertyThatChanged->GetName() == FName(TEXT("FlexAsset")))
+		{
+			Viewport->UpdateFlexPreviewComponent();
+		}
 	}
 #endif
+	// NvFlex end
 }
 
 void FStaticMeshEditor::UndoAction()

@@ -300,9 +300,5 @@ public class UnrealEd : ModuleRules
 		{
 			Definitions.Add( "WITH_RECAST=0" );
 		}
-
-        // NvFlex begin
-        PrivateDependencyModuleNames.Add("Flex");
-        // NvFlxe end
-    }
+	}
 }

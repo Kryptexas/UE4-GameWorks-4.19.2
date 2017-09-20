@@ -4,6 +4,8 @@
 #include "Modules/ModuleManager.h"
 #include "IFlexEditorModule.h"
 
+#include "FlexEditorPluginBridge.h"
+
 #include "AssetTypeActions_FlexContainer.h"
 #include "AssetTypeActions_FlexFluidSurface.h"
 
@@ -26,6 +28,8 @@ IMPLEMENT_MODULE( FFlexEditorModule, FlexEditor )
 
 void FFlexEditorModule::StartupModule()
 {
+	GFlexEditorPluginBridge = new FFlexEditorPluginBridge();
+
 	// Register asset types
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 
@@ -52,4 +56,7 @@ void FFlexEditorModule::ShutdownModule()
 			AssetTools.UnregisterAssetTypeActions(FlexFluidAssetActions.ToSharedRef());
 		}
 	}
+
+	delete GFlexEditorPluginBridge;
+	GFlexEditorPluginBridge = nullptr;
 }

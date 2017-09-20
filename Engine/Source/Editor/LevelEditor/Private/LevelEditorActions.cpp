@@ -51,10 +51,11 @@
 #include "DlgDeltaTransform.h"
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 
+// NvFlex begin
 #if WITH_FLEX
-#include "FlexComponent.h"
-#include "FlexActor.h"
+#include "GameWorks/IFlexEditorPluginBridge.h"
 #endif
+// NvFlex end
 
 #include "Editor/NewLevelDialog/Public/NewLevelDialogModule.h"
 #include "MRUFavoritesList.h"
@@ -2060,11 +2061,15 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 	}
 }
 
+// NvFlex begin
 #if WITH_FLEX
-
-
 void FLevelEditorActionCallbacks::OnKeepFlexSimulationChanges()
 {
+	if (GFlexEditorPluginBridge == nullptr)
+	{
+		return;
+	}
+
 	// @todo simulate: There are lots of types of changes that can't be "kept", like attachment or newly-spawned actors.  This
 	//    feature currently only supports propagating changes to regularly-editable properties on an instance of a PIE actor
 	//    that still exists in the editor world.
@@ -2084,41 +2089,15 @@ void FLevelEditorActionCallbacks::OnKeepFlexSimulationChanges()
 				AActor* EditorWorldActor = EditorUtilities::GetEditorWorldCounterpartActor(SimWorldActor);
 				if (EditorWorldActor != NULL)
 				{
-					// save flex actors' simulated positions, note does not support undo
-					AFlexActor* FlexEditorActor = Cast<AFlexActor>(EditorWorldActor);
-					AFlexActor* FlexSimActor = Cast<AFlexActor>(SimWorldActor);
-					if (FlexEditorActor != NULL && FlexSimActor != NULL)
+					if (GFlexEditorPluginBridge->KeepFlexSimulationChanges(EditorWorldActor, SimWorldActor))
 					{
-						UFlexComponent* FlexEditorComponent = (UFlexComponent*)(FlexEditorActor->GetRootComponent());
-						UFlexComponent* FlexSimComponent = (UFlexComponent*)(FlexSimActor->GetRootComponent());
-						if (FlexEditorComponent != NULL && FlexSimComponent != NULL)
+						// not currently used
+						++UpdatedActorCount;
+						++TotalCopiedPropertyCount;
+
+						if (FirstUpdatedActorLabel.IsEmpty())
 						{
-							FlexEditorComponent->PreSimPositions.SetNum(FlexSimComponent->SimPositions.Num());
-
-							for (int i = 0; i < FlexSimComponent->SimPositions.Num(); ++i)
-								FlexEditorComponent->PreSimPositions[i] = FlexSimComponent->SimPositions[i];
-
-							FlexEditorComponent->SavedRelativeLocation = FlexEditorComponent->RelativeLocation;
-							FlexEditorComponent->SavedRelativeRotation = FlexEditorComponent->RelativeRotation;
-							FlexEditorComponent->SavedTransform = FlexEditorComponent->GetComponentTransform();
-
-							FlexEditorComponent->PreSimRelativeLocation = FlexSimComponent->RelativeLocation;
-							FlexEditorComponent->PreSimRelativeRotation = FlexSimComponent->RelativeRotation;
-							FlexEditorComponent->PreSimTransform = FlexSimComponent->GetComponentTransform();
-
-							FlexEditorComponent->PreSimShapeTranslations = FlexSimComponent->PreSimShapeTranslations;
-							FlexEditorComponent->PreSimShapeRotations = FlexSimComponent->PreSimShapeRotations;
-
-							FlexEditorComponent->SendRenderTransform_Concurrent();
-
-							// not currently used
-							++UpdatedActorCount;
-							++TotalCopiedPropertyCount;
-
-							if (FirstUpdatedActorLabel.IsEmpty())
-							{
-								FirstUpdatedActorLabel = EditorWorldActor->GetActorLabel();
-							}
+							FirstUpdatedActorLabel = EditorWorldActor->GetActorLabel();
 						}
 					}
 				}
@@ -2129,6 +2108,11 @@ void FLevelEditorActionCallbacks::OnKeepFlexSimulationChanges()
 
 void FLevelEditorActionCallbacks::OnClearFlexSimulationChanges()
 {
+	if (GFlexEditorPluginBridge == nullptr)
+	{
+		return;
+	}
+
 	if (GEditor->GetSelectedActorCount() > 0)
 	{
 		for (auto ActorIt(GEditor->GetSelectedActorIterator()); ActorIt; ++ActorIt)
@@ -2149,31 +2133,13 @@ void FLevelEditorActionCallbacks::OnClearFlexSimulationChanges()
 
 			if (EditorWorldActor != NULL)
 			{
-				// clear flex actors' simulated positions, note does not support undo
-				AFlexActor* FlexEditorActor = Cast<AFlexActor>(EditorWorldActor);
-				if (FlexEditorActor != NULL)
-				{
-					UFlexComponent* FlexEditorComponent = (UFlexComponent*)(FlexEditorActor->GetRootComponent());
-					if (FlexEditorComponent != NULL && FlexEditorComponent->PreSimPositions.Num())
-					{
-						FlexEditorComponent->PreSimPositions.SetNum(0);
-						FlexEditorComponent->PreSimShapeTranslations.SetNum(0);
-						FlexEditorComponent->PreSimShapeRotations.SetNum(0);
-
-						FlexEditorComponent->RelativeLocation = FlexEditorComponent->SavedRelativeLocation;
-						FlexEditorComponent->RelativeRotation = FlexEditorComponent->SavedRelativeRotation;
-						FlexEditorComponent->SetComponentToWorld(FlexEditorComponent->SavedTransform);
-
-						FlexEditorComponent->SendRenderTransform_Concurrent();
-					}
-				}
+				GFlexEditorPluginBridge->ClearFlexSimulationChanges(EditorWorldActor);
 			}
 		}
 	}
 }
-
 #endif
-
+// NvFlex end
 
 bool FLevelEditorActionCallbacks::CanExecuteKeepSimulationChanges()
 {

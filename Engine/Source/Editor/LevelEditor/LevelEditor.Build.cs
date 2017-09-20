@@ -94,9 +94,5 @@ public class LevelEditor : ModuleRules
 				"VREditor"
 			}
 		);
-
-        // NvFlex begin
-        PrivateDependencyModuleNames.Add("Flex");
-        // NvFlxe end
-    }
+	}
 }

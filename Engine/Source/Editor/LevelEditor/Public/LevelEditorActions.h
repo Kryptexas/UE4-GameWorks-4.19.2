@@ -1063,13 +1063,15 @@ public:
 
 	/** @return Returns true if 'Keep Simulation Changes' can be used right now */
 	static bool CanExecuteKeepSimulationChanges();
-		
+
+	// NvFlex begin
 #if WITH_FLEX
 	/** Called when "Keep Flex Simulation Changes" is clicked in the viewport right click menu */
 	static void OnKeepFlexSimulationChanges();
 	/** Called when "Discard Flex Simulation Changes" is clicked in the viewport right click menu */
 	static void OnClearFlexSimulationChanges();
 #endif
+	// NvFlex end
 		
 	/**
 	 * Makes the currently selected actors level the current level

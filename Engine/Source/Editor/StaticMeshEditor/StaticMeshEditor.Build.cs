@@ -52,9 +52,5 @@ public class StaticMeshEditor : ModuleRules
 		);
 
 		SetupModulePhysXAPEXSupport(Target);
-
-        // NvFlex begin
-        PrivateDependencyModuleNames.Add("Flex");
-        // NvFlxe end
     }
 }

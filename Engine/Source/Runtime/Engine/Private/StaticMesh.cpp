@@ -42,9 +42,11 @@
 #include "DerivedDataCacheInterface.h"
 #endif // #if WITH_EDITOR
 
+// NvFlex begin
 #if WITH_FLEX
-#include "FlexAsset.h"
+#include "GameWorks/IFlexPluginBridge.h"
 #endif
+// NvFlex end
 
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
@@ -131,6 +133,7 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	// TODO: Not needed in uncooked games either after PostLoad!
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData() || bMeshCPUAcces;
 
+	// NvFlex begin
 #if WITH_FLEX
 	// cloth and soft bodies currently need access to data on the CPU
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Owner);
@@ -139,6 +142,7 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 		bNeedsCPUAccess = true;
 	}
 #endif
+	// NvFlex end
 
 	bHasAdjacencyInfo = false;
 	bHasDepthOnlyIndices = false;
@@ -1759,12 +1763,14 @@ void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Col
 {
 	UStaticMesh* This = CastChecked<UStaticMesh>(InThis);
 
+	// NvFlex begin
 #if WITH_FLEX
-	if (This->FlexAsset != NULL)
+	if (This->FlexAsset != nullptr)
 	{
 		Collector.AddReferencedObject(This->FlexAsset, This);
 	}
 #endif
+	// NvFlex end
 
 	Super::AddReferencedObjects( This, Collector );
 }
@@ -1826,12 +1832,15 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		// of NavCollision. We need to let related StaticMeshComponents know
 		BroadcastNavCollisionChange();
 	}
+
+	// NvFlex begin
 #if WITH_FLEX
-	if (FlexAsset)
+	if (GFlexPluginBridge)
 	{
-		FlexAsset->ReImport(this);
+		GFlexPluginBridge->ReImportAsset(FlexAsset, this);
 	}
 #endif
+	// NvFlex end
 
 	// Only unbuild lighting for properties which affect static lighting
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
