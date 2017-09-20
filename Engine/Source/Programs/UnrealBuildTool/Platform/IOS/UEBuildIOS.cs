@@ -155,11 +155,11 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				if(bDevForArmV7 || (!bDevForArm64 && !bDevForArmV7S))
+				if(bDevForArmV7)
 				{
 					yield return "armv7";
 				}
-				if(bDevForArm64)
+				if(bDevForArm64 || (!bDevForArmV7 && !bDevForArmV7S))
 				{
 					yield return "arm64";
 				}
@@ -177,7 +177,7 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				if(bShipForArmV7 || (!bShipForArm64 && !bShipForArmV7S))
+				if(bShipForArmV7)
 				{
 					yield return "armv7";
 				}
