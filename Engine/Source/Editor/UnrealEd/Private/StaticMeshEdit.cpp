@@ -21,9 +21,6 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
-// NvFlex begin
-#include "FlexAsset.h"
-// NvFlex end
 
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"
@@ -918,7 +915,7 @@ struct ExistingStaticMeshData
 
 	UModel*						ExistingCollisionModel;
 	UBodySetup*					ExistingBodySetup;
-	UFlexAsset*				ExistingFlexAsset;
+	class UFlexAsset*			ExistingFlexAsset;
 
 	// A mapping of vertex positions to their color in the existing static mesh
 	TMap<FVector, FColor>		ExistingVertexColorData;

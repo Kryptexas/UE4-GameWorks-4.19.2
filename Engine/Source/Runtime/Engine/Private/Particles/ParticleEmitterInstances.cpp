@@ -32,6 +32,7 @@
 #include "Components/PointLightComponent.h"
 
 #if WITH_FLEX
+#include "GameWorks/IFlexPluginBridge.h"
 #include "FlexContainer.h"
 #include "FlexContainerInstance.h"
 #include "FlexFluidSurfaceComponent.h"
@@ -813,7 +814,7 @@ void FParticleEmitterInstance::RegisterNewFlexFluidSurfaceComponent(class UFlexF
 
 	if (NewFlexFluidSurface)
 	{
-		FlexFluidSurfaceComponent = GetWorld()->AddFlexFluidSurface(NewFlexFluidSurface);
+		FlexFluidSurfaceComponent = GFlexPluginBridge->AddFlexFluidSurface(GetWorld(), NewFlexFluidSurface);
 		FlexFluidSurfaceComponent->RegisterEmitterInstance(this);
 	}
 }

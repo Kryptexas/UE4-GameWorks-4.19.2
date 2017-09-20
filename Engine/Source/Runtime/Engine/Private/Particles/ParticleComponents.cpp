@@ -83,6 +83,7 @@
 #include "GameFramework/GameState.h"
 #include "FrameworkObjectVersion.h"
 #if WITH_FLEX
+#include "GameWorks/IFlexPluginBridge.h"
 #include "FlexFluidSurface.h"
 #include "FlexFluidSurfaceComponent.h"
 #include "FlexContainerInstance.h"
@@ -4138,7 +4139,7 @@ void UParticleSystemComponent::UpdateFlexSurfaceDynamicData(FParticleEmitterInst
 		UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate;
 		if (FlexFluidSurface)
 		{
-			UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(FlexFluidSurface);
+			UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurface);
 			check(SurfaceComponent);
 			SurfaceComponent->SendRenderEmitterDynamicData_Concurrent(
 				(FParticleSystemSceneProxy*)SceneProxy,
@@ -4157,7 +4158,7 @@ void UParticleSystemComponent::ClearFlexSurfaceDynamicData()
 			if (EmitterInstance && EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate)
 			{
 				UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate;
-				UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(FlexFluidSurface);
+				UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurface);
 				if (SurfaceComponent)
 				{
 					SurfaceComponent->SendRenderEmitterDynamicData_Concurrent(
@@ -5317,7 +5318,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			// Maintain the FlexFluidSurface (and Material Instance) override
 			if (FlexFluidSurfaceOverride)
 			{
-				UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(FlexFluidSurfaceOverride);
+				UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurfaceOverride);
 				
 				// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
 				SurfaceComponent->SetEnabledReferenceCounting(false);
@@ -5392,7 +5393,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 	// Maintain the FlexFluidSurface (and Material Instance) override
 	if (FlexFluidSurfaceOverride)
 	{
-		UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(FlexFluidSurfaceOverride);
+		UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurfaceOverride);
 
 		// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
 		SurfaceComponent->SetEnabledReferenceCounting(true);

@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Components/PrimitiveComponent.h"
+#include "FlexFluidSurface.h"
 #include "FlexFluidSurfaceComponent.generated.h"
 
 /**

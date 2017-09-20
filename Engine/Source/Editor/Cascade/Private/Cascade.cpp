@@ -65,7 +65,7 @@
 #include "UnrealEngine.h"
 
 #if WITH_FLEX
-#include "FlexFluidSurfaceComponent.h"
+#include "GameWorks/IFlexPluginBridge.h"
 #endif
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
@@ -5280,27 +5280,30 @@ void UCascadeParticleSystemComponent::CascadeTickComponent(float DeltaTime, enum
 	// Tick the particle system component when ticked from within Cascade.
 	Super::TickComponent( DeltaTime, TickType, NULL );
 
+	// NvFlex begin
 #if WITH_FLEX
 	// Tick flex fluid surface components
+	if (GFlexPluginBridge)
 	{
 		int32 NumEmitters = EmitterInstances.Num();
-		TSet<UFlexFluidSurfaceComponent*> FlexFluidSurfaces;
+		TSet<class UFlexFluidSurfaceComponent*> FlexFluidSurfaces;
 		for (int32 EmitterIndex = 0; EmitterIndex < NumEmitters; EmitterIndex++)
 		{
 			FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
 			if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate)
 			{
-				UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate);
+				class UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate);
 				check(SurfaceComponent);
 				if (!FlexFluidSurfaces.Contains(SurfaceComponent))
 				{
-					SurfaceComponent->TickComponent(DeltaTime, TickType, NULL);
+					GFlexPluginBridge->TickFlexFluidSurfaceComponent(SurfaceComponent, DeltaTime, TickType, NULL);
 					FlexFluidSurfaces.Add(SurfaceComponent);
 				}
 			}
 		}
 	}
 #endif
+	// NvFlex end
 }
 
 const static FName CascadeParticleSystemComponentParticleLineCheckName(TEXT("ParticleLineCheck"));
