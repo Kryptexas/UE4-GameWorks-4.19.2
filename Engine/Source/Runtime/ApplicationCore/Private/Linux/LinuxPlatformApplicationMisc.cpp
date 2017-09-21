@@ -239,6 +239,11 @@ uint32 FLinuxPlatformApplicationMisc::WindowStyle()
 	return GWindowStyleSDL;
 }
 
+void FLinuxPlatformApplicationMisc::PreInit()
+{
+	MessageBoxExtCallback = MessageBoxExtImpl;
+}
+
 void FLinuxPlatformApplicationMisc::Init()
 {
 	// skip for servers and programs, unless they request later
@@ -250,7 +255,6 @@ void FLinuxPlatformApplicationMisc::Init()
 
 	FGenericPlatformApplicationMisc::Init();
 
-	MessageBoxExtCallback = MessageBoxExtImpl;
 #if !UE_BUILD_SHIPPING
 	UngrabAllInputCallback = UngrabAllInputImpl;
 #endif
