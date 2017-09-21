@@ -65,6 +65,9 @@ struct FSpatializationParams
 	/** The emitter world position. */
 	FVector EmitterWorldPosition;
 
+	/** The emitter world rotation. */
+	FQuat EmitterWorldRotation;
+
 	/** The left channel position. */
 	FVector LeftChannelPosition;
 
@@ -82,6 +85,7 @@ struct FSpatializationParams
 		, ListenerOrientation(FVector::ZeroVector)
 		, EmitterPosition(FVector::ZeroVector)
 		, EmitterWorldPosition(FVector::ZeroVector)
+		, EmitterWorldRotation(FQuat::Identity)
 		, LeftChannelPosition(FVector::ZeroVector)
 		, RightChannelPosition(FVector::ZeroVector)
 		, Distance(0.0f)
