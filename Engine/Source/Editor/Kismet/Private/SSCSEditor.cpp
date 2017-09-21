@@ -5655,18 +5655,21 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 				SCS_Node->ComponentTemplate->Modify();
 				SCS_Node->ComponentTemplate->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
 
-				// Children need to have their inherited component template instance of the component renamed out of the way as well
-				TArray<UClass*> ChildrenOfClass;
-				GetDerivedClasses(Blueprint->GeneratedClass, ChildrenOfClass);
-
-				for (UClass* ChildClass : ChildrenOfClass)
+				if (Blueprint)
 				{
-					UBlueprintGeneratedClass* BPChildClass = CastChecked<UBlueprintGeneratedClass>(ChildClass);
-					
-					if (UActorComponent* Component = (UActorComponent*)FindObjectWithOuter(BPChildClass, UActorComponent::StaticClass(), TemplateName))
+					// Children need to have their inherited component template instance of the component renamed out of the way as well
+					TArray<UClass*> ChildrenOfClass;
+					GetDerivedClasses(Blueprint->GeneratedClass, ChildrenOfClass);
+
+					for (UClass* ChildClass : ChildrenOfClass)
 					{
-						Component->Modify();
-						Component->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
+						UBlueprintGeneratedClass* BPChildClass = CastChecked<UBlueprintGeneratedClass>(ChildClass);
+
+						if (UActorComponent* Component = (UActorComponent*)FindObjectWithOuter(BPChildClass, UActorComponent::StaticClass(), TemplateName))
+						{
+							Component->Modify();
+							Component->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
+						}
 					}
 				}
 			}
