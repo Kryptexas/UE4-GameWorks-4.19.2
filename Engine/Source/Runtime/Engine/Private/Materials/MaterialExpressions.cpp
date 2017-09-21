@@ -368,6 +368,11 @@ bool CanConnectMaterialValueTypes(uint32 InputType, uint32 OutputType)
  */
 int32 CompileExternalTextureCoordinates(FMaterialCompiler* Compiler, int32 TexCoordCodeIndex, int32 TextureReferenceIndex, TOptional<FName> ParameterName = TOptional<FName>())
 {
+	if (TexCoordCodeIndex == INDEX_NONE)
+	{
+		return INDEX_NONE;
+	}
+
 	int32 ScaleRotationCode = Compiler->ExternalTextureCoordinateScaleRotation(TextureReferenceIndex, ParameterName);
 	int32 OffsetCode = Compiler->ExternalTextureCoordinateOffset(TextureReferenceIndex, ParameterName);
 
