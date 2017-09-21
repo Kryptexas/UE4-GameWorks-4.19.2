@@ -307,7 +307,14 @@ namespace Audio
 		TArray<FMixerSourceVoice*> MixerSources;
 
 		// A command queue to execute commands from audio thread (or game thread) to audio mixer device thread.
-		TQueue<TFunction<void()>> SourceCommandQueue;
+		struct FCommands
+		{
+			TQueue<TFunction<void()>> SourceCommandQueue;
+		};
+
+		FCommands CommandBuffers[2];
+		FThreadSafeCounter AudioThreadCommandBufferIndex;
+		FThreadSafeCounter RenderThreadCommandBufferIndex;
 
 		TArray<int32> DebugSoloSources;
 
