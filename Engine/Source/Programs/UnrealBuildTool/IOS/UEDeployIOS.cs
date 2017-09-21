@@ -193,7 +193,7 @@ namespace UnrealBuildTool
 			return result;
 		}
 
-		public static bool GenerateIOSPList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons, UEDeployIOS InThis = null)
+		public static bool GenerateIOSPList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons, UEDeployIOS InThis = null, bool bIncludesAR = false)
 		{
 			// generate the Info.plist for future use
 			string BuildDirectory = ProjectDirectory + "/Build/IOS";
@@ -279,6 +279,11 @@ namespace UnrealBuildTool
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsMetal", out bSupported);
 				RequiredCaps += bSupported ? "\t\t<string>metal</string>\n" : "";
 			}
+
+            if (bIncludesAR)
+            {
+                RequiredCaps += "\t\t<string>arkit</string>\n";
+            }
 
 			// minimum iOS version
 			string MinVersion;
@@ -694,12 +699,21 @@ namespace UnrealBuildTool
 
             string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
 
-			UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename, UnrealBuildTool.EngineDirectory, new DirectoryReference(ProjectDirectory))), ProjectArches, "", "", UnrealTargetPlatform.IOS);
+            TargetReceipt Receipt = TargetReceipt.Read(ReceiptFilename, UnrealBuildTool.EngineDirectory, new DirectoryReference(ProjectDirectory));
+            UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(Receipt), ProjectArches, "", "", UnrealTargetPlatform.IOS);
 
 			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
 			UPL.Init(ProjectArches, true, RelativeEnginePath, BundlePath, ProjectDirectory, Config.ToString());
 
-			return GenerateIOSPList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons, this);
+            bool bIncludesAR = false;
+            foreach (BuildProduct prod in Receipt.BuildProducts)
+            {
+                if (prod.ToString().Contains("AppleARKit"))
+                {
+                    bIncludesAR = true;
+                }
+            }
+			return GenerateIOSPList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons, this, bIncludesAR);
 		}
 
 		protected virtual void CopyGraphicsResources(bool bSkipDefaultPNGs, bool bSkipIcons, string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir, bool bSupportsPortrait, bool bSupportsLandscape)
