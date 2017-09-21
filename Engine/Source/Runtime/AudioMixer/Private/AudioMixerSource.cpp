@@ -886,6 +886,7 @@ namespace Audio
 	void FMixerSource::UpdateVolume()
 	{
 		float CurrentVolume = WaveInstance->GetVolume();
+		CurrentVolume *= WaveInstance->GetVolumeApp();
 		CurrentVolume = FMath::Clamp<float>(GetDebugVolume(CurrentVolume), 0.0f, MAX_VOLUME);
 
 		MixerSourceVoice->SetVolume(CurrentVolume);
