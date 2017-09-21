@@ -2050,9 +2050,9 @@ bool FPropertyNode::IsReorderable()
 	static const FName Name_DisableReordering("EditFixedOrder");
 	static const FName NAME_ArraySizeEnum("ArraySizeEnum");
 	return OuterArrayProp != nullptr 
-		&& !NodeProperty->HasMetaData(Name_DisableReordering)
+		&& !OuterArrayProp->HasMetaData(Name_DisableReordering)
 		&& !IsEditConst()
-		&& !NodeProperty->HasMetaData(NAME_ArraySizeEnum);
+		&& !OuterArrayProp->HasMetaData(NAME_ArraySizeEnum);
 }
 
 /**
