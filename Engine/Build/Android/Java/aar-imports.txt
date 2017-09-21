@@ -1,6 +1,5 @@
 repositories $(ANDROID_HOME)/extras
 repositories $(ENGINEDIR)/Source/ThirdParty/Android/extras
-com.google.android.gms,play-services-ads,9.8.0
 com.google.android.gms,play-services-auth,9.8.0
 com.google.android.gms,play-services-games,9.8.0
 com.google.android.gms,play-services-nearby,9.8.0
