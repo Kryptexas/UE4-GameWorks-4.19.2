@@ -3458,6 +3458,19 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 		return;
 	}
 
+	// Don't allow buses to try to play if we're not using the audio mixer.
+	if (!IsAudioMixerEnabled())
+	{
+		if (NewActiveSound.Sound)
+		{
+			USoundSourceBus* Bus = Cast<USoundSourceBus>(NewActiveSound.Sound);
+			if (Bus)
+			{
+				return;
+			}
+		}
+	}
+
 	if (!IsInAudioThread())
 	{
 		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AddNewActiveSound"), STAT_AudioAddNewActiveSound, STATGROUP_AudioThreadCommands);
