@@ -14,6 +14,9 @@ using Tools.DotNETCommon;
 
 public class AndroidPlatform : Platform
 {
+	// Maximum allowed OBB size (2 GiB)
+	private const Int64 MaxOBBSizeAllowed = 2147483648;
+
 	private const int DeployMaxParallelCommands = 6;
 
     private const string TargetAndroidLocation = "obb/";
@@ -242,6 +245,15 @@ public class AndroidPlatform : Platform
 				Log("Failed to build OBB: " + LocalObbName);
 				throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not build OBB {0}. The file may be too big to fit in an OBB (2 GiB limit)", LocalObbName);
 			}
+		}
+
+		// make sure the OBB is <= 2GiB
+		FileInfo OBBFileInfo = new FileInfo(LocalObbName);
+		Int64 ObbFileLength = OBBFileInfo.Length;
+		if (ObbFileLength > MaxOBBSizeAllowed)
+		{
+			Log("OBB exceeds 2 GiB limit: " + ObbFileLength + " bytes");
+			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. OBB {0} exceeds 2 GiB limit)", LocalObbName);
 		}
 
 		// collect plugin extra data paths from target receipts
