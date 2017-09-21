@@ -160,72 +160,72 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 		const UObject* ObjectBeingEdited = PropertyChangedEvent.GetObjectBeingEdited(0);
 		if (ObjectBeingEdited != nullptr)
 		{
-			// Get the section from the edited object.  We cannot use the selected section as multiple sections can be shown at once in the settings details panel.
-			ISettingsSectionPtr Section = Model->GetSectionFromSectionObject(ObjectBeingEdited);
+		// Get the section from the edited object.  We cannot use the selected section as multiple sections can be shown at once in the settings details panel.
+		ISettingsSectionPtr Section = Model->GetSectionFromSectionObject(ObjectBeingEdited);
 			if (Section.IsValid())
+		{
+			FString RelativePath;
+			bool bIsSourceControlled = false;
+			bool bIsNewFile = false;
+
+			// Attempt to checkout the file automatically
+			if (ObjectBeingEdited->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
 			{
-				FString RelativePath;
-				bool bIsSourceControlled = false;
-				bool bIsNewFile = false;
+				RelativePath = ObjectBeingEdited->GetDefaultConfigFilename();
+				bIsSourceControlled = true;
+			}
+			else if (ObjectBeingEdited->GetClass()->HasAnyClassFlags(CLASS_Config))
+			{
+				RelativePath = ObjectBeingEdited->GetClass()->GetConfigName();
+			}
 
-				// Attempt to checkout the file automatically
-				if (ObjectBeingEdited->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
-				{
-					RelativePath = ObjectBeingEdited->GetDefaultConfigFilename();
-					bIsSourceControlled = true;
-				}
-				else if (ObjectBeingEdited->GetClass()->HasAnyClassFlags(CLASS_Config))
-				{
-					RelativePath = ObjectBeingEdited->GetClass()->GetConfigName();
-				}
+			FString FullPath = FPaths::ConvertRelativePathToFull(RelativePath);
 
-				FString FullPath = FPaths::ConvertRelativePathToFull(RelativePath);
+			if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FullPath))
+			{
+				bIsNewFile = true;
+			}
 
-				if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FullPath))
-				{
-					bIsNewFile = true;
-				}
+			if (!bIsSourceControlled || !SettingsHelpers::CheckOutOrAddFile(FullPath))
+			{
+				SettingsHelpers::MakeWritable(FullPath);
+			}
+			
+			RecordPreferenceChangedAnalytics(Section, PropertyChangedEvent);
 
-				if (!bIsSourceControlled || !SettingsHelpers::CheckOutOrAddFile(FullPath))
-				{
-					SettingsHelpers::MakeWritable(FullPath);
-				}
-
-				RecordPreferenceChangedAnalytics(Section, PropertyChangedEvent);
-
-				// Determine if the Property is an Array or Array Element
+			// Determine if the Property is an Array or Array Element
 				bool bIsArrayOrArrayElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(UArrayProperty::StaticClass())
-					|| PropertyThatChanged->GetActiveMemberNode()->GetValue()->ArrayDim > 1
-					|| ((Outer != nullptr) && Outer->IsA(UArrayProperty::StaticClass()));
+				|| PropertyThatChanged->GetActiveMemberNode()->GetValue()->ArrayDim > 1
+				|| ((Outer != nullptr) && Outer->IsA(UArrayProperty::StaticClass()));
 
-				bool bIsSetOrSetElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(USetProperty::StaticClass())
-					|| ((Outer != nullptr) && Outer->IsA(USetProperty::StaticClass()));
+			bool bIsSetOrSetElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(USetProperty::StaticClass())
+				|| ((Outer != nullptr) && Outer->IsA(USetProperty::StaticClass()));
 
-				bool bIsMapOrMapElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(UMapProperty::StaticClass())
-					|| ((Outer != nullptr) && Outer->IsA(UMapProperty::StaticClass()));
+			bool bIsMapOrMapElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(UMapProperty::StaticClass())
+				|| ((Outer != nullptr) && Outer->IsA(UMapProperty::StaticClass()));
 
-				if (Section->GetSettingsObject()->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig) && !bIsArrayOrArrayElement && !bIsSetOrSetElement && !bIsMapOrMapElement)
-				{
-					Section->GetSettingsObject()->UpdateSinglePropertyInConfigFile(PropertyThatChanged->GetActiveMemberNode()->GetValue(), Section->GetSettingsObject()->GetDefaultConfigFilename());
-				}
-				else
-				{
-					Section->Save();
-				}
+			if (Section->GetSettingsObject()->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig) && !bIsArrayOrArrayElement && !bIsSetOrSetElement && !bIsMapOrMapElement)
+			{
+				Section->GetSettingsObject()->UpdateSinglePropertyInConfigFile(PropertyThatChanged->GetActiveMemberNode()->GetValue(), Section->GetSettingsObject()->GetDefaultConfigFilename());
+			}
+			else
+			{
+				Section->Save();
+			}
 
-				if (bIsNewFile && bIsSourceControlled)
-				{
-					SettingsHelpers::CheckOutOrAddFile(FullPath);
-				}
+			if (bIsNewFile && bIsSourceControlled)
+			{
+				SettingsHelpers::CheckOutOrAddFile(FullPath);
+			}
 
-				static const FName ConfigRestartRequiredKey = "ConfigRestartRequired";
-				if (PropertyChangedEvent.Property->GetBoolMetaData(ConfigRestartRequiredKey))
-				{
-					OnApplicationRestartRequiredDelegate.ExecuteIfBound();
-				}
+			static const FName ConfigRestartRequiredKey = "ConfigRestartRequired";
+			if (PropertyChangedEvent.Property->GetBoolMetaData(ConfigRestartRequiredKey) || PropertyChangedEvent.MemberProperty->GetBoolMetaData(ConfigRestartRequiredKey))
+			{
+				OnApplicationRestartRequiredDelegate.ExecuteIfBound();
 			}
 		}
 	}
+}
 }
 
 
