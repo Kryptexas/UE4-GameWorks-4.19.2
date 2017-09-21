@@ -207,11 +207,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	bApplyImpulseOnDamage = true;
 
 #if WITH_FLEX
-	FlexParticleCount = 0;
-
 	bIsFlexParent = 0;
-	bFlexParticleDrain = 0;
-	bFlexEnableParticleCounter = 0;
 #endif
 }
 

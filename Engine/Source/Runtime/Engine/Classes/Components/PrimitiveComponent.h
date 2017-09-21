@@ -272,26 +272,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Collision)
 	uint32 bIsFlexParent : 1;
 
-	/**
-	 * If true, flex particles will be deleted on contact (no support for triangle mesh or height field colliders)
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Collision)
-	uint32 bFlexParticleDrain : 1;
-
-	/**
-	 * If true, flex particles will be counted on contact (no support for triangle mesh or height field colliders)
-	 * @see FlexParticleCount
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Collision)
-	uint32 bFlexEnableParticleCounter : 1;
-
-	/**
-	 * Flex particle count accessible from blueprint (no support for triangle mesh or height field colliders)
-	 * @see bFlexEnableParticleCounter
-	 */
-	UPROPERTY(BlueprintReadWrite, Category = Collision)
-	int32 FlexParticleCount;
-
 	/** True if the primitive should be rendered using ViewOwnerDepthPriorityGroup if viewed by its owner. */
 	UPROPERTY()
 	uint32 bUseViewOwnerDepthPriorityGroup:1;
