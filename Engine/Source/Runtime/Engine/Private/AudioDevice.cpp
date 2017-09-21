@@ -1766,7 +1766,7 @@ void FAudioDevice::UpdateSoundMix(USoundMix* SoundMix, FSoundMixState* SoundMixS
 					// Flip the state to fade in
 					SoundMixState->CurrentState = ESoundMixState::FadingIn;
 
-					SoundMixState->InterpValue = 1.0f - SoundMixState->InterpValue;
+					SoundMixState->InterpValue = 0.0f;
 
 					SoundMixState->FadeInStartTime = GetAudioClock() - SoundMixState->InterpValue * SoundMix->FadeInTime;
 					SoundMixState->StartTime = SoundMixState->FadeInStartTime;
@@ -2186,7 +2186,9 @@ void FAudioDevice::UpdateSoundClassProperties(float DeltaTime)
 			SoundMixState->CurrentState = ESoundMixState::FadingIn;
 		}
 		else if (AudioTime >= SoundMixState->FadeInEndTime
-			&& (SoundMixState->IsBaseSoundMix || SoundMixState->PassiveRefCount > 0 || SoundMixState->FadeOutStartTime < 0.f || AudioTime < SoundMixState->FadeOutStartTime))
+			&& (SoundMixState->IsBaseSoundMix
+				|| ((SoundMixState->PassiveRefCount > 0 || SoundMixState->ActiveRefCount > 0) && SoundMixState->FadeOutStartTime < 0.f)
+				|| AudioTime < SoundMixState->FadeOutStartTime)) 
 		{
 			// .. ensure the full mix is applied between the end of the fade in time and the start of the fade out time
 			// or if SoundMix is the base or active via a passive push - ignores duration.
