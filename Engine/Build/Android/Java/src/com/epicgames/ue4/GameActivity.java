@@ -1357,6 +1357,16 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		Log.debug("==============> GameActive.onDestroy complete!");
 	}
 
+	@Override
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+
+		// forward the orientation
+		boolean bPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
+		nativeOnConfigurationChanged(bPortrait);
+	}
+
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
 	{
 		if(bUseSurfaceView)
@@ -2964,6 +2974,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public native void nativeVirtualKeyboardShown(int left, int top, int right, int bottom);
 	public native void nativeVirtualKeyboardVisible(boolean bShown);
+
+	public native void nativeOnConfigurationChanged(boolean bPortrait);
 		
 	static
 	{
