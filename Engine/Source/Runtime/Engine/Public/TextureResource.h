@@ -148,6 +148,9 @@ private:
 	/** Whether the texture RHI has been initialized.														*/
 	bool bReadyForStreaming;
 
+	/** Whether this texture should be updated using the virtual allocations.								*/
+	bool bUseVirtualUpdatePath;
+
 	EMipFadeSettings MipFadeSetting;
 
 	/** First mip level used in Texture2DRHI. This is always correct as long as Texture2DRHI is allocated, regardless of streaming status. */
