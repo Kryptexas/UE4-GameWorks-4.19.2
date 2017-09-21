@@ -267,27 +267,6 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				SNew(SHorizontalBox)
 				.Clipping(EWidgetClipping::OnDemand);
 
-
-			TSharedPtr<FPropertyNode> PropertyNode = Customization->GetPropertyNode();
-			if (PropertyNode.IsValid() && PropertyNode->IsReorderable())
-			{
-				TSharedRef<SWidget> Handle = PropertyEditorHelpers::MakePropertyReorderHandle(PropertyNode.ToSharedRef(), this);
-				Handle->SetEnabled(IsPropertyEditingEnabled);
-				InternalLeftColumnRowBox->AddSlot()
-					.Padding(0.0f, 0.0f)
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						Handle
-					];
-				ArrayDragDelegate = FOnTableRowDragEnter::CreateSP(this, &SDetailSingleItemRow::OnArrayDragEnter);
-				ArrayDragLeaveDelegate = FOnTableRowDragLeave::CreateSP(this, &SDetailSingleItemRow::OnArrayDragLeave);
-				ArrayDropDelegate = FOnTableRowDrop::CreateSP(this, &SDetailSingleItemRow::OnArrayDrop);
-
-				SwappablePropertyNode = PropertyNode;
-			}
-
 			if(bEnableFavoriteSystem)
 			{
 				InternalLeftColumnRowBox->AddSlot()
@@ -307,16 +286,43 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 						]
 					];
 			}
-			InternalLeftColumnRowBox->AddSlot()
+			TSharedPtr<SOverlay> LeftSideOverlay;
+			LeftSideOverlay = SNew(SOverlay);
+			LeftSideOverlay->AddSlot()
 				.Padding(3.0f, 0.0f)
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
-				.AutoWidth()
 				[
 					SNew(SExpanderArrow, SharedThis(this))
 					.BaseIndentLevel(1)
 				];
 
+			TSharedPtr<FPropertyNode> PropertyNode = Customization->GetPropertyNode();
+			if (PropertyNode.IsValid() && PropertyNode->IsReorderable())
+			{
+				TSharedRef<SWidget> Handle = PropertyEditorHelpers::MakePropertyReorderHandle(PropertyNode.ToSharedRef(), this);
+				Handle->SetEnabled(IsPropertyEditingEnabled);
+				LeftSideOverlay->AddSlot()
+					.Padding(0.0f, 0.0f, 10.0f, 0.0f)
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					[
+						Handle
+					];
+				ArrayDragDelegate = FOnTableRowDragEnter::CreateSP(this, &SDetailSingleItemRow::OnArrayDragEnter);
+				ArrayDragLeaveDelegate = FOnTableRowDragLeave::CreateSP(this, &SDetailSingleItemRow::OnArrayDragLeave);
+				ArrayDropDelegate = FOnTableRowDrop::CreateSP(this, &SDetailSingleItemRow::OnArrayDrop);
+				SwappablePropertyNode = PropertyNode;
+			}
+
+			InternalLeftColumnRowBox->AddSlot()
+				.Padding(0.0f, 0.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					LeftSideOverlay.ToSharedRef()
+				];
 
 			if(bHasMultipleColumns)
 			{
