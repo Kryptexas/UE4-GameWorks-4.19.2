@@ -4393,6 +4393,9 @@ void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint,
 	{
 		Blueprint->Modify();
 
+		// Validate child blueprints and adjust variable names to avoid a potential name collision
+		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
+
 		// Update the name
 		const FName OldName = Node->GetVariableName();
 		Node->Modify();
@@ -4422,9 +4425,6 @@ void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint,
 		{
 			FBlueprintEditorUtils::ReplaceVariableReferences(Blueprint, OldName, NewName);
 		}
-
-		// Validate child blueprints and adjust variable names to avoid a potential name collision
-		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
 
 		// And recompile
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
