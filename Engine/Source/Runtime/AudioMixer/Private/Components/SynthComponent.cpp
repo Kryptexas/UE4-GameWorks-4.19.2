@@ -129,11 +129,12 @@ void USynthComponent::Deactivate()
 
 void USynthComponent::Initialize()
 {
-	if (!bIsInitialized)
+	FAudioDevice* AudioDevice = GetAudioDevice();
+	if (!bIsInitialized && AudioDevice)
 	{
 		bIsInitialized = true;
 
-		const int32 SampleRate = GetAudioDevice()->SampleRate;
+		const int32 SampleRate = AudioDevice->SampleRate;
 
 #if SYNTH_GENERATOR_TEST_TONE
 		NumChannels = 2;
