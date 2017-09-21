@@ -847,6 +847,9 @@ public:
 	 */
 	void ShowVirtualKeyboard( bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget = nullptr );
 
+	/** @return true if the current platform allows cursor positioning in editable text boxes */
+	bool AllowMoveCursor();
+
 	/** Get the work area that has the largest intersection with the specified rectangle */
 	FSlateRect GetWorkArea( const FSlateRect& InRect ) const;
 

@@ -95,7 +95,8 @@ extern "C"
 
 extern void AndroidThunkCpp_InitHMDs();
 extern void AndroidThunkCpp_ShowConsoleWindow();
-extern bool AndroidThunkCpp_IsVirtuaInputClicked(int, int);
+extern bool AndroidThunkCpp_VirtualInputIgnoreClick(int, int);
+extern bool AndroidThunkCpp_IsVirtuaKeyboardShown();
 
 // Base path for file accesses
 extern FString GFilePathBase;
@@ -150,9 +151,6 @@ static FEvent* EventHandlerEvent = NULL;
 // Wait for Java onCreate to complete before resume main init
 static volatile bool GResumeMainInit = false;
 volatile bool GEventHandlerInitialized = false;
-
-//virtualKeyboard shown
-static volatile bool GVirtualKeyboardShown = false;
 
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
 {
@@ -569,14 +567,14 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			}
 			FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 
-			if (GVirtualKeyboardShown && (type == TouchBegan || type == TouchMoved))
+			if (AndroidThunkCpp_IsVirtuaKeyboardShown() && (type == TouchBegan || type == TouchMoved))
 			{
 				int pointerId = AMotionEvent_getPointerId(event, actionPointer);
 				int32 x = AMotionEvent_getX(event, actionPointer);
 				int32 y = AMotionEvent_getY(event, actionPointer);
 
-				//ignore key down events when the native input was clicked
-				if(AndroidThunkCpp_IsVirtuaInputClicked(x, y))
+				//ignore key down events when the native input was clicked or when the keyboard animation is playing
+				if (AndroidThunkCpp_VirtualInputIgnoreClick(x, y))
 					return 0;
 			}
 			if(isActionTargeted)
@@ -869,12 +867,6 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 }
 
 //Native-defined functions
-
-//Set GVirtualKeyboardShown.This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardVisible(boolean bShown)"
-JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardVisible(JNIEnv* jenv, jobject thiz, jboolean bShown)
-{
-	GVirtualKeyboardShown = bShown;
-}
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeConsoleCommand(String commandString);"
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv* jenv, jobject thiz, jstring commandString)

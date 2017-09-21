@@ -1972,7 +1972,8 @@ void FSlateEditableTextLayout::InsertRunAtCursor(TSharedRef<IRun> InRun)
 bool FSlateEditableTextLayout::MoveCursor(const FMoveCursor& InArgs)
 {
 	// We can't use the keyboard to move the cursor while composing, as the IME has control over it
-	if (TextInputMethodContext->IsComposing() && InArgs.GetMoveMethod() != ECursorMoveMethod::ScreenPosition)
+	if (!FSlateApplication::Get().AllowMoveCursor() ||
+		(TextInputMethodContext->IsComposing() && InArgs.GetMoveMethod() != ECursorMoveMethod::ScreenPosition))
 	{
 		// Claim we handled this
 		return true;
@@ -3160,7 +3161,9 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 		TextInputMethodChangeNotifier->NotifyLayoutChanged(ITextInputMethodChangeNotifier::ELayoutChangeType::Changed);
 	}
 
-	const bool bShouldAppearFocused = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet() || HasActiveContextMenu();
+	//#jira UE - 49301 Text in UMG controls flickers during update from Virtual Keyboard
+	const bool bShouldAppearFocused = FSlateApplication::Get().AllowMoveCursor() &&
+		(OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet() || HasActiveContextMenu());
 	if (bShouldAppearFocused)
 	{
 		// If we have focus then we don't allow the editable text itself to update, but we do still need to refresh the password and marshaller state
