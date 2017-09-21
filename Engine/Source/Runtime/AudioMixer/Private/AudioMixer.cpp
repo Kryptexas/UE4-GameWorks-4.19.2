@@ -193,6 +193,7 @@ namespace Audio
 		, bAudioDeviceChanging(false)
 		, bPerformingFade(true)
 		, bFadedOut(false)
+		, bUpdateMasterVolume(true)
 		, bIsDeviceInitialized(false)
 	{
 		FadeParam.SetValue(0.0f);
