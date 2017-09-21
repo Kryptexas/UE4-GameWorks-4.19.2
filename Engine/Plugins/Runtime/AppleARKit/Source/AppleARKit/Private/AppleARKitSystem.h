@@ -5,6 +5,7 @@
 #include "XRTrackingSystemBase.h"
 #include "AppleARKitConfiguration.h"
 #include "ARHitTestingSupport.h"
+#include "ARTrackingQuality.h"
 #include "AppleARKitHitTestResult.h"
 
 // ARKit
@@ -19,7 +20,7 @@
 
 struct FAppleARKitFrame;
 
-class FAppleARKitSystem : public FXRTrackingSystemBase, public IARHitTestingSupport, public TSharedFromThis<FAppleARKitSystem, ESPMode::ThreadSafe>
+class FAppleARKitSystem : public FXRTrackingSystemBase, public IARHitTestingSupport, public IARTrackingQuality, public TSharedFromThis<FAppleARKitSystem, ESPMode::ThreadSafe>
 {
 	friend class FAppleARKitXRCamera;
 	
@@ -43,8 +44,12 @@ public:
 	//~ IXRTrackingSystem
 	
 	//~ IARHitTestingSupport
-	virtual bool ARLineTraceFromScreenPoint(UObject* WorldContextObject, const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
+	virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
 	//~ IARHitTestingSupport
+	
+	//~ IARTrackingQuality
+	virtual EARTrackingQuality ARGetTrackingQuality() const;
+	//~ IARTrackingQuality
 
 private:
 	void Run();

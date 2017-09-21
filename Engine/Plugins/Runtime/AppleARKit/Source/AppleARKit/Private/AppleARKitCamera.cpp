@@ -24,10 +24,29 @@ FAppleARKitCamera::FAppleARKitCamera( ARCamera* InARCamera )
     ImageResolution.X = InARCamera.imageResolution.width;
     ImageResolution.Y = InARCamera.imageResolution.height;
 
+	// Tracking quality
+	switch(InARCamera.trackingState)
+	{
+		default:
+		case ARTrackingStateNotAvailable:
+			TrackingQuality = EARTrackingQuality::NotAvailable;
+			break;
+			
+		case ARTrackingStateLimited:
+			TrackingQuality = EARTrackingQuality::Limited;
+			break;
+		
+		case ARTrackingStateNormal:
+			TrackingQuality = EARTrackingQuality::Normal;
+			break;
+	}
+	
+	
     // Copy / convert camera transform
     Transform = FAppleARKitTransform::ToFTransform( InARCamera.transform );
     Translation = Transform.GetTranslation();
 	Orientation = Transform.GetRotation();
+	
 }
 
 #endif // #ARKIT_SUPPORT

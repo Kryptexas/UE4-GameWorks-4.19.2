@@ -257,6 +257,8 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 			{
 				ResetRelativeTransform();
 			}
+			
+			XRCamera->OverrideFOV(this->FieldOfView);
 		}
 	}
 

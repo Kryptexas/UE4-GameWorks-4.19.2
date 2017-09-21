@@ -57,6 +57,11 @@ bool FDefaultXRCamera::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& Cu
 	return true;
 }
 
+void FDefaultXRCamera::OverrideFOV(float& InOutFOV)
+{
+	// The default camera does not override the FOV
+}
+
 void FDefaultXRCamera::SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component)
 {
 	LateUpdate.Setup(ParentToWorld, Component);

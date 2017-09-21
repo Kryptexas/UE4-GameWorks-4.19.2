@@ -64,5 +64,5 @@ public:
 		return ModularFeatureName;
 	}
 
-	virtual bool ARLineTraceFromScreenPoint(UObject* WorldContextObject, const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) = 0;
+	virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) = 0;
 };

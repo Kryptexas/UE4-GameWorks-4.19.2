@@ -5,6 +5,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "UnrealEngine.h"
 #include "Engine/GameViewportClient.h"
+#include "ARTrackingQuality.h"
 
 // ARKit
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
@@ -24,21 +25,6 @@ enum class EAppleARKitBackgroundFitMode : uint8
 	Stretch,
 };
 
-
-enum class EAppleARKitTrackingQuality : uint8
-{
-    /** The tracking quality is not available. */
-    NotAvailable,
-    
-    /** The tracking quality is limited, relying only on the device's motion. */
-    Limited,
-    
-    /** The tracking quality is poor. */
-    Poor,
-    
-    /** The tracking quality is good. */
-    Good
-};
 
 /**
  * A model representing the camera and its properties at a single point in time.
@@ -62,7 +48,7 @@ struct APPLEARKIT_API FAppleARKitCamera
 	 * The tracking quality of the camera.
 	 */
 	UPROPERTY( BlueprintReadOnly, Category="AppleARKit|Camera" )
-	EAppleARKitTrackingQuality TrackingQuality;
+	EARTrackingQuality TrackingQuality;
 
 	/**
 	 * The transformation matrix that defines the camera's rotation and translation in world coordinates.

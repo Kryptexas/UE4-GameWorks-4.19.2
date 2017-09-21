@@ -30,6 +30,16 @@ public:
 	
 private:
 	//~ FDefaultXRCamera
+	void OverrideFOV(float& InOutFOV)
+	{
+		// @todo arkit : is it safe not to lock here? Theoretically this should only be called on the game thread.
+		ensure(IsInGameThread());
+		if (ARKitSystem.GameThreadFrame.IsValid())
+		{
+			InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen(EAppleARKitBackgroundFitMode::Fill);
+		}
+	}
+	
 	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override
 	{
 		FDefaultXRCamera::SetupView(InViewFamily, InView);
@@ -58,7 +68,7 @@ private:
 			ARKitSystem.RenderThreadFrame = ARKitSystem.LastReceivedFrame;
 		}
 		
-		// @todo arkit: Camera late update
+		// @todo arkit: Camera late update?
 		
 		if (ARKitSystem.RenderThreadFrame.IsValid())
 		{
@@ -108,6 +118,7 @@ FAppleARKitSystem::FAppleARKitSystem()
 {
 	// Register our ability to hit-test in AR with Unreal
 	IModularFeatures::Get().RegisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), static_cast<IARHitTestingSupport*>(this));
+	IModularFeatures::Get().RegisterModularFeature(IARTrackingQuality::GetModularFeatureName(), static_cast<IARTrackingQuality*>(this));
 	
 	Run();
 }
@@ -116,6 +127,7 @@ FAppleARKitSystem::~FAppleARKitSystem()
 {
 	// Unregister our ability to hit-test in AR with Unreal
 	IModularFeatures::Get().UnregisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), static_cast<IARHitTestingSupport*>(this));
+	IModularFeatures::Get().UnregisterModularFeature(IARTrackingQuality::GetModularFeatureName(), static_cast<IARTrackingQuality*>(this));
 }
 
 TMap< FGuid, UAppleARKitAnchor* > FAppleARKitSystem::GetAnchors() const
@@ -214,29 +226,17 @@ float FAppleARKitSystem::GetWorldToMetersScale() const
 	return 100.0f;
 }
 
-bool FAppleARKitSystem::ARLineTraceFromScreenPoint(UObject* WorldContextObject, const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults)
+bool FAppleARKitSystem::ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults)
 {
-	if (const bool bSuccess = HitTestAtScreenPosition(ScreenPosition, EAppleARKitHitTestResultType::ExistingPlaneUsingExtent, OutHitResults))
-	{
-		// Update transform from ARKit (camera) space to UE World Space
-		
-		UWorld* MyWorld = WorldContextObject->GetWorld();
-		APlayerController* MyPC = MyWorld != nullptr ? MyWorld->GetFirstPlayerController() : nullptr;
-		APawn* MyPawn = MyPC != nullptr ? MyPC->GetPawn() : nullptr;
-		
-		if (MyPawn != nullptr)
-		{
-			const FTransform PawnTransform = MyPawn->GetActorTransform();
-			for ( FARHitTestResult& HitResult : OutHitResults )
-			{
-				HitResult.Transform *= PawnTransform;
-			}
-			return true;
-		}
-	}
+	const bool bSuccess = HitTestAtScreenPosition(ScreenPosition, EAppleARKitHitTestResultType::ExistingPlaneUsingExtent, OutHitResults);
+	return bSuccess;
+}
 
-	return false;
-
+EARTrackingQuality FAppleARKitSystem::ARGetTrackingQuality() const
+{
+	return GameThreadFrame.IsValid()
+		? GameThreadFrame->Camera.TrackingQuality
+		: EARTrackingQuality::NotAvailable;
 }
 
 
@@ -442,7 +442,7 @@ bool FAppleARKitSystem::RunWithConfiguration(const FAppleARKitConfiguration& InC
 	
 #endif // ARKIT_SUPPORT
 	
-	// @todo arkit BaseTransform = FTransform::Identity;
+	// @todo arkit Add support for relocating ARKit space to Unreal World Origin? BaseTransform = FTransform::Identity;
 	
 	// Set running state
 	bIsRunning = true;

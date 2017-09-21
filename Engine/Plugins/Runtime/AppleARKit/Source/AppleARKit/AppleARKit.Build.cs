@@ -4,10 +4,6 @@ public class AppleARKit : ModuleRules
 {
 	public AppleARKit(ReadOnlyTargetRules Target) : base(Target)
 	{
-
-		// @todo arkit : just for developing with XCode.
-		bFasterWithoutUnity = true;
-		
 		PublicIncludePaths.AddRange(
 			new string[] {
 				"AppleARKit/Public"
@@ -46,8 +42,7 @@ public class AppleARKit : ModuleRules
                 "RenderCore",
                 "ShaderCore",
                 "HeadMountedDisplay",
-                // @todo arkit We depend on MRMesh because that's where IARHitTestingSupport is
-                "MRMesh"
+                "AugmentedReality"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
