@@ -3,6 +3,10 @@
 // AppleARKit
 #include "AppleARKitSessionConfiguration.generated.h"
 
+#if ARKIT_SUPPORT
+#import <ARKit/ARKit.h>
+#endif // ARKIT_SUPPORT
+
 /**
  * Enum constants for indicating the world alignment.
  */
@@ -93,9 +97,9 @@ ARWorldAlignment ToARWorldAlignment( const EAppleARKitWorldAlignment& WorldAlign
 ARPlaneDetection ToARPlaneDetection( const EAppleARKitPlaneDetection& PlaneDetection );
 
 /** Conversion function to ARKit native ARSessionConfiguration */
-ARSessionConfiguration* ToARSessionConfiguration( const UAppleARKitSessionConfiguration* SessionConfiguration );
+ARConfiguration* ToARSessionConfiguration( const UAppleARKitSessionConfiguration* SessionConfiguration );
 
 /** Conversion function to ARKit native ARWorldTrackingSessionConfiguration */
-ARWorldTrackingSessionConfiguration* ToARWorldTrackingSessionConfiguration( const UAppleARKitWorldTrackingSessionConfiguration* SessionConfiguration );
+ARWorldTrackingConfiguration* ToARWorldTrackingSessionConfiguration( const UAppleARKitWorldTrackingSessionConfiguration* SessionConfiguration );
 
 #endif // ARKIT_SUPPORT

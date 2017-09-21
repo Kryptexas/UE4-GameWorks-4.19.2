@@ -75,7 +75,7 @@ bool UAppleARKitSession::RunWithConfiguration(const UAppleARKitSessionConfigurat
 	}
 
 	// Convert to native ARWorldTrackingSessionConfiguration
-	ARSessionConfiguration* Configuration = ToARSessionConfiguration(InConfiguration);
+	ARConfiguration* Configuration = ToARSessionConfiguration(InConfiguration);
 
     UE_LOG(LogAppleARKit, Log, TEXT("Starting session: %p with options %d"), this, options);
     

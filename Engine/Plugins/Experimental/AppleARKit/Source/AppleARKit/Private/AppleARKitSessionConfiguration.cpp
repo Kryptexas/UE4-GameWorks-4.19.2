@@ -31,15 +31,15 @@ ARPlaneDetection ToARPlaneDetection( const EAppleARKitPlaneDetection& InPlaneDet
     return PlaneDetection;
 }
 
-ARSessionConfiguration* ToARSessionConfiguration( const UAppleARKitSessionConfiguration* InSessionConfiguration )
+ARConfiguration* ToARSessionConfiguration( const UAppleARKitSessionConfiguration* InSessionConfiguration )
 {
 	check( InSessionConfiguration );
 
 	// World tracking?
 	if ( const UAppleARKitWorldTrackingSessionConfiguration* WorldTrackingSessionConfiguration = Cast< UAppleARKitWorldTrackingSessionConfiguration >( InSessionConfiguration ) )
 	{
-		// Create an ARWorldTrackingSessionConfiguration 
-		ARWorldTrackingSessionConfiguration *SessionConfiguration = [ARWorldTrackingSessionConfiguration new];
+		// Create an ARWorldTrackingConfiguration 
+		ARWorldTrackingConfiguration *SessionConfiguration = [ARWorldTrackingConfiguration new];
 
 		// Copy / convert properties
 		SessionConfiguration.lightEstimationEnabled = WorldTrackingSessionConfiguration->bLightEstimationEnabled;
@@ -51,20 +51,22 @@ ARSessionConfiguration* ToARSessionConfiguration( const UAppleARKitSessionConfig
 	}
 	else
 	{
-		// Create an ARSessionConfiguration 
-		ARSessionConfiguration *SessionConfiguration = [ARSessionConfiguration new];
+		// Create an ARConfiguration 
+//		ARConfiguration *SessionConfiguration = [ARConfiguration new];
 
 		// Copy / convert properties
-		SessionConfiguration.lightEstimationEnabled = InSessionConfiguration->bLightEstimationEnabled;
-		SessionConfiguration.worldAlignment = ToARWorldAlignment( InSessionConfiguration->Alignment );
+//		SessionConfiguration.lightEstimationEnabled = InSessionConfiguration->bLightEstimationEnabled;
+//		SessionConfiguration.worldAlignment = ToARWorldAlignment( InSessionConfiguration->Alignment );
 
-		return SessionConfiguration;
+//		return SessionConfiguration;
 	}
+
+	return nullptr;
 }
 
-ARWorldTrackingSessionConfiguration* ToARWorldTrackingSessionConfiguration( const UAppleARKitWorldTrackingSessionConfiguration* InSessionConfiguration )
+ARWorldTrackingConfiguration* ToARWorldTrackingSessionConfiguration( const UAppleARKitWorldTrackingSessionConfiguration* InSessionConfiguration )
 {
-	return (ARWorldTrackingSessionConfiguration*)ToARSessionConfiguration( InSessionConfiguration );
+	return (ARWorldTrackingConfiguration*)ToARSessionConfiguration( InSessionConfiguration );
 }
 
 #endif
