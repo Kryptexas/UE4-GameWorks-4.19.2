@@ -4,8 +4,6 @@
 
 #include "CoreTypes.h"
 #include "Containers/Array.h"
-#include "HAL/CriticalSection.h"
-#include "Misc/ScopeLock.h"
 #include "Templates/SharedPointer.h"
 
 #include "MediaSampleSink.h"
@@ -15,7 +13,6 @@
  * Collection of media sample sinks.
  *
  * @param SampleType The type of media samples that the sinks process.
- * @note All methods are thread-safe.
  */
 template<typename SampleType>
 class TMediaSampleSinks
@@ -30,7 +27,6 @@ public:
 	 */
 	void Add(const TSharedRef<TMediaSampleSink<SampleType>, ESPMode::ThreadSafe>& SampleSink)
 	{
-		FScopeLock Lock(&CriticalSection);
 		Sinks.AddUnique(SampleSink);
 	}
 
@@ -47,8 +43,6 @@ public:
 	bool Enqueue(const TSharedPtr<SampleType, ESPMode::ThreadSafe>& Sample, int32 MaxDepth)
 	{
 		bool Overflowed = false;
-
-		FScopeLock Lock(&CriticalSection);
 
 		for (int32 SinkIndex = Sinks.Num() - 1; SinkIndex >= 0; --SinkIndex)
 		{
@@ -83,8 +77,6 @@ public:
 	 */
 	void Flush()
 	{
-		FScopeLock Lock(&CriticalSection);
-
 		for (int32 SinkIndex = Sinks.Num() - 1; SinkIndex >= 0; --SinkIndex)
 		{
 			TSharedPtr<TMediaSampleSink<SampleType>, ESPMode::ThreadSafe> Sink = Sinks[SinkIndex].Pin();
@@ -108,14 +100,10 @@ public:
 	 */
 	void Remove(const TSharedRef<TMediaSampleSink<SampleType>, ESPMode::ThreadSafe>& SampleSink)
 	{
-		FScopeLock Lock(&CriticalSection);
 		Sinks.Remove(SampleSink);
 	}
 
 private:
-
-	/** Synchronizes access to Player. */
-	FCriticalSection CriticalSection;
 
 	/** The collection of registered sinks. */
 	TArray<TWeakPtr<TMediaSampleSink<SampleType>, ESPMode::ThreadSafe>> Sinks;

@@ -8,7 +8,7 @@
 /* UMediaBlueprintFunctionLibrary interface
  *****************************************************************************/
 
-void UMediaBlueprintFunctionLibrary::EnumerateAudioCaptureDevices(int32 Filter, TArray<FMediaCaptureDevice>& OutDevices)
+void UMediaBlueprintFunctionLibrary::EnumerateAudioCaptureDevices(TArray<FMediaCaptureDevice>& OutDevices, int32 Filter)
 {
 	const auto FilterEnum = (EMediaAudioCaptureDeviceFilter)Filter;
 
@@ -28,7 +28,7 @@ void UMediaBlueprintFunctionLibrary::EnumerateAudioCaptureDevices(int32 Filter, 
 }
 
 
-void UMediaBlueprintFunctionLibrary::EnumerateVideoCaptureDevices(int32 Filter, TArray<FMediaCaptureDevice>& OutDevices)
+void UMediaBlueprintFunctionLibrary::EnumerateVideoCaptureDevices(TArray<FMediaCaptureDevice>& OutDevices, int32 Filter)
 {
 	const auto FilterEnum = (EMediaVideoCaptureDeviceFilter)Filter;
 
@@ -51,7 +51,7 @@ void UMediaBlueprintFunctionLibrary::EnumerateVideoCaptureDevices(int32 Filter, 
 }
 
 
-void UMediaBlueprintFunctionLibrary::EnumerateWebcamCaptureDevices(int32 Filter, TArray<FMediaCaptureDevice>& OutDevices)
+void UMediaBlueprintFunctionLibrary::EnumerateWebcamCaptureDevices(TArray<FMediaCaptureDevice>& OutDevices, int32 Filter)
 {
 	const auto FilterEnum = (EMediaWebcamCaptureDeviceFilter)Filter;
 

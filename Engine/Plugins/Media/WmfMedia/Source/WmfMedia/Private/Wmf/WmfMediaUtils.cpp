@@ -341,7 +341,7 @@ namespace WmfMedia
 	}
 
 
-	TComPtr<IMFMediaType> CreateOutputType(const GUID& MajorType, const GUID& SubType, bool AllowNonStandardCodecs)
+	TComPtr<IMFMediaType> CreateOutputType(const GUID& MajorType, const GUID& SubType, bool AllowNonStandardCodecs, bool IsVideoDevice)
 	{
 		TComPtr<IMFMediaType> OutputType;
 		{
@@ -453,17 +453,30 @@ namespace WmfMedia
 				}
 			}
 
-			if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(10, 0))
+			if ((SubType == MFVideoFormat_H264) || (SubType == MFVideoFormat_H264_ES))
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Your Windows version is %s"), *FPlatformMisc::GetOSVersion());
-
-				if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(6, 2))
+				if (IsVideoDevice /*&& !FWindowsPlatformMisc::VerifyWindowsVersion(6, 2)*/ /*Win8*/)
 				{
-					UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer"));
+					UE_LOG(LogWmfMedia, Warning, TEXT("Your Windows version is %s"), *FPlatformMisc::GetOSVersion());
+					UE_LOG(LogWmfMedia, Warning, TEXT("H264 video type requires Windows 8 or newer"));
 					return NULL;
 				}
+			}
 
-				UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer (game must be manifested for Windows 10)"));
+			if (SubType == MFVideoFormat_HEVC)
+			{
+				if (!FWindowsPlatformMisc::VerifyWindowsVersion(10, 0) /*Win10*/)
+				{
+					UE_LOG(LogWmfMedia, Warning, TEXT("Your Windows version is %s"), *FPlatformMisc::GetOSVersion());
+
+					if (!FWindowsPlatformMisc::VerifyWindowsVersion(6, 2) /*Win8*/)
+					{
+						UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer"));
+						return NULL;
+					}
+
+					UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer (game must be manifested for Windows 10)"));
+				}
 			}
 
 			// configure video output
@@ -475,7 +488,7 @@ namespace WmfMedia
 				return NULL;
 			}
 
-			if (SubType == MFVideoFormat_HEVC)
+			if ((SubType == MFVideoFormat_HEVC) || (SubType == MFVideoFormat_NV12))
 			{
 				Result = OutputType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12);
 			}
@@ -540,7 +553,7 @@ namespace WmfMedia
 
 			if (Guid == MF_MT_AM_FORMAT_TYPE)
 			{
-				Dump += Dump += FString::Printf(TEXT("\t%s: %s (%s)\n"), *GuidName, *GuidToString(*Item.puuid), *FormatTypeToString(*Item.puuid));
+				Dump += FString::Printf(TEXT("\t%s: %s (%s)\n"), *GuidName, *GuidToString(*Item.puuid), *FormatTypeToString(*Item.puuid));
 			}
 			else if (Guid == MF_MT_MAJOR_TYPE)
 			{
@@ -1127,8 +1140,10 @@ namespace WmfMedia
 	{
 		if (!Archive.IsValid())
 		{
+			const bool IsAudioDevice = Url.StartsWith(TEXT("audcap://"));
+			
 			// create capture device media source
-			if (Url.StartsWith(TEXT("audcap://")) || Url.StartsWith(TEXT("vidcap://")))
+			if (IsAudioDevice || Url.StartsWith(TEXT("vidcap://")))
 			{
 				const TCHAR* EndpointOrSymlink = &Url[9];
 
@@ -1142,11 +1157,7 @@ namespace WmfMedia
 						return NULL;
 					}
 
-					const bool IsAudioDevice = Url.StartsWith(TEXT("audcap://"));
-
-					Result = Attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, IsAudioDevice
-						? MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID
-						: MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
+					Result = Attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, IsAudioDevice ? MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID : MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
 
 					if (FAILED(Result))
 					{
@@ -1154,14 +1165,7 @@ namespace WmfMedia
 						return NULL;
 					}
 
-					if (IsAudioDevice)
-					{
-						Result = Attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_ENDPOINT_ID, EndpointOrSymlink);
-					}
-					else
-					{
-						Result = Attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, EndpointOrSymlink);
-					}
+					Result = Attributes->SetString(IsAudioDevice ? MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_ENDPOINT_ID : MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, EndpointOrSymlink);
 
 					if (FAILED(Result))
 					{

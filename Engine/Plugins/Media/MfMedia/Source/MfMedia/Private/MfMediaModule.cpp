@@ -11,6 +11,15 @@
 
 #include "IMfMediaModule.h"
 
+#if PLATFORM_WINDOWS
+	#pragma comment(lib, "mf")
+	#pragma comment(lib, "mfplat")
+	#pragma comment(lib, "mfreadwrite")
+	#pragma comment(lib, "mfuuid")
+	#pragma comment(lib, "propsys")
+	#pragma comment(lib, "shlwapi")
+#endif
+
 
 DEFINE_LOG_CATEGORY(LogMfMedia);
 

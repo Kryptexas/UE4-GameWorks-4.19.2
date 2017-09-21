@@ -266,6 +266,8 @@ bool FWmfMediaSession::CanControl(EMediaControl Control) const
 		return false;
 	}
 
+	FScopeLock Lock(&CriticalSection);
+
 	if (Control == EMediaControl::Pause)
 	{
 		return ((SessionState == EMediaState::Playing) && (((Capabilities & MFSESSIONCAP_PAUSE) != 0) || UnthinnedRates.Contains(0.0f)));
@@ -321,15 +323,19 @@ EMediaStatus FWmfMediaSession::GetStatus() const
 
 TRangeSet<float> FWmfMediaSession::GetSupportedRates(EMediaRateThinning Thinning) const
 {
+	FScopeLock Lock(&CriticalSection);
+
 	return (Thinning == EMediaRateThinning::Thinned) ? ThinnedRates : UnthinnedRates;
 }
 
 
 FTimespan FWmfMediaSession::GetTime() const
 {
+	FScopeLock Lock(&CriticalSection);
+
 	MFCLOCK_STATE ClockState;
 
-	if ((PresentationClock == NULL) || FAILED(PresentationClock->GetState(0, &ClockState)) || (ClockState == MFCLOCK_STATE_INVALID))
+	if (!PresentationClock.IsValid() || FAILED(PresentationClock->GetState(0, &ClockState)) || (ClockState == MFCLOCK_STATE_INVALID))
 	{
 		return FTimespan::Zero(); // topology not initialized, or clock not started yet
 	}
@@ -366,14 +372,14 @@ bool FWmfMediaSession::Seek(const FTimespan& Time)
 
 	UE_LOG(LogWmfMedia, Verbose, TEXT("Session %p: Seeking to %s"), this, *Time.ToString());
 
-	FScopeLock Lock(&CriticalSection);
-
 	// validate seek
 	if (!CanControl(EMediaControl::Seek))
 	{
 		UE_LOG(LogWmfMedia, Verbose, TEXT("Session %p: Media source doesn't support seeking"), this);
 		return false;
 	}
+
+	FScopeLock Lock(&CriticalSection);
 
 	if ((SessionState == EMediaState::Closed) || (SessionState == EMediaState::Error))
 	{

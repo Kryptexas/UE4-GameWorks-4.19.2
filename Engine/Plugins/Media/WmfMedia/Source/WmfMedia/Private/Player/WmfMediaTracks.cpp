@@ -27,6 +27,8 @@
 
 #define LOCTEXT_NAMESPACE "FWmfMediaTracks"
 
+#define WMFMEDIATRACKS_TRACE_FORMATS 0
+
 
 /* FWmfMediaTracks structors
  *****************************************************************************/
@@ -190,7 +192,7 @@ void FWmfMediaTracks::GetFlags(bool& OutMediaSourceChanged, bool& OutSelectionCh
 }
 
 
-void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource)
+void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& Url)
 {
 	Shutdown();
 
@@ -237,11 +239,12 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource)
 	PresentationDescriptor = NewPresentationDescriptor;
 
 	// add streams (Media Foundation reports them in reverse order)
+	bool IsVideoDevice = Url.StartsWith(TEXT("vidcap://"));
 	bool AllStreamsAdded = true;
 
 	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
 	{
-		AllStreamsAdded &= AddStreamToTracks(StreamIndex, Info);
+		AllStreamsAdded &= AddStreamToTracks(StreamIndex, IsVideoDevice, Info);
 		Info += TEXT("\n");
 	}
 
@@ -876,6 +879,12 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 	check(Format.InputType.IsValid());
 	check(Format.OutputType.IsValid());
 
+#if WMFMEDIATRACKS_TRACE_FORMATS
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Adding stream %i to topology"), this, Track.StreamIndex);
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Input type:\n%s"), this, *WmfMedia::DumpAttributes(*Format.InputType.Get()));
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Output type:\n%s"), this, *WmfMedia::DumpAttributes(*Format.OutputType.Get()));
+#endif
+
 	GUID MajorType;
 	{
 		const HRESULT Result = Format.OutputType->GetGUID(MF_MT_MAJOR_TYPE, &MajorType);
@@ -1029,7 +1038,7 @@ bool FWmfMediaTracks::AddTrackToTopology(const FTrack& Track, IMFTopology& Topol
 }
 
 
-bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
+bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, FString& OutInfo)
 {
 	OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex);
 
@@ -1202,7 +1211,7 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 				UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to get sub-type of format %i in stream %i: %s"), this, TypeIndex, StreamIndex, *WmfMedia::ResultToString(Result));
 				OutInfo += TEXT("\t\tfailed to get sub-type\n");
 
-				continue;;
+				continue;
 			}
 		}
 
@@ -1210,7 +1219,7 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 		OutInfo += FString::Printf(TEXT("\t\tCodec: %s\n"), *TypeName);
 
 		// create output type
-		TComPtr<IMFMediaType> OutputType = WmfMedia::CreateOutputType(MajorType, SubType, AllowNonStandardCodecs);
+		TComPtr<IMFMediaType> OutputType = WmfMedia::CreateOutputType(MajorType, SubType, AllowNonStandardCodecs, IsVideoDevice);
 
 		if (!OutputType.IsValid())
 		{
@@ -1227,6 +1236,9 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 			const uint32 BitsPerSample = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_BITS_PER_SAMPLE, 16);
 			const uint32 NumChannels = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_NUM_CHANNELS, 0);
 			const uint32 SampleRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_SAMPLES_PER_SECOND, 0);
+
+			OutputType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, NumChannels);
+			OutputType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, SampleRate);
 
 			FormatIndex = Track->Formats.Add({
 				MediaType,
@@ -1281,19 +1293,6 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 
 			const uint32 BitRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AVG_BITRATE, 0);
 
-			FIntPoint OutputDim;
-			{
-				if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&OutputDim.X, (UINT32*)&OutputDim.Y)))
-				{
-					OutInfo += FString::Printf(TEXT("\t\tDimensions: %i x %i\n"), OutputDim.X, OutputDim.Y);
-				}
-				else
-				{
-					OutputDim = FIntPoint::ZeroValue;
-					OutInfo += FString::Printf(TEXT("\t\tDimensions: n/a\n"));
-				}
-			}
-
 			float FrameRate;
 			{
 				UINT32 Numerator = 0;
@@ -1342,6 +1341,32 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 				if (FrameRates.IsDegenerate() && (FrameRates.GetLowerBoundValue() == 1.0f))
 				{
 					OutInfo += FString::Printf(TEXT("\t\tpossibly a still image stream (may not work)\n"));
+				}
+			}
+
+			// Note: Windows Media Foundation incorrectly exposes still image streams as video streams.
+			// Still image streams require special handling and are currently not supported. There is no
+			// good way to distinguish these from actual video streams other than that their only supported
+			// frame rate is 1 fps, so we skip all 1 fps video streams here.
+
+			if (IsVideoDevice && FrameRates.IsDegenerate() && (FrameRates.GetLowerBoundValue() == 1.0f))
+			{
+				UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Skipping stream %i, because it is most likely a still image stream"), this, StreamIndex);
+				OutInfo += FString::Printf(TEXT("\t\tlikely an unsupported still image stream\n"));
+
+				continue;
+			}
+
+			FIntPoint OutputDim;
+			{
+				if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&OutputDim.X, (UINT32*)&OutputDim.Y)))
+				{
+					OutInfo += FString::Printf(TEXT("\t\tDimensions: %i x %i\n"), OutputDim.X, OutputDim.Y);
+				}
+				else
+				{
+					OutputDim = FIntPoint::ZeroValue;
+					OutInfo += FString::Printf(TEXT("\t\tDimensions: n/a\n"));
 				}
 			}
 
