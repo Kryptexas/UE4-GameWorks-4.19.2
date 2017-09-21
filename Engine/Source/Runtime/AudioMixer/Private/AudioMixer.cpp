@@ -313,7 +313,7 @@ namespace Audio
 			
 			if (!bWarnedBufferUnderrun)
 			{						
-				UE_LOG(LogAudioMixer, Log, TEXT("Audio Buffer Underrun detected."));
+				UE_LOG(LogAudioMixerDebug, Log, TEXT("Audio Buffer Underrun detected."));
 				bWarnedBufferUnderrun = true;
 			}
 		
@@ -326,7 +326,7 @@ namespace Audio
 			// As soon as a valid buffer goes through, allow more warning
 			if (bWarnedBufferUnderrun)
 			{
-				UE_LOG(LogAudioMixer, Error, TEXT("Audio had %d underruns [Total: %d]."), CurrentUnderrunCount, UnderrunCount);
+				UE_LOG(LogAudioMixerDebug, Log, TEXT("Audio had %d underruns [Total: %d]."), CurrentUnderrunCount, UnderrunCount);
 			}
 			CurrentUnderrunCount = 0;
 			bWarnedBufferUnderrun = false;
