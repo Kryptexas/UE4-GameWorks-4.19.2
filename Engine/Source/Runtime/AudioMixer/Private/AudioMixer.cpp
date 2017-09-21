@@ -469,6 +469,8 @@ namespace Audio
 			AudioRenderEvent->Wait();
 		}
 
+		OpenStreamParams.AudioMixer->OnAudioStreamShutdown();
+
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopped;
 		return 0;
 	}

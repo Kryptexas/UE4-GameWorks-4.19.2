@@ -387,6 +387,12 @@ namespace Audio
 		return true;
 	}
 
+	void FMixerDevice::OnAudioStreamShutdown()
+	{
+		// Make sure the source manager pumps any final commands on shutdown. These allow for cleaning up sources, interfacing with plugins, etc.
+		SourceManager.PumpCommandQueue();
+	}
+
 	void FMixerDevice::InitSoundSubmixes()
 	{
 		if (!IsInAudioThread())

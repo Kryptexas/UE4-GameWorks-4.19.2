@@ -135,12 +135,8 @@ namespace Audio
 		/** Callback to generate a new audio stream buffer. */
 		virtual bool OnProcessAudioStream(AlignedFloatBuffer& OutputBuffer) = 0;
 
-		/** Function to implement when an audio hardware device is added to the system. */
-		virtual void OnAudioDeviceAdded(const FString& DeviceId) {}
-
-		virtual void OnDefaultDeviceOutputChanged(const FString& DeviceId) {}
-
-		virtual void OnDefaultInputOutputChanged(const FString& DeviceId) {}
+		/** Called when audio render thread stream is shutting down. Last function called. Allows cleanup on render thread. */
+		virtual void OnAudioStreamShutdown() = 0;
 
 		bool IsMainAudioMixer() const { return bIsMainAudioMixer; }
 

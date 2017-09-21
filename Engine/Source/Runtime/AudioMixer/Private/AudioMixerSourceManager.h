@@ -242,6 +242,7 @@ namespace Audio
 		int32 GetNumChannels(const int32 SourceId) const;
 		int32 GetNumOutputFrames() const { return NumOutputFrames; }
 		bool IsBus(const int32 SourceId) const;
+		void PumpCommandQueue();
 
 	private:
 
@@ -261,7 +262,6 @@ namespace Audio
 		void UpdateBuses();
 
 		void AudioMixerThreadCommand(TFunction<void()> InFunction);
-		void PumpCommandQueue();
 
 		static const int32 NUM_BYTES_PER_SAMPLE = 2;
 
