@@ -80,32 +80,29 @@ namespace UnrealBuildTool
 		/// </summary>
 		string BuildToolOverride;
 
+		/// <summary>
 		/// Default constructor
-		public VCProjectFileGenerator(FileReference InOnlyGameProject, string[] Arguments)
+		/// </summary>
+		/// <param name="InOnlyGameProject">The single project to generate project files for, or null</param>
+		/// <param name="InProjectFileFormat">Override the project file format to use</param>
+		/// <param name="InOverrideCompiler">Override the compiler version to use</param>
+		public VCProjectFileGenerator(FileReference InOnlyGameProject, VCProjectFileFormat InProjectFileFormat, WindowsCompiler InOverrideCompiler)
 			: base(InOnlyGameProject)
 		{
 			XmlConfig.ApplyTo(this);
 
-			foreach(string Argument in Arguments)
+			if(InProjectFileFormat != VCProjectFileFormat.Default)
 			{
-				if(Argument.Equals("-2012unsupported", StringComparison.InvariantCultureIgnoreCase))
-				{
-					ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
-				}
-				else if (Argument.Equals("-2013unsupported", StringComparison.InvariantCultureIgnoreCase))
-				{
-					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
-				}
-				else if(Argument == "-2015")
-				{
-					ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
-					BuildToolOverride = " -2015";
-				}
-				else if(Argument == "-2017")
-				{
-					ProjectFileFormat = VCProjectFileFormat.VisualStudio2017;
-					BuildToolOverride = " -2017";
-				}
+				ProjectFileFormat = InProjectFileFormat;
+			}
+
+			if(InOverrideCompiler == WindowsCompiler.VisualStudio2015)
+			{
+				BuildToolOverride = "-2015";
+			}
+			else if(InOverrideCompiler == WindowsCompiler.VisualStudio2017)
+			{
+				BuildToolOverride = "-2017";
 			}
 		}
 
@@ -261,42 +258,23 @@ namespace UnrealBuildTool
 			// Call parent implementation to figure out the actual platforms
 			base.SetupSupportedPlatformsAndConfigurations(IncludeAllPlatforms, out SupportedPlatformNames);
 
-			// If we're generating project files for a specific game project, check the user's editor setting for preferred source code accessor - we can generate project files to match.
-			if (ProjectFileFormat == VCProjectFileFormat.Default && OnlyGameProject != null)
+			// If we have a non-default setting for visual studio, check the compiler exists. If not, revert to the default.
+			if(ProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
 			{
-				ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorPerProjectUserSettings, DirectoryReference.FromFile(OnlyGameProject), UnrealTargetPlatform.Win64);
-
-				string PreferredAccessor;
-				if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
+				DirectoryReference VCInstallDir;
+				if (!WindowsPlatform.TryGetVCInstallDir(WindowsCompiler.VisualStudio2015, out VCInstallDir))
 				{
-					VCProjectFileFormat PreferredProjectFileFormat;
-					if (Enum.TryParse(PreferredAccessor, out PreferredProjectFileFormat))
-					{
-						// Get the corresponding compiler version
-						WindowsCompiler Compiler = WindowsCompiler.Default;
-						if(PreferredProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
-						{
-							Compiler = WindowsCompiler.VisualStudio2015;
-						}
-						else if(PreferredProjectFileFormat == VCProjectFileFormat.VisualStudio2017)
-						{
-							Compiler = WindowsCompiler.VisualStudio2017;
-						}
-
-						// Check the compiler is installed
-						if (Compiler != WindowsCompiler.Default)
-						{
-							DirectoryReference VCInstallDir;
-							if (WindowsPlatform.TryGetVCInstallDir(Compiler, out VCInstallDir))
-							{
-								ProjectFileFormat = PreferredProjectFileFormat;
-							}
-							else
-							{
-								Log.TraceWarning("Preferred Visual C++ installation ({0}) not found - ignoring.", PreferredProjectFileFormat);
-							}
-						}
-					}
+					Log.TraceWarning("Visual Studio C++ 2015 installation not found - ignoring preferred project file format.");
+					ProjectFileFormat = VCProjectFileFormat.Default;
+				}
+			}
+			else if(ProjectFileFormat == VCProjectFileFormat.VisualStudio2017)
+			{
+				DirectoryReference VCInstallDir;
+				if (!WindowsPlatform.TryGetVCInstallDir(WindowsCompiler.VisualStudio2017, out VCInstallDir))
+				{
+					Log.TraceWarning("Visual Studio C++ 2017 installation not found - ignoring preferred project file format.");
+					ProjectFileFormat = VCProjectFileFormat.Default;
 				}
 			}
 
