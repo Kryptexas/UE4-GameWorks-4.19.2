@@ -30,7 +30,7 @@ void FFlexPluginBridge::ReImportAsset(class UFlexAsset* FlexAsset, class UStatic
 class UFlexFluidSurfaceComponent* FFlexPluginBridge::GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap[World];
+	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(World);
 
 	check(FlexFluidSurface);
 	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
@@ -40,7 +40,7 @@ class UFlexFluidSurfaceComponent* FFlexPluginBridge::GetFlexFluidSurface(class U
 class UFlexFluidSurfaceComponent* FFlexPluginBridge::AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap[World];
+	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(World);
 
 	check(FlexFluidSurface);
 	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
@@ -67,7 +67,7 @@ class UFlexFluidSurfaceComponent* FFlexPluginBridge::AddFlexFluidSurface(class U
 void FFlexPluginBridge::RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* Component)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap[World];
+	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(World);
 
 	check(Component && Component->FlexFluidSurface);
 	FlexFluidSurfaceMap.Remove(Component->FlexFluidSurface);
@@ -87,7 +87,7 @@ struct FFlexContainerInstance* FFlexPluginBridge::GetFlexSoftJointContainer(clas
 		return nullptr;
 	}
 
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	FFlexContainerInstance** Instance = PhysSceneContext.FlexContainerMap.Find(Template);
 	if (Instance)
@@ -107,7 +107,7 @@ void FFlexPluginBridge::WaitFlexScenes(class FPhysScene* PhysScene)
 		return;
 	}
 
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	if (PhysSceneContext.FlexContainerMap.Num())
 	{
@@ -145,7 +145,7 @@ void FFlexPluginBridge::TickFlexScenes(class FPhysScene* PhysScene, ENamedThread
 {
 	if (GPhysXSDK && GFlexIsInitialized)
 	{
-		FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+		FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 		// when true the Flex CPU update will be run as a task async to the game thread
 		// note that this is different from the async tick in LevelTick.cpp
@@ -166,7 +166,7 @@ void FFlexPluginBridge::TickFlexScenes(class FPhysScene* PhysScene, ENamedThread
 
 void FFlexPluginBridge::TickFlexScenesTask(class FPhysScene* PhysScene, float dt)
 {
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	// ensure we have the correct CUDA context set for Flex
 	// this would be done automatically when making a Flex API call
@@ -197,7 +197,7 @@ void FFlexPluginBridge::CleanupFlexScenes(class FPhysScene* PhysScene)
 	{
 		return;
 	}
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	if (PhysSceneContext.FlexContainerMap.Num())
 	{
@@ -223,7 +223,7 @@ struct FFlexContainerInstance* FFlexPluginBridge::GetFlexContainer(class FPhysSc
 	{
 		return nullptr;
 	}
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	FFlexContainerInstance** Instance = PhysSceneContext.FlexContainerMap.Find(Template);
 	if (Instance)
@@ -248,7 +248,7 @@ struct FFlexContainerInstance* FFlexPluginBridge::GetFlexContainer(class FPhysSc
 void FFlexPluginBridge::StartFlexRecord(class FPhysScene* PhysScene)
 {
 #if 0
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
 	{
@@ -263,7 +263,7 @@ void FFlexPluginBridge::StartFlexRecord(class FPhysScene* PhysScene)
 void FFlexPluginBridge::StopFlexRecord(class FPhysScene* PhysScene)
 {
 #if 0
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
 	{
@@ -276,7 +276,7 @@ void FFlexPluginBridge::StopFlexRecord(class FPhysScene* PhysScene)
 
 void FFlexPluginBridge::AddRadialForceToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
 {
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
 	{
@@ -287,7 +287,7 @@ void FFlexPluginBridge::AddRadialForceToFlex(class FPhysScene* PhysScene, FVecto
 
 void FFlexPluginBridge::AddRadialImpulseToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
 {
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap[PhysScene];
+	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
 	{
