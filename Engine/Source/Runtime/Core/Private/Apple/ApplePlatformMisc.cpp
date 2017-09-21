@@ -46,18 +46,14 @@ const TCHAR* FApplePlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 B
 
 FString FApplePlatformMisc::GetDefaultLocale()
 {
-	CFLocaleRef loc = CFLocaleCopyCurrent();
-    
-	TCHAR langCode[20];
-	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
-	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
-	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
-    
-	TCHAR countryCode[20];
-	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
-	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
-    
-	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
+	FString CountryCode((__bridge NSString*)CountryCodeStr);
+	CFRelease(Locale);
+
+	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 FString FApplePlatformMisc::GetDefaultLanguage()
