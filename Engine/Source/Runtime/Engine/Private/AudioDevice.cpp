@@ -2024,6 +2024,8 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 		return;
 	}
 
+	InterpValue = FMath::Clamp(InterpValue, 0.0f, 1.0f);
+
 	// Check if there is a sound mix override entry
 	FSoundMixClassOverrideMap* SoundMixOverrideMap = SoundMixClassEffectOverrides.Find(SoundMix);
 
@@ -2236,7 +2238,7 @@ float FListener::Interpolate(const double EndTime)
 	}
 
 	float InterpValue = (float)((FApp::GetCurrentTime() - InteriorStartTime) / (EndTime - InteriorStartTime));
-	return InterpValue;
+	return FMath::Clamp(InterpValue, 0.0f, 1.0f);
 }
 
 void FListener::UpdateCurrentInteriorSettings()
@@ -2875,7 +2877,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 				if (!bStopped)
 				{
 					// If not in game, do not advance sounds unless they are UI sounds.
-					float UsedDeltaTime = FApp::GetDeltaTime();
+					float UsedDeltaTime = GetGameDeltaTime();
 					if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
 					{
 						UsedDeltaTime = 0.0f;
@@ -2931,7 +2933,7 @@ void FAudioDevice::UpdateActiveSoundPlaybackTime(bool bIsGameTicking)
 	{
 		for (FActiveSound* ActiveSound : ActiveSounds)
 		{
-			ActiveSound->PlaybackTime += DeviceDeltaTime;
+			ActiveSound->PlaybackTime += GetDeviceDeltaTime();
 		}
 	}
 	else if (GIsEditor)
@@ -2940,7 +2942,7 @@ void FAudioDevice::UpdateActiveSoundPlaybackTime(bool bIsGameTicking)
 		{
 			if (ActiveSound->bIsPreviewSound)
 			{
-				ActiveSound->PlaybackTime += DeviceDeltaTime;
+				ActiveSound->PlaybackTime += GetDeviceDeltaTime();
 			}
 		}
 	}
@@ -4596,6 +4598,20 @@ FVector FAudioDevice::GetListenerTransformedDirection(const FVector& Position, f
 		*OutDistance = UnnormalizedDirection.Size();
 	}
 	return UnnormalizedDirection.GetSafeNormal();
+}
+
+float FAudioDevice::GetDeviceDeltaTime() const
+{
+	// Clamp the delta time to a reasonable max delta time. 
+	return FMath::Min(DeviceDeltaTime, 0.5f);
+}
+
+float FAudioDevice::GetGameDeltaTime() const
+{
+	float DeltaTime = FApp::GetDeltaTime();
+
+	// Clamp the delta time to a reasonable max delta time. 
+	return FMath::Min(DeltaTime, 0.5f);
 }
 
 #if WITH_EDITOR
