@@ -53,6 +53,8 @@
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
+#include "GameWorks/IFlexPluginBridge.h"
+
 #if WITH_EDITOR
 	#include "Editor.h"
 #endif
@@ -1387,7 +1389,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			bInTick = true;
 			{
 				SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_StartPhysics"), 10);
-				RunTickGroup(TG_StartPhysics); 
+				RunTickGroup(TG_StartPhysics);
 			}
 			{
 				SCOPE_CYCLE_COUNTER(STAT_TG_DuringPhysics);
@@ -1396,36 +1398,54 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			}
 
 #if WITH_FLEX
-
-			// tick Flex asynchronously over the course of the whole frame (adds 1 frame latency)
-			// this is called an 'inverted' tick because it must first of all wait() and then tick()
-			const bool bInvertedFlexTick = true;
-
-			// only tick Flex for source levels
-			if (LC.GetType() == ELevelCollectionType::DynamicSourceLevels)
+			if (GFlexPluginBridge)
 			{
-				if (bInvertedFlexTick)
+				// tick Flex asynchronously over the course of the whole frame (adds 1 frame latency)
+				// this is called an 'inverted' tick because it must first of all wait() and then tick()
+				const bool bInvertedFlexTick = true;
+
+				// only tick Flex for source levels
+				if (LC.GetType() == ELevelCollectionType::DynamicSourceLevels)
 				{
-					if (PhysicsScene != NULL)
+					if (bInvertedFlexTick)
 					{
-						// wait for Flex GPU update to finish		
-						PhysicsScene->WaitFlexScenes();
+						if (PhysicsScene != NULL)
+						{
+							// wait for Flex GPU update to finish		
+							GFlexPluginBridge->WaitFlexScenes(PhysicsScene);
 
-						// all Flex buffer modifications should occur after this point
-						// and before TickFlexScenes() call below
+							// all Flex buffer modifications should occur after this point
+							// and before TickFlexScenes() call below
+						}
+
+						TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+						{
+							SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+							RunTickGroup(TG_EndPhysics);
+						}
+
+						if (PhysicsScene != NULL)
+						{
+							// kick of flex work async to rest of frame
+							FGraphEventRef dummy;
+							GFlexPluginBridge->TickFlexScenes(PhysicsScene, ENamedThreads::AnyThread, dummy, DeltaSeconds);
+						}
 					}
-
-					TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+					else
 					{
-						SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
-						RunTickGroup(TG_EndPhysics);
-					}
+						TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+						{
+							SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+							RunTickGroup(TG_EndPhysics);
+						}
 
-					if (PhysicsScene != NULL)
-					{
-						// kick of flex work async to rest of frame
-						FGraphEventRef dummy;
-						PhysicsScene->TickFlexScenes(ENamedThreads::AnyThread, dummy, DeltaSeconds);
+						// synchronous Flex update
+						if (PhysicsScene != NULL)
+						{
+							FGraphEventRef dummy;
+							GFlexPluginBridge->TickFlexScenes(PhysicsScene, ENamedThreads::AnyThread, dummy, DeltaSeconds);
+							GFlexPluginBridge->WaitFlexScenes(PhysicsScene);
+						}
 					}
 				}
 				else
@@ -1435,33 +1455,18 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 						SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
 						RunTickGroup(TG_EndPhysics);
 					}
-
-					// synchronous Flex update
-					if (PhysicsScene != NULL)
-					{
-						FGraphEventRef dummy;
-						PhysicsScene->TickFlexScenes(ENamedThreads::AnyThread, dummy, DeltaSeconds);
-						PhysicsScene->WaitFlexScenes();
-					}		
 				}
 			}
 			else
+#endif
 			{
 				TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
 				{
 					SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+					SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_EndPhysics"), 10);
 					RunTickGroup(TG_EndPhysics);
 				}
 			}
-
-#else
-			TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
-			{
-				SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
-				SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_EndPhysics"), 10);
-				RunTickGroup(TG_EndPhysics);
-			}
-#endif
 
 			{
 				SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);

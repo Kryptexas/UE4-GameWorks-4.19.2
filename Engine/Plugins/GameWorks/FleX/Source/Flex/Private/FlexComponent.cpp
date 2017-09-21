@@ -10,6 +10,8 @@
 #include "FlexContainerInstance.h"
 #include "FlexRender.h"
 
+#include "GameWorks/IFlexPluginBridge.h"
+
 #if STATS
 
 DECLARE_CYCLE_STAT(TEXT("Update Bounds (CPU)"), STAT_Flex_UpdateBoundsCpu, STATGROUP_Flex);
@@ -86,7 +88,7 @@ void UFlexComponent::OnRegister()
 
 			if (PhysScene)
 			{
-				FFlexContainerInstance* Container = PhysScene->GetFlexContainer(ContainerTemplate);
+				FFlexContainerInstance* Container = GFlexPluginBridge->GetFlexContainer(PhysScene, ContainerTemplate);
 				if (Container)
 				{
 					ContainerInstance = Container;

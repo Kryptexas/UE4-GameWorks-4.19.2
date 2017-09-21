@@ -4199,7 +4199,7 @@ UFlexContainer* UParticleSystemComponent::GetFirstFlexContainerTemplate()
 		if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->SpriteTemplate->FlexContainerTemplate)
 		{
 			FPhysScene* Scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
-			FFlexContainerInstance* ContainerInstance = Scene->GetFlexContainer(EmitterInstance->SpriteTemplate->FlexContainerTemplate);
+			FFlexContainerInstance* ContainerInstance = GFlexPluginBridge->GetFlexContainer(Scene, EmitterInstance->SpriteTemplate->FlexContainerTemplate);
 			return ContainerInstance ? ContainerInstance->Template : nullptr;
 		}
 	}

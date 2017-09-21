@@ -29,7 +29,7 @@ struct FPendingApexDamageManager;
 /**
  * Physics stats
  */
-DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time (all)"), STAT_TotalPhysicsTime, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time (all)"), STAT_TotalPhysicsTime, STATGROUP_Physics, ENGINE_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Cloth Actor Count"), STAT_NumCloths, STATGROUP_Physics, ENGINE_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Simulated Cloth Verts"), STAT_NumClothVerts, STATGROUP_Physics, ENGINE_API);
 
@@ -129,7 +129,6 @@ extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 class UFlexContainer;
 struct FFlexContainerInstance;
 extern ENGINE_API bool GFlexIsInitialized;
-struct NvFlexExtSoftJoint;
 #endif
 
 /** Information about a specific object involved in a rigid body collision */
@@ -470,12 +469,6 @@ private:
 
 	FPendingConstraintData PendingConstraintData[PST_MAX];
 	
-#if WITH_FLEX
-    /** Map from Flex container template to instances belonging to this physscene */
-    TMap<UFlexContainer*, FFlexContainerInstance*>    FlexContainerMap;
-	FGraphEventRef FlexSimulateTaskRef;
-#endif
-
 public:
 #if WITH_PHYSX
 	/** Static factory used to override the simulation event callback from other modules.
@@ -493,34 +486,11 @@ public:
 	ENGINE_API nvidia::apex::Scene*				GetApexScene(uint32 SceneType) const;
 #endif
 
-#if WITH_FLEX
-	/** Retrive the container instance for a template, will create the instance if it doesn't already exist */
-	ENGINE_API FFlexContainerInstance*	GetFlexContainer(UFlexContainer* Template);
-
-	/** Retrive the container instance for a soft joint, will return a nullptr if it doesn't already exist */
-	FFlexContainerInstance*	GetSoftJointContainer(UFlexContainer* Template);
-
-	void StartFlexRecord();
-	void StopFlexRecord();
-
-	/** Adds a radial force to all flex container instances */
-	void AddRadialForceToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff);
-
-	/** Adds a radial force to all flex container instances */
-	void AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
-#endif
-
 	ENGINE_API FPhysScene();
 	ENGINE_API ~FPhysScene();
 
 	/** Start simulation on the physics scene of the given type */
 	ENGINE_API void TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent);
-
-#if WITH_FLEX
-	ENGINE_API void WaitFlexScenes();
-	ENGINE_API void TickFlexScenes(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt);
-	ENGINE_API void TickFlexScenesTask(float dt);
-#endif
 
 	/** Set the gravity and timing of all physics scenes */
 	ENGINE_API void SetUpForFrame(const FVector* NewGrav, float InDeltaSeconds = 0.0f, float InMaxPhysicsDeltaTime = 0.0f);

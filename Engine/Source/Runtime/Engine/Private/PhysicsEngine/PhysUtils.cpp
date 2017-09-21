@@ -16,10 +16,12 @@
 #include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
+// NvFlex begin
 #if WITH_FLEX
-#include "FlexContainerInstance.h"
+#include "GameWorks/IFlexPluginBridge.h"
 #include "DrawDebugHelpers.h" // FlushPersistentDebugLines
 #endif
+// NvFlex end
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -519,44 +521,44 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 		// See which scene type(s) is(are) requested
 		bool bVisualizeSync = FParse::Command(&Cmd, TEXT("SYNC"));
 		bool bVisualizeAsync = FParse::Command(&Cmd, TEXT("ASYNC")) && InWorld->GetPhysicsScene()->HasAsyncScene();
-		if(!bVisualizeSync && !bVisualizeAsync)
-		{
-			// If none are requested, do both
-			bVisualizeSync = true;
-			bVisualizeAsync = InWorld->GetPhysicsScene()->HasAsyncScene();
-		}
+if (!bVisualizeSync && !bVisualizeAsync)
+{
+	// If none are requested, do both
+	bVisualizeSync = true;
+	bVisualizeAsync = InWorld->GetPhysicsScene()->HasAsyncScene();
+}
 
-		bool bResult = false;
+bool bResult = false;
 
-		// Visualize sync scene if requested
-		if(bVisualizeSync)
-		{
-			if( ExecApexVis(InWorld, PST_Sync, Cmd, Ar) != 0 )
-			{
-				bResult = 1;
-			}
-		}
-
-		// Visualize async scene if requested
-		if(bVisualizeAsync)
-		{
-			if( ExecApexVis(InWorld, PST_Async, Cmd, Ar) != 0 )
-			{
-				bResult = 1;
-			}
-		}
-
-		return bResult;
+// Visualize sync scene if requested
+if (bVisualizeSync)
+{
+	if (ExecApexVis(InWorld, PST_Sync, Cmd, Ar) != 0)
+	{
+		bResult = 1;
 	}
-	else if(!IsRunningCommandlet() && GPhysXSDK && FParse::Command(&Cmd, TEXT("PVD")) )
+}
+
+// Visualize async scene if requested
+if (bVisualizeAsync)
+{
+	if (ExecApexVis(InWorld, PST_Async, Cmd, Ar) != 0)
+	{
+		bResult = 1;
+	}
+}
+
+return bResult;
+	}
+	else if (!IsRunningCommandlet() && GPhysXSDK && FParse::Command(&Cmd, TEXT("PVD")))
 	{
 		// check if PvdConnection manager is available on this platform
-		if(GPhysXVisualDebugger != NULL)
+		if (GPhysXVisualDebugger != NULL)
 		{
-			if(FParse::Command(&Cmd, TEXT("CONNECT")))
+			if (FParse::Command(&Cmd, TEXT("CONNECT")))
 			{
-				
-				
+
+
 				const bool bVizualization = !FParse::Command(&Cmd, TEXT("NODEBUG"));
 
 				// setup connection parameters
@@ -566,12 +568,12 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 					Host = Cmd;
 				}
 
-				
+
 
 				PvdConnect(Host, bVizualization);
 
 			}
-			else if(FParse::Command(&Cmd, TEXT("DISCONNECT")))
+			else if (FParse::Command(&Cmd, TEXT("DISCONNECT")))
 			{
 				GPhysXVisualDebugger->disconnect();
 			}
@@ -580,18 +582,18 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 		return 1;
 	}
 #if PHYSX_MEMORY_STATS
-	else if(GPhysXAllocator && FParse::Command(&Cmd, TEXT("PHYSXALLOC")) )
+	else if (GPhysXAllocator && FParse::Command(&Cmd, TEXT("PHYSXALLOC")))
 	{
 		GPhysXAllocator->DumpAllocations(Ar);
 		return 1;
 	}
 #endif
-	else if(FParse::Command(&Cmd, TEXT("PHYSXSHARED")) )
+	else if (FParse::Command(&Cmd, TEXT("PHYSXSHARED")))
 	{
 		FPhysxSharedData::Get().DumpSharedMemoryUsage(Ar);
 		return 1;
 	}
-	else if(FParse::Command(&Cmd, TEXT("PHYSXINFO")))
+	else if (FParse::Command(&Cmd, TEXT("PHYSXINFO")))
 	{
 		Ar->Logf(TEXT("PhysX Info:"));
 		Ar->Logf(TEXT("  Version: %d.%d.%d"), PX_PHYSICS_VERSION_MAJOR, PX_PHYSICS_VERSION_MINOR, PX_PHYSICS_VERSION_BUGFIX);
@@ -602,7 +604,7 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 #else
 		Ar->Logf(TEXT("  Configuration: PROFILE"));
 #endif
-		if(GetPhysXCookingModule())
+		if (GetPhysXCookingModule())
 		{
 			Ar->Logf(TEXT("  Cooking Module: TRUE"));
 		}
@@ -614,28 +616,33 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 		return 1;
 	}
 
+	// NvFlex begin
 #if WITH_FLEX
 	if (FParse::Command(&Cmd, TEXT("FLEXVIS")))
 	{
-		FFlexContainerInstance::sGlobalDebugDraw = !FFlexContainerInstance::sGlobalDebugDraw;
-
-		// if disabling debug draw ensure any persistent lines are flushed
-		if (!FFlexContainerInstance::sGlobalDebugDraw)
-			FlushPersistentDebugLines(InWorld);
+		if (GFlexPluginBridge)
+		{
+			GFlexPluginBridge->ToggleFlexContainerDebugDraw(InWorld);
+		}
 	}
 	else if (FParse::Command(&Cmd, TEXT("FLEXSTARTRECORD")))
 	{
 		FPhysScene* Scene = InWorld->GetPhysicsScene();
-		if (Scene)
-			Scene->StartFlexRecord();
+		if (Scene && GFlexPluginBridge)
+		{
+			GFlexPluginBridge->StartFlexRecord(Scene);
+		}
 	}
 	else if (FParse::Command(&Cmd, TEXT("FLEXSTOPRECORD")))
 	{
 		FPhysScene* Scene = InWorld->GetPhysicsScene();
-		if (Scene)
-			Scene->StopFlexRecord();
+		if (Scene && GFlexPluginBridge)
+		{
+			GFlexPluginBridge->StopFlexRecord(Scene);
+		}
 	}
 #endif
+	// NvFlex end
 
 #endif // WITH_PHYSX
 

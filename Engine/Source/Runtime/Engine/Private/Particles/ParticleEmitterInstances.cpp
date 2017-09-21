@@ -284,7 +284,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 		{
 			FPhysScene* Scene = Emitter->Component->GetWorld()->GetPhysicsScene();
 
-			Container = Scene->GetFlexContainer(Emitter->SpriteTemplate->FlexContainerTemplate);
+			Container = GFlexPluginBridge->GetFlexContainer(Scene, Emitter->SpriteTemplate->FlexContainerTemplate);
 			if (Container)
 			{
 				Container->Register(this);

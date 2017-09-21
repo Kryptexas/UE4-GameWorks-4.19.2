@@ -1,21 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysicsEngine/SoftJointComponent.h"
+#include "SoftJointComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "GameFramework/Actor.h"
 #include "WorldCollision.h"
 #include "Engine/World.h"
 #include "Components/BillboardComponent.h"
 #include "Engine/Texture2D.h"
-#include "PhysicsEngine/SoftJointActor.h"
+#include "SoftJointActor.h"
 
 #include "PhysicsPublic.h"
 
-#if WITH_FLEX
 #include "FlexActor.h"
 #include "FlexComponent.h"
 #include "Particles/ParticleSystemComponent.h"
-#endif
+
+#include "EngineUtils.h"
+#include "GameWorks/IFlexPluginBridge.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SOFTJOINTCOMPONENT
@@ -64,7 +65,6 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-#if WITH_FLEX
 	// Do the initialization the first time this joint is ticked
 	if (!bJointIsInitialized)
 	{
@@ -129,7 +129,7 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
 		if (PhysScene)
 		{
-			FFlexContainerInstance* Container = PhysScene->GetSoftJointContainer(ContainerTemplate);
+			FFlexContainerInstance* Container = GFlexPluginBridge->GetFlexSoftJointContainer(PhysScene, ContainerTemplate);
 			if (Container)
 			{
 				ContainerInstance = Container;
@@ -141,7 +141,6 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 
 		bJointIsInitialized = true;
 	}
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

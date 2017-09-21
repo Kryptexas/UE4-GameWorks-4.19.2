@@ -24,10 +24,10 @@ public:
 
 public:
 	/** Returns SoftJointComponent subobject **/
-	ENGINE_API class USoftJointComponent* GetSoftJointComponent() const;
+	FLEX_API class USoftJointComponent* GetSoftJointComponent() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
+	FLEX_API UBillboardComponent* GetSpriteComponent() const;
 #endif
 
 private:

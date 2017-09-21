@@ -6,6 +6,7 @@
 #include "PhysicsEngine/PhysXSupport.h"
 #include "DynamicMeshBuilder.h"
 
+#include "GameWorks/IFlexPluginBridge.h"
 
 /** Vertex Buffer */
 class FFlexRopeVertexBuffer : public FVertexBuffer 
@@ -496,7 +497,7 @@ void UFlexRopeComponent::OnRegister()
 
 	if (ContainerTemplate && PhysScene && (!GIsEditor || GIsPlayInEditorWorld) && !AssetInstance)
 	{
-		FFlexContainerInstance* Container = PhysScene->GetFlexContainer(ContainerTemplate);
+		FFlexContainerInstance* Container = GFlexPluginBridge->GetFlexContainer(PhysScene, ContainerTemplate);
 		if (Container)
 		{
 			ContainerInstance = Container;

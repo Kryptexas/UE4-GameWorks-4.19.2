@@ -23,11 +23,12 @@
 #endif
 
 #include "PhysicsEngine/PhysSubstepTasks.h"
+
+// NvFlex begin
 #if WITH_FLEX
-	#include "FlexContainer.h"
-	#include "FlexContainerInstance.h"	
-	#include "DrawDebugHelpers.h" // FlushPersistentDebugLines
+#include "GameWorks/IFlexPluginBridge.h"
 #endif
+// NvFlex end
 
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
 #include "Components/DestructibleComponent.h"
@@ -549,25 +550,15 @@ FPhysScene::~FPhysScene()
 {
 	FCoreUObjectDelegates::PreGarbageCollect.Remove(PreGarbageCollectDelegateHandle);
 
+	// NvFlex begin
 #if WITH_FLEX
 	// Clean up Flex scenes
-	if (GFlexIsInitialized && FlexContainerMap.Num())
+	if (GFlexPluginBridge)
 	{
-		for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-		{
-			UFlexContainer* FlexContainerCopy = It->Value->Template;
-
-			delete It->Value;
-			It.RemoveCurrent();
-
-			// Destroy the UFlexContainer copy that was created by GetFlexContainer()
-			if (FlexContainerCopy != nullptr && FlexContainerCopy->IsValidLowLevel())
-			{
-				FlexContainerCopy->ConditionalBeginDestroy();
-			}
-		}
+		GFlexPluginBridge->CleanupFlexScenes(this);
 	}
 #endif
+	// NvFlex end
 
 	// Make sure no scenes are left simulating (no-ops if not simulating)
 	WaitPhysScenes();
@@ -1193,93 +1184,6 @@ void FPhysScene::KillVisualDebugger()
 	}
 }
 
-#if WITH_FLEX
-
-void FPhysScene::WaitFlexScenes()
-{
-	if (GFlexIsInitialized && FlexContainerMap.Num())
-	{
-		if (FlexSimulateTaskRef.IsValid())
-			FTaskGraphInterface::Get().WaitUntilTaskCompletes(FlexSimulateTaskRef);
-
-		// if debug draw enabled on any containers then ensure any persistent lines are flushed
-		bool NeedsFlushDebugLines = false;
-
-		for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-		{
-			// The container instances can be removed, so we need to check and handle that case
-			if (!It->Value->TemplateRef.IsValid())
-			{
-				delete It->Value;
-				It.RemoveCurrent();
-			}
-			else if (It->Value->Template->DebugDraw)
-			{
-				NeedsFlushDebugLines = true;
-				break;
-			}
-		}
-
-		if (FFlexContainerInstance::sGlobalDebugDraw || NeedsFlushDebugLines)
-			FlushPersistentDebugLines(OwningWorld);
-
-		// synchronize flex components with results
-		for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-			It->Value->Synchronize();
-	}
-
-}
-
-
-void FPhysScene::TickFlexScenesTask(float dt)
-{
-	// ensure we have the correct CUDA context set for Flex
-	// this would be done automatically when making a Flex API call
-	// but by acquiring explicitly in advance we save some unnecessary
-	// CUDA calls to repeatedly set/unset the context
-	NvFlexAcquireContext(GFlexLib);
-
-	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		// if template has been garbage collected then remove container (need to use the thread safe IsValid() flag)
-		if (!It->Value->TemplateRef.IsValid(false, true))
-		{
-			delete It->Value;
-			It.RemoveCurrent();
-		}
-		else
-		{
-			It->Value->Simulate(dt);
-		}
-	}
-
-	NvFlexRestoreContext(GFlexLib);
-}
-
-void FPhysScene::TickFlexScenes(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt)
-{
-    if (GPhysXSDK)
-    if (GFlexIsInitialized)
-    {
-		// when true the Flex CPU update will be run as a task async to the game thread
-		// note that this is different from the async tick in LevelTick.cpp
-		const bool bFlexAsync = true;
-
-		if (bFlexAsync)
-		{
-			FlexSimulateTaskRef = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::TickFlexScenesTask, dt),
-				GET_STATID(STAT_TotalPhysicsTime));
-		}
-		else
-		{
-			TickFlexScenesTask(dt);
-		}
-    }
-}
-#endif // WITH_FLEX
-
-
 void FPhysScene::WaitPhysScenes()
 {
 	check(IsInGameThread());
@@ -1897,94 +1801,6 @@ apex::Scene* FPhysScene::GetApexScene(uint32 SceneType) const
 	
 }
 #endif // WITH_APEX
-
-#if WITH_FLEX
-FFlexContainerInstance*	FPhysScene::GetFlexContainer(UFlexContainer* Template)
-{
-	if (GFlexIsInitialized == false)
-		return NULL;
-
-	FFlexContainerInstance** Instance = FlexContainerMap.Find(Template);
-	if (Instance)
-	{
-		return *Instance;
-	}
-	else
-	{
-		// Make a copy of the UFlexContainer so that modifying it in blueprint doesn't change the asset
-		// The owning object will be the Transient Pacakge
-		auto ContainerCopy = DuplicateObject<UFlexContainer>(Template, GetTransientPackage()); 
-		
-		// no Garbage Collection please, we need this object to last as long as the FFlexContainerInstance
-		ContainerCopy->AddToRoot();
-		FFlexContainerInstance* NewInst = new FFlexContainerInstance(ContainerCopy, this);
-		FlexContainerMap.Add(Template, NewInst);
-
-		return NewInst;
-	}
-}
-
-FFlexContainerInstance*	FPhysScene::GetSoftJointContainer(UFlexContainer* Template)
-{
-	if (GFlexIsInitialized == false)
-		return NULL;
-
-	FFlexContainerInstance** Instance = FlexContainerMap.Find(Template);
-	if (Instance)
-	{
-		return *Instance;
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
-void FPhysScene::StartFlexRecord()
-{
-	/*
-	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		FFlexContainerInstance* Container = It->Value;
-		FString Name = Container->Template->GetName();
-
-		flexStartRecord(Container->Solver, StringCast<ANSICHAR>(*(FString("flexCapture_") + Name + FString(".flx"))).Get());
-	}
-	*/
-}
-
-void FPhysScene::StopFlexRecord()
-{
-	/*
-	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		FFlexContainerInstance* Container = It->Value;
-		
-		flexStopRecord(Container->Solver);
-	}
-	*/
-}
-
-
-void FPhysScene::AddRadialForceToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
-{
-	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		FFlexContainerInstance* Container = It->Value;
-		Container->AddRadialForce(Origin, Radius, Strength, Falloff);
-	}
-}
-
-void FPhysScene::AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
-{
-	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		FFlexContainerInstance* Container = It->Value;
-		Container->AddRadialImpulse(Origin, Radius, Strength, Falloff, bVelChange);
-	}
-}
-#endif // WITH_FLEX
-
 
 static void BatchPxRenderBufferLines(class ULineBatchComponent& LineBatcherToUse, const PxRenderBuffer& DebugData)
 {

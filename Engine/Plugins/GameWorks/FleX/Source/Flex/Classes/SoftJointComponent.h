@@ -16,7 +16,7 @@ struct NvFlexExtSoftJoint;
 *	Used to emit a soft joint that can affect flex objects in the same container.
 */
 UCLASS(hidecategories = (Object, Mobility, LOD, Physics), ClassGroup = Physics, showcategories = Trigger, meta = (BlueprintSpawnableComponent))
-class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexContainerClient
+class FLEX_API USoftJointComponent : public USceneComponent, public IFlexContainerClient
 {
 	GENERATED_UCLASS_BODY()
 
