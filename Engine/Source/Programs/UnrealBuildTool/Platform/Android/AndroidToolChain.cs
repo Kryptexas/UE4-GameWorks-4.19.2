@@ -818,12 +818,12 @@ namespace UnrealBuildTool
 			return Environment.GetEnvironmentVariable("NDKROOT") + "/sources/android/native_app_glue/android_native_app_glue.c";
 		}
 
-		static void ConditionallyAddNDKSourceFiles(List<FileItem> SourceFiles, string ModuleName)
+		static void ConditionallyAddNDKSourceFiles(List<FileItem> SourceFiles, string ModuleName, string NativeGluePath)
 		{
 			// We need to add the extra glue and cpu code only to Launch module.
 			if (ModuleName.Equals("Launch"))
 			{
-				SourceFiles.Add(FileItem.GetItemByPath( GetNativeGluePath() ));
+				SourceFiles.Add(FileItem.GetItemByPath(NativeGluePath));
 
 				// Newer NDK cpu_features.c uses getauxval() which causes a SIGSEGV in libhoudini.so (ARM on Intel translator) in older versions of Houdini
 				// so we patch the file to use alternative methods of detecting CPU features if libhoudini.so is detected
@@ -907,7 +907,7 @@ namespace UnrealBuildTool
 
 		void GenerateEmptyLinkFunctionsForRemovedModules(List<FileItem> SourceFiles, string ModuleName, DirectoryReference OutputDirectory)
 		{
-			// Only add to UELinkerFixups module
+			// Only add to Launch module
 			if (!ModuleName.Equals("Launch"))
 			{
 				return;
@@ -994,6 +994,7 @@ namespace UnrealBuildTool
 		}
 
 		static private bool bHasPrintedApiLevel = false;
+		static private bool bHasHandledLaunchModule = false;
 		public override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			if (Arches.Count == 0)
@@ -1009,6 +1010,18 @@ namespace UnrealBuildTool
 				return Result;
 			}
 
+			/*
+			Trace.TraceInformation("CompileCPPFiles: Module={0}, SourceFiles={1}", ModuleName, SourceFiles.Count);
+			foreach (string Arch in Arches)
+			{
+				Trace.TraceInformation("  Arch: {0}", Arch);
+			}
+			foreach (FileItem SourceFile in SourceFiles)
+			{
+				Trace.TraceInformation("  {0}", SourceFile.AbsolutePath);
+			}
+			*/
+
 			if (!bHasPrintedApiLevel)
 			{
 				Console.WriteLine("Compiling Native code with NDK API '{0}'", GetNdkApiLevel());
@@ -1023,12 +1036,19 @@ namespace UnrealBuildTool
 
 			}
 
-			// Directly added NDK files for NDK extensions
-			ConditionallyAddNDKSourceFiles(SourceFiles, ModuleName);
 			string NativeGluePath = Path.GetFullPath(GetNativeGluePath());
 
-			// Deal with dynamic modules removed by architecture
-			GenerateEmptyLinkFunctionsForRemovedModules(SourceFiles, ModuleName, CompileEnvironment.OutputDirectory);
+			// Deal with Launch module special if first time seen
+			if (!bHasHandledLaunchModule && ModuleName.Equals("Launch"))
+			{
+				// Directly added NDK files for NDK extensions
+				ConditionallyAddNDKSourceFiles(SourceFiles, ModuleName, NativeGluePath);
+
+				// Deal with dynamic modules removed by architecture
+				GenerateEmptyLinkFunctionsForRemovedModules(SourceFiles, ModuleName, CompileEnvironment.OutputDirectory);
+
+				bHasHandledLaunchModule = true;
+			}
 
 			// Add preprocessor definitions to the argument list.
 			foreach (string Definition in CompileEnvironment.Definitions)
