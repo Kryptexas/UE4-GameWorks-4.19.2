@@ -1299,7 +1299,13 @@ public:
 	/* Helper function to look at both IsMasked and IsDitheredLODTransition to determine if it writes every pixel */
 	ENGINE_API bool WritesEveryPixel(bool bShadowPass = false) const
 	{
-		return !IsMasked() && !(IsDitheredLODTransition() && bShadowPass) && !IsWireframe();
+		static TConsoleVariableData<int32>* CVarStencilDitheredLOD =
+			IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
+
+		return !IsMasked()
+			// Render dithered material as masked if a stencil prepass is not used (UE-50064, UE-49537)
+			&& !((bShadowPass || !CVarStencilDitheredLOD->GetValueOnAnyThread()) && IsDitheredLODTransition())
+			&& !IsWireframe();
 	}
 
 	/** 
