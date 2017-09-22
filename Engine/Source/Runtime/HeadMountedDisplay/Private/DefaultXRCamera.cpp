@@ -14,6 +14,8 @@ FDefaultXRCamera::FDefaultXRCamera(const FAutoRegister& AutoRegister, IXRTrackin
 	, TrackingSystem(InTrackingSystem)
 	, DeviceId(InDeviceId)
 	, bUseImplicitHMDPosition(false)
+	, DeltaControlRotation(0, 0, 0)
+	, DeltaControlOrientation(FQuat::Identity)
 {
 }
 

@@ -1275,6 +1275,30 @@ namespace OculusHMD
 	}
 
 
+	bool FOculusHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport)
+	{
+		CheckInGameThread();
+
+		if (Settings->IsStereoEnabled())
+		{
+			if (LayerMap[0].IsValid())
+			{
+				ExecuteOnRenderThread([this](FRHICommandListImmediate& RHICmdList)
+				{
+					InitializeEyeLayer_RenderThread(RHICmdList);
+				});
+
+				const FTextureSetProxyPtr& TextureSet = EyeLayer_RenderThread->GetTextureSetProxy();
+
+				const FTexture2DRHIRef Tex2D = Viewport.GetRenderTargetTexture();
+				const FTexture2DRHIRef SwapChain = TextureSet->GetTexture2D();
+				return Tex2D != SwapChain;
+			}
+		}
+
+		return false;
+	}
+
 
 	bool FOculusHMD::NeedReAllocateDepthTexture(const TRefCountPtr<IPooledRenderTarget>& DepthTarget)
 	{
@@ -1286,7 +1310,10 @@ namespace OculusHMD
 
 			if (TextureSet.IsValid())
 			{
-				return DepthTarget->GetRenderTargetItem().ShaderResourceTexture != TextureSet->GetTexture2D();
+				if (DepthTarget->GetRenderTargetItem().ShaderResourceTexture != TextureSet->GetTexture2D())
+				{
+					return true;
+				}
 			}
 		}
 
@@ -1304,10 +1331,7 @@ namespace OculusHMD
 
 		if (LayerMap[0].IsValid())
 		{
-			ExecuteOnRenderThread([this](FRHICommandListImmediate& RHICmdList)
-			{
-				InitializeEyeLayer_RenderThread(RHICmdList);
-			});
+			InitializeEyeLayer_RenderThread(GetImmediateCommandList_ForRenderCommand());
 
 			UE_LOG(LogHMD, Log, TEXT("Allocating Oculus %d x %d rendertarget swapchain"), SizeX, SizeY);
 
@@ -1332,10 +1356,8 @@ namespace OculusHMD
 
 		check(Index == 0);
 
-		if (LayerMap[0].IsValid())
+		if (EyeLayer_RenderThread.IsValid())
 		{
-			InitializeEyeLayer_RenderThread(GetImmediateCommandList_ForRenderCommand());
-
 			const FTextureSetProxyPtr& TextureSet = EyeLayer_RenderThread->GetDepthTextureSetProxy();
 
 			if (TextureSet.IsValid())
