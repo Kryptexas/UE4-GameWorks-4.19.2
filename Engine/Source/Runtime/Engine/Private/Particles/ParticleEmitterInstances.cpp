@@ -36,6 +36,7 @@
 #include "FlexContainer.h"
 #include "FlexContainerInstance.h"
 #include "FlexFluidSurfaceComponent.h"
+#include "FlexCollisionReportComponent.h"
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -1018,7 +1019,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 		verify(!bFlexAnisotropyData || Container->Anisotropy1.size() > 0);
 
 		// process report shapes
-		if (Container->ShapeReportComponents.Num() > 0)
+		if (Container->CollisionReportComponents.Num() > 0)
 		{
 			for (int32 i = 0; i < ActiveParticles; i++)
 			{
@@ -1035,42 +1036,25 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 					continue;
 
 				bool bKillParticle = false;
-				UPrimitiveComponent* PrimCountComp = nullptr;
 
 				const uint32 Count = Container->ContactCounts[ContactIndex];
 				for (uint32 c = 0; c < Count; c++)
 				{
 					FVector4 ContactVelocity = Container->ContactVelocities[ContactIndex*FFlexContainerInstance::MaxContactsPerParticle + c];
 					int32 FlexShapeIndex = int(ContactVelocity.W);
-					int32 ShapeReportIndex = Container->ShapeReportIndices[FlexShapeIndex];
+					int32 ShapeReportIndex = Container->CollisionReportIndices[FlexShapeIndex];
 					if (ShapeReportIndex >= 0)
 					{
-						UPrimitiveComponent* PrimComp = Container->ShapeReportComponents[ShapeReportIndex].Get();
+						UFlexCollisionReportComponent* ReportComp = Container->CollisionReportComponents[ShapeReportIndex];
 
-						if (PrimComp == nullptr)
-							continue;
+						if (ReportComp)
+						{
+							ReportComp->Count++;
 
-						//only consider first component that supports counting
-						if (PrimComp->bFlexEnableParticleCounter && !PrimCountComp)
-							PrimCountComp = PrimComp;
-
-						if (PrimComp->bFlexParticleDrain)
-							bKillParticle = true;
+							if (ReportComp->bDrain)
+								bKillParticle = true;
+						}
 					}
-				}
-
-				bool& ContactCounted = Container->ContactCounted[FlexParticleIndex];
-				if (PrimCountComp)
-				{
-					if (!ContactCounted)
-					{
-						PrimCountComp->FlexParticleCount++;
-						ContactCounted = true;
-					}
-				}
-				else
-				{
-					ContactCounted = false;
 				}
 
 				if (bKillParticle)

@@ -12,6 +12,7 @@ class UFlexContainer;
 class UFlexComponent;
 class UFlexAsset;
 class USoftJointComponent;
+class UFlexCollisionReportComponent;
 struct FFlexPhase;
 struct IFlexContainerClient;
 
@@ -87,6 +88,9 @@ struct FLEX_API FFlexContainerInstance : public PxDeletionListener
 	// returns true if data is mapped, if so then reads/writes may occur, otherwise they are illegal
 	bool IsMapped();
 
+	// helper to setup report shapes and indices during UpdateCollisionData
+	void SetupCollisionReport(void* Shape, UFlexCollisionReportComponent* ReportComponent);
+
 	// gather and send collision data to the solver
 	void UpdateCollisionData();
 	// send particle and parameter data to the solver
@@ -140,7 +144,6 @@ struct FLEX_API FFlexContainerInstance : public PxDeletionListener
 	NvFlexVector<int32> ContactIndices;
 	NvFlexVector<FVector4> ContactVelocities;
 	NvFlexVector<uint32> ContactCounts;
-	TArray<bool> ContactCounted;
 
 	FPhysScene* Owner;
 	FBoxSphereBounds Bounds;
@@ -162,9 +165,9 @@ struct FLEX_API FFlexContainerInstance : public PxDeletionListener
 	NvFlexVector<FVector4> ShapePositionsPrev;
 	NvFlexVector<FQuat> ShapeRotationsPrev;
 
-
-	TArray<int32> ShapeReportIndices;
-	TArray<TWeakObjectPtr<UPrimitiveComponent>> ShapeReportComponents;
+	TArray<int32> CollisionReportIndices;
+	TArray<UFlexCollisionReportComponent*> CollisionReportComponents;
+	TMap<void*, int32> ShapeToCollisionReportIndex;
 
 	// temporary buffers used during collision shape building
 	NvFlexVector<FVector4> TriMeshVerts;
