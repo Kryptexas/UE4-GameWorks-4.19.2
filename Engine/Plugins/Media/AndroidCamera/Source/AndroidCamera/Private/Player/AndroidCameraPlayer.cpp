@@ -44,6 +44,7 @@ FAndroidCameraPlayer::FAndroidCameraPlayer(IMediaEventSink& InEventSink)
 	, SelectedCaptionTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
 	, VideoSamplePool(new FAndroidCameraTextureSamplePool)
+	, bOpenWithoutEvents(false)
 {
 	check(JavaCameraPlayer.IsValid());
 	check(Samples.IsValid());
@@ -141,8 +142,11 @@ void FAndroidCameraPlayer::Close()
 	MediaUrl = FString();
 
 	// notify listeners
-	EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
-	EventSink.ReceiveMediaEvent(EMediaEvent::MediaClosed);
+	if (!bOpenWithoutEvents)
+	{
+		EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
+		EventSink.ReceiveMediaEvent(EMediaEvent::MediaClosed);
+	}
 }
 
 
@@ -754,8 +758,11 @@ bool FAndroidCameraPlayer::InitializePlayer()
 	CurrentState = EMediaState::Stopped;
 
 	// notify listeners
-	EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
-	EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpened);
+	if (!bOpenWithoutEvents)
+	{
+		EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
+		EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpened);
+	}
 
 	return true;
 }
@@ -1074,7 +1081,9 @@ bool FAndroidCameraPlayer::SelectTrack(EMediaTrackType TrackType, int32 TrackInd
 					NewUrl = ReplaceUrlSection(NewUrl, TEXT("height="), FString::Printf(TEXT("height=%d"), VideoTracks[TrackIndex].Formats[FormatIndex].Dimensions.Y));
 					NewUrl = ReplaceUrlSection(NewUrl, TEXT("fps="), FString::Printf(TEXT("fps=%d"), (int32)VideoTracks[TrackIndex].Formats[FormatIndex].FrameRate));
 
+					bOpenWithoutEvents = true;
 					Open(NewUrl, nullptr);
+					bOpenWithoutEvents = false;
 					SetRate(OldRate);
 				}
 
@@ -1121,7 +1130,9 @@ bool FAndroidCameraPlayer::SetTrackFormat(EMediaTrackType TrackType, int32 Track
 				NewUrl = ReplaceUrlSection(NewUrl, TEXT("height="), FString::Printf(TEXT("height=%d"), VideoTracks[TrackIndex].Formats[FormatIndex].Dimensions.Y));
 				NewUrl = ReplaceUrlSection(NewUrl, TEXT("fps="), FString::Printf(TEXT("fps=%d"), (int32)VideoTracks[TrackIndex].Formats[FormatIndex].FrameRate));
 
+				bOpenWithoutEvents = true;
 				Open(NewUrl, nullptr);
+				bOpenWithoutEvents = false;
 				SetRate(OldRate);
 			}
 		}
@@ -1175,7 +1186,9 @@ bool FAndroidCameraPlayer::SetVideoTrackFrameRate(int32 TrackIndex, int32 Format
 					float OldRate = GetRate();
 					FString NewUrl = ReplaceUrlSection(MediaUrl, TEXT("fps="), FString::Printf(TEXT("fps=%d"), (int32)FrameRate));
 
+					bOpenWithoutEvents = true;
 					Open(NewUrl, nullptr);
+					bOpenWithoutEvents = false;
 					SetRate(OldRate);
 				}
 			}
