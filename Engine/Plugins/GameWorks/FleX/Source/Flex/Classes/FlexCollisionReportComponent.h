@@ -2,11 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Components/ActorComponent.h"
 #include "FlexCollisionReportComponent.generated.h"
 
 UCLASS(Blueprintable, hidecategories = (Object), meta = (BlueprintSpawnableComponent))
-class ENGINE_API UFlexCollisionReportComponent : public UActorComponent
+class FLEX_API UFlexCollisionReportComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
