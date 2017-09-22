@@ -579,7 +579,6 @@ public:
 	
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_DefaultES2;
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_AndroidGLES2;
-	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_IOSGLES2;
 
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_DefaultES31;
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_AndroidGLES31;
