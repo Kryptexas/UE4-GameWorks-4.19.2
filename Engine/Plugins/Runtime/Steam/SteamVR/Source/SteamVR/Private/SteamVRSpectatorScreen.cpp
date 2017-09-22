@@ -27,7 +27,7 @@ void FSteamVRHMD::CreateSpectatorScreenController()
 	SpectatorScreenController = MakeUnique<FDefaultSpectatorScreenController>(this);
 }
 
-FIntRect FSteamVRHMD::GetFullFlatEyeRect(FTexture2DRHIRef EyeTexture) const
+FIntRect FSteamVRHMD::GetFullFlatEyeRect_RenderThread(FTexture2DRHIRef EyeTexture) const
 {
 	static FVector2D SrcNormRectMin(0.05f, 0.2f);
 	static FVector2D SrcNormRectMax(0.45f, 0.8f);

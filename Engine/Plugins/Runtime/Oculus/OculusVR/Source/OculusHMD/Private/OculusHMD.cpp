@@ -1072,7 +1072,7 @@ namespace OculusHMD
 
 
 
-	void FOculusHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture) const
+	void FOculusHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture, FVector2D WindowSize) const
 	{
 		CheckInRenderThread();
 		check(CustomPresent);
@@ -1083,7 +1083,7 @@ namespace OculusHMD
 
 		if (SpectatorScreenController)
 		{
-			SpectatorScreenController->RenderSpectatorScreen_RenderThread(RHICmdList, BackBuffer, SrcTexture);
+			SpectatorScreenController->RenderSpectatorScreen_RenderThread(RHICmdList, BackBuffer, SrcTexture, WindowSize);
 		}
 
 #if OCULUS_STRESS_TESTS_ENABLED
@@ -1206,9 +1206,26 @@ namespace OculusHMD
 		Settings->Flags.bClippingPlanesOverride = false; // prevents from saving in .ini file
 	}
 
+	FVector2D FOculusHMD::GetEyeCenterPoint_RenderThread(EStereoscopicPass StereoPassType) const 
+	{ 
+		CheckInRenderThread();
 
-	FIntRect FOculusHMD::GetFullFlatEyeRect(FTexture2DRHIRef EyeTexture) const
-			{
+		check(IsStereoEnabled());
+
+		// Don't use GetStereoProjectionMatrix because it is game thread only on oculus, we also don't need the zplane adjustments for this.
+		const int32 ViewIndex = ViewIndexFromStereoPass(StereoPassType);
+		const FMatrix StereoProjectionMatrix = ToFMatrix(Settings_RenderThread->EyeProjectionMatrices[ViewIndex]);
+
+		//0,0,1 is the straight ahead point, wherever it maps to is the center of the projection plane in -1..1 coordinates.  -1,-1 is bottom left.
+		const FVector4 ScreenCenter = StereoProjectionMatrix.TransformPosition(FVector(0.0f, 0.0f, 1.0f));
+		//transform into 0-1 screen coordinates 0,0 is top left.  
+		const FVector2D CenterPoint(0.5f + (ScreenCenter.X / 2.0f), 0.5f - (ScreenCenter.Y / 2.0f) );
+
+		return CenterPoint;
+	}
+
+	FIntRect FOculusHMD::GetFullFlatEyeRect_RenderThread(FTexture2DRHIRef EyeTexture) const
+	{
 		check(IsInRenderingThread());
 		// Rift does this differently than other platforms, it already has an idea of what rectangle it wants to use stored.
 		FIntRect& EyeRect = Settings_RenderThread->EyeRenderViewport[0];
@@ -1219,7 +1236,7 @@ namespace OculusHMD
 		const int32 SizeX = EyeRect.Max.X - EyeRect.Min.X;
 		const int32 SizeY = EyeRect.Max.Y - EyeRect.Min.Y;
 		return FIntRect(EyeRect.Min.X + SizeX * SrcNormRectMin.X, EyeRect.Min.Y + SizeY * SrcNormRectMin.Y, EyeRect.Min.X + SizeX * SrcNormRectMax.X, EyeRect.Min.Y + SizeY * SrcNormRectMax.Y);
-			}
+	}
 
 
 	void FOculusHMD::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SrcTexture, FIntRect SrcRect, FTexture2DRHIParamRef DstTexture, FIntRect DstRect, bool bClearBlack) const

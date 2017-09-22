@@ -41,7 +41,11 @@ public:
 	virtual class ISpectatorScreenController const* GetSpectatorScreenController() const override;
 
 	// Spectator Screen Hooks into specific implementations
-	virtual FIntRect GetFullFlatEyeRect(FTexture2DRHIRef EyeTexture) const { return FIntRect(0, 0, 1, 1); }
+	// Get the point on the left eye render target which the viewers eye is aimed directly at when looking straight forward. 0,0 is top left.
+	virtual FVector2D GetEyeCenterPoint_RenderThread(EStereoscopicPass Eye) const;
+	// Get the rectangle of the HMD rendertarget for the left eye which seems undistorted enough to be cropped and displayed on the spectator screen.
+	virtual FIntRect GetFullFlatEyeRect_RenderThread(FTexture2DRHIRef EyeTexture) const { return FIntRect(0, 0, 1, 1); }
+	// Helper to copy one render target into another for spectator screen display
 	virtual void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SrcTexture, FIntRect SrcRect, FTexture2DRHIParamRef DstTexture, FIntRect DstRect, bool bClearBlack) const {}
 
 protected:

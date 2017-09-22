@@ -294,6 +294,14 @@ void UHeadMountedDisplayFunctionLibrary::SetSpectatorScreenMode(ESpectatorScreen
 	{
 		Controller->SetSpectatorScreenMode(Mode);
 	}
+	else
+	{
+		static FName PSVRName(TEXT("PSVR"));
+		if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetSystemName() == PSVRName)
+		{
+			UE_LOG(LogHMD, Warning, TEXT("SetSpectatorScreenMode called while running PSVR, but the SpectatorScreenController was not found.  Perhaps you need to set the plugin project setting bEnableSocialScreenSeparateMode to true to enable it?  Ignoring this call."));
+		}
+	}
 }
 
 void UHeadMountedDisplayFunctionLibrary::SetSpectatorScreenTexture(UTexture* InTexture)
