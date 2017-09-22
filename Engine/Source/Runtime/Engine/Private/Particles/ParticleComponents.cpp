@@ -84,9 +84,6 @@
 #include "FrameworkObjectVersion.h"
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
-#include "FlexFluidSurface.h"
-#include "FlexFluidSurfaceComponent.h"
-#include "FlexContainerInstance.h"
 #endif
 #include "PhysicsPublic.h"
 
@@ -4141,7 +4138,8 @@ void UParticleSystemComponent::UpdateFlexSurfaceDynamicData(FParticleEmitterInst
 		{
 			UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurface);
 			check(SurfaceComponent);
-			SurfaceComponent->SendRenderEmitterDynamicData_Concurrent(
+			GFlexPluginBridge->SendRenderEmitterDynamicData_Concurrent(
+				SurfaceComponent,
 				(FParticleSystemSceneProxy*)SceneProxy,
 				EmitterDynamicData);
 		}
@@ -4161,7 +4159,8 @@ void UParticleSystemComponent::ClearFlexSurfaceDynamicData()
 				UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurface);
 				if (SurfaceComponent)
 				{
-					SurfaceComponent->SendRenderEmitterDynamicData_Concurrent(
+					GFlexPluginBridge->SendRenderEmitterDynamicData_Concurrent(
+						SurfaceComponent,
 						(FParticleSystemSceneProxy*)SceneProxy,
 						nullptr);
 				}
@@ -4169,25 +4168,6 @@ void UParticleSystemComponent::ClearFlexSurfaceDynamicData()
 		}
 	}
 }
-
-void UParticleSystemComponent::AttachFlexToComponent(USceneComponent* Component, float Radius)
-{
-	// Forward to all Flex emitters
-	// TODO: check for actual overlaps first
-	for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
-	{
-		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
-		if (EmitterInstance && 
-			EmitterInstance->SpriteTemplate && 
-			EmitterInstance->SpriteTemplate->FlexContainerTemplate &&
-			EmitterInstance->FlexEmitterInstance)
-		{
-			EmitterInstance->AttachFlexToComponent(Component, Radius);
-		}
-	}
-
-}
-
 #endif
 
 UFlexContainer* UParticleSystemComponent::GetFirstFlexContainerTemplate()
@@ -4199,8 +4179,7 @@ UFlexContainer* UParticleSystemComponent::GetFirstFlexContainerTemplate()
 		if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->SpriteTemplate->FlexContainerTemplate)
 		{
 			FPhysScene* Scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
-			FFlexContainerInstance* ContainerInstance = GFlexPluginBridge->GetFlexContainer(Scene, EmitterInstance->SpriteTemplate->FlexContainerTemplate);
-			return ContainerInstance ? ContainerInstance->Template : nullptr;
+			return GFlexPluginBridge->GetFirstFlexContainerTemplate(Scene, EmitterInstance->SpriteTemplate->FlexContainerTemplate);
 		}
 	}
 #endif
@@ -5321,7 +5300,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 				UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurfaceOverride);
 				
 				// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
-				SurfaceComponent->SetEnabledReferenceCounting(false);
+				GFlexPluginBridge->SetEnabledReferenceCounting(SurfaceComponent, false);
 			}
 #endif
 
@@ -5381,9 +5360,9 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			if (Instance &&
 				Instance->SpriteTemplate &&
 				Instance->SpriteTemplate->FlexFluidSurfaceTemplate &&
-				Instance->SpriteTemplate->FlexFluidSurfaceTemplate->Material)
+				GFlexPluginBridge->GetFlexFluidSurfaceMaterial(Instance->SpriteTemplate->FlexFluidSurfaceTemplate))
 			{
-				Instance->RegisterNewFlexFluidSurfaceComponent(FlexFluidSurfaceOverride);
+				GFlexPluginBridge->RegisterNewFlexFluidSurfaceComponent(Instance, FlexFluidSurfaceOverride);
 	}
 		}
 #endif
@@ -5396,7 +5375,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurfaceOverride);
 
 		// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
-		SurfaceComponent->SetEnabledReferenceCounting(true);
+		GFlexPluginBridge->SetEnabledReferenceCounting(SurfaceComponent, true);
 	}
 #endif
 
@@ -7278,7 +7257,7 @@ UMaterialInstanceDynamic* UParticleSystemComponent::CreateFlexDynamicMaterialIns
 		if (EmitterInstance && 
 			EmitterInstance->SpriteTemplate && 
 			EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate &&
-			EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate->Material)
+			GFlexPluginBridge->GetFlexFluidSurfaceMaterial(EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate))
 		{
 			UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(SourceMaterial);
 
@@ -7291,16 +7270,12 @@ UMaterialInstanceDynamic* UParticleSystemComponent::CreateFlexDynamicMaterialIns
 			if (MID)
 			{
 				// Make a copy of the FlexFluidSurfaceTemplate
-				auto NewFlexFluidSurface = DuplicateObject<UFlexFluidSurface>(EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate, this);
-				
 				// Set the material in the new FlexFluidSurfaceTemplate
-				NewFlexFluidSurface->Material = MID;
-
 				// Set the FlexFluidSurfaceTemplate override in this class
-				FlexFluidSurfaceOverride = NewFlexFluidSurface;
+				FlexFluidSurfaceOverride = GFlexPluginBridge->DuplicateFlexFluidSurface(EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate, this, MID);
 
 				// Tell the ParticleEmiterInstance to update its FlexFluidSurfaceComponent
-				EmitterInstance->RegisterNewFlexFluidSurfaceComponent(FlexFluidSurfaceOverride);
+				GFlexPluginBridge->RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexFluidSurfaceOverride);
 			}
 			else
 			{

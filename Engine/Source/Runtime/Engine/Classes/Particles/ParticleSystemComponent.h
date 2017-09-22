@@ -1273,13 +1273,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Flex")
 	UFlexContainer* GetFirstFlexContainerTemplate();
 
-#if WITH_FLEX
-	/**
-	* Used for attaching a RadialForceComponent to overlapping particles in a Flex emitter
-	*/
-	void AttachFlexToComponent(USceneComponent* Component, float Radius);
-#endif
-
 	FORCEINLINE int32 GetCurrentLODIndex() const
 	{
 		return LODLevel;

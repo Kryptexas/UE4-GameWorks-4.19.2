@@ -33,10 +33,6 @@
 
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
-#include "FlexContainer.h"
-#include "FlexContainerInstance.h"
-#include "FlexFluidSurfaceComponent.h"
-#include "FlexCollisionReportComponent.h"
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -249,210 +245,6 @@ FParticleEmitterBuildInfo::FParticleEmitterBuildInfo()
 #endif
 }
 
-#if WITH_FLEX
-/*-----------------------------------------------------------------------------
-	FFlexParticleEmitterInstance
------------------------------------------------------------------------------*/
-
-struct FFlexParticleEmitterInstance : public IFlexContainerClient
-{
-	// Copied from UFlexComponent
-	struct FlexParticleAttachment
-	{
-		TWeakObjectPtr<USceneComponent> Primitive;
-		int32 ParticleIndex;
-		float OldMass;
-		FVector LocalPos;
-		FVector Velocity;
-	};
-
-	struct FlexComponentAttachment
-	{
-		FlexComponentAttachment(USceneComponent* InComponent, float InRadius)
-			: Component(InComponent)
-			, Radius(InRadius)
-		{}
-
-		USceneComponent* Component;
-		float Radius;
-	};
-
-	FFlexParticleEmitterInstance(FParticleEmitterInstance* Instance)
-	{
-		Emitter = Instance;
-			
-		if (Emitter->SpriteTemplate->FlexContainerTemplate)
-		{
-			FPhysScene* Scene = Emitter->Component->GetWorld()->GetPhysicsScene();
-
-			Container = GFlexPluginBridge->GetFlexContainer(Scene, Emitter->SpriteTemplate->FlexContainerTemplate);
-			if (Container)
-			{
-				Container->Register(this);
-				Phase = Container->GetPhase(Emitter->SpriteTemplate->Phase);
-			}
-		}
-		LinearInertialScale = Emitter->SpriteTemplate->InertialScale.LinearInertialScale;
-		AngularInertialScale = Emitter->SpriteTemplate->InertialScale.AngularInertialScale;
-	}
-
-	virtual ~FFlexParticleEmitterInstance()
-	{
-		if (Container)
-			Container->Unregister(this);
-	}
-
-	virtual bool IsEnabled() { return Container != NULL; }
-	virtual FBoxSphereBounds GetBounds() { return FBoxSphereBounds(Emitter->GetBoundingBox()); }
-	virtual void Synchronize() {}
-
-	FParticleEmitterInstance* Emitter;
-	FFlexContainerInstance* Container;
-	int32 Phase;
-
-	//Currently only parented emitters will use theres for particle localization
-	float LinearInertialScale;
-	float AngularInertialScale;
-
-	NvFlexExtMovingFrame MeshFrame;
-
-	void AddPendingComponentToAttach(USceneComponent* Component, float Radius)
-	{
-		FlexComponentAttachment PendingAttach(Component, Radius);
-		PendingAttachments.Add(PendingAttach);
-	}		
-
-	void ExecutePendingComponentsToAttach()
-	{
-		for (int32 i = 0; i < PendingAttachments.Num(); i++)
-		{
-			AttachToComponent(PendingAttachments[i].Component, PendingAttachments[i].Radius);
-		}
-		PendingAttachments.Empty();
-	}
-
-	void AttachToComponent(USceneComponent* Component, float Radius)
-	{
-		const FTransform ComponentTransform = Component->GetComponentTransform();
-		const FVector ComponentPos = Component->GetComponentTransform().GetTranslation();
-
-		for (int32 i = 0; i < Emitter->ActiveParticles; i++)
-		{
-			DECLARE_PARTICLE(Particle, Emitter->ParticleData + Emitter->ParticleStride * Emitter->ParticleIndices[i]);
-
-			int32 CurrentOffset = Emitter->FlexDataOffset;
-			
-			const uint8* ParticleBase = (const uint8*)&Particle;
-			PARTICLE_ELEMENT(int32, FlexParticleIndex);
-
-			FVector4 ParticlePos = Container->Particles[FlexParticleIndex];
-
-			// skip infinite mass particles as they may already be attached to another component
-			if (ParticlePos.W == 0.0f)
-				continue;
-
-			// test distance from component origin
-			//FVector Delta = FVector(ParticlePos) - Transform.GetTranslation();
-
-			//if (Delta.Size() < Radius)
-			if (FVector::DistSquared(FVector(ParticlePos), ComponentPos) < Radius * Radius)
-			{
-				// calculate local space position of particle in component
-				FVector LocalPos = ComponentTransform.InverseTransformPosition(ParticlePos);
-
-				FlexParticleAttachment Attachment;
-				Attachment.Primitive = Component;
-				Attachment.ParticleIndex = FlexParticleIndex;
-				Attachment.OldMass = ParticlePos.W;
-				Attachment.LocalPos = LocalPos;
-				Attachment.Velocity = FVector(0.0f);
-
-				Attachments.Add(Attachment);
-			}
-		}
-	}
-
-	void SynchronizeAttachments(float DeltaTime)
-	{
-		// process attachments
-		for (int32 AttachmentIndex = 0; AttachmentIndex < Attachments.Num(); )
-		{
-			FlexParticleAttachment& Attachment = Attachments[AttachmentIndex];
-			const USceneComponent* SceneComp = Attachment.Primitive.Get();
-
-			// index into the simulation data, we need to modify the container's copy
-			// of the data so that the new positions get sent back to the sim
-			const int ParticleIndex = Attachment.ParticleIndex; //AssetInstance->mParticleIndices[Attachment.ParticleIndex];
-
-			if (SceneComp)
-			{
-				FTransform AttachTransform;
-
-				const UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComp);
-
-				if (PrimComp)
-				{
-					// primitive component attachments use the physics bodies
-					AttachTransform = PrimComp->GetComponentToWorld();
-				}
-				else
-				{
-					// regular components attach to the actor transform
-					AttachTransform = SceneComp->GetComponentTransform();
-				}
-
-				const FVector AttachedPos = AttachTransform.TransformPosition(Attachment.LocalPos);
-
-				// keep the velocity so the particles can be "thrown" by their attachment 
-				Attachment.Velocity = (AttachedPos - FVector(Container->Particles[ParticleIndex])) / DeltaTime;
-
-				Container->Particles[ParticleIndex] = FVector4(AttachedPos, 0.0f);
-				Container->Velocities[ParticleIndex] = FVector(0.0f);
-
-				++AttachmentIndex;
-			}
-			else // process detachments
-			{
-				Container->Particles[ParticleIndex].W = Attachment.OldMass;
-				// Allow the particles to keep their current velocity
-				Container->Velocities[ParticleIndex] = Attachment.Velocity;
-
-				Attachments.RemoveAtSwap(AttachmentIndex);
-			}
-		}
-	}
-
-	void DestroyParticle(int32 FlexParticleIndex)
-	{
-		Container->DestroyParticle(FlexParticleIndex);
-		RemoveAttachmentForParticle(FlexParticleIndex);
-	}
-
-	void RemoveAttachmentForParticle(int32 ParticleIndex)
-	{
-		for (int32 AttachmentIndex = 0; AttachmentIndex < Attachments.Num(); ++AttachmentIndex)
-		{
-			const FlexParticleAttachment& Attachment = Attachments[AttachmentIndex];
-
-			if (ParticleIndex == Attachment.ParticleIndex)
-			{
-				Container->Particles[ParticleIndex].W = Attachment.OldMass;
-				Container->Velocities[ParticleIndex] = FVector(0.0f);
-
-				Attachments.RemoveAtSwap(AttachmentIndex);
-				break;
-			}
-		}
-	}
-
-	/* Attachments to force components */
-	TArray<FlexParticleAttachment> Attachments;
-
-	/* Pending "attachment to component" calls to process */
-	TArray<FlexComponentAttachment> PendingAttachments;
-};
-#endif
-
 /*-----------------------------------------------------------------------------
 	FParticleEmitterInstance
 -----------------------------------------------------------------------------*/
@@ -523,31 +315,9 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
 #if WITH_FLEX
-	if (FlexEmitterInstance)
+	if (GFlexPluginBridge)
 	{
-		if (!GIsEditor || GIsPlayInEditorWorld)
-		{
-			FFlexContainerInstance* Container = FlexEmitterInstance->Container;
-
-			if (Container)
-			{
-				for (int32 i = 0; i < ActiveParticles; i++)
-				{
-					DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
-					verify(FlexDataOffset > 0);
-					int32 CurrentOffset = FlexDataOffset;
-					const uint8* ParticleBase = (const uint8*)&Particle;
-					PARTICLE_ELEMENT(int32, FlexParticleIndex);
-					Container->DestroyParticle(FlexParticleIndex);
-				}
-			}
-		}
-		delete FlexEmitterInstance;
-	}
-
-	if (FlexFluidSurfaceComponent)
-	{
-		FlexFluidSurfaceComponent->UnregisterEmitterInstance(this);
+		GFlexPluginBridge->DestroyFlexEmitterInstance(this);
 	}
 #endif
 
@@ -770,65 +540,12 @@ void FParticleEmitterInstance::Init()
 	bEmitterIsDone = false;
 
 #if WITH_FLEX
-	if (FlexEmitterInstance)
+	if (GFlexPluginBridge)
 	{
-		delete FlexEmitterInstance;
-		FlexEmitterInstance = NULL;
-}
-
-	if (SpriteTemplate->FlexContainerTemplate && (!GIsEditor || GIsPlayInEditorWorld))
-	{
-		FPhysScene* scene = Component->GetWorld()->GetPhysicsScene();
-
-		if (scene)
-		{
-			FlexEmitterInstance = new FFlexParticleEmitterInstance(this);
-
-			// need to ensure tick happens after GPU update
-			Component->SetTickGroup(TG_EndPhysics);
-
-			USceneComponent* Parent = Component->GetAttachParent();
-			if (Parent && SpriteTemplate->bLocalSpace)
-			{
-				//update frame
-				const FTransform ParentTransform = Parent->GetComponentTransform();
-				const FVector Translation = ParentTransform.GetTranslation();
-				const FQuat Rotation = ParentTransform.GetRotation();
-
-				NvFlexExtMovingFrameInit(&FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
-			}
-		}
+		GFlexPluginBridge->CreateFlexEmitterInstance(this);
 	}
-
-	RegisterNewFlexFluidSurfaceComponent(SpriteTemplate->FlexFluidSurfaceTemplate);
 #endif
 }
-
-#if WITH_FLEX
-void FParticleEmitterInstance::RegisterNewFlexFluidSurfaceComponent(class UFlexFluidSurface* NewFlexFluidSurface)
-{
-	if (FlexFluidSurfaceComponent)
-	{
-		FlexFluidSurfaceComponent->UnregisterEmitterInstance(this);
-		FlexFluidSurfaceComponent = NULL;
-	}
-
-	if (NewFlexFluidSurface)
-	{
-		FlexFluidSurfaceComponent = GFlexPluginBridge->AddFlexFluidSurface(GetWorld(), NewFlexFluidSurface);
-		FlexFluidSurfaceComponent->RegisterEmitterInstance(this);
-	}
-}
-
-void FParticleEmitterInstance::AttachFlexToComponent(USceneComponent* InComponent, float InRadius)
-{
-	check(FlexEmitterInstance != NULL)
-	if (FlexEmitterInstance)
-	{
-		FlexEmitterInstance->AddPendingComponentToAttach(InComponent, InRadius);
-	}
-}
-#endif
 
 UWorld* FParticleEmitterInstance::GetWorld() const
 {
@@ -1004,135 +721,10 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 		Tick_ModuleUpdate(DeltaTime, LODLevel);
 
 #if WITH_FLEX
-	if (FlexEmitterInstance && FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
-	{	
-		FlexEmitterInstance->ExecutePendingComponentsToAttach();
-		FlexEmitterInstance->SynchronizeAttachments(DeltaTime);
-
-		// all Flex components should be ticked during the synchronization 
-		// phase of the Flex update, which corresponds to the EndPhysics tick group
-		verify(FlexEmitterInstance->Container->IsMapped());
-
-		FFlexContainerInstance* Container = FlexEmitterInstance->Container;
-
-		bFlexAnisotropyData = (Container->Template->AnisotropyScale > 0.0f);
-		verify(!bFlexAnisotropyData || Container->Anisotropy1.size() > 0);
-
-		// process report shapes
-		if (Container->CollisionReportComponents.Num() > 0)
+		if (GFlexPluginBridge)
 		{
-			for (int32 i = 0; i < ActiveParticles; i++)
-			{
-				DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
-
-				verify(FlexDataOffset > 0);
-
-				int32 CurrentOffset = FlexDataOffset;
-				const uint8* ParticleBase = (const uint8*)&Particle;
-				PARTICLE_ELEMENT(int32, FlexParticleIndex);
-
-				const int ContactIndex = Container->ContactIndices[FlexParticleIndex];
-				if (ContactIndex == -1)
-					continue;
-
-				bool bKillParticle = false;
-
-				const uint32 Count = Container->ContactCounts[ContactIndex];
-				for (uint32 c = 0; c < Count; c++)
-				{
-					FVector4 ContactVelocity = Container->ContactVelocities[ContactIndex*FFlexContainerInstance::MaxContactsPerParticle + c];
-					int32 FlexShapeIndex = int(ContactVelocity.W);
-					int32 ShapeReportIndex = Container->CollisionReportIndices[FlexShapeIndex];
-					if (ShapeReportIndex >= 0)
-					{
-						UFlexCollisionReportComponent* ReportComp = Container->CollisionReportComponents[ShapeReportIndex];
-
-						if (ReportComp)
-						{
-							ReportComp->Count++;
-
-							if (ReportComp->bDrain)
-								bKillParticle = true;
-						}
-					}
-				}
-
-				if (bKillParticle)
-				{
-					KillParticle(i);
-					continue;
-				}
-			}
+			GFlexPluginBridge->TickFlexEmitterInstance(this, DeltaTime, bSuppressSpawning);
 		}
-
-		FTransform ParentTransform;
-		FVector Translation;
-		FQuat Rotation;
-		USceneComponent* Parent = nullptr;
-
-		if (ActiveParticles > 0)
-		{
-			Parent = Component->GetAttachParent();
-			if (Parent && SpriteTemplate->bLocalSpace)
-			{
-				//update frame
-				ParentTransform = Parent->GetComponentTransform();
-				Translation = ParentTransform.GetTranslation();
-				Rotation = ParentTransform.GetRotation();
-
-				NvFlexExtMovingFrameUpdate(&FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X), DeltaTime);
-			}
-		}
-
-		// sync UE4 particles with FLEX
-		for (int32 i = 0; i<ActiveParticles; i++)
-		{
-			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
-
-			verify(FlexDataOffset > 0);
-
-			int32 CurrentOffset = FlexDataOffset;
-			const uint8* ParticleBase = (const uint8*)&Particle;
-			PARTICLE_ELEMENT(int32, FlexParticleIndex);
-
-			if (Parent && SpriteTemplate->bLocalSpace)
-			{
-				// Localize the position and velocity using the localization API
-				// NOTE: Once we have a feature to detect particle inside the mesh container
-				//       we can then test for it and apply localization as needed.
-				FVector4* Positions = (FVector4*)&Container->Particles[FlexParticleIndex];
-				FVector* Velocities = (FVector*)&Container->Velocities[FlexParticleIndex];
-
-				NvFlexExtMovingFrameApply(&FlexEmitterInstance->MeshFrame, (float*)Positions, (float*)Velocities,
-					1, FlexEmitterInstance->LinearInertialScale, FlexEmitterInstance->AngularInertialScale, DeltaTime);
-			}
-
-			// sync UE4 particle with FLEX
-			if (Container->SmoothPositions.size() > 0)
-			{
-				Particle.Location = Container->SmoothPositions[FlexParticleIndex];
-			}
-			else
-			{				
-				Particle.Location = Container->Particles[FlexParticleIndex];
-			}
-
-			Particle.Velocity = Container->Velocities[FlexParticleIndex];
-
-			if (bFlexAnisotropyData)
-			{
-				PARTICLE_ELEMENT(FVector, Alignment16);
-
-				PARTICLE_ELEMENT(FVector4, FlexAnisotropy1);
-				PARTICLE_ELEMENT(FVector4, FlexAnisotropy2);
-				PARTICLE_ELEMENT(FVector4, FlexAnisotropy3);
-
-				FlexAnisotropy1 = Container->Anisotropy1[FlexParticleIndex];
-				FlexAnisotropy2 = Container->Anisotropy2[FlexParticleIndex];
-				FlexAnisotropy3 = Container->Anisotropy3[FlexParticleIndex];
-			}
-		}
-	}
 #endif
 
 		// Spawn new particles.
@@ -1841,21 +1433,9 @@ uint32 FParticleEmitterInstance::RequiredBytes()
 	}
 
 #if WITH_FLEX
-	if (SpriteTemplate->FlexContainerTemplate)
+	if (GFlexPluginBridge)
 	{
-		FlexDataOffset = PayloadOffset + uiBytes;
-
-		// flex particle index
-		uiBytes += sizeof(int32);
-
-		if (SpriteTemplate->FlexContainerTemplate->AnisotropyScale > 0.0f)
-		{
-			// 16 byte align for inheriting emitter instance types
-			uiBytes += sizeof(FVector);
-
-			// flex anisotropy 
-			uiBytes += 3 * sizeof(FVector4);
-		}
+		uiBytes = GFlexPluginBridge->GetFlexEmitterInstanceRequiredBytes(this, uiBytes);
 	}
 #endif	
 
@@ -2443,10 +2023,6 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 		LODLevel->EventGenerator->HandleParticleBurst(this, EventPayload, Count);
 	}
 
-#if WITH_FLEX
-	float FlexInvMass = (SpriteTemplate->Mass > 0.0f) ? (1.0f / SpriteTemplate->Mass) : 0.0f;
-#endif
-
 	UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 	float SpawnTime = StartTime;
 	float Interp = 1.0f;
@@ -2483,26 +2059,12 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 		}
 
 #if WITH_FLEX
-		if (FlexEmitterInstance && FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
+		if (GFlexPluginBridge)
 		{
-			verify(FlexDataOffset > 0);
-
-			int32 CurrentOffset = FlexDataOffset;
-			const uint8* ParticleBase = (const uint8*)Particle;
-			PARTICLE_ELEMENT(int32, FlexParticleIndex);
-
-			// allocate a new particle in the flex solver and store a
-			// reference to it in this particle's payload
-			FlexParticleIndex = FlexEmitterInstance->Container->CreateParticle(FVector4(Particle->Location, FlexInvMass), Particle->Velocity, FlexEmitterInstance->Phase);
-
-			if (FlexParticleIndex == -1)
+			if (GFlexPluginBridge->FlexEmitterInstanceSpawnParticle(this, Particle, CurrentParticleIndex) == false)
 			{
-				// could not allocate a flex particle so kill immediately
-				KillParticle(CurrentParticleIndex);
-				continue; 
+				continue;
 			}
-
-			Particle->Flags |= STATE_Particle_FreezeTranslation;
 		}
 #endif
 
@@ -2729,17 +2291,9 @@ void FParticleEmitterInstance::KillParticles()
 				ActiveParticles--;
 
 #if WITH_FLEX
-				if (FlexEmitterInstance && FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
+				if (GFlexPluginBridge)
 				{
-					verify(FlexDataOffset > 0);
-
-					int32 CurrentOffset = FlexDataOffset;
-					PARTICLE_ELEMENT(int32, FlexParticleIndex);
-
-					if (FlexParticleIndex >= 0)
-					{
-						FlexEmitterInstance->DestroyParticle(FlexParticleIndex);
-					}
+					GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
 				}
 #endif
 
@@ -2788,18 +2342,9 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 		ActiveParticles--;
 
 #if WITH_FLEX
-		if (FlexEmitterInstance && FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
+		if (GFlexPluginBridge)
 		{
-			verify(FlexDataOffset > 0);
-
-			const uint8* ParticleBase	= ParticleData + KillIndex * ParticleStride;
-			int32 CurrentOffset = FlexDataOffset;
-			PARTICLE_ELEMENT(int32, FlexParticleIndex);
-
-			if (FlexParticleIndex >= 0)
-			{
-				FlexEmitterInstance->DestroyParticle(FlexParticleIndex);
-			}
+			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, KillIndex);
 		}
 #endif
 
@@ -2870,18 +2415,9 @@ void FParticleEmitterInstance::KillParticlesForced(bool bFireEvents)
 		ActiveParticles--;
 
 #if WITH_FLEX
-		if (FlexEmitterInstance && FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
+		if (GFlexPluginBridge)
 		{
-			verify(FlexDataOffset > 0);
-
-			const uint8* ParticleBase	= ParticleData + CurrentIndex * ParticleStride;
-			int32 CurrentOffset = FlexDataOffset;
-			PARTICLE_ELEMENT(int32, FlexParticleIndex);
-
-			if (FlexParticleIndex >= 0)
-			{
-				FlexEmitterInstance->DestroyParticle(FlexParticleIndex);
-			}
+			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
 		}
 #endif
 

@@ -5,11 +5,15 @@
 	Flex-related particle module implementations.
 =============================================================================*/
 
-#include "Particles/Modules/Flex/ParticleModuleFlexShapeSpawn.h"
-#include "Particles/Modules/Flex/ParticleModuleFlexFluidSpawn.h"
+#include "ParticleModuleFlexShapeSpawn.h"
+#include "ParticleModuleFlexFluidSpawn.h"
 
 #include "FlexContainer.h"
 #include "FlexAsset.h"
+
+#include "Distributions/DistributionFloatConstant.h"
+#include "Particles/ParticleEmitter.h"
+
 
 /*-----------------------------------------------------------------------------
 UParticleModuleFlexShapeSpawn implementation.

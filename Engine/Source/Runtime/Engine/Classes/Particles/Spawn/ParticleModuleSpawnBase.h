@@ -11,7 +11,7 @@
 struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Spawn"))
-class UParticleModuleSpawnBase : public UParticleModule
+class ENGINE_API UParticleModuleSpawnBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()
 

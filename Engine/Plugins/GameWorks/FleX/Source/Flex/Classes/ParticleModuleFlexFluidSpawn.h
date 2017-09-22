@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "Distributions/DistributionFloat.h"
 #include "Particles/Spawn/ParticleModuleSpawnBase.h"
 #include "ParticleModuleFlexFluidSpawn.generated.h"
 
