@@ -284,6 +284,7 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 
 	bool bIsSceneCapture = false;
 	bool bIsReflectionCapture = false;
+	bool bIsVRScene = false;
 
 	for (int32 ViewIndex = 0, ViewCount = ViewFamily.Views.Num(); ViewIndex < ViewCount; ++ViewIndex)
 	{
@@ -291,6 +292,7 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 
 		bIsSceneCapture |= View->bIsSceneCapture;
 		bIsReflectionCapture |= View->bIsReflectionCapture;
+		bIsVRScene |= View->StereoPass != EStereoscopicPass::eSSP_FULL;
 	}
 
 	if(!FPlatformProperties::SupportsWindowedMode())
@@ -298,7 +300,7 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 		// Force ScreenRes on non windowed platforms.
 		SceneTargetsSizingMethod = RequestedSize;
 	}
-	else if (GIsEditor)
+	else if (GIsEditor && !bIsVRScene)
 	{
 		// Always grow scene render targets in the editor.
 		SceneTargetsSizingMethod = Grow;

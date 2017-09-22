@@ -99,6 +99,12 @@ FDebugCanvasDrawer::~FDebugCanvasDrawer()
 
 		RenderThreadCanvas = nullptr;
 	}
+
+	if (LayerID != INVALID_LAYER_ID)
+	{
+		GEngine->StereoRenderingDevice->GetStereoLayers()->DestroyLayer(LayerID);
+		LayerID = INVALID_LAYER_ID;
+	}
 }
 
 FCanvas* FDebugCanvasDrawer::GetGameThreadDebugCanvas()
@@ -155,12 +161,19 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 
 	if (RenderThreadCanvas.IsValid())
 	{
-		if (RenderThreadCanvas->IsUsingInternalTexture() && LayerTexture && LayerID == INVALID_LAYER_ID && bCanvasRenderedLastFrame)
+		if (RenderThreadCanvas->IsUsingInternalTexture() && LayerTexture && bCanvasRenderedLastFrame)
 		{
-			if (GEngine && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->GetStereoLayers() && LayerTexture && LayerID == INVALID_LAYER_ID)
+			if (GEngine && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->GetStereoLayers() && LayerTexture)
 			{
 				const IStereoLayers::FLayerDesc StereoLayerDesc = GEngine->StereoRenderingDevice->GetStereoLayers()->GetDebugCanvasLayerDesc(LayerTexture->GetRenderTargetItem().ShaderResourceTexture);
-				LayerID = GEngine->StereoRenderingDevice->GetStereoLayers()->CreateLayer(StereoLayerDesc);
+				if (LayerID == INVALID_LAYER_ID)
+				{
+					LayerID = GEngine->StereoRenderingDevice->GetStereoLayers()->CreateLayer(StereoLayerDesc);
+				}
+				else
+				{
+					GEngine->StereoRenderingDevice->GetStereoLayers()->SetLayerDesc(LayerID, StereoLayerDesc);
+				}
 			}
 		}
 
@@ -181,6 +194,11 @@ void FDebugCanvasDrawer::DrawRenderThread(FRHICommandListImmediate& RHICmdList, 
 		FTexture2DRHIRef& RT = *(FTexture2DRHIRef*)InWindowBackBuffer;
 		if (RenderThreadCanvas->IsUsingInternalTexture())
 		{
+			if (LayerTexture && RenderThreadCanvas->GetParentCanvasSize() != LayerTexture->GetDesc().Extent)
+			{
+				LayerTexture.SafeRelease();
+			}
+
 			if (!LayerTexture)
 			{
 				const FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(RenderThreadCanvas->GetParentCanvasSize(), PF_B8G8R8A8, FClearValueBinding(), TexCreate_SRGB, TexCreate_RenderTargetable, false));
