@@ -15,6 +15,7 @@
 #include "CameraRig_Rail.h"
 #include "SequenceRecorder.h"
 #include "Features/IModularFeatures.h"
+#include "Toolkits/AssetEditorManager.h"
 
 static const FName SequencerActorTag(TEXT("SequencerActor"));
 static const FName MovieSceneSectionRecorderFactoryName("MovieSceneSectionRecorderFactory");
@@ -65,6 +66,16 @@ bool UActorRecording::StartRecording(ULevelSequence* CurrentSequence, float Curr
 
 	if(GetActorToRecord() != nullptr)
 	{
+		if (TargetAnimation.IsValid())
+		{
+			IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(TargetAnimation.Get(), false);
+			if (EditorInstance)
+			{
+				UE_LOG(LogAnimation, Log, TEXT("Closing '%s' so we don't invalidate the open version when unloading it."), *TargetAnimation->GetName());
+				EditorInstance->CloseWindow();
+			}
+		}
+
 		if(CurrentSequence != nullptr)
 		{
 			StartRecordingActorProperties(CurrentSequence, CurrentSequenceTime);
@@ -339,7 +350,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 			TSharedPtr<FMovieSceneAnimationSectionRecorder> FirstAnimRecorder = nullptr;
 			for(USceneComponent* SceneComponent : ValidSceneComponents)
 			{
-				TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimRecorder = StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime, AnimationSettings);
+				TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimRecorder = StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime, AnimationSettings, TargetAnimation.Get());
 				if(!FirstAnimRecorder.IsValid() && AnimRecorder.IsValid() && GetActorToRecord()->IsA<ACharacter>())
 				{
 					FirstAnimRecorder = AnimRecorder;
@@ -376,7 +387,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 	}
 }
 
-TSharedPtr<FMovieSceneAnimationSectionRecorder> UActorRecording::StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime, const FAnimationRecordingSettings& InAnimationSettings)
+TSharedPtr<FMovieSceneAnimationSectionRecorder> UActorRecording::StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime, const FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InTargetSequence)
 {
 	// first create a possessable for this component to be controlled by
 	UMovieScene* OwnerMovieScene = CurrentSequence->GetMovieScene();
@@ -402,7 +413,7 @@ TSharedPtr<FMovieSceneAnimationSectionRecorder> UActorRecording::StartRecordingC
 	TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimationRecorder = nullptr;
 	if (FSequenceRecorder::Get().GetAnimationRecorderFactory().CanRecordObject(SceneComponent))
 	{
-		AnimationRecorder = FSequenceRecorder::Get().GetAnimationRecorderFactory().CreateSectionRecorder(this, InAnimationSettings);
+		AnimationRecorder = FSequenceRecorder::Get().GetAnimationRecorderFactory().CreateSectionRecorder(InTargetSequence, InAnimationSettings);
 		AnimationRecorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime);
 		AnimationRecorder->Record(CurrentSequenceTime);
 		SectionRecorders.Add(AnimationRecorder);
@@ -735,7 +746,7 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 					NewName = SceneComponent->GetFName();
 				}
 
-				StartRecordingComponentProperties(NewName, SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime, ComponentAnimationSettings);
+				StartRecordingComponentProperties(NewName, SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime, ComponentAnimationSettings, nullptr);
 
 				bNewComponentAddedWhileRecording = true;
 			}
@@ -747,7 +758,7 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 			for (USceneComponent* SceneComponent : NewComponents)
 			{
 				// new component, start recording
-				StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime, ComponentAnimationSettings);
+				StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime, ComponentAnimationSettings, nullptr);
 			}
 
 			SyncTrackedComponents();

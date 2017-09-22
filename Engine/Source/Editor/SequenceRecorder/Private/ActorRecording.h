@@ -64,7 +64,7 @@ private:
 	void StartRecordingActorProperties(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
 
 	/** Start recording component properties to a sequence */
-	TSharedPtr<class FMovieSceneAnimationSectionRecorder> StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime, const FAnimationRecordingSettings& InAnimationSettings);
+	TSharedPtr<class FMovieSceneAnimationSectionRecorder> StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime, const FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InTargetSequence);
 
 	/** Start recording components that are added at runtime */
 	void StartRecordingNewComponents(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
