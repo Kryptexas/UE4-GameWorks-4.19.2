@@ -138,8 +138,6 @@ void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, co
 
 	bIsDesaturation = false;
 
-	PreviewEffectiveTextureWidth = 0;
-	PreviewEffectiveTextureHeight = 0;
 	SpecifiedMipLevel = 0;
 	bUseSpecifiedMipLevel = false;
 
@@ -226,6 +224,7 @@ void FTextureEditorToolkit::CalculateTextureDimensions( uint32& Width, uint32& H
 
 	Width = ImportedWidth;
 	Height = ImportedHeight;
+
 
 	// catch if the Width and Height are still zero for some reason
 	if ((Width == 0) || (Height == 0))
@@ -380,6 +379,10 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	const int32 ActualMipBias = Texture2D ? (Texture2D->GetNumMips() - Texture2D->GetNumResidentMips()) : Texture->GetCachedLODBias();
 	const uint32 ActualWidth = FMath::Max<uint32>(SurfaceWidth >> ActualMipBias, 1);
 	const uint32 ActualHeight = FMath::Max<uint32>(SurfaceHeight >> ActualMipBias, 1);
+
+	// Editor dimensions (takes user specified mip setting into account)
+	PreviewEffectiveTextureWidth = ActualWidth;
+	PreviewEffectiveTextureHeight = ActualHeight;
 
 	// In game max bias and dimensions
 	const int32 MaxResMipBias = Texture2D ? (Texture2D->GetNumMips() - Texture2D->GetNumMipsAllowed(true)) : Texture->GetCachedLODBias();
