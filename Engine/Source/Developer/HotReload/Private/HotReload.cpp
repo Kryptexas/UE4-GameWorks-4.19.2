@@ -1076,6 +1076,33 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 ECompilationResult::Type FHotReloadModule::RebindPackages(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unknown;
+
+	// Get game packages
+	const FModuleManager& ModuleManager = FModuleManager::Get();
+	TArray<FString> GameModuleNames = UE4HotReload_Private::GetGameModuleNames(ModuleManager);
+	UE4HotReload_Private::FPackagesAndDependentNames PackagesAndDependentNames = UE4HotReload_Private::SplitByPackagesAndDependentNames(GameModuleNames);
+
+	// Get a set of source packages combined with game packages
+	TSet<UPackage*> PackagesIncludingGame(InPackages);
+	int32 NumInPackages = PackagesIncludingGame.Num();
+	PackagesIncludingGame.Append(PackagesAndDependentNames.Packages);
+
+	// Check if there was any overlap
+	bool bInPackagesIncludeGame = PackagesIncludingGame.Num() < NumInPackages + PackagesAndDependentNames.Packages.Num();
+
+	// If any of those modules were game modules, we'll compile those too
+	TArray<UPackage*> Packages;
+	TArray<FName>     Dependencies;
+	if (bInPackagesIncludeGame)
+	{
+		Packages     = PackagesIncludingGame.Array();
+		Dependencies = MoveTemp(PackagesAndDependentNames.DependentNames);
+	}
+	else
+	{
+		Packages = InPackages;
+	}
+
 	double Duration = 0.0;
 
 	int32 NumPackages         = InPackages.Num();
@@ -1083,9 +1110,9 @@ ECompilationResult::Type FHotReloadModule::RebindPackages(TArray<UPackage*> InPa
 
 	{
 		FScopedDurationTimer RebindTimer(Duration);
-		Result = RebindPackagesInternal(MoveTemp(InPackages), MoveTemp(DependentModules), bWaitForCompletion, Ar);
+		Result = RebindPackagesInternal(MoveTemp(Packages), MoveTemp(Dependencies), bWaitForCompletion, Ar);
 	}
-	RecordAnalyticsEvent(TEXT("Rebind"), Result, Duration, NumPackages, NumDependentModules);
+	RecordAnalyticsEvent(TEXT("Rebind"), Result, Duration, Packages.Num(), Dependencies.Num());
 
 	return Result;
 }
