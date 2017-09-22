@@ -14,6 +14,7 @@ FVulkanShaderResourceView::FVulkanShaderResourceView(FVulkanDevice* Device, FVul
 {
 	int32 NumBuffers = SourceBuffer->IsVolatile() ? 1 : SourceBuffer->GetNumBuffers();
 	BufferViews.AddZeroed(NumBuffers);
+	check(BufferViewFormat != PF_Unknown);
 }
 
 
@@ -217,7 +218,7 @@ FUnorderedAccessViewRHIRef FVulkanDynamicRHI::RHICreateUnorderedAccessView(FVert
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FStructuredBufferRHIParamRef StructuredBufferRHI)
 {
 	FVulkanStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, StructuredBuffer, StructuredBuffer->GetSize(), PF_Unknown);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, StructuredBuffer);
 	return SRV;
 }
 

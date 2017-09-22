@@ -1033,6 +1033,7 @@ public:
 		: VulkanRHI::FDeviceChild(Device)
 		, BufferViewFormat(PF_Unknown)
 		, SourceTexture(InSourceTexture)
+		, SourceStructuredBuffer(nullptr)
 		, MipLevel(InMipLevel)
 		, NumMips(InNumMips)
 		, Size(0)
@@ -1040,6 +1041,20 @@ public:
 		, VolatileLockCounter(MAX_uint32)
 	{
 	}
+
+	FVulkanShaderResourceView(FVulkanDevice* Device, FVulkanStructuredBuffer* InStructuredBuffer)
+		: VulkanRHI::FDeviceChild(Device)
+		, BufferViewFormat(PF_Unknown)
+		, SourceTexture(nullptr)
+		, SourceStructuredBuffer(InStructuredBuffer)
+		, MipLevel(0)
+		, NumMips(0)
+		, Size(InStructuredBuffer->GetSize())
+		, SourceBuffer(nullptr)
+		, VolatileLockCounter(MAX_uint32)
+	{
+	}
+
 
 	void UpdateView();
 
@@ -1053,7 +1068,7 @@ public:
 	// The texture that this SRV come from
 	TRefCountPtr<FRHITexture> SourceTexture;
 	FVulkanTextureView TextureView;
-	FVulkanStructuredBuffer* SourceStructuredBuffer = nullptr;
+	FVulkanStructuredBuffer* SourceStructuredBuffer;
 	uint32 MipLevel;
 	uint32 NumMips;
 
