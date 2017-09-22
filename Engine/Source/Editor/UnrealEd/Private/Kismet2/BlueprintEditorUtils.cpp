@@ -2636,8 +2636,7 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 /** Rename a graph and mark objects for modified */
 void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameStr)
 {
-	const FName NewName(*NewNameStr);
-	if (Graph->Rename(*NewNameStr, Graph->GetOuter(), REN_Test))
+	if (Graph && Graph->Rename(*NewNameStr, Graph->GetOuter(), REN_Test))
 	{
 		// Cache old name
 		FName OldGraphName = Graph->GetFName();
@@ -2646,6 +2645,8 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 		// Ensure we have undo records
 		Graph->Modify();
 		Graph->Rename(*NewNameStr, Graph->GetOuter(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_DontCreateRedirectors);
+
+		const FName NewName(*NewNameStr);
 
 		// Clean function entry & result nodes if they exist
 		for (UEdGraphNode* Node : Graph->Nodes)
