@@ -243,7 +243,7 @@ public class AndroidPlatform : Platform
 			catch (Exception)
 			{
 				Log("Failed to build OBB: " + LocalObbName);
-				throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not build OBB {0}. The file may be too big to fit in an OBB (2 GiB limit)", LocalObbName);
+				throw new AutomationException(ExitCode.Error_AndroidOBBError, "Stage Failed. Could not build OBB {0}. The file may be too big to fit in an OBB (2 GiB limit)", LocalObbName);
 			}
 		}
 
@@ -253,7 +253,7 @@ public class AndroidPlatform : Platform
 		if (ObbFileLength > MaxOBBSizeAllowed)
 		{
 			Log("OBB exceeds 2 GiB limit: " + ObbFileLength + " bytes");
-			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. OBB {0} exceeds 2 GiB limit)", LocalObbName);
+			throw new AutomationException(ExitCode.Error_AndroidOBBError, "Stage Failed. OBB {0} exceeds 2 GiB limit)", LocalObbName);
 		}
 
 		// collect plugin extra data paths from target receipts

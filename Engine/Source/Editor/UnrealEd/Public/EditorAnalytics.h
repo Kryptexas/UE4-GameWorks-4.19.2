@@ -66,6 +66,7 @@ namespace EAnalyticsErrorCodes
 		TestFailure = 152,
 		SymbolizedSONotFound = 153,
 		LicenseNotAccepted = 154,
+		AndroidOBBError = 155,
 	};
 };
 
