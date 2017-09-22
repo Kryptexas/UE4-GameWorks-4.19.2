@@ -752,6 +752,8 @@ void FSimulation::PrepareConstraints(float DeltaTime)
 			const D6JointData& Joint = JointData[DescriptorIdx];	
 			uint32 NumRows = D6JointSolverPrep(&Rows[CurRows], Body0WorldOffset, 0, InvMassScale, (const void*)&Joint, JointDescriptor.bodyFrame0, JointDescriptor.bodyFrame1);
 
+			JointDescriptor.mInvMassScales = InvMassScale;
+
 			JointDescriptor.numRows = NumRows;
 			JointDescriptor.rows = &Rows[CurRows];
 			CurRows += NumRows;
