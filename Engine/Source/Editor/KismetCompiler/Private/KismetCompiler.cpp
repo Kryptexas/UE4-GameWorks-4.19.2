@@ -392,14 +392,7 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 		if (bForbiddenConnection || bMissingConversion)
 		{
 			const FString ErrorMessage = FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString());
-			if (ConnectResponse.IsFatal())
-			{
-				MessageLog.Error(*ErrorMessage, PinA, PinB);
-			}
-			else
-			{
-				MessageLog.Warning(*ErrorMessage, PinA, PinB);
-			}
+			MessageLog.Error(*ErrorMessage, PinA, PinB);
 		}
 	}
 
