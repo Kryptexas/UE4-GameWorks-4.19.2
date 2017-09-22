@@ -253,18 +253,6 @@ namespace Audio
 			// Audio rendering was suspended in CheckAudioDeviceChange if it changed.
 			AudioMixerPlatform->ResumePlaybackOnNewDevice();
 		}
-
-		// Update the master volume
-		if (IsAudioDeviceMuted())
-		{
-			AudioMixerPlatform->SetMasterVolume(0.0f);
-		}
-		else
-		{
-			float MasterVolume = GetPlatformAudioHeadroom();
-			MasterVolume *= GetTransientMasterVolume();
-			AudioMixerPlatform->SetMasterVolume(MasterVolume);
-		}
 	}
 
 	double FMixerDevice::GetAudioTime() const

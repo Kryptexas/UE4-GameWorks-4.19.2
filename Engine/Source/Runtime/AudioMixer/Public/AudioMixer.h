@@ -271,12 +271,17 @@ namespace Audio
 		/** Returns the float buffer. */
 		AlignedFloatBuffer& GetBuffer() { return Buffer; }
 
-		/** Submits the buffer to the audio mixer. */
-		const uint8* GetBufferData();
 
-		/** Returns size of the buffer in bytes. */
-		uint32 GetBufferSize() const { return FormattedBuffer.Num(); }
+		/** Gets the buffer data ptrs. */
+		const uint8* GetBufferData() const;
+		uint8* GetBufferData();
 
+		/** Gets the number of frames of the buffer. */
+		int32 GetNumFrames() const;
+
+		/** Returns the format of the buffer. */
+		EAudioMixerStreamDataFormat::Type GetFormat() const { return DataFormat; }
+		
 		/** Returns if ready. */
 		bool IsReady() const { return bIsReady; }
 
@@ -462,6 +467,9 @@ namespace Audio
 		/** Performs buffer fades for shutdown/startup of audio mixer. */
 		void ApplyMasterAttenuation();
 
+		template<typename BufferType>
+		void ApplyAttenuationInternal(BufferType* BufferDataPtr, const int32 NumFrames);
+
 	protected:
 
 		/** The audio device stream info. */
@@ -498,14 +506,8 @@ namespace Audio
 		/** The number of mixer buffers to queue on the output source voice. */
 		int32 NumOutputBuffers;
 
-		/** The target master volume. */
-		float TargetMasterVolume;
-
 		/** The fade value. Used for fading in/out master audio. */
 		float FadeVolume;
-
-		/** The master volume of the audio device. */
-		FParam MasterVolumeParam;
 
 		/** Source param used to fade in and out audio device. */
 		FParam FadeParam;
@@ -521,7 +523,6 @@ namespace Audio
 
 		FThreadSafeBool bPerformingFade;
 		FThreadSafeBool bFadedOut;
-		FThreadSafeBool bUpdateMasterVolume;
 		FThreadSafeBool bIsDeviceInitialized;
 	};
 
