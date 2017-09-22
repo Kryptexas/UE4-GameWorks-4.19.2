@@ -219,6 +219,8 @@ void FMacPlatformApplicationMisc::PreInit()
 
 void FMacPlatformApplicationMisc::PostInit()
 {
+	FMacPlatformMisc::PostInitMacAppInfoUpdate();
+
 	// Setup the app menu in menu bar
 	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
 	if (bIsBundledApp)

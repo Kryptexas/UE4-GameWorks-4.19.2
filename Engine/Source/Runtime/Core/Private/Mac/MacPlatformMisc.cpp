@@ -183,7 +183,9 @@ struct FMacApplicationInfo
 		gethostname(MachineName, ARRAY_COUNT(MachineName));
 		
 		FString CrashVideoPath = FPaths::ProjectLogDir() + TEXT("CrashVideo.avi");
-		
+
+		// The engine mode may be incorrect at this point, as GIsEditor is uninitialized yet. We'll update BranchBaseDir in PostInitUpdate(),
+		// but we initialize it here anyway in case the engine crashes before PostInitUpdate() is called.
 		BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
 		
 		// Get the paths that the files will actually have been saved to
@@ -449,6 +451,11 @@ void FMacPlatformMisc::PlatformInit()
 		UE_LOG(LogInit, Log, TEXT("No Xcode installed"));
 	}
 #endif
+}
+
+void FMacPlatformMisc::PostInitMacAppInfoUpdate()
+{
+	GMacAppInfo.BranchBaseDir = FString::Printf(TEXT("%s!%s!%s!%d"), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist());
 }
 
 void FMacPlatformMisc::PlatformTearDown()

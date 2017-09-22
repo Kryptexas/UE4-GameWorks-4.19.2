@@ -142,6 +142,9 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
     static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
 
 	static int GetDefaultStackSize();
+
+	/** Updates variables in GMacAppInfo that cannot be initialized before PlatformPostInit() */
+	static void PostInitMacAppInfoUpdate();
 };
 
 typedef FMacPlatformMisc FPlatformMisc;
