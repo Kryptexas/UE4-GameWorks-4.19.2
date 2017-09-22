@@ -158,11 +158,7 @@ TSharedPtr<SWidget> FMovieSceneTrackEditor::BuildOutlinerEditWidget(const FGuid&
 		{
 			FMenuBuilder MenuBuilder(true, nullptr);
 
-			TSharedPtr<ISequencer> SequencerPtr = WeakSequencer.Pin();
-			if (SequencerPtr.IsValid())
-			{
-				FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
-			}
+			FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, WeakSequencer);
 
 			return MenuBuilder.MakeWidget();
 		};

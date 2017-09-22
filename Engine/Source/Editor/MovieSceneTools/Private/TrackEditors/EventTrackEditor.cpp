@@ -78,13 +78,13 @@ void FEventTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieS
 	class FEventTrackCustomization : public IDetailCustomization
 	{
 	public:
-		FEventTrackCustomization(TSharedRef<IDetailsView> InDetailsView, TSharedPtr<ISequencer> InSequencer)
+		FEventTrackCustomization(TWeakPtr<IDetailsView> InDetailsView, TSharedPtr<ISequencer> InSequencer)
 			: WeakDetailsView(InDetailsView)
 		{
 			FOnGetPropertyTypeCustomizationInstance Factory = FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]{ return MakeShared<FMovieSceneObjectBindingIDCustomization>(InSequencer->GetFocusedTemplateID(), InSequencer); });
 
 			// Register an object binding ID customization that can use the current sequencer interface
-			InDetailsView->RegisterInstancedCustomPropertyTypeLayout("MovieSceneObjectBindingID", Factory);
+			WeakDetailsView.Pin()->RegisterInstancedCustomPropertyTypeLayout("MovieSceneObjectBindingID", Factory);
 		}
 
 		~FEventTrackCustomization()
@@ -118,8 +118,10 @@ void FEventTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieS
 		DetailsViewArgs.bShowOptions = false;
 		
 		TSharedRef<IDetailsView> DetailsView = PropertyEditor.CreateDetailView(DetailsViewArgs);
+		
 		// Register the custom type layout for the class
-		FOnGetDetailCustomizationInstance CreateInstance = FOnGetDetailCustomizationInstance::CreateLambda([=]{ return MakeShared<FEventTrackCustomization>(DetailsView, GetSequencer()); });
+		TWeakPtr<IDetailsView> WeakDetailsView = DetailsView;
+		FOnGetDetailCustomizationInstance CreateInstance = FOnGetDetailCustomizationInstance::CreateLambda([=]{ return MakeShared<FEventTrackCustomization>(WeakDetailsView, GetSequencer()); });
 		DetailsView->RegisterInstancedCustomPropertyLayout(UMovieSceneEventTrack::StaticClass(), CreateInstance);
 
 		// Assign the object
