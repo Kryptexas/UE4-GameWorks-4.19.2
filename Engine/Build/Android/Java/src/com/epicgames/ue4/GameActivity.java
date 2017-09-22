@@ -1179,6 +1179,16 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		Log.debug("==============> GameActive.onDestroy complete!");
 	}
 
+	@Override
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+
+		// forward the orientation
+		boolean bPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
+		nativeOnConfigurationChanged(bPortrait);
+	}
+
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
 	{
 		if(bUseSurfaceView)
