@@ -526,7 +526,7 @@ void Main(
 
 		#if MAX_DYNAMIC_POINT_LIGHTS > 0
 			#if VARIABLE_NUM_DYNAMIC_POINT_LIGHTS
-			#if WEBGL || ES2_PROFILE
+			#if WEBGL || ES2_PROFILE || VULKAN_PROFILE
 			// webgl and ES2 needs a constant loop counter
 			UNROLL
 			for (int i = 0; i < MAX_DYNAMIC_POINT_LIGHTS; i++)
