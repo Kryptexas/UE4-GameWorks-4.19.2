@@ -228,6 +228,7 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 				int32 FinalIndex = ImportedMesh->StaticMaterials.AddUnique(ExistingMaterial ? ExistingMaterial : UMaterial::GetDefaultMaterial(MD_Surface));
 				ImportedMesh->SectionInfoMap.Set(LODIndex, FinalIndex, FMeshSectionInfo(FinalIndex));
+				ImportedMesh->OriginalSectionInfoMap.Set(LODIndex, FinalIndex, ImportedMesh->SectionInfoMap.Get(LODIndex, FinalIndex));
 			}
 		}
 		else

@@ -78,10 +78,8 @@ private:
 
 	virtual bool BuildStaticMesh(
 		FStaticMeshRenderData& OutRenderData,
-		TArray<FStaticMeshSourceModel>& SourceModels,
-		const FStaticMeshLODGroup& LODGroup,
-		int32 LightmapUVVersion,
-		int32 ImportVersion = EImportStaticMeshVersion::LastVersion
+		UStaticMesh* StaticMesh,
+		const FStaticMeshLODGroup& LODGroup
 		) override;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
@@ -96,7 +94,7 @@ private:
 		int32 ImportVersion
 		) override;
 
-	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup, int32 LightmapUVVersion) override;
+	virtual bool GenerateStaticMeshLODs(UStaticMesh* StaticMesh, const FStaticMeshLODGroup& LODGroup) override;
 
 	virtual void GenerateSignedDistanceFieldVolumeData(
 		FString MeshName,
