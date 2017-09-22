@@ -3504,7 +3504,7 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 		// If the sound played on an editor preview world, treat it as a preview sound (unpausable and ignoring the realtime volume slider)
 		if (const UWorld* World = NewActiveSound.GetWorld())
 		{
-			ActiveSound->bIsPreviewSound = (World->WorldType == EWorldType::EditorPreview);
+			ActiveSound->bIsPreviewSound |= (World->WorldType == EWorldType::EditorPreview);
 		}
 	}
 
