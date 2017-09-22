@@ -1796,45 +1796,69 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 		SCOPED_DRAW_EVENT(RHICmdList, CustomDepth);
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CustomDepth);
 
-		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
 			FViewInfo& View = Views[ViewIndex];
 
-			FDrawingPolicyRenderState DrawRenderState(View);
-
-			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-
-			DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
-
-			const bool bWriteCustomStencilValues = SceneContext.IsCustomDepthPassWritingStencil();
-
-			if (!bWriteCustomStencilValues)
+			if (View.ShouldRenderView())
 			{
-				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
-			}
 
-			if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA))
-			{
-				FBox VolumeBounds[TVC_MAX];
+				FDrawingPolicyRenderState DrawRenderState(View);
 
-				FViewMatrices ModifiedViewMatricies = View.ViewMatrices;
-				ModifiedViewMatricies.HackRemoveTemporalAAProjectionJitter();
-				FViewUniformShaderParameters OverriddenViewUniformShaderParameters;
-				View.SetupUniformBufferParameters(
-					SceneContext,
-					ModifiedViewMatricies,
-					ModifiedViewMatricies,
-					VolumeBounds,
-					TVC_MAX,
-					OverriddenViewUniformShaderParameters);
-				DrawRenderState.SetViewUniformBuffer(TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(OverriddenViewUniformShaderParameters, UniformBuffer_SingleFrame));
-				View.CustomDepthSet.DrawPrims(RHICmdList, View, DrawRenderState, bWriteCustomStencilValues);
-			}
-			else
-			{
-				View.CustomDepthSet.DrawPrims(RHICmdList, View, DrawRenderState, bWriteCustomStencilValues);
+				if (!View.IsInstancedStereoPass())
+				{
+					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+				}
+				else
+				{
+					if (View.bIsMultiViewEnabled)
+					{
+						const uint32 LeftMinX = View.Family->Views[0]->ViewRect.Min.X;
+						const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
+						const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
+						const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
+						const uint32 LeftMaxY = View.Family->Views[0]->ViewRect.Max.Y;
+						const uint32 RightMaxY = View.Family->Views[1]->ViewRect.Max.Y;
+						RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0, 0.0f, LeftMaxX, RightMaxX, LeftMaxY, RightMaxY, 1.0f);
+					}
+					else
+					{
+						RHICmdList.SetViewport(0, 0, 0, View.Family->InstancedStereoWidth, View.ViewRect.Max.Y, 1);
+					}
+				}
+
+				DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
+
+				const bool bWriteCustomStencilValues = SceneContext.IsCustomDepthPassWritingStencil();
+
+				if (!bWriteCustomStencilValues)
+				{
+					DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+				}
+
+				if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA))
+				{
+					FBox VolumeBounds[TVC_MAX];
+
+					FViewMatrices ModifiedViewMatricies = View.ViewMatrices;
+					ModifiedViewMatricies.HackRemoveTemporalAAProjectionJitter();
+					FViewUniformShaderParameters OverriddenViewUniformShaderParameters;
+					View.SetupUniformBufferParameters(
+						SceneContext,
+						ModifiedViewMatricies,
+						ModifiedViewMatricies,
+						VolumeBounds,
+						TVC_MAX,
+						OverriddenViewUniformShaderParameters);
+					DrawRenderState.SetViewUniformBuffer(TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(OverriddenViewUniformShaderParameters, UniformBuffer_SingleFrame));
+					View.CustomDepthSet.DrawPrims(RHICmdList, View, DrawRenderState, bWriteCustomStencilValues);
+				}
+				else
+				{
+					View.CustomDepthSet.DrawPrims(RHICmdList, View, DrawRenderState, bWriteCustomStencilValues);
+				}
 			}
 		}
 
