@@ -435,9 +435,21 @@ bool FLinuxPlatformApplicationMisc::ControlScreensaver(EScreenSaverAction Action
 	return true;
 }
 
+namespace LinuxPlatformApplicationMisc
+{
+	/**
+	 * Round the scale to 0.5, 0.75, 1, 1.25, 1.5, etc
+	 */
+	float QuantizeScale(float Scale)
+	{
+		float NewScale = FMath::FloorToFloat((64.0f * Scale / 16.0f) + 0.5f) / 4.0f;
+		return NewScale > 0.0f ? NewScale : 1.0f;
+	}
+}
+
 float FLinuxPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if (!FParse::Param(FCommandLine::Get(), TEXT("nohighdpi")))
+	if ((GIsEditor || IS_PROGRAM) && !FParse::Param(FCommandLine::Get(), TEXT("nohighdpi")))
 	{
 		FDisplayMetrics DisplayMetrics;
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
@@ -454,7 +466,7 @@ float FLinuxPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 				float HorzDPI = 1.0f, VertDPI = 1.0f;
 				if (SDL_GetDisplayDPI(Idx, nullptr, &HorzDPI, &VertDPI) == 0)
 				{
-					float Scale = (HorzDPI + VertDPI) / 192.0f;	// average between two scales (divided by 96.0f)
+					float Scale = LinuxPlatformApplicationMisc::QuantizeScale((HorzDPI + VertDPI) / 192.0f);	// average between two scales (divided by 96.0f)
 					UE_LOG(LogLinux, Log, TEXT("Scale at X=%f, Y=%f: %f (monitor=#%d, HDPI=%f (horz scale: %f), VDPI=%f (vert scale: %f))"), X, Y, Scale, Idx, HorzDPI, HorzDPI / 96.0f, VertDPI, VertDPI / 96.0f);
 					return Scale;
 				}
