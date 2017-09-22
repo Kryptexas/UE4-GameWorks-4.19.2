@@ -118,7 +118,8 @@ void FVulkanViewport::AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBac
 	FVulkanCommandBufferManager* CmdBufferManager = Context.GetCommandBufferManager();
 	FVulkanCmdBuffer* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
 	check(CmdBuffer->IsOutsideRenderPass());
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	
+	VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::ColorAttachment, VulkanRHI::SetupImageSubresourceRange());
 
 	// Submit here so we can add a dependency with the acquired semaphore
 	CmdBuffer->End();
@@ -539,7 +540,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 
 	bool bResult = false;
-	if (bNeedNativePresent && (GCVarDelayAcquireBackBuffer->GetInt() != 0 || RHIBackBuffer != nullptr))
+	if (bNeedNativePresent && (DelayAcquireBackBuffer() || RHIBackBuffer != nullptr))
 	{
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, PresentQueue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
