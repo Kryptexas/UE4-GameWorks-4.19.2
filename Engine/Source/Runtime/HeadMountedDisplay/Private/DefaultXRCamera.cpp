@@ -13,9 +13,9 @@ FDefaultXRCamera::FDefaultXRCamera(const FAutoRegister& AutoRegister, IXRTrackin
 	: FSceneViewExtensionBase(AutoRegister)
 	, TrackingSystem(InTrackingSystem)
 	, DeviceId(InDeviceId)
-	, bUseImplicitHMDPosition(false)
 	, DeltaControlRotation(0, 0, 0)
 	, DeltaControlOrientation(FQuat::Identity)
+	, bUseImplicitHMDPosition(false)
 {
 }
 
