@@ -2650,6 +2650,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
 
 	public native void nativeVirtualKeyboardShown(int left, int top, int right, int bottom);
+
+	public native void nativeOnConfigurationChanged(boolean bPortrait);
 		
 	static
 	{
