@@ -1542,6 +1542,16 @@ protected:
             expr->operands[0]->accept(this);
             ralloc_asprintf_append(buffer, ")");
         }
+		else if (Backend && Backend->Version >= 2 && numOps == 2 && op == ir_binop_mul && expr->operands[0]->type == expr->operands[1]->type && expr->operands[0]->type->is_float())
+		{
+			ralloc_asprintf_append(buffer, "fma(");
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, ",");
+			expr->operands[1]->accept(this);
+			ralloc_asprintf_append(buffer, ",");
+			print_type_full(expr->operands[0]->type);
+			ralloc_asprintf_append(buffer, "(0))");
+		}
 		else if (numOps == 2 && (op == ir_binop_add || op == ir_binop_sub || op == ir_binop_mul || op == ir_binop_div))
 		{
 			bool bHandleFloatHalfConflict = false;
