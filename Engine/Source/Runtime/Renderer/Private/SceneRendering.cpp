@@ -1112,6 +1112,8 @@ static TArray<FViewInfo*> ViewInfoSnapshots;
 // these are never freed, even at program shutdown
 static TArray<FViewInfo*> FreeViewInfoSnapshots;
 
+extern TUniformBufferRef<FMobileDirectionalLightShaderParameters>& GetNullMobileDirectionalLightShaderParameters();
+
 FViewInfo* FViewInfo::CreateSnapshot() const
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FViewInfo_CreateSnapshot);
@@ -1134,7 +1136,13 @@ FViewInfo* FViewInfo::CreateSnapshot() const
 	FMemory::Memcpy(Result->DownsampledTranslucencyViewUniformBuffer, NullViewUniformBuffer);
 	TUniformBufferRef<FMobileDirectionalLightShaderParameters> NullMobileDirectionalLightUniformBuffer;
 	for (size_t i = 0; i < ARRAY_COUNT(Result->MobileDirectionalLightUniformBuffers); i++)
+	{
+		// This memcpy is necessary to clear the reference from the memcpy of the whole of this -> Result without releasing the pointer
 		FMemory::Memcpy(Result->MobileDirectionalLightUniformBuffers[i], NullMobileDirectionalLightUniformBuffer);
+		
+		// But what we really want is the null buffer.
+		Result->MobileDirectionalLightUniformBuffers[i] = GetNullMobileDirectionalLightShaderParameters();
+	}
 
 	TUniquePtr<FViewUniformShaderParameters> NullViewParameters;
 	FMemory::Memcpy(Result->CachedViewUniformShaderParameters, NullViewParameters); 
