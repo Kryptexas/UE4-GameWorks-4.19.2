@@ -474,14 +474,8 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GPixelFormats[PF_ASTC_10x10			].Supported			= bCanUseASTC;
 	GPixelFormats[PF_ASTC_12x12			].PlatformFormat	= MTLPixelFormatASTC_12x12_LDR;
 	GPixelFormats[PF_ASTC_12x12			].Supported			= bCanUseASTC;
-#else // @todo zebra : srgb?
-    GPixelFormats[PF_DXT1				].PlatformFormat	= MTLPixelFormatBC1_RGBA;
-    GPixelFormats[PF_DXT3				].PlatformFormat	= MTLPixelFormatBC2_RGBA;
-    GPixelFormats[PF_DXT5				].PlatformFormat	= MTLPixelFormatBC3_RGBA;
-#endif
-	GPixelFormats[PF_UYVY				].PlatformFormat	= MTLPixelFormatInvalid;
-	
-#if !PLATFORM_MAC
+		
+#if !PLATFORM_TVOS
 	if (![Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
 	{
 		GPixelFormats[PF_FloatRGB			].PlatformFormat 	= MTLPixelFormatRGBA16Float;
@@ -497,9 +491,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 		GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatRG11B10Float;
 		GPixelFormats[PF_FloatR11G11B10		].BlockBytes		= 4;
 	}
-	GPixelFormats[PF_FloatRGBA			].PlatformFormat	= MTLPixelFormatRGBA16Float;
-	GPixelFormats[PF_FloatRGBA			].BlockBytes		= 8;
-#if PLATFORM_IOS
+	
 	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesStencilView) && FMetalCommandQueue::SupportsFeature(EMetalFeaturesCombinedDepthStencil) && !FParse::Param(FCommandLine::Get(),TEXT("metalforceseparatedepthstencil")))
 	{
 		GPixelFormats[PF_DepthStencil		].PlatformFormat	= MTLPixelFormatDepth32Float_Stencil8;
@@ -512,7 +504,19 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	}
 	GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth32Float;
 	GPixelFormats[PF_ShadowDepth		].BlockBytes		= 4;
-#else
+		
+	GPixelFormats[PF_BC5				].PlatformFormat	= MTLPixelFormatInvalid;
+	GPixelFormats[PF_R5G6B5_UNORM		].PlatformFormat	= MTLPixelFormatB5G6R5Unorm;
+#else // @todo zebra : srgb?
+    GPixelFormats[PF_DXT1				].PlatformFormat	= MTLPixelFormatBC1_RGBA;
+    GPixelFormats[PF_DXT3				].PlatformFormat	= MTLPixelFormatBC2_RGBA;
+    GPixelFormats[PF_DXT5				].PlatformFormat	= MTLPixelFormatBC3_RGBA;
+	
+	GPixelFormats[PF_FloatRGB			].PlatformFormat	= MTLPixelFormatRG11B10Float;
+	GPixelFormats[PF_FloatRGB			].BlockBytes		= 4;
+	GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatRG11B10Float;
+	GPixelFormats[PF_FloatR11G11B10		].BlockBytes		= 4;
+		
 	// Use Depth28_Stencil8 when it is available for consistency
 	if(bSupportsD24S8)
 	{
@@ -522,18 +526,39 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	{
 		GPixelFormats[PF_DepthStencil	].PlatformFormat	= MTLPixelFormatDepth32Float_Stencil8;
 	}
-    GPixelFormats[PF_DepthStencil		].BlockBytes		= 4;
-    if (bSupportsD16)
-    {
-        GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth16Unorm;
-        GPixelFormats[PF_ShadowDepth		].BlockBytes		= 2;
-    }
-    else
-    {
-        GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth32Float;
-        GPixelFormats[PF_ShadowDepth		].BlockBytes		= 4;
-    }
+	GPixelFormats[PF_DepthStencil		].BlockBytes		= 4;
+	if (bSupportsD16)
+	{
+		GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth16Unorm;
+		GPixelFormats[PF_ShadowDepth		].BlockBytes		= 2;
+	}
+	else
+	{
+		GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth32Float;
+		GPixelFormats[PF_ShadowDepth		].BlockBytes		= 4;
+	}
+	if(bSupportsD24S8)
+	{
+		GPixelFormats[PF_D24			].PlatformFormat	= MTLPixelFormatDepth24Unorm_Stencil8;
+	}
+	else
+	{
+		GPixelFormats[PF_D24			].PlatformFormat	= MTLPixelFormatDepth32Float;
+	}
+	GPixelFormats[PF_D24				].Supported			= true;
+	GPixelFormats[PF_BC4				].Supported			= true;
+	GPixelFormats[PF_BC4				].PlatformFormat	= MTLPixelFormatBC4_RUnorm;
+	GPixelFormats[PF_BC5				].Supported			= true;
+	GPixelFormats[PF_BC5				].PlatformFormat	= MTLPixelFormatBC5_RGUnorm;
+	GPixelFormats[PF_BC6H				].Supported			= true;
+	GPixelFormats[PF_BC6H               ].PlatformFormat	= MTLPixelFormatBC6H_RGBUfloat;
+	GPixelFormats[PF_BC7				].Supported			= true;
+	GPixelFormats[PF_BC7				].PlatformFormat	= MTLPixelFormatBC7_RGBAUnorm;
+	GPixelFormats[PF_R5G6B5_UNORM		].PlatformFormat	= MTLPixelFormatInvalid;
 #endif
+	GPixelFormats[PF_UYVY				].PlatformFormat	= MTLPixelFormatInvalid;
+	GPixelFormats[PF_FloatRGBA			].PlatformFormat	= MTLPixelFormatRGBA16Float;
+	GPixelFormats[PF_FloatRGBA			].BlockBytes		= 8;
     GPixelFormats[PF_X24_G8				].PlatformFormat	= MTLPixelFormatStencil8;
     GPixelFormats[PF_X24_G8				].BlockBytes		= 1;
 	GPixelFormats[PF_R32_FLOAT			].PlatformFormat	= MTLPixelFormatR32Float;
@@ -544,43 +569,15 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GPixelFormats[PF_G32R32F			].PlatformFormat	= MTLPixelFormatRG32Float;
 	GPixelFormats[PF_A2B10G10R10		].PlatformFormat    = MTLPixelFormatRGB10A2Unorm;
 	GPixelFormats[PF_A16B16G16R16		].PlatformFormat    = MTLPixelFormatRGBA16Unorm;
-#if PLATFORM_MAC
-	if(bSupportsD24S8)
-	{
-		GPixelFormats[PF_D24			].PlatformFormat	= MTLPixelFormatDepth24Unorm_Stencil8;
-	}
-	else
-	{
-		GPixelFormats[PF_D24			].PlatformFormat	= MTLPixelFormatDepth32Float;
-	}
-	GPixelFormats[PF_D24				].Supported			= true;
-#endif
 	GPixelFormats[PF_R16F				].PlatformFormat	= MTLPixelFormatR16Float;
 	GPixelFormats[PF_R16F_FILTER		].PlatformFormat	= MTLPixelFormatR16Float;
-#if PLATFORM_IOS
-	GPixelFormats[PF_BC5				].PlatformFormat	= MTLPixelFormatInvalid;
-#else
-    GPixelFormats[PF_BC4				].Supported			= true;
-    GPixelFormats[PF_BC4				].PlatformFormat	= MTLPixelFormatBC4_RUnorm;
-    GPixelFormats[PF_BC5				].Supported			= true;
-    GPixelFormats[PF_BC5				].PlatformFormat	= MTLPixelFormatBC5_RGUnorm;
-    GPixelFormats[PF_BC6H				].Supported			= true;
-    GPixelFormats[PF_BC6H               ].PlatformFormat	= MTLPixelFormatBC6H_RGBUfloat;
-    GPixelFormats[PF_BC7				].Supported			= true;
-    GPixelFormats[PF_BC7				].PlatformFormat	= MTLPixelFormatBC7_RGBAUnorm;
-#endif
-	GPixelFormats[PF_V8U8				].PlatformFormat	=
+	GPixelFormats[PF_V8U8				].PlatformFormat	= MTLPixelFormatRG8Snorm;
 	GPixelFormats[PF_A1					].PlatformFormat	= MTLPixelFormatInvalid;
 	GPixelFormats[PF_A8					].PlatformFormat	= MTLPixelFormatA8Unorm;
 	GPixelFormats[PF_R32_UINT			].PlatformFormat	= MTLPixelFormatR32Uint;
 	GPixelFormats[PF_R32_SINT			].PlatformFormat	= MTLPixelFormatR32Sint;
 	GPixelFormats[PF_R16G16B16A16_UINT	].PlatformFormat	= MTLPixelFormatRGBA16Uint;
 	GPixelFormats[PF_R16G16B16A16_SINT	].PlatformFormat	= MTLPixelFormatRGBA16Sint;
-#if PLATFORM_IOS
-	GPixelFormats[PF_R5G6B5_UNORM		].PlatformFormat	= MTLPixelFormatB5G6R5Unorm;
-#else // @todo zebra
-    GPixelFormats[PF_R5G6B5_UNORM		].PlatformFormat	= MTLPixelFormatInvalid;
-#endif
 	GPixelFormats[PF_R8G8B8A8			].PlatformFormat	= MTLPixelFormatRGBA8Unorm;
 	GPixelFormats[PF_R8G8B8A8_UINT		].PlatformFormat	= MTLPixelFormatRGBA8Uint;
 	GPixelFormats[PF_R8G8B8A8_SNORM		].PlatformFormat	= MTLPixelFormatRGBA8Snorm;
