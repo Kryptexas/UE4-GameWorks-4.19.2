@@ -480,8 +480,23 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
     GPixelFormats[PF_DXT5				].PlatformFormat	= MTLPixelFormatBC3_RGBA;
 #endif
 	GPixelFormats[PF_UYVY				].PlatformFormat	= MTLPixelFormatInvalid;
-	GPixelFormats[PF_FloatRGB			].PlatformFormat	= MTLPixelFormatRG11B10Float;
-	GPixelFormats[PF_FloatRGB			].BlockBytes		= 4;
+	
+#if !PLATFORM_MAC
+	if (![Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
+	{
+		GPixelFormats[PF_FloatRGB			].PlatformFormat 	= MTLPixelFormatRGBA16Float;
+		GPixelFormats[PF_FloatRGBA			].BlockBytes		= 8;
+		GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatRGBA16Float;
+		GPixelFormats[PF_FloatR11G11B10		].BlockBytes		= 8;
+	}
+	else
+#endif
+	{
+		GPixelFormats[PF_FloatRGB			].PlatformFormat	= MTLPixelFormatRG11B10Float;
+		GPixelFormats[PF_FloatRGB			].BlockBytes		= 4;
+		GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatRG11B10Float;
+		GPixelFormats[PF_FloatR11G11B10		].BlockBytes		= 4;
+	}
 	GPixelFormats[PF_FloatRGBA			].PlatformFormat	= MTLPixelFormatRGBA16Float;
 	GPixelFormats[PF_FloatRGBA			].BlockBytes		= 8;
 #if PLATFORM_IOS
@@ -556,8 +571,6 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 #endif
 	GPixelFormats[PF_V8U8				].PlatformFormat	=
 	GPixelFormats[PF_A1					].PlatformFormat	= MTLPixelFormatInvalid;
-	GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatRG11B10Float;
-	GPixelFormats[PF_FloatR11G11B10		].BlockBytes		= 4;
 	GPixelFormats[PF_A8					].PlatformFormat	= MTLPixelFormatA8Unorm;
 	GPixelFormats[PF_R32_UINT			].PlatformFormat	= MTLPixelFormatR32Uint;
 	GPixelFormats[PF_R32_SINT			].PlatformFormat	= MTLPixelFormatR32Sint;
