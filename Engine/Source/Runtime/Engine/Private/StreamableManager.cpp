@@ -1034,6 +1034,12 @@ void FStreamableManager::FindInMemory( FSoftObjectPath& InOutTargetName, struct 
 	UE_LOG(LogStreamableManager, Verbose, TEXT("     Searching in memory for %s"), *InOutTargetName.ToString());
 	Existing->Target = StaticFindObject(UObject::StaticClass(), nullptr, *InOutTargetName.ToString());
 
+	if (Existing->Target && Existing->Target->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
+	{
+		// This can get called from PostLoad on async loaded objects, if it is we do not want to return partially loaded objects and instead want to register for their full load
+		Existing->Target = nullptr;
+	}
+
 	UObjectRedirector* Redir = Cast<UObjectRedirector>(Existing->Target);
 	
 	FRedirectedPath RedirectedPath;
