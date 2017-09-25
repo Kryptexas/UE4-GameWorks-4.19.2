@@ -2698,32 +2698,36 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		private void init() 
 		{
+			if (emojiExcludeFilter == null)
+			{
+				emojiExcludeFilter = new EmojiExcludeFilter();
+			}
 			setFilters(new InputFilter[]{emojiExcludeFilter});
 		}
 
 		@Override
 		public void setFilters(InputFilter[] filters) 
 		{
-			if (filters.length != 0) 
+			if (filters.length != 0 && emojiExcludeFilter != null) 
 			{ //if length == 0 it will here return when init() is called
-					boolean add = true;
-					for (InputFilter inputFilter : filters) 
+				boolean add = true;
+				for (InputFilter inputFilter : filters) 
+				{
+					if (inputFilter == emojiExcludeFilter) 
 					{
-						if (inputFilter == emojiExcludeFilter) 
-						{
-							add = false;
-							break;
-						}
+						add = false;
+						break;
 					}
-					if (add) {
-						filters = Arrays.copyOf(filters, filters.length + 1);
-						filters[filters.length - 1] = emojiExcludeFilter;
-					}
+				}
+				if (add) {
+					filters = Arrays.copyOf(filters, filters.length + 1);
+					filters[filters.length - 1] = emojiExcludeFilter;
+				}
 			}
 			super.setFilters(filters);
 		}
 		    
-		private EmojiExcludeFilter emojiExcludeFilter = new EmojiExcludeFilter();
+		private EmojiExcludeFilter emojiExcludeFilter;
 
 	    private class EmojiExcludeFilter implements InputFilter 
 	    {
