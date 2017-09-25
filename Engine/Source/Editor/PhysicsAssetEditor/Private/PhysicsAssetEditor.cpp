@@ -461,10 +461,30 @@ void FPhysicsAssetEditor::ExtendToolbar()
 			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
 			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PhysicsAssetEditor->PersonaToolkit.ToSharedRef());
 
-			ToolbarBuilder.BeginSection("PhysicsAssetEditorTools");
+			ToolbarBuilder.BeginSection("PhysicsAssetEditorBodyTools");
 			{
 				ToolbarBuilder.AddToolBarButton(Commands.EnableCollision);
 				ToolbarBuilder.AddToolBarButton(Commands.DisableCollision);
+
+				ToolbarBuilder.AddComboButton(
+					FUIAction(FExecuteAction(), FCanExecuteAction::CreateSP(PhysicsAssetEditor, &FPhysicsAssetEditor::IsNotSimulation)),
+					FOnGetContent::CreateLambda([PhysicsAssetEditor]()
+					{
+						return PhysicsAssetEditor->BuildPhysicalMaterialAssetPicker(true);
+					}),
+					Commands.ApplyPhysicalMaterial->GetLabel(), 
+					Commands.ApplyPhysicalMaterial->GetDescription(),
+					Commands.ApplyPhysicalMaterial->GetIcon()
+				);
+			}
+			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.BeginSection("PhysicsAssetEditorConstraintTools");
+			{
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToBallAndSocket);
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToHinge);
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToPrismatic);
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToSkeletal);
 			}
 			ToolbarBuilder.EndSection();
 
@@ -1011,10 +1031,10 @@ void FPhysicsAssetEditor::BuildMenuWidgetBody(FMenuBuilder& InMenuBuilder)
 
 		InMenuBuilder.AddSubMenu(
 			Commands.ApplyPhysicalMaterial->GetLabel(), 
-			Commands.ApplyPhysicalMaterial->GetDescription(), 
+			LOCTEXT("ApplyPhysicalMaterialSelected", "Apply a physical material to the selected bodies"), 
 			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InSubMenuBuilder)
 			{
-				InSubMenuBuilder.AddWidget(BuildPhysicalMaterialAssetPicker(), FText(), true);
+				InSubMenuBuilder.AddWidget(BuildPhysicalMaterialAssetPicker(false), FText(), true);
 			}),
 			FUIAction(FExecuteAction(), FCanExecuteAction::CreateSP(this, &FPhysicsAssetEditor::IsNotSimulation)),
 			NAME_None,
@@ -1470,7 +1490,7 @@ bool FPhysicsAssetEditor::HasSelectedBodyAndIsNotSimulation() const
 
 bool FPhysicsAssetEditor::CanEditConstraintProperties() const
 {
-	if(IsNotSimulation() && SharedData->PhysicsAsset)
+	if(IsNotSimulation() && SharedData->PhysicsAsset && SharedData->GetSelectedConstraint())
 	{
 		//If we are currently editing a constraint profile, make sure all selected constraints belong to the profile
 		if(SharedData->PhysicsAsset->CurrentConstraintProfileName != NAME_None)
@@ -2230,18 +2250,55 @@ void FPhysicsAssetEditor::OnAssetSelectedFromStaticMeshAssetPicker( const FAsset
 	}
 }
 
-TSharedRef<SWidget> FPhysicsAssetEditor::BuildPhysicalMaterialAssetPicker()
+TSharedRef<SWidget> FPhysicsAssetEditor::BuildPhysicalMaterialAssetPicker(bool bForAllBodies)
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 	FAssetPickerConfig AssetPickerConfig;
 	AssetPickerConfig.Filter.ClassNames.Add(UPhysicalMaterial::StaticClass()->GetFName());
-	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &FPhysicsAssetEditor::OnAssetSelectedFromPhysicalMaterialAssetPicker);
+	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &FPhysicsAssetEditor::OnAssetSelectedFromPhysicalMaterialAssetPicker, bForAllBodies);
 	AssetPickerConfig.bAllowNullSelection = true;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 	AssetPickerConfig.bFocusSearchBoxWhenOpened = true;
 	AssetPickerConfig.bShowBottomToolbar = false;
 	AssetPickerConfig.SelectionMode = ESelectionMode::Single;
+
+	// Find a suitable default if any
+	UPhysicalMaterial* SelectedPhysicalMaterial = nullptr;
+	if(bForAllBodies)
+	{
+		if(SharedData->PhysicsAsset->SkeletalBodySetups.Num() > 0)
+		{
+			SelectedPhysicalMaterial = SharedData->PhysicsAsset->SkeletalBodySetups[0]->PhysMaterial;
+			for (int32 SelectedBodyIndex = 0; SelectedBodyIndex < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++SelectedBodyIndex)
+			{
+				USkeletalBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SelectedBodyIndex];
+				if(BodySetup->PhysMaterial != SelectedPhysicalMaterial)
+				{
+					SelectedPhysicalMaterial = nullptr;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		if(SharedData->SelectedBodies.Num())
+		{
+			SelectedPhysicalMaterial = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[0].Index]->PhysMaterial;
+			for (int32 SelectedBodyIndex = 0; SelectedBodyIndex < SharedData->SelectedBodies.Num(); ++SelectedBodyIndex)
+			{
+				USkeletalBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[SelectedBodyIndex].Index];
+				if(BodySetup->PhysMaterial != SelectedPhysicalMaterial)
+				{
+					SelectedPhysicalMaterial = nullptr;
+					break;
+				}
+			}
+		}
+	}
+
+	AssetPickerConfig.InitialAssetSelection = FAssetData(SelectedPhysicalMaterial);
 
 	return SNew(SBox)
 		.IsEnabled(this, &FPhysicsAssetEditor::IsNotSimulation)
@@ -2252,22 +2309,34 @@ TSharedRef<SWidget> FPhysicsAssetEditor::BuildPhysicalMaterialAssetPicker()
 		];
 }
 
-void FPhysicsAssetEditor::OnAssetSelectedFromPhysicalMaterialAssetPicker( const FAssetData& AssetData )
+void FPhysicsAssetEditor::OnAssetSelectedFromPhysicalMaterialAssetPicker( const FAssetData& AssetData, bool bForAllBodies )
 {
 	FSlateApplication::Get().DismissAllMenus();
 
-	if (SharedData->GetSelectedBody())
+	if (SharedData->GetSelectedBody() || bForAllBodies)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("SetPhysicalMaterial", "Set Physical Material"));
 
 		UPhysicalMaterial* PhysicalMaterial = Cast<UPhysicalMaterial>(AssetData.GetAsset());
 		if(PhysicalMaterial)
 		{
-			for (int32 SelectedBodyIndex = 0; SelectedBodyIndex < SharedData->SelectedBodies.Num(); ++SelectedBodyIndex)
+			if(bForAllBodies)
 			{
-				USkeletalBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[SelectedBodyIndex].Index];
-				BodySetup->Modify();
-				BodySetup->PhysMaterial = PhysicalMaterial;
+				for (int32 SelectedBodyIndex = 0; SelectedBodyIndex < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++SelectedBodyIndex)
+				{
+					USkeletalBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SelectedBodyIndex];
+					BodySetup->Modify();
+					BodySetup->PhysMaterial = PhysicalMaterial;
+				}
+			}
+			else
+			{
+				for (int32 SelectedBodyIndex = 0; SelectedBodyIndex < SharedData->SelectedBodies.Num(); ++SelectedBodyIndex)
+				{
+					USkeletalBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[SelectedBodyIndex].Index];
+					BodySetup->Modify();
+					BodySetup->PhysMaterial = PhysicalMaterial;
+				}
 			}
 		}
 	}
