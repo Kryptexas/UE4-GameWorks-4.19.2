@@ -67,7 +67,11 @@ bool FHeadMountedDisplayBase::GetHMDDistortionEnabled() const
 FVector2D FHeadMountedDisplayBase::GetEyeCenterPoint_RenderThread(EStereoscopicPass Eye) const
 {
 	check(IsInRenderingThread());
-	check(IsStereoEnabled());
+
+	if (!IsStereoEnabled())
+	{
+		return FVector2D(0.5f, 0.5f);
+	}
 
 	const FMatrix StereoProjectionMatrix = GetStereoProjectionMatrix(Eye);
 	//0,0,1 is the straight ahead point, wherever it maps to is the center of the projection plane in -1..1 coordinates.  -1,-1 is bottom left.
