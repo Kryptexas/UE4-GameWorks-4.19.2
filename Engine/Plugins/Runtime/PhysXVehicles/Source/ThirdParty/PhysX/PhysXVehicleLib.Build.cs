@@ -127,7 +127,23 @@ public class PhysXVehicleLib : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            PublicAdditionalLibraries.Add(PhysXLibDir + "HTML5/PhysX3Vehicle" + (Target.bCompileForSize ? "_Oz" : "") + ".bc");
+			string OpimizationSuffix = "";
+			if (Target.bCompileForSize)
+			{
+				OpimizationSuffix = "_Oz";
+			}
+			else
+			{
+				if (Target.Configuration == UnrealTargetConfiguration.Development)
+				{
+					OpimizationSuffix = "_O2";
+				}
+				else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+				{
+					OpimizationSuffix = "_O3";
+				}
+			}
+            PublicAdditionalLibraries.Add(PhysXLibDir + "HTML5/PhysX3Vehicle" + OpimizationSuffix + ".bc");
         }
         else if (Target.Platform == UnrealTargetPlatform.PS4)
         {
