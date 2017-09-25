@@ -932,39 +932,36 @@ bool FMeshMergeHelpers::PropagatePaintedColorsToRawMesh(const UStaticMeshCompone
 		StaticMeshComponent->LODData[LODIndex].OverrideVertexColors != nullptr)
 	{
 		FColorVertexBuffer& ColorVertexBuffer = *StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
-		FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
-		FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
-		FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
+		FStaticMeshLODResources& RenderModel = StaticMesh->RenderData->LODResources[LODIndex];
 
 		if (ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
-		{
-			int32 NumWedges = RawMesh.WedgeIndices.Num();
-			const bool bUseWedgeMap = RenderData.WedgeMap.Num() > 0 && RenderData.WedgeMap.Num() == NumWedges && !StaticMeshComponent->IsA<USplineMeshComponent>();
-			// If we have a wedge map
-			if (bUseWedgeMap)
+		{	
+			const int32 NumWedges = RawMesh.WedgeIndices.Num();
+			const int32 NumRenderWedges = RenderModel.IndexBuffer.GetNumIndices();
+			const bool bUseRenderWedges = NumWedges == NumRenderWedges;
+					
+			if (bUseRenderWedges)
 			{
-				if (RenderData.WedgeMap.Num() == NumWedges)
+				const int32 NumExistingColors = RawMesh.WedgeColors.Num();
+				if (NumExistingColors < NumRenderWedges)
 				{
-					int32 NumExistingColors = RawMesh.WedgeColors.Num();
-					if (NumExistingColors < NumWedges)
-					{
-						RawMesh.WedgeColors.AddUninitialized(NumWedges - NumExistingColors);
-					}
-
-					for (int32 i = 0; i < NumWedges; ++i)
-					{
-						FColor WedgeColor = FColor::White;
-						int32 Index = RenderData.WedgeMap[i];
-						if (Index != INDEX_NONE)
-						{
-							WedgeColor = ColorVertexBuffer.VertexColor(Index);
-						}
-
-						RawMesh.WedgeColors[i] = WedgeColor;
-					}
-
-					return true;
+					RawMesh.WedgeColors.AddUninitialized(NumRenderWedges - NumExistingColors);
 				}
+
+				const FIndexArrayView ArrayView = RenderModel.IndexBuffer.GetArrayView();
+				for (int32 WedgeIndex = 0; WedgeIndex < NumRenderWedges; WedgeIndex++)
+				{
+					const int32 Index = ArrayView[WedgeIndex];
+					FColor WedgeColor = FColor::White;
+					if (Index != INDEX_NONE)
+					{
+						WedgeColor = ColorVertexBuffer.VertexColor(Index);
+					}
+
+					RawMesh.WedgeColors[WedgeIndex] = WedgeColor;
+				}
+
+				return true;				
 			}
 			// No wedge map (this can happen when we poly reduce the LOD for example)
 			// Use index buffer directly
@@ -974,16 +971,16 @@ bool FMeshMergeHelpers::PropagatePaintedColorsToRawMesh(const UStaticMeshCompone
 
 				if (RawMesh.VertexPositions.Num() == ColorVertexBuffer.GetNumVertices())
 				{
-					for (int32 i = 0; i < NumWedges; ++i)
+					for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 					{
 						FColor WedgeColor = FColor::White;
-						uint32 VertIndex = RawMesh.WedgeIndices[i];
+						uint32 VertIndex = RawMesh.WedgeIndices[WedgeIndex];
 
 						if (VertIndex < ColorVertexBuffer.GetNumVertices())
 						{
 							WedgeColor = ColorVertexBuffer.VertexColor(VertIndex);
 						}
-						RawMesh.WedgeColors[i] = WedgeColor;
+						RawMesh.WedgeColors[WedgeIndex] = WedgeColor;
 					}
 
 					return true;
