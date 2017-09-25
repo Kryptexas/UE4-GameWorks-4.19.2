@@ -3306,18 +3306,22 @@ void ALandscape::PostEditMove(bool bFinished)
 	Super::PostEditMove(bFinished);
 }
 
+bool ALandscape::ShouldImport(FString* ActorPropString, bool IsMovingLevel)
+{
+	return GetWorld() != nullptr && !GetWorld()->IsGameWorld();
+}
+
 void ALandscape::PostEditImport()
 {
-	if (GetWorld())
+	check(GetWorld() && !GetWorld()->IsGameWorld());
+
+	for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
 	{
-		for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
+		if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
 		{
-			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
-			{
-				// Copy/Paste case, need to generate new GUID
-				LandscapeGuid = FGuid::NewGuid();
-				break;
-			}
+			// Copy/Paste case, need to generate new GUID
+			LandscapeGuid = FGuid::NewGuid();
+			break;
 		}
 	}
 
