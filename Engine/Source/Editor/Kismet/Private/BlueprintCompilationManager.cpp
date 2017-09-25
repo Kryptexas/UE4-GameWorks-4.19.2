@@ -91,6 +91,7 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 	void FlushReinstancingQueueImpl();
 	bool HasBlueprintsToCompile() const;
 	bool IsGeneratedClassLayoutReady() const;
+	void GetDefaultValue(const UClass* ForClass, const UProperty* Property, FString& OutDefaultValueAsString) const;
 	static void ReinstanceBatch(TArray<FReinstancingJob>& Reinstancers, TMap< UClass*, UClass* >& InOutOldToNewClassMap, TArray<UObject*>* ObjLoaded);
 	static UClass* FastGenerateSkeletonClass(UBlueprint* BP, FKismetCompilerContext& CompilerContext);
 	static bool IsQueuedForCompilation(UBlueprint* BP);
@@ -111,6 +112,10 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 	// Data stored for reinstancing, which finishes much later than compilation,
 	// populated by FlushCompilationQueueImpl, cleared by FlushReinstancingQueueImpl:
 	TMap<UClass*, UClass*> ClassesToReinstance;
+	
+	// Map to old default values, useful for providing access to this data throughout
+	// the compilation process:
+	TMap<UBlueprint*, UObject*> OldCDOs;
 	
 	// Blueprints that should be saved after the compilation pass is complete:
 	TArray<UBlueprint*> CompiledBlueprintsToSave;
@@ -307,7 +312,7 @@ struct FReinstancingJob
 	TSharedPtr<FBlueprintCompileReinstancer> Reinstancer;
 	TSharedPtr<FKismetCompilerContext> Compiler;
 };
-	
+
 void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled)
 {
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
@@ -640,7 +645,6 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		// STAGE X: reinstance every blueprint that is queued, note that this means classes in the hierarchy that are *not* being 
 		// compiled will be parented to REINST versions of the class, so type checks (IsA, etc) involving those types
 		// will be incoherent!
-		TMap<UBlueprint*, UObject*> OldCDOs;
 		{
 			for (FCompilerData& CompilerData : CurrentlyCompilingBPs)
 			{
@@ -674,6 +678,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			if(BP->GeneratedClass && BP->GeneratedClass->GetSuperClass()->HasAnyClassFlags(CLASS_NewerVersionExists))
 			{
 				BP->GeneratedClass->SetSuperStruct(BP->GeneratedClass->GetSuperClass()->GetAuthoritativeClass());
+
 				if(CompilerData.ShouldResetClassMembers())
 				{
 					BP->GeneratedClass->Children = NULL;
@@ -816,6 +821,8 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 
 			FScopedDurationTimer ReinstTimer(GTimeReinstancing);
 			ReinstanceBatch(Reinstancers, ClassesToReinstance, ObjLoaded);
+
+			OldCDOs.Empty();
 		}
 		
 		// STAGE XV: CLEAR TEMPORARY FLAGS
@@ -854,8 +861,6 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				// refresh each dependent blueprint
 				for (UBlueprint* Dependent : DependentBPs)
 				{
-					// for interface changes, auto-refresh nodes on any dependent blueprints
-					// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
 					if(!BP->bIsRegeneratingOnLoad)
 					{
 						// Some logic (e.g. UObject::ProcessInternal) uses this flag to suppress warnings:
@@ -979,6 +984,36 @@ bool FBlueprintCompilationManagerImpl::HasBlueprintsToCompile() const
 bool FBlueprintCompilationManagerImpl::IsGeneratedClassLayoutReady() const
 {
 	return bGeneratedClassLayoutReady;
+}
+
+void FBlueprintCompilationManagerImpl::GetDefaultValue(const UClass* ForClass, const UProperty* Property, FString& OutDefaultValueAsString) const
+{
+	if(!ForClass || !Property)
+	{
+		return;
+	}
+
+	if (ForClass->ClassDefaultObject)
+	{
+		FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ForClass->ClassDefaultObject, OutDefaultValueAsString);
+	}
+	else
+	{
+		UBlueprint* BP = Cast<UBlueprint>(ForClass->ClassGeneratedBy);
+		if(ensure(BP))
+		{
+			const UObject* const* OldCDO = OldCDOs.Find(BP);
+			if(OldCDO && *OldCDO)
+			{
+				const UClass* OldClass = (*OldCDO)->GetClass();
+				const UProperty* OldProperty = OldClass->FindPropertyByName(Property->GetFName());
+				if(OldProperty)
+				{
+					FBlueprintEditorUtils::PropertyValueToString(OldProperty, (uint8*)*OldCDO, OutDefaultValueAsString);
+				}
+			}
+		}
+	}
 }
 
 void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>& Reinstancers, TMap< UClass*, UClass* >& InOutOldToNewClassMap, TArray<UObject*>* ObjLoaded)
@@ -1967,6 +2002,15 @@ void FBlueprintCompilationManager::FlushCompilationQueue(TArray<UObject*>* ObjLo
 	}
 }
 
+void FBlueprintCompilationManager::FlushCompilationQueueAndReinstance()
+{
+	if(BPCMImpl)
+	{
+		BPCMImpl->FlushCompilationQueueImpl(nullptr, false, nullptr);
+		BPCMImpl->FlushReinstancingQueueImpl();
+	}
+}
+
 void FBlueprintCompilationManager::CompileSynchronously(const FBPCompileRequest& Request)
 {
 	if(BPCMImpl)
@@ -1992,6 +2036,11 @@ void FBlueprintCompilationManager::NotifyBlueprintLoaded(UBlueprint* BPLoaded)
 	BPCMImpl->QueueForCompilation(FBPCompileRequest(BPLoaded, EBlueprintCompileOptions::IsRegeneratingOnLoad, nullptr));
 }
 
+void FBlueprintCompilationManager::QueueForCompilation(UBlueprint* BPLoaded)
+{
+	BPCMImpl->QueueForCompilation(FBPCompileRequest(BPLoaded, EBlueprintCompileOptions::None, nullptr));
+}
+
 bool FBlueprintCompilationManager::IsGeneratedClassLayoutReady()
 {
 	if(!BPCMImpl)
@@ -2002,4 +2051,18 @@ bool FBlueprintCompilationManager::IsGeneratedClassLayoutReady()
 	return BPCMImpl->IsGeneratedClassLayoutReady();
 }
 
+
+bool FBlueprintCompilationManager::GetDefaultValue(const UClass* ForClass, const UProperty* Property, FString& OutDefaultValueAsString)
+{
+	if(!BPCMImpl)
+	{
+		// legacy behavior: can't provide CDO for classes currently being compiled
+		return false;
+	}
+
+	BPCMImpl->GetDefaultValue(ForClass, Property, OutDefaultValueAsString);
+	return true;
+}
+
 #undef LOCTEXT_NAMESPACE
+

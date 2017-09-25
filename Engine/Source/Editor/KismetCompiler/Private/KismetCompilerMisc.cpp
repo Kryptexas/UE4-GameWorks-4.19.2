@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "KismetCompilerMisc.h"
+
+#include "BlueprintCompilationManager.h"
 #include "Misc/CoreMisc.h"
 #include "UObject/MetaData.h"
 #include "UObject/UnrealType.h"
@@ -741,12 +743,21 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 					continue;
 				}
 
-				if (ForClass->ClassDefaultObject)
+				// We don't want to generate an assignment node unless the default value 
+				// differs from the value in the CDO:
+				FString DefaultValueAsString;
+					
+				if (FBlueprintCompilationManager::GetDefaultValue(ForClass, Property, DefaultValueAsString))
 				{
-					// We don't want to generate an assignment node unless the default value 
-					// differs from the value in the CDO:
-					FString DefaultValueAsString;
+					if (DefaultValueAsString == OrgPin->GetDefaultAsString())
+					{
+						continue;
+					}
+				}
+				else if(ForClass->ClassDefaultObject)
+				{
 					FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ForClass->ClassDefaultObject, DefaultValueAsString);
+
 					if (DefaultValueAsString == OrgPin->GetDefaultAsString())
 					{
 						continue;
