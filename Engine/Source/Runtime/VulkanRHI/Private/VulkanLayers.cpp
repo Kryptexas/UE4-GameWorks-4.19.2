@@ -308,7 +308,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 
 #if PLATFORM_LINUX
 	uint32_t Count = 0;
-	auto RequiredExtensions = SDL_VK_GetRequiredInstanceExtensions(&count);
+	auto RequiredExtensions = SDL_VK_GetRequiredInstanceExtensions(&Count);
 	for(int32 i = 0; i < Count; i++)
 	{
 		OutInstanceExtensions.Add(RequiredExtensions[i]);
