@@ -2630,10 +2630,19 @@ void UAnimSequence::RecycleAnimSequence()
 	RawDataGuid.Invalidate();
 	AnimationTrackNames.Empty();
 	TrackToSkeletonMapTable.Empty();
+	CompressedTrackToSkeletonMapTable.Empty();
 	CompressedTrackOffsets.Empty(0);
 	CompressedByteStream.Empty(0);
 	CompressedScaleOffsets.Empty(0);
 	SourceRawAnimationData.Empty(0);
+	RawCurveData.Empty();
+	CompressedCurveData.Empty();
+	AuthoredSyncMarkers.Empty();
+	UniqueMarkerNames.Empty();
+	Notifies.Empty();
+	AnimNotifyTracks.Empty();
+	CompressionScheme = nullptr;
+	TranslationCompressionFormat = RotationCompressionFormat = ScaleCompressionFormat = ACF_None;
 #endif // WITH_EDITORONLY_DATA
 }
 bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq, bool bSkipCopyingNotifies)
