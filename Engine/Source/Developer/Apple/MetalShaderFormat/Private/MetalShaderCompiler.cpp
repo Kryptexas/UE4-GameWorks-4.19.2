@@ -1689,13 +1689,6 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
 	if (!Input.bSkipPreprocessedCache && !bDirectCompile)
 	{
-		FString const* UsingWPO = Input.Environment.GetDefinitions().Find(TEXT("USES_WORLD_POSITION_OFFSET"));
-		if (UsingWPO && FString("1") == *UsingWPO)
-		{
-			// FMAs are deoptimised when fast-math is enabled and arguments are literals :(
-			Input.Environment.CompilerFlags.Add(CFLAG_NoFastMath);
-		}
-		
 		FString const* UsingTessellationDefine = Input.Environment.GetDefinitions().Find(TEXT("USING_TESSELLATION"));
 		bool bUsingTessellation = (UsingTessellationDefine != nullptr && FString("1") == *UsingTessellationDefine);
 		if (bUsingTessellation && (Input.Target.Frequency == SF_Vertex))
