@@ -2561,14 +2561,14 @@ uint32 FWindowsPlatformMisc::GetCPUInfo()
 
 bool FWindowsPlatformMisc::HasNonoptionalCPUFeatures()
 {
-	// Check for SSSE3 instruction support
-	return (FCPUIDQueriedData::GetCPUInfo2() & (1 << 9)) != 0;
+	// Check for popcnt is bit 23
+	return (FCPUIDQueriedData::GetCPUInfo2() & (1 << 23)) != 0;
 }
 
 bool FWindowsPlatformMisc::NeedsNonoptionalCPUFeaturesCheck()
 {
-	// popcnt is 64bit and intel only
-	return PLATFORM_64BITS && PLATFORM_CPU_X86_FAMILY;
+	// popcnt is 64bit
+	return PLATFORM_ENABLE_POPCNT_INTRINSIC;
 }
 
 int32 FWindowsPlatformMisc::GetCacheLineSize()

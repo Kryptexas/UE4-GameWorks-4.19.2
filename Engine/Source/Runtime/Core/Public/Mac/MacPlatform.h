@@ -46,6 +46,8 @@ typedef FMacPlatformTypes FPlatformTypes;
 
 #define PLATFORM_RHITHREAD_DEFAULT_BYPASS			WITH_EDITOR
 
+#define PLATFORM_ENABLE_POPCNT_INTRINSIC 1
+
 // Function type macros.
 #define VARARGS															/* Functions with variable arguments */
 #define CDECL															/* Standard C function */

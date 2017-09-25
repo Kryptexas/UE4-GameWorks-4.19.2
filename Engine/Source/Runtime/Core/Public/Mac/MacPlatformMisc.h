@@ -74,7 +74,7 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 	static uint32 GetCPUInfo();
 
     static bool HasNonoptionalCPUFeatures() { return true; }
-    static bool NeedsNonoptionalCPUFeaturesCheck() { return true; }
+    static bool NeedsNonoptionalCPUFeaturesCheck() { return PLATFORM_ENABLE_POPCNT_INTRINSIC; }
 
 	static void SetGracefulTerminationHandler();
 	

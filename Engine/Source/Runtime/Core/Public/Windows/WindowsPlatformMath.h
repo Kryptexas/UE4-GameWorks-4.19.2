@@ -138,7 +138,7 @@ struct FWindowsPlatformMath : public FGenericPlatformMath
 	}
 #endif
 
-#if PLATFORM_64BITS && PLATFORM_CPU_X86_FAMILY
+#if PLATFORM_ENABLE_POPCNT_INTRINSIC
 	/**
 	 * Use the SSE instruction to count bits
 	 */
