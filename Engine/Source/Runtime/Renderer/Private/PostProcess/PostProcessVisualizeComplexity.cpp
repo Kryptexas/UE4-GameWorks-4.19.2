@@ -114,7 +114,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.UnscaledViewRect;
+	FIntRect DestRect = View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);

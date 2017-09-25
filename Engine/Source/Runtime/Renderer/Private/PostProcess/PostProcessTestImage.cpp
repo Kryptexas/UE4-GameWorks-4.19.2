@@ -98,8 +98,8 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect SrcRect = View.UnscaledViewRect;
+	FIntRect DestRect = View.UnscaledViewRect;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 

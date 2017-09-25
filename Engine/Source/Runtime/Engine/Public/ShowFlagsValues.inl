@@ -91,7 +91,7 @@ SHOWFLAG_FIXED_IN_SHIPPING(1, SceneColorFringe, SFG_PostProcess, LOCTEXT("SceneC
 /** If Translucency should be rendered into a separate RT and composited without DepthOfField, can be disabled in the materials (affects sorting), SHOWFLAG_ALWAYS_ACCESSIBLE for now because USceneCaptureComponent needs that */
 SHOWFLAG_ALWAYS_ACCESSIBLE(SeparateTranslucency, SFG_Advanced, LOCTEXT("SeparateTranslucencySF", "Separate Translucency"))
 /** If Screen Percentage should be applied (upscaling), useful to disable it in editor, SHOWFLAG_ALWAYS_ACCESSIBLE for now because some VR code is using it  */
-SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenPercentage, SFG_PostProcess, LOCTEXT("ScreenPercentageSF", "Screen Percentage"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenPercentage, SFG_Hidden, LOCTEXT("ScreenPercentageSF", "Screen Percentage"))
 /** Helper to tweak motion blur settings */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeMotionBlur, SFG_Visualize, LOCTEXT("VisualizeMotionBlurSF", "Motion Blur"))
 /** Whether to display the Reflection Environment feature, which has local reflections from Reflection Capture actors, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */

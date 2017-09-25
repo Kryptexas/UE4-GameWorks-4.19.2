@@ -700,6 +700,16 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 
 	FSceneViewInitOptions ViewInitOptions;
 
+	// Takes care of HighDPI based screen percentage in editor viewport when not in VR editor.
+	if (!bStereoRendering)
+	{
+		// Disables any screen percentage derived for game such as r.ScreenPercentage or FPostProcessSettings::ScreenPercentage.
+		ViewInitOptions.bDisableGameScreenPercentage = true;
+
+		// Forces screen percentage showflag on so that we always upscale on HighDPI configuration.
+		ViewFamily->EngineShowFlags.ScreenPercentage = true;
+	}
+
 	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	const ELevelViewportType EffectiveViewportType = GetViewportType();
 
