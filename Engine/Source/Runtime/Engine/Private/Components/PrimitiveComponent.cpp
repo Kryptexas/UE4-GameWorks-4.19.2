@@ -205,10 +205,6 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	LastCheckedAllCollideableDescendantsTime = 0.f;
 	
 	bApplyImpulseOnDamage = true;
-
-#if WITH_FLEX
-	bIsFlexParent = 0;
-#endif
 }
 
 bool UPrimitiveComponent::UsesOnlyUnlitMaterials() const

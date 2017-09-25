@@ -35,7 +35,7 @@
 #include "PhysicsEngine/FlexContainer.h"
 #include "PhysicsEngine/FlexContainerInstance.h"
 #include "PhysicsEngine/FlexFluidSurfaceComponent.h"
-#include "PhysicsEngine/FlexCollisionReportComponent.h"
+#include "PhysicsEngine/FlexCollisionComponent.h"
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -1044,7 +1044,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 					int32 ShapeReportIndex = Container->CollisionReportIndices[FlexShapeIndex];
 					if (ShapeReportIndex >= 0)
 					{
-						UFlexCollisionReportComponent* ReportComp = Container->CollisionReportComponents[ShapeReportIndex];
+						UFlexCollisionComponent* ReportComp = Container->CollisionReportComponents[ShapeReportIndex];
 
 						if (ReportComp)
 						{

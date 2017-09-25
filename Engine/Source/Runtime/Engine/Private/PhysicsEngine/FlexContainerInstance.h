@@ -14,7 +14,7 @@ class UFlexContainer;
 class UFlexComponent;
 class UFlexAsset;
 class USoftJointComponent;
-class UFlexCollisionReportComponent;
+class UFlexCollisionComponent;
 struct FFlexPhase;
 struct IFlexContainerClient;
 
@@ -91,7 +91,7 @@ struct FFlexContainerInstance : public PxDeletionListener
 	bool IsMapped();
 
 	// helper to setup report shapes and indices during UpdateCollisionData
-	void SetupCollisionReport(void* Shape, UFlexCollisionReportComponent* ReportComponent);
+	void SetupCollisionReport(void* Shape, UFlexCollisionComponent* ReportComponent);
 
 	// gather and send collision data to the solver
 	void UpdateCollisionData();
@@ -168,7 +168,7 @@ struct FFlexContainerInstance : public PxDeletionListener
 	NvFlexVector<FQuat> ShapeRotationsPrev;
 
 	TArray<int32> CollisionReportIndices;
-	TArray<UFlexCollisionReportComponent*> CollisionReportComponents;
+	TArray<UFlexCollisionComponent*> CollisionReportComponents;
 	TMap<void*, int32> ShapeToCollisionReportIndex;
 
 	// temporary buffers used during collision shape building

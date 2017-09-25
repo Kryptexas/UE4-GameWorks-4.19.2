@@ -266,12 +266,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Collision)
 	uint32 bReturnMaterialOnMove:1;
 
-	/**
-	 * If this component acts as parent for Flex objects then this should be ticked to ensure correct collision handling
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Collision)
-	uint32 bIsFlexParent : 1;
-
 	/** True if the primitive should be rendered using ViewOwnerDepthPriorityGroup if viewed by its owner. */
 	UPROPERTY()
 	uint32 bUseViewOwnerDepthPriorityGroup:1;

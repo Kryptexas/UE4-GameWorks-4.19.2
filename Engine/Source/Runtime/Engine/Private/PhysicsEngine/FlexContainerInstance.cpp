@@ -4,7 +4,7 @@
 
 #include "DrawDebugHelpers.h"
 #include "PhysXSupport.h"
-#include "PhysicsEngine/FlexCollisionReportComponent.h"
+#include "PhysicsEngine/FlexCollisionComponent.h"
 
 #if WITH_FLEX
 
@@ -325,13 +325,13 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexM
 	}
 }
 
-void FFlexContainerInstance::SetupCollisionReport(void* Shape, UFlexCollisionReportComponent* ReportComponent)
+void FFlexContainerInstance::SetupCollisionReport(void* Shape, UFlexCollisionComponent* CollisionComponent)
 {
 	int32 CollisionReportIndex = -1;
-	if (ReportComponent)
+	if (CollisionComponent)
 	{
 		CollisionReportIndex = CollisionReportComponents.Num();
-		CollisionReportComponents.Push(ReportComponent);
+		CollisionReportComponents.Push(CollisionComponent);
 		ShapeToCollisionReportIndex.Add(Shape, CollisionReportIndex);
 	}
 	CollisionReportIndices.Push(CollisionReportIndex);
@@ -443,23 +443,23 @@ void FFlexContainerInstance::UpdateCollisionData()
 				continue;
 
 			bool bIsOverlap = (Response == ECollisionResponse::ECR_Overlap);
-			UFlexCollisionReportComponent* ReportComponent = nullptr;
+			UFlexCollisionComponent* CollisionComponent = nullptr;
 			if (PrimComp->GetOwner())
 			{
 				const TSet<UActorComponent*>& ActorComps = PrimComp->GetOwner()->GetComponents();
 				for (TSet<UActorComponent*>::TConstIterator SetIt(ActorComps); SetIt; ++SetIt)
 				{
 					UActorComponent* Component = *SetIt;
-					if (Component && Component->IsA<UFlexCollisionReportComponent>())
+					if (Component && Component->IsA<UFlexCollisionComponent>())
 					{
-						ReportComponent = Cast<UFlexCollisionReportComponent>(Component);
+						CollisionComponent = Cast<UFlexCollisionComponent>(Component);
 						break;
 					}
 				}
 			}
 
 			//Currently we are just interested in overlaps that correspond to triggers. Overlap response is also used for auto attachments.
-			if (bIsOverlap && ReportComponent == nullptr)
+			if (bIsOverlap && CollisionComponent == nullptr)
 				continue;
 
 			FBodyInstance* Body = NULL;
@@ -526,7 +526,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 				// for components that act as a localization parent we ignore the velocity as it 
 				// makes friction and CCD behave incorrectly, we should actually
 				// just factor out the parent's velocity to allow sub-bodies (like a ragdoll) to have some relative motion
-				if (!PrimComp->bIsFlexParent)
+				if (CollisionComponent == nullptr || !CollisionComponent->bIsLocalSimParent)
 				{
 					// generate previous frame's transform from rigid body velocities and time-step
 					const PxVec3 LinearVelocity = U2PVector(Body->GetUnrealWorldVelocity_AssumesLocked());
@@ -555,7 +555,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 						ShapePositionsPrev.push_back(FVector4(WorldTransformPrev.p.x, WorldTransformPrev.p.y, WorldTransformPrev.p.z, 1.0f));
 						ShapeRotationsPrev.push_back(FQuat(WorldTransformPrev.q.x, WorldTransformPrev.q.y, WorldTransformPrev.q.z, WorldTransformPrev.q.w));
 						
-						SetupCollisionReport(Shape, ReportComponent);
+						SetupCollisionReport(Shape, CollisionComponent);
 
 						if (Shape->getGeometryType() == PxGeometryType::eCAPSULE)
 						{
@@ -621,7 +621,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 							ShapePositionsPrev.push_back(FVector4(WorldTransformPrev.p.x, WorldTransformPrev.p.y, WorldTransformPrev.p.z, 1.0f));
 							ShapeRotationsPrev.push_back(FQuat(WorldTransformPrev.q.x, WorldTransformPrev.q.y, WorldTransformPrev.q.z, WorldTransformPrev.q.w));
 
-							SetupCollisionReport(Shape, ReportComponent);
+							SetupCollisionReport(Shape, CollisionComponent);
 
 							// look up mesh in cache (or create)
 							NvFlexConvexMeshId Mesh = GetConvexMesh(ConvexMesh.convexMesh);
@@ -670,7 +670,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 						int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);							
 						ShapeFlags.push_back(Flags);
 
-						SetupCollisionReport(Shape, ReportComponent);
+						SetupCollisionReport(Shape, CollisionComponent);
 						break;
 					}
 					case PxGeometryType::eHEIGHTFIELD:
@@ -707,7 +707,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 						int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);							
 						ShapeFlags.push_back(Flags);
 
-						SetupCollisionReport(Shape, ReportComponent);
+						SetupCollisionReport(Shape, CollisionComponent);
 						break;
 					}
 				}
