@@ -6,7 +6,12 @@
 
 class FAppleARKitEditorModule : public IModuleInterface, public IModularFeature
 {
+	virtual void StartupModule() override
+	{
+		IModuleInterface::StartupModule();
 
+		FModuleManager::LoadModulePtr<IModuleInterface>("AugmentedReality");
+	}
 };
 
 IMPLEMENT_MODULE(FAppleARKitEditorModule, AppleARKitEditor);

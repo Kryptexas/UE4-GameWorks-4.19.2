@@ -82,6 +82,8 @@ void FGoogleARCoreBaseModule::StartupModule()
 
 	// Register IHeadMountedDisplayModule
 	IHeadMountedDisplayModule::StartupModule();
+
+	FModuleManager::LoadModulePtr<IModuleInterface>("AugmentedReality");
 }
 
 void FGoogleARCoreBaseModule::ShutdownModule()
