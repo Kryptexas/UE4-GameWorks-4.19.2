@@ -3921,6 +3921,12 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 				Gizmo->MarkComponentsRenderStateDirty();
 			}
 		}
+
+		// Must be done after the AActor::PostEditChange as we depend on the relinking of the landscapeInfo->LandscapeActor
+		if (ChangedMaterial)
+		{
+			LandscapeMaterialChangedDelegate.Broadcast();
+		}
 	}
 }
 
