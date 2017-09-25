@@ -1227,7 +1227,12 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 
 		// Build the connection String
 		FString ConnectionAddr(TEXT("127.0.0.1"));
-		const bool WillAutoConnectToServer = [&PlayInSettings] { bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+
+		// Ignore the user's settings if the autoconnect option is inaccessible due to settings conflicts.
+		const bool WillAutoConnectToServer = [&PlayInSettings] { bool AutoConnectToServer(false); 
+			return (PlayInSettings->GetAutoConnectToServerVisibility() == EVisibility::Visible) ? 
+				(PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer) : true; }();
+
 		if (WillAutoConnectToServer)
 		{
 			uint16 ServerPort = 0;
