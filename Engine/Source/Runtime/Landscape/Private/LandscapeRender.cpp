@@ -2620,7 +2620,10 @@ public:
 	{
 		if (VertexFactoryType)
 		{
+			// Always check against FLocalVertexFactory in editor builds as it is required to render thumbnails
+#if !WITH_EDITOR
 			if (bIsLayerThumbnail)
+#endif
 			{
 				// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
 				static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
@@ -2645,7 +2648,9 @@ public:
 					}
 				}
 			}
+#if !WITH_EDITOR
 			else
+#endif
 			{
 				// Landscape MICs are only for use with the Landscape vertex factories
 				// Todo: only compile LandscapeXYOffsetVertexFactory if we are using it
