@@ -105,7 +105,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	virtual ~UInstancedStaticMeshComponent();
 
 	/** Array of instances, bulk serialized. */
-	UPROPERTY(EditAnywhere, SkipSerialization, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
+	UPROPERTY(EditAnywhere, SkipSerialization, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true, EditFixedOrder))
 	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
 	/** Value used to seed the random number stream that generates random numbers for each of this mesh's instances.
