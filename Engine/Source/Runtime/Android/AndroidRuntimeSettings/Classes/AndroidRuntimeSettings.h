@@ -322,10 +322,6 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES3.1"))
 	bool bBuildForES31;
 
-	// Enable ES Deferred shading support? [CURRENTLY FOR FULL SOURCE GAMES ONLY. SUPPORTED BY NVIDIA K-1 AND X-1 ONLY.]
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL Deferred Renderer [Nvidia K1 & X1 only]"))
-	bool bBuildForESDeferred;
-
 	// Enable Vulkan rendering support?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan [Experimental]"))
 	bool bSupportsVulkan;
@@ -486,5 +482,8 @@ public:
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostInitProperties() override;
 	// End of UObject interface
+
+private:
+	void EnsureValidGPUArch();
 #endif
 };

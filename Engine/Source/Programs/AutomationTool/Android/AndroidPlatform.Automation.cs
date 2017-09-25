@@ -1434,21 +1434,6 @@ public class AndroidPlatform : Platform
 			return "";
 		}
 
-		var AppGPUArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
-
-		// get the device extensions
-		IProcessResult ExtensionsResult = RunAdbCommand(Params, DeviceName, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
-		string Extensions = ExtensionsResult.Output.Trim();
-
-		// look for AEP support (on device and in project)
-		if (Extensions.Contains("GL_ANDROID_extension_pack_es31a") && Extensions.Contains("GL_EXT_color_buffer_half_float"))
-		{
-			if (AppGPUArchitectures.Contains("-esdeferred"))
-			{
-				return "-esdeferred";
-			}
-		}
-
 		return "-es2";
 	}
 

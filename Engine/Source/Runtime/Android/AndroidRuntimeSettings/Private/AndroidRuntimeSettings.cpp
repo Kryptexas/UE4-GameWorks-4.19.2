@@ -34,6 +34,7 @@ UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& Objec
 	, TextureFormatPriority_ATC(0.5f)
 	, TextureFormatPriority_ASTC(0.9f)
 {
+	bBuildForES2 = !bBuildForES2 && !bBuildForES31 && !bSupportsVulkan;
 }
 
 #if WITH_EDITOR
@@ -101,8 +102,7 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 
 	if (PropertyChangedEvent.Property != nullptr)
 	{
-		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForESDeferred) ||
-			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bSupportsVulkan) ||
+		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bSupportsVulkan) ||
 			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2) ||
 			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES31))
 		{
@@ -111,15 +111,7 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 		}
 	}
 
-	// Ensure that at least one GPU architecture is supported
-	if (!bBuildForES2 && !bBuildForESDeferred && !bSupportsVulkan && !bBuildForES31)
-	{
-		bBuildForES2 = true;
-		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2)), GetDefaultConfigFilename());
-
-		// Supported shader formats changed so invalidate cache
-		InvalidateAllAndroidPlatforms();
-	}
+	EnsureValidGPUArch();
 
 	if (PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetName().StartsWith(TEXT("bMultiTargetFormat")))
 	{
@@ -163,6 +155,22 @@ void UAndroidRuntimeSettings::PostInitProperties()
 		AdMobAdUnitIDs.Add(AdMobAdUnitID);
 		AdMobAdUnitID.Empty();
 		UpdateDefaultConfigFile();
+	}
+
+	// Enable ES2 if no GPU arch is selected. (as can be the case with the removal of ESDeferred) 
+	EnsureValidGPUArch();
+}
+
+void UAndroidRuntimeSettings::EnsureValidGPUArch()
+{
+	// Ensure that at least one GPU architecture is supported
+	if (!bBuildForES2 && !bSupportsVulkan && !bBuildForES31)
+	{
+		bBuildForES2 = true;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2)), GetDefaultConfigFilename());
+
+		// Supported shader formats changed so invalidate cache
+		InvalidateAllAndroidPlatforms();
 	}
 }
 #endif

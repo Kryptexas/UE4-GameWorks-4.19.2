@@ -24,7 +24,6 @@ namespace UnrealBuildTool
 		public static readonly string[] AllGpuSuffixes =
 		{
 			"-es2",
-			"-esdeferred",
 		};
 
 		private FileReference ProjectFile;
@@ -275,11 +274,6 @@ namespace UnrealBuildTool
 			{
 				GPUArchitectures.Add("-es2");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForESDeferred", out bBuild) && bBuild
-				|| (AdditionalGPUArches != null && AdditionalGPUArches.Contains("esdeferred", StringComparer.OrdinalIgnoreCase)))
-			{
-				GPUArchitectures.Add("-esdeferred");
-			}
 			if (GPUArchitectures.Count == 0)
 			{
 				GPUArchitectures.Add("-es2");
@@ -298,9 +292,6 @@ namespace UnrealBuildTool
 			{
 				case "es2":
 					GLESversion = "0x00020000";
-					break;
-				case "esdeferred":
-					GLESversion = "0x00030001";
 					break;
 				default:
 					GLESversion = "0x00020000";
@@ -1085,11 +1076,6 @@ namespace UnrealBuildTool
 						case "-x86": Arguments += " -DPLATFORM_64BITS=0 -DPLATFORM_ANDROID_X86=1"; break;
 						case "-x64": Arguments += " -DPLATFORM_64BITS=1 -DPLATFORM_ANDROID_X64=1"; break;
 						default: Arguments += " -DPLATFORM_64BITS=0 -DPLATFORM_ANDROID_ARM=1"; break;
-					}
-
-                    if (GPUArchitecture == "-esdeferred")
-					{
-						Arguments += " -DPLATFORM_ANDROIDESDEFERRED=1";
 					}
 
 					// which PCH file to include
