@@ -102,7 +102,9 @@ TSharedPtr<FFbxExporter> FFbxExporter::StaticInstance;
 
 FFbxExporter::FFbxExporter()
 {
-	ExportOptions = NewObject<UFbxExportOption>(GetTransientPackage(), NAME_None);
+	//We will not clear the flag later in the code since all Transient package UObject are unload when the
+	//application is terminating.
+	ExportOptions = NewObject<UFbxExportOption>(GetTransientPackage(), NAME_None, RF_Standalone);
 	//Load the option from the user save ini file
 	ExportOptions->LoadOptions();
 
@@ -142,12 +144,10 @@ void FFbxExporter::DeleteInstance()
 void FFbxExporter::FillExportOptions(bool BatchMode, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutExportAll)
 {
 	OutOperationCanceled = false;
-
-	if (ExportOptions == nullptr)
-	{
-		ExportOptions = NewObject<UFbxExportOption>(GetTransientPackage(), NAME_None);
-	}
-
+	
+	//Export option should have been set in the constructor
+	check(ExportOptions != nullptr);
+	
 	//Load the option from the user save ini file
 	ExportOptions->LoadOptions();
 	
