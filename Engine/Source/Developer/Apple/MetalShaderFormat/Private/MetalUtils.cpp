@@ -421,12 +421,17 @@ namespace MetalUtils
 							continue;
 						}
 					}
-					ir_variable* Variable = new(ParseState) ir_variable(SystemValues[i].Type, SystemValues[i].MetalName, ir_var_in);
-					Variable->semantic = SystemValues[i].MetalSemantic;
-					Variable->read_only = true;
-					Variable->origin_upper_left = false;
-					DeclInstructions->push_tail(Variable);
-					ParseState->symbols->add_variable(Variable);
+					
+					ir_variable* Variable = ParseState->symbols->get_variable(SystemValues[i].MetalName);
+					if (!Variable)
+					{
+						Variable = new(ParseState) ir_variable(SystemValues[i].Type, SystemValues[i].MetalName, ir_var_in);
+						Variable->semantic = SystemValues[i].MetalSemantic;
+						Variable->read_only = true;
+						Variable->origin_upper_left = false;
+						DeclInstructions->push_tail(Variable);
+						ParseState->symbols->add_variable(Variable);
+					}
 					ir_dereference_variable* VariableDeref = new(ParseState) ir_dereference_variable(Variable);
 					if (!FCStringAnsi::Stricmp(Semantic, "SV_Position") && Frequency == HSF_PixelShader)
 					{
