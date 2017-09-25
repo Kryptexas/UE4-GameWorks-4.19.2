@@ -95,7 +95,8 @@ extern "C"
 
 extern void AndroidThunkCpp_InitHMDs();
 extern void AndroidThunkCpp_ShowConsoleWindow();
-extern bool AndroidThunkCpp_IsVirtuaInputClicked(int, int);
+extern bool AndroidThunkCpp_VirtualInputIgnoreClick(int, int);
+extern bool AndroidThunkCpp_IsVirtuaKeyboardShown();
 
 // Base path for file accesses
 extern FString GFilePathBase;
@@ -150,9 +151,6 @@ static FEvent* EventHandlerEvent = NULL;
 // Wait for Java onCreate to complete before resume main init
 static volatile bool GResumeMainInit = false;
 volatile bool GEventHandlerInitialized = false;
-
-//virtualKeyboard shown
-static volatile bool GVirtualKeyboardShown = false;
 
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
 {
@@ -569,14 +567,14 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			}
 			FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 
-			if (GVirtualKeyboardShown && (type == TouchBegan || type == TouchMoved))
+			if (AndroidThunkCpp_IsVirtuaKeyboardShown() && (type == TouchBegan || type == TouchMoved))
 			{
 				int pointerId = AMotionEvent_getPointerId(event, actionPointer);
 				int32 x = AMotionEvent_getX(event, actionPointer);
 				int32 y = AMotionEvent_getY(event, actionPointer);
 
-				//ignore key down events when the native input was clicked
-				if(AndroidThunkCpp_IsVirtuaInputClicked(x, y))
+				//ignore key down events when the native input was clicked or when the keyboard animation is playing
+				if (AndroidThunkCpp_VirtualInputIgnoreClick(x, y))
 					return 0;
 			}
 			if(isActionTargeted)
@@ -793,11 +791,10 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		 */
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_CONTENT_RECT_CHANGED"));
 		break;
+	/* receive this event from Java instead to work around NDK bug with AConfiguration_getOrientation in Oreo
 	case APP_CMD_CONFIG_CHANGED:
 		{
-			/**
-			* Command from main thread: the current device configuration has changed.
-			*/
+			// Command from main thread: the current device configuration has changed.
 			UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_CONFIG_CHANGED"));
 			
 			bool bPortrait = (AConfiguration_getOrientation(app->config) == ACONFIGURATION_ORIENTATION_PORT);
@@ -807,6 +804,7 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 			}
 		}
 		break;
+	*/
 	case APP_CMD_LOW_MEMORY:
 		/**
 		 * Command from main thread: the system is running low on memory.
@@ -860,20 +858,35 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		break;
 	}
 
-	if ( EventHandlerEvent )
+	if (EventHandlerEvent)
+	{
 		EventHandlerEvent->Trigger();
+	}
 
 	if (bNeedToSync)
+	{
 		FAppEventManager::GetInstance()->WaitForEmptyQueue();
+	}
 	//FPlatformMisc::LowLevelOutputDebugStringf(L"#### END OF OnAppCommandCB cmd: %u, tid = %d", cmd, gettid());
 }
 
 //Native-defined functions
 
-//Set GVirtualKeyboardShown.This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardVisible(boolean bShown)"
-JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardVisible(JNIEnv* jenv, jobject thiz, jboolean bShown)
+//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeOnConfigurationChanged(boolean bPortrait);
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeOnConfigurationChanged(JNIEnv* jenv, jobject thiz, jboolean bPortrait)
 {
-	GVirtualKeyboardShown = bShown;
+	bool bChangedToPortrait = bPortrait == JNI_TRUE;
+
+	// enqueue a window changed event if orientation changed
+	if (FAndroidWindow::OnWindowOrientationChanged(bChangedToPortrait))
+	{
+		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
+
+		if (EventHandlerEvent)
+		{
+			EventHandlerEvent->Trigger();
+		}
+	}
 }
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeConsoleCommand(String commandString);"

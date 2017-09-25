@@ -136,6 +136,7 @@ public:
 #if !STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
+
 #else //STEAMVR_SUPPORTED_PLATFORMS
 		: VRSystem(nullptr)
 	{

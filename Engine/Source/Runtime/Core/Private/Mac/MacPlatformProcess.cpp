@@ -171,34 +171,36 @@ int32 FMacPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 		
 	CFRelease(CFStr);
 		
-	if(File > -1)
+	if(File <= -1)
 	{
-		struct mach_header_64 Header;
-		ssize_t Bytes = read( File, &Header, sizeof( Header ) );
-		if( Bytes == sizeof( Header ) && Header.filetype == MH_DYLIB )
-		{
-			struct load_command* Commands = ( struct load_command* )FMemory::Malloc( Header.sizeofcmds );
-			Bytes = read( File, Commands, Header.sizeofcmds );
-				
-			if( Bytes == Header.sizeofcmds )
-			{
-				struct load_command* Command = Commands;
-				for( int32 Index = 0; Index < Header.ncmds; Index++ )
-				{
-					if( Command->cmd == LC_ID_DYLIB )
-					{
-						CurrentVersion = ( ( struct dylib_command* )Command )->dylib.current_version;
-						break;
-					}
-						
-					Command = ( struct load_command* )( ( uint8* )Command + Command->cmdsize );
-				}
-			}
-				
-			FMemory::Free( Commands );
-		}
-		close(File);
+		return -1;
 	}
+
+	struct mach_header_64 Header;
+	ssize_t Bytes = read( File, &Header, sizeof( Header ) );
+	if( Bytes == sizeof( Header ) && Header.filetype == MH_DYLIB )
+	{
+		struct load_command* Commands = ( struct load_command* )FMemory::Malloc( Header.sizeofcmds );
+		Bytes = read( File, Commands, Header.sizeofcmds );
+
+		if( Bytes == Header.sizeofcmds )
+		{
+			struct load_command* Command = Commands;
+			for( int32 Index = 0; Index < Header.ncmds; Index++ )
+			{
+				if( Command->cmd == LC_ID_DYLIB )
+				{
+					CurrentVersion = ( ( struct dylib_command* )Command )->dylib.current_version;
+					break;
+				}
+
+				Command = ( struct load_command* )( ( uint8* )Command + Command->cmdsize );
+			}
+		}
+
+		FMemory::Free( Commands );
+	}
+	close(File);
 
 	return ((CurrentVersion & 0xff) + ((CurrentVersion >> 8) & 0xff) * 100 + ((CurrentVersion >> 16) & 0xffff) * 10000);
 }

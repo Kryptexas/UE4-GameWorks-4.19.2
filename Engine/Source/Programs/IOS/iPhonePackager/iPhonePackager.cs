@@ -71,6 +71,8 @@ namespace iPhonePackager
 		Error_DeviceOSNewerThanSDK = 151,
 		Error_TestFailure = 152,
 		Error_SymbolizedSONotFound = 153,
+		Error_LicenseNotAccepted = 154,
+		Error_AndroidOBBError = 155,
 	};
 
 	public partial class Program

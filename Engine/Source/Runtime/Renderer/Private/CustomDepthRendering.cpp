@@ -75,7 +75,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 
 						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 
-						FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, true, DrawRenderStateLocal, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+						FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, true, DrawRenderStateLocal, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, View.IsInstancedStereoPass(), false);
 					}
 				}
 
@@ -99,7 +99,9 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 								true,
 								DrawRenderStateLocal2,
 								PrimitiveSceneProxy,
-								StaticMesh.BatchHitProxyId
+								StaticMesh.BatchHitProxyId, 
+								View.IsInstancedStereoPass(),
+								false
 								);
 						}
 					}

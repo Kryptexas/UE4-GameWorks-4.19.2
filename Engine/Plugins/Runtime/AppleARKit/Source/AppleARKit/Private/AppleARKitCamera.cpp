@@ -1,6 +1,6 @@
 // AppleARKit
 #include "AppleARKitCamera.h"
-#include "AppleARKitPrivate.h"
+#include "AppleARKitModule.h"
 #include "AppleARKitTransform.h"
 	
 // UE4
@@ -9,7 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "RenderingCommon.h"
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 FAppleARKitCamera::FAppleARKitCamera( ARCamera* InARCamera )
 {
@@ -24,10 +24,29 @@ FAppleARKitCamera::FAppleARKitCamera( ARCamera* InARCamera )
     ImageResolution.X = InARCamera.imageResolution.width;
     ImageResolution.Y = InARCamera.imageResolution.height;
 
+	// Tracking quality
+	switch(InARCamera.trackingState)
+	{
+		default:
+		case ARTrackingStateNotAvailable:
+			TrackingQuality = EARTrackingQuality::NotAvailable;
+			break;
+			
+		case ARTrackingStateLimited:
+			TrackingQuality = EARTrackingQuality::Limited;
+			break;
+		
+		case ARTrackingStateNormal:
+			TrackingQuality = EARTrackingQuality::Normal;
+			break;
+	}
+	
+	
     // Copy / convert camera transform
     Transform = FAppleARKitTransform::ToFTransform( InARCamera.transform );
     Translation = Transform.GetTranslation();
 	Orientation = Transform.GetRotation();
+	
 }
 
 #endif // #ARKIT_SUPPORT

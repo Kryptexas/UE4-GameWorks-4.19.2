@@ -121,7 +121,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// The type of project files to generate
 	/// </summary>
-	enum ProjectFileType
+	enum ProjectFileFormat
 	{
 		Make,
 		CMake,
@@ -129,9 +129,46 @@ namespace UnrealBuildTool
 		KDevelop,
 		CodeLite,
 		VisualStudio,
+		VisualStudio2012,
+		VisualStudio2013,
+		VisualStudio2015,
+		VisualStudio2017,
 		XCode,
 		Eddie,
 		VSCode,
+	}
+
+	/// <summary>
+	/// Static class containing 
+	/// </summary>
+	static class ProjectFileGeneratorSettings
+	{
+		/// <summary>
+		/// Default list of project file formats to generate
+		/// </summary>
+		[XmlConfigFile(Category = "ProjectFileGenerator", Name = "Format")]
+		public static string Format = null;
+
+		/// <summary>
+		/// Parses a list of project file formats from a string
+		/// </summary>
+		/// <param name="Formats"></param>
+		/// <returns>Sequence of project file formats</returns>
+		public static IEnumerable<ProjectFileFormat> ParseFormatList(string Formats)
+		{
+			foreach(string FormatName in Formats.Split('+').Select(x => x.Trim()))
+			{
+				ProjectFileFormat Format;
+				if(Enum.TryParse(FormatName, true, out Format))
+				{
+					yield return Format;
+				}
+				else
+				{
+					Log.TraceError("Invalid project file format '{0}'", FormatName);
+				}
+			}
+		}
 	}
 
 	/// <summary>

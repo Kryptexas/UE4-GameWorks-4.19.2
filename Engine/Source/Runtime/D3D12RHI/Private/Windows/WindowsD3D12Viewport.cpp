@@ -174,7 +174,7 @@ void FD3D12Viewport::ResizeInternal()
 	else
 #endif // PLATFORM_SUPPORTS_MGPU
 	{
-		VERIFYD3D12RESULT_EX(SwapChain1->ResizeBuffers(NumBackBuffers, SizeX, SizeY, GetRenderTargetFormat(PixelFormat), 0), Adapter->GetD3DDevice());
+		VERIFYD3D12RESULT_EX(SwapChain1->ResizeBuffers(NumBackBuffers, SizeX, SizeY, GetRenderTargetFormat(PixelFormat), SwapChainFlags), Adapter->GetD3DDevice());
 
 		FD3D12Device* Device = Adapter->GetDeviceByIndex(0);
 		for (uint32 i = 0; i < NumBackBuffers; ++i)

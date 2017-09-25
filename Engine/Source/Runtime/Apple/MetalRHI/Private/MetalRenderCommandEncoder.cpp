@@ -14,6 +14,68 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#if METAL_DEBUG_OPTIONS
+static NSString* GMetalDebugVertexShader = @"#include <metal_stdlib>\n"
+@"using namespace metal;\n"
+@"struct VertexInput\n"
+@"{\n"
+@"};\n"
+@"vertex void WriteCommandIndexVS(VertexInput StageIn [[stage_in]], constant uint* Input [[ buffer(0) ]], device uint* Output  [[ buffer(1) ]])\n"
+@"{\n"
+@"	Output[0] = Input[0];\n"
+@"}\n";
+
+static id <MTLRenderPipelineState> GetDebugVertexShaderState(id<MTLDevice> Device, MTLRenderPassDescriptor* PassDesc)
+{
+	static id<MTLFunction> Func = nil;
+	static FCriticalSection Mutex;
+	static NSMutableDictionary* Dict = [NSMutableDictionary new];
+	if(!Func)
+	{
+		id<MTLLibrary> Lib = [Device newLibraryWithSource:GMetalDebugVertexShader options:nil error:nullptr];
+		check(Lib);
+		Func = [Lib newFunctionWithName:@"WriteCommandIndexVS"];
+		check(Func);
+		[Lib release];
+	}
+	
+	FScopeLock Lock(&Mutex);
+	id<MTLRenderPipelineState> State = [Dict objectForKey:PassDesc];
+	if (!State)
+	{
+		MTLRenderPipelineDescriptor* Desc = [MTLRenderPipelineDescriptor new];
+		
+		Desc.vertexFunction = Func;
+		
+		if (PassDesc.depthAttachment)
+		{
+			Desc.depthAttachmentPixelFormat = PassDesc.depthAttachment.texture.pixelFormat;
+		}
+		if (PassDesc.stencilAttachment)
+		{
+			Desc.stencilAttachmentPixelFormat = PassDesc.stencilAttachment.texture.pixelFormat;
+		}
+		if (PassDesc.colorAttachments)
+		{
+			MTLRenderPassColorAttachmentDescriptor* CD = [PassDesc.colorAttachments objectAtIndexedSubscript:0];
+			MTLRenderPipelineColorAttachmentDescriptor* CD0 = [[MTLRenderPipelineColorAttachmentDescriptor new] autorelease];
+			CD0.pixelFormat = CD.texture.pixelFormat;
+			[Desc.colorAttachments setObject:CD0 atIndexedSubscript:0];
+		}
+		Desc.rasterizationEnabled = false;
+		
+		State = [[Device newRenderPipelineStateWithDescriptor:Desc error:nil] autorelease];
+		check(State);
+		
+		[Dict setObject:State forKey:PassDesc];
+		
+		[Desc release];
+	}
+	check(State);
+	return State;
+}
+#endif
+
 @implementation FMetalDebugRenderCommandEncoder
 
 @synthesize Inner;
@@ -22,13 +84,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
--(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder andCommandBuffer:(FMetalDebugCommandBuffer*)SourceBuffer
+-(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder fromDescriptor:(MTLRenderPassDescriptor*)Desc andCommandBuffer:(FMetalDebugCommandBuffer*)SourceBuffer
 {
 	id Self = [super init];
 	if (Self)
 	{
         Inner = [Encoder retain];
 		Buffer = [SourceBuffer retain];
+		RenderPassDesc = [Desc retain];
+#if METAL_DEBUG_OPTIONS
+		DebugState = Buffer->DebugLevel >= EMetalDebugLevelValidation ? [GetDebugVertexShaderState(Buffer.device, Desc) retain] : nil;
+#endif
         Pipeline = nil;
 	}
 	return Self;
@@ -38,6 +104,10 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 {
 	[Inner release];
 	[Buffer release];
+	[RenderPassDesc release];
+#if METAL_DEBUG_OPTIONS
+	[DebugState release];
+#endif
 	[Pipeline release];
 	[super dealloc];
 }
@@ -75,9 +145,64 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner pushDebugGroup:string];
 }
 
+#if METAL_DEBUG_OPTIONS
+- (void)insertDebugDraw
+{
+	switch (Buffer->DebugLevel)
+	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
+		case EMetalDebugLevelValidation:
+		{
+			uint32 const Index = Buffer->DebugCommands.Num();
+#if PLATFORM_MAC
+			[Inner textureBarrier];
+#endif
+			[Inner setVertexBytes:&Index length:sizeof(Index) atIndex:0];
+			[Inner setVertexBuffer:Buffer->DebugInfoBuffer offset:0 atIndex:1];
+			[Inner setRenderPipelineState:DebugState];
+			[Inner drawPrimitives:MTLPrimitiveTypePoint vertexStart:0 vertexCount:1];
+#if PLATFORM_MAC
+			[Inner textureBarrier];
+#endif
+			if (Pipeline && Pipeline.RenderPipelineState)
+			{
+				[Inner setRenderPipelineState:Pipeline.RenderPipelineState];
+			}
+			
+			if (ShaderBuffers[EMetalShaderVertex].Buffers[0])
+			{
+				[Inner setVertexBuffer:ShaderBuffers[EMetalShaderVertex].Buffers[0] offset:ShaderBuffers[EMetalShaderVertex].Offsets[0] atIndex:0];
+			}
+			else if (ShaderBuffers[EMetalShaderVertex].Bytes[0])
+			{
+				[Inner setVertexBytes:ShaderBuffers[EMetalShaderVertex].Bytes[0] length:ShaderBuffers[EMetalShaderVertex].Offsets[0] atIndex:0];
+			}
+			
+			if (ShaderBuffers[EMetalShaderVertex].Buffers[1])
+			{
+				[Inner setVertexBuffer:ShaderBuffers[EMetalShaderVertex].Buffers[1] offset:ShaderBuffers[EMetalShaderVertex].Offsets[1] atIndex:1];
+			}
+			else if (ShaderBuffers[EMetalShaderVertex].Bytes[1])
+			{
+				[Inner setVertexBytes:ShaderBuffers[EMetalShaderVertex].Bytes[1] length:ShaderBuffers[EMetalShaderVertex].Offsets[1] atIndex:1];
+			}
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+#endif
+
 - (void)popDebugGroup
 {
-    [Buffer popDebugGroup];
+	[Buffer popDebugGroup];
+#if METAL_DEBUG_OPTIONS
+	[self insertDebugDraw];
+#endif
     [Inner popDebugGroup];
 }
 
@@ -452,9 +577,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if PLATFORM_MAC || (PLATFORM_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000)
 - (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode
 {
-#if __clang_major__ >= 9
-	if(@available(iOS 11.0, macOS 10.11, *))
-#endif
+	if (GMetalSupportsDepthClipMode)
 	{
     	[Inner setDepthClipMode:depthClipMode];
     }
@@ -1274,7 +1397,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS
 - (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useResource:resource usage:usage];
 	}
@@ -1282,7 +1405,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)useResources:(const id <MTLResource> [])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useResources:resources count:count usage:usage];
 	}
@@ -1290,7 +1413,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)useHeap:(id <MTLHeap>)heap
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useHeap:heap];
 	}
@@ -1298,7 +1421,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)useHeaps:(const id <MTLHeap> [])heaps count:(NSUInteger)count
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useHeaps:heaps count:count];
 	}
@@ -1500,7 +1623,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if (METAL_NEW_NONNULL_DECL)
 - (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsStoreActionOptions)
 	{
 		[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
 	}
@@ -1508,7 +1631,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsStoreActionOptions)
 	{
 		[Inner setDepthStoreActionOptions:storeActionOptions];
 	}
@@ -1516,13 +1639,111 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsStoreActionOptions)
 	{
 		[Inner setStencilStoreActionOptions:storeActionOptions];
 	}
 }
 #endif //(METAL_NEW_NONNULL_DECL)
 
+#if METAL_SUPPORTS_TILE_SHADERS
+- (void)setTileBytes:(const void *)bytes length:(NSUInteger)length atIndex:(NSUInteger)index
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileBytes:bytes length:length atIndex:index];
+	}
+}
+
+- (void)setTileBuffer:(nullable id <MTLBuffer>)buffer offset:(NSUInteger)offset atIndex:(NSUInteger)index
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileBuffer:buffer offset:offset atIndex:index];
+	}
+}
+
+- (void)setTileBufferOffset:(NSUInteger)offset atIndex:(NSUInteger)index
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileBufferOffset:offset atIndex:index];
+	}
+}
+
+- (void)setTileBuffers:(const id <MTLBuffer> __nullable [__nonnull])buffers offsets:(const NSUInteger [__nonnull])offset withRange:(NSRange)range
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileBuffers:buffers offsets:offset withRange:range];
+	}
+}
+
+- (void)setTileTexture:(nullable id <MTLTexture>)texture atIndex:(NSUInteger)index
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileTexture:texture atIndex:index];
+	}
+}
+
+- (void)setTileTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileTextures:textures withRange:range];
+	}
+}
+
+- (void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler atIndex:(NSUInteger)index
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileSamplerState:sampler atIndex:index];
+	}
+}
+
+- (void)setTileSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileSamplerStates:samplers withRange:range];
+	}
+}
+
+- (void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler lodMinClamp:(float)lodMinClamp lodMaxClamp:(float)lodMaxClamp atIndex:(NSUInteger)index
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileSamplerState:sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
+	}
+}
+
+- (void)setTileSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setTileSamplerStates:samplers lodMinClamps:lodMinClamps lodMaxClamps:lodMaxClamps withRange:range];
+	}
+}
+
+- (void)dispatchThreadsPerTile:(MTLSize)threadsPerTile
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner dispatchThreadsPerTile:threadsPerTile];
+	}
+}
+
+- (void)setThreadgroupMemoryLength:(NSUInteger)length offset:(NSUInteger)offset atIndex:(NSUInteger)index
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setThreadgroupMemoryLength:length offset:offset atIndex:index];
+	}
+}
+
+#endif
 @end
 
 #if !METAL_SUPPORTS_HEAPS

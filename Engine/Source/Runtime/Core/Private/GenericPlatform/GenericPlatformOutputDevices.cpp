@@ -26,15 +26,15 @@ void FGenericPlatformOutputDevices::SetupOutputDevices()
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
 
+#if !NO_LOGGING
 	// if console is enabled add an output device, unless the commandline says otherwise...
-	if (ALLOW_CONSOLE && !FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE")))
+	if (GLogConsole && !FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE")))
 	{
 		GLog->AddOutputDevice(GLogConsole);
 	}
 	
 	// If the platform has a separate debug output channel (e.g. OutputDebugString) then add an output device
 	// unless logging is turned off
-#if !NO_LOGGING
 	if (FPlatformMisc::HasSeparateChannelForDebugOutput())
 	{
 		GLog->AddOutputDevice(new FOutputDeviceDebug());

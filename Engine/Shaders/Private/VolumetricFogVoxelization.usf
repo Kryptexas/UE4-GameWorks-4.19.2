@@ -164,20 +164,31 @@ void VoxelizeVS(
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal);
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
 
-#if VOXELIZE_SHAPE_MODE == PRIMITIVE_SPHERE_MODE
-
-	Output.VertexQuadCoordinate = VertexParameters.TexCoords[0];
-
-#elif VOXELIZE_SHAPE_MODE == OBJECT_BOX_MODE
-
-	Output.VertexQuadCoordinate = float2(VertexId & 1, (VertexId >> 1) & 1);
-
-#endif
-
 #if USING_VERTEX_SHADER_LAYER
 	FVoxelizeVolumePrimitiveVSToGS Inputs[1];
 	Inputs[0].FactoryInterpolants = Output.FactoryInterpolants;
+
+#if VOXELIZE_SHAPE_MODE == PRIMITIVE_SPHERE_MODE
+
+	Inputs[0].VertexQuadCoordinate = VertexParameters.TexCoords[0];
+
+#elif VOXELIZE_SHAPE_MODE == OBJECT_BOX_MODE
+
+	Inputs[0].VertexQuadCoordinate = float2(VertexId & 1, (VertexId >> 1) & 1);
+
+#endif
+
 	Voxelize(Inputs, Output);
+#else
+	#if VOXELIZE_SHAPE_MODE == PRIMITIVE_SPHERE_MODE
+
+	Output.VertexQuadCoordinate = VertexParameters.TexCoords[0];
+
+	#elif VOXELIZE_SHAPE_MODE == OBJECT_BOX_MODE
+
+	Output.VertexQuadCoordinate = float2(VertexId & 1, (VertexId >> 1) & 1);
+
+	#endif
 #endif
 }
 

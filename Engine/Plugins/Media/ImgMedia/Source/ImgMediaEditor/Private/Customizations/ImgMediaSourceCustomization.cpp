@@ -31,7 +31,7 @@
 void FImgMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	// customize 'File' category
-	IDetailCategoryBuilder& FileCategory = DetailBuilder.EditCategory("EXR");
+	IDetailCategoryBuilder& FileCategory = DetailBuilder.EditCategory("Sequence");
 	{
 		// FilePath
 		SequencePathProperty = DetailBuilder.GetProperty("SequencePath");

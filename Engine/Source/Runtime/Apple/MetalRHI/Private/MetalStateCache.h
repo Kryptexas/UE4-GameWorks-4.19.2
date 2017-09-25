@@ -36,7 +36,7 @@ public:
 	void SetBlendFactor(FLinearColor const& InBlendFactor);
 	void SetStencilRef(uint32 const InStencilRef);
 	void SetComputeShader(FMetalComputeShader* InComputeShader);
-	bool SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bReset);
+	bool SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bRestart);
 	void InvalidateRenderTargets(void);
 	void SetRenderTargetsActive(bool const bActive);
 	void SetViewport(const MTLViewport& InViewport);
@@ -250,6 +250,7 @@ private:
 	uint32 ActiveScissors;
 	
 	FRHISetRenderTargetsInfo RenderTargetsInfo;
+	FTextureRHIRef ColorTargets[MaxSimultaneousRenderTargets];
 	FTextureRHIRef DepthStencilSurface;
 	/** A fallback depth-stencil surface for draw calls that write to depth without a depth-stencil surface bound. */
 	FTexture2DRHIRef FallbackDepthStencilSurface;

@@ -92,6 +92,8 @@ namespace UnrealBuildTool
 			StringBuilder CMakeConfigFilesList = new StringBuilder("set(CONFIG_FILES \n");
 			StringBuilder IncludeDirectoriesList = new StringBuilder("include_directories( \n");
 			StringBuilder PreprocessorDefinitionsList = new StringBuilder("add_definitions( \n");
+			string CMakeCC = "\n";
+			string CMakeC = "\n";
 
 			var CMakeGameRootPath = "";
 			var CMakeUE4RootPath = "set(UE4_ROOT_PATH " + Utils.CleanDirectorySeparators(UnrealBuildTool.RootDirectory.FullName, '/') + ")\n";
@@ -110,14 +112,30 @@ namespace UnrealBuildTool
 				}
 				case UnrealTargetPlatform.Mac:
 				{
+					MacToolChainSettings Settings = new MacToolChainSettings(false);
 					HostArchitecture = "Mac";
 					BuildCommand = "set(BUILD cd \"${UE4_ROOT_PATH}\" && bash \"${UE4_ROOT_PATH}/Engine/Build/BatchFiles/" + HostArchitecture + "/Build.sh\")\n";
+					CMakeCC = "set(CMAKE_CXX_COMPILER " + Settings.ToolchainDir + "clang++)\n";
+					CMakeC = "set(CMAKE_C_COMPILER " + Settings.ToolchainDir + "clang)\n";
 					break;
 				}
 				case UnrealTargetPlatform.Linux:
 				{
 					HostArchitecture = "Linux";
 					BuildCommand = "set(BUILD cd \"${UE4_ROOT_PATH}\" && bash \"${UE4_ROOT_PATH}/Engine/Build/BatchFiles/" + HostArchitecture + "/Build.sh\")\n";
+					string Compiler = LinuxCommon.WhichClang();
+					if (String.IsNullOrEmpty(Compiler))
+					{
+						Compiler = LinuxCommon.WhichGcc();
+					}
+					// Should not be possible, but...
+					if (String.IsNullOrEmpty(Compiler))
+					{
+						Compiler = "clang++";
+					}
+					CMakeCC = "set(CMAKE_CXX_COMPILER \"" + Compiler + "\")\n";
+					string CCompiler = Compiler.Replace("++", "");
+					CMakeC = "set(CMAKE_C_COMPILER \"" + CCompiler + "\")\n";
 					break;
 				}
 				default:
@@ -139,6 +157,8 @@ namespace UnrealBuildTool
 				"# *DO NOT EDIT*\n\n" +
 				"cmake_minimum_required (VERSION 2.6)\n" +
 				"project (UE4)\n\n" +
+				CMakeCC +
+				CMakeC +
 				CMakeUE4RootPath +
 				CMakeGameProjectFile +
 				BuildCommand +
@@ -325,7 +345,7 @@ namespace UnrealBuildTool
 			}
 
 			// Append a dummy executable target
-            CMakefileContent.AppendLine("add_executable(FakeTarget ${SOURCE_FILES})");
+			CMakefileContent.AppendLine("add_executable(FakeTarget ${SOURCE_FILES})");
 
 			var FullFileName = Path.Combine(MasterProjectPath.FullName, ProjectFileName);
 

@@ -55,6 +55,8 @@ public:
 	 * Apply the orientation and position of the headset to the Camera.
 	 */
 	virtual bool UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
+	
+	virtual void OverrideFOV(float& InOutFOV) override;
 
 	/** Setup state for applying the render thread late update */
 	virtual void SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component) override;

@@ -109,6 +109,32 @@ TSharedPtr<FLayer, ESPMode::ThreadSafe> FLayer::Clone() const
 }
 
 
+bool FLayer::IsCompatibleLayerDesc(const ovrpLayerDescUnion& OvrpLayerDescA, const ovrpLayerDescUnion& OvrpLayerDescB) const
+{
+	if (OvrpLayerDescA.Shape != OvrpLayerDescB.Shape ||
+		OvrpLayerDescA.Layout != OvrpLayerDescB.Layout ||
+		OvrpLayerDescA.TextureSize.w != OvrpLayerDescB.TextureSize.w ||
+		OvrpLayerDescA.TextureSize.h != OvrpLayerDescB.TextureSize.h ||
+		OvrpLayerDescA.MipLevels != OvrpLayerDescB.MipLevels ||
+		OvrpLayerDescA.SampleCount != OvrpLayerDescB.SampleCount ||
+		OvrpLayerDescA.Format != OvrpLayerDescB.Format ||
+		((OvrpLayerDescA.LayerFlags ^ OvrpLayerDescB.LayerFlags) & ovrpLayerFlag_Static))
+	{
+		return false;
+	}
+
+	if (OvrpLayerDescA.Shape == ovrpShape_EyeFov)
+	{
+		if (OvrpLayerDescA.EyeFov.DepthFormat != OvrpLayerDescB.EyeFov.DepthFormat)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
 void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandListImmediate& RHICmdList, const FLayer* InLayer)
 {
 	CheckInRenderThread();
@@ -203,7 +229,7 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 	}
 	
 	// Reuse/Create texture set
-	if (InLayer && InLayer->OvrpLayer.IsValid() && !FMemory::Memcmp(&OvrpLayerDesc, &InLayer->OvrpLayerDesc, sizeof(OvrpLayerDesc)))
+	if (InLayer && InLayer->OvrpLayer.IsValid() && IsCompatibleLayerDesc(OvrpLayerDesc, InLayer->OvrpLayerDesc))
 	{
 		OvrpLayerId = InLayer->OvrpLayerId;
 		OvrpLayer = InLayer->OvrpLayer;

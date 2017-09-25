@@ -15,7 +15,9 @@
 #define NUM_ADAPTATION_COEFF 7
 
 #define WAVE_FORMAT_LPCM  1
+#ifndef WAVE_FORMAT_ADPCM 
 #define WAVE_FORMAT_ADPCM 2
+#endif
 
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack(push, 2)
@@ -131,6 +133,7 @@ public:
 	uint32			CurrentChunkDataSize;			// The size of the current chunk, the first chunk is bigger to accomodate the header info
 	uint32			TotalSamplesStreamed;			// The number of samples streamed so far
 	uint32			TotalSamplesPerChannel;			// Number of samples per channel, used to detect when an audio waveform has ended
+	uint32			SamplesPerBlock;				// The number of samples per block
 	uint32			FirstChunkSampleDataOffset;		// The size of the header in the first chunk, used to skip over it when looping or starting the sample over
 	USoundWave*		StreamingSoundWave;				// The current sound wave being streamed, this is used to fetch new chunks
 	const uint8*	CurCompressedChunkData;			// A pointer to the current chunk of data

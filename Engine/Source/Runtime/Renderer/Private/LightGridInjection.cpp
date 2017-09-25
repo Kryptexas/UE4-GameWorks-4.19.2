@@ -547,7 +547,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				if (View.ForwardLightingResources->ForwardLocalLightBuffer.NumBytes < NumBytesRequired)
 				{
 					View.ForwardLightingResources->ForwardLocalLightBuffer.Release();
-					View.ForwardLightingResources->ForwardLocalLightBuffer.Initialize(sizeof(FVector4), NumBytesRequired / sizeof(FVector4), PF_A32B32G32R32F, BUF_Volatile);
+					View.ForwardLightingResources->ForwardLocalLightBuffer.Initialize(sizeof(FVector4), NumBytesRequired / sizeof(FVector4), PF_R32G32B32A32_UINT, BUF_Volatile);
 				}
 
 				View.ForwardLightingResources->ForwardLocalLightBuffer.Lock();

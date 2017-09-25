@@ -2,11 +2,5 @@
 	"FileVersion": 3,
 	"EngineAssociation": "",
 	"Category": "",
-	"Description": "",
-	"Plugins": [
-		{
-			"Name": "PerformanceMonitor",
-			"Enabled": true
-		}
-	]
+	"Description": ""
 }

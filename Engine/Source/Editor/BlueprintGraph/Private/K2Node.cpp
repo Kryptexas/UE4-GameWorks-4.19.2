@@ -424,7 +424,7 @@ void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin)
 						}
 						else
 						{
-							Schema->RecombinePin(ParentPin);
+							Schema->RecombinePin(NestedPin);
 						}
 					}
 				}

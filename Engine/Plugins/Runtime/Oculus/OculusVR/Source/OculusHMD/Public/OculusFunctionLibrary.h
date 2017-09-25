@@ -287,6 +287,18 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	static void GetLoadingSplashParams(FString& TexturePath, FVector& DistanceInMeters, FVector2D& SizeInMeters, FVector& RotationAxis, float& RotationDeltaInDeg);
 
 	/**
+	* Returns true, if the app has input focus.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static bool HasInputFocus();
+
+	/**
+	* Returns true, if the system overlay is present.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static bool HasSystemOverlayPresent();
+
+	/**
 	 * Returns IStereoLayers interface to work with overlays.
 	 */
 	static class IStereoLayers* GetStereoLayers();

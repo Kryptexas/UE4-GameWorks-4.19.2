@@ -1,26 +1,40 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-// UE4
-#include "ModuleManager.h"
-#include "IHeadMountedDisplayModule.h"
-#include "Features/IModularFeature.h"
+#include "AppleARKitModule.h"
 #include "AppleARKitSystem.h"
-#include "AppleARKitPrivate.h"
+#include "Features/IModularFeature.h"
+#include "Features/IModularFeatures.h"
 
-class FAppleARKitModule : public IHeadMountedDisplayModule
+
+TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe> FAppleARKitModule::CreateTrackingSystem()
 {
-	virtual TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe> CreateTrackingSystem() override
-	{
-		return AppleARKitSupport::CreateAppleARKitSystem();
-	}
-	
-	FString GetModuleKeyName() const override
-	{
-		static const FString ModuleKeyName(TEXT("AppleARKit"));
-		return ModuleKeyName;
-	}
-	
-};
+    return AppleARKitSupport::CreateAppleARKitSystem();
+}
+
+
+TWeakPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitARKitSystemPtr;
+
+TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitModule::GetARKitSystem()
+{
+    return FAppleARKitARKitSystemPtr.Pin();
+}
+
+FString FAppleARKitModule::GetModuleKeyName() const
+{
+    static const FString ModuleKeyName(TEXT("AppleARKit"));
+    return ModuleKeyName;
+}
+
+void FAppleARKitModule::StartupModule()
+{
+	IHeadMountedDisplayModule::StartupModule();
+}
+
+void FAppleARKitModule::ShutdownModule()
+{
+	IHeadMountedDisplayModule::ShutdownModule();
+}
+
 
 IMPLEMENT_MODULE(FAppleARKitModule, AppleARKit);
 

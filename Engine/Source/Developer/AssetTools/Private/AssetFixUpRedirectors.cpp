@@ -21,6 +21,7 @@
 #include "CollectionManagerModule.h"
 #include "ObjectTools.h"
 #include "Logging/MessageLog.h"
+#include "AssetTools.h"
 
 #define LOCTEXT_NAMESPACE "AssetFixUpRedirectors"
 
@@ -480,7 +481,7 @@ void FAssetFixUpRedirectors::FixUpSoftObjectPaths(const TArray<FRedirectorRefs>&
 		}
 	}
 
-	FAssetRenameManager::RenameReferencingSoftObjectPaths(PackagesToCheck, RedirectorMap);
+	UAssetToolsImpl::Get().AssetRenameManager->RenameReferencingSoftObjectPaths(PackagesToCheck, RedirectorMap);
 }
 
 #undef LOCTEXT_NAMESPACE

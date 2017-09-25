@@ -13,15 +13,22 @@ UDestructibleChunkParamsProxy::UDestructibleChunkParamsProxy(const FObjectInitia
 
 void UDestructibleChunkParamsProxy::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {
-	check(DestructibleMesh != NULL && DestructibleMesh->FractureSettings != NULL);
+	TSharedPtr<IDestructibleMeshEditor> EditorShared = DestructibleMeshEditorPtr.Pin();
 
-	if (DestructibleMesh->FractureSettings->ChunkParameters.Num() > ChunkIndex)
+	if(EditorShared.IsValid())
 	{
-		DestructibleMesh->FractureSettings->ChunkParameters[ChunkIndex] = ChunkParams;
-	}
+		if(DestructibleMesh && DestructibleMesh->FractureSettings)
+		{
+			if(DestructibleMesh->FractureSettings->ChunkParameters.Num() > ChunkIndex)
+			{
+				DestructibleMesh->FractureSettings->ChunkParameters[ChunkIndex] = ChunkParams;
+			}
 
 #if WITH_APEX
-	BuildDestructibleMeshFromFractureSettings(*DestructibleMesh, NULL);
+			BuildDestructibleMeshFromFractureSettings(*DestructibleMesh, NULL);
 #endif
-	DestructibleMeshEditorPtr.Pin()->RefreshViewport();
+		}
+
+		DestructibleMeshEditorPtr.Pin()->RefreshViewport();
+	}
 }

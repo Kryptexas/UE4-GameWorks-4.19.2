@@ -224,7 +224,7 @@ bool FWmfMediaPlayer::InitializePlayer(const TSharedPtr<FArchive, ESPMode::Threa
 		if (PinnedTracks.IsValid())
 		{
 			TComPtr<IMFMediaSource> MediaSource = WmfMedia::ResolveMediaSource(Archive, Url, Precache);
-			PinnedTracks->Initialize(MediaSource);
+			PinnedTracks->Initialize(MediaSource, Url);
 		}
 	});
 

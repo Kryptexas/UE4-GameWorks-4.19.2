@@ -2231,6 +2231,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 		}
 
 		StaticMesh->SectionInfoMap.CopyFrom(SectionInfoMap);
+		StaticMesh->OriginalSectionInfoMap.CopyFrom(SectionInfoMap);
 
 		//Set the Imported version before calling the build
 		StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;

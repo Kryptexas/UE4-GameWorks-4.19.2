@@ -47,9 +47,10 @@ namespace WmfMedia
 	 * @param MajorType The output's major type, i.e. audio or video.
 	 * @param SubType The output's sub type, i.e. PCM or RGB32.
 	 * @param AllowNonStandardCodecs Whether non-standard codecs should be allowed.
+	 * @param Whether the media source is a video capture device (there are some limitations with those).
 	 * @return The output type, or NULL on error.
 	 */
-	TComPtr<IMFMediaType> CreateOutputType(const GUID& MajorType, const GUID& SubType, bool AllowNonStandardCodecs);
+	TComPtr<IMFMediaType> CreateOutputType(const GUID& MajorType, const GUID& SubType, bool AllowNonStandardCodecs, bool IsVideoDevice);
 
 	/**
 	 * Dump information about the given media type to the output log.

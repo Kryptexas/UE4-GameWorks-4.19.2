@@ -33,8 +33,8 @@ public:
 	 * Constructor used from within the sequencer interface to generate IDs from the currently focused sequence if possible (else from the root sequence).
 	 * This ensures that the bindings will resolve correctly in isolation only the the focused sequence is being used, or from the root sequence.
 	 */
-	FMovieSceneObjectBindingIDPicker(FMovieSceneSequenceID InLocalSequenceID, TSharedPtr<ISequencer> InSequencer)
-		: Sequencer(InSequencer)
+	FMovieSceneObjectBindingIDPicker(FMovieSceneSequenceID InLocalSequenceID, TWeakPtr<ISequencer> InSequencer)
+		: WeakSequencer(InSequencer)
 		, LocalSequenceID(InLocalSequenceID)
 		, bIsCurrentItemSpawnable(false)
 	{}
@@ -79,7 +79,7 @@ protected:
 	TSharedRef<SWidget> GetCurrentItemWidget(TSharedRef<STextBlock> TextContent);
 
 	/** Optional sequencer ptr */
-	TSharedPtr<ISequencer> Sequencer;
+	TWeakPtr<ISequencer> WeakSequencer;
 
 	/** The ID of the sequence to generate IDs relative to */
 	FMovieSceneSequenceID LocalSequenceID;

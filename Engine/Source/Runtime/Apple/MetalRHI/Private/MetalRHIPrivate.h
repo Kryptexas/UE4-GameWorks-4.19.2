@@ -46,8 +46,17 @@ enum EMTLTextureType
 
 #define METAL_SUPPORTS_HEAPS !PLATFORM_MAC
 // This is the right VERSION check, see Availability.h in the SDK
-#define METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS !PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
-#define METAL_SUPPORTS_CAPTURE_MANAGER (PLATFORM_MAC && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101300) || (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000)
+#define METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
+#define METAL_SUPPORTS_CAPTURE_MANAGER (PLATFORM_MAC && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101300) || (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
+#define METAL_SUPPORTS_TILE_SHADERS (!PLATFORM_MAC && !PLATFORM_TVOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
+
+// In addition to compile-time SDK checks we also need a way to check if these are available on runtime
+extern bool GMetalSupportsIndirectArgumentBuffers;
+extern bool GMetalSupportsCaptureManager;
+extern bool GMetalSupportsTileShaders;
+extern bool GMetalSupportsStoreActionOptions;
+extern bool GMetalSupportsDepthClipMode;
+extern bool GMetalCommandBufferHasStartEndTimeAPI;
 
 #define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #if METAL_DEBUG_OPTIONS

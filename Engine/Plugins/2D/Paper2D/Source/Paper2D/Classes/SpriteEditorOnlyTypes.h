@@ -18,6 +18,8 @@ namespace ESpriteCollisionMode
 		/** Should this have no collison and not participate in physics? */
 		None,
 
+		Use2DPhysics UMETA(Hidden, DisplayName = "Use 2D Physics (Deprecated)"),
+
 		/** Should this have 3D collision geometry and participate in the 3D physics world? */
 		Use3DPhysics UMETA(DisplayName = "Use 3D Physics")
 	};

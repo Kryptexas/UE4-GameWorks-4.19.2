@@ -183,7 +183,9 @@ struct FMacApplicationInfo
 		gethostname(MachineName, ARRAY_COUNT(MachineName));
 		
 		FString CrashVideoPath = FPaths::ProjectLogDir() + TEXT("CrashVideo.avi");
-		
+
+		// The engine mode may be incorrect at this point, as GIsEditor is uninitialized yet. We'll update BranchBaseDir in PostInitUpdate(),
+		// but we initialize it here anyway in case the engine crashes before PostInitUpdate() is called.
 		BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
 		
 		// Get the paths that the files will actually have been saved to
@@ -449,6 +451,11 @@ void FMacPlatformMisc::PlatformInit()
 		UE_LOG(LogInit, Log, TEXT("No Xcode installed"));
 	}
 #endif
+}
+
+void FMacPlatformMisc::PostInitMacAppInfoUpdate()
+{
+	GMacAppInfo.BranchBaseDir = FString::Printf(TEXT("%s!%s!%s!%d"), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist());
 }
 
 void FMacPlatformMisc::PlatformTearDown()
@@ -1212,28 +1219,6 @@ uint32 FMacPlatformMisc::GetCPUInfo()
 	asm( "cpuid" : "=a" (Args[0]), "=b" (Args[1]), "=c" (Args[2]), "=d" (Args[3]) : "a" (1));
 
 	return Args[0];
-}
-
-FString FMacPlatformMisc::GetDefaultLanguage()
-{
-	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
-	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
-	FString LangCode((__bridge NSString*)LangCodeStr);
-	CFRelease(Languages);
-
-	return LangCode;
-}
-
-FString FMacPlatformMisc::GetDefaultLocale()
-{
-	CFLocaleRef Locale = CFLocaleCopyCurrent();
-	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
-	FString LangCode((__bridge NSString*)LangCodeStr);
-	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
-	FString CountryCode((__bridge NSString*)CountryCodeStr);
-	CFRelease(Locale);
-
-	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 FText FMacPlatformMisc::GetFileManagerName()

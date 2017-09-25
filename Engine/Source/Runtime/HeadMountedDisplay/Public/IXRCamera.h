@@ -29,16 +29,21 @@ public:
 	virtual void UseImplicitHMDPosition(bool bInImplicitHMDPosition) = 0;
 
 	/**
-	* Optionally called by APlayerController to apply the orientation of the
-	* headset to the PC's rotation. If this is not done then the PC will face 
-	* differently than the camera, which might be good (depending on the game). 
-	*/
+	 * Optionally called by APlayerController to apply the orientation of the
+	 * headset to the PC's rotation. If this is not done then the PC will face
+	 * differently than the camera, which might be good (depending on the game).
+	 */
 	virtual void ApplyHMDRotation(APlayerController* PC, FRotator& ViewRotation) = 0;
 
 	/**
-	* Apply the orientation and position of the headset to the Camera.
-	*/
+	 * Apply the orientation and position of the headset to the Camera.
+	 */
 	virtual bool UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition) = 0;
+	
+	/**
+	 * Override the Field of View for the player camera component.
+	 */
+	virtual void OverrideFOV(float& InOutFOV) = 0;
 
 	/** Setup state for applying the render thread late update */
 	virtual void SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component) = 0;

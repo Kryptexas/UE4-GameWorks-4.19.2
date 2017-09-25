@@ -6,7 +6,7 @@
 struct FAppleARKitTransform
 {	
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 	/** 
 	 * Convert's an ARKit 'Y up' 'right handed' coordinate system transform to Unreal's 'Z up' 

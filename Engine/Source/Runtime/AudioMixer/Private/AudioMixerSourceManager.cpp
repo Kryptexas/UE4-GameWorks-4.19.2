@@ -198,9 +198,23 @@ namespace Audio
 		}
 #endif
 
-		// Pump the source command queue from the game thread to make sure 
-		// playsound calls, param updates, etc, all happen simultaneously
-		bPumpQueue = true;
+		int32 CurrentRenderIndex = RenderThreadCommandBufferIndex.GetValue();
+		int32 CurrentGameIndex = AudioThreadCommandBufferIndex.GetValue();
+		check(CurrentGameIndex == 0 || CurrentGameIndex == 1);
+		check(CurrentRenderIndex == 0 || CurrentRenderIndex == 1);
+
+		// If these values are the same, that means the audio render thread has finished the last buffer queue so is ready for the next block
+		if (CurrentRenderIndex == CurrentGameIndex)
+		{
+			// This flags the audio render thread to be able to pump the next batch of commands
+			// And will allow the audio thread to write to a new command slot
+			const int32 NextIndex = !CurrentGameIndex;
+
+			// Make sure we've actually emptied the command queue from the render thread before writing to it
+			check(CommandBuffers[NextIndex].SourceCommandQueue.IsEmpty());
+			AudioThreadCommandBufferIndex.Set(NextIndex);
+			bPumpQueue = true;
+		}
 	}
 
 	void FMixerSourceManager::ReleaseSource(const int32 SourceId)
@@ -300,10 +314,10 @@ namespace Audio
 		MixerSources[SourceId] = nullptr;
 
 		// Reset all state and data
-		SourceInfo.PitchSourceParam.Reset();
-		SourceInfo.VolumeSourceParam.Reset();
-		SourceInfo.DistanceAttenuationSourceParam.Reset();
-		SourceInfo.LPFCutoffFrequencyParam.Reset();
+		SourceInfo.PitchSourceParam.Init();
+		SourceInfo.VolumeSourceParam.Init();
+		SourceInfo.DistanceAttenuationSourceParam.Init();
+		SourceInfo.LPFCutoffFrequencyParam.Init();
 
 		SourceInfo.LowPassFilter.Reset();
 		SourceInfo.HighPassFilter.Reset();
@@ -1809,18 +1823,28 @@ namespace Audio
 	void FMixerSourceManager::AudioMixerThreadCommand(TFunction<void()> InFunction)
 	{
 		// Add the function to the command queue
-		SourceCommandQueue.Enqueue(MoveTemp(InFunction));
+		int32 AudioThreadCommandIndex = AudioThreadCommandBufferIndex.GetValue();
+		CommandBuffers[AudioThreadCommandIndex].SourceCommandQueue.Enqueue(MoveTemp(InFunction));
 	}
 
 	void FMixerSourceManager::PumpCommandQueue()
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
+		int32 CurrentRenderThreadIndex = RenderThreadCommandBufferIndex.GetValue();
+		int32 CurrentAudioThreadIndex = AudioThreadCommandBufferIndex.GetValue();
+
+		check(CurrentRenderThreadIndex != CurrentAudioThreadIndex);
+
+		FCommands& Commands = CommandBuffers[CurrentRenderThreadIndex];
+
 		// Pop and execute all the commands that came since last update tick
 		TFunction<void()> CommandFunction;
-		while (SourceCommandQueue.Dequeue(CommandFunction))
+		while (Commands.SourceCommandQueue.Dequeue(CommandFunction))
 		{
 			CommandFunction();
 		}
+
+		RenderThreadCommandBufferIndex.Set(!CurrentRenderThreadIndex);
 	}
 }

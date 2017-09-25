@@ -25,6 +25,9 @@ JavaVM* GJavaVM;
 // Pointer to target widget for virtual keyboard contents
 static IVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 
+//virtualKeyboard shown
+static volatile bool GVirtualKeyboardShown = false;
+
 extern FString GFilePathBase;
 extern FString GExternalFilePath;
 extern FString GFontPathBase;
@@ -129,8 +132,7 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_UseSurfaceViewWorkaround = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_UseSurfaceViewWorkaround", "()V", bIsOptional);
 	AndroidThunkJava_SetDesiredViewSize = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_SetDesiredViewSize", "(II)V", bIsOptional);
 
-	AndroidThunkJava_IsVirtuaInputClicked = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsVirtuaInputClicked", "(II)Z", bIsOptional);
-	
+	AndroidThunkJava_VirtualInputIgnoreClick = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_VirtualInputIgnoreClick", "(II)Z", bIsOptional);
 }
 
 void FJavaWrapper::FindGooglePlayMethods(JNIEnv* Env)
@@ -330,7 +332,7 @@ jmethodID FJavaWrapper::AndroidThunkJava_IapConsumePurchase;
 jmethodID FJavaWrapper::AndroidThunkJava_UseSurfaceViewWorkaround;
 jmethodID FJavaWrapper::AndroidThunkJava_SetDesiredViewSize;
 
-jmethodID FJavaWrapper::AndroidThunkJava_IsVirtuaInputClicked;
+jmethodID FJavaWrapper::AndroidThunkJava_VirtualInputIgnoreClick;
 
 jclass FJavaWrapper::LaunchNotificationClass;
 jfieldID FJavaWrapper::LaunchNotificationUsed;
@@ -446,14 +448,31 @@ bool AndroidThunkCpp_GetInputDeviceInfo(int32 deviceId, FAndroidInputDeviceInfo 
 	return false;
 }
 
-bool AndroidThunkCpp_IsVirtuaInputClicked(int32 x, int32 y)
+bool AndroidThunkCpp_VirtualInputIgnoreClick(int32 x, int32 y)
 {
 	bool Result = false;
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		Result = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_IsVirtuaInputClicked, x, y);
+		Result = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_VirtualInputIgnoreClick, x, y);
 	}
 	return Result;
+}
+
+//Set GVirtualKeyboardShown.This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardVisible(boolean bShown)"
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardVisible(JNIEnv* jenv, jobject thiz, jboolean bShown)
+{
+	GVirtualKeyboardShown = bShown;
+
+	//remove reference so the object can be clicked again to show the virtual keyboard
+	if (!bShown)
+	{
+		VirtualKeyboardWidget = NULL;
+	}
+}
+
+bool AndroidThunkCpp_IsVirtuaKeyboardShown()
+{
+	return GVirtualKeyboardShown;
 }
 
 bool AndroidThunkCpp_IsGamepadAttached()
@@ -668,22 +687,6 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardShown(J
 	}
 }
 
-void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
-{
-	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
-	{
-		// remember target widget for contents
-		VirtualKeyboardWidget = &(*TextWidget);
-
-		// call the java side
-		jstring LabelJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Label));
-		jstring ContentsJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Contents));
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_ShowVirtualKeyboardInput, InputType, LabelJava, ContentsJava);
-		Env->DeleteLocalRef(ContentsJava);
-		Env->DeleteLocalRef(LabelJava);
-	}
-}
-
 void AndroidThunkCpp_HideVirtualKeyboardInput()
 {
 	// Make sure virtual keyboard currently open
@@ -707,6 +710,30 @@ void AndroidThunkCpp_HideVirtualKeyboardInput()
 				FAndroidApplication::Get()->OnVirtualKeyboardHidden().Broadcast();
 			}, TStatId(), NULL, ENamedThreads::GameThread );
 		}
+	}
+}
+
+void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
+{
+	// remember target widget for contents
+	IVirtualKeyboardEntry * newWidget = &(*TextWidget);
+	//#jira UE-49139 Tapping in the same text box doesn't make the virtual keyboard disappear
+	if (VirtualKeyboardWidget == newWidget)
+	{
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("[JNI] - AndroidThunkCpp_ShowVirtualKeyboardInput same control"));
+		AndroidThunkCpp_HideVirtualKeyboardInput();
+	}
+	else if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+
+		VirtualKeyboardWidget = newWidget;
+
+		// call the java side
+		jstring LabelJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Label));
+		jstring ContentsJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Contents));
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_ShowVirtualKeyboardInput, InputType, LabelJava, ContentsJava);
+		Env->DeleteLocalRef(ContentsJava);
+		Env->DeleteLocalRef(LabelJava);
 	}
 }
 
@@ -766,7 +793,6 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardSendKey
 	Message.messageType = MessageType_KeyDown;
 	Message.KeyEventData.keyId = keyCode;
 	FAndroidInputInterface::DeferMessage(Message);
-
 }
 
 void AndroidThunkCpp_LaunchURL(const FString& URL)

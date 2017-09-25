@@ -1293,10 +1293,10 @@ public:
 	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
 
 	/** Returns the current audio device update delta time. */
-	float GetDeviceDeltaTime() const
-	{
-		return DeviceDeltaTime;
-	}
+	float GetDeviceDeltaTime() const;
+
+	/** Returns the game's delta time */
+	float GetGameDeltaTime() const;
 
 	/** Sets the update delta time for the audio frame */
 	void UpdateDeviceDeltaTime()

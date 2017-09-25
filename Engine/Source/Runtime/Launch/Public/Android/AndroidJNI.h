@@ -49,7 +49,8 @@ public:
 	static jmethodID AndroidThunkJava_GetAndroidId;
 	static jmethodID AndroidThunkJava_SetSustainedPerformanceMode;
 
-	static jmethodID AndroidThunkCpp_IsVirtuaInputClicked;
+	static jmethodID AndroidThunkCpp_VirtualInputIgnoreClick;
+	static jmethodID AndroidThunkCpp_IsVirtuaKeyboardShown;
 
 	// InputDeviceInfo member field ids
 	static jclass InputDeviceInfoClass;
@@ -91,7 +92,7 @@ public:
 	// SurfaceView functionality for view scaling on some devices
 	static jmethodID AndroidThunkJava_UseSurfaceViewWorkaround;
 	static jmethodID AndroidThunkJava_SetDesiredViewSize;
-	static jmethodID AndroidThunkJava_IsVirtuaInputClicked;
+	static jmethodID AndroidThunkJava_VirtualInputIgnoreClick;
 
 	// member fields for getting the launch notification
 	static jclass LaunchNotificationClass;

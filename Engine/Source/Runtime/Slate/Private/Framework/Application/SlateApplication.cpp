@@ -4145,6 +4145,16 @@ void FSlateApplication::ShowVirtualKeyboard( bool bShow, int32 UserIndex, TShare
 	SlateTextField->ShowVirtualKeyboard(bShow, UserIndex, TextEntryWidget);
 }
 
+bool FSlateApplication::AllowMoveCursor()
+{
+	if (SlateTextField == nullptr)
+	{
+		SlateTextField = new FPlatformTextField();
+	}
+
+	return SlateTextField->AllowMoveCursor();
+}
+
 FSlateRect FSlateApplication::GetPreferredWorkArea() const
 {
 	if ( const FSlateUser* User = GetUser(GetUserIndexForKeyboard()) )

@@ -1780,6 +1780,12 @@ void UPaperSprite::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+
+	if (SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics)
+	{
+		UE_LOG(LogPaper2D, Warning, TEXT("PaperSprite '%s' was using 2D physics which has been removed, it has been switched to 3D physics."), *GetPathName());
+		SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;
+	}
 }
 
 void UPaperSprite::PostLoad()

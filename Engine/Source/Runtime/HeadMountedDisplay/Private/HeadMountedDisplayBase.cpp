@@ -64,6 +64,19 @@ bool FHeadMountedDisplayBase::GetHMDDistortionEnabled() const
 	return true;
 }
 
+FVector2D FHeadMountedDisplayBase::GetEyeCenterPoint_RenderThread(EStereoscopicPass Eye) const
+{
+	check(IsInRenderingThread());
+	check(IsStereoEnabled());
+
+	const FMatrix StereoProjectionMatrix = GetStereoProjectionMatrix(Eye);
+	//0,0,1 is the straight ahead point, wherever it maps to is the center of the projection plane in -1..1 coordinates.  -1,-1 is bottom left.
+	const FVector4 ScreenCenter = StereoProjectionMatrix.TransformPosition(FVector(0.0f, 0.0f, 1.0f));
+	//transform into 0-1 screen coordinates 0,0 is top left.  
+	const FVector2D CenterPoint(0.5f + (ScreenCenter.X / 2.0f), 0.5f - (ScreenCenter.Y / 2.0f));
+	return CenterPoint;
+}
+
 
 void FHeadMountedDisplayBase::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& /* RHICmdList */, FSceneViewFamily& /* ViewFamily */)
 {

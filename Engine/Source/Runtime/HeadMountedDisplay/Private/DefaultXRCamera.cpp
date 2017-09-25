@@ -13,6 +13,8 @@ FDefaultXRCamera::FDefaultXRCamera(const FAutoRegister& AutoRegister, IXRTrackin
 	: FSceneViewExtensionBase(AutoRegister)
 	, TrackingSystem(InTrackingSystem)
 	, DeviceId(InDeviceId)
+	, DeltaControlRotation(0, 0, 0)
+	, DeltaControlOrientation(FQuat::Identity)
 	, bUseImplicitHMDPosition(false)
 {
 }
@@ -40,7 +42,10 @@ bool FDefaultXRCamera::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& Cu
 {
 	FQuat DeviceOrientation;
 	FVector DevicePosition;
-	TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
+	if (!TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition))
+	{
+		return false;
+	}
 
 	if (GEnableVREditorHacks && !bUseImplicitHMDPosition)
 	{
@@ -52,6 +57,11 @@ bool FDefaultXRCamera::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& Cu
 	CurrentOrientation = DeviceOrientation;
 
 	return true;
+}
+
+void FDefaultXRCamera::OverrideFOV(float& InOutFOV)
+{
+	// The default camera does not override the FOV
 }
 
 void FDefaultXRCamera::SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component)

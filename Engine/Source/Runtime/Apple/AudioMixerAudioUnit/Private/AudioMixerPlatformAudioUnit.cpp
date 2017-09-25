@@ -7,9 +7,14 @@
 #include "CoreGlobals.h"
 #include "CoreMinimal.h"
 #include "Misc/ConfigCacheIni.h"
-#include "VorbisAudioInfo.h"
+#if PLATFORM_IOS || PLATFORM_TVOS
 #include "ADPCMAudioInfo.h"
 
+#else
+
+#include "VorbisAudioInfo.h"
+#include "OpusAudioInfo.h"
+#endif // #if PLATFORM_IOS || PLATFORM_TVOS
 /*
 	This implementation only depends on the audio units API which allows it to run on MacOS, iOS and tvOS. 
 	
@@ -62,8 +67,23 @@ namespace Audio
     
     int32 FMixerPlatformAudioUnit::GetNumFrames(const int32 InNumReqestedFrames)
     {
-        //On iOS and MacOS, we hardcode buffer sizes.
+#if PLATFORM_IOS || PLATFORM_TVOS
+        AVAudioSession* AudioSession = [AVAudioSession sharedInstance];
+        double BufferSizeInSec = [AudioSession preferredIOBufferDuration];
+        double SampleRate = [AudioSession preferredSampleRate];
+        
+        if (BufferSizeInSec == 0.0)
+        {
+            return DefaultBufferSize;
+        }
+        
+        int32 NumFrames = (int32)(SampleRate * BufferSizeInSec);
+        
+        return NumFrames;
+#else
+       //On MacOS, we hardcode buffer sizes.
         return DefaultBufferSize;
+#endif
     }
 
 	bool FMixerPlatformAudioUnit::InitializeHardware()
@@ -96,23 +116,27 @@ namespace Audio
         NSError* error;
         
         AVAudioSession* AudioSession = [AVAudioSession sharedInstance];
-        [AudioSession setPreferredSampleRate:GraphSampleRate error:&error];
+
+        GraphSampleRate = [AudioSession preferredSampleRate];
+        bool Success = [AudioSession setPreferredSampleRate:GraphSampleRate error:&error];
         
-        //Set the buffer size.
-        Float32 bufferSizeInSec = (float)BufferSize / (OpenStreamParams.SampleRate == 0 ? GraphSampleRate : OpenStreamParams.SampleRate);
-        [AudioSession setPreferredIOBufferDuration:bufferSizeInSec error:&error];
-        
-        if (error != nil)
+        if (!Success)
         {
-            UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Error setting buffer size to: %f"), bufferSizeInSec);
+            UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Error setting sample rate."));
         }
         
-        [AudioSession setActive:true error:&error];
+        // By calling setPreferredIOBufferDuration, we indicate that we would prefer that the buffer size not change if possible.
+        Success = [AudioSession setPreferredIOBufferDuration:[AudioSession preferredIOBufferDuration] error: &error];
         
-        // Retrieve the actual hardware sample rate
-        GraphSampleRate = [AudioSession preferredSampleRate];
         UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Device Sample Rate: %f"), GraphSampleRate);
         check(GraphSampleRate != 0);
+        
+        Success = [AudioSession setActive:true error:&error];
+        
+        if (!Success)
+        {
+            UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Error starting audio session."));
+        }
 #else
         AudioObjectID DeviceAudioObjectID;
         AudioObjectPropertyAddress DevicePropertyAddress;
@@ -139,13 +163,6 @@ namespace Audio
 
 #endif // #if PLATFORM_IOS || PLATFORM_TVOS
         
-        AudioStreamInfo.DeviceInfo.NumChannels           = NumChannels;
-		AudioStreamInfo.DeviceInfo.SampleRate            = (int32)GraphSampleRate;
-		AudioStreamInfo.DeviceInfo.Format                = EAudioMixerStreamDataFormat::Float;
-		AudioStreamInfo.DeviceInfo.OutputChannelArray.SetNum(NumChannels);
-		AudioStreamInfo.DeviceInfo.OutputChannelArray[0] = EAudioMixerChannel::FrontLeft;
-		AudioStreamInfo.DeviceInfo.OutputChannelArray[1] = EAudioMixerChannel::FrontRight;
-		AudioStreamInfo.DeviceInfo.bIsSystemDefault      = true;
 
 		// Linear PCM stream format
 		OutputFormat.mFormatID         = kAudioFormatLinearPCM;
@@ -227,6 +244,8 @@ namespace Audio
         
         AudioStreamInfo.NumOutputFrames = BufferSize;
 
+        AudioStreamInfo.DeviceInfo = GetPlatformDeviceInfo();
+        
 		AURenderCallbackStruct InputCallback;
 		InputCallback.inputProc = &AudioRenderCallback;
 		InputCallback.inputProcRefCon = this;
@@ -376,7 +395,23 @@ namespace Audio
 
 	FAudioPlatformDeviceInfo FMixerPlatformAudioUnit::GetPlatformDeviceInfo() const
 	{
-		return AudioStreamInfo.DeviceInfo;
+        FAudioPlatformDeviceInfo DeviceInfo;
+        
+    #if PLATFORM_IOS || PLATFORM_TVOS
+        AVAudioSession* AudioSession = [AVAudioSession sharedInstance];
+        double SampleRate = [AudioSession preferredSampleRate];
+        DeviceInfo.SampleRate = (int32)SampleRate;
+#else
+        DeviceInfo.SampleRate = DefaultSampleRate;
+#endif
+        DeviceInfo.NumChannels = 2;
+        DeviceInfo.Format = EAudioMixerStreamDataFormat::Float;
+        DeviceInfo.OutputChannelArray.SetNum(2);
+        DeviceInfo.OutputChannelArray[0] = EAudioMixerChannel::FrontLeft;
+        DeviceInfo.OutputChannelArray[1] = EAudioMixerChannel::FrontRight;
+        DeviceInfo.bIsSystemDefault = true;
+        
+        return DeviceInfo;
 	}
 
 	void FMixerPlatformAudioUnit::SubmitBuffer(const uint8* Buffer)
@@ -388,8 +423,19 @@ namespace Audio
 
 	FName FMixerPlatformAudioUnit::GetRuntimeFormat(USoundWave* InSoundWave)
 	{
+#if PLATFORM_IOS || PLATFORM_TVOS
 		static FName NAME_ADPCM(TEXT("ADPCM"));
 		return NAME_ADPCM;
+#else
+        static FName NAME_OPUS(TEXT("OPUS"));
+        
+        if (InSoundWave->IsStreaming())
+        {
+            return NAME_OPUS;
+        }
+        static FName NAME_OGG(TEXT("OGG"));
+        return NAME_OGG;
+#endif
 	}
 
 	bool FMixerPlatformAudioUnit::HasCompressedAudioInfoClass(USoundWave* InSoundWave)
@@ -399,7 +445,36 @@ namespace Audio
 
 	ICompressedAudioInfo* FMixerPlatformAudioUnit::CreateCompressedAudioInfo(USoundWave* InSoundWave)
 	{
+#if PLATFORM_IOS || PLATFORM_TVOS
 		return new FADPCMAudioInfo();
+#else
+        check(InSoundWave);
+        
+        if (InSoundWave->IsStreaming())
+        {
+            return new FOpusAudioInfo();
+        }
+        
+#if WITH_OGGVORBIS
+        static const FName NAME_OGG(TEXT("OGG"));
+        if (FPlatformProperties::RequiresCookedData() ? InSoundWave->HasCompressedData(NAME_OGG) : (InSoundWave->GetCompressedData(NAME_OGG) != nullptr))
+        {
+            ICompressedAudioInfo* CompressedInfo = new FVorbisAudioInfo();
+            if (!CompressedInfo)
+            {
+                UE_LOG(LogAudio, Error, TEXT("Failed to create new FVorbisAudioInfo for SoundWave %s: out of memory."), *InSoundWave->GetName());
+                return nullptr;
+            }
+            return CompressedInfo;
+        }
+        else
+        {
+            return nullptr;
+        }
+#else
+        return nullptr;
+#endif // WITH_OGGVORBIS
+#endif // PLATFORM_IOS || PLATFORM_TVOS
 	}
 
 	FString FMixerPlatformAudioUnit::GetDefaultDeviceName()
@@ -410,10 +485,30 @@ namespace Audio
 	FAudioPlatformSettings FMixerPlatformAudioUnit::GetPlatformSettings() const
 	{
         FAudioPlatformSettings Settings;
-        Settings.CallbackBufferFrameSize = DefaultBufferSize;
         Settings.NumBuffers = 2;
 #if PLATFORM_IOS || PLATFORM_TVOS
-        Settings.MaxChannels = 16;
+        AVAudioSession* AudioSession = [AVAudioSession sharedInstance];
+        double BufferSizeInSec = [AudioSession preferredIOBufferDuration];
+        double SampleRate = [AudioSession preferredSampleRate];
+        
+        int32 NumFrames;
+        
+        if (BufferSizeInSec == 0.0)
+        {
+            NumFrames = DefaultBufferSize;
+        }
+        else
+        {
+            NumFrames = (int32)(SampleRate * BufferSizeInSec);
+        }
+        Settings.CallbackBufferFrameSize = NumFrames;
+        Settings.SampleRate = SampleRate;
+        Settings.MaxChannels = 32;
+        
+#else
+        Settings.SampleRate = DefaultSampleRate;
+        Settings.CallbackBufferFrameSize = DefaultBufferSize;
+        
 #endif //#if PLATFORM_IOS || PLATFORM_TVOS
         
         return Settings;

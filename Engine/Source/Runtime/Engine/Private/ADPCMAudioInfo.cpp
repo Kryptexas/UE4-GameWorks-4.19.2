@@ -19,6 +19,7 @@ namespace ADPCM
 FADPCMAudioInfo::FADPCMAudioInfo(void)
 {
 	UncompressedBlockData = NULL;
+	SamplesPerBlock = 0;
 }
 
 FADPCMAudioInfo::~FADPCMAudioInfo(void)
@@ -53,7 +54,14 @@ void FADPCMAudioInfo::SeekToTime(const float SeekTime)
 		}
 		else
 		{
-			//TODO: implementation for ADPCM
+			// Figure out the block index that the seek takes us to
+			uint32 SeekedSamples = (uint32)(SeekTime * (float)(*WaveInfo.pSamplesPerSec));
+
+			// Compute the block index that we're seeked to
+			CurrentCompressedBlockIndex = SeekedSamples / SamplesPerBlock;
+
+			// Update the samples streamed to the current block index and the samples per block
+			TotalSamplesStreamed = CurrentCompressedBlockIndex * SamplesPerBlock;
 		}
 	}
 }
@@ -61,7 +69,6 @@ void FADPCMAudioInfo::SeekToTime(const float SeekTime)
 bool FADPCMAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, struct FSoundQualityInfo* QualityInfo)
 {
 	check(InSrcBufferData);
-	check(QualityInfo);
 
 	SrcBufferData = InSrcBufferData;
 	SrcBufferDataSize = InSrcBufferDataSize;
@@ -77,11 +84,12 @@ bool FADPCMAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 In
 	Format = *WaveInfo.pFormatTag;
 	NumChannels = *WaveInfo.pChannels;
 
-	if(Format == WAVE_FORMAT_ADPCM)
+	if (Format == WAVE_FORMAT_ADPCM)
 	{
-		ADPCM::ADPCMFormatHeader* APPCMHeader = (ADPCM::ADPCMFormatHeader*)FormatHeader;
-		TotalSamplesPerChannel = APPCMHeader->SamplesPerChannel;
-		
+		ADPCM::ADPCMFormatHeader* ADPCMHeader = (ADPCM::ADPCMFormatHeader*)FormatHeader;
+		TotalSamplesPerChannel = ADPCMHeader->SamplesPerChannel;
+		SamplesPerBlock = ADPCMHeader->wSamplesPerBlock;
+
 		const uint32 PreambleSize = 7;
 		BlockSize = *WaveInfo.pBlockAlign;
 
@@ -287,7 +295,7 @@ bool FADPCMAudioInfo::StreamCompressedInfo(USoundWave* Wave, struct FSoundQualit
 	Format = *WaveInfo.pFormatTag;
 	NumChannels = *WaveInfo.pChannels;
 	
-	if(Format == WAVE_FORMAT_ADPCM)
+	if (Format == WAVE_FORMAT_ADPCM)
 	{
 		ADPCM::ADPCMFormatHeader* APPCMHeader = (ADPCM::ADPCMFormatHeader*)FormatHeader;
 		TotalSamplesPerChannel = APPCMHeader->SamplesPerChannel;
@@ -303,23 +311,19 @@ bool FADPCMAudioInfo::StreamCompressedInfo(USoundWave* Wave, struct FSoundQualit
 		const uint32 targetBlocks = MONO_PCM_BUFFER_SAMPLES / uncompressedBlockSamples;
 		StreamBufferSize = targetBlocks * UncompressedBlockSize;
 		TotalDecodedSize = ((WaveInfo.SampleDataSize + CompressedBlockSize - 1) / CompressedBlockSize) * UncompressedBlockSize;
-		if (QualityInfo)
-		{
-			QualityInfo->SampleRate = *WaveInfo.pSamplesPerSec;
-			QualityInfo->NumChannels = *WaveInfo.pChannels;
-			QualityInfo->SampleDataSize = TotalDecodedSize;
-			QualityInfo->Duration = (float)TotalSamplesPerChannel / QualityInfo->SampleRate;
-		}
 		
 		UncompressedBlockData = (uint8*)FMemory::Realloc(UncompressedBlockData, NumChannels * UncompressedBlockSize);
 		check(UncompressedBlockData != NULL);
 	}
-	else if(Format == WAVE_FORMAT_LPCM)
+	else if (Format == WAVE_FORMAT_LPCM)
 	{
 		BlockSize = 0;
 		UncompressedBlockSize = 0;
 		CompressedBlockSize = 0;
-		StreamBufferSize = TotalDecodedSize = WaveInfo.SampleDataSize;
+
+		// This is uncompressed, so decoded size and buffer size are the same
+		TotalDecodedSize = WaveInfo.SampleDataSize;
+		StreamBufferSize = WaveInfo.SampleDataSize;
 		TotalSamplesPerChannel = StreamBufferSize / sizeof(uint16) / NumChannels;
 	}
 	else
@@ -328,6 +332,14 @@ bool FADPCMAudioInfo::StreamCompressedInfo(USoundWave* Wave, struct FSoundQualit
 		return false;
 	}
 	
+	if (QualityInfo)
+	{
+		QualityInfo->SampleRate = *WaveInfo.pSamplesPerSec;
+		QualityInfo->NumChannels = *WaveInfo.pChannels;
+		QualityInfo->SampleDataSize = TotalDecodedSize;
+		QualityInfo->Duration = (float)TotalSamplesPerChannel / QualityInfo->SampleRate;
+	}
+
 	return true;
 }
 

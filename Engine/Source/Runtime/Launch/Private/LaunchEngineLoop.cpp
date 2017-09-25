@@ -2543,9 +2543,10 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Load runtime client modules (which are also needed at cook-time)
 	if( !IsRunningDedicatedServer() )
 	{
-		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 		FModuleManager::Get().LoadModule(TEXT("Overlay"));
 	}
+
+	FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 #endif
 
 	FModuleManager::Get().LoadModule(TEXT("ClothingSystemRuntime"));

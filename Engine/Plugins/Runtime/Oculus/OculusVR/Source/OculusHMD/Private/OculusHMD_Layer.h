@@ -50,6 +50,7 @@ public:
 
 	TSharedPtr<FLayer, ESPMode::ThreadSafe> Clone() const;
 
+	bool IsCompatibleLayerDesc(const ovrpLayerDescUnion& OvrpLayerDescA, const ovrpLayerDescUnion& OvrpLayerDescB) const;
 	void Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandListImmediate& RHICmdList, const FLayer* InLayer = nullptr);
 	void UpdateTexture_RenderThread(FCustomPresent* CustomPresent, FRHICommandListImmediate& RHICmdList);
 

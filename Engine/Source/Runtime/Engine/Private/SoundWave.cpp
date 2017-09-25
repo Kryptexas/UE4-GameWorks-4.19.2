@@ -369,6 +369,20 @@ void USoundWave::PostLoad()
 		return;
 	}
 
+#if WITH_EDITORONLY_DATA
+	// Log a warning after loading if the source has effect chains but has channels greater than 2.
+	if (SourceEffectChain && SourceEffectChain->Chain.Num() > 0 && NumChannels > 2)
+	{
+		UE_LOG(LogAudio, Warning, TEXT("Sound Wave '%s' has defined an effect chain but is not mono or stereo."), *GetName());
+	}
+#endif
+
+	// Don't need to do anything in post load if this is a source bus
+	if (this->IsA(USoundSourceBus::StaticClass()))
+	{
+		return;
+	}
+
 	// Compress to whatever formats the active target platforms want
 	// static here as an optimization
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
@@ -415,13 +429,6 @@ void USoundWave::PostLoad()
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
 		AssetImportData->SourceData = MoveTemp(Info);
 	}
-
-	// Log a warning after loading if the source has effect chains but has channels greater than 2.
-	if (SourceEffectChain && SourceEffectChain->Chain.Num() > 0 && NumChannels > 2)
-	{
-		UE_LOG(LogAudio, Warning, TEXT("Sound Wave '%s' has defined an effect chain but is not mono or stereo."), *GetName());
-	}
-
 #endif // #if WITH_EDITORONLY_DATA
 
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );

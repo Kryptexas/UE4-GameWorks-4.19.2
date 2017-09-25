@@ -17,8 +17,11 @@
 #include "ScreenRendering.h"
 #include "Containers/DynamicRHIResourceArray.h"
 #include "PostProcess/SceneFilterRendering.h"
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+#include "IOSAppDelegate.h"
+#endif
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 /**
 * Passes a CVMetalTextureRef through to the RHI to wrap in an RHI texture without traversing system memory.
 * @see FAvfTexture2DResourceWrapper & FMetalSurface::FMetalSurface
@@ -139,38 +142,41 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 		OverlayVertexBufferRHI = RHICreateVertexBuffer(Vertices.GetResourceDataSize(), BUF_Static, CreateInfoVB);
 	}
 
-#if ARKIT_SUPPORT
-	check(IsMetalPlatform(GMaxRHIShaderPlatform));
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+	if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
+	{
+		check(IsMetalPlatform(GMaxRHIShaderPlatform));
 
-	if (LastUpdateTimestamp != Frame.Timestamp && Frame.CapturedYImage && Frame.CapturedCbCrImage)
-	{		
-		FRHIResourceCreateInfo CreateInfo;
-		const uint32 CreateFlags = TexCreate_Dynamic | TexCreate_NoTiling | TexCreate_ShaderResource;
-		CreateInfo.BulkData = new FAppleARKitCameraTextureResourceWrapper(Frame.CapturedYImage);
-		CreateInfo.ResourceArray = nullptr;
+		if (LastUpdateTimestamp != Frame.Timestamp && Frame.CapturedYImage && Frame.CapturedCbCrImage)
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			const uint32 CreateFlags = TexCreate_Dynamic | TexCreate_NoTiling | TexCreate_ShaderResource;
+			CreateInfo.BulkData = new FAppleARKitCameraTextureResourceWrapper(Frame.CapturedYImage);
+			CreateInfo.ResourceArray = nullptr;
 
-		// pull the Y and CbCr textures out of the captured image planes (format is fake here, it will get the format from the FAppleARKitCameraTextureResourceWrapper)
-		VideoTextureY = RHICreateTexture2D(Frame.CapturedYImageWidth, Frame.CapturedYImageHeight, /*Format=*/PF_B8G8R8A8, /*NumMips=*/1, /*NumSamples=*/1, CreateFlags, CreateInfo);
-		
-		CreateInfo.BulkData = new FAppleARKitCameraTextureResourceWrapper(Frame.CapturedCbCrImage);
-		VideoTextureCbCr = RHICreateTexture2D(Frame.CapturedCbCrImageWidth, Frame.CapturedCbCrImageHeight, /*Format=*/PF_B8G8R8A8, /*NumMips=*/1, /*NumSamples=*/1, CreateFlags, CreateInfo);
+			// pull the Y and CbCr textures out of the captured image planes (format is fake here, it will get the format from the FAppleARKitCameraTextureResourceWrapper)
+			VideoTextureY = RHICreateTexture2D(Frame.CapturedYImageWidth, Frame.CapturedYImageHeight, /*Format=*/PF_B8G8R8A8, /*NumMips=*/1, /*NumSamples=*/1, CreateFlags, CreateInfo);
 
-		// todo: Add an update call to the registry instead of this unregister/re-register
-		FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid);
-		FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureCbCrGuid);
-		
-		FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap);
-		FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
-		
-		FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid, VideoTextureY, SamplerStateRHI);
-		FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureCbCrGuid, VideoTextureCbCr, SamplerStateRHI);
-		
-		CFRelease(Frame.CapturedYImage);
-		CFRelease(Frame.CapturedCbCrImage);
-		Frame.CapturedYImage = nullptr;
-		Frame.CapturedCbCrImage = nullptr;
+			CreateInfo.BulkData = new FAppleARKitCameraTextureResourceWrapper(Frame.CapturedCbCrImage);
+			VideoTextureCbCr = RHICreateTexture2D(Frame.CapturedCbCrImageWidth, Frame.CapturedCbCrImageHeight, /*Format=*/PF_B8G8R8A8, /*NumMips=*/1, /*NumSamples=*/1, CreateFlags, CreateInfo);
 
-		LastUpdateTimestamp = Frame.Timestamp;
+			// todo: Add an update call to the registry instead of this unregister/re-register
+			FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid);
+			FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureCbCrGuid);
+
+			FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap);
+			FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+
+			FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid, VideoTextureY, SamplerStateRHI);
+			FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureCbCrGuid, VideoTextureCbCr, SamplerStateRHI);
+
+			CFRelease(Frame.CapturedYImage);
+			CFRelease(Frame.CapturedCbCrImage);
+			Frame.CapturedYImage = nullptr;
+			Frame.CapturedCbCrImage = nullptr;
+
+			LastUpdateTimestamp = Frame.Timestamp;
+		}
 	}
 	#endif // ARKIT_SUPPORT
 }
@@ -259,68 +265,72 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(, FARKitCameraOverlayPS, TEXT("/Engine/Private/Po
 
 void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& InView)
 {
-	#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
-	// Draw a screen quad?
-	if (RenderingOverlayMaterial == nullptr || !RenderingOverlayMaterial->IsValidLowLevel())
+	if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
 	{
-		return;
-	}
-
-	const auto FeatureLevel = InView.GetFeatureLevel();
-	IRendererModule& RendererModule = GetRendererModule();
-
-	if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
-	{
-		const FMaterial* const CameraMaterial = RenderingOverlayMaterial->GetRenderProxy(false)->GetMaterial(FeatureLevel);
-		const FMaterialShaderMap* const MaterialShaderMap = CameraMaterial->GetRenderingThreadShaderMap();
-
-		FARKitCameraOverlayVS* const VertexShader = MaterialShaderMap->GetShader<FARKitCameraOverlayVS>();
-		FARKitCameraOverlayPS* const PixelShader = MaterialShaderMap->GetShader<FARKitCameraOverlayPS>();
-		
-		FGraphicsPipelineStateInitializer GraphicsPSOInit;
-
-		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
-
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
-		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-		VertexShader->SetParameters(RHICmdList, InView);
-		PixelShader->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
-
-		const FIntPoint ViewSize = InView.ViewRect.Size();
-
-		FDrawRectangleParameters Parameters;
-		Parameters.PosScaleBias = FVector4(ViewSize.X, ViewSize.Y, 0, 0);
-		Parameters.UVScaleBias = FVector4(1.0f, 1.0f, 0.0f, 0.0f);
-
-		Parameters.InvTargetSizeAndTextureSize = FVector4(
-			1.0f / ViewSize.X, 1.0f / ViewSize.Y,
-			1.0f, 1.0f);
-		
-		// todo: Handle aspect ratio mis-match, just stretching here
-
-		SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
-
-		if (OverlayVertexBufferRHI.IsValid() && OverlayIndexBufferRHI.IsValid())
+		// Draw a screen quad?
+		if (RenderingOverlayMaterial == nullptr || !RenderingOverlayMaterial->IsValidLowLevel())
 		{
-			RHICmdList.SetStreamSource(0, OverlayVertexBufferRHI, 0);
-			RHICmdList.DrawIndexedPrimitive(
-				OverlayIndexBufferRHI,
-				PT_TriangleList,
-				/*BaseVertexIndex=*/ 0,
-				/*MinIndex=*/ 0,
-				/*NumVertices=*/ 4,
-				/*StartIndex=*/ 0,
-				/*NumPrimitives=*/ 2,
-				/*NumInstances=*/ 1
-			);
+			return;
+		}
+
+		const auto FeatureLevel = InView.GetFeatureLevel();
+		IRendererModule& RendererModule = GetRendererModule();
+
+		if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
+		{
+			const FMaterial* const CameraMaterial = RenderingOverlayMaterial->GetRenderProxy(false)->GetMaterial(FeatureLevel);
+			const FMaterialShaderMap* const MaterialShaderMap = CameraMaterial->GetRenderingThreadShaderMap();
+
+			FARKitCameraOverlayVS* const VertexShader = MaterialShaderMap->GetShader<FARKitCameraOverlayVS>();
+			FARKitCameraOverlayPS* const PixelShader = MaterialShaderMap->GetShader<FARKitCameraOverlayPS>();
+		
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
+
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+			VertexShader->SetParameters(RHICmdList, InView);
+			PixelShader->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
+
+			const FIntPoint ViewSize = InView.ViewRect.Size();
+
+			FDrawRectangleParameters Parameters;
+			Parameters.PosScaleBias = FVector4(ViewSize.X, ViewSize.Y, 0, 0);
+			Parameters.UVScaleBias = FVector4(1.0f, 1.0f, 0.0f, 0.0f);
+
+			Parameters.InvTargetSizeAndTextureSize = FVector4(
+				1.0f / ViewSize.X, 1.0f / ViewSize.Y,
+				1.0f, 1.0f);
+		
+			// todo: Handle aspect ratio mis-match, just stretching here
+
+			SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
+
+			if (OverlayVertexBufferRHI.IsValid() && OverlayIndexBufferRHI.IsValid())
+			{
+				RHICmdList.SetStreamSource(0, OverlayVertexBufferRHI, 0);
+				RHICmdList.DrawIndexedPrimitive(
+					OverlayIndexBufferRHI,
+					PT_TriangleList,
+					/*BaseVertexIndex=*/ 0,
+					/*MinIndex=*/ 0,
+					/*NumVertices=*/ 4,
+					/*StartIndex=*/ 0,
+					/*NumPrimitives=*/ 2,
+					/*NumInstances=*/ 1
+				);
+			}
 		}
 	}
 	#endif // ARKIT_SUPPORT

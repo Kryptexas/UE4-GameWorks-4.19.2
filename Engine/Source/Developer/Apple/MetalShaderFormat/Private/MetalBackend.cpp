@@ -2805,9 +2805,15 @@ protected:
 						ralloc_asprintf_append(buffer, "(-1.0/0.0)");
 						break;
 
+					case 0x7fc00000u:
+						ralloc_asprintf_append(buffer, "(NAN)");
+						_mesa_glsl_warning(ParseState, "Generated a float literal value of NAN - this is almost certainly incorrect.");
+						break;
+
 					default:
-						ralloc_asprintf_append(buffer, "UnknownNonFinite_0x%08x", constant->value.u[index]);
-						check(0);
+						ralloc_asprintf_append(buffer, "as_type<float>(0x%08x)", constant->value.u[index]);
+						_mesa_glsl_warning(ParseState, "Generated an unknown non-finite float literal value of 0x%08x - this is almost certainly incorrect.", constant->value.u[index]);
+						break;
 				}
 			}
 		}

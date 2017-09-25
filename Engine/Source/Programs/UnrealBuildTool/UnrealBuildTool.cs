@@ -657,7 +657,9 @@ namespace UnrealBuildTool
 						bIsGatheringBuild_Unsafe = false;
 					}
 
-					List<ProjectFileType> ProjectFileTypes = new List<ProjectFileType>();
+					bool bGenerateProjectFiles = false;
+					WindowsCompiler OverrideWindowsCompiler = WindowsCompiler.Default;
+					List<ProjectFileFormat> ProjectFileFormats = new List<ProjectFileFormat>();
 					foreach (string Arg in Arguments)
 					{
 						string LowercaseArg = Arg.ToLowerInvariant();
@@ -666,41 +668,76 @@ namespace UnrealBuildTool
 							// Already handled at startup. Calling now just to properly set the game name
 							continue;
 						}
+						else if (LowercaseArg == "-projectfiles")
+						{
+							bGenerateProjectFiles = true;
+						}
+						else if(LowercaseArg.StartsWith("-projectfileformat="))
+						{
+							ProjectFileFormats.AddRange(ProjectFileGeneratorSettings.ParseFormatList(Arg.Substring("-projectfileformat=".Length)));
+							bGenerateProjectFiles = true;
+						}
+						else if (LowercaseArg == "-2012unsupported")
+						{
+							// May be for compiling; don't set bGenerateProjectFiles by default 
+							ProjectFileFormats.Add(ProjectFileFormat.VisualStudio2012);
+						}
+						else if (LowercaseArg == "-2013unsupported")
+						{
+							// May be for compiling; don't set bGenerateProjectFiles by default 
+							ProjectFileFormats.Add(ProjectFileFormat.VisualStudio2013);
+						}
+						else if (LowercaseArg == "-2015")
+						{
+							// May be for compiling; don't set bGenerateProjectFiles by default, but do override the compiler if it is.
+							ProjectFileFormats.Add(ProjectFileFormat.VisualStudio2015);
+							OverrideWindowsCompiler = WindowsCompiler.VisualStudio2015;
+						}
+						else if (LowercaseArg == "-2017")
+						{
+							// May be for compiling; don't set bGenerateProjectFiles by default, but do override the compiler if it is. 
+							ProjectFileFormats.Add(ProjectFileFormat.VisualStudio2017);
+							OverrideWindowsCompiler = WindowsCompiler.VisualStudio2017;
+						}
 						else if (LowercaseArg.StartsWith("-makefile"))
 						{
-							ProjectFileTypes.Add(ProjectFileType.Make);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.Make);
 						}
 						else if (LowercaseArg.StartsWith("-cmakefile"))
 						{
-							ProjectFileTypes.Add(ProjectFileType.CMake);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.CMake);
 						}
 						else if (LowercaseArg.StartsWith("-qmakefile"))
 						{
-							ProjectFileTypes.Add(ProjectFileType.QMake);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.QMake);
 						}
 						else if (LowercaseArg.StartsWith("-kdevelopfile"))
 						{
-							ProjectFileTypes.Add(ProjectFileType.KDevelop);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.KDevelop);
 						}
-						else if (LowercaseArg.StartsWith("-codelitefile"))
+						else if (LowercaseArg == "-codelitefiles")
 						{
-							ProjectFileTypes.Add(ProjectFileType.CodeLite);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.CodeLite);
 						}
-						else if (LowercaseArg.StartsWith("-projectfile"))
+						else if (LowercaseArg == "-xcodeprojectfiles")
 						{
-							ProjectFileTypes.Add(ProjectFileType.VisualStudio);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.XCode);
 						}
-						else if (LowercaseArg.StartsWith("-xcodeprojectfile"))
+						else if (LowercaseArg == "-eddieprojectfiles")
 						{
-							ProjectFileTypes.Add(ProjectFileType.XCode);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.Eddie);
 						}
-						else if (LowercaseArg.StartsWith("-eddieprojectfile"))
+						else if (LowercaseArg == "-vscode")
 						{
-							ProjectFileTypes.Add(ProjectFileType.Eddie);
-						}
-						else if (LowercaseArg.StartsWith("-vscode"))
-						{
-							ProjectFileTypes.Add(ProjectFileType.VSCode);
+							bGenerateProjectFiles = true;
+							ProjectFileFormats.Add(ProjectFileFormat.VSCode);
 						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
@@ -808,43 +845,85 @@ namespace UnrealBuildTool
 						JunkDeleter.DeleteJunk();
 					}
 
-					if (ProjectFileTypes.Count > 0)
+					if (bGenerateProjectFiles)
 					{
+						// If there aren't any formats set, read the default project file format from the config file
+						if(ProjectFileFormats.Count == 0)
+						{
+							// Read from the XML config
+							if(!String.IsNullOrEmpty(ProjectFileGeneratorSettings.Format))
+							{
+								ProjectFileFormats.AddRange(ProjectFileGeneratorSettings.ParseFormatList(ProjectFileGeneratorSettings.Format));
+							}
+
+							// Read from the editor config
+							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorPerProjectUserSettings, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Win64);
+
+							string PreferredAccessor;
+							if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
+							{
+								ProjectFileFormat PreferredFormat;
+								if (Enum.TryParse(PreferredAccessor, out PreferredFormat))
+								{
+									ProjectFileFormats.Add(PreferredFormat);
+								}
+							}
+
+							// If there's still nothing set, get the default project file format for this platform
+							if(ProjectFileFormats.Count == 0)
+							{
+								BuildHostPlatform.Current.GetDefaultProjectFileFormats(ProjectFileFormats);
+							}
+						}
+
+						// Create each project generator and run it
 						ProjectFileGenerator.bGenerateProjectFiles = true;
-						foreach(ProjectFileType ProjectFileType in ProjectFileTypes)
+						foreach(ProjectFileFormat ProjectFileFormat in ProjectFileFormats.Distinct())
 						{
 							ProjectFileGenerator Generator;
-							switch (ProjectFileType)
+							switch (ProjectFileFormat)
 							{
-								case ProjectFileType.Make:
+								case ProjectFileFormat.Make:
 									Generator = new MakefileGenerator(ProjectFile);
 									break;
-								case ProjectFileType.CMake:
+								case ProjectFileFormat.CMake:
 									Generator = new CMakefileGenerator(ProjectFile);
 									break;
-								case ProjectFileType.QMake:
+								case ProjectFileFormat.QMake:
 									Generator = new QMakefileGenerator(ProjectFile);
 									break;
-								case ProjectFileType.KDevelop:
+								case ProjectFileFormat.KDevelop:
 									Generator = new KDevelopGenerator(ProjectFile);
 									break;
-								case ProjectFileType.CodeLite:
+								case ProjectFileFormat.CodeLite:
 									Generator = new CodeLiteGenerator(ProjectFile);
 									break;
-								case ProjectFileType.VisualStudio:
-									Generator = new VCProjectFileGenerator(ProjectFile, Arguments);
+								case ProjectFileFormat.VisualStudio:
+									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.Default, OverrideWindowsCompiler);
 									break;
-								case ProjectFileType.XCode:
+								case ProjectFileFormat.VisualStudio2012:
+									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2012, OverrideWindowsCompiler);
+									break;
+								case ProjectFileFormat.VisualStudio2013:
+									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2013, OverrideWindowsCompiler);
+									break;
+								case ProjectFileFormat.VisualStudio2015:
+									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2015, OverrideWindowsCompiler);
+									break;
+								case ProjectFileFormat.VisualStudio2017:
+									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2017, OverrideWindowsCompiler);
+									break;
+								case ProjectFileFormat.XCode:
 									Generator = new XcodeProjectFileGenerator(ProjectFile);
 									break;
-								case ProjectFileType.Eddie:
+								case ProjectFileFormat.Eddie:
 									Generator = new EddieProjectFileGenerator(ProjectFile);
 									break;
-								case ProjectFileType.VSCode:
+								case ProjectFileFormat.VSCode:
 									Generator = new VSCodeProjectFileGenerator(ProjectFile);
 									break;
 								default:
-									throw new BuildException("Unhandled project file type '{0}", ProjectFileType);
+									throw new BuildException("Unhandled project file type '{0}", ProjectFileFormat);
 							}
 							if(!Generator.GenerateProjectFiles(Arguments))
 							{

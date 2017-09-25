@@ -80,9 +80,6 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 	
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 
-	static FString GetDefaultLanguage();
-	static FString GetDefaultLocale();
-
 	/** @return Get the name of the platform specific file manager (Finder) */
 	static FText GetFileManagerName();
 
@@ -145,6 +142,9 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
     static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
 
 	static int GetDefaultStackSize();
+
+	/** Updates variables in GMacAppInfo that cannot be initialized before PlatformPostInit() */
+	static void PostInitMacAppInfoUpdate();
 };
 
 typedef FMacPlatformMisc FPlatformMisc;

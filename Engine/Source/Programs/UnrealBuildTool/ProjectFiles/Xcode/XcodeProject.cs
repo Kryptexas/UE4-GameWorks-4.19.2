@@ -595,15 +595,17 @@ namespace UnrealBuildTool
 			Content.Append("\t\t\t\t);" + ProjectFileGenerator.NewLine);
 
 			Content.Append("\t\t\t\tHEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine);
-			foreach (var Path in IntelliSenseSystemIncludeSearchPaths)
+			foreach (var SearchPath in IntelliSenseSystemIncludeSearchPaths)
 			{
+				string Path = SearchPath.Contains(" ") ? "\\\"" + SearchPath + "\\\"" : SearchPath;
 				Content.Append("\t\t\t\t\t\"" + Path + "\"," + ProjectFileGenerator.NewLine);
 			}
 			Content.Append("\t\t\t\t);" + ProjectFileGenerator.NewLine);
 
 			Content.Append("\t\t\t\tUSER_HEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine);
-			foreach (var Path in IntelliSenseIncludeSearchPaths)
+			foreach (var SearchPath in IntelliSenseIncludeSearchPaths)
 			{
+				string Path = SearchPath.Contains(" ") ? "\\\"" + SearchPath + "\\\"" : SearchPath;
 				Content.Append("\t\t\t\t\t\"" + Path + "\"," + ProjectFileGenerator.NewLine);
 			}
 			Content.Append("\t\t\t\t);" + ProjectFileGenerator.NewLine);

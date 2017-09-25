@@ -52,7 +52,7 @@
 		Samples/MobileStarterContent/MobileStarterContent.uproject
 	</Property>
 	<!-- Don't add VR template for Mac and Linux -->
-	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC)" If="'$(HostPlatform)' != 'Mac' and '$(HostPlatform)' != 'Linux'">
+	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC)" If="'$(HostPlatform)' != 'Linux'">
 		Templates/TP_VirtualRealityBP/TP_VirtualRealityBP.uproject
 	</Property>
 	
@@ -140,7 +140,7 @@
   <Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Builds/CodeAPI-HTML.tgz" If="Exists('Engine/Documentation/Builds/CodeAPI-HTML.tgz')"/>
   <Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Builds/BlueprintAPI-HTML.tgz" If="Exists('Engine/Documentation/Builds/BlueprintAPI-HTML.tgz')"/>
   <!-- Don't add VR template for Mac and Linux -->
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..." If="'$(HostPlatform)' != 'Mac' and '$(HostPlatform)' != 'Linux'"/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..." If="'$(HostPlatform)' != 'Linux'"/>
 		<!-- Define Editor Exceptions -->
 	<Property Name="CopyEditorExceptions">
 		<!-- Content -->
@@ -177,7 +177,7 @@
 		Templates/*/contents.txt
 	</Property>
 	<!-- exclude VR feature pack on Mac -->
-	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);FeaturePacks/TP_VirtualRealityBP.upack" If="'$(HostPlatform)' == 'Mac' or '$(HostPlatform)' == 'Linux'"/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);FeaturePacks/TP_VirtualRealityBP.upack" If="'$(HostPlatform)' == 'Linux'"/>
 
 	<!-- Win64-specific dependencies -->
 	<Do If="'$(HostPlatform)' == 'Win64'">

@@ -1198,7 +1198,7 @@ namespace VulkanRHI
 
 	inline void* FBufferSuballocation::GetMappedPointer()
 	{
-		return Owner->GetMappedPointer();
+		return (uint8*)Owner->GetMappedPointer() + AlignedOffset;
 	}
 
 	enum class EImageLayoutBarrier

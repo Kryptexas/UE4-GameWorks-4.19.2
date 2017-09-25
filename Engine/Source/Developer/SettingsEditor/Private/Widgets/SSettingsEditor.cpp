@@ -158,10 +158,11 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 
 		// Note while there could be multiple objects in the details panel, only one is ever edited at once
 		const UObject* ObjectBeingEdited = PropertyChangedEvent.GetObjectBeingEdited(0);
-
+		if (ObjectBeingEdited != nullptr)
+		{
 		// Get the section from the edited object.  We cannot use the selected section as multiple sections can be shown at once in the settings details panel.
 		ISettingsSectionPtr Section = Model->GetSectionFromSectionObject(ObjectBeingEdited);
-		if(Section.IsValid())
+			if (Section.IsValid())
 		{
 			FString RelativePath;
 			bool bIsSourceControlled = false;
@@ -193,7 +194,7 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			RecordPreferenceChangedAnalytics(Section, PropertyChangedEvent);
 
 			// Determine if the Property is an Array or Array Element
-			bool bIsArrayOrArrayElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(UArrayProperty::StaticClass()) 
+				bool bIsArrayOrArrayElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(UArrayProperty::StaticClass())
 				|| PropertyThatChanged->GetActiveMemberNode()->GetValue()->ArrayDim > 1
 				|| ((Outer != nullptr) && Outer->IsA(UArrayProperty::StaticClass()));
 
@@ -218,12 +219,13 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			}
 
 			static const FName ConfigRestartRequiredKey = "ConfigRestartRequired";
-			if (PropertyChangedEvent.Property->GetBoolMetaData(ConfigRestartRequiredKey))
+			if (PropertyChangedEvent.Property->GetBoolMetaData(ConfigRestartRequiredKey) || PropertyChangedEvent.MemberProperty->GetBoolMetaData(ConfigRestartRequiredKey))
 			{
 				OnApplicationRestartRequiredDelegate.ExecuteIfBound();
 			}
 		}
 	}
+}
 }
 
 

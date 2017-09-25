@@ -546,7 +546,10 @@ namespace UnrealBuildTool
 			// link in the frameworks
 			foreach (string Framework in LinkEnvironment.Frameworks)
 			{
-				Result += " -framework " + Framework;
+                if (Framework != "ARKit" || Settings.Value.IOSSDKVersionFloat >= 11.0f)
+                {
+                    Result += " -framework " + Framework;
+                }
 			}
 			foreach (UEBuildFramework Framework in LinkEnvironment.AdditionalFrameworks)
 			{

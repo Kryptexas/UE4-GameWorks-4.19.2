@@ -20,6 +20,8 @@ DEFINE_LOG_CATEGORY(LogMfMediaFactory);
 
 #define LOCTEXT_NAMESPACE "FMfMediaFactoryModule"
 
+#define MFMEDIAFACTORY_USE_WINDOWS 0 // set this to one to enable MfMedia on Windows (experimental)
+
 
 /**
  * Implements the MfMediaFactory module.
@@ -132,7 +134,7 @@ public:
 	{
 		// supported file extensions
 		SupportedFileExtensions.Add(TEXT("mp4"));
-#if defined(WINVER) && WINVER >= 0x601
+#if MFMEDIAFACTORY_WINDOWS && MFMEDIAFACTORY_USE_WINDOWS
 		SupportedFileExtensions.Add(TEXT("3g2"));
 		SupportedFileExtensions.Add(TEXT("3gp"));
 		SupportedFileExtensions.Add(TEXT("3gp2"));
@@ -159,13 +161,13 @@ public:
 
 		// supported platforms
 		SupportedPlatforms.Add(TEXT("XboxOne"));
-#if defined(WINVER) && WINVER >= 0x0601
-//		SupportedPlatforms.Add(TEXT("Windows"));
+#if MFMEDIAFACTORY_WINDOWS && MFMEDIAFACTORY_USE_WINDOWS
+		SupportedPlatforms.Add(TEXT("Windows"));
 #endif
 
 		// supported schemes
 		SupportedUriSchemes.Add(TEXT("file"));
-#if  defined(WINVER) && WINVER >= 0x0601
+#if MFMEDIAFACTORY_WINDOWS && MFMEDIAFACTORY_USE_WINDOWS
 		SupportedUriSchemes.Add(TEXT("http"));
 		SupportedUriSchemes.Add(TEXT("httpd"));
 		SupportedUriSchemes.Add(TEXT("https"));

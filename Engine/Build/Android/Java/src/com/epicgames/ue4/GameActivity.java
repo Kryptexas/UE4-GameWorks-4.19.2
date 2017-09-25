@@ -9,6 +9,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import java.lang.Override;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -34,7 +35,9 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.Spanned;
 import android.text.method.PasswordTransformationMethod;
 import android.text.TextWatcher;
 import android.view.inputmethod.EditorInfo;
@@ -84,14 +87,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.games.Games;
-
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdListener;
-import com.google.android.gms.ads.InterstitialAd;
-import com.google.android.gms.ads.identifier.AdvertisingIdClient;
-import com.google.android.gms.ads.identifier.AdvertisingIdClient.Info;
 
 import com.google.android.gms.plus.Plus;
 
@@ -220,7 +215,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	//handler for virtual keyboard show/hide events
 	private Handler virtualKeyboardHandler;
 
-	
 	// Keep a reference to the main content view so we can bring up the virtual keyboard without an editbox
 	private View mainView;
 	private boolean bKeyboardShowing;
@@ -243,28 +237,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	
 	private GoogleApiClient googleClient;
 
-	/** AdMob support */
-	private PopupWindow adPopupWindow;
-	private AdView adView;
-	private boolean adInit = false;
-	private LinearLayout adLayout;
-	private int adGravity = Gravity.TOP;
-	private InterstitialAd interstitialAd;
-	private boolean isInterstitialAdLoaded = false;
-	private boolean isInterstitialAdRequested = false;
-	private AdRequest interstitialAdRequest;
-
 	// layout required by popups, e.g ads, native controls
 	LinearLayout activityLayout;
-
-	/** true when the application has requested that an ad be displayed */
-	private boolean adWantsToBeShown = false;
-
-	/** true when an ad is available to be displayed */
-	private boolean adIsAvailable = false;
-
-	/** true when an ad request is in flight */
-	private boolean adIsRequested = false;
 
 	/** Request code to use when launching the Google Services resolution activity */
     private static final int GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR = 1001;
@@ -901,7 +875,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		consoleAlert = builder.create();
 
 		virtualKeyboardInputBox = new EditText(this);
-
 		virtualKeyboardInputBox.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
@@ -988,7 +961,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
         mainDecorView = getWindow().getDecorView();
 		mainDecorViewRect = new Rect();
-		mainDecorView.getWindowVisibleDisplayFrame( mainDecorViewRect );
 
 		createVirtualKeyboardInput();
 		
@@ -997,12 +969,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
         	@Override
         	public void onGlobalLayout()
         	{
+				//Log.debug("VK: onGlobalLayout " + bKeyboardShowing);
         		if( bKeyboardShowing )
         		{
         			Rect visibleRect = new Rect();
         			View visibleView = mainView.getRootView();
 
         			visibleView.getWindowVisibleDisplayFrame( visibleRect );
+
+					mainDecorView.getDrawingRect( mainDecorViewRect );
+
+					//Log.debug("VK: onGlobalLayout visibleRect:(" +  visibleRect.left + ", " + visibleRect.top +", " + visibleRect.right +", " + visibleRect.bottom +")"+
+        			//", mainDecorViewRect:" +  mainDecorViewRect.left + ", " + mainDecorViewRect.top +", " + mainDecorViewRect.right +", " + mainDecorViewRect.bottom + ")" );
 
         			// determine which side of the screen the keyboard is covering
         			int leftDiff = Math.abs( mainDecorViewRect.left - visibleRect.left );
@@ -1027,14 +1005,19 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
                     int visibleScreenYOffset = Math.max(bottomDiff, topDiff);
 
         			nativeVirtualKeyboardShown( keyboardRect.left, keyboardRect.top, keyboardRect.right, keyboardRect.bottom );
+					//Log.debug("VK: show?" + visibleScreenYOffset + "," + newVirtualKeyboardInput.getY());
                     if(visibleScreenYOffset > 200)
                     {
+						//Log.debug("VK: show");
+						//newVirtualKeyboardInput.setBackgroundColor(Color.WHITE);
+						//newVirtualKeyboardInput.setCursorVisible(true);
                     	newVirtualKeyboardInput.setY(keyboardYPos);
                     	newVirtualKeyboardInput.setVisibility(View.VISIBLE);
 						newVirtualKeyboardInput.requestFocus();
                     }
                     else if(newVirtualKeyboardInput.getY() > 0)
                     {
+						//Log.debug("VK: hide");
 						newVirtualKeyboardInput.setVisibility(View.GONE);
 						//set offscreen
         				newVirtualKeyboardInput.setY(-1000); 
@@ -1374,6 +1357,16 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		Log.debug("==============> GameActive.onDestroy complete!");
 	}
 
+	@Override
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+
+		// forward the orientation
+		boolean bPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
+		nativeOnConfigurationChanged(bPortrait);
+	}
+
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
 	{
 		if(bUseSurfaceView)
@@ -1418,48 +1411,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					}
 				}
 			});
-		}
-	}
-
-	// handle ad popup visibility and requests
-	private void updateAdVisibility(boolean loadIfNeeded)
-	{
-		if (!adInit || (adPopupWindow == null))
-		{
-			return;
-		}
-
-		// request an ad if we don't have one available or requested, but would like one
-		if (adWantsToBeShown && !adIsAvailable && !adIsRequested && loadIfNeeded)
-		{
-			AdRequest adRequest = new AdRequest.Builder().build();		// add test devices here
-			_activity.adView.loadAd(adRequest);
-
-			adIsRequested = true;
-		}
-
-		if (adIsAvailable && adWantsToBeShown)
-		{
-			if (adPopupWindow.isShowing())
-			{
-				return;
-			}
-
-			adPopupWindow.showAtLocation(activityLayout, adGravity, 0, 0);
-			// don't call update on 7.0 to work around this issue: https://code.google.com/p/android/issues/detail?id=221001
-			if (ANDROID_BUILD_VERSION != 24) {
-				adPopupWindow.update();
-			}
-		}
-		else
-		{
-			if (!adPopupWindow.isShowing())
-			{
-				return;
-			}
-
-			adPopupWindow.dismiss();
-			adPopupWindow.update();
 		}
 	}
 
@@ -1611,14 +1562,17 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	// new functions to show/hide virtual keyboard
 	public void AndroidThunkJava_HideVirtualKeyboardInput()
 	{
-		virtualKeyboardHandler.post(new Runnable()
+		//Log.debug("VK: AndroidThunkJava_HideVirtualKeyboardInput");
+
+		//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
+		virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
+		virtualKeyboardHandler.postDelayed(new Runnable()
 		{
 			public void run()
 			{
-				virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
 				if(bKeyboardShowing)
 				{
-					Log.debug("Hide newVirtualKeyboardInput");
+					//Log.debug("VK: Hide newVirtualKeyboardInput");
 
 					newVirtualKeyboardInput.clearFocus();
 					//set offscreen
@@ -1633,24 +1587,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					bKeyboardShowing = false;
 				}
 			}
-		});
+		}, 100);
 	}
-	
 
 	//initial settings for the virtual input
 	String virtualKeyboardInputContent;
 	int virtualKeyboardInputType;
 	public void AndroidThunkJava_ShowVirtualKeyboardInput(int inInputType, String Label, String Contents)
 	{
+		//Log.debug("VK: AndroidThunkJava_ShowVirtualKeyboardInput");
 		virtualKeyboardInputContent = Contents;
 		virtualKeyboardInputType = inInputType;
-		virtualKeyboardHandler.post(new Runnable()
+
+		//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
+		virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
+		virtualKeyboardHandler.postDelayed(new Runnable()
 		{
 			public void run()
 			{
-				virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
 				newVirtualKeyboardInput.setVisibility(View.VISIBLE);
 				
+				//newVirtualKeyboardInput.setBackgroundColor(Color.TRANSPARENT);
+				//newVirtualKeyboardInput.setCursorVisible(false);
+
 				//set offscreen
 				newVirtualKeyboardInput.setY(-1000);
 
@@ -1659,15 +1618,24 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				
 				int newVirtualKeyboardInputType = virtualKeyboardInputType;
 
-				//TYPE: disable text suggestion for Samsung S devices
-				if((virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0)
-					newVirtualKeyboardInputType |= InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+				//commented: as it will disable text prediction for all devices, 
+				//	for most of them it will also block the VK in latin/english subtype
+				//	disabling chinese or korean subtypes
+				//if((virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0)
+				//{
+					//#jira UE-49117 Chinese and Korean virtual keyboards don't allow native characters
+					//#jira UE-49121 Gboard and Swift swipe entry are not supported by Virtual keyboard
+					//newVirtualKeyboardInputType |= TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+				//}
 
+				//TYPE: disable text suggestion
+				newVirtualKeyboardInputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
 				//TYPE: disable autocorrect
 				newVirtualKeyboardInputType &= ~InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
 				
 				//TYPE: set input type flags
 				newVirtualKeyboardInput.setInputType(newVirtualKeyboardInputType);
+				newVirtualKeyboardInput.setRawInputType(newVirtualKeyboardInputType);
 
 				//IME: set Done button for single line input
 				int imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI;
@@ -1681,15 +1649,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				//IME: set single/multi line input type
 				if((virtualKeyboardInputType & InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0)
 				{
-				Log.debug("Virtual keyboard multiline.");
 					//disable enter for multi-line - will be treated by virtualKeyboardInputType in sendKeyEvent
 					newVirtualKeyboardInput.setSingleLine(false);
+					//#jira UE-49128 Virtual Keyboard text field doesn't appear if there is too much text
+					newVirtualKeyboardInput.setMaxLines(5);
 					imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
 					imeOptions &= ~EditorInfo.IME_ACTION_DONE;
 				}
 				else
 				{
-				Log.debug("Virtual keyboard single line");
 					newVirtualKeyboardInput.setSingleLine(true);
 					imeOptions &= ~EditorInfo.IME_FLAG_NO_ENTER_ACTION;
 					imeOptions |= EditorInfo.IME_ACTION_DONE;
@@ -1707,13 +1675,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				//SELECTION: move to end
 				newVirtualKeyboardInput.setSelection(newVirtualKeyboardInput.getText().length());
 
-				if (bKeyboardShowing)
+				if(newVirtualKeyboardInput.requestFocus())
 				{
-					Log.debug("Virtual keyboard already showing.");
-				}
-				else if(newVirtualKeyboardInput.requestFocus())
-				{
-					Log.debug("Show newVirtualKeyboardInput");
+					//Log.debug("VK: Show newVirtualKeyboardInput");
 					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 					imm.showSoftInput(newVirtualKeyboardInput, 0);
 
@@ -1721,7 +1685,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					bKeyboardShowing = true;
 				}
 			}
-		});
+		},100);
 	}
 	
 	public void AndroidThunkJava_LaunchURL(String URL)
@@ -1829,216 +1793,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
         }
 
 		return accesstoken;
-	}
-
-	public void AndroidThunkJava_ShowAdBanner(String AdMobAdUnitID, boolean bShowOnBottonOfScreen)
-	{
-		Log.debug("In AndroidThunkJava_ShowAdBanner");
-		Log.debug("AdID: " + AdMobAdUnitID);
-
-		adGravity = bShowOnBottonOfScreen ? Gravity.BOTTOM : Gravity.TOP;
-
-		if (adInit)
-		{
-			// already created, make it visible
-			_activity.runOnUiThread(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					if ((adPopupWindow == null) || adPopupWindow.isShowing())
-					{
-						return;
-					}
-
-					adWantsToBeShown = true;
-					updateAdVisibility(true);
-				}
-			});
-
-			return;
-		}
-
-		// init our AdMob window
-		adView = new AdView(this);
-		adView.setAdUnitId(AdMobAdUnitID);
-		adView.setAdSize(AdSize.BANNER);
-
-		if (adView != null)
-		{
-			_activity.runOnUiThread(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					adInit = true;
-
-					final DisplayMetrics dm = getResources().getDisplayMetrics();
-					final float scale = dm.density;
-					adPopupWindow = new PopupWindow(_activity);
-					adPopupWindow.setWidth((int)(320*scale));
-					adPopupWindow.setHeight((int)(50*scale));
-					adPopupWindow.setClippingEnabled(false);
-
-					adLayout = new LinearLayout(_activity);
-
-					final int padding = (int)(-5*scale);
-					adLayout.setPadding(padding,padding,padding,padding);
-
-					MarginLayoutParams params = new MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);;
-
-					params.setMargins(0,0,0,0);
-
-					adLayout.setOrientation(LinearLayout.VERTICAL);
-					adLayout.addView(adView, params);
-					adPopupWindow.setContentView(adLayout);
-
-					// set up our ad callbacks
-					_activity.adView.setAdListener(new AdListener()
-					{
-						 @Override
-						public void onAdLoaded()
-						{
-							adIsAvailable = true;
-							adIsRequested = false;
-
-							updateAdVisibility(true);
-						}
-
-						 @Override
-						public void onAdFailedToLoad(int errorCode)
-						{
-							adIsAvailable = false;
-							adIsRequested = false;
-
-							// don't immediately request a new ad on failure, wait until the next show
-							updateAdVisibility(false);
-						}
-					});
-
-					adWantsToBeShown = true;
-					updateAdVisibility(true);
-				}
-			});
-		}
-	}
-
-	public void AndroidThunkJava_HideAdBanner()
-	{
-		Log.debug("In AndroidThunkJava_HideAdBanner");
-
-		if (!adInit)
-		{
-			return;
-		}
-
-		_activity.runOnUiThread(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				adWantsToBeShown = false;
-				updateAdVisibility(true);
-			}
-		});
-	}
-
-	public void AndroidThunkJava_CloseAdBanner()
-	{
-		Log.debug("In AndroidThunkJava_CloseAdBanner");
-
-		if (!adInit)
-		{
-			return;
-		}
-
-		// currently the same as hide.  should we do a full teardown?
-		_activity.runOnUiThread(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				adWantsToBeShown = false;
-				updateAdVisibility(true);
-			}
-		});
-	}
-	
-	public void AndroidThunkJava_LoadInterstitialAd(String AdMobAdUnitID)
-	{
-		interstitialAdRequest = new AdRequest.Builder().build();
-
-		interstitialAd = new InterstitialAd(this);
-		isInterstitialAdLoaded = false;
-		isInterstitialAdRequested = true;
-		interstitialAd.setAdUnitId(AdMobAdUnitID);
-
-		_activity.runOnUiThread(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				interstitialAd.loadAd(interstitialAdRequest);				
-			}
-		});
-		
-		interstitialAd.setAdListener(new AdListener()
-		{
-			@Override
-			public void onAdFailedToLoad(int errorCode) 
-			{
-				Log.debug("Interstitial Ad failed to load, errocode: " + errorCode);
-				isInterstitialAdLoaded = false;
-				isInterstitialAdRequested = false;
-			}
-			@Override
-			public void onAdLoaded() 
-			{
-				//track if the ad is loaded since we can only called interstitialAd.isLoaded() from the uiThread				
-				isInterstitialAdLoaded = true;
-				isInterstitialAdRequested = false;
-			}    
-		});
-	}
-
-	public boolean AndroidThunkJava_IsInterstitialAdAvailable()
-	{
-		return interstitialAd != null && isInterstitialAdLoaded;
-	}
-
-	public boolean AndroidThunkJava_IsInterstitialAdRequested()
-	{
-		return interstitialAd != null && isInterstitialAdRequested;
-	}
-
-	public void AndroidThunkJava_ShowInterstitialAd()
-	{
-		if(isInterstitialAdLoaded)
-		{
-			_activity.runOnUiThread(new Runnable()
-			{
-				@Override
-				public void run()
-				{					
-					interstitialAd.show();
-				}
-			});
-		}
-		else
-		{
-			Log.debug("Interstitial Ad is not available to show - call LoadInterstitialAd or wait for it to finish loading");
-		}
-	}
-
-	public String AndroidThunkJava_GetAdvertisingId()
-	{
-		try {
-	        AdvertisingIdClient.Info adInfo = AdvertisingIdClient.getAdvertisingIdInfo(getApplicationContext());
-		    return adInfo.getId();
-		} catch (Exception e) {
-			Log.debug("GetAdvertisingId failed: " + e.getMessage());
-		}
-		return null;
 	}
 
 	public void AndroidThunkJava_GoogleClientConnect()
@@ -2927,17 +2681,63 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		public VirtualKeyboardInput(Context context, AttributeSet attrs, int defStyle) 
 		{
 			super(context, attrs, defStyle);
+	        init();
 		}
 
 		public VirtualKeyboardInput(Context context, AttributeSet attrs) 
 		{
 			super(context, attrs);
+	        init();
 		}
 
 		public VirtualKeyboardInput(Context context) 
 		{
 			super(context);
+	        init();
 		}
+
+		private void init() 
+		{
+			setFilters(new InputFilter[]{emojiExcludeFilter});
+		}
+
+		@Override
+		public void setFilters(InputFilter[] filters) 
+		{
+			if (filters.length != 0) 
+			{ //if length == 0 it will here return when init() is called
+					boolean add = true;
+					for (InputFilter inputFilter : filters) 
+					{
+						if (inputFilter == emojiExcludeFilter) 
+						{
+							add = false;
+							break;
+						}
+					}
+					if (add) {
+						filters = Arrays.copyOf(filters, filters.length + 1);
+						filters[filters.length - 1] = emojiExcludeFilter;
+					}
+			}
+			super.setFilters(filters);
+		}
+		    
+		private EmojiExcludeFilter emojiExcludeFilter = new EmojiExcludeFilter();
+
+	    private class EmojiExcludeFilter implements InputFilter 
+	    {
+	        @Override
+	        public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+	            for (int i = start; i < end; i++) {
+	                int type = Character.getType(source.charAt(i));
+	                if (type == Character.SURROGATE || type == Character.OTHER_SYMBOL) {
+	                    return "";
+	                }
+	            }
+	            return null;
+	        }
+	    }
 
 		//Override BACK key to hide the virtual keyboard
 		@Override 
@@ -2969,6 +2769,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 			private void replaceSubstring(String newString)
 			{
+				//Log.debug("VK: replaceSubstring");
 				StringBuffer text = new StringBuffer(owner.getText().toString());
 				int selStart, selEnd;
  
@@ -2986,17 +2787,22 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				else if(newString.length() > 0)
 				{ 
 					//insert
-					//Log.debug("==================================> key! insert" );
 					text.insert(selStart, newString);
 				} 
-				else if(selStart > 0)
+				else 
 				{ 
 					//delete
-					selStart--;
-					text.replace(selStart, selStart + 1, "");
+					if(selStart > 0)
+					{
+						selStart--;
+						text.replace(selStart, selStart + 1, "");
+					}
+					//#jira UE-48948 Crash when pressing backspace on empty line 
 					selStart--;
 				} 
-				owner.setText(text.toString());
+				//#jira UE-49120 Virtual keyboard number pad "kicks" user back to regular keyboard
+				owner.getText().clear();
+				owner.append(text.toString());
 				owner.setSelection(selStart + 1);
 			}
 
@@ -3005,26 +2811,22 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			@Override
 			public boolean sendKeyEvent(KeyEvent event) 
 			{
-
-				//Log.debug("==================================> key!" + event.getKeyCode() );
+				////Log.debug("VK: sendKeyEvent " + event.getKeyCode() );
 				if (event.getAction() == KeyEvent.ACTION_DOWN )
 				{ 
 					if(event.getKeyCode() >= KeyEvent.KEYCODE_0 && event.getKeyCode() <= KeyEvent.KEYCODE_9)
 					{
 						char numChar = (char)('0' + (event.getKeyCode() - KeyEvent.KEYCODE_0));
-						//Log.debug("==================================> numeric!" + String.valueOf(numChar));
 						replaceSubstring(String.valueOf(numChar));
 					}
 					else if(event.getKeyCode() >= KeyEvent.KEYCODE_NUMPAD_0 && event.getKeyCode() <= KeyEvent.KEYCODE_NUMPAD_9)
 					{
 						char numChar = (char)('0' + (event.getKeyCode() - KeyEvent.KEYCODE_NUMPAD_0));
-						//Log.debug("==================================> numeric!" + String.valueOf(numChar));
 						replaceSubstring(String.valueOf(numChar));
 					}
 					else if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) 
 					{
 						//delete selected text / previous character
-						//Log.debug("==================================> delete!");
 						replaceSubstring("");
 					}
 					else if (event.getKeyCode() == KeyEvent.KEYCODE_ENTER)
@@ -3032,7 +2834,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 						if (0 != (getInputType() & InputType.TYPE_TEXT_FLAG_MULTI_LINE))
 						{
-							//Log.debug("==================================> send enter!");
 							//add new line
 							replaceSubstring("\n");
 						}
@@ -3042,7 +2843,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 							nativeVirtualKeyboardSendKey(KeyEvent.KEYCODE_ENTER);
 						}
 					}
-					}
+				}
 				return true;
 			}
 
@@ -3050,6 +2851,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			@Override
 			public boolean deleteSurroundingText(int beforeLength, int afterLength) 
 			{       
+				////Log.debug("VK: deleteSurroundingText");
 				if (beforeLength == 1 && afterLength == 0) 
 				{
 					// backspace
@@ -3086,6 +2888,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			@Override
 			public boolean onEditorAction(TextView view, int actionId, KeyEvent event) 
 			{
+				////Log.debug("VK: onEditorAction");
 				int result = actionId & EditorInfo.IME_MASK_ACTION;
 				switch(result) 
 				{
@@ -3114,6 +2917,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			public void onTextChanged(CharSequence charSequence, int start, int before, int count) 
 			{
 				//send to the associated Slate control
+				Log.debug("VK onTextChanged");
 				if(newVirtualKeyboardInput.getY() > 0)
 				{
 					String message = newVirtualKeyboardInput.getText().toString();
@@ -3129,35 +2933,22 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	}
 
 	//check if the new virtual keyboard input has received a MOUSE_DOWN event
-	public boolean AndroidThunkJava_IsVirtuaInputClicked(int x, int y) 
+	// or the keyboard animation is playing
+	public boolean AndroidThunkJava_VirtualInputIgnoreClick(int x, int y) 
 	{
 		View view = getCurrentFocus();
 		if (view == newVirtualKeyboardInput) 
 		{
 			Rect r = new Rect();
 			view.getGlobalVisibleRect(r);
-			if (r.contains(x, y)) 
+			if (r.contains(x, y) || newVirtualKeyboardInput.getY() < 0) 
 			{
-				Log.debug("==============> AndroidThunkJava_IsVirtuaInputClicked true");
+				//Log.debug("VK: AndroidThunkJava_VirtualInputIgnoreClick true");
 				return true;
 			}
 		}
-		Log.debug("==============> AndroidThunkJava_IsVirtuaInputClicked false");
+		//Log.debug("VK: AndroidThunkJava_VirtualInputIgnoreClick false");
 		return false;
-	}
-
-	//this is called when the screen rotates.
-	//recreate mainDecorView to update the virtualkeyboard & input's position
-	@Override
-	public void onConfigurationChanged(Configuration newConfig)
-	{
-		super.onConfigurationChanged(newConfig);
-		mainDecorViewRect = new Rect();
-		mainDecorView.getWindowVisibleDisplayFrame( mainDecorViewRect );
-		//hide on rotate to avoid layout problems
-		AndroidThunkJava_HideVirtualKeyboardInput();
-
-		//Log.debug("==============> onConfigurationChanged mainDecorViewRect:" + mainDecorViewRect.left+", " + mainDecorViewRect.top + ", " + mainDecorViewRect.right + ", " + mainDecorViewRect.bottom);
 	}
 
 	public native boolean nativeIsShippingBuild();
@@ -3182,8 +2973,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
 
 	public native void nativeVirtualKeyboardShown(int left, int top, int right, int bottom);
-
 	public native void nativeVirtualKeyboardVisible(boolean bShown);
+
+	public native void nativeOnConfigurationChanged(boolean bPortrait);
 		
 	static
 	{

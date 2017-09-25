@@ -72,6 +72,7 @@ FMediaPlayerFacade::~FMediaPlayerFacade()
 
 void FMediaPlayerFacade::AddAudioSampleSink(const TSharedRef<TMediaSampleSink<IMediaAudioSample>, ESPMode::ThreadSafe>& SampleSink)
 {
+	FScopeLock Lock(&CriticalSection);
 	AudioSampleSinks.Add(SampleSink);
 }
 
@@ -84,6 +85,7 @@ void FMediaPlayerFacade::AddCaptionSampleSink(const TSharedRef<TMediaSampleSink<
 
 void FMediaPlayerFacade::AddMetadataSampleSink(const TSharedRef<TMediaSampleSink<IMediaBinarySample>, ESPMode::ThreadSafe>& SampleSink)
 {
+	FScopeLock Lock(&CriticalSection);
 	MetadataSampleSinks.Add(SampleSink);
 }
 
@@ -157,6 +159,7 @@ void FMediaPlayerFacade::Close()
 
 	if (Player.IsValid())
 	{
+		FScopeLock Lock(&CriticalSection);
 		Player->Close();
 	}
 
@@ -552,6 +555,8 @@ void FMediaPlayerFacade::FlushSinks()
 {
 	UE_LOG(LogMediaUtils, Verbose, TEXT("PlayerFacade %p: Flushing sinks"), this);
 
+	FScopeLock Lock(&CriticalSection);
+
 	AudioSampleSinks.Flush();
 	CaptionSampleSinks.Flush();
 	MetadataSampleSinks.Flush();
@@ -746,6 +751,11 @@ void FMediaPlayerFacade::ProcessEvent(EMediaEvent Event)
 
 void FMediaPlayerFacade::SelectDefaultTracks()
 {
+	if (!Player.IsValid())
+	{
+		return;
+	}
+
 	IMediaTracks& Tracks = Player->GetTracks();
 
 	// @todo gmp: consider locale when selecting default media tracks
@@ -847,6 +857,11 @@ void FMediaPlayerFacade::TickOutput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 
 void FMediaPlayerFacade::TickTickable()
 {
+	if (LastRate == 0.0f)
+	{
+		return;
+	}
+
 	FScopeLock Lock(&CriticalSection);
 
 	if (!Player.IsValid())
@@ -855,11 +870,6 @@ void FMediaPlayerFacade::TickTickable()
 	}
 
 	Player->TickAudio();
-
-	if (LastRate == 0.0f)
-	{
-		return;
-	}
 
 	// determine range of valid samples
 	TRange<FTimespan> AudioTimeRange;

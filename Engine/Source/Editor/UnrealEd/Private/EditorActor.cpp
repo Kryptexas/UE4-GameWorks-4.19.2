@@ -751,6 +751,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 
 	USelection* SelectedActors = GetSelectedActors();
 	TMap<AActor*, TArray<AActor*> > ReferencingActorsMap;
+	TMap<AActor*, TArray<UObject*> > SoftReferencingObjectsMap;
 	TArray<UClass*> ClassTypesToIgnore;
 	ClassTypesToIgnore.Add(ALevelScriptActor::StaticClass());
 	// The delete warning is meant for actor references that affect gameplay.  Group actors do not affect gameplay and should not show up as a warning.
@@ -761,6 +762,24 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 	if (bWarnAboutReferences)
 	{
 		FBlueprintEditorUtils::GetActorReferenceMap(InWorld, ClassTypesToIgnore, ReferencingActorsMap);
+
+		if (bWarnAboutSoftReferences)
+		{
+			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+
+			for (int32 ActorIndex = 0; ActorIndex < ActorsToDelete.Num(); ++ActorIndex)
+			{
+				TArray<UObject*> SoftReferencingObjects;
+				AActor* Actor = ActorsToDelete[ActorIndex];
+
+				AssetToolsModule.Get().FindSoftReferencesToObject(Actor, SoftReferencingObjects);
+
+				if (SoftReferencingObjects.Num() > 0)
+				{
+					SoftReferencingObjectsMap.Add(Actor, SoftReferencingObjects);
+				}
+			}
+		}
 	}
 
 	for ( int32 ActorIndex = 0 ; ActorIndex < ActorsToDelete.Num() ; ++ActorIndex )
@@ -783,14 +802,16 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		bool bReferencedByLevelScript = bWarnAboutReferences && (nullptr != LSB && ReferencedToActorsFromLevelScriptArray.Num() > 0);
 		bool bReferencedByActor = false;
 		bool bReferencedBySoftReference = false;
-		TArray<UObject*> SoftReferencingObjects;
+		TArray<UObject*>* SoftReferencingObjects = nullptr;
 
 		if (bWarnAboutSoftReferences)
 		{
-			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-			AssetToolsModule.Get().FindSoftReferencesToObject(Actor, SoftReferencingObjects);
+			SoftReferencingObjects = SoftReferencingObjectsMap.Find(Actor);
 
-			bReferencedBySoftReference = (SoftReferencingObjects.Num() > 0);
+			if (SoftReferencingObjects)
+			{
+				bReferencedBySoftReference = true;
+			}
 		}
 
 		// If there are any referencing actors, make sure that they are reference types that we care about.
@@ -860,7 +881,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 
 				if (bReferencedBySoftReference)
 				{
-					for (UObject* ReferencingObject : SoftReferencingObjects)
+					for (UObject* ReferencingObject : *SoftReferencingObjects)
 					{
 						if (AActor* ReferencingActor = Cast<AActor>(ReferencingObject))
 						{

@@ -195,7 +195,7 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Metal Mobile Renderer"))
 	bool bSupportsMetal;
 
-	// Whether or not to compile iOS Metal shaders for the desktop Forward renderer (requires iOS 9+ and an A8 processor, MSAA requires an A9 processor)
+	// Whether or not to compile iOS Metal shaders for the desktop Forward renderer (requires iOS 10+ and an A10 processor)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Metal Desktop-Forward Renderer"))
 	bool bSupportsMetalMRT;
 	

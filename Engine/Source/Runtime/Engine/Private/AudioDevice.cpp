@@ -1766,7 +1766,7 @@ void FAudioDevice::UpdateSoundMix(USoundMix* SoundMix, FSoundMixState* SoundMixS
 					// Flip the state to fade in
 					SoundMixState->CurrentState = ESoundMixState::FadingIn;
 
-					SoundMixState->InterpValue = 1.0f - SoundMixState->InterpValue;
+					SoundMixState->InterpValue = 0.0f;
 
 					SoundMixState->FadeInStartTime = GetAudioClock() - SoundMixState->InterpValue * SoundMix->FadeInTime;
 					SoundMixState->StartTime = SoundMixState->FadeInStartTime;
@@ -2024,6 +2024,8 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 		return;
 	}
 
+	InterpValue = FMath::Clamp(InterpValue, 0.0f, 1.0f);
+
 	// Check if there is a sound mix override entry
 	FSoundMixClassOverrideMap* SoundMixOverrideMap = SoundMixClassEffectOverrides.Find(SoundMix);
 
@@ -2186,7 +2188,9 @@ void FAudioDevice::UpdateSoundClassProperties(float DeltaTime)
 			SoundMixState->CurrentState = ESoundMixState::FadingIn;
 		}
 		else if (AudioTime >= SoundMixState->FadeInEndTime
-			&& (SoundMixState->IsBaseSoundMix || SoundMixState->PassiveRefCount > 0 || SoundMixState->FadeOutStartTime < 0.f || AudioTime < SoundMixState->FadeOutStartTime))
+			&& (SoundMixState->IsBaseSoundMix
+				|| ((SoundMixState->PassiveRefCount > 0 || SoundMixState->ActiveRefCount > 0) && SoundMixState->FadeOutStartTime < 0.f)
+				|| AudioTime < SoundMixState->FadeOutStartTime)) 
 		{
 			// .. ensure the full mix is applied between the end of the fade in time and the start of the fade out time
 			// or if SoundMix is the base or active via a passive push - ignores duration.
@@ -2234,7 +2238,7 @@ float FListener::Interpolate(const double EndTime)
 	}
 
 	float InterpValue = (float)((FApp::GetCurrentTime() - InteriorStartTime) / (EndTime - InteriorStartTime));
-	return InterpValue;
+	return FMath::Clamp(InterpValue, 0.0f, 1.0f);
 }
 
 void FListener::UpdateCurrentInteriorSettings()
@@ -2873,7 +2877,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 				if (!bStopped)
 				{
 					// If not in game, do not advance sounds unless they are UI sounds.
-					float UsedDeltaTime = FApp::GetDeltaTime();
+					float UsedDeltaTime = GetGameDeltaTime();
 					if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
 					{
 						UsedDeltaTime = 0.0f;
@@ -2929,7 +2933,7 @@ void FAudioDevice::UpdateActiveSoundPlaybackTime(bool bIsGameTicking)
 	{
 		for (FActiveSound* ActiveSound : ActiveSounds)
 		{
-			ActiveSound->PlaybackTime += DeviceDeltaTime;
+			ActiveSound->PlaybackTime += GetDeviceDeltaTime();
 		}
 	}
 	else if (GIsEditor)
@@ -2938,7 +2942,7 @@ void FAudioDevice::UpdateActiveSoundPlaybackTime(bool bIsGameTicking)
 		{
 			if (ActiveSound->bIsPreviewSound)
 			{
-				ActiveSound->PlaybackTime += DeviceDeltaTime;
+				ActiveSound->PlaybackTime += GetDeviceDeltaTime();
 			}
 		}
 	}
@@ -3454,6 +3458,19 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 		return;
 	}
 
+	// Don't allow buses to try to play if we're not using the audio mixer.
+	if (!IsAudioMixerEnabled())
+	{
+		if (NewActiveSound.Sound)
+		{
+			USoundSourceBus* Bus = Cast<USoundSourceBus>(NewActiveSound.Sound);
+			if (Bus)
+			{
+				return;
+			}
+		}
+	}
+
 	if (!IsInAudioThread())
 	{
 		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AddNewActiveSound"), STAT_AudioAddNewActiveSound, STATGROUP_AudioThreadCommands);
@@ -3487,7 +3504,7 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 		// If the sound played on an editor preview world, treat it as a preview sound (unpausable and ignoring the realtime volume slider)
 		if (const UWorld* World = NewActiveSound.GetWorld())
 		{
-			ActiveSound->bIsPreviewSound = (World->WorldType == EWorldType::EditorPreview);
+			ActiveSound->bIsPreviewSound |= (World->WorldType == EWorldType::EditorPreview);
 		}
 	}
 
@@ -4594,6 +4611,20 @@ FVector FAudioDevice::GetListenerTransformedDirection(const FVector& Position, f
 		*OutDistance = UnnormalizedDirection.Size();
 	}
 	return UnnormalizedDirection.GetSafeNormal();
+}
+
+float FAudioDevice::GetDeviceDeltaTime() const
+{
+	// Clamp the delta time to a reasonable max delta time. 
+	return FMath::Min(DeviceDeltaTime, 0.5f);
+}
+
+float FAudioDevice::GetGameDeltaTime() const
+{
+	float DeltaTime = FApp::GetDeltaTime();
+
+	// Clamp the delta time to a reasonable max delta time. 
+	return FMath::Min(DeltaTime, 0.5f);
 }
 
 #if WITH_EDITOR

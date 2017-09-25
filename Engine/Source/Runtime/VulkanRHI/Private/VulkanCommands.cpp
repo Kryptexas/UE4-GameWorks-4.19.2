@@ -355,6 +355,8 @@ static void GatherUniformBufferResources(
 	// Expected to get an empty array
 	check(OutResourcesBindings.Num() == 0);
 
+	OutResourcesBindings.Empty(ResourceArray.Num());
+
 	// Verify mask and array corelational validity
 	check(InBindingMask == 0 ? (InBindingArray.Num() == 0) : (InBindingArray.Num() > 0));
 

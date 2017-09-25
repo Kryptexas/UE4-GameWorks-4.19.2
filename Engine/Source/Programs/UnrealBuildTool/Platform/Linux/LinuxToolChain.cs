@@ -23,19 +23,11 @@ namespace UnrealBuildTool
 			if (!CrossCompiling())
 			{
 				// use native linux toolchain
-				string[] ClangNames = { "clang++", "clang++-3.9", "clang++-3.8", "clang++-3.7", "clang++-3.6", "clang++-3.5" };
-				foreach (var ClangName in ClangNames)
-				{
-					ClangPath = Which(ClangName);
-					if (!String.IsNullOrEmpty(ClangPath))
-					{
-						break;
-					}
-				}
-				GCCPath = Which("g++");
-				ArPath = Which("ar");
-				RanlibPath = Which("ranlib");
-				StripPath = Which("strip");
+				ClangPath = LinuxCommon.WhichClang();
+				GCCPath = LinuxCommon.WhichGcc();
+				ArPath = LinuxCommon.Which("ar");
+				RanlibPath = LinuxCommon.Which("ranlib");
+				StripPath = LinuxCommon.Which("strip");
 
 				// if clang is available, zero out gcc (@todo: support runtime switching?)
 				if (!String.IsNullOrEmpty(ClangPath))
@@ -120,29 +112,6 @@ namespace UnrealBuildTool
 		protected static bool UsingClang()
 		{
 			return !String.IsNullOrEmpty(ClangPath);
-		}
-
-		private string Which(string name)
-		{
-			Process proc = new Process();
-			proc.StartInfo.FileName = "/bin/sh";
-			proc.StartInfo.Arguments = String.Format("-c 'which {0}'", name);
-			proc.StartInfo.UseShellExecute = false;
-			proc.StartInfo.CreateNoWindow = true;
-			proc.StartInfo.RedirectStandardOutput = true;
-			proc.StartInfo.RedirectStandardError = true;
-
-			proc.Start();
-			proc.WaitForExit();
-
-			string path = proc.StandardOutput.ReadLine();
-			Log.TraceVerbose(String.Format("which {0} result: ({1}) {2}", name, proc.ExitCode, path));
-
-			if (proc.ExitCode == 0 && String.IsNullOrEmpty(proc.StandardError.ReadToEnd()))
-			{
-				return path;
-			}
-			return null;
 		}
 
 		/// <summary>
@@ -628,6 +597,9 @@ namespace UnrealBuildTool
 			}
 			// Additionally speeds up editor startup by 1-2s
 			Result += " -Wl,--hash-style=gnu";
+
+			// This apparently can help LLDB speed up symbol lookups
+			Result += " -Wl,--build-id";
 
 			if (CrossCompiling())
 			{

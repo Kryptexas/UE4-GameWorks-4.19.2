@@ -72,6 +72,12 @@ public:
      * @returns An archive object on success or nullptr on failure.
      */
     virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const { return nullptr; }
+	
+	/**
+	 * Can the shader format compile shaders to the native binary format for the platform.
+	 * @returns True if the native compiler is available and configured, otherwise false.
+	 */
+	virtual bool CanCompileBinaryShaders() const { return true; }
 
 public:
 

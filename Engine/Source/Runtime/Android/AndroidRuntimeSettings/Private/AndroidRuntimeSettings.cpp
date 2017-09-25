@@ -17,6 +17,7 @@ UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& Objec
 	, GoogleVRMode(EGoogleVRMode::DaydreamAndCardboard)
 	, bEnableGooglePlaySupport(false)
 	, bUseGetAccounts(false)
+	, bSupportAdMob(true)
 	, AudioSampleRate(44100)
 	, AudioCallbackBufferFrameSize(1024)
 	, AudioNumBuffersToEnqueue(4)

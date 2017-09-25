@@ -23,26 +23,33 @@ void USteamVRChaperoneComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 #if STEAMVR_SUPPORTED_PLATFORMS
-	//@todo Make this safe once we can add something to the DeviceType enum.  For now, make the terrible assumption this is a SteamVR device.
- 	FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(GEngine->XRSystem.Get());
- 	if (SteamVRHMD && SteamVRHMD->IsStereoEnabled())
- 	{
- 		bool bInBounds = SteamVRHMD->IsInsideBounds();
- 
-		if (bInBounds != bWasInsideBounds)
-		{
-			if (bInBounds)
-			{
-				OnReturnToBounds.Broadcast();
-			}
-			else
-			{
-				OnLeaveBounds.Broadcast();
-			}
-		}
+	IXRTrackingSystem* ActiveXRSystem = GEngine->XRSystem.Get();
+	// @TODO: hardcoded to match FSteamVRHMD::GetSystemName(), which we should turn into 
+	//        a static method so we don't have to litter code with hardcoded values like this
+	static FName SteamVRSystemName(TEXT("SteamVR")); 
 
-		bWasInsideBounds = bInBounds;
- 	}
+	if (ActiveXRSystem && ActiveXRSystem->GetSystemName() == SteamVRSystemName)
+	{
+		FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(ActiveXRSystem);
+		if (SteamVRHMD->IsStereoEnabled())
+		{
+			bool bInBounds = SteamVRHMD->IsInsideBounds();
+
+			if (bInBounds != bWasInsideBounds)
+			{
+				if (bInBounds)
+				{
+					OnReturnToBounds.Broadcast();
+				}
+				else
+				{
+					OnLeaveBounds.Broadcast();
+				}
+			}
+
+			bWasInsideBounds = bInBounds;
+		}
+	}
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 }
 
