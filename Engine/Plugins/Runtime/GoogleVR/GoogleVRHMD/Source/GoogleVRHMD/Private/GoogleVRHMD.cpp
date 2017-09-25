@@ -2003,11 +2003,6 @@ void FGoogleVRHMD::CVarSinkHandler()
 }
 #endif
 
-bool FGoogleVRHMD::IsHeadTrackingAllowed() const
-{
-	return IsStereoEnabled();
-}
-
 void FGoogleVRHMD::ResetOrientationAndPosition(float Yaw)
 {
 	ResetOrientation(Yaw);

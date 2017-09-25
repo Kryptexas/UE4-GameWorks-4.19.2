@@ -54,7 +54,6 @@ public:
     virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
     
 	virtual bool DoesSupportPositionalTracking() const override;
-    virtual bool IsHeadTrackingAllowed() const override;
     virtual bool HasValidTrackingPosition() override;
 
 	virtual bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type = EXRTrackedDeviceType::Any) override;

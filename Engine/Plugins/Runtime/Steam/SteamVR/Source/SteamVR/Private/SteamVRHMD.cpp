@@ -969,11 +969,6 @@ bool FSteamVRHMD::IsChromaAbCorrectionEnabled() const
 	return true;
 }
 
-bool FSteamVRHMD::IsHeadTrackingAllowed() const
-{
-	return IsStereoEnabled();
-}
-
 void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 {
 	if (!GEnableVREditorHacks)

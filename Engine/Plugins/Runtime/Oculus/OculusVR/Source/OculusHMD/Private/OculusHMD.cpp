@@ -458,11 +458,10 @@ namespace OculusHMD
 
 #if WITH_EDITOR
 		if (GIsEditor)
-	{
+		{
 			// @todo vreditor: We need to do a pass over VREditor code and make sure we are handling the VR modes correctly.  HeadTracking can be enabled without Stereo3D, for example
-			// @todo vreditor: Added GEnableVREditorHacks check below to allow head movement in non-PIE editor; needs revisit
 			UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
-			return (!EdEngine || (GEnableVREditorHacks || EdEngine->bUseVRPreviewForPlayWorld) || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) && (Settings->Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
+			return (!EdEngine || EdEngine->IsHMDTrackingAllowed()) && (Settings->Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
 		}
 #endif//WITH_EDITOR
 

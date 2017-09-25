@@ -546,19 +546,6 @@ bool FOSVRHMD::GetHMDDistortionEnabled() const
 	return false;
 }
 
-bool FOSVRHMD::IsHeadTrackingAllowed() const
-{
-#if WITH_EDITOR
-    if (GIsEditor)
-    {
-        UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
-        bool ret = /*Session->IsActive() && */(!EdEngine || (GEnableVREditorHacks || EdEngine->bUseVRPreviewForPlayWorld) || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) && GEngine && GEngine->IsStereoscopic3D();
-        return ret;
-    }
-#endif
-    return GEngine && GEngine->IsStereoscopic3D();
-}
-
 FOSVRHMD::FOSVRHMD(TSharedPtr<class OSVREntryPoint, ESPMode::ThreadSafe> entryPoint) :
     mOSVREntryPoint(entryPoint)
 {

@@ -34,5 +34,14 @@ public class HeadMountedDisplay : ModuleRules
                 "Analytics"
             }
         );
+
+		if (Target.bBuildEditor == true)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"UnrealEd"
+				});
+		}
 	}
 }

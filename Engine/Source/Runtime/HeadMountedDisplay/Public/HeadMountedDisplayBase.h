@@ -22,6 +22,10 @@ public:
 	 */
 	virtual void RecordAnalytics() override;
 
+	/** 
+	 * Default IXRTrackingSystem implementation
+	 */
+	virtual bool IsHeadTrackingAllowed() const override;
 
 	/** 
 	 * Default stereo layer implementation

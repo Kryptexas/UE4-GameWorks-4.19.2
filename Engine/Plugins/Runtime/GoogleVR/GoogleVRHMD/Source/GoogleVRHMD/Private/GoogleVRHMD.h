@@ -566,12 +566,6 @@ public:
 	 * May be called both from the game and the render thread.
 	 */
 	virtual void RefreshPoses() override;
-
-	/**
-	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
-	 * but some overrides are possible.
-	 */
-	virtual bool IsHeadTrackingAllowed() const override;
 	
     /**
 	 * Get the current pose for a device.

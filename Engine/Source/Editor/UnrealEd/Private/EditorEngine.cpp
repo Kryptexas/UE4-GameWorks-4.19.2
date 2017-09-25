@@ -7044,4 +7044,10 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	return;
 }
 
+bool UEditorEngine::IsHMDTrackingAllowed() const
+{
+	// @todo vreditor: Added GEnableVREditorHacks check below to allow head movement in non-PIE editor; needs revisit
+	return GEnableVREditorHacks || (PlayWorld && (bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl));
+}
+
 #undef LOCTEXT_NAMESPACE 
