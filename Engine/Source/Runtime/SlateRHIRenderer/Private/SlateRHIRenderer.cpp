@@ -322,9 +322,13 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		// The viewport size we have doesn't match the requested size of the viewport.
 		// Resize it now.
 
+		// Prevent the texture update logic to use the RHI while the viewport is resized. 
+		// This could happen if a streaming IO request completes and throws a callback.
+		SuspendTextureStreamingRenderTasks();
+
 		// cannot resize the viewport while potentially using it.
 		FlushRenderingCommands();
-	
+
 		// Windows are allowed to be zero sized ( sometimes they are animating to/from zero for example)
 		// but viewports cannot be zero sized.  Use 8x8 as a reasonably sized viewport in this case.
 		uint32 NewWidth = FMath::Max<uint32>( 8, Width );
@@ -366,6 +370,9 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		}
 
 		PostResizeBackBufferDelegate.Broadcast(&ViewInfo->ViewportRHI);
+		
+		// Reset texture streaming texture updates.
+		ResumeTextureStreamingRenderTasks();
 	}
 }
 

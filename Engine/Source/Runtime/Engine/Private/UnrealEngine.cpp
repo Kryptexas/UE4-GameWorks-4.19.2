@@ -131,6 +131,7 @@
 
 #include "Components/TextRenderComponent.h"
 #include "Classes/Sound/AudioSettings.h"
+#include "Streaming/Texture2DUpdate.h"
 
 
 #if WITH_EDITOR
@@ -230,6 +231,9 @@ void FEngineModule::StartupModule()
 
 	static auto CVarCacheWPOPrimitives = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.CacheWPOPrimitives"));
 	CVarCacheWPOPrimitives->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeEngineCVarRequiringRecreateRenderState));
+
+	SuspendTextureStreamingRenderTasks = &SuspendTextureStreamingRenderTasksInternal;
+	ResumeTextureStreamingRenderTasks = &ResumeTextureStreamingRenderTasksInternal;
 }
 
 
