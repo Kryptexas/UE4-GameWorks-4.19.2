@@ -101,7 +101,13 @@ namespace VulkanRHI
 	{
 		for (int32 Index = 0; Index < HeapInfos.Num(); ++Index)
 		{
-			ensureMsgf(HeapInfos[Index].Allocations.Num() == 0, TEXT("Found %d unfreed allocations!"), HeapInfos[Index].Allocations.Num());
+			UE_CLOG(HeapInfos[Index].Allocations.Num() == 0, LogVulkanRHI, Warning, TEXT("Found %d unfreed allocations!"), HeapInfos[Index].Allocations.Num());
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			if (HeapInfos[Index].Allocations.Num())
+			{
+				DumpMemory();
+			}
+#endif
 		}
 		NumAllocations = 0;
 	}
@@ -451,7 +457,7 @@ namespace VulkanRHI
 	FOldResourceHeap::~FOldResourceHeap()
 	{
 		ReleaseFreedPages(true);
-		auto DeletePages = [&](TArray<FOldResourceHeapPage*>& UsedPages)
+		auto DeletePages = [&](TArray<FOldResourceHeapPage*>& UsedPages, const TCHAR* Name)
 		{
 			for (int32 Index = UsedPages.Num() - 1; Index >= 0; --Index)
 			{
@@ -468,14 +474,13 @@ namespace VulkanRHI
 					Owner->GetParent()->GetResourceHeapManager().DumpMemory();
 					GLog->Flush();
 #endif
-					UE_LOG(LogVulkanRHI, Error, TEXT("Memory leak!"));
 				}
 			}
 
-			ensure(UsedPages.Num() == 0);
+			UE_CLOG(UsedPages.Num() == 0, LogVulkanRHI, Warning, TEXT("Memory leak detected on %s resource heap!"), Name);
 		};
-		DeletePages(UsedBufferPages);
-		DeletePages(UsedImagePages);
+		DeletePages(UsedBufferPages, TEXT("Buffer"));
+		DeletePages(UsedImagePages, TEXT("Image"));
 
 		for (int32 Index = 0; Index < FreePages.Num(); ++Index)
 		{
@@ -780,7 +785,7 @@ namespace VulkanRHI
 			}
 			else
 			{
-				check(0);
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Buffer allocation(s) were not freed; this will cause a memory leak."));
 			}
 		}
 		UsedBufferAllocations.Empty(0);

@@ -6,7 +6,7 @@
 
 #pragma once 
 
-#define VULKAN_TRACK_MEMORY_USAGE	1
+#define VULKAN_TRACK_MEMORY_USAGE	(UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 
 class FVulkanQueue;
 class FVulkanCmdBuffer;

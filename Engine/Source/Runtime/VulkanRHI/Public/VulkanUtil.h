@@ -15,8 +15,9 @@ class FVulkanCommandListContext;
 class FVulkanGPUTiming : public FGPUTiming
 {
 public:
-	FVulkanGPUTiming(FVulkanCommandListContext* InCmd)
-		: bIsTiming(false)
+	FVulkanGPUTiming(FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice)
+		: Device(InDevice)
+		, bIsTiming(false)
 		, bEndTimestampIssued(false)
 		, CmdContext(InCmd)
 		, BeginTimer(nullptr)
@@ -33,7 +34,7 @@ public:
 	 * End a GPU timing measurement.
 	 * The timing for this particular measurement will be resolved at a later time by the GPU.
 	 */
-	void EndTiming();
+	void EndTiming(FVulkanCmdBuffer* CmdBuffer = nullptr);
 
 	/**
 	 * Retrieves the most recently resolved timing measurement.
@@ -66,6 +67,8 @@ private:
 	 */
 	static void PlatformStaticInitialize(void* UserData);
 
+	FVulkanDevice* Device;
+
 	/** Whether we are currently timing the GPU: between StartTiming() and EndTiming(). */
 	bool bIsTiming;
 	bool bEndTimestampIssued;
@@ -79,8 +82,9 @@ private:
 class FVulkanEventNode : public FGPUProfilerEventNode
 {
 public:
-	FVulkanEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent, FVulkanCommandListContext* InCmd) :
-		FGPUProfilerEventNode(InName, InParent), Timing(InCmd)
+	FVulkanEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent, FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice) :
+		FGPUProfilerEventNode(InName, InParent),
+		Timing(InCmd, InDevice)
 	{
 		// Initialize Buffered timestamp queries 
 		Timing.Initialize();
@@ -116,8 +120,8 @@ class FVulkanEventNodeFrame : public FGPUProfilerEventNodeFrame
 {
 public:
 
-	FVulkanEventNodeFrame(FVulkanCommandListContext* InCmd)
-		: RootEventTiming(InCmd)
+	FVulkanEventNodeFrame(FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice)
+		: RootEventTiming(InCmd, InDevice)
 	{
 		RootEventTiming.Initialize();
 	}
@@ -151,16 +155,16 @@ struct FVulkanGPUProfiler : public FGPUProfiler
 	/** GPU hitch profile histories */
 	TIndirectArray<FVulkanEventNodeFrame> GPUHitchEventNodeFrames;
 
-	FVulkanGPUProfiler(FVulkanCommandListContext* InCmd) :
-		FGPUProfiler(), 
-		bCommandlistSubmitted(false)
+	FVulkanGPUProfiler(FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice)
+		: bCommandlistSubmitted(false)
+		, Device(InDevice)
 		, CmdContext(InCmd)
 	{
 	}
 
 	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override final
 	{
-		FVulkanEventNode* EventNode = new FVulkanEventNode(InName, InParent, CmdContext);
+		FVulkanEventNode* EventNode = new FVulkanEventNode(InName, InParent, CmdContext, Device);
 		return EventNode;
 	}
 
@@ -170,6 +174,7 @@ struct FVulkanGPUProfiler : public FGPUProfiler
 	void EndFrame();
 
 	bool bCommandlistSubmitted;
+	FVulkanDevice* Device;
 	FVulkanCommandListContext* CmdContext;
 };
 

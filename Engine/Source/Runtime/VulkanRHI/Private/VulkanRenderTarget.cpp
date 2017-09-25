@@ -683,12 +683,40 @@ void FVulkanDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntR
 
 void FVulkanDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*& OutData,int32& OutWidth,int32& OutHeight)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	FRHITexture2D* TextureRHI2D = TextureRHI->GetTexture2D();
+	check(TextureRHI2D);
+	FVulkanTexture2D* Texture2D = (FVulkanTexture2D*)TextureRHI2D;
+	check(Texture2D->GetFlags() & TexCreate_CPUReadback);
+
+	FDeviceMemoryAllocation* Allocation = Texture2D->Surface.GetAllocation();
+	check(Allocation->CanBeMapped());
+
+	if (Allocation->IsMapped()) // allocation already mapped
+	{
+		OutData = Allocation->GetMappedPointer();
+	}
+	else
+	{
+		Device->PrepareForCPURead(); //make sure the results are ready 
+		Device->GetImmediateContext().GetCommandBufferManager()->PrepareForNewActiveCommandBuffer();
+
+		OutData = Allocation->Map(Allocation->GetSize(), 0);
+	}
+	OutWidth = Texture2D->GetSizeX();
+	OutHeight = Texture2D->GetSizeY();
 }
 
 void FVulkanDynamicRHI::RHIUnmapStagingSurface(FTextureRHIParamRef TextureRHI)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	FRHITexture2D* TextureRHI2D = TextureRHI->GetTexture2D();
+	check(TextureRHI2D);
+	FVulkanTexture2D* Texture2D = (FVulkanTexture2D*)TextureRHI2D;
+
+	FDeviceMemoryAllocation* Allocation = Texture2D->Surface.GetAllocation();
+	if (Allocation->IsMapped()) //only when actually mapped
+	{
+		Allocation->Unmap();
+	}
 }
 
 void FVulkanDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<FFloat16Color>& OutData, ECubeFace CubeFace,int32 ArrayIndex,int32 MipIndex)

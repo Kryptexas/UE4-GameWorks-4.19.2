@@ -273,6 +273,11 @@ public:
 		return bIsImageOwner;
 	}
 
+	inline VulkanRHI::FDeviceMemoryAllocation* GetAllocation() const
+	{
+		return Allocation;
+	}
+
 	FVulkanDevice* Device;
 
 	VkImage Image;

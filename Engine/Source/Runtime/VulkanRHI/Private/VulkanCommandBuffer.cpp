@@ -17,6 +17,13 @@ static FAutoConsoleVariableRef CVarVulkanUseSingleQueue(
 	ECVF_Default
 );
 
+static int32 GVulkanProfileCmdBuffers = 0;
+static FAutoConsoleVariableRef CVarVulkanProfileCmdBuffers(
+	TEXT("r.Vulkan.ProfileCmdBuffers"),
+	GVulkanProfileCmdBuffers,
+	TEXT("Insert GPU timing queries in every cmd buffer\n"),
+	ECVF_Default
+);
 
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferPool* InCommandBufferPool)
 	: bNeedsDynamicStateSet(true)
@@ -31,6 +38,8 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 	, Fence(nullptr)
 	, FenceSignaledCounter(0)
 	, CommandBufferPool(InCommandBufferPool)
+	, Timing(nullptr)
+	, LastValidTiming(0)
 {
 	FMemory::Memzero(CurrentViewport);
 	FMemory::Memzero(CurrentScissor);
@@ -64,6 +73,11 @@ FVulkanCmdBuffer::~FVulkanCmdBuffer()
 
 	VulkanRHI::vkFreeCommandBuffers(Device->GetInstanceHandle(), CommandBufferPool->GetHandle(), 1, &CommandBufferHandle);
 	CommandBufferHandle = VK_NULL_HANDLE;
+
+	if (Timing)
+	{
+		Timing->Release();
+	}
 }
 
 void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, FVulkanRenderPass* RenderPass, FVulkanFramebuffer* Framebuffer, const VkClearValue* AttachmentClearValues)
@@ -87,6 +101,35 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 	State = EState::IsInsideRenderPass;
 }
 
+void FVulkanCmdBuffer::End()
+{
+	check(IsOutsideRenderPass());
+
+	if (GVulkanProfileCmdBuffers)
+	{
+		if (Timing)
+		{
+			Timing->EndTiming(this);
+			LastValidTiming = FenceSignaledCounter;
+		}
+	}
+
+	VERIFYVULKANRESULT(VulkanRHI::vkEndCommandBuffer(GetHandle()));
+	State = EState::HasEnded;
+}
+
+inline void FVulkanCmdBuffer::InitializeTimings(FVulkanCommandListContext* InContext)
+{
+	if (GVulkanProfileCmdBuffers && !Timing)
+	{
+		if (InContext)
+		{
+			Timing = new FVulkanGPUTiming(InContext, Device);
+			Timing->Initialize();
+		}
+	}
+}
+
 void FVulkanCmdBuffer::Begin()
 {
 	check(State == EState::ReadyForBegin);
@@ -97,6 +140,15 @@ void FVulkanCmdBuffer::Begin()
 	CmdBufBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 	VERIFYVULKANRESULT(VulkanRHI::vkBeginCommandBuffer(CommandBufferHandle, &CmdBufBeginInfo));
+
+	if (GVulkanProfileCmdBuffers)
+	{
+		InitializeTimings(&Device->GetImmediateContext());
+		if (Timing)
+		{
+			Timing->StartTiming(this);
+		}
+	}
 
 	bNeedsDynamicStateSet = true;
 	State = EState::IsInsideBegin;
@@ -177,6 +229,7 @@ FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice
 	Pool.Create(Queue->GetFamilyIndex());
 
 	ActiveCmdBuffer = Pool.Create();
+	ActiveCmdBuffer->InitializeTimings(InContext);
 	ActiveCmdBuffer->Begin();
 
 	if (InContext->IsImmediate())
@@ -284,6 +337,20 @@ void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 	// All cmd buffers are being executed still
 	ActiveCmdBuffer = Pool.Create();
 	ActiveCmdBuffer->Begin();
+}
+
+uint32 FVulkanCommandBufferManager::CalculateGPUTime()
+{
+	uint32 Time = 0;
+	for (int32 Index = 0; Index < Pool.CmdBuffers.Num(); ++Index)
+	{
+		FVulkanCmdBuffer* CmdBuffer = Pool.CmdBuffers[Index];
+		if (CmdBuffer->HasValidTiming())
+		{
+			Time += CmdBuffer->Timing->GetTiming(false);
+		}
+	}
+	return Time;
 }
 
 FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()

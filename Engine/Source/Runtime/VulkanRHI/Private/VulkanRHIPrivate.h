@@ -707,6 +707,14 @@ static inline VkPrimitiveTopology UEToVulkanType(EPrimitiveType PrimitiveType)
 	return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 }
 
+namespace VulkanRHI
+{
+	static inline FString GetPipelineCacheFilename()
+	{
+		return FPaths::ProjectSavedDir() / TEXT("VulkanPSO.cache");
+	}
+}
+
 #if 0
 namespace FRCLog
 {
@@ -720,3 +728,4 @@ namespace FRCLog
 #endif
 
 #define SUPPORTS_MAINTENANCE_LAYER							VK_KHR_maintenance1
+
