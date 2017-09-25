@@ -435,7 +435,7 @@ void UGameInstance::StartGameInstance()
 	}
 
 	// If waiting for a network connection, go into the starting level.
-	if (BrowseRet != EBrowseReturnVal::Success)
+	if (BrowseRet == EBrowseReturnVal::Failure)
 	{
 		UE_LOG(LogLoad, Error, TEXT("%s"), *FString::Printf(TEXT("Failed to enter %s: %s. Please check the log for errors."), *URL.Map, *Error));
 
@@ -465,7 +465,7 @@ void UGameInstance::StartGameInstance()
 	}
 
 	// Handle failure.
-	if (BrowseRet != EBrowseReturnVal::Success)
+	if (BrowseRet == EBrowseReturnVal::Failure)
 	{
 		UE_LOG(LogLoad, Error, TEXT("%s"), *FString::Printf(TEXT("Failed to enter %s: %s. Please check the log for errors."), *DefaultMap, *Error));
 		const FText Message = FText::Format(NSLOCTEXT("Engine", "DefaultMapNotFound", "The default map '{0}' could not be found. Exiting."), FText::FromString(DefaultMap));
