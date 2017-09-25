@@ -87,7 +87,9 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSourceFiles(const TArray<FString>&
 			Args += TEXT("\"") + SourcePath + TEXT("\" ");
 		}
 
-		return FPlatformProcess::ExecProcess(*Location, *Args, nullptr, nullptr, nullptr);
+		uint32 ProcessID;
+		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *Args, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
+		return hProcess.IsValid();
 	}
 
 	return false;
