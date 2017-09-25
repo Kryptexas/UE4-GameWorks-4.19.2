@@ -12,7 +12,7 @@
 class FSceneView;
 class FViewInfo;
 
-class FVisualizeTexture
+RENDERER_API class FVisualizeTexture
 {
 public:
 	FVisualizeTexture();
@@ -31,7 +31,7 @@ public:
 	 * @param PooledRenderTarget 0 is silently ignored
 	 * Warning: this may change the active render target and other state
 	 */
-	void SetCheckPoint(FRHICommandList& RHICmdList, const IPooledRenderTarget* PooledRenderTarget);
+	RENDERER_API void SetCheckPoint(FRHICommandList& RHICmdList, const IPooledRenderTarget* PooledRenderTarget);
 
 	// @param bExtended true: with more convenience - not needed for crashes but useful from the console
 	void DebugLog(bool bExtended);

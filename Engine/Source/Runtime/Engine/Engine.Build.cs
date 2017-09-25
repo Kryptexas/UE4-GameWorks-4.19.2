@@ -432,7 +432,7 @@ public class Engine : ModuleRules
         // NvFlex begin
         CircularlyReferencedDependentModules.Add("Flex");
         PrivateDependencyModuleNames.Add("Flex");
-        PublicIncludePathModuleNames.Add("Flex");
+        //PublicIncludePathModuleNames.Add("Flex");
         // NvFlxe end
     }
 }

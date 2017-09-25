@@ -752,7 +752,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	};
 
 #if WITH_FLEX
-	GFlexFluidSurfaceRenderer.UpdateProxiesAndResources(RHICmdList, Views[0].DynamicMeshElements, SceneContext);
+	GFlexFluidSurfaceRenderer->UpdateProxiesAndResources(RHICmdList, Views[0].DynamicMeshElements, SceneContext);
 #endif
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
@@ -938,12 +938,12 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 #if WITH_FLEX
-	GFlexFluidSurfaceRenderer.RenderParticles(RHICmdList, Views);
+	GFlexFluidSurfaceRenderer->RenderParticles(RHICmdList, Views);
 	
 	//FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction);
 	SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
 
-	GFlexFluidSurfaceRenderer.RenderBasePass(RHICmdList, Views);
+	GFlexFluidSurfaceRenderer->RenderBasePass(RHICmdList, Views);
 #endif
 
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
@@ -1292,7 +1292,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 #if WITH_FLEX
-	GFlexFluidSurfaceRenderer.Cleanup();
+	GFlexFluidSurfaceRenderer->Cleanup();
 #endif
 
 	// Resolve the scene color for post processing.

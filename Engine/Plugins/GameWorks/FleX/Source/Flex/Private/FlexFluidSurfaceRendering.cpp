@@ -9,15 +9,14 @@ FlexFluidSurfaceRendering.cpp: Flex fluid surface rendering implementation.
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
+#include "PostProcess/SceneFilterRendering.h"
 #include "SceneUtils.h"
-#include "RenderingCompositionGraph.h"
+#include "PostProcess/RenderingCompositionGraph.h"
 #include "ParticleHelper.h"
 #include "FlexFluidSurfaceSceneProxy.h"
 #include "FlexFluidSurfaceComponent.h"
 #include "PipelineStateCache.h"
 
-FFlexFluidSurfaceRenderer GFlexFluidSurfaceRenderer;
 
 /*=============================================================================
 Helper
@@ -28,10 +27,13 @@ static inline const FTexture2DRHIRef& GetSurface(TRefCountPtr<IPooledRenderTarge
 	return (const FTexture2DRHIRef&)RenderTarget->GetRenderTargetItem().TargetableTexture;
 }
 
+#ifndef FLEX_GET_TEXTURE
+#define FLEX_GET_TEXTURE
 static inline const FTexture2DRHIRef& GetTexture(TRefCountPtr<IPooledRenderTarget>& RenderTarget)
 {
 	return (const FTexture2DRHIRef&)RenderTarget->GetRenderTargetItem().ShaderResourceTexture;
 }
+#endif
 
 /*=============================================================================
 FAnisotropyResources
@@ -934,7 +936,7 @@ void UpSampleSurfaceDepth(FRHICommandList& RHICmdList, FFlexFluidSurfaceScenePro
 	TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
 	TShaderMapRef<FFlexUpsampleSurfaceDepthPS> PixelShader(View.ShaderMap);
 
-	extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+	RENDERER_API extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 	//static FGlobalBoundShaderState UpSampleDepthBoundShaderState;
 //	SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, UpSampleDepthBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 

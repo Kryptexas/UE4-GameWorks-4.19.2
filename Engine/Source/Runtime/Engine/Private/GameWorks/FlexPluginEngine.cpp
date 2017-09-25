@@ -1,4 +1,7 @@
+#include "GameWorks/IFlexPluginBridge.h"
 #include "GameWorks/FlexPluginCommon.h"
+
+IFlexPluginBridge* GFlexPluginBridge = nullptr;
 
 FFlexInertialScale::FFlexInertialScale()
 {

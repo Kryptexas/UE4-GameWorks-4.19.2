@@ -42,7 +42,7 @@
 #include "VolumeRendering.h"
 
 #if WITH_FLEX
-#include "FlexFluidSurfaceRendering.h"
+#include "GameWorks/IFlexFluidSurfaceRendering.h"
 #endif
 
 /** Factor by which to grow occlusion tests **/

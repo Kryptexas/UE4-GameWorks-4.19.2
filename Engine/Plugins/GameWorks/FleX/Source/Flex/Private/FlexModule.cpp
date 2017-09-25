@@ -5,7 +5,7 @@
 #include "IFlexModule.h"
 
 #include "FlexPluginBridge.h"
-
+#include "FlexFluidSurfaceRendering.h"
 
 class FFlexModule : public IFlexModule
 {
@@ -21,11 +21,16 @@ IMPLEMENT_MODULE( FFlexModule, Flex )
 void FFlexModule::StartupModule()
 {
 	GFlexPluginBridge = new FFlexPluginBridge();
+
+	GFlexFluidSurfaceRenderer = new FFlexFluidSurfaceRenderer();
 }
 
 
 void FFlexModule::ShutdownModule()
 {
+	delete GFlexFluidSurfaceRenderer;
+	GFlexFluidSurfaceRenderer = nullptr;
+
 	delete GFlexPluginBridge;
 	GFlexPluginBridge = nullptr;
 }

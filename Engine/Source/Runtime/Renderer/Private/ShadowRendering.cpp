@@ -611,7 +611,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 		FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 
 #if WITH_FLEX
-		bool bFlexDepthMasking = GFlexFluidSurfaceRenderer.IsDepthMaskingRequired(ParentSceneInfo->Proxy);
+		bool bFlexDepthMasking = GFlexFluidSurfaceRenderer->IsDepthMaskingRequired(ParentSceneInfo->Proxy);
 
 		if (!bFlexDepthMasking)
 		{
@@ -624,7 +624,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 		}
 		else
 		{
-			GFlexFluidSurfaceRenderer.RenderDepth(RHICmdList, ParentSceneInfo->Proxy, *View);
+			GFlexFluidSurfaceRenderer->RenderDepth(RHICmdList, ParentSceneInfo->Proxy, *View);
 		}
 #else
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
