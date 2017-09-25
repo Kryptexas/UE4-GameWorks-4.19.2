@@ -3365,7 +3365,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		else
 		{
 			// Do not weld verts
-			VertRemap.Add(RenderMesh.VertexBuffer.GetNumVertices());
+			VertRemap.AddUninitialized(RenderMesh.VertexBuffer.GetNumVertices());
 			for (int32 i = 0; i < VertRemap.Num(); i++)
 			{
 				VertRemap[i] = i;
@@ -3711,7 +3711,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 	else
 	{
 		// Do not weld verts
-		VertRemap.Add(RenderMesh.VertexBuffer.GetNumVertices());
+		VertRemap.AddUninitialized(RenderMesh.VertexBuffer.GetNumVertices());
 		for (int32 i = 0; i < VertRemap.Num(); i++)
 		{
 			VertRemap[i] = i;
