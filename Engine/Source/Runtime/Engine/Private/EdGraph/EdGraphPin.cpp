@@ -1648,6 +1648,9 @@ void UEdGraphPin::SerializePinArray(FArchive& Ar, TArray<UEdGraphPin*>& ArrayRef
 					--I;
 				}
 			}
+			// We also must clear the Pins subpin array as that pin may have been reused if this one wasn't
+			// If it wasn't reused then it'll get destroyed by being in OldPins as well
+			Pin->SubPins.Reset();
 #endif// WITH_EDITOR
 			Pin->DestroyImpl(false);
 		}

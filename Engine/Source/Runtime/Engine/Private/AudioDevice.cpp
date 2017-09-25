@@ -27,6 +27,7 @@
 #include "Sound/SoundNodeWavePlayer.h"
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/WorldSettings.h"
+#include "GeneralProjectSettings.h"
 
 #if WITH_EDITOR
 #include "AssetRegistryModule.h"
@@ -4544,8 +4545,11 @@ bool FAudioDevice::CanUseVRAudioDevice()
 		UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
 		return EdEngine->bUseVRPreviewForPlayWorld;
 	}
+	else
 #endif
-	return true;
+	{
+		return FParse::Param(FCommandLine::Get(), TEXT("vr")) || GetDefault<UGeneralProjectSettings>()->bStartInVR;
+	}
 }
 
 void FAudioDevice::SetTransientMasterVolume(const float InTransientMasterVolume)

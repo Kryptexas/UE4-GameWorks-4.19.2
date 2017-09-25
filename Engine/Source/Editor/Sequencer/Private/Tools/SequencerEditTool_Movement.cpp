@@ -239,7 +239,10 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 				Menu->GetOnMenuDismissed().AddLambda(
 					[=](TSharedRef<IMenu>)
 					{
-						ExistingHotspot->bIsLocked = false;
+						if (ExistingHotspot.IsValid())
+						{
+							ExistingHotspot->bIsLocked = false;
+						}
 						if (SequencerPtr->GetHotspot() == ExistingHotspot)
 						{
 							SequencerPtr->SetHotspot(nullptr);

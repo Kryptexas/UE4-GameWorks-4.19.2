@@ -1289,7 +1289,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 	return self;
 }
 
-#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_11_0)
 // Null implementations of these functions to support iOS 11 beta.  To be filled out later
 - (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode
 {
@@ -1332,6 +1332,104 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 #endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
 
+#if METAL_SUPPORTS_TILE_SHADERS
+- (void)setTileBytes:(const void *)bytes length : (NSUInteger)length atIndex : (NSUInteger)index
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileBytes : bytes length : length atIndex : index];
+	}
+}
+
+-(void)setTileBuffer:(nullable id <MTLBuffer>)buffer offset : (NSUInteger)offset atIndex : (NSUInteger)index
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileBuffer : buffer offset : offset atIndex : index];
+	}
+}
+
+-(void)setTileBufferOffset:(NSUInteger)offset atIndex : (NSUInteger)index
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileBufferOffset : offset atIndex : index];
+	}
+}
+
+-(void)setTileBuffers:(const id <MTLBuffer> __nullable[__nonnull])buffers offsets : (const NSUInteger[__nonnull])offset withRange : (NSRange)range
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileBuffers : buffers offsets : offset withRange : range];
+	}
+}
+
+-(void)setTileTexture:(nullable id <MTLTexture>)texture atIndex : (NSUInteger)index
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileTexture : texture atIndex : index];
+	}
+}
+
+-(void)setTileTextures:(const id <MTLTexture> __nullable[__nonnull])textures withRange : (NSRange)range
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileTextures : textures withRange : range];
+	}
+}
+
+-(void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler atIndex : (NSUInteger)index
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileSamplerState : sampler atIndex : index];
+	}
+}
+
+-(void)setTileSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers withRange : (NSRange)range
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileSamplerStates : samplers withRange : range];
+	}
+}
+
+-(void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler lodMinClamp : (float)lodMinClamp lodMaxClamp : (float)lodMaxClamp atIndex : (NSUInteger)index
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileSamplerState : sampler lodMinClamp : lodMinClamp lodMaxClamp : lodMaxClamp atIndex : index];
+	}
+}
+
+-(void)setTileSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers lodMinClamps : (const float[__nonnull])lodMinClamps lodMaxClamps : (const float[__nonnull])lodMaxClamps withRange : (NSRange)range
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setTileSamplerStates : samplers lodMinClamps : lodMinClamps lodMaxClamps : lodMaxClamps withRange : range];
+	}
+}
+
+-(void)dispatchThreadsPerTile:(MTLSize)threadsPerTile
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner dispatchThreadsPerTile : threadsPerTile];
+	}
+}
+
+-(void)setThreadgroupMemoryLength:(NSUInteger)length offset : (NSUInteger)offset atIndex : (NSUInteger)index
+{
+	if (@available(iOS 11.0, tvOS 11.0, *))
+	{
+	[Inner setThreadgroupMemoryLength : length offset : offset atIndex : index];
+	}
+}
+
+#endif
 
 @end
 

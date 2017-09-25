@@ -174,7 +174,16 @@ void FBlueprintCompilerCppBackend::EmitCastObjToInterfaceStatement(FEmitterLocal
 	FString InterfaceValue = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference);
 
 	// Both here and in UObject::execObjectToInterface IsValid function should be used.
-	EmitterContext.AddLine(FString::Printf(TEXT("if ( %s && %s->GetClass()->ImplementsInterface(%s) )"), *ObjectValue, *ObjectValue, *InterfaceClass));
+
+	if (ObjectValue.Equals(TEXT("this")))
+	{
+		//if ObjectValue is "this", we will be checking "this" against nullptr, which will not pass a strict compiler check (e.g. PS4)
+		EmitterContext.AddLine(FString::Printf(TEXT("if ( %s->GetClass()->ImplementsInterface(%s) )"), *ObjectValue, *InterfaceClass));
+	}
+	else
+	{
+		EmitterContext.AddLine(FString::Printf(TEXT("if ( %s && %s->GetClass()->ImplementsInterface(%s) )"), *ObjectValue, *ObjectValue, *InterfaceClass));
+	}
 	EmitterContext.AddLine(FString::Printf(TEXT("{")));
 	EmitterContext.AddLine(FString::Printf(TEXT("\t%s.SetObject(%s);"), *InterfaceValue, *ObjectValue));
 	EmitterContext.AddLine(FString::Printf(TEXT("\tvoid* IAddress = %s->GetInterfaceAddress(%s);"), *ObjectValue, *InterfaceClass));
@@ -334,7 +343,7 @@ void FBlueprintCompilerCppBackend::EmitCreateSetStatement(FEmitterLocalContext& 
 	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
 	{
 		FBPTerminal* CurrentTerminal = Statement.RHS[i];
-		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s );"), *Set, i, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s );"), *Set, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
 	}
 }
 
@@ -349,7 +358,7 @@ void FBlueprintCompilerCppBackend::EmitCreateMapStatement(FEmitterLocalContext& 
 	{
 		FBPTerminal* KeyTerminal = Statement.RHS[i];
 		FBPTerminal* ValueTerminal = Statement.RHS[i];
-		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, i, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
 	}
 }
 

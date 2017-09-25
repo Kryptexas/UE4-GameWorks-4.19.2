@@ -8,6 +8,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/Package.h"
 #include "Animation/AnimCompress.h"
+#include "Animation/AnimCompress_Automatic.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
 #include "Animation/AnimCompress_RemoveLinearKeys.h"
 #include "Animation/AnimCompress_PerTrackCompression.h"
@@ -719,6 +720,13 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		if( (bFirstRecompressUsingCurrentOrDefault && !bTryAlternateCompressor) )
 		{
 			UAnimCompress* OriginalCompressionAlgorithm = AnimSeq->CompressionScheme ? AnimSeq->CompressionScheme : FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();
+
+			// Automatic compression brings us back here, so don't create an infinite loop and pick bitwise compress instead.
+			if (!OriginalCompressionAlgorithm || OriginalCompressionAlgorithm->IsA(UAnimCompress_Automatic::StaticClass()))
+			{
+				UAnimCompress* CompressionAlgorithm = NewObject<UAnimCompress_BitwiseCompressOnly>();
+				OriginalCompressionAlgorithm = static_cast<UAnimCompress*>(StaticDuplicateObject(CompressionAlgorithm, AnimSeq));
+			}
 
 			AnimSeq->CompressionScheme = OriginalCompressionAlgorithm;
 			OriginalCompressionAlgorithm->Reduce(AnimSeq, CompressContext);

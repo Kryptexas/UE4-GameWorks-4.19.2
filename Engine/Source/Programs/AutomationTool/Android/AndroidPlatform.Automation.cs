@@ -368,11 +368,14 @@ public class AndroidPlatform : Platform
 		// This way developer can catch permission issue if they try to save/load game file in folder that requires runtime storage permission.
 		bool bNeedGrantStoragePermission = bRequireRuntimeStoragePermission && !bIsDistribution;
 
+		// We can't always push directly to Android/obb so uploads to Download then moves it
+		bool bDontMoveOBB = bPackageDataInsideApk || !bIsDistribution;
+
 		if (!bIsPC)
         {
 			// If it is a distribution build, push to $STORAGE/Android/obb folder instead of $STORAGE/obb folder.
 			// Note that $STORAGE/Android/obb will be the folder that contains the obb if you download the app from playstore.
-			string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + (bIsDistribution ? "Android/" : "") + DeviceObbName;
+			string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + (bIsDistribution ? "Download/" : "") + DeviceObbName;
 
             Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
             BatchLines = new string[] {
@@ -404,7 +407,8 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
 						bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + OBBInstallCommand,
 						bPackageDataInsideApk ? "if [ 1 ]; then" : "\tif [ $? -eq 0 ]; then",
-                        "\t\techo",
+						bDontMoveOBB ? "" : "%ADB% %DEVICE% shell 'mv %STORAGE%/Download/obb/" + PackageName + " %STORAGE%/Android/obb/" + PackageName + "'",
+						"\t\techo",
 						"\t\techo Installation successful",
 						"\t\texit 0",
 						"\tfi",
@@ -421,7 +425,7 @@ public class AndroidPlatform : Platform
         }
         else
         {
-            string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + (bIsDistribution ? "Android/" : "") + DeviceObbName;
+            string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + (bIsDistribution ? "Download/" : "") + DeviceObbName;
 
 			Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
             BatchLines = new string[] {
@@ -447,6 +451,8 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "@echo Installing new data. Failures here indicate storage problems (missing SD card or bad permissions) and are fatal.",
 						bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + OBBInstallCommand,
 						bPackageDataInsideApk ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
+						bDontMoveOBB ? "" : "%ADB% %DEVICE% shell mv %STORAGE%/Download/obb/" + PackageName + " %STORAGE%/Android/obb/" + PackageName,
+						bDontMoveOBB ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 						"@echo.",
 						bNeedGrantStoragePermission ? "@echo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file or game file in external storage." : "",
 						bNeedGrantStoragePermission ? "%ADB% %DEVICE% " + ReadPermissionGrantCommand : "",

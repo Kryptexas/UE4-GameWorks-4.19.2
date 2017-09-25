@@ -302,6 +302,7 @@ void FStreamableHandle::CancelHandle()
 	TSharedRef<FStreamableHandle> SharedThis = AsShared();
 
 	ExecuteDelegate(CancelDelegate, SharedThis);
+	UnbindDelegates();
 
 	// Remove from referenced list
 	for (const FStringAssetReference& AssetRef : RequestedAssets)
@@ -395,6 +396,7 @@ void FStreamableHandle::CompleteLoad()
 		bLoadCompleted = true;
 
 		ExecuteDelegate(CompleteDelegate, AsShared());
+		UnbindDelegates();
 
 		// Update any meta handles that are still active
 		for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandles)
@@ -466,6 +468,13 @@ void FStreamableHandle::CallUpdateDelegate()
 			Handle->CallUpdateDelegate();
 		}
 	}
+}
+
+void FStreamableHandle::UnbindDelegates()
+{
+	CancelDelegate.Unbind();
+	UpdateDelegate.Unbind();
+	CompleteDelegate.Unbind();
 }
 
 void FStreamableHandle::AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, FStringAssetReference TargetName)
@@ -543,9 +552,10 @@ struct FStreamable
 				ActiveHandle->bCanceled = true;
 				ActiveHandle->OwningManager = nullptr;
 
-				if (!ActiveHandle->bReleased && ActiveHandle->CancelDelegate.IsBound())
+				if (!ActiveHandle->bReleased)
 				{
 					FStreamableHandle::ExecuteDelegate(ActiveHandle->CancelDelegate, ActiveHandle);
+					ActiveHandle->UnbindDelegates();
 				}
 			}
 		}

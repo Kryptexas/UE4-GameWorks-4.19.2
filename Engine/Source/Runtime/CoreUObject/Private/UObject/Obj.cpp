@@ -1088,7 +1088,7 @@ void UObject::PreSave(const class ITargetPlatform* TargetPlatform)
 
 bool UObject::CanModify() const
 {
-	return (!HasAnyFlags(RF_NeedInitialization) && !IsGarbageCollecting());
+	return (!HasAnyFlags(RF_NeedInitialization) && !IsGarbageCollecting() && !GExitPurge && !IsUnreachable());
 }
 
 bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )

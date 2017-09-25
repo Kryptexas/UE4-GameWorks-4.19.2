@@ -1043,8 +1043,21 @@ void FLevelEditorSequencerIntegration::DetachOutlinerColumn()
 	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
 	if (LevelEditorTabManager->FindExistingLiveTab(FName("LevelEditorSceneOutliner")).IsValid())
 	{
-		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"))->RequestCloseTab();
-		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"));
+		if (LevelEditorTabManager.IsValid() && LevelEditorTabManager.Get())
+		{
+			if (LevelEditorTabManager->GetOwnerTab().IsValid())
+			{
+				LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"))->RequestCloseTab();			
+			}
+		}
+		
+		if (LevelEditorTabManager.IsValid() && LevelEditorTabManager.Get())
+		{
+			if (LevelEditorTabManager->GetOwnerTab().IsValid())
+			{
+				LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"));
+			}
+		}
 	}
 }
 

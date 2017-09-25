@@ -234,9 +234,9 @@ public class IOSPlatform : Platform
 		IOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate, out TeamUUID, out bAutomaticSigning);
     }
 
-	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape)
+	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, DirectoryReference ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, DirectoryReference InEngineDir, DirectoryReference AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons)
 	{
-		return IOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape);
+		return IOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons);
 	}
 
     protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
@@ -856,6 +856,7 @@ public class IOSPlatform : Platform
                     var TargetConfiguration = SC.StageTargetConfigurations[0];
                     bool bSupportsPortrait = false;
                     bool bSupportsLandscape = false;
+                    bool bSkipIcons = false;
 
                     DeployGeneratePList(
 							SC.RawProjectPath,	
@@ -866,63 +867,22 @@ public class IOSPlatform : Platform
                             SC.ShortProjectName, DirectoryReference.Combine(SC.LocalRoot, "Engine"),
 														DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : DirectoryReference.Combine(SC.LocalRoot, "Engine")), "Binaries", PlatformName, "Payload", (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app"),
                             out bSupportsPortrait,
-                            out bSupportsLandscape);
+                            out bSupportsLandscape,
+                            out bSkipIcons);
 
                     // copy the plist to the stage dir
                     SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, new StagedDirectoryReference(""), false, false, "Info.plist");
 
                     // copy the icons/launch screens from the engine
                     {
-                        DirectoryReference DataPath = DirectoryReference.Combine(SC.LocalRoot, "Engine", "Build", "IOS", "Resources", "Graphics");
-                        if (bSupportsPortrait)
-                        {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.png", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        }
-                        if (bSupportsLandscape)
-                        {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        }
-						//                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.png", false, null, new StagedDirectoryReference(""), true, false);
-						SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-568h@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null, new StagedDirectoryReference(""), true, false);
-                    }
+                        DirectoryReference DataPath = DirectoryReference.Combine(SC.EngineRoot, "Build", "IOS", "Resources", "Graphics");
+						StageImageAndIconFiles(DataPath, bSupportsPortrait, bSupportsLandscape, SC, bSkipIcons);
+					}
 
                     // copy the icons/launch screens from the game (may stomp the engine copies)
                     {
-						DirectoryReference DataPath = DirectoryReference.Combine(SC.ProjectRoot, "Build", "IOS", "Resources", "Graphics");
-                        if (bSupportsPortrait)
-                        {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.png", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        }
-                        if (bSupportsLandscape)
-                        {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.png", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        }
-						//                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.png", false, null, new StagedDirectoryReference(""), true, false);
-						SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-568h@2x.png", false, null, new StagedDirectoryReference(""), true, false);
-                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null, new StagedDirectoryReference(""), true, false);
+                        DirectoryReference DataPath = DirectoryReference.Combine(SC.ProjectRoot, "Build", "IOS", "Resources", "Graphics");
+						StageImageAndIconFiles(DataPath, bSupportsPortrait, bSupportsLandscape, SC, bSkipIcons);
                     }
                 }
 
@@ -948,6 +908,58 @@ public class IOSPlatform : Platform
             SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, StagedDirectoryReference.Combine(SC.RelativeProjectRootForStage, "Content", "Movies"), true, true, null, true, true, SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
         }
     }
+
+	private void StageImageAndIconFiles(DirectoryReference DataPath, bool bSupportsPortrait, bool bSupportsLandscape, DeploymentContext SC, bool bSkipIcons)
+	{
+		if(DirectoryReference.Exists(DataPath))
+		{
+			List<string> ImageFileNames = new List<string>();
+			if (bSupportsPortrait)
+			{
+				ImageFileNames.Add("Default-IPhone6.png");
+				ImageFileNames.Add("Default-IPhone6Plus-Portrait.png");
+				ImageFileNames.Add("Default-Portrait@2x.png");
+				ImageFileNames.Add("Default-Portrait-1336@2x.png");
+			}
+			if (bSupportsLandscape)
+			{
+				ImageFileNames.Add("Default-IPhone6-Landscape.png");
+				ImageFileNames.Add("Default-IPhone6Plus-Landscape.png");
+				ImageFileNames.Add("Default-Landscape@2x.png");
+				ImageFileNames.Add("Default-Landscape-1336@2x.png");
+			}
+			ImageFileNames.Add("Default@2x.png");
+			ImageFileNames.Add("Default-568h@2x.png");
+
+			foreach(string ImageFileName in ImageFileNames)
+			{
+				FileReference ImageFile = FileReference.Combine(DataPath, ImageFileName);
+				if(FileReference.Exists(ImageFile))
+				{
+					SC.StageFile(StagedFileType.NonUFS, ImageFile, new StagedFileReference(ImageFileName), false);
+				}
+			}
+
+            if (!bSkipIcons)
+            {
+                SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null,StagedDirectoryReference.Root,true,false);
+            }
+		}
+	}
+
+	private void StageMovieFiles(DirectoryReference InputDir, DeploymentContext SC)
+	{
+		if(DirectoryReference.Exists(InputDir))
+		{
+			foreach(FileReference InputFile in DirectoryReference.EnumerateFiles(InputDir, "*", SearchOption.AllDirectories))
+			{
+				if(!InputFile.HasExtension(".uasset") && !InputFile.HasExtension(".umap"))
+				{
+					SC.StageFile(StagedFileType.NonUFS, InputFile);
+				}
+			}
+		}
+	}
 
     public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
 	{

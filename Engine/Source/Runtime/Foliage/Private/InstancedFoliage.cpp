@@ -605,7 +605,10 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	{
 		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFalgs */ EInternalObjectFlags::PendingKill); It; ++It)
 		{
-			It->NotifyFoliageTypeChanged(this, bMeshChanged);
+			if (It->GetWorld() != nullptr)
+			{
+				It->NotifyFoliageTypeChanged(this, bMeshChanged);
+			}
 		}
 	}
 }
@@ -751,6 +754,8 @@ void FFoliageMeshInfo::CheckValid()
 #endif
 }
 
+ENGINE_API extern bool GbInitializeFromCurrentData;
+
 void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FoliageCreateComponent);
@@ -765,11 +770,13 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 
 	UFoliageInstancedStaticMeshComponent* FoliageComponent = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
 
+	GbInitializeFromCurrentData = false;
+	FoliageComponent->InitPerInstanceRenderData();
+
 	Component = FoliageComponent;
 	Component->SetStaticMesh(InSettings->GetStaticMesh());
 	Component->bSelectable = true;
 	Component->bHasPerInstanceHitProxies = true;
-	Component->InstancingRandomSeed = FMath::Rand();
 
 	if (Component->GetStaticMesh() != nullptr)
 	{
@@ -1282,6 +1289,8 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 		const bool bWasRegistered = Component->IsRegistered();
 		Component->UnregisterComponent();
 		Component->ClearInstances();
+
+		GbInitializeFromCurrentData = false;
 		Component->InitPerInstanceRenderData();
 
 		Component->bAutoRebuildTreeOnInstanceChanges = false;
@@ -2732,8 +2741,12 @@ void AInstancedFoliageActor::PostLoad()
 	{
 		for (auto& MeshPair : FoliageMeshes)
 		{
-			MeshPair.Value->Component->ConditionalPostLoad();
-			MeshPair.Value->Component->DestroyComponent();
+			if (MeshPair.Value->Component != nullptr)
+			{
+				MeshPair.Value->Component->ConditionalPostLoad();
+				MeshPair.Value->Component->DestroyComponent();
+			}
+
 			MeshPair.Value = FFoliageMeshInfo();
 		}
 	}

@@ -17,8 +17,8 @@ namespace HTML5LaunchHelper
 	class HttpServer
 	{
 #region extension to MIME type list
-		// some basic mime types, not really important but for completeness sake. 
-		private static IDictionary<string, string> MimeTypeMapping = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) 
+		// some basic mime types, not really important but for completeness sake.
+		private static IDictionary<string, string> MimeTypeMapping = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
 		{
 			{".bin", "application/octet-stream"},
 			{".css", "text/css"},
@@ -77,7 +77,7 @@ namespace HTML5LaunchHelper
 			{".xml", "text/xml"},
 			{".xpi", "application/x-xpinstall"},
 			{".zip", "application/zip"},
-    };
+	};
 #endregion
 
 		private HttpListener WebServer = new HttpListener();
@@ -88,8 +88,8 @@ namespace HTML5LaunchHelper
 			Root = ServerRoot;
 			WebServer.Prefixes.Add(string.Format("http://localhost:{0}/", Port.ToString()));
 
-			if (UseAllPrefixes) 
-			{ 
+			if (UseAllPrefixes)
+			{
 				WebServer.Prefixes.Add (string.Format ("http://127.0.0.1:{0}/", Port.ToString ()));
 				WebServer.Prefixes.Add (string.Format ("http://{0}:{1}/", Environment.MachineName, Port.ToString ()));
 				IPHostEntry host = Dns.GetHostEntry (Dns.GetHostName ());
@@ -101,52 +101,61 @@ namespace HTML5LaunchHelper
 			}
 		}
 
-		public void Run() 
+		public bool Run()
 		{
 			System.Console.WriteLine("Starting Server at " + WebServer.Prefixes.First().ToString());
-			WebServer.Start();
+			try
+			{
+				WebServer.Start();
+			}
+			catch (HttpListenerException)
+			{
+				System.Console.WriteLine("WARNING: Port already in use... Exiting");
+				return false;
+			}
+
 			Task.Factory.StartNew(()
-					=>
+				=>
+					{
+						while( WebServer.IsListening)
 						{
-							while( WebServer.IsListening)
-							{
-								// Handle requests in threaded mode.
-								Task.Factory.StartNew((Ctx)
-									 =>
-									 {
-										 var Context = Ctx as HttpListenerContext;
-										 try
-										 {
-											 RequestHandler(Context);
-										 }
-										 catch { }
-										 finally
-										 {
+							// Handle requests in threaded mode.
+							Task.Factory.StartNew((Ctx)
+								=>
+								{
+									var Context = Ctx as HttpListenerContext;
+									try
+									{
+										RequestHandler(Context);
+									}
+									catch { }
+									finally
+									{
+										Context.Response.Close();
+									}
 
-											 Context.Response.Close();
-										 }
-
-									 }, WebServer.GetContext());
-							}
+								}, WebServer.GetContext());
 						}
-				);
+					}
+			);
+			return true;
 		}
 
 		private void RequestHandler(HttpListenerContext Context)
 		{
 			if (Directory.Exists(Root + Context.Request.Url.LocalPath))
 			{
-				// Process the list of files found in the directory. 
+				// Process the list of files found in the directory.
 				string[] fileEntries = Directory.GetFileSystemEntries(Root + Context.Request.Url.LocalPath);
 				string Response =   "<html>\n" +
 									"<body>\n" +
 									"<h2>Unreal WebServer</h2>\n" +
 									"<h3>Directory listing for " + Context.Request.Url.LocalPath + "</h3>\n" +
-									"<hr>\n"; 
+									"<hr>\n";
 
-				Response += "<table>\n"; 
+				Response += "<table>\n";
 
-				Response +=  "<tr>\n" + 
+				Response +=  "<tr>\n" +
 								"\t<th>Filename</th>\n"+
 								"\t<th>TimeStamp</th>\n"+
 							 "</tr>\n";
@@ -168,7 +177,7 @@ namespace HTML5LaunchHelper
 			{
 				string RequestedFile = Root + Context.Request.Url.LocalPath;
 				string RequestedFileCompressed = Root + Context.Request.Url.LocalPath + "gz";
-				if (File.Exists(RequestedFileCompressed)) 
+				if (File.Exists(RequestedFileCompressed))
 				{
 					RequestedFile = RequestedFileCompressed;
 				}
@@ -182,7 +191,7 @@ namespace HTML5LaunchHelper
 					{
 						MimeType = MimeTypeMapping[Extention];
 					}
-					// This is the crux of serving pre-compressed files. 
+					// This is the crux of serving pre-compressed files.
 					if (Extention.EndsWith("gz"))
 					{
 						Context.Response.AddHeader("Content-Encoding", "gzip");
@@ -225,7 +234,7 @@ namespace HTML5LaunchHelper
 	class ArgumentName : Attribute
 	{
 		public string Name;
-		public ArgumentName(string _Name) 
+		public ArgumentName(string _Name)
 		{
 			Name = _Name;
 		}
@@ -236,20 +245,20 @@ namespace HTML5LaunchHelper
 		public string Value;
 		public DefaultArgument(string _Value)
 		{
-			Value = _Value; 
+			Value = _Value;
 		}
 	}
 
-	// Various command line options supported. 
+	// Various command line options supported.
 	class Arguments
 	{
-		// if this is set -  This browser is spawned and the web server blocks till the browser quits. 
-		// if this not set - Just the server starts up and waits for key to quit. 
+		// if this is set -  This browser is spawned and the web server blocks till the browser quits.
+		// if this not set - Just the server starts up and waits for key to quit.
 		[ArgumentName("-Browser="), DefaultArgument("")]
 		public string Browser
 		{
 			get;
-			set; 
+			set;
 		}
 
 		[ArgumentName("-ServerRoot="), DefaultArgument("./")]
@@ -292,7 +301,7 @@ namespace HTML5LaunchHelper
 				object[] Attributes = Info.GetCustomAttributes(false);
 
 				string Name = null;
-				string DefaultValue = null; 
+				string DefaultValue = null;
 
 				foreach( var Att in Attributes)
 				{
@@ -306,7 +315,7 @@ namespace HTML5LaunchHelper
 					}
 				}
 
-				bool found = false; 
+				bool found = false;
 				foreach(var arg in args)
 				{
 					if (arg.StartsWith(Name))
@@ -324,10 +333,10 @@ namespace HTML5LaunchHelper
 				}
 				else if ( !found && DefaultValue == null)
 				{
-					return false; 
+					return false;
 				}
 			}
-			return true; 
+			return true;
 		}
 
 		public void ShowParsedValues()
@@ -402,8 +411,8 @@ namespace HTML5LaunchHelper
 			var Result = new Process();
 			if (IsRunningOnMac())
 			{
-				string BrowserArgs = bIsSafari ? "" : args; 
-	            Result.StartInfo.FileName = "/usr/bin/open";
+				string BrowserArgs = bIsSafari ? "" : args;
+				Result.StartInfo.FileName = "/usr/bin/open";
 				Result.StartInfo.UseShellExecute = false;
 				Result.StartInfo.RedirectStandardOutput = true;
 				Result.StartInfo.RedirectStandardInput = true;
@@ -412,16 +421,15 @@ namespace HTML5LaunchHelper
 			}
 			else
 			{
-	            Result.StartInfo.FileName = bpath;
+				Result.StartInfo.FileName = bpath;
 				Result.StartInfo.UseShellExecute = false;
 				Result.StartInfo.RedirectStandardOutput = true;
 				Result.StartInfo.RedirectStandardInput = true;
 				Result.StartInfo.Arguments = args;
 				Result.EnableRaisingEvents = true;
 			}
-			
-			
-			Result.Start(); 
+
+			Result.Start();
 
 			if (bIsSafari)
 			{
@@ -437,7 +445,7 @@ namespace HTML5LaunchHelper
 				Proc.Start();
 				Proc.WaitForExit();
 			}
-				
+
 			System.Console.WriteLine("Spawning Browser Process {0} with args {1}\n", bpath, args);
 			return Result;
 
@@ -546,7 +554,7 @@ namespace HTML5LaunchHelper
 
 		static int Main(string[] args)
 		{
-            System.Console.WriteLine("Version: 20170623"); // date: YYYYMMDD - needed to help figure out what version QA is running...
+			System.Console.WriteLine("Version: 20170906"); // date: YYYYMMDD - needed to help figure out what version QA is running...
 			var Args = new Arguments();
 			if (Args.Parse(args))
 			{
@@ -562,11 +570,14 @@ namespace HTML5LaunchHelper
 			{
 				System.Console.WriteLine("Incorrect Command line Options.. Exiting");
 				Args.ShowAllOptions();
-				return 0; 
+				return 0;
 			}
 
 			var Server = new HttpServer(Convert.ToInt32(Args.ServerPort),Args.ServerRoot, Args.UseAllPrefixes == "FALSE" ? false : true );
-			Server.Run();
+			if ( ! Server.Run() )
+			{
+				return 0;
+			}
 
 			if ( Args.Browser != "" )
 			{
@@ -586,7 +597,5 @@ namespace HTML5LaunchHelper
 			Server.Stop();
 			return 0;
 		}
-
-
 	}
 }

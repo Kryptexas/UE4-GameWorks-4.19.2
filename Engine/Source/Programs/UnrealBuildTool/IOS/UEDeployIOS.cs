@@ -193,7 +193,7 @@ namespace UnrealBuildTool
 			return result;
 		}
 
-		public static bool GenerateIOSPList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, UEDeployIOS InThis = null)
+		public static bool GenerateIOSPList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons, UEDeployIOS InThis = null, bool bIncludesAR = false)
 		{
 			// generate the Info.plist for future use
 			string BuildDirectory = ProjectDirectory + "/Build/IOS";
@@ -279,6 +279,11 @@ namespace UnrealBuildTool
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsMetal", out bSupported);
 				RequiredCaps += bSupported ? "\t\t<string>metal</string>\n" : "";
 			}
+
+            if (bIncludesAR)
+            {
+                RequiredCaps += "\t\t<string>arkit</string>\n";
+            }
 
 			// minimum iOS version
 			string MinVersion;
@@ -405,48 +410,92 @@ namespace UnrealBuildTool
 			}
 			Text.AppendLine("\t</array>");
 
-			Text.AppendLine("\t<key>CFBundleIcons</key>");
-			Text.AppendLine("\t<dict>");
-			Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");
-			Text.AppendLine("\t\t<dict>");
-			Text.AppendLine("\t\t\t<key>CFBundleIconFiles</key>");
-			Text.AppendLine("\t\t\t<array>");
-			Text.AppendLine("\t\t\t\t<string>Icon29.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon29@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon40.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon40@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon57.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon57@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon60@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon60@3x.png</string>");
-			Text.AppendLine("\t\t\t</array>");
-			Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
-			Text.AppendLine("\t\t\t<true/>");
-			Text.AppendLine("\t\t</dict>");
-			Text.AppendLine("\t</dict>");
-			Text.AppendLine("\t<key>CFBundleIcons~ipad</key>");
-			Text.AppendLine("\t<dict>");
-			Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");
-			Text.AppendLine("\t\t<dict>");
-			Text.AppendLine("\t\t\t<key>CFBundleIconFiles</key>");
-			Text.AppendLine("\t\t\t<array>");
-			Text.AppendLine("\t\t\t\t<string>Icon29.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon29@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon40.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon40@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon50.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon50@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon72.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon72@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon76.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon76@2x.png</string>");
-			Text.AppendLine("\t\t\t\t<string>Icon83.5@2x.png</string>");
-			Text.AppendLine("\t\t\t</array>");
-			Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
-			Text.AppendLine("\t\t\t<true/>");
-			Text.AppendLine("\t\t</dict>");
-			Text.AppendLine("\t</dict>");
-			if (File.Exists(LaunchXib))
+            if (IOSExports.SupportsIconCatalog(Config, new DirectoryReference(ProjectDirectory), bIsUE4Game, ProjectName))
+            {
+                bSkipIcons = true;
+                Text.AppendLine("\t<key>CFBundleIcons</key>");
+                Text.AppendLine("\t<dict>");
+                Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");
+                Text.AppendLine("\t\t<dict>");
+                Text.AppendLine("\t\t\t<key>CFBundleIconFiles</key>");
+                Text.AppendLine("\t\t\t<array>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon20x20</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon29x29</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon40x40</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon60x60</string>");
+                Text.AppendLine("\t\t\t</array>");
+                Text.AppendLine("\t\t\t<key>CFBundleIconName</key>");
+                Text.AppendLine("\t\t\t<string>AppIcon</string>");
+                Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
+                Text.AppendLine("\t\t\t<true/>");
+                Text.AppendLine("\t\t</dict>");
+                Text.AppendLine("\t</dict>");
+                Text.AppendLine("\t<key>CFBundleIcons~ipad</key>");
+                Text.AppendLine("\t<dict>");
+                Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");
+                Text.AppendLine("\t\t<dict>");
+                Text.AppendLine("\t\t\t<key>CFBundleIconFiles</key>");
+                Text.AppendLine("\t\t\t<array>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon20x20</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon29x29</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon40x40</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon60x60</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon76x76</string>");
+                Text.AppendLine("\t\t\t\t<string>AppIcon83.5x83.5</string>");
+                Text.AppendLine("\t\t\t</array>");
+                Text.AppendLine("\t\t\t<key>CFBundleIconName</key>");
+                Text.AppendLine("\t\t\t<string>AppIcon</string>");
+                Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
+                Text.AppendLine("\t\t\t<true/>");
+                Text.AppendLine("\t\t</dict>");
+                Text.AppendLine("\t</dict>");
+            }
+            else
+            {
+                bSkipIcons = false;
+                Text.AppendLine("\t<key>CFBundleIcons</key>");
+                Text.AppendLine("\t<dict>");
+                Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");
+                Text.AppendLine("\t\t<dict>");
+                Text.AppendLine("\t\t\t<key>CFBundleIconFiles</key>");
+                Text.AppendLine("\t\t\t<array>");
+                Text.AppendLine("\t\t\t\t<string>Icon29.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon29@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon40.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon40@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon57.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon57@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon60@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon60@3x.png</string>");
+                Text.AppendLine("\t\t\t</array>");
+                Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
+                Text.AppendLine("\t\t\t<true/>");
+                Text.AppendLine("\t\t</dict>");
+                Text.AppendLine("\t</dict>");
+                Text.AppendLine("\t<key>CFBundleIcons~ipad</key>");
+                Text.AppendLine("\t<dict>");
+                Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");
+                Text.AppendLine("\t\t<dict>");
+                Text.AppendLine("\t\t\t<key>CFBundleIconFiles</key>");
+                Text.AppendLine("\t\t\t<array>");
+                Text.AppendLine("\t\t\t\t<string>Icon29.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon29@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon40.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon40@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon50.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon50@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon72.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon72@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon76.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon76@2x.png</string>");
+                Text.AppendLine("\t\t\t\t<string>Icon83.5@2x.png</string>");
+                Text.AppendLine("\t\t\t</array>");
+                Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
+                Text.AppendLine("\t\t\t<true/>");
+                Text.AppendLine("\t\t</dict>");
+                Text.AppendLine("\t</dict>");
+            }
+            if (File.Exists(LaunchXib))
 			{
 				// TODO: compile the xib via remote tool
 				Text.AppendLine("\t<key>UILaunchStoryboardName</key>");
@@ -628,7 +677,7 @@ namespace UnrealBuildTool
 			return bSkipDefaultPNGs;
 		}
 
-		public virtual bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape)
+		public virtual bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape, out bool bSkipIcons)
 		{
 			List<string> ProjectArches = new List<string>();
 			ProjectArches.Add("None");
@@ -650,25 +699,40 @@ namespace UnrealBuildTool
 
             string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
 
-			UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename, UnrealBuildTool.EngineDirectory, new DirectoryReference(ProjectDirectory))), ProjectArches, "", "", UnrealTargetPlatform.IOS);
+            TargetReceipt Receipt = TargetReceipt.Read(ReceiptFilename, UnrealBuildTool.EngineDirectory, new DirectoryReference(ProjectDirectory));
+            UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(Receipt), ProjectArches, "", "", UnrealTargetPlatform.IOS);
 
 			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
 			UPL.Init(ProjectArches, true, RelativeEnginePath, BundlePath, ProjectDirectory, Config.ToString());
 
-			return GenerateIOSPList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, this);
+            bool bIncludesAR = false;
+            foreach (BuildProduct prod in Receipt.BuildProducts)
+            {
+                if (prod.ToString().Contains("AppleARKit"))
+                {
+                    bIncludesAR = true;
+                }
+            }
+			return GenerateIOSPList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons, this, bIncludesAR);
 		}
 
-		protected virtual void CopyGraphicsResources(bool bSkipDefaultPNGs, string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir, bool bSupportsPortrait, bool bSupportsLandscape)
+		protected virtual void CopyGraphicsResources(bool bSkipDefaultPNGs, bool bSkipIcons, string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir, bool bSupportsPortrait, bool bSupportsLandscape)
         {
             // copy engine assets in (IOS and TVOS shared in IOS)
             if (bSkipDefaultPNGs)
             {
                 // we still want default icons
-                CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Icon*.png", true);
+                if (!bSkipIcons)
+                {
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Icon*.png", true);
+                }
             }
             else
             {
-                CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Icon*.png", true);
+                if (!bSkipIcons)
+                {
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Icon*.png", true);
+                }
                 if (bSupportsPortrait)
                 {
                     CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6.png", true);
@@ -695,7 +759,10 @@ namespace UnrealBuildTool
             // @todo tvos: Do we want to copy IOS and TVOS both in? (Engine/IOS -> Game/IOS -> Game/TVOS)?
             if (Directory.Exists(BuildDirectory + "/Resources/Graphics"))
             {
-                CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Icon*.png", true);
+                if (!bSkipIcons)
+                {
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Icon*.png", true);
+                }
                 if (bSupportsPortrait)
                 {
                     CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6.png", true);
@@ -882,7 +949,8 @@ namespace UnrealBuildTool
 
             bool bSupportsPortrait = true;
             bool bSupportsLandscape = false;
-			bool bSkipDefaultPNGs = GeneratePList(ProjectFile, Config, InProjectDirectory, bIsUE4Game, GameName, InProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape);
+            bool bSkipIcons = false;
+			bool bSkipDefaultPNGs = GeneratePList(ProjectFile, Config, InProjectDirectory, bIsUE4Game, GameName, InProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape, out bSkipIcons);
 
 			// ensure the destination is writable
 			if (File.Exists(AppDirectory + "/" + GameName))
@@ -896,7 +964,7 @@ namespace UnrealBuildTool
 
 			if (!bCreateStubIPA)
 			{
-                CopyGraphicsResources(bSkipDefaultPNGs, InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory, bSupportsPortrait, bSupportsLandscape);
+                CopyGraphicsResources(bSkipDefaultPNGs, bSkipIcons, InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory, bSupportsPortrait, bSupportsLandscape);
 
                 // copy additional engine framework assets in
                 // @todo tvos: TVOS probably needs its own assets?
@@ -945,8 +1013,8 @@ namespace UnrealBuildTool
 			else
 			{
                 // @todo tvos merge: This used to copy the bundle back - where did that code go? It needs to be fixed up for TVOS directories
-                bool bSupportPortrait, bSupportLandscape;
-				GeneratePList(InTarget.ProjectFile, InTarget.Configuration, ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "", out bSupportPortrait, out bSupportLandscape);
+                bool bSupportPortrait, bSupportLandscape, bSkipIcons;
+				GeneratePList(InTarget.ProjectFile, InTarget.Configuration, ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "", out bSupportPortrait, out bSupportLandscape, out bSkipIcons);
 			}
 			return true;
 		}

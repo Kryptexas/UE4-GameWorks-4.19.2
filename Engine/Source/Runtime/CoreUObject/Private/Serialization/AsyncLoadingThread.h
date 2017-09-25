@@ -392,7 +392,7 @@ public:
 	*
 	* @param Package package descriptor.
 	*/
-	void QueuePackage(const FAsyncPackageDesc& Package);
+	void QueuePackage(FAsyncPackageDesc& Package);
 
 	/**
 	* [GAME THREAD] Cancels streaming

@@ -2126,7 +2126,6 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassRenderToTexture);
 											Component->RenderGrassMap();
 											ComponentsNeedingGrassMapRender.Remove(Component);
-											Component->MarkPackageDirty();
 										}
 #endif
 
@@ -2395,6 +2394,8 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 
 						if (!HierarchicalInstancedStaticMeshComponent->PerInstanceRenderData.IsValid())
 						{
+							ENGINE_API extern bool GbInitializeFromCurrentData;
+							GbInitializeFromCurrentData = true;
 							HierarchicalInstancedStaticMeshComponent->InitPerInstanceRenderData(&Inner.Builder->InstanceBuffer);
 						}
 						else

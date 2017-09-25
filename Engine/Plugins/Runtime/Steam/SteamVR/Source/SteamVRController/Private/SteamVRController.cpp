@@ -629,9 +629,9 @@ public:
 
 	void SetTouchDPadMapping(ESteamVRTouchDPadMapping NewMapping)
 	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		DefaultDPadMapping = NewMapping;
 
-#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		switch (NewMapping)
 		{
 		case ESteamVRTouchDPadMapping::FaceButtons:
@@ -930,14 +930,18 @@ private:
 
 FName FSteamVRController::DeviceTypeName(TEXT("SteamVRController"));
 /// @cond DOXYGEN_WARNINGS
+#if STEAMVR_SUPPORTED_PLATFORMS
 ESteamVRTouchDPadMapping FSteamVRController::DefaultDPadMapping = ESteamVRTouchDPadMapping::FaceButtons;
+#endif // STEAMVR_SUPPORTED_PLATFORMS
 /// @endcond
 
 // defined here in this .cpp file so we have access to FSteamVRController
 void USteamVRControllerLibrary::SetTouchDPadMapping(ESteamVRTouchDPadMapping NewMapping)
 {
+#if STEAMVR_SUPPORTED_PLATFORMS
 	// modify the default mapping in case we haven't instantiated a FSteamVRController yet
 	FSteamVRController::DefaultDPadMapping = NewMapping;
+#endif // STEAMVR_SUPPORTED_PLATFORMS
 
 	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>(IMotionController::GetModularFeatureName());
 	for (IMotionController* MotionController : MotionControllers)

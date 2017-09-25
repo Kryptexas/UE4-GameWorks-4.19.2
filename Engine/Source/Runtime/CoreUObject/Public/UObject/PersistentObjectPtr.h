@@ -120,7 +120,12 @@ public:
 		{
 			Object = ObjectID.ResolveObject();
 			WeakPtr = Object;
-			TagAtLastTest = TObjectID::GetCurrentTag();
+
+			// Not safe to update tag during save as ResolveObject may have failed accidentally
+			if (Object || !GIsSavingPackage)
+			{
+				TagAtLastTest = TObjectID::GetCurrentTag();
+			}
 
 			// If this object is pending kill or otherwise invalid, this will return nullptr as expected
 			Object = WeakPtr.Get();
@@ -141,7 +146,12 @@ public:
 		{
 			Object = ObjectID.ResolveObject();
 			WeakPtr = Object;
-			TagAtLastTest = TObjectID::GetCurrentTag();
+
+			// Not safe to update tag during save as ResolveObject may have failed accidentally
+			if (Object || !GIsSavingPackage)
+			{
+				TagAtLastTest = TObjectID::GetCurrentTag();
+			}
 
 			// If this object is pending kill or otherwise invalid, this will return nullptr as expected
 			Object = WeakPtr.Get(bEvenIfPendingKill);

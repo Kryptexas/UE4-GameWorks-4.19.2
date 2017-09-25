@@ -39,7 +39,10 @@ struct FAnimatedPropertyKey
 		}
 		else if (const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 		{
-			Definition.ObjectTypeName = ObjectProperty->PropertyClass->GetFName();
+			if (ObjectProperty->PropertyClass)
+			{
+				Definition.ObjectTypeName = ObjectProperty->PropertyClass->GetFName();
+			}
 		}
 		else if(const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
 		{

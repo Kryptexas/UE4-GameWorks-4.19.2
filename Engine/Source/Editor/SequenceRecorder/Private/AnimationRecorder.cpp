@@ -702,6 +702,8 @@ void FAnimationRecorder::RecordNotifies(USkeletalMeshComponent* Component, const
 			AddedThisFrame++;
 		}
 
+		AnimationObject->RefreshCacheData();
+
 		// remove all notifies that didnt get added this time
 		ActiveNotifies.RemoveAll([](TPair<const FAnimNotifyEvent*, bool>& ActiveNotify){ return !ActiveNotify.Value; });
 

@@ -664,7 +664,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 #if WITH_EDITOR
 	for (auto& Allocation : InComponent->WeightmapLayerAllocations)
 	{
-		if (ensure(Allocation.LayerInfo) && Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer)
+		if (Allocation.LayerInfo != nullptr && Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer)
 		{
 			// Use black for hole layer
 			LayerColors.Add(Allocation.LayerInfo->LayerUsageDebugColor);

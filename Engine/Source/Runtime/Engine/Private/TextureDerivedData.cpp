@@ -1373,31 +1373,6 @@ bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPl
 	return true;
 }
 
-void UTexture2D::WillNeverCacheCookedPlatformDataAgain()
-{
-	Super::WillNeverCacheCookedPlatformDataAgain();
-#if WITH_EDITORONLY_DATA 
-	// "Source" is only in WITH_EDITORONLY_DATA
-	// UE_LOG(LogTemp, Display, TEXT("Cleared source texture data for texture %s"), *GetName());
-	// clear source mips if we are in the editor then we don't have this luxury 
-	check( IsAsyncCacheComplete());
-
-	const TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
-	if ( CookedPlatformDataPtr != NULL )
-	{
-		for ( const auto& TexturePlatformData : *CookedPlatformDataPtr )
-		{
-			check( TexturePlatformData.Value->AsyncTask == NULL);
-		}
-	}
-
-	// Don't release the source memory because at build time, textures may need other texture source data.
-	// Releasing it would make the source data unavailable for texture referenced through CompositeTexture.
-	// Otherwise, texture data is usually already released when loaded with AllowAsyncLoading.
-	//	Source.ReleaseSourceMemory();
-#endif
-}
-
 bool UTexture::IsAsyncCacheComplete()
 {
 	bool bComplete = true;

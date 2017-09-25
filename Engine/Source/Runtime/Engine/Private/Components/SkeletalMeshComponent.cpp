@@ -1668,11 +1668,14 @@ void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(TArray<FTransform>&
 {
 	if(PostProcessAnimInstance)
 	{
-		// Push the previous pose to any input nodes required
-		if(FAnimNode_SubInput* InputNode = PostProcessAnimInstance->GetSubInputNode())
+		if(InOutPose.IsValid())
 		{
-			InputNode->InputPose.CopyBonesFrom(InOutPose);
-			InputNode->InputCurve.CopyFrom(OutCurve);
+			// Push the previous pose to any input nodes required
+			if (FAnimNode_SubInput* InputNode = PostProcessAnimInstance->GetSubInputNode())
+			{
+				InputNode->InputPose.CopyBonesFrom(InOutPose);
+				InputNode->InputCurve.CopyFrom(OutCurve);
+			}
 		}
 
 		EvaluateAnimation(InSkeletalMesh, PostProcessAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve, InOutPose);

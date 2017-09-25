@@ -456,10 +456,29 @@ public class MediaPlayer14
 			mEglDisplay = EGL14.EGL_NO_DISPLAY;
 			EGLContext shareContext = EGL14.EGL_NO_CONTEXT;
 
+			int majorver[] = new int[] { 0 };
+			int minorver[] = new int[] { 0 };
 			if (!mVulkanRenderer)
 			{
 				mEglDisplay = EGL14.eglGetCurrentDisplay();
 				shareContext = EGL14.eglGetCurrentContext();
+
+				if (android.os.Build.VERSION.SDK_INT >= 18 &&
+					EGL14.eglQueryContext(mEglDisplay, shareContext, EGLExt.EGL_CONTEXT_MAJOR_VERSION_KHR, majorver, 0) &&
+					EGL14.eglQueryContext(mEglDisplay, shareContext, EGLExt.EGL_CONTEXT_MINOR_VERSION_KHR, minorver, 0))
+				{
+					GameActivity.Log.debug("MediaPlayer14: Existing GL context is version " + majorver[0] + "." + minorver[0]);
+				}
+				else
+				// on some devices eg Galaxy S6, the above fails but we do get EGL14.EGL_CONTEXT_CLIENT_VERSION=3
+				if (EGL14.eglQueryContext(mEglDisplay, shareContext, EGL14.EGL_CONTEXT_CLIENT_VERSION, majorver, 0))
+				{					
+					GameActivity.Log.debug("MediaPlayer14: Existing GL context is version " + majorver[0]);
+				}
+				else
+				{
+					GameActivity.Log.debug("MediaPlayer14: Existing GL context version not detected");		
+				}
 			}
 			else
 			{
@@ -489,12 +508,18 @@ public class MediaPlayer14
 			EGLConfig[] configs = new EGLConfig[1];
 			int[] num_config = new int[1];
 			EGL14.eglChooseConfig(mEglDisplay, configSpec, 0, configs, 0, 1, num_config, 0);
-			int[] contextAttribs = new int[]
+			int[] contextAttribsES2 = new int[]
 			{
 				EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
 				EGL14.EGL_NONE
 			};
-			mEglContext = EGL14.eglCreateContext(mEglDisplay, configs[0], shareContext, contextAttribs, 0);
+			int[] contextAttribsES31 = new int[]
+			{
+				EGLExt.EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+				EGLExt.EGL_CONTEXT_MINOR_VERSION_KHR, 1,
+				EGL14.EGL_NONE
+			};
+			mEglContext = EGL14.eglCreateContext(mEglDisplay, configs[0], shareContext, majorver[0]==3 ? contextAttribsES31 : contextAttribsES2, 0);
 
 			if (EGL14.eglQueryString(mEglDisplay, EGL14.EGL_EXTENSIONS).contains("EGL_KHR_surfaceless_context"))
 			{

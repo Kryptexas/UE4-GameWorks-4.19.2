@@ -887,7 +887,12 @@ bool PlatformInitOpenGL()
 	{
 		if (SDL_GL_LoadLibrary(NULL))
 		{
-			UE_LOG(LogLinux, Fatal, TEXT("Unable to dynamically load libGL: %s\n."), UTF8_TO_TCHAR(SDL_GetError()));
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,
+				*FString::Printf(TEXT("%s. SDL error: \"%s\""), *(NSLOCTEXT("Renderer", "LinuxCannotLoadLibGLText", "Unable to dynamically load libGL").ToString()), UTF8_TO_TCHAR(SDL_GetError())),
+				*(NSLOCTEXT("Renderer", "LinuxInsufficientDriversTitle", "Insufficient drivers or hardware").ToString()));
+			FPlatformMisc::RequestExit(true);
+			// unreachable
+			return false;
 		}
 
 		int MajorVersion = 0;

@@ -4474,7 +4474,9 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			const FName* FoundPackageName = GetCachedPackageFilenameToPackageFName(UncookedFilename);
 			if ( !FoundPackageName )
 			{
+				// Source file no longer exists
 				++NumPackagesRemoved;
+				continue;
 			}
 			const FName PackageName = *FoundPackageName;
 			const FString UncookedFilenameString = UncookedFilename.ToString();

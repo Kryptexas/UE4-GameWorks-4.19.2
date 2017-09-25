@@ -109,7 +109,7 @@ void FKCHandler_MakeStruct::Compile(FKismetFunctionContext& Context, UEdGraphNod
 
 	for (UEdGraphPin* Pin : Node->Pins)
 	{
-		if (Pin && (Pin != StructPin) && !CompilerContext.GetSchema()->IsMetaPin(*Pin) && (Pin->Direction == EGPD_Input))
+		if (Pin && !Pin->bOrphanedPin && (Pin != StructPin) && (Pin->Direction == EGPD_Input) && !CompilerContext.GetSchema()->IsMetaPin(*Pin))
 		{
 			UProperty* BoundProperty = FindField<UProperty>(Node->StructType, *(Pin->PinName));
 			check(BoundProperty);

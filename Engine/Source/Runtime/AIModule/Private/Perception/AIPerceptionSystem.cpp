@@ -280,7 +280,7 @@ void UAIPerceptionSystem::AgeStimuli()
 UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject)
 {
 	UWorld* World = Cast<UWorld>(WorldContextObject);
-	if (World == nullptr)
+	if (World == nullptr && WorldContextObject != nullptr)
 	{
 		World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	}

@@ -110,12 +110,17 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 				if (!Sum.FileVersionUE4 && !Sum.FileVersionLicenseeUE4)
 				{
+#if WITH_EDITOR
+					// the editor cannot safely load unversioned content
+					UE_LOG(LogLinker, Warning, TEXT("Failed to read package file summary, the file \"%s\" is unversioned and we cannot safely load unversioned files in the editor."), *Ar.GetArchiveName());
+					return Ar;
+#else
 					// this file is unversioned, remember that, then use current versions
 					Sum.bUnversioned = true;
 					Sum.FileVersionUE4 = GPackageFileUE4Version;
 					Sum.FileVersionLicenseeUE4 = GPackageFileLicenseeUE4Version;
-
 					Sum.CustomVersionContainer = FCustomVersionContainer::GetRegistered();
+#endif
 				}
 			}
 			else
@@ -251,7 +256,13 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		TArray<FCompressedChunk> CompressedChunks;
 		Ar << CompressedChunks;
 
-		checkf(!CompressedChunks.Num(), TEXT("Package level compression cannot be used with the async io scheme."));
+		if (CompressedChunks.Num())
+		{
+			// this file has package level compression, we won't load it.
+			UE_LOG(LogLinker, Warning, TEXT("Failed to read package file summary, the file \"%s\" is has package level compression (and is probably cooked). These old files cannot be loaded in the editor."), *Ar.GetArchiveName());
+			Sum.FileVersionUE4 = VER_UE4_OLDEST_LOADABLE_PACKAGE - 1;
+			return Ar; // we can't safely load more than this because we just changed the version to something it is not.
+		}
 
 		Ar << Sum.PackageSource;
 

@@ -137,7 +137,8 @@ namespace UnrealBuildTool
 			if (Target.GlobalDefinitions.Contains("USE_NULL_RHI=1"))
 			{
 				Target.bCompileSimplygon = false;
-                Target.bCompileSimplygonSSF = false;
+				Target.bCompileSimplygonSSF = false;
+				Target.bCompileCEF3 = false;
 			}
 
 			// At the moment ICU has not been compiled for AArch64 and i686. Also, localization isn't needed on servers by default, and ICU is pretty heavy

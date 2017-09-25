@@ -328,7 +328,7 @@ void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuild
 	Super::GetContextMenuActions(Context);
 
 	const UEdGraphPin* ValuePin = GetValuePin();
-	if (IsValidTypeForNonPure(ValuePin->PinType))
+	if (ValuePin && IsValidTypeForNonPure(ValuePin->PinType))
 	{
 		Context.MenuBuilder->BeginSection("K2NodeVariableGet", LOCTEXT("VariableGetHeader", "Variable Get"));
 		{

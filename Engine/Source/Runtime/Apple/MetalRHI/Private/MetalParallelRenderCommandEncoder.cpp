@@ -103,7 +103,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
     [Inner setStencilStoreAction:storeAction];
 }
 
-#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_11_0)
 // Null implementations of these functions to support iOS 11 beta.  To be filled out later
 - (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
 {

@@ -31,6 +31,9 @@
   static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
 #endif
 
+// Visibility mesh
+static TAutoConsoleVariable<int32> CUseSteamVRVisibleAreaMesh(TEXT("vr.SteamVR.UseVisibleAreaMesh"), 1, TEXT("If non-zero, SteamVR will use the visible area mesh in addition to the hidden area mesh optimization.  This may be problematic on beta versions of platforms."));
+
 /** Helper function for acquiring the appropriate FSceneViewport */
 FSceneViewport* FindSceneViewport()
 {
@@ -116,6 +119,17 @@ public:
 #if !STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
+
+	virtual bool GetVulkanInstanceExtensionsRequired(TArray<const ANSICHAR*>& Out) override
+	{
+		return true;
+	}
+
+	virtual bool GetVulkanDeviceExtensionsRequired(VkPhysicalDevice_T *pPhysicalDevice, TArray<const ANSICHAR*>& Out) override
+	{
+		return true;
+	}
+
 #else //STEAMVR_SUPPORTED_PLATFORMS
 		: VRSystem(nullptr)
 	{
@@ -1655,11 +1669,11 @@ void FSteamVRHMD::Shutdown()
 	}
 }
 
-void FSteamVRHMD::SetupOcclusionMeshes()
-{	
-	const vr::HiddenAreaMesh_t LeftEyeMesh = VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Left);
-	const vr::HiddenAreaMesh_t RightEyeMesh = VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Right);
-	
+static void SetupHiddenAreaMeshes(vr::IVRSystem* const VRSystem, FHMDViewMesh Result[2], const vr::EHiddenAreaMeshType MeshType)
+{
+	const vr::HiddenAreaMesh_t LeftEyeMesh = VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Left, MeshType);
+	const vr::HiddenAreaMesh_t RightEyeMesh = VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Right, MeshType);
+
 	const uint32 VertexCount = LeftEyeMesh.unTriangleCount * 3;
 	check(LeftEyeMesh.unTriangleCount == RightEyeMesh.unTriangleCount);
 
@@ -1669,7 +1683,6 @@ void FSteamVRHMD::SetupOcclusionMeshes()
 		FVector2D* const LeftEyePositions = new FVector2D[VertexCount];
 		FVector2D* const RightEyePositions = new FVector2D[VertexCount];
 
-		uint32 HiddenAreaMeshCrc = 0;
 		uint32 DataIndex = 0;
 		for (uint32 TriangleIter = 0; TriangleIter < LeftEyeMesh.unTriangleCount; ++TriangleIter)
 		{
@@ -1687,26 +1700,26 @@ void FSteamVRHMD::SetupOcclusionMeshes()
 				RightDst.X = RightSrc.v[0];
 				RightDst.Y = RightSrc.v[1];
 
-				HiddenAreaMeshCrc = FCrc::MemCrc32(&LeftDst, sizeof(FVector2D), HiddenAreaMeshCrc);
-
 				++DataIndex;
 			}
 		}
 
-		HiddenAreaMeshes[0].BuildMesh(LeftEyePositions, VertexCount, FHMDViewMesh::MT_HiddenArea);
-		HiddenAreaMeshes[1].BuildMesh(RightEyePositions, VertexCount, FHMDViewMesh::MT_HiddenArea);
-
-		// If the hidden area mesh from the SteamVR runtime matches the mesh used to generate the Vive's visible area mesh, initialize it.
-		// The visible area mesh is a hand crafted inverse of the hidden area mesh we are getting from the steamvr runtime. Since the runtime data
-		// may change, we need to sanity check it matches our hand crafted mesh before using it.
-		if (HiddenAreaMeshCrc == ViveHiddenAreaMeshCrc)
-		{
-			VisibleAreaMeshes[0].BuildMesh(Vive_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
-			VisibleAreaMeshes[1].BuildMesh(Vive_RightEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
-		}
+		const FHMDViewMesh::EHMDMeshType MeshTransformType = (MeshType == vr::EHiddenAreaMeshType::k_eHiddenAreaMesh_Standard) ? FHMDViewMesh::MT_HiddenArea : FHMDViewMesh::MT_VisibleArea;
+		Result[0].BuildMesh(LeftEyePositions, VertexCount, MeshTransformType);
+		Result[1].BuildMesh(RightEyePositions, VertexCount, MeshTransformType);
 
 		delete[] LeftEyePositions;
 		delete[] RightEyePositions;
+	}
+}
+
+void FSteamVRHMD::SetupOcclusionMeshes()
+{
+	SetupHiddenAreaMeshes(VRSystem, HiddenAreaMeshes, vr::EHiddenAreaMeshType::k_eHiddenAreaMesh_Standard);
+
+	if (CUseSteamVRVisibleAreaMesh.GetValueOnAnyThread() > 0)
+	{
+		SetupHiddenAreaMeshes(VRSystem, VisibleAreaMeshes, vr::EHiddenAreaMeshType::k_eHiddenAreaMesh_Inverse);
 	}
 }
 

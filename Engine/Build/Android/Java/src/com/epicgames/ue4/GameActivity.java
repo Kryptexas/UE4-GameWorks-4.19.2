@@ -1031,8 +1031,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	{
 		if(keyCode == KeyEvent.KEYCODE_BACK ||keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
 		{
-			Log.debug("=== Restoring Transparent Bars due to KeyCode ===");
-			restoreTranslucentBarsDelayed();
+			if (ShouldHideUI)
+			{
+				Log.debug("=== Restoring Transparent Bars due to KeyCode ===");
+				restoreTranslucentBarsDelayed();
+			}
 		}
 
 		return super.onKeyDown(keyCode, event);
@@ -1174,6 +1177,16 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 //$${gameActivityOnDestroyAdditions}$$
 		Log.debug("==============> GameActive.onDestroy complete!");
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+
+		// forward the orientation
+		boolean bPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
+		nativeOnConfigurationChanged(bPortrait);
 	}
 
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
@@ -1371,7 +1384,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		});
 	}
 
-	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int inInputType, String Label, String Contents)
+	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int inInputType, String inLabel, String inContents)
 	{
 		if (virtualKeyboardAlert.isShowing() == true)
 		{
@@ -1379,23 +1392,27 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			return;
 		}
 
-		// Set label and starting contents
-		virtualKeyboardAlert.setTitle(Label);
-
-		// @HSL_BEGIN - Josh.May - 11/01/2016 - Ensure the input mode of the text box is set before setting the contents.
-		// configure for type of input
-		virtualKeyboardInputBox.setRawInputType(inInputType);
-		virtualKeyboardInputBox.setTransformationMethod((inInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? null : PasswordTransformationMethod.getInstance());
-		
-		virtualKeyboardInputBox.setText("");
-		virtualKeyboardInputBox.append(Contents);
-		virtualKeyboardPreviousContents = Contents;
-		// @HSL_END - Josh.May - 11/01/2016
+		// Capture to pass into ui thread
+		final int uiInputType = inInputType;
+		final String uiLabel = inLabel;
+		final String uiContents = inContents;
 
 		_activity.runOnUiThread(new Runnable()
 		{
 			public void run()
 			{
+				// Set label and starting contents
+				virtualKeyboardAlert.setTitle(uiLabel);
+
+				// Ensure the input mode of the text box is set before setting the contents.
+				// configure for type of input
+				virtualKeyboardInputBox.setRawInputType(uiInputType);
+				virtualKeyboardInputBox.setTransformationMethod((uiInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? null : PasswordTransformationMethod.getInstance());
+
+				virtualKeyboardInputBox.setText("");
+				virtualKeyboardInputBox.append(uiContents);
+				virtualKeyboardPreviousContents = uiContents;
+
 				if (virtualKeyboardAlert.isShowing() == false)
 				{
 					Log.debug("Virtual keyboard not showing yet");
@@ -2633,6 +2650,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
 
 	public native void nativeVirtualKeyboardShown(int left, int top, int right, int bottom);
+
+	public native void nativeOnConfigurationChanged(boolean bPortrait);
 		
 	static
 	{

@@ -811,11 +811,10 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		 */
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_CONTENT_RECT_CHANGED"));
 		break;
+	/* receive this event from Java instead to work around NDK bug with AConfiguration_getOrientation in Oreo
 	case APP_CMD_CONFIG_CHANGED:
 		{
-			/**
-			* Command from main thread: the current device configuration has changed.
-			*/
+			// Command from main thread: the current device configuration has changed.
 			UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_CONFIG_CHANGED"));
 			
 			bool bPortrait = (AConfiguration_getOrientation(app->config) == ACONFIGURATION_ORIENTATION_PORT);
@@ -825,6 +824,7 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 			}
 		}
 		break;
+	*/
 	case APP_CMD_LOW_MEMORY:
 		/**
 		 * Command from main thread: the system is running low on memory.
@@ -1073,6 +1073,23 @@ static int HandleSensorEvents(int fd, int events, void* data)
 }
 
 //Native-defined functions
+
+//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeOnConfigurationChanged(boolean bPortrait);
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeOnConfigurationChanged(JNIEnv* jenv, jobject thiz, jboolean bPortrait)
+{
+	bool bChangedToPortrait = bPortrait == JNI_TRUE;
+
+	// enqueue a window changed event if orientation changed
+	if (FAndroidWindow::OnWindowOrientationChanged(bChangedToPortrait))
+	{
+		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
+
+		if (EventHandlerEvent)
+		{
+			EventHandlerEvent->Trigger();
+		}
+	}
+}
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeConsoleCommand(String commandString);"
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv* jenv, jobject thiz, jstring commandString)

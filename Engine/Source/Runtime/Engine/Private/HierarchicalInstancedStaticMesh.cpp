@@ -28,6 +28,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
 #include "SceneManagement.h"
+#include "AI/Navigation/NavigationTypes.h"
 
 static TAutoConsoleVariable<int32> CVarFoliageSplitFactor(
 	TEXT("foliage.SplitFactor"),
@@ -1822,7 +1823,7 @@ void UHierarchicalInstancedStaticMeshComponent::PostDuplicate(bool bDuplicateFor
 {
 	Super::PostDuplicate(bDuplicateForPIE);
 
-	if (!HasAnyFlags(RF_NeedPostLoad))
+	if (!HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && bDuplicateForPIE)
 	{
 		BuildTreeIfOutdated(false, false);
 	}
@@ -1944,7 +1945,7 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 
 bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty, bool bTeleport)
 {
-	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	if (!PerInstanceSMData.IsValidIndex(InstanceIndex) || !InstanceReorderTable.IsValidIndex(InstanceIndex))
 	{
 		return false;
 	}
@@ -1994,15 +1995,17 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 	return Result;
 }
 
+void HierApplyComponentInstanceData(UInstancedStaticMeshComponent* Component, FInstancedStaticMeshComponentInstanceData* InstancedMeshData)
+{
+	Component->ApplyComponentInstanceData(InstancedMeshData);
+
+	CastChecked<UHierarchicalInstancedStaticMeshComponent>(Component)->BuildTreeIfOutdated(false, false);
+}
+
 int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
 {
 	int32 InstanceIndex = UInstancedStaticMeshComponent::AddInstance(InstanceTransform);
 
-	if (bAutoRebuildTreeOnInstanceChanges)
-	{
-		BuildTreeIfOutdated(PerInstanceSMData.Num() > 1, false);
-	}
-	
 	if (GetStaticMesh())
 	{
 		// Need to offset the newly added instance's RenderIndex by the amount that will be adjusted at the end of the frame
@@ -2016,6 +2019,11 @@ int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& I
 	if (PerInstanceRenderData.IsValid())
 	{
 		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex);
+	}
+
+	if (bAutoRebuildTreeOnInstanceChanges)
+	{
+		BuildTreeIfOutdated(PerInstanceSMData.Num() > 1, false);
 	}
 
 	return InstanceIndex;
@@ -2165,6 +2173,8 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 
 		if (!PerInstanceRenderData.IsValid())
 		{
+			extern bool GbInitializeFromCurrentData;
+			GbInitializeFromCurrentData = false;
 			InitPerInstanceRenderData();
 		}
 
@@ -2353,29 +2363,29 @@ bool UHierarchicalInstancedStaticMeshComponent::BuildTreeIfOutdated(bool Async, 
 		|| UnbuiltInstanceBoundsList.Num() > 0
 		|| GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES)
 	{
-		if (GetStaticMesh())
+		if (GetStaticMesh() != nullptr && !GetStaticMesh()->HasAnyFlags(RF_NeedLoad)) // we can build the tree if the static mesh is not even loaded, and we can't call PostLoad as the load is not even done
 		{
 			GetStaticMesh()->ConditionalPostLoad();
-		}
 
-		if (Async)
-		{
-			if (IsAsyncBuilding())
+			if (Async)
 			{
-				// invalidate the results of the current async build we need to modify the tree
-				bConcurrentRemoval = true;
+				if (IsAsyncBuilding())
+				{
+					// invalidate the results of the current async build we need to modify the tree
+					bConcurrentRemoval = true;
+				}
+				else
+				{
+					BuildTreeAsync();
+				}
 			}
 			else
 			{
-				BuildTreeAsync();
+				BuildTree();
 			}
-		}
-		else
-		{
-			BuildTree();
-		}
 
-		return true;
+			return true;
+		}
 	}
 
 	return false;
@@ -2510,31 +2520,34 @@ void UHierarchicalInstancedStaticMeshComponent::PostLoad()
 
 	Super::PostLoad();
 
-	NumBuiltRenderInstances = ClusterTreePtr.IsValid() && ClusterTreePtr->Num() > 0 ? (*ClusterTreePtr.Get())[0].LastInstance - (*ClusterTreePtr.Get())[0].FirstInstance + 1 : 0;
-
-	if (bEnableDensityScaling && GetWorld() && GetWorld()->IsGameWorld())
+	if (!HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
 	{
-		const float ScalabilityDensity = FMath::Clamp(CVarFoliageDensityScale.GetValueOnGameThread(), 0.0f, 1.0f);
-		if (ScalabilityDensity == 0)
-		{
-			// exclude all instances
-			ExcludedDueToDensityScaling.Init(true, PerInstanceSMData.Num());
-			NumBuiltRenderInstances = 0;
-		}
-		else if (ScalabilityDensity > 0.0f && ScalabilityDensity < 1.0f)
-		{
-			FRandomStream Rand(InstancingRandomSeed);
-			ExcludedDueToDensityScaling.Init(false, PerInstanceSMData.Num());
+		NumBuiltRenderInstances = ClusterTreePtr.IsValid() && ClusterTreePtr->Num() > 0 ? (*ClusterTreePtr.Get())[0].LastInstance - (*ClusterTreePtr.Get())[0].FirstInstance + 1 : 0;
 
-			for (int32 i = 0; i < ExcludedDueToDensityScaling.Num(); ++i)
+		if (bEnableDensityScaling && GetWorld() && GetWorld()->IsGameWorld())
+		{
+			const float ScalabilityDensity = FMath::Clamp(CVarFoliageDensityScale.GetValueOnGameThread(), 0.0f, 1.0f);
+			if (ScalabilityDensity == 0)
 			{
-				ExcludedDueToDensityScaling[i] = (Rand.FRand() > ScalabilityDensity);
-			}			
-		}
-	}
+				// exclude all instances
+				ExcludedDueToDensityScaling.Init(true, PerInstanceSMData.Num());
+				NumBuiltRenderInstances = 0;
+			}
+			else if (ScalabilityDensity > 0.0f && ScalabilityDensity < 1.0f)
+			{
+				FRandomStream Rand(InstancingRandomSeed);
+				ExcludedDueToDensityScaling.Init(false, PerInstanceSMData.Num());
 
-	// If any of the data is out of sync, build the tree now!
-	BuildTreeIfOutdated(true, false);	
+				for (int32 i = 0; i < ExcludedDueToDensityScaling.Num(); ++i)
+				{
+					ExcludedDueToDensityScaling[i] = (Rand.FRand() > ScalabilityDensity);
+				}
+			}
+		}
+
+		// If any of the data is out of sync, build the tree now!
+		BuildTreeIfOutdated(true, false);
+	}
 }
 
 static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMeshComponent& Component, const FBox& AreaBox, int32 Child, TArray<FTransform>& InstanceData)
@@ -2681,7 +2694,7 @@ void UHierarchicalInstancedStaticMeshComponent::PartialNavigationUpdate(int32 In
 		// Accumulate dirty areas and send them to navigation system once cluster tree is rebuilt
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 		// Check if this component is registered in navigation system
-		if (NavSys && NavSys->GetObjectsNavOctreeId(this))
+		if (NavSys && (NavSys->GetObjectsNavOctreeId(this) || NavSys->PendingOctreeUpdates.Contains(FNavigationDirtyElement(this))))
 		{
 			FTransform InstanceTransform(PerInstanceSMData[InstanceIdx].Transform);
 			FBox InstanceBox = GetStaticMesh()->GetBounds().TransformBy(InstanceTransform*GetComponentTransform()).GetBox(); // in world space

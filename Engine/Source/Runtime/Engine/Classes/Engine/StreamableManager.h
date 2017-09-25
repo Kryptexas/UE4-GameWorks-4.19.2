@@ -114,6 +114,9 @@ private:
 	/** Call to call the update delegate if bound, will propagate to parents */
 	void CallUpdateDelegate();
 
+	/** Unbind all of our delegates, called after a cancel/load */
+	void UnbindDelegates();
+
 	/** True if this request has finished loading. It may still be active, or it may have been released */
 	bool bLoadCompleted;
 

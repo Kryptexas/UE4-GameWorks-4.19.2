@@ -41,14 +41,14 @@ namespace Audio
 #endif //#if PLATFORM_IOS || PLATFORM_TVOS
     static const double DefaultSampleRate = 48000.0;
     
+    static int32 SuspendCounter = 0;
+    
 	FMixerPlatformAudioUnit::FMixerPlatformAudioUnit()
 		: bInitialized(false)
         , bInCallback(false)
         , SubmittedBufferPtr(nullptr)
-#if PLATFORM_IOS || PLATFORM_TVOS
         , RemainingBytesInCurrentSubmittedBuffer(0)
         , BytesPerSubmittedBuffer(0)
-#endif //#if PLATFORM_IOS || PLATFORM_TVOS
 	{
 	}
 
@@ -88,6 +88,10 @@ namespace Audio
             BufferSize = DefaultBufferSize;
         }
         
+        BytesPerSubmittedBuffer = BufferSize * NumChannels * sizeof(float);
+        check(BytesPerSubmittedBuffer != 0);
+        UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Bytes per submitted buffer: %d"), BytesPerSubmittedBuffer);
+        
 #if PLATFORM_IOS || PLATFORM_TVOS
         NSError* error;
         
@@ -95,17 +99,13 @@ namespace Audio
         [AudioSession setPreferredSampleRate:GraphSampleRate error:&error];
         
         //Set the buffer size.
-        Float32 bufferSizeInSec = (float)BufferSize / OpenStreamParams.SampleRate;
+        Float32 bufferSizeInSec = (float)BufferSize / (OpenStreamParams.SampleRate == 0 ? GraphSampleRate : OpenStreamParams.SampleRate);
         [AudioSession setPreferredIOBufferDuration:bufferSizeInSec error:&error];
         
         if (error != nil)
         {
             UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Error setting buffer size to: %f"), bufferSizeInSec);
         }
-        
-        BytesPerSubmittedBuffer = BufferSize * NumChannels * sizeof(float);
-        check(BytesPerSubmittedBuffer != 0);
-        UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Bytes per submitted buffer: %d"), BytesPerSubmittedBuffer);
         
         [AudioSession setActive:true error:&error];
         
@@ -124,13 +124,6 @@ namespace Audio
         DevicePropertyAddress.mElement = 0;
         AudioDeviceQuerySize = sizeof(AudioDeviceID);
         Status = AudioObjectGetPropertyData(kAudioObjectSystemObject, &DevicePropertyAddress, 0, nullptr, &AudioDeviceQuerySize, &DeviceAudioObjectID);
-        
-        //Query hardware sample rate:
-        DevicePropertyAddress.mSelector = kAudioDevicePropertyNominalSampleRate;
-        DevicePropertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
-        DevicePropertyAddress.mElement = 0;
-        AudioDeviceQuerySize = sizeof(Float64);
-        Status = AudioObjectSetPropertyData(DeviceAudioObjectID, &DevicePropertyAddress, 0, nullptr, AudioDeviceQuerySize, &GraphSampleRate);
         
         if(Status != 0)
         {
@@ -389,9 +382,8 @@ namespace Audio
 	void FMixerPlatformAudioUnit::SubmitBuffer(const uint8* Buffer)
 	{
         SubmittedBufferPtr = (uint8*) Buffer;
-#if PLATFORM_IOS || PLATFORM_TVOS
+        SubmittedBytes = 0;
         RemainingBytesInCurrentSubmittedBuffer = BytesPerSubmittedBuffer;
-#endif //#if PLATFORM_IOS || PLATFORM_TVOS
 	}
 
 	FName FMixerPlatformAudioUnit::GetRuntimeFormat(USoundWave* InSoundWave)
@@ -429,18 +421,20 @@ namespace Audio
 
 	void FMixerPlatformAudioUnit::ResumeContext()
 	{
-		if (bSuspended)
-		{
-			AUGraphStart(AudioUnitGraph);
-			UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Resuming Audio"));
-			bSuspended = false;
-		}
+        if (SuspendCounter > 0)
+        {
+            FPlatformAtomics::InterlockedDecrement(&SuspendCounter);
+            AUGraphStart(AudioUnitGraph);
+            UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Resuming Audio"));
+            bSuspended = false;
+        }
 	}
 	
 	void FMixerPlatformAudioUnit::SuspendContext()
 	{
-		if (!bSuspended)
+		if (SuspendCounter == 0)
 		{
+            FPlatformAtomics::InterlockedIncrement(&SuspendCounter);
 			AUGraphStop(AudioUnitGraph);
 			UE_LOG(LogAudioMixerAudioUnit, Display, TEXT("Suspending Audio"));
 			bSuspended = true;
@@ -467,8 +461,39 @@ namespace Audio
                 ReadNextBuffer();
             }
 
-            OutputBufferData->mBuffers[0].mData = (void*) SubmittedBufferPtr;
-            SubmittedBufferPtr = nullptr;
+            // How many bytes we have left over from previous callback
+            int32 SubmittedBufferBytesLeft = BytesPerSubmittedBuffer - SubmittedBytes;
+            int32 OutputBufferBytesLeft = OutputBufferData->mBuffers[0].mDataByteSize;
+            uint8* OutputBufferPtr = (uint8*) OutputBufferData->mBuffers[0].mData;
+            while (OutputBufferBytesLeft > 0)
+            {
+                const int32 BytesToCopy = FMath::Min(SubmittedBufferBytesLeft, OutputBufferBytesLeft);
+                
+                FMemory::Memcpy((void*) OutputBufferPtr, SubmittedBufferPtr + SubmittedBytes, BytesToCopy);
+                
+                OutputBufferBytesLeft -= BytesToCopy;
+                SubmittedBufferBytesLeft -= BytesToCopy;
+                
+                if (SubmittedBufferBytesLeft <= 0)
+                {
+                    ReadNextBuffer();
+                    SubmittedBytes = 0;
+                    SubmittedBufferBytesLeft = BytesPerSubmittedBuffer;
+                }
+                else
+                {
+                    SubmittedBytes += BytesToCopy;
+                }
+                
+                if (OutputBufferBytesLeft <= 0)
+                {
+                    break;
+                }
+                else
+                {
+                    OutputBufferPtr += BytesToCopy;
+                }
+            }
 		}
 		else
 		{

@@ -1284,26 +1284,33 @@ bool UEdGraphSchema_K2::PinHasSplittableStructType(const UEdGraphPin* InGraphPin
 
 	if (bCanSplit)
 	{
-		UScriptStruct* StructType = CastChecked<UScriptStruct>(InGraphPin->PinType.PinSubCategoryObject.Get());
-		if (InGraphPin->Direction == EGPD_Input)
+		if (UScriptStruct* StructType = Cast<UScriptStruct>(InGraphPin->PinType.PinSubCategoryObject.Get()))
 		{
-			bCanSplit = UK2Node_MakeStruct::CanBeSplit(StructType);
-			if (!bCanSplit)
+			if (InGraphPin->Direction == EGPD_Input)
 			{
-				const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeMake"));
-				UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
-				bCanSplit = (Function != NULL);
+				bCanSplit = UK2Node_MakeStruct::CanBeSplit(StructType);
+				if (!bCanSplit)
+				{
+					const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeMake"));
+					UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
+					bCanSplit = (Function != NULL);
+				}
+			}
+			else
+			{
+				bCanSplit = UK2Node_BreakStruct::CanBeSplit(StructType);
+				if (!bCanSplit)
+				{
+					const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeBreak"));
+					UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
+					bCanSplit = (Function != NULL);
+				}
 			}
 		}
 		else
 		{
-			bCanSplit = UK2Node_BreakStruct::CanBeSplit(StructType);
-			if (!bCanSplit)
-			{
-				const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeBreak"));
-				UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
-				bCanSplit = (Function != NULL);
-			}
+			// If the struct type of a split struct pin no longer exists this can happen
+			bCanSplit = false;
 		}
 	}
 
@@ -6469,7 +6476,7 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarB = InPinB->LinkedTo[IndexB];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases below.
-			if (FarB != NULL)
+			if (FarB != nullptr)
 			{
 				FarB->DefaultValue = InPinA->DefaultValue;
 				FarB->DefaultObject = InPinA->DefaultObject;
@@ -6485,7 +6492,7 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarA = InPinA->LinkedTo[IndexA];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases above and below.
-			if (FarA != NULL)
+			if (FarA != nullptr)
 			{
 				FarA->DefaultValue = InPinB->DefaultValue;
 				FarA->DefaultObject = InPinB->DefaultObject;
@@ -6501,14 +6508,19 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarA = InPinA->LinkedTo[IndexA];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases above.
-			if (FarA != NULL)
+			if (FarA != nullptr)
 			{
 				for (int32 IndexB = 0; IndexB < InPinB->LinkedTo.Num(); ++IndexB)
 				{
 					UEdGraphPin* FarB = InPinB->LinkedTo[IndexB];
-					FarA->Modify();
-					FarB->Modify();
-					FarA->MakeLinkTo(FarB);
+
+					if (FarB != nullptr)
+					{
+						FarA->Modify();
+						FarB->Modify();
+						FarA->MakeLinkTo(FarB);
+					}
+					
 				}
 			}
 		}
@@ -6720,40 +6732,40 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 
 	if (Pin->Direction == EGPD_Input)
 	{
-		UScriptStruct* StructType = CastChecked<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get());
+		if (UScriptStruct* StructType = Cast<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get()))
+		{
+			if (StructType == TBaseStructure<FVector>::Get())
+			{
+				ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[2]->DefaultValue;
+			}
+			else if (StructType == TBaseStructure<FRotator>::Get())
+			{
+				// Our pins are in the form X,Y,Z but the Rotator pin type expects the form Y,Z,X
+				// so we need to make sure they are added in that order here
+				ParentPin->DefaultValue = ParentPin->SubPins[1]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[2]->DefaultValue + TEXT(",")
+					+ ParentPin->SubPins[0]->DefaultValue;
+			}
+			else if (StructType == TBaseStructure<FVector2D>::Get())
+			{
+				FVector2D V2D;
+				V2D.X = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
+				V2D.Y = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
 
-		TArray<FString> OriginalDefaults;
-		if (StructType == TBaseStructure<FVector>::Get())
-		{
-			ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",") 
-									+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
-									+ ParentPin->SubPins[2]->DefaultValue;
-		}
-		else if (StructType == TBaseStructure<FRotator>::Get())
-		{
-			// Our pins are in the form X,Y,Z but the Rotator pin type expects the form Y,Z,X
-			// so we need to make sure they are added in that order here
-			ParentPin->DefaultValue = ParentPin->SubPins[1]->DefaultValue + TEXT(",")
-									+ ParentPin->SubPins[2]->DefaultValue + TEXT(",")
-									+ ParentPin->SubPins[0]->DefaultValue;
-		}
-		else if (StructType == TBaseStructure<FVector2D>::Get())
-		{
-			FVector2D V2D;
-			V2D.X = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
-			V2D.Y = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
-			
-			ParentPin->DefaultValue = V2D.ToString();
-		}
-		else if (StructType == TBaseStructure<FLinearColor>::Get())
-		{
-			FLinearColor LC;
-			LC.R = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
-			LC.G = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
-			LC.B = FCString::Atof(*ParentPin->SubPins[2]->DefaultValue);
-			LC.A = FCString::Atof(*ParentPin->SubPins[3]->DefaultValue);
+				ParentPin->DefaultValue = V2D.ToString();
+			}
+			else if (StructType == TBaseStructure<FLinearColor>::Get())
+			{
+				FLinearColor LC;
+				LC.R = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
+				LC.G = FCString::Atof(*ParentPin->SubPins[1]->DefaultValue);
+				LC.B = FCString::Atof(*ParentPin->SubPins[2]->DefaultValue);
+				LC.A = FCString::Atof(*ParentPin->SubPins[3]->DefaultValue);
 
-			ParentPin->DefaultValue = LC.ToString();
+				ParentPin->DefaultValue = LC.ToString();
+			}
 		}
 	}
 

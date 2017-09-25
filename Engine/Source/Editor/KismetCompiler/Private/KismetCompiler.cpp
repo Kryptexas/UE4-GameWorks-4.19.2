@@ -392,14 +392,7 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 		if (bForbiddenConnection || bMissingConversion)
 		{
 			const FString ErrorMessage = FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString());
-			if (ConnectResponse.IsFatal())
-			{
-				MessageLog.Error(*ErrorMessage, PinA, PinB);
-			}
-			else
-			{
-				MessageLog.Warning(*ErrorMessage, PinA, PinB);
-			}
+			MessageLog.Error(*ErrorMessage, PinA, PinB);
 		}
 	}
 
@@ -1588,6 +1581,11 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		if (Context.EntryPoint)
 		{
 			Context.Function->FunctionFlags |= (EFunctionFlags)Context.EntryPoint->GetExtraFlags();
+			
+			if (UEdGraphPin* WorldContextPin = Context.EntryPoint->GetAutoWorldContextPin())
+			{
+				Context.Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName);
+			}
 		}
 
 		// First try to get the overriden function from the super class

@@ -11,6 +11,7 @@
 #include "Serialization/MemoryWriter.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
+#include "GlobalShader.h"
 
 static const double HitchTime = 1.0 / 1000.0;
 
@@ -112,12 +113,22 @@ void FVulkanGfxPipeline::CreateRuntimeObjects(const FGraphicsPipelineStateInitia
 	const FVulkanCodeHeader& VSHeader = VS->GetCodeHeader();
 	Layout.AddBindingsForStage(VK_SHADER_STAGE_VERTEX_BIT, EDescriptorSetStage::Vertex, VSHeader);
 
-	if (BSI.PixelShaderRHI)
 	{
-		FVulkanPixelShader* PS = ResourceCast(BSI.PixelShaderRHI);
-		const FVulkanCodeHeader& PSHeader = PS->GetCodeHeader();
-		Layout.AddBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PSHeader);
+		FPixelShaderRHIParamRef PixelShaderRHI = BSI.PixelShaderRHI;
+		// Some mobile devices expect PS stage (S7 Adreno)
+		if (PixelShaderRHI == nullptr && GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
+		{
+			PixelShaderRHI = TShaderMapRef<FNULLPS>(GetGlobalShaderMap(GMaxRHIFeatureLevel))->GetPixelShader();
+		}
+		
+		if (PixelShaderRHI)
+		{
+			FVulkanPixelShader* PS = ResourceCast(PixelShaderRHI);
+			const FVulkanCodeHeader& PSHeader = PS->GetCodeHeader();
+			Layout.AddBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PSHeader);
+		}
 	}
+	
 	if (BSI.GeometryShaderRHI)
 	{
 		FVulkanGeometryShader* GS = ResourceCast(BSI.GeometryShaderRHI);
@@ -1073,12 +1084,22 @@ FVulkanPipelineStateCache::FGfxPipelineEntry* FVulkanPipelineStateCache::CreateG
 	// Generate a layout
 	FVulkanDescriptorSetsLayoutInfo DescriptorSetLayoutInfo;
 	DescriptorSetLayoutInfo.AddBindingsForStage(VK_SHADER_STAGE_VERTEX_BIT, EDescriptorSetStage::Vertex, VSHeader);
-	if (BSI.PixelShaderRHI)
+	// PS
 	{
-		FVulkanPixelShader* PS = ResourceCast(BSI.PixelShaderRHI);
-		Shaders[SF_Pixel] = PS;
-		const FVulkanCodeHeader& PSHeader = PS->GetCodeHeader();
-		DescriptorSetLayoutInfo.AddBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PSHeader);
+		FPixelShaderRHIParamRef PixelShaderRHI = BSI.PixelShaderRHI;
+		// Some mobile devices expect PS stage (S7 Adreno)
+		if (PixelShaderRHI == nullptr && GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
+		{
+			PixelShaderRHI = TShaderMapRef<FNULLPS>(GetGlobalShaderMap(GMaxRHIFeatureLevel))->GetPixelShader();
+		}
+		
+		if (PixelShaderRHI)
+		{
+			FVulkanPixelShader* PS = ResourceCast(PixelShaderRHI);
+			Shaders[SF_Pixel] = PS;
+			const FVulkanCodeHeader& PSHeader = PS->GetCodeHeader();
+			DescriptorSetLayoutInfo.AddBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PSHeader);
+		}
 	}
 	if (BSI.GeometryShaderRHI)
 	{

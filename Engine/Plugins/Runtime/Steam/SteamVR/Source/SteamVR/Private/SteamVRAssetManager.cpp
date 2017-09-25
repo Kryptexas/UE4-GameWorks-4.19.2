@@ -444,11 +444,13 @@ void FSteamVRAsyncMeshLoader::Tick(float /*DeltaTime*/)
 					// valid index + missing RenderModel => signifies failure
 					OnLoadComplete(SubMeshIndex);
 				}
+#if STEAMVR_SUPPORTED_PLATFORMS
 				// if we've already loaded and converted the texture
 				else if (ConstructedTextures.Contains(RenderModel->diffuseTextureId))
 				{
 					OnLoadComplete(SubMeshIndex);
 				}
+#endif // STEAMVR_SUPPORTED_PLATFORMS
 				else if (!EnqueueTextureLoad(SubMeshIndex, RenderModel))
 				{
 					// if we fail to load the texture, we'll have to do without it
@@ -543,11 +545,13 @@ void FSteamVRAsyncMeshLoader::OnLoadComplete(int32 SubMeshIndex)
 		
 		if (LoadedModel.IsValid())
 		{
+#if STEAMVR_SUPPORTED_PLATFORMS
 			UTexture2D** CachedTexturePtr = ConstructedTextures.Find(LoadedModel->diffuseTextureId);
 			if (CachedTexturePtr)
 			{
 				Texture = *CachedTexturePtr;
 			}
+#endif // STEAMVR_SUPPORTED_PLATFORMS
 		}
 	}
 	LoadCompleteCallback.ExecuteIfBound(SubMeshIndex, RawMeshData, Texture);
