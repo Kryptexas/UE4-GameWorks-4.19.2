@@ -3790,7 +3790,10 @@ void FPakFile::Initialize(FArchive* Reader)
 
 	if (CachedTotalSize < Info.GetSerializedSize())
 	{
-		UE_LOG(LogPakFile, Fatal, TEXT("Corrupted pak file '%s' (too short). Verify your installation."), *PakFilename);
+		if (CachedTotalSize) // UEMOB-425: can be zero - only error when not zero
+		{
+			UE_LOG(LogPakFile, Fatal, TEXT("Corrupted pak file '%s' (too short). Verify your installation."), *PakFilename);
+		}
 	}
 	else
 	{
