@@ -2025,11 +2025,6 @@ int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& I
 {
 	int32 InstanceIndex = UInstancedStaticMeshComponent::AddInstance(InstanceTransform);
 
-	if (bAutoRebuildTreeOnInstanceChanges)
-	{
-		BuildTreeIfOutdated(PerInstanceSMData.Num() > 1, false);
-	}
-	
 	if (GetStaticMesh())
 	{
 		// Need to offset the newly added instance's RenderIndex by the amount that will be adjusted at the end of the frame
@@ -2043,6 +2038,11 @@ int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& I
 	if (PerInstanceRenderData.IsValid())
 	{
 		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex);
+	}
+
+	if (bAutoRebuildTreeOnInstanceChanges)
+	{
+		BuildTreeIfOutdated(PerInstanceSMData.Num() > 1, false);
 	}
 
 	return InstanceIndex;
