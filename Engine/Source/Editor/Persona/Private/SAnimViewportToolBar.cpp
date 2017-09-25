@@ -306,7 +306,9 @@ void SAnimViewportToolBar::GenerateViewMenu(FMenuBuilder& InMenuBuilder) const
 
 	InMenuBuilder.BeginSection("AnimViewportSceneSetup", LOCTEXT("ViewMenu_SceneSetupLabel", "Scene Setup"));
 	{
+		InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 		InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().PreviewSceneSettings);
+		InMenuBuilder.PopCommandList();
 
 		if(bShowFloorOptions)
 		{
@@ -351,7 +353,9 @@ void SAnimViewportToolBar::GenerateViewMenu(FMenuBuilder& InMenuBuilder) const
 
 	InMenuBuilder.BeginSection("AnimViewportCamera", LOCTEXT("ViewMenu_CameraLabel", "Camera"));
 	{
+		InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 		InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollow);
+		InMenuBuilder.PopCommandList();
 		InMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().FocusViewportToSelection);
 
 		const float FOVMin = 5.f;
@@ -381,9 +385,11 @@ void SAnimViewportToolBar::GenerateViewMenu(FMenuBuilder& InMenuBuilder) const
 
 	InMenuBuilder.BeginSection("AnimViewportDefaultCamera", LOCTEXT("ViewMenu_DefaultCameraLabel", "Default Camera"));
 	{
+		InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 		InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().JumpToDefaultCamera);
 		InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().SaveCameraAsDefault);
 		InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().ClearDefaultCamera);
+		InMenuBuilder.PopCommandList();
 	}
 	InMenuBuilder.EndSection();
 
@@ -701,6 +707,7 @@ void SAnimViewportToolBar::GenerateTurnTableMenu(FMenuBuilder& MenuBuilder) cons
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 
+	MenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 	MenuBuilder.BeginSection("AnimViewportTurnTableMode", LOCTEXT("TurnTableMenu_ModeLabel", "Turn Table Mode"));
 	{
 		MenuBuilder.AddMenuEntry(Actions.PersonaTurnTablePlay);
@@ -717,6 +724,7 @@ void SAnimViewportToolBar::GenerateTurnTableMenu(FMenuBuilder& MenuBuilder) cons
 		}
 	}
 	MenuBuilder.EndSection();
+	MenuBuilder.PopCommandList();
 }
 
 FSlateColor SAnimViewportToolBar::GetFontColor() const
