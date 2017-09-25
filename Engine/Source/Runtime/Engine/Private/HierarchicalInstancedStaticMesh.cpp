@@ -2390,6 +2390,7 @@ bool UHierarchicalInstancedStaticMeshComponent::BuildTreeIfOutdated(bool Async, 
 				{
 					// invalidate the results of the current async build we need to modify the tree
 					bConcurrentRemoval = true;
+					bDiscardAsyncBuildResults = false;
 				}
 				else
 				{
