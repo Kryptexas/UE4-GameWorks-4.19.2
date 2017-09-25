@@ -376,9 +376,8 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				{
 					bSkipCompile = true;
 				}
-				else
+				else if (const UClass* CurrentClass = QueuedBP->GeneratedClass)
 				{
-					const UClass* CurrentClass = QueuedBP->GeneratedClass;
 					if(FStructUtils::TheSameLayout(CurrentClass, CurrentClass->GetSuperStruct()))
 					{
 						bSkipCompile = true;
