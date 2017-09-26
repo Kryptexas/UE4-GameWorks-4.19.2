@@ -3299,10 +3299,16 @@ void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, 
 	FIntPoint InspectViewportPos = FIntPoint(-1, -1);
 	if (IsInspectorActive)
 	{
+		float ViewRectScale = (float)View.ViewRect.Size().X / View.UnscaledViewRect.Size().X;
+
 		if (CurrentMousePos == FIntPoint(-1, -1))
 		{
 			uint32 CoordinateViewportId = 0;
 			PixelInspectorModule.GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+
+			InspectViewportPos.X = FMath::TruncToInt(CurrentMousePos.X * ViewRectScale);
+			InspectViewportPos.Y = FMath::TruncToInt(CurrentMousePos.Y * ViewRectScale);
+
 			bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
 			IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
 			if (IsInspectorActive)
@@ -3312,9 +3318,11 @@ void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, 
 		}
 		else
 		{
-			InspectViewportPos = CurrentMousePos;
+			InspectViewportPos.X = FMath::TruncToInt(CurrentMousePos.X * ViewRectScale);
+			InspectViewportPos.Y = FMath::TruncToInt(CurrentMousePos.Y * ViewRectScale);
+
 			PixelInspectorModule.SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
-			PixelInspectorModule.SetCoordinatePosition(CurrentMousePos, false);
+			PixelInspectorModule.SetCoordinatePosition(InspectViewportPos, false);
 		}
 	}
 
