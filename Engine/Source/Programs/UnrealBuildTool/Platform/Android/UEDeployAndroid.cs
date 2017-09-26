@@ -18,6 +18,9 @@ namespace UnrealBuildTool
 		// Minimum Android SDK that must be used for Java compiling
 		readonly int MinimumSDKLevel = 23;
 
+		// Minimum SDK version needed for Gradle based on active plugins (14 is for Google Play Services 11.0.4)
+		private int MinimumSDKLevelForGradle = 14;
+
 		// Reserved Java keywords not allowed in package names without modification
 		static private string[] JavaReservedKeywords = new string[] {
 			"abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do",
@@ -43,6 +46,8 @@ namespace UnrealBuildTool
 		private bool bGradleEnabled = false;
 
 		private UnrealPluginLanguage UPL = null;
+		private bool ARCorePluginEnabled = false;
+		private bool FacebookPluginEnabled = false;
 		private bool GearVRPluginEnabled = false;
 		private bool GoogleVRPluginEnabled = false;
 		private bool CrashlyticsPluginEnabled = false;
@@ -56,11 +61,27 @@ namespace UnrealBuildTool
 			}
 
 			// check if certain plugins are enabled
+			ARCorePluginEnabled = false;
+			FacebookPluginEnabled = false;
 			GoogleVRPluginEnabled = false;
 			GearVRPluginEnabled = false;
 			CrashlyticsPluginEnabled = false;
 			foreach (var Plugin in inPluginExtraData)
 			{
+				// check if the Facebook plugin was enabled
+				if (Plugin.Contains("OnlineSubsystemFacebook_UPL"))
+				{
+					FacebookPluginEnabled = true;
+					break;
+				}
+
+				// check if the ARCore plugin was enabled
+				if (Plugin.Contains("GoogleARCoreBase_APL"))
+				{
+					ARCorePluginEnabled = true;
+					break;
+				}
+
 				// check if the Gear VR plugin was enabled
 				if (Plugin.Contains("GearVR_APL"))
 				{
@@ -86,6 +107,18 @@ namespace UnrealBuildTool
 
 			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "http://schemas.android.com/apk/res/android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
 //			APL.SetTrace();
+		}
+
+		private void SetMinimumSDKLevelForGradle()
+		{
+			if (FacebookPluginEnabled)
+			{
+				MinimumSDKLevelForGradle = Math.Max(MinimumSDKLevelForGradle, 15);
+			}
+			if (ARCorePluginEnabled)
+			{
+				MinimumSDKLevelForGradle = Math.Max(MinimumSDKLevelForGradle, 19);
+			}
 		}
 
 		/// <summary>
@@ -1850,10 +1883,10 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (bGradleEnabled && MinSDKVersion < 13)
+			if (bGradleEnabled && MinSDKVersion < MinimumSDKLevelForGradle)
 			{
-				MinSDKVersion = 13;
-				Log.TraceInformation("Fixing minSdkVersion; AndroidPermission requires minSdkVersion of 13 with Gradle");
+				MinSDKVersion = MinimumSDKLevelForGradle;
+				Log.TraceInformation("Fixing minSdkVersion; requires minSdkVersion of {0} with Gradle based on active plugins", MinimumSDKLevelForGradle);
 			}
 
 			if (TargetSDKVersion < MinSDKVersion)
@@ -2572,6 +2605,8 @@ namespace UnrealBuildTool
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
 
+			SetMinimumSDKLevelForGradle();
+
 			// check for Gradle enabled for this project
 			bGradleEnabled = GradleEnabled();
 
@@ -3179,9 +3214,10 @@ namespace UnrealBuildTool
 					Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "TargetSDKVersion", out TargetSDKVersion);
 
 					// Make sure minSdkVersion is at least 13 (need this for appcompat-v13 used by AndroidPermissions)
-					if (MinSDKVersion < 13)
+					// this may be changed by active plugins (Google Play Services 11.0.4 needs 14 for example)
+					if (MinSDKVersion < MinimumSDKLevelForGradle)
 					{
-						MinSDKVersion = 13;
+						MinSDKVersion = MinimumSDKLevelForGradle;
 					}
 					if (TargetSDKVersion < MinSDKVersion)
 					{

@@ -47,7 +47,7 @@
 
 	<!-- AAR dependencies -->
 	<AARImports>
-		<insertValue value="com.google.android.gms,play-services-analytics,9.8.0" />
+		<insertValue value="com.google.android.gms,play-services-analytics,11.0.4" />
 		<insertNewline/>
 	</AARImports>
 	
