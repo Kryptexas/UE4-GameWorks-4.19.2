@@ -1411,6 +1411,10 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	MinLOD = 0;
 
 	bSupportUniformlyDistributedSampling = false;
+
+	// NvFlex begin
+	//FlexAsset_DEPRECATED = nullptr;
+	// NvFlex end
 }
 
 void UStaticMesh::PostInitProperties()

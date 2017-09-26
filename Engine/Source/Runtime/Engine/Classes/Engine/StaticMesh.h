@@ -623,8 +623,11 @@ public:
 
 	// NvFlex begin
     /** Properties for the associated Flex object */
-    UPROPERTY(EditAnywhere, Instanced, Category = Flex)
-    class UFlexAsset* FlexAsset;
+	//UPROPERTY()
+	//class UFlexAsset* FlexAsset_DEPRECATED;
+	UPROPERTY(EditAnywhere, Instanced, Category = Flex)
+	class UFlexAsset* FlexAsset;
+
 	// NvFlex end
 
 public:
@@ -654,7 +657,7 @@ public:
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	ENGINE_API virtual bool CanBeClusterRoot() const override;
 	
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);					   
+	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	//~ End UObject Interface.
 
@@ -779,10 +782,10 @@ public:
 	int32 GetNumSectionsWithCollision() const;
 
 	//~ Begin IInterface_AssetUserData Interface
-	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
-	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
+	ENGINE_API virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	ENGINE_API virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
 	//~ End IInterface_AssetUserData Interface
 
 

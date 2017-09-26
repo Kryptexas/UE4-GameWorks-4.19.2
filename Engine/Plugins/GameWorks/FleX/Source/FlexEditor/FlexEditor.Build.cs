@@ -36,10 +36,13 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"AdvancedPreviewScene",
+                    "Engine",
+                    "AdvancedPreviewScene",
+                    "SlateCore",
+                    "Slate",
 					// ... add private dependencies that you statically link with here ...
 				}
-				);
+                );
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[]

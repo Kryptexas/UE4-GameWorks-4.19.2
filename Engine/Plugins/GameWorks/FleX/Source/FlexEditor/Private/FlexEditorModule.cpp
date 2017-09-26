@@ -9,6 +9,8 @@
 #include "AssetTypeActions_FlexContainer.h"
 #include "AssetTypeActions_FlexFluidSurface.h"
 
+#include "ContentBrowserExtensions/ContentBrowserExtensions.h"
+
 
 class FFlexEditorModule : public IFlexEditorModule
 {
@@ -38,11 +40,21 @@ void FFlexEditorModule::StartupModule()
 
 	AssetTools.RegisterAssetTypeActions(FlexContainerAssetActions.ToSharedRef());
 	AssetTools.RegisterAssetTypeActions(FlexFluidAssetActions.ToSharedRef());
+
+	if (!IsRunningCommandlet())
+	{
+		FFlexContentBrowserExtensions::InstallHooks();
+	}
 }
 
 
 void FFlexEditorModule::ShutdownModule()
 {
+	if (UObjectInitialized())
+	{
+		FFlexContentBrowserExtensions::RemoveHooks();
+	}
+
 	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
 	{
 		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
