@@ -675,12 +675,11 @@ void FVulkanDevice::Destroy()
 	delete ComputeQueue;
 	delete GfxQueue;
 
-	FenceManager.Deinit();
-
-	MemoryManager.Deinit();
-
 	FRHIResource::FlushPendingDeletes();
 	DeferredDeletionQueue.Clear();
+
+	FenceManager.Deinit();
+	MemoryManager.Deinit();
 
 	VulkanRHI::vkDestroyDevice(Device, nullptr);
 	Device = VK_NULL_HANDLE;

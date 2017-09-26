@@ -7,6 +7,19 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanMemory.h"
 #include "Misc/OutputDeviceRedirector.h"
+#include "HAL/PlatformStackWalk.h"
+
+#if VULKAN_MEMORY_TRACK_CALLSTACK
+static FCriticalSection GStackTraceMutex;
+static char GStackTrace[65536];
+static void CaptureCallStack(FString& OutCallstack)
+{
+	FScopeLock ScopeLock(&GStackTraceMutex);
+	GStackTrace[0] = 0;
+	FPlatformStackWalk::StackWalkAndDump(GStackTrace, 65535, 3);
+	OutCallstack = ANSI_TO_TCHAR(GStackTrace);
+}
+#endif
 
 namespace VulkanRHI
 {
@@ -101,13 +114,13 @@ namespace VulkanRHI
 	{
 		for (int32 Index = 0; Index < HeapInfos.Num(); ++Index)
 		{
-			UE_CLOG(HeapInfos[Index].Allocations.Num() == 0, LogVulkanRHI, Warning, TEXT("Found %d unfreed allocations!"), HeapInfos[Index].Allocations.Num());
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			if (HeapInfos[Index].Allocations.Num())
 			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Found %d unfreed allocations!"), HeapInfos[Index].Allocations.Num());
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 				DumpMemory();
-			}
 #endif
+			}
 		}
 		NumAllocations = 0;
 	}
@@ -132,11 +145,14 @@ namespace VulkanRHI
 		NewAllocation->bCanBeMapped = ((MemoryProperties.memoryTypes[MemoryTypeIndex].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 		NewAllocation->bIsCoherent = ((MemoryProperties.memoryTypes[MemoryTypeIndex].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		NewAllocation->bIsCached = ((MemoryProperties.memoryTypes[MemoryTypeIndex].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-#if VULKAN_TRACK_MEMORY_USAGE
+#if VULKAN_MEMORY_TRACK_FILE_LINE
 		NewAllocation->File = File;
 		NewAllocation->Line = Line;
 		static uint32 ID = 0;
 		NewAllocation->UID = ++ID;
+#endif
+#if VULKAN_MEMORY_TRACK_CALLSTACK
+		CaptureCallStack(NewAllocation->Callstack);
 #endif
 		++NumAllocations;
 		PeakNumAllocations = FMath::Max(NumAllocations, PeakNumAllocations);
@@ -193,7 +209,7 @@ namespace VulkanRHI
 			for (int32 SubIndex = 0; SubIndex < HeapInfo.Allocations.Num(); ++SubIndex)
 			{
 				FDeviceMemoryAllocation* Allocation = HeapInfo.Allocations[SubIndex];
-#if VULKAN_TRACK_MEMORY_USAGE
+#if VULKAN_MEMORY_TRACK_FILE_LINE
 				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d Size %d Handle %p ID %d %s(%d)"), SubIndex, Allocation->Size, (void*)Allocation->Handle, Allocation->UID, ANSI_TO_TCHAR(Allocation->File), Allocation->Line);
 #else
 				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d Size %d Handle %p"), SubIndex, Allocation->Size, (void*)Allocation->Handle);
@@ -302,11 +318,14 @@ namespace VulkanRHI
 		, RequestedSize(InRequestedSize)
 		, AlignedOffset(InAlignedOffset)
 		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
-#if VULKAN_TRACK_MEMORY_USAGE
+#if VULKAN_MEMORY_TRACK_FILE_LINE
 		, File(InFile)
 		, Line(InLine)
 #endif
 	{
+#if VULKAN_MEMORY_TRACK_CALLSTACK
+		CaptureCallStack(Callstack);
+#endif
 		//UE_LOG(LogVulkanRHI, Display, TEXT("*** OldResourceAlloc HeapType %d PageID %d Handle %p Offset %d Size %d @ %s %d"), InOwner->GetOwner()->GetMemoryTypeIndex(), InOwner->GetID(), InDeviceMemoryAllocation->GetHandle(), InAllocationOffset, InAllocationSize, ANSI_TO_TCHAR(InFile), InLine);
 	}
 
@@ -459,28 +478,35 @@ namespace VulkanRHI
 		ReleaseFreedPages(true);
 		auto DeletePages = [&](TArray<FOldResourceHeapPage*>& UsedPages, const TCHAR* Name)
 		{
+			bool bLeak = false;
 			for (int32 Index = UsedPages.Num() - 1; Index >= 0; --Index)
 			{
 				FOldResourceHeapPage* Page = UsedPages[Index];
-				if (Page->JoinFreeBlocks())
+				if (!Page->JoinFreeBlocks())
 				{
-					Owner->GetParent()->GetMemoryManager().Free(Page->DeviceMemoryAllocation);
-					delete Page;
+					UE_LOG(LogVulkanRHI, Warning, TEXT("Page allocation %p has unfreed %s resources"), (void*)Page->DeviceMemoryAllocation->GetHandle(), Name);
+					bLeak = true;
 				}
-				else
-				{
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-					Owner->GetParent()->GetMemoryManager().DumpMemory();
-					Owner->GetParent()->GetResourceHeapManager().DumpMemory();
-					GLog->Flush();
-#endif
-				}
+
+				Owner->GetParent()->GetMemoryManager().Free(Page->DeviceMemoryAllocation);
+				delete Page;
 			}
 
-			UE_CLOG(UsedPages.Num() == 0, LogVulkanRHI, Warning, TEXT("Memory leak detected on %s resource heap!"), Name);
+			UsedPages.Reset(0);
+
+			return bLeak;
 		};
-		DeletePages(UsedBufferPages, TEXT("Buffer"));
-		DeletePages(UsedImagePages, TEXT("Image"));
+		bool bDump = false;
+		bDump = bDump || DeletePages(UsedBufferPages, TEXT("Buffer"));
+		bDump = bDump || DeletePages(UsedImagePages, TEXT("Image"));
+		if (bDump)
+		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			Owner->GetParent()->GetMemoryManager().DumpMemory();
+			Owner->GetParent()->GetResourceHeapManager().DumpMemory();
+			GLog->Flush();
+#endif
+		}
 
 		for (int32 Index = 0; Index < FreePages.Num(); ++Index)
 		{
@@ -777,16 +803,14 @@ namespace VulkanRHI
 		for (int32 Index = UsedBufferAllocations.Num() - 1; Index >= 0; --Index)
 		{
 			FBufferAllocation* BufferAllocation = UsedBufferAllocations[Index];
-			if (BufferAllocation->JoinFreeBlocks())
+			if (!BufferAllocation->JoinFreeBlocks())
 			{
-				BufferAllocation->Destroy(GetParent());
-				GetParent()->GetMemoryManager().Free(BufferAllocation->MemoryAllocation);
-				delete BufferAllocation;
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Suballocation(s) for Buffer %p were not released."), (void*)BufferAllocation->Buffer);
 			}
-			else
-			{
-				UE_LOG(LogVulkanRHI, Warning, TEXT("Buffer allocation(s) were not freed; this will cause a memory leak."));
-			}
+
+			BufferAllocation->Destroy(GetParent());
+			GetParent()->GetMemoryManager().Free(BufferAllocation->MemoryAllocation);
+			delete BufferAllocation;
 		}
 		UsedBufferAllocations.Empty(0);
 
@@ -1078,9 +1102,12 @@ namespace VulkanRHI
 				UsedSize += AllocatedSize;
 
 				FResourceSuballocation* NewSuballocation = CreateSubAllocation(InSize, AlignedOffset, AllocatedSize, AllocatedOffset);
-#if VULKAN_TRACK_MEMORY_USAGE
+#if VULKAN_MEMORY_TRACK_FILE_LINE
 				NewSuballocation->File = File;
 				NewSuballocation->Line = Line;
+#endif
+#if VULKAN_MEMORY_TRACK_CALLSTACK
+				CaptureCallStack(NewSuballocation->Callstack);
 #endif
 				Suballocations.Add(NewSuballocation);
 
