@@ -113,7 +113,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 	};
 
 	const void* ContainerAddress = Object;
-	const UStruct* ContainerStruct = Object->GetClass();
+	const UStruct* ContainerStruct = (Object ? Object->GetClass() : nullptr);
 
 	FPropertyPath Ret;
 	for( int32 I = 0; I < PropertyChain.Num(); ++I )

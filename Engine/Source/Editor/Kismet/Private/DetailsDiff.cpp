@@ -72,8 +72,6 @@ void FDetailsDiff::DiffAgainst(const FDetailsDiff& Newer, TArray< FSingleObjectD
 	const auto& OldSelectedObjects = OldDetailsView->GetSelectedObjects();
 	const auto& NewSelectedObjects = NewDetailsView->GetSelectedObjects();
 
-	check(OldSelectedObjects.Num() == 1);
-
 	auto OldProperties = OldDetailsView->GetPropertiesInOrderDisplayed();
 	auto NewProperties = NewDetailsView->GetPropertiesInOrderDisplayed();
 
