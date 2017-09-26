@@ -77,7 +77,7 @@ static FCriticalSection	FailDebugCriticalSection;
 	#define CALLSTACK_IGNOREDEPTH 2
 #endif // PLATFORM_LINUX
 
-void PrintScriptCallstack(bool bEmptyWhenDone)
+void InternalPrintScriptCallstack(bool bEmptyWhenDone)
 {
 #if DO_BLUEPRINT_GUARD
 	// Walk the script stack, if any
@@ -98,6 +98,11 @@ void PrintScriptCallstack(bool bEmptyWhenDone)
 		}
 	}
 #endif
+}
+
+void PrintScriptCallstack()
+{
+	InternalPrintScriptCallstack(false);
 }
 
 /**
@@ -210,6 +215,9 @@ void FDebug::LogFormattedMessageWithCallstack(const FName& LogName, const ANSICH
 
 VARARG_BODY(void, FDebug::LogAssertFailedMessage, const TCHAR*, VARARG_EXTRA(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line))
 {
+	// Print out the blueprint callstack
+	InternalPrintScriptCallstack(true);
+
 	// Ignore this assert if we're already forcibly shutting down because of a critical error.
 	if( !GIsCriticalError )
 	{
@@ -252,7 +260,7 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 	}
 
 	// Print out the blueprint callstack
-	PrintScriptCallstack(false);
+	InternalPrintScriptCallstack(false);
 
 	// Print initial debug message for this error
 	TCHAR ErrorString[MAX_SPRINTF];
