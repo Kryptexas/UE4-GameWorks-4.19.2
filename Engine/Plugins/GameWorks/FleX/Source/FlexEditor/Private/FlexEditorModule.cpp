@@ -10,7 +10,21 @@
 #include "AssetTypeActions_FlexFluidSurface.h"
 
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
+#include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
 
+#include "ObjectTools.h"
+
+#include "Engine/StaticMesh.h"
+#include "Misc/CoreDelegates.h"
+#include "FlexStaticMesh.h"
+#include "FlexAsset.h"
+
+#include "Misc/MessageDialog.h"
+
+
+DECLARE_LOG_CATEGORY_EXTERN(LogFlexEditor, Log, All);
+DEFINE_LOG_CATEGORY(LogFlexEditor);
 
 class FFlexEditorModule : public IFlexEditorModule
 {
@@ -18,6 +32,8 @@ public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+
+	void OnFilesLoaded();
 
 private:
 	TSharedPtr<IAssetTypeActions>	FlexContainerAssetActions;
@@ -44,6 +60,9 @@ void FFlexEditorModule::StartupModule()
 	if (!IsRunningCommandlet())
 	{
 		FFlexContentBrowserExtensions::InstallHooks();
+
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().OnFilesLoaded().AddRaw(this, &FFlexEditorModule::OnFilesLoaded);
 	}
 }
 
@@ -52,6 +71,9 @@ void FFlexEditorModule::ShutdownModule()
 {
 	if (UObjectInitialized())
 	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().OnFilesLoaded().RemoveAll(this);
+
 		FFlexContentBrowserExtensions::RemoveHooks();
 	}
 
@@ -71,4 +93,74 @@ void FFlexEditorModule::ShutdownModule()
 
 	delete GFlexEditorPluginBridge;
 	GFlexEditorPluginBridge = nullptr;
+}
+
+void FFlexEditorModule::OnFilesLoaded()
+{
+	UE_LOG(LogFlexEditor, Log, TEXT("FFlexEditorModule::OnFilesLoaded() ProjectFilePath = '%s'"), *FPaths::GetProjectFilePath());
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+	TArray<FAssetData> AssetData;
+	FARFilter Filter;
+	Filter.ClassNames.Add(UStaticMesh::StaticClass()->GetFName());
+	Filter.PackagePaths.Add("/Game");
+	Filter.bRecursivePaths = true;
+	if (AssetRegistryModule.Get().GetAssets(Filter, AssetData) && AssetData.Num() > 0)
+	{
+		UE_LOG(LogFlexEditor, Log, TEXT("StaticMesh asset list:"));
+
+
+		TArray<UStaticMesh*> StaticMeshesToConvert;
+
+		for (auto AssetIt = AssetData.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& Asset = *AssetIt;
+
+			UE_LOG(LogFlexEditor, Log, TEXT("Asset %s %s %s"), *Asset.AssetClass.ToString(), *Asset.AssetName.ToString(), *Asset.PackageName.ToString());
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset.GetAsset());
+			if (StaticMesh->FlexAsset)
+			{
+				StaticMeshesToConvert.Add(StaticMesh);
+			}
+		}
+
+		const FText Message = FText::Format(NSLOCTEXT("FlexEditorPlugin", "Convert Static Mesh Assets", "Found {0} non-plugin Flex Static Mesh Assets. Would you like to convert them to use with Flex plugin?"), FText::AsNumber(StaticMeshesToConvert.Num()));
+		EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::YesNo, Message);
+		if (Response == EAppReturnType::Yes)
+		{
+			for (auto StaticMeshIt = StaticMeshesToConvert.CreateConstIterator(); StaticMeshIt; ++StaticMeshIt)
+			{
+				UStaticMesh* StaticMesh = *StaticMeshIt;
+
+				UPackage* Package = StaticMesh->GetOutermost();
+				const FString PackageName = Package->GetFName().ToString();
+				const FString ObjectName = StaticMesh->GetFName().ToString();
+
+
+				ObjectTools::FPackageGroupName PGN;
+				PGN.GroupName = TEXT("");
+				AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT("_OLD"), /*out*/ PGN.PackageName, /*out*/ PGN.ObjectName);
+
+				TSet<UPackage*> ObjectsUserRefusedToFullyLoad;
+				FText ErrorMessage;
+				if (ObjectTools::RenameSingleObject(StaticMesh, PGN, ObjectsUserRefusedToFullyLoad, ErrorMessage, NULL, false))
+				{
+					UFlexStaticMesh* FSM = Cast<UFlexStaticMesh>(StaticDuplicateObject(StaticMesh, Package, *ObjectName, RF_AllFlags, UFlexStaticMesh::StaticClass()));
+					if (FSM)
+					{
+						//Package->MarkPackageDirty();
+
+						// Notify the asset registry
+						//FAssetRegistryModule::AssetCreated(FSM);
+
+						TArray<UObject*> ObjectsToConsolidate;
+						ObjectsToConsolidate.Add(StaticMesh);
+						ObjectTools::ConsolidateObjects(FSM, ObjectsToConsolidate, false);
+					}
+				}
+			}
+		}
+	}
 }

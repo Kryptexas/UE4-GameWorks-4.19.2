@@ -40,6 +40,8 @@ namespace UnrealBuildTool.Rules
                     "AdvancedPreviewScene",
                     "SlateCore",
                     "Slate",
+                    "AssetRegistry",
+                    "UnrealEd",
 					// ... add private dependencies that you statically link with here ...
 				}
                 );
