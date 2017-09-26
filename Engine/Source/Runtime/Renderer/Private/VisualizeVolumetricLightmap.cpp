@@ -128,7 +128,7 @@ public:
 
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
-		FLinearColor DiffuseColorValue(FLinearColor::White);
+		FLinearColor DiffuseColorValue(.18f, .18f, .18f);
 
 		if (!View.Family->EngineShowFlags.Materials)
 		{
