@@ -215,14 +215,11 @@ void FDebug::LogFormattedMessageWithCallstack(const FName& LogName, const ANSICH
 
 VARARG_BODY(void, FDebug::LogAssertFailedMessage, const TCHAR*, VARARG_EXTRA(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line))
 {
-	// Print out the blueprint callstack
-	InternalPrintScriptCallstack(true);
-
 	// Ignore this assert if we're already forcibly shutting down because of a critical error.
 	if( !GIsCriticalError )
 	{
 		// Print out the blueprint callstack
-		PrintScriptCallstack(true);
+		InternalPrintScriptCallstack(true);
 
 		TCHAR DescriptionString[4096];
 		GET_VARARGS( DescriptionString, ARRAY_COUNT( DescriptionString ), ARRAY_COUNT( DescriptionString ) - 1, Fmt, Fmt );
