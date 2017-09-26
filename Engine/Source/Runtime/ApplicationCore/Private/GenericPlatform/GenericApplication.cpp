@@ -133,6 +133,19 @@ struct FSafeZoneConsoleVariables
 
 FSafeZoneConsoleVariables GSafeZoneConsoleVariables;
 
+FPlatformRect FDisplayMetrics::GetMonitorRectFromPoint(const FVector2D& Point) const
+{
+	for (const FMonitorInfo& Info : MonitorInfo)
+	{
+		if (Point.X >= Info.WorkArea.Left && Point.X <= Info.WorkArea.Right && Point.Y >= Info.WorkArea.Top && Point.Y <= Info.WorkArea.Bottom)
+		{
+			return Info.WorkArea;
+		}
+	}
+
+	return FPlatformRect(0, 0, 0, 0);
+}
+
 float FDisplayMetrics::GetDebugTitleSafeZoneRatio()
 {
 	return GDebugSafeZoneRatio;
