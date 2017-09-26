@@ -2773,7 +2773,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 			private void replaceSubstring(String newString)
 			{
-				//Log.debug("VK: replaceSubstring");
 				StringBuffer text = new StringBuffer(owner.getText().toString());
 				int selStart, selEnd;
  
@@ -2782,6 +2781,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
  
 				selStart = Math.min(a, b);
 				selEnd = Math.max(a, b);
+				//Log.debug("VK: replaceSubstring selStart=" + selStart + " selEnd="+selEnd + " text="+text);
 
 				if (selStart != selEnd) 
 				{
@@ -2793,17 +2793,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					//insert
 					text.insert(selStart, newString);
 				} 
-				else 
+				else if(selStart > 0) 
 				{ 
-					//delete
-					if(selStart > 0)
-					{
-						selStart--;
-						text.replace(selStart, selStart + 1, "");
-					}
+					//delete last character
+					selStart--;
+					text.replace(selStart, selStart + 1, "");
+				} 
+
+				if(newString.length() == 0)
+				{
 					//#jira UE-48948 Crash when pressing backspace on empty line 
 					selStart--;
-				} 
+				}
 				//#jira UE-49120 Virtual keyboard number pad "kicks" user back to regular keyboard
 				owner.getText().clear();
 				owner.append(text.toString());
@@ -2921,11 +2922,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			public void onTextChanged(CharSequence charSequence, int start, int before, int count) 
 			{
 				//send to the associated Slate control
-				Log.debug("VK onTextChanged");
+				//Log.debug("VK onTextChanged " + charSequence);
+
+				//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
 				if(newVirtualKeyboardInput.getY() > 0)
 				{
-					String message = newVirtualKeyboardInput.getText().toString();
-					nativeVirtualKeyboardChanged(message);
+					//try to avoid "false empty string" events
+					//delay the "set empty string" event and wait for a second call
+					if(charSequence.length() == 0)
+					{
+						virtualKeyboardHandler.postDelayed(new Runnable()
+						{
+							public void run()
+							{
+								String message = newVirtualKeyboardInput.getText().toString();
+								nativeVirtualKeyboardChanged(message);
+							}
+						}, 100);
+					}
+					else
+					{
+						String message = newVirtualKeyboardInput.getText().toString();
+						nativeVirtualKeyboardChanged(message);
+					}
 				}
 			}
 		});
