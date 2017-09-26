@@ -95,12 +95,12 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 	bool bUpdateAllInstances = UpdateInstanceIndexCount == InComponent->PerInstanceSMData.Num();
 	bool bUseRemapTable = InComponent->InstanceReorderTable.Num() > 0;
 
-	int32 NumRenderInstances = InComponent->PerInstanceSMData.Num() + InComponent->RemovedInstances.Num();
-
-	NumInstances = NumRenderInstances;
+	int32 NumRenderInstances = InComponent->PerInstanceSMData.Num() - InComponent->RemovedInstances.Num();
 
 	// Allocate the vertex data storage type.
-	InstanceData->AllocateInstances(NumInstances, false);
+	InstanceData->AllocateInstances(NumRenderInstances, false);
+
+	NumInstances = InstanceData->NumInstances();
 
 	const FMeshMapBuildData* MeshMapBuildData = NULL;
 
@@ -121,6 +121,20 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 				DestInstanceIndex = InComponent->InstanceReorderTable.IsValidIndex(InstanceIndex) ? InComponent->InstanceReorderTable[InstanceIndex] : INDEX_NONE;
 			}
 
+			if (DestInstanceIndex == INDEX_NONE)
+			{
+				DestInstanceIndex = InstanceData->GetNextAvailableInstanceIndex();
+				InComponent->InstanceReorderTable.Add(DestInstanceIndex);
+				check(DestInstanceIndex != INDEX_NONE);
+			}
+			else
+			{
+				if (InComponent->RemovedInstances.Contains(DestInstanceIndex))
+				{
+					continue;
+				}
+			}
+
 			if (DestInstanceIndex != INDEX_NONE && InstanceData->IsValidIndex(DestInstanceIndex))
 			{
 				FVector2D LightmapUVBias = Instance.LightmapUVBias_DEPRECATED;
@@ -134,6 +148,22 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 
 				InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), LightmapUVBias, ShadowmapUVBias);
 
+				#if WITH_EDITOR
+					if (GIsEditor)
+					{
+						// Record if the instance is selected
+						FColor HitProxyColor(ForceInit);
+						bool bSelected = InComponent->SelectedInstances.IsValidIndex(InstanceIndex) && InComponent->SelectedInstances[InstanceIndex];
+
+						if (InHitProxies.IsValidIndex(InstanceIndex))
+						{
+							HitProxyColor = InHitProxies[InstanceIndex]->Id.GetColor();
+						}
+
+						InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
+					}
+				#endif
+
 				if (!bUpdateAllInstances)
 				{
 					//TODO: to uncomment when RHI interface support proper vertex buffer partial update lock/unlock
@@ -141,10 +171,12 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 				}
 			}
 		}
+		else
+		{
+			InstanceData->NullifyInstance(InstanceIndex);
+		}
 	}
 
-	SetPerInstanceEditorData(InComponent, InHitProxies, UpdateInstanceStartingIndex, UpdateInstanceIndexCount);
-	
 	// Hide any removed instances
 	for (int32 Index = 0; Index < InComponent->RemovedInstances.Num(); Index++)
 	{
@@ -200,43 +232,6 @@ void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshCom
 	NumInstances = NewNumInstances;
 	RequireCPUAccess = InRequireCPUAccess;
 	SetupCPUAccess(InComponent);
-}
-
-void FStaticMeshInstanceBuffer::SetPerInstanceEditorData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy>>& InHitProxies, int32 UpdateInstanceStartingIndex, int32 UpdateInstanceIndexCount)
-{
-#if WITH_EDITOR
-	if (GIsEditor)
-	{
-		bool bUseRemapTable = InComponent->InstanceReorderTable.Num() > 0;
-		
-		for (int32 InstanceIndex = UpdateInstanceStartingIndex; InstanceIndex < UpdateInstanceStartingIndex + UpdateInstanceIndexCount; ++InstanceIndex)
-		{
-			if (InComponent->PerInstanceSMData.IsValidIndex(InstanceIndex))
-			{
-				int32 DestInstanceIndex = InstanceIndex;
-
-				if (bUseRemapTable)
-				{
-					DestInstanceIndex = InComponent->InstanceReorderTable.IsValidIndex(InstanceIndex) ? InComponent->InstanceReorderTable[InstanceIndex] : INDEX_NONE;
-				}
-
-				if (DestInstanceIndex != INDEX_NONE && InstanceData->IsValidIndex(DestInstanceIndex))
-				{
-					// Record if the instance is selected
-					FColor HitProxyColor(ForceInit);
-					bool bSelected = InComponent->SelectedInstances.IsValidIndex(InstanceIndex) && InComponent->SelectedInstances[InstanceIndex];
-
-					if (InHitProxies.IsValidIndex(InstanceIndex))
-					{
-						HitProxyColor = InHitProxies[InstanceIndex]->Id.GetColor();
-					}
-
-					InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
-				}
-			}
-		}
-	}
-#endif
 }
 
 /**
@@ -1068,7 +1063,7 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 		}
 
 		const bool bSupportsVertexHalfFloat = GVertexElementTypeSupport.IsSupported(VET_Half2);
-		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num(), bSupportsVertexHalfFloat);
+		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceRenderData->InstanceBuffer.GetNumInstances(), bSupportsVertexHalfFloat);
 		return ::new FInstancedStaticMeshSceneProxy(this, GetWorld()->FeatureLevel);
 	}
 	else
@@ -1460,7 +1455,7 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 
 		MeshBuildData.IrrelevantLights = PossiblyIrrelevantLights.Array();
 
-		PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());		
+		PerInstanceRenderData->UpdateAllInstanceData(this);
 	}
 }
 #endif
@@ -1538,6 +1533,11 @@ int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTrans
 	}
 #endif
 
+	if (!InstanceReorderTable.Contains(InstanceIdx))
+	{
+		InstanceReorderTable.Add(InstanceIdx);
+	}
+
 	if (PerInstanceRenderData.IsValid())
 	{
 		PerInstanceRenderData->UpdateInstanceData(this, InstanceIdx);
@@ -1567,6 +1567,24 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 	// Request navigation update
 	PartialNavigationUpdate(InstanceIndex);
 
+	// Save the render index
+	int32 RemovedRenderIndex = InstanceIndex;
+
+	if (InstanceReorderTable.Num() > 0)
+	{
+		RemovedRenderIndex = InstanceReorderTable[InstanceIndex];
+	}
+
+	if (RemovedRenderIndex != INDEX_NONE)
+	{
+		RemovedInstances.Add(RemovedRenderIndex);
+	}
+
+	if (PerInstanceRenderData.IsValid())
+	{
+		PerInstanceRenderData->RemoveInstanceData(this, InstanceIndex);
+	}
+
 	// remove instance
 	PerInstanceSMData.RemoveAt(InstanceIndex);
 
@@ -1586,9 +1604,9 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 		CreateAllInstanceBodies();
 	}
 		
-	if (PerInstanceRenderData.IsValid())
+	if (InstanceReorderTable.IsValidIndex(InstanceIndex))
 	{
-		PerInstanceRenderData->RemoveInstanceData(this, InstanceIndex);
+		InstanceReorderTable.RemoveAt(InstanceIndex);
 	}
 
 	// Indicate we need to update render state to reflect changes
@@ -1946,7 +1964,7 @@ void UInstancedStaticMeshComponent::PostLoad()
 			}
 			else
 			{
-				PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
+				PerInstanceRenderData->UpdateAllInstanceData(this);
 			}
 		}
 	}
@@ -1959,8 +1977,8 @@ void FAsyncBuildInstanceBuffer::DoWork()
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageAsyncBufferUpdate);
 
 	check(Component->PerInstanceRenderData.IsValid());
-	Component->PerInstanceRenderData->UpdateInstanceData(Component, 0, Component->PerInstanceSMData.Num());
-
+	Component->PerInstanceRenderData->UpdateAllInstanceData(Component);
+	
 	check(World);
 	check(World->AsyncPreRegisterLevelStreamingTasks.GetValue() > 0);
 	FPlatformMisc::MemoryBarrier();
@@ -2107,7 +2125,7 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 		{
 			if (PerInstanceRenderData.IsValid())
 			{
-				PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
+				PerInstanceRenderData->UpdateAllInstanceData(this);
 			}
 
 			PartialNavigationUpdate(-1);

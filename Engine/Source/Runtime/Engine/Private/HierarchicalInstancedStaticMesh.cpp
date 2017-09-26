@@ -1857,9 +1857,15 @@ void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 Ins
 		RemovedInstances.Add(RemovedRenderIndex);
 	}
 
+	if (PerInstanceRenderData.IsValid())
+	{
+		PerInstanceRenderData->RemoveInstanceData(this, InstanceIndex);
+	}
+
 	// Remove the instance
 	PerInstanceSMData.RemoveAtSwap(InstanceIndex);
 	InstanceReorderTable.RemoveAtSwap(InstanceIndex);
+
 #if WITH_EDITOR
 	if (SelectedInstances.Num())
 	{
@@ -1903,10 +1909,6 @@ void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 Ins
 		}
 	}
 
-	if (PerInstanceRenderData.IsValid())
-	{
-		PerInstanceRenderData->RemoveInstanceData(this, InstanceIndex);
-	}
 }
 
 bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int32>& InstancesToRemove)
@@ -2027,18 +2029,11 @@ int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& I
 
 	if (GetStaticMesh())
 	{
-		// Need to offset the newly added instance's RenderIndex by the amount that will be adjusted at the end of the frame
-		InstanceReorderTable.Add(GetNumRenderInstances());
-
 		const FBox NewInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(InstanceTransform);
 		UnbuiltInstanceBounds += NewInstanceBounds;
 		UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
 	}
 
-	if (PerInstanceRenderData.IsValid())
-	{
-		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex);
-	}
 
 	if (bAutoRebuildTreeOnInstanceChanges)
 	{
@@ -2196,7 +2191,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		}
 
 		// Resync RenderData with newly built cluster tree so we take into account the newly generated InstanceReorderTable generated from the cluster tree
-		PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num(), false);
+		PerInstanceRenderData->UpdateAllInstanceData(this, false);
 
 		MarkRenderStateDirty();
 
@@ -2361,7 +2356,7 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 			// Resync RenderData with newly built cluster tree so we take into account the newly generated InstanceReorderTable generated from the cluster tree
 			if (PerInstanceRenderData.IsValid())
 			{
-				PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num(), false);
+				PerInstanceRenderData->UpdateAllInstanceData(this, false);
 			}
 
 			MarkRenderStateDirty();
@@ -2450,7 +2445,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 
 		UE_LOG(LogStaticMesh, Verbose, TEXT("Copied %d transforms in %.3fs."), Num, float(FPlatformTime::Seconds() - StartTime));
 
-		TSharedRef<FClusterBuilder, ESPMode::ThreadSafe> Builder(new FClusterBuilder(InstanceTransforms, GetStaticMesh()->GetBounds().GetBox(), DesiredInstancesPerLeaf()));
+		TSharedRef<FClusterBuilder, ESPMode::ThreadSafe> Builder(new FClusterBuilder(InstanceTransforms, GetStaticMesh()->GetBounds().GetBox(), DesiredInstancesPerLeaf(), ExcludedDueToDensityScaling));
 
 		bIsAsyncBuilding = true;
 
@@ -2514,18 +2509,8 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 			InstancingRandomSeed = FMath::Rand();
 		}
 
-		const bool bSupportsVertexHalfFloat = GVertexElementTypeSupport.IsSupported(VET_Half2);
+		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceRenderData->InstanceBuffer.GetNumInstances(), GVertexElementTypeSupport.IsSupported(VET_Half2));
 		bool bIsGrass = !PerInstanceSMData.Num();
-
-		if (bIsGrass || bPerInstanceRenderDataWasPrebuilt)
-		{
-			ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceRenderData->InstanceBuffer.GetNumInstances(), bSupportsVertexHalfFloat);
-		}
-		else
-		{
-			ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num(), bSupportsVertexHalfFloat);
-		}
-
 		INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 		return ::new FHierarchicalStaticMeshSceneProxy(bIsGrass, this, GetWorld()->FeatureLevel);
 	}
