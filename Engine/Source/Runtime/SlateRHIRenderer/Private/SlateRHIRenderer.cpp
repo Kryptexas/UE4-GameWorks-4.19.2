@@ -272,12 +272,9 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 		}
 #endif
 
-		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-
 		// SDR format holds the requested format in non HDR mode
 		NewInfo->SDRPixelFormat = NewInfo->PixelFormat;
-
-		if (CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnGameThread() != 0)
+		if ( IsHDREnabled() )
 		{
 			NewInfo->PixelFormat = GRHIHDRDisplayOutputFormat;
 		}
@@ -300,11 +297,10 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 	checkSlow( IsThreadSafeForSlateRendering() );
 
 	// Force update if HDR output state changes
-	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 	static const auto CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
 	static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
 
-	bool bHDREnabled = GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
+	bool bHDREnabled = IsHDREnabled();
 	int32 HDRColorGamut = CVarHDRColorGamut ? CVarHDRColorGamut->GetValueOnAnyThread() : 0;
 	int32 HDROutputDevice = CVarHDROutputDevice ? CVarHDROutputDevice->GetValueOnAnyThread() : 0;
 
@@ -614,12 +610,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 		// Optional off-screen UI composition during HDR rendering
 		static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
-		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 
 		const bool bSupportsUIComposition = GRHISupportsHDROutput && GSupportsVolumeTextureRendering && SupportsUICompositionRendering(GetFeatureLevelShaderPlatform(GMaxRHIFeatureLevel));
 		const bool bCompositeUI = bSupportsUIComposition
 			&& CVarCompositeMode && CVarCompositeMode->GetValueOnRenderThread() != 0
-			&& CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+			&& IsHDREnabled();
 
 		const int32 CompositionLUTSize = 32;
 

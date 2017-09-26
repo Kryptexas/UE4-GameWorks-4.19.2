@@ -277,3 +277,19 @@ RENDERCORE_API int32 GetCVarForceLODShadow()
 
 	return Ret;
 }
+
+RENDERCORE_API bool IsHDREnabled()
+{
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	if (CVarHDROutputEnabled)
+	{
+		if (CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
