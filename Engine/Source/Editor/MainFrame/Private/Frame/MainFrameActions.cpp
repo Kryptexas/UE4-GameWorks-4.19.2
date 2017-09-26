@@ -653,11 +653,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -nodebuginfo");
 	}
 
-	if (PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
-	{
-		OptionalParams += TEXT(" -nativizeAssets");
-	}
-
 	if (PackagingSettings->bGenerateChunks)
 	{
 		OptionalParams += TEXT(" -manifests");

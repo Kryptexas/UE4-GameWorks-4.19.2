@@ -118,9 +118,9 @@ public:
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Blueprints, meta = (DisplayName = "List of Blueprint assets to nativize", RelativeToGameContentDir, LongPackageName))
 	TArray<FFilePath> NativizeBlueprintAssets;
 
-	/** If enabled, a warning will be emitted at build/cook time if nativization is turned on in the Project Settings, but the nativization flag was omitted from the command line. */
-	UPROPERTY(config, EditAnywhere, Category = Blueprints)
-	bool bWarnIfPackagedWithoutNativizationFlag;
+	/** If enabled, the nativized assets code plugin will be added to the Visual Studio solution if it exists when regenerating the game project. Intended primarily to assist with debugging the target platform after cooking with nativization turned on. */
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Blueprints)
+	bool bIncludeNativizedAssetsInProjectGeneration;
 
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)

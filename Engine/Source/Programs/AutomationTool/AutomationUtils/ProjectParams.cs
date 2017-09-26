@@ -693,7 +693,18 @@ namespace AutomationTool
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, new string[] {"iterativedeploy", "iterate" } );
 			this.FastCook = GetParamValueIfNotSpecified(Command, FastCook, this.FastCook, "FastCook");
 			this.IgnoreCookErrors = GetParamValueIfNotSpecified(Command, IgnoreCookErrors, this.IgnoreCookErrors, "IgnoreCookErrors");
-            this.RunAssetNativization = GetParamValueIfNotSpecified(Command, RunAssetNativization, this.RunAssetNativization, "nativizeAssets");
+
+            // Determine whether or not we're going to nativize Blueprint assets at cook time.
+            this.RunAssetNativization = false;
+            ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, RawProjectPath.Directory, HostPlatform.Current.HostEditorPlatform);
+            if (GameIni != null)
+            {
+                string BlueprintNativizationMethod;
+                if (GameIni.TryGetValue("/Script/UnrealEd.ProjectPackagingSettings", "BlueprintNativizationMethod", out BlueprintNativizationMethod))
+                {
+                    this.RunAssetNativization = !string.IsNullOrEmpty(BlueprintNativizationMethod) && BlueprintNativizationMethod != "Disabled";
+                }
+            }
 
             string DeviceString = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
             if(DeviceString == "")
@@ -1160,18 +1171,7 @@ namespace AutomationTool
         /// <summary>
         /// Determines if Blueprint assets should be substituted with auto-generated code.
         /// </summary>
-        [Help("nativizeAssets", "Runs a \"nativization\" pass on Blueprint assets, converting then into C++ (replacing the assets with the generated source).")]
         public bool RunAssetNativization;
-
-        public struct BlueprintPluginKey
-        {
-            public bool Client;
-            public UnrealTargetPlatform TargetPlatform;
-        }
-        /// <summary>
-        /// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
-        /// </summary>
-        public Dictionary<BlueprintPluginKey, FileReference> BlueprintPluginPaths = new Dictionary<BlueprintPluginKey, FileReference>();
 
         #endregion
 

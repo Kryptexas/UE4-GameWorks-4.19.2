@@ -676,9 +676,6 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	FString CreateReleaseVersion;
 	FParse::Value( *Params, TEXT("CreateReleaseVersion="), CreateReleaseVersion);
 
-	FString NativizedPluginPath;
-	FParse::Value(*Params, TEXT("NativizeAssets="), NativizedPluginPath);
-
 	FString OutputDirectoryOverride;
 	FParse::Value( *Params, TEXT("OutputDir="), OutputDirectoryOverride);
 
@@ -853,8 +850,6 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	StartupOptions.ChildCookFileName = ChildCookFile;
 	StartupOptions.ChildCookIdentifier = ChildCookIdentifier;
 	StartupOptions.NumProcesses = NumProcesses;
-	StartupOptions.bNativizeAssets = !NativizedPluginPath.IsEmpty() || Switches.Contains(TEXT("NativizeAssets"));
-	Swap( StartupOptions.NativizedPluginPath, NativizedPluginPath );
 
 	COOK_STAT(
 	{

@@ -27,10 +27,6 @@ struct FNativeCodeGenInitData
 	// Optional Manifest ManifestIdentifier, used for child cook processes that need a unique manifest name.
 	// The identifier is used to make a unique name for each platform that is converted.
 	int32 ManifestIdentifier;
-
-	// Optional, desired .uplugin file path for the nativized plugin (used so people can manually coordinate 
-	// cook/build processes).
-	FString DestPluginPath;
 };
 
 /** 

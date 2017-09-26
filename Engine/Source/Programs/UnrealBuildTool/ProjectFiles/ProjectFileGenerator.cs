@@ -1083,27 +1083,30 @@ namespace UnrealBuildTool
 				EngineProject.AddFilesToProject(SourceFileSearch.FindFiles(UHTConfigDirectory), UnrealBuildTool.EngineDirectory);
 			}
 		}
+
+        /// <summary>
+        /// Finds any additional plugin files.
+        /// </summary>
+        /// <returns>List of additional plugin files</returns>
 		private List<FileReference> DiscoverExtraPlugins(List<FileReference> AllGameProjects)
 		{
 			List<FileReference> AddedPlugins = new List<FileReference>();
-			foreach (FileReference GameProject in AllGameProjects)
+
+            foreach (FileReference GameProject in AllGameProjects)
 			{
-				ProjectDescriptor ProjectDesc = ProjectDescriptor.FromFile(GameProject);
-				if (ProjectDesc.AdditionalPluginDirectories != null)
-				{
-					foreach (string AdditionalPluginDirectory in ProjectDesc.AdditionalPluginDirectories)
-					{
-						// @TODO: Right now, we're only including additional plugins that are still inside a game directory.
-						//        This is so FindProjectForModule() succeeds in matching up a project with the plugin. If 
-						//        the plugin is outside of a game directory, then we'll need to add special handling to AddProjectsForAllModules()
-						//        and generate a standalone project, since multiple games could share the same plugin
-						DirectoryReference PluginDir = DirectoryReference.Combine(GameProject.Directory, AdditionalPluginDirectory);
-						if (PluginDir.IsUnderDirectory(GameProject.Directory))
-						{
-							AddedPlugins.AddRange(Plugins.EnumeratePlugins(PluginDir));
-						}
-					}
-				}
+                // Check the user preference to see if they'd like to include nativized assets as a generated project.
+                bool bIncludeNativizedAssets = false;
+                ConfigHierarchy Config = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, GameProject.Directory, BuildHostPlatform.Current.Platform);
+                if (Config != null)
+                {
+                    Config.TryGetValue("/Script/UnrealEd.ProjectPackagingSettings", "bIncludeNativizedAssetsInProjectGeneration", out bIncludeNativizedAssets);
+                }
+
+                // Note: Whether or not we include nativized assets here has no bearing on whether or not they actually get built.
+                if (bIncludeNativizedAssets)
+                {
+                    AddedPlugins.AddRange(Plugins.EnumeratePlugins(DirectoryReference.Combine(GameProject.Directory, "Intermediate", "Plugins")).Where(x => x.GetFileNameWithoutExtension() == "NativizedAssets"));
+                }
 			}
 			return AddedPlugins;
 		}

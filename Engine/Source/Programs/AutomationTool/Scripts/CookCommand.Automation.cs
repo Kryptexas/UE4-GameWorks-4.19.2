@@ -21,31 +21,6 @@ public partial class Project : CommandUtils
 {
     #region Cook Command
 
-    static string AddBlueprintPluginPathArgument(ProjectParams Params, bool Client, UnrealTargetPlatform TargetPlatform, string PlatformToCook)
-    {
-        string PluginPath = "";
-
-        if (Params.RunAssetNativization)
-        {
-            // if you change or remove this placeholder value, then you should reflect those changes in the CookCommandlet (in 
-            // BlueprintNativeCodeGenManifest.cpp - where it searches and replaces this value)
-            string PlatformPlaceholderPattern = "<PLAT>";
-
-            string ProjectDir = Params.RawProjectPath.Directory.ToString();
-            // NOTE: in UProjectPackagingSettings::PostEditChangeProperty() there is a hardcoded file path/name that is set to match this; 
-            //       if you alter this path then you need to update that and likely FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths() as well
-            PluginPath = CombinePaths(ProjectDir, "Intermediate", "Plugins", PlatformPlaceholderPattern, "NativizedAssets", "NativizedAssets.uplugin");
-
-            ProjectParams.BlueprintPluginKey PluginKey = new ProjectParams.BlueprintPluginKey();
-            PluginKey.Client = Client;
-            PluginKey.TargetPlatform = TargetPlatform;
-
-            Params.BlueprintPluginPaths.Add(PluginKey, new FileReference(PluginPath.Replace(PlatformPlaceholderPattern, PlatformToCook)));
-        }
-        return PluginPath;
-    }
-
-
     public static void Cook(ProjectParams Params)
 	{
 		if ((!Params.Cook && !(Params.CookOnTheFly && !Params.SkipServer)) || Params.SkipCook)
@@ -106,8 +81,6 @@ public partial class Project : CommandUtils
 		}
 		else
 		{
-            string NativizedPluginPath = "";
-
             var PlatformsToCook = new HashSet<string>();
             if (!Params.NoClient)
 			{
@@ -117,7 +90,6 @@ public partial class Project : CommandUtils
 					var DataPlatformDesc = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
                     string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(false, Params.Client);
                     PlatformsToCook.Add(PlatformToCook);
-                    NativizedPluginPath = AddBlueprintPluginPathArgument(Params, true, DataPlatformDesc.Type, PlatformToCook);
                 }
 			}
 			if (Params.DedicatedServer)
@@ -128,7 +100,6 @@ public partial class Project : CommandUtils
 					var DataPlatformDesc = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
                     string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(true, false);
                     PlatformsToCook.Add(PlatformToCook);
-                    NativizedPluginPath = AddBlueprintPluginPathArgument(Params, false, DataPlatformDesc.Type, PlatformToCook);
                 }
 			}
 
@@ -254,16 +225,7 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -compressed";
                 }
-                // we provide the option for users to run a conversion on certain (script) assets, translating them 
-                // into native source code... the cooker needs to 
-                if (Params.RunAssetNativization)
-                {
-                    CommandletParams += " -NativizeAssets";
-                    if (NativizedPluginPath.Length > 0)
-                    {
-                        CommandletParams += "=\"" + NativizedPluginPath + "\"";
-                    }
-                }
+                
                 if (Params.HasAdditionalCookerOptions)
                 {
                     string FormatedAdditionalCookerParams = Params.AdditionalCookerOptions.TrimStart(new char[] { '\"', ' ' }).TrimEnd(new char[] { '\"', ' ' });
