@@ -2681,6 +2681,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	PIELevelPackage->SetPackageFlags(PKG_PlayInEditor);
 	PIELevelPackage->PIEInstanceID = PIEInstanceID;
 	PIELevelPackage->SetGuid( EditorLevelPackage->GetGuid() );
+	PIELevelPackage->MarkAsFullyLoaded();
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
 	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, EditorLevelWorld->GetFName(), RF_AllFlags, nullptr, EDuplicateMode::PIE));
@@ -6402,6 +6403,7 @@ static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
 	NewPackage->PIEInstanceID = InstanceID;
 	NewPackage->FileName = OriginalPackage->FileName;
 	NewPackage->SetGuid( OriginalPackage->GetGuid() );
+	NewPackage->MarkAsFullyLoaded();
 
 	FSoftObjectPath::AddPIEPackageName(NewPackage->GetFName());
 
