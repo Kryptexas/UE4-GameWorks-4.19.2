@@ -95,7 +95,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GSupportsVolumeTextureRendering = false;
 	
 	// Metal always needs a render target to render with fragment shaders!
-	GRHIRequiresRenderTargetForPixelShaderUAVs = true;
+	// GRHIRequiresRenderTargetForPixelShaderUAVs = true;
 
 	//@todo-rco: Query name from API
 	GRHIAdapterName = TEXT("Metal");
