@@ -81,6 +81,12 @@ namespace Audio
 
 	protected:
 
+		// Pump command queue
+		void PumpCommandQueue();
+
+		// Add command to the command queue
+		void SubmixCommand(TFunction<void()> Command);
+
 		// This mixer submix's Id
 		uint32 Id;
 
@@ -116,6 +122,9 @@ namespace Audio
 
 		AlignedFloatBuffer ScratchBuffer;
 		AlignedFloatBuffer DownmixedBuffer;
+
+		// Submic command queue to shuffle commands from audio thread to audio render thread.
+		TQueue<TFunction<void()>> CommandQueue;
 
 		friend class FMixerDevice;
 	};
