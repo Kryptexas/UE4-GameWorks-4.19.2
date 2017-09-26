@@ -2761,6 +2761,15 @@ public:
 			FName(TEXT("TShadowDepthVSVertexShadowDepth_OnePassPointLightPositionOnly")),
 			FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthPositionOnly")),
 			FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrectPositionOnly")),
+
+			FName(TEXT("TBasePassVSTDistanceFieldShadowsAndLightMapPolicyHQAtmosphericFog")),
+			FName(TEXT("TBasePassVSTLightMapPolicyHQAtmosphericFog")),
+			FName(TEXT("TBasePassVSTLightMapPolicyLQAtmosphericFog")),
+			FName(TEXT("TBasePassVSFPrecomputedVolumetricLightmapLightingPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassPSFSelfShadowedVolumetricLightmapPolicy")),
+			FName(TEXT("TBasePassPSFSelfShadowedVolumetricLightmapPolicySkylight")),
+			FName(TEXT("TBasePassVSFSelfShadowedVolumetricLightmapPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassVSFSelfShadowedVolumetricLightmapPolicy")),
 		};
 		return ExcludedShaderTypes;
 	}
