@@ -600,7 +600,7 @@ void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 		EUniformBufferUsage BufferUsage = Proxy->IsOftenMoving() ? UniformBuffer_SingleFrame : UniformBuffer_MultiFrame;
 
 		// If the PrimitiveInfo has no precomputed lighting buffer, it will fallback to the global Empty buffer.
-		if (!UseGPUInterpolatedVolumetricLightmaps(Scene->GetShadingPath())
+		if (!RHISupportsVolumeTextures(Scene->GetFeatureLevel())
 			&& Scene->VolumetricLightmapSceneData.HasData()
 			&& (Proxy->IsMovable() || Proxy->NeedsUnbuiltPreviewLighting())
 			&& Proxy->WillEverBeLit())

@@ -862,7 +862,7 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 	FPrecomputedVolumetricLightmapData& CurrentLevelData = Registry->AllocateLevelPrecomputedVolumetricLightmapBuildData(StorageLevel->LevelBuildDataId);
 
 	{
-		CurrentLevelData.Initialize(FBox(VolumetricLightmapSettings.VolumeMin, VolumetricLightmapSettings.VolumeMin + VolumetricLightmapSettings.VolumeSize), BrickSize);
+		CurrentLevelData.InitializeOnImport(FBox(VolumetricLightmapSettings.VolumeMin, VolumetricLightmapSettings.VolumeMin + VolumetricLightmapSettings.VolumeSize), BrickSize);
 
 		CurrentLevelData.BrickData.AmbientVector.Format = PF_FloatR11G11B10;
 		CurrentLevelData.BrickData.SkyBentNormal.Format = PF_B8G8R8A8;
@@ -903,8 +903,7 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 		IndirectionTextureDataStride = GPixelFormats[CurrentLevelData.IndirectionTexture.Format].BlockBytes;
 
 		const int32 TotalIndirectionTextureSize = CurrentLevelData.IndirectionTextureDimensions.X * CurrentLevelData.IndirectionTextureDimensions.Y * CurrentLevelData.IndirectionTextureDimensions.Z;
-		CurrentLevelData.IndirectionTexture.Data.Empty(TotalIndirectionTextureSize * IndirectionTextureDataStride);
-		CurrentLevelData.IndirectionTexture.Data.AddZeroed(TotalIndirectionTextureSize * IndirectionTextureDataStride);
+		CurrentLevelData.IndirectionTexture.Resize(TotalIndirectionTextureSize * IndirectionTextureDataStride);
 	}
 
 	BuildIndirectionTexture(BricksByDepth, VolumetricLightmapSettings, MaxBricksInLayoutOneDim, BrickLayoutDimensions, IndirectionTextureDataStride, CurrentLevelData);
@@ -915,23 +914,19 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 		CurrentLevelData.BrickDataDimensions = BrickLayoutDimensions * PaddedBrickSize;
 		const int32 TotalBrickDataSize = CurrentLevelData.BrickDataDimensions.X * CurrentLevelData.BrickDataDimensions.Y * CurrentLevelData.BrickDataDimensions.Z;
 
-		CurrentLevelData.BrickData.AmbientVector.Data.Empty(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.AmbientVector.Format].BlockBytes);
-		CurrentLevelData.BrickData.AmbientVector.Data.AddZeroed(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.AmbientVector.Format].BlockBytes);
+		CurrentLevelData.BrickData.AmbientVector.Resize(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.AmbientVector.Format].BlockBytes);
 
 		if (bGenerateSkyShadowing)
 		{
-			CurrentLevelData.BrickData.SkyBentNormal.Data.Empty(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.SkyBentNormal.Format].BlockBytes);
-			CurrentLevelData.BrickData.SkyBentNormal.Data.AddZeroed(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.SkyBentNormal.Format].BlockBytes);
+			CurrentLevelData.BrickData.SkyBentNormal.Resize(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.SkyBentNormal.Format].BlockBytes);
 		}
 
-		CurrentLevelData.BrickData.DirectionalLightShadowing.Data.Empty(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.DirectionalLightShadowing.Format].BlockBytes);
-		CurrentLevelData.BrickData.DirectionalLightShadowing.Data.AddZeroed(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.DirectionalLightShadowing.Format].BlockBytes);
+		CurrentLevelData.BrickData.DirectionalLightShadowing.Resize(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.DirectionalLightShadowing.Format].BlockBytes);
 
 		for (int32 i = 0; i < ARRAY_COUNT(CurrentLevelData.BrickData.SHCoefficients); i++)
 		{
 			const int32 Stride = GPixelFormats[CurrentLevelData.BrickData.SHCoefficients[i].Format].BlockBytes;
-			CurrentLevelData.BrickData.SHCoefficients[i].Data.Empty(TotalBrickDataSize * Stride);
-			CurrentLevelData.BrickData.SHCoefficients[i].Data.AddZeroed(TotalBrickDataSize * Stride);
+			CurrentLevelData.BrickData.SHCoefficients[i].Resize(TotalBrickDataSize * Stride);
 		}
 
 		VoxelImportProcessingData.Empty(TotalBrickDataSize);

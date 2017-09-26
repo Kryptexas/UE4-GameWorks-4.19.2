@@ -1339,47 +1339,13 @@ class FVolumetricLightmapSceneData
 {
 public:
 
-	FVolumetricLightmapSceneData() :
-		IndirectionTextureSize(FVector::ZeroVector),
-		BrickSize(0),
-		BrickDataTexelSize(FVector::ZeroVector),
-		VolumeWorldToUVScale(FVector::ZeroVector),
-		VolumeWorldToUVAdd(FVector::ZeroVector)
-	{}
-
-	void Release()
-	{
-		IndirectionTexture.SafeRelease();
-		AmbientVectorTextureRHI.SafeRelease();
-
-		for (int32 i = 0; i < ARRAY_COUNT(SHCoefficientsTextureRHI); i++)
-		{
-			SHCoefficientsTextureRHI[i].SafeRelease();
-		}
-
-		SkyBentNormalTextureRHI.SafeRelease();
-		DirectionalLightShadowingTextureRHI.SafeRelease();
-	}
-
 	bool HasData() const { return LevelVolumetricLightmaps.Num() > 0; }
 	void AddLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume, EShadingPath ShadingPath);
 	void RemoveLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume);
-	const FPrecomputedVolumetricLightmap* GetLevelVolumetricLightmap() const { return LevelVolumetricLightmaps.Last(); }
-
-	FVector IndirectionTextureSize;
-
-	/** Size of the unique data in a brick, in one dimension, in texels. */
-	float BrickSize;
-	/** Size of a texel in the brick data textures. */
-	FVector BrickDataTexelSize;
-	FVector VolumeWorldToUVScale;
-	FVector VolumeWorldToUVAdd;
-
-	FTexture3DRHIRef IndirectionTexture;
-	FTexture3DRHIRef AmbientVectorTextureRHI;
-	FTexture3DRHIRef SHCoefficientsTextureRHI[6];
-	FTexture3DRHIRef SkyBentNormalTextureRHI;
-	FTexture3DRHIRef DirectionalLightShadowingTextureRHI;
+	const FPrecomputedVolumetricLightmap* GetLevelVolumetricLightmap() const 
+	{ 
+		return LevelVolumetricLightmaps.Num() > 0 ? LevelVolumetricLightmaps.Last() : NULL; 
+	}
 
 	TMap<FVector, FVolumetricLightmapInterpolation> CPUInterpolationCache;
 
@@ -2493,12 +2459,6 @@ inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)
 	// Non-Surface domains can be applied to static meshes for thumbnails or material editor preview
 	// Volume domain materials however must only be rendered in the voxelization pass
 	return Domain != MD_Volume;
-}
-
-// Whether to use GPU per-pixel interpolated volumetric lightmaps, or CPU per-object interpolated
-inline bool UseGPUInterpolatedVolumetricLightmaps(EShadingPath ShadingPath)
-{
-	return ShadingPath == EShadingPath::Deferred;
 }
 
 #include "BasePassRendering.inl"

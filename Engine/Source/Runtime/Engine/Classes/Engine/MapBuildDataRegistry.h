@@ -181,6 +181,8 @@ public:
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
+	ENGINE_API virtual void FinishDestroy() override;
 	//~ End UObject Interface
 
 	/** 
@@ -223,12 +225,15 @@ public:
 
 private:
 
+	ENGINE_API void ReleaseResources();
 	ENGINE_API void EmptyData();
 
 	TMap<FGuid, FMeshMapBuildData> MeshBuildData;
 	TMap<FGuid, FPrecomputedLightVolumeData*> LevelPrecomputedLightVolumeBuildData;
 	TMap<FGuid, FPrecomputedVolumetricLightmapData*> LevelPrecomputedVolumetricLightmapBuildData;
 	TMap<FGuid, FLightComponentMapBuildData> LightBuildData;
+
+	FRenderCommandFence DestroyFence;
 };
 
 extern ENGINE_API FUObjectAnnotationSparse<FMeshMapBuildLegacyData, true> GComponentsWithLegacyLightmaps;

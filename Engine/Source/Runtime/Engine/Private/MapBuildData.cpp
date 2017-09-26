@@ -251,6 +251,21 @@ void UMapBuildDataRegistry::BeginDestroy()
 {
 	Super::BeginDestroy();
 
+	ReleaseResources();
+
+	// Start a fence to track when BeginReleaseResource has completed
+	DestroyFence.BeginFence();
+}
+
+bool UMapBuildDataRegistry::IsReadyForFinishDestroy()
+{
+	return Super::IsReadyForFinishDestroy() && DestroyFence.IsFenceComplete();
+}
+
+void UMapBuildDataRegistry::FinishDestroy()
+{
+	Super::FinishDestroy();
+
 	EmptyData();
 }
 
@@ -388,6 +403,8 @@ void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
 			World->GetLevel(LevelIndex)->ReleaseRenderingResources();
 		}
 
+		ReleaseResources();
+
 		// Make sure the RT has processed the release command before we delete any FPrecomputedLightVolume's
 		FlushRenderingCommands();
 
@@ -400,6 +417,14 @@ void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
 bool UMapBuildDataRegistry::IsLegacyBuildData() const
 {
 	return GetOutermost()->ContainsMap();
+}
+
+void UMapBuildDataRegistry::ReleaseResources()
+{
+	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(LevelPrecomputedVolumetricLightmapBuildData); It; ++It)
+	{
+		BeginReleaseResource(It.Value());
+	}
 }
 
 void UMapBuildDataRegistry::EmptyData()

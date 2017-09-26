@@ -681,7 +681,6 @@ FScene::~FScene()
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
 	DistanceFieldSceneData.Release();
-	VolumetricLightmapSceneData.Release();
 
 	if (AtmosphericFog)
 	{
@@ -810,7 +809,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	// Update the primitive transform.
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
-	if (!UseGPUInterpolatedVolumetricLightmaps(GetShadingPath())
+	if (!RHISupportsVolumeTextures(GetFeatureLevel())
 		&& (PrimitiveSceneProxy->IsMovable() || PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
 	{
 		PrimitiveSceneProxy->GetPrimitiveSceneInfo()->MarkPrecomputedLightingBufferDirty();
@@ -1672,72 +1671,14 @@ void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 		});
 }
 
-void CreateVolumetricLightmapTexture(FIntVector Dimensions, FVolumetricLightmapDataLayer* DataLayer, FTexture3DRHIRef& OutTexture)
-{
-	FRHIResourceCreateInfo CreateInfo;
-	CreateInfo.BulkData = DataLayer;
-
-	OutTexture = RHICreateTexture3D(
-		Dimensions.X, 
-		Dimensions.Y, 
-		Dimensions.Z, 
-		DataLayer->Format,
-		1,
-		TexCreate_ShaderResource,
-		CreateInfo);
-}
-
 void FVolumetricLightmapSceneData::AddLevelVolume(const FPrecomputedVolumetricLightmap* InVolume, EShadingPath ShadingPath)
 {
 	LevelVolumetricLightmaps.Add(InVolume);
-
-	if (UseGPUInterpolatedVolumetricLightmaps(ShadingPath))
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		CreateInfo.BulkData = &InVolume->Data->IndirectionTexture;
-
-		IndirectionTexture = RHICreateTexture3D(
-			InVolume->Data->IndirectionTextureDimensions.X,
-			InVolume->Data->IndirectionTextureDimensions.Y,
-			InVolume->Data->IndirectionTextureDimensions.Z,
-			InVolume->Data->IndirectionTexture.Format,
-			1,
-			TexCreate_ShaderResource,
-			CreateInfo);
-
-		CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.AmbientVector, AmbientVectorTextureRHI);
-
-		static_assert(ARRAY_COUNT(InVolume->Data->BrickData.SHCoefficients) == ARRAY_COUNT(SHCoefficientsTextureRHI), "Mismatched coefficient count");
-
-		for (int32 i = 0; i < ARRAY_COUNT(SHCoefficientsTextureRHI); i++)
-		{
-			CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.SHCoefficients[i], SHCoefficientsTextureRHI[i]);
-		}
-
-		if (InVolume->Data->BrickData.SkyBentNormal.Data.Num() > 0)
-		{
-			CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.SkyBentNormal, SkyBentNormalTextureRHI);
-		}
-
-		CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.DirectionalLightShadowing, DirectionalLightShadowingTextureRHI);
-	}
-
-	const FBox& VolumeBounds = InVolume->Data->GetBounds();
-	const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
-	VolumeWorldToUVScale = InvVolumeSize;
-	VolumeWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
-
-	IndirectionTextureSize = FVector(InVolume->Data->IndirectionTextureDimensions);
-	BrickSize = InVolume->Data->BrickSize;
-	BrickDataTexelSize = FVector(1.0f, 1.0f, 1.0f) / FVector(InVolume->Data->BrickDataDimensions);
 }
 
 void FVolumetricLightmapSceneData::RemoveLevelVolume(const FPrecomputedVolumetricLightmap* InVolume)
 {
-	if (LevelVolumetricLightmaps.Remove(InVolume) > 0)
-	{
-		Release();
-	}
+	LevelVolumetricLightmaps.Remove(InVolume);
 }
 
 bool FScene::HasPrecomputedVolumetricLightmap_RenderThread() const
