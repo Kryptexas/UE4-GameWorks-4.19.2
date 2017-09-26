@@ -294,6 +294,7 @@
 		Engine/Source/ThirdParty/Oculus/LibOVRPlatform/LibOVRPlatform_APL.xml
 		Engine/Source/ThirdParty/Oculus/LibOVRPlatform/lib/*.so
 		Engine/Source/ThirdParty/Oculus/OVRPlugin/...
+		Engine/Source/ThirdParty/TangoSDK/...
 	</Property>
 	
 	<!-- Win64 Specific -->
