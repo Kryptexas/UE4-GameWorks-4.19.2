@@ -311,3 +311,63 @@ void UGoogleVRHMDFunctionLibrary::SetDaydreamLoadingSplashScreenViewAngle(float 
 	}
 #endif
 }
+
+bool UGoogleVRHMDFunctionLibrary::GetFloorHeight(float& FloorHeight)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetFloorHeight(&FloorHeight))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetSafetyCylinderInnerRadius(float& InnerRadius)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetSafetyCylinderInnerRadius(&InnerRadius))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetSafetyCylinderOuterRadius(float& OuterRadius)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetSafetyCylinderOuterRadius(&OuterRadius))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetSafetyRegion(ESafetyRegionType& RegionType)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetSafetyRegion(&RegionType))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetRecenterTransform(FQuat& RecenterOrientation, FVector& RecenterPosition)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetRecenterTransform(RecenterOrientation, RecenterPosition))
+	{
+		return true;
+	}
+#endif
+	return false;
+}

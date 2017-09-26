@@ -3,18 +3,21 @@
 #include "AndroidRuntimeSettings.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UnrealType.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/CoreDelegates.h"
 
 #if WITH_EDITOR
 #include "IAndroid_MultiTargetPlatformModule.h"
 #endif
 
+DEFINE_LOG_CATEGORY(LogAndroidRuntimeSettings);
+
 UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Orientation(EAndroidScreenOrientation::Landscape)
 	, MaxAspectRatio(2.1f)
 	, bAndroidVoiceEnabled(false)
-	, GoogleVRMode(EGoogleVRMode::DaydreamAndCardboard)
+	, GoogleVRCaps({EGoogleVRCaps::Cardboard, EGoogleVRCaps::Daydream33})
 	, bEnableGooglePlaySupport(false)
 	, bUseGetAccounts(false)
 	, bSupportAdMob(true)
@@ -154,6 +157,34 @@ void UAndroidRuntimeSettings::PostInitProperties()
 	{
 		AdMobAdUnitIDs.Add(AdMobAdUnitID);
 		AdMobAdUnitID.Empty();
+		UpdateDefaultConfigFile();
+	}
+
+	// Upgrade old GoogleVR settings as necessary.
+	FString GoogleVRMode = GConfig->GetStr(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("GoogleVRMode"), GEngineIni);
+	if (GoogleVRMode != TEXT(""))
+	{
+		if (GoogleVRMode == TEXT("Cardboard"))
+		{
+			GoogleVRCaps.Empty(1);
+			GoogleVRCaps.Add(EGoogleVRCaps::Cardboard);
+			UE_LOG(LogAndroidRuntimeSettings, Log, TEXT("Upgraded GoogleVRMode -> GoogleVRCaps, Cardboard"));
+		}
+		else if (GoogleVRMode == TEXT("Daydream"))
+		{
+			GoogleVRCaps.Empty(1);
+			GoogleVRCaps.Add(EGoogleVRCaps::Daydream33);
+			UE_LOG(LogAndroidRuntimeSettings, Log, TEXT("Upgraded GoogleVRMode -> GoogleVRCaps, Daydream"));
+		}
+		else if (GoogleVRMode == TEXT("DaydreamAndCardboard"))
+		{
+			GoogleVRCaps.Empty(2);
+			GoogleVRCaps.Add(EGoogleVRCaps::Cardboard);
+			GoogleVRCaps.Add(EGoogleVRCaps::Daydream33);
+			UE_LOG(LogAndroidRuntimeSettings, Log, TEXT("Upgraded GoogleVRMode -> GoogleVRCaps, Cardboard & Daydream"));
+		}
+
+		// Save changes to the ini file.
 		UpdateDefaultConfigFile();
 	}
 

@@ -93,6 +93,10 @@ namespace gvr_arm_model {
     // Returns the alpha value that the tooltips should be rendered at.
     float GetTooltipAlphaValue() const;
 
+    // Wether or not the Arm Model is locked to the Head Pose
+    void SetIsLockedToHead(bool is_locked);
+    bool GetIsLockedToHead();
+
     void Update(const UpdateData& update_data);
 
   private:
@@ -103,6 +107,7 @@ namespace gvr_arm_model {
     void UpdateVelocity(const UpdateData& update_data);
     void TransformElbow(const UpdateData& update_data);
     void ApplyArmModel(const UpdateData& update_data);
+    Vector3 ApplyInverseNeckModel(const UpdateData& update_data);
     void UpdateTransparency(const UpdateData& update_data);
 
     void ResetState();
@@ -116,6 +121,7 @@ namespace gvr_arm_model {
     float fade_distance_from_face;
     float tooltip_min_distance_from_face;
     int tooltip_max_angle_from_camera;
+    bool is_locked_to_head;
 
     Vector3 wrist_position;
     Quaternion wrist_rotation;
@@ -153,19 +159,22 @@ namespace gvr_arm_model {
     static constexpr float DELTA_ALPHA = 4.0f;
 
     // Unrotated Position offset from wrist to pointer.
-	static const Vector3 POINTER_OFFSET;
+    static constexpr Vector3 POINTER_OFFSET{ 0.0f, -0.009f, -0.109f };
 
     // Initial relative location of the shoulder (meters).
-    static const Vector3 DEFAULT_SHOULDER_RIGHT;//{ 0.19f, -0.19f, 0.03f };
+    static constexpr Vector3 DEFAULT_SHOULDER_RIGHT{ 0.19f, -0.19f, 0.03f };
 
     // The range of movement from the elbow position due to accelerometer (meters).
-	static const Vector3 ELBOW_MIN_RANGE;// { -0.05f, -0.1f, -0.2f };
-    static const Vector3 ELBOW_MAX_RANGE;//{ 0.05f, 0.1f, 0.0f };
-    
+    static constexpr Vector3 ELBOW_MIN_RANGE{ -0.05f, -0.1f, -0.2f };
+    static constexpr Vector3 ELBOW_MAX_RANGE{ 0.05f, 0.1f, 0.0f };
+
     // Forward Vector in GVR Space.
-    static const Vector3 FORWARD;//{ 0.0f, 0.0f, -1.0f };
+    static constexpr Vector3 FORWARD{ 0.0f, 0.0f, -1.0f };
 
     // Up Vector in GVR Space.
-    static const Vector3 UP;//{ 0.0f, 1.0f, 0.0f };
+    static constexpr Vector3 UP{ 0.0f, 1.0f, 0.0f };
+
+    // Position of the point between the eyes, relative to the neck pivot
+    static constexpr Vector3 NECK_OFFSET{ 0, 0.075f, 0.08f };
   };
 }

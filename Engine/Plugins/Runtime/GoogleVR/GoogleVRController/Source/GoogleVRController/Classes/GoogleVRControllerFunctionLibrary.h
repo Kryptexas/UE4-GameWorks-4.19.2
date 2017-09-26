@@ -216,6 +216,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static void SetWillArmModelUseAccelerometer(bool UseAccelerometer);
 
+	/** Set if the Arm Model will be locked to the head Pose.
+	* @param IsLockedToHead - value to set
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	static void SetArmModelIsLockedToHead(bool IsLockedToHead);
+
+	/** Get if the Arm Model will be locked to the head Pose.
+	* @return true if it is locked to the Head Pose
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool GetArmModelIsLockedToHead();
+
 	/** Controller distance from the face after which the alpha value decreases (meters).
 	 *  @return fade distance from face in meters.
 	 */
@@ -274,21 +286,21 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetTooltipAlphaValue();
-	
+
 	/** Get whether the controller battery is currently charging.
 	 *  This may not be real time information and may be slow to be updated.
 	 *  @return true if the battery is charging.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool GetBatteryCharging();
-	
+
 	/** Get the bucketed controller battery level.
 	 *  Note this is an approximate level described by enumeration, not a percent.
 	 *  @return the approximate battery level, or unknown if the level can not be determined.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static EGoogleVRControllerBatteryLevel GetBatteryLevel();
-	
+
 	/** Get the timestamp (nanos) when the last battery event was received.
 	 *  @return the timestamp, or zero if unavailable.
 	 */

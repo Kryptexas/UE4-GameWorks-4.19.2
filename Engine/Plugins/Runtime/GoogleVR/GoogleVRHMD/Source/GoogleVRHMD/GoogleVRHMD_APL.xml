@@ -16,16 +16,44 @@
 			</false>
 		</if>
 
-		<!-- Check for GoogleVR Deployment Mode and Set Vars. -->
-		<setStringFromProperty result="GoogleVRMode" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRMode" default="DaydreamAndCardboard" />
+		<!-- Check for GoogleVR device requirements and deployment mode. -->
 		<setBool result="bDaydreamMode" value="false" />
 		<setBool result="bDaydreamAndCardboardMode" value="false" />
-		<setBoolIsEqual result="bDaydreamMode" arg1="$S(GoogleVRMode)" arg2="Daydream" />
-		<setBoolIsEqual result="bDaydreamAndCardboardMode" arg1="$S(GoogleVRMode)" arg2="DaydreamAndCardboard" />
-		<setBoolOr result="bSupportDaydream" arg1="$B(bDaydreamMode)" arg2="$B(bDaydreamAndCardboardMode)"/>
+		<setBool result="bSupportDaydream" value="false" />
+
+		<setBoolFromPropertyContains result="bCardboardCaps" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRCaps" contains="Cardboard"/>
+		<setBoolFromPropertyContains result="bDaydream33Caps" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRCaps" contains="Daydream33"/>
+		<setBoolFromPropertyContains result="bDaydream63Caps" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRCaps" contains="Daydream63"/>
+
+		<setBoolOr result="bSupportDaydream" arg1="$B(bDaydream33Caps)" arg2="$B(bDaydream63Caps)"/>
 		<if condition="bSupportDaydream">
 			<true>
 				<log text="Project supports daydream, will enable async reprojection when possible." />
+
+				<if condition="bCardboardCaps">
+					<true>
+						<setBool result="bDaydreamAndCardboardMode" value="true" />
+					</true>
+					<false>
+						<setBool result="bDaydreamMode" value="true" />
+					</false>
+				</if>
+			</true>
+		</if>
+
+		<if condition="bCardboardCaps">
+			<true>
+				<log text="Project supports Cardboard device." />
+			</true>
+		</if>
+		<if condition="bDaydream33Caps">
+			<true>
+				<log text="Project supports Daydream Phone 3.3 device." />
+			</true>
+		</if>
+		<if condition="bDaydream63Caps">
+			<true>
+				<log text="Project supports Daydream AIO 6.3 device." />
 			</true>
 		</if>
 	</init>
@@ -108,6 +136,18 @@
 				<addFeature android:name="android.hardware.vr.high_performance" android:required="false" />
 				<addFeature android:name="android.software.vr.mode" android:required="false" />
 			</false>
+		</if>
+		<if condition="bDaydream63Caps">
+			<true>
+				<if condition="bDaydream33Caps">
+					<true>
+						<addFeature android:name="android.hardware.vr.headtracking" android:version="1" android:required="false" />
+					</true>
+					<false>
+						<addFeature android:name="android.hardware.vr.headtracking" android:version="1" android:required="true" />
+					</false>
+				</if>
+			</true>
 		</if>
 
 		<!-- Add intents -->

@@ -355,6 +355,8 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 	, NumVerts(0)
 	, NumTris(0)
 	, NumIndices(0)
+	, TrackingOrigin(EHMDTrackingOrigin::Eye)
+	, bIs6DoFSupported(false)
 	, DistortEnableCommand(TEXT("vr.googlevr.DistortionCorrection.bEnable"),
 		*NSLOCTEXT("GoogleVR", "CCommandText_DistortEnable",
 			"Gogle VR specific extension.\n"
@@ -513,6 +515,8 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 		FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FGoogleVRHMD::ApplicationResumeDelegate);
 
 		UpdateGVRViewportList();
+
+		bIs6DoFSupported = gvr_is_feature_supported(GVRAPI, GVR_FEATURE_HEAD_POSE_6DOF);
 #endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
 		// Set the default rendertarget size to the default size in UE4
@@ -687,6 +691,15 @@ bool FGoogleVRHMD::GetCurrentPose(int32 DeviceId, FQuat& CurrentOrientation, FVe
 		CurrentPosition *= WorldToMetersScale;
 
 		CurrentPosition = BaseOrientation.RotateVector(CurrentPosition);
+
+		if (GetTrackingOrigin() == EHMDTrackingOrigin::Floor)
+		{
+			float floorHeight;
+			if (GetFloorHeight(&floorHeight))
+			{
+				CurrentPosition.Z -= floorHeight;
+			}
+		}
 	}
 #endif
 	return true;
@@ -2009,6 +2022,12 @@ void FGoogleVRHMD::ResetOrientationAndPosition(float Yaw)
 	ResetPosition();
 }
 
+bool FGoogleVRHMD::DoesSupportPositionalTracking() const
+{
+	// Does not support position tracking, only pose
+	return Is6DOFSupported();
+}
+
 void FGoogleVRHMD::ResetOrientation(float Yaw)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
@@ -2092,14 +2111,21 @@ void FGoogleVRHMD::RefreshPoses()
 	CachedFuturePoseTime = gvr_get_time_point_now();
 	CachedFuturePoseTime.monotonic_system_time_nanos += kPredictionTime;
 
-	CachedHeadPose = gvr_get_head_space_from_start_space_rotation(GVRAPI, CachedFuturePoseTime);
+	if (Is6DOFSupported())
+	{
+		CachedHeadPose = gvr_get_head_space_from_start_space_transform(GVRAPI, CachedFuturePoseTime);
+	}
+	else
+	{
+		gvr_mat4f HeadRotation = gvr_get_head_space_from_start_space_rotation(GVRAPI, CachedFuturePoseTime);
 
-	// Apply the neck model to calculate the final pose
-	gvr_mat4f FinalHeadPose = gvr_apply_neck_model(GVRAPI, CachedHeadPose, NeckModelScale);
+		// Apply the neck model to calculate the final pose
+		CachedHeadPose = gvr_apply_neck_model(GVRAPI, HeadRotation, NeckModelScale);
+	}
 
 	// Convert the final pose into Unreal data type
 	FMatrix FinalHeadPoseUnreal;
-	memcpy(FinalHeadPoseUnreal.M[0], FinalHeadPose.m[0], 4 * 4 * sizeof(float));
+	memcpy(FinalHeadPoseUnreal.M[0], CachedHeadPose.m[0], 4 * 4 * sizeof(float));
 
 	// Inverse the view matrix so we can get the world position of the pose
 	FMatrix FinalHeadPoseInverseUnreal = FinalHeadPoseUnreal.Inverse();
@@ -2174,4 +2200,124 @@ FString FGoogleVRHMD::GetVersionString() const
 	FString s = FString::Printf(TEXT("GoogleVR - %s, VrLib: %s, built %s, %s"), *FEngineVersion::Current().ToString(), TEXT("GVR"),
 		UTF8_TO_TCHAR(__DATE__), UTF8_TO_TCHAR(__TIME__));
 	return s;
+}
+
+bool FGoogleVRHMD::GetFloorHeight(float* FloorHeight)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	gvr::Value value_out = gvr::Value();
+	if (TryReadProperty(GVR_PROPERTY_TRACKING_FLOOR_HEIGHT, &value_out))
+	{
+		*FloorHeight = value_out.f;
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool FGoogleVRHMD::GetSafetyCylinderInnerRadius(float* InnerRadius)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	gvr::Value value_out = gvr::Value();
+	if (TryReadProperty(GVR_PROPERTY_SAFETY_CYLINDER_INNER_RADIUS, &value_out))
+	{
+		*InnerRadius = value_out.f;
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool FGoogleVRHMD::GetSafetyCylinderOuterRadius(float* OuterRadius)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	gvr::Value value_out = gvr::Value();
+	if (TryReadProperty(GVR_PROPERTY_SAFETY_CYLINDER_OUTER_RADIUS, &value_out))
+	{
+		*OuterRadius = value_out.f;
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool FGoogleVRHMD::GetSafetyRegion(ESafetyRegionType* RegionType)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	gvr::Value value_out = gvr::Value();
+	if (TryReadProperty(GVR_PROPERTY_SAFETY_REGION, &value_out))
+	{
+		*RegionType = ESafetyRegionType::INVALID;
+		if (value_out.i == gvr_safety_region_type::GVR_SAFETY_REGION_CYLINDER)
+		{
+			*RegionType = ESafetyRegionType::CYLINDER;
+		}
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool FGoogleVRHMD::GetRecenterTransform(FQuat& RecenterOrientation, FVector& RecenterPosition)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	gvr::Value value_out = gvr::Value();
+	if (TryReadProperty(GVR_PROPERTY_RECENTER_TRANSFORM, &value_out))
+	{
+		FMatrix RecenterUnreal;
+		memcpy(RecenterUnreal.M[0], value_out.m4f.m[0], 4 * 4 * sizeof(float));
+
+		// Inverse the view matrix so we can get the world position of the pose
+		FMatrix RecenterInverseUnreal = RecenterUnreal.Inverse();
+
+		// Number of Unreal Units per meter.
+		const float WorldToMetersScale = GetWorldToMetersScale();
+
+		// Gvr is using a openGl Right Handed coordinate system, UE is left handed.
+		// The following code is converting the gvr coordinate system to UE coordinates.
+
+		// Gvr: Negative Z is Forward, UE: Positive X is Forward.
+		RecenterPosition.X = -RecenterInverseUnreal.M[2][3] * WorldToMetersScale;
+
+		// Gvr: Positive X is Right, UE: Positive Y is Right.
+		RecenterPosition.Y = RecenterInverseUnreal.M[0][3] * WorldToMetersScale;
+
+		// Gvr: Positive Y is Up, UE: Positive Z is Up
+		RecenterPosition.Z = RecenterInverseUnreal.M[1][3] * WorldToMetersScale;
+
+		// Convert Gvr right handed coordinate system rotation into UE left handed coordinate system.
+		RecenterOrientation = FQuat(RecenterUnreal);
+		RecenterOrientation = FQuat(-RecenterOrientation.Z, RecenterOrientation.X, RecenterOrientation.Y, -RecenterOrientation.W);
+		return true;
+}
+#endif
+	return false;
+}
+
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+bool FGoogleVRHMD::TryReadProperty(int32_t PropertyKey, gvr_value* ValueOut)
+{
+	const gvr_properties* props = gvr_get_current_properties(GVRAPI);
+	return gvr_properties_get(props, PropertyKey, ValueOut) == GVR_ERROR_NONE;
+}
+#endif
+
+void FGoogleVRHMD::SetTrackingOrigin(EHMDTrackingOrigin::Type InOrigin)
+{
+	if (InOrigin == EHMDTrackingOrigin::Floor && !Is6DOFSupported())
+	{
+		UE_LOG(LogHMD, Log, TEXT("EHMDTrackingOrigin::Floor not set. Positional Tracking is not supported."));
+		return;
+	}
+	TrackingOrigin = InOrigin;
+}
+
+EHMDTrackingOrigin::Type FGoogleVRHMD::GetTrackingOrigin()
+{
+	return TrackingOrigin;
+}
+
+bool FGoogleVRHMD::Is6DOFSupported() const
+{
+	return bIs6DoFSupported;
 }

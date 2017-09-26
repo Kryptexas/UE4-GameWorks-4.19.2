@@ -295,6 +295,29 @@ void UGoogleVRControllerFunctionLibrary::SetWillArmModelUseAccelerometer(bool Us
 #endif
 }
 
+void UGoogleVRControllerFunctionLibrary::SetArmModelIsLockedToHead(bool IsLockedToHead)
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	FGoogleVRController* GVRController = GetGoogleVRController();
+	if (GVRController != nullptr)
+	{
+		return GVRController->GetArmModelController().SetIsLockedToHead(IsLockedToHead);
+	}
+#endif
+}
+
+bool UGoogleVRControllerFunctionLibrary::GetArmModelIsLockedToHead()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	FGoogleVRController* GVRController = GetGoogleVRController();
+	if (GVRController != nullptr)
+	{
+		return GVRController->GetArmModelController().GetIsLockedToHead();
+	}
+#endif
+	return false;
+}
+
 float UGoogleVRControllerFunctionLibrary::GetFadeDistanceFromFace()
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS

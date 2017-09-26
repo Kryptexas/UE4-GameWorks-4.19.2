@@ -378,18 +378,18 @@ namespace UnrealBuildTool
 				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			}
 
-			string GoogleVRMode = "";
-			if(Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRMode", out GoogleVRMode))
-			{
-				return GoogleVRMode == "Daydream" || GoogleVRMode == "DaydreamAndCardboard";
-			}
-			else
-			{
-				// the default value for the VRMode is DaydreamAndCardboard, so unless the developer
-				// changes the mode, there will be no setting string to look up here
-				return true;
-			}
-		}
+            List<string> GoogleVRCaps = new List<string>();
+            if (Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRCaps", out GoogleVRCaps))
+            {
+                return GoogleVRCaps.Contains("Daydream33") || GoogleVRCaps.Contains("Daydream63");
+            }
+            else
+            {
+                // the default values for the VRCaps are Cardboard and Daydream33, so unless the
+                // developer changes the mode, there will be no setting string to look up here
+                return true;
+            }
+        }
 
 		public bool IsPackagingForGearVR(ConfigHierarchy Ini = null)
 		{

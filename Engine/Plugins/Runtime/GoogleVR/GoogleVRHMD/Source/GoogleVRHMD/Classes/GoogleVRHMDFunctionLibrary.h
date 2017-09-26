@@ -8,6 +8,14 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GoogleVRHMDFunctionLibrary.generated.h"
 
+ /** Maps to gvr_safety_region_type */
+UENUM(BlueprintType)
+enum class ESafetyRegionType : uint8
+{
+	INVALID		UMETA(DisplayName = "Invalid Safety Region Type"),
+	CYLINDER	UMETA(DisplayName = "Cylinder Safety Region Type")
+};
+
 /** Enum to specify distortion mesh size */
 UENUM(BlueprintType)
 enum class EDistortionMeshSizeEnum : uint8
@@ -185,4 +193,45 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
 	static void ClearDaydreamLoadingSplashScreenTexture();
+
+	/**
+	* Tries to get the floor height if available
+	* @param FloorHeight where the floor height read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool GetFloorHeight(float& FloorHeight);
+
+	/**
+	* Tries to get the Safety Cylinder Inner Radius if available
+	* @param InnerRadius where the Safety Cylinder Inner Radius read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool GetSafetyCylinderInnerRadius(float& InnerRadius);
+
+	/**
+	* Tries to get the Safety Cylinder Outer Radius if available
+	* @param OuterRadius where the Safety Cylinder Outer Radius read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool GetSafetyCylinderOuterRadius(float& OuterRadius);
+
+	/**
+	* Tries to get the Safety Region Type if available
+	* @param RegionType where the Safety Region Type read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool GetSafetyRegion(ESafetyRegionType& RegionType);
+
+	/**
+	* Tries to get the Recenter Transform if available
+	* @param RecenterOrientation where the Recenter Orientation read will get stored
+	* @param RecenterPosition where the Recenter Position read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool GetRecenterTransform(FQuat& RecenterOrientation, FVector& RecenterPosition);
 };

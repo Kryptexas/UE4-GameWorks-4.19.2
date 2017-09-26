@@ -7,12 +7,13 @@
 using namespace gvr_arm_model;
 
 // Since Vector3 is often passed by reference, we need to include definitions for these constexpr.
-const Vector3 Controller::FORWARD{ 0.0f, 0.0f, -1.0f };
-const Vector3 Controller::UP{ 0.0f, 1.0f, 0.0f };
-const Vector3 Controller::POINTER_OFFSET{ 0.0f, -0.009f, -0.109f };
-const Vector3 Controller::DEFAULT_SHOULDER_RIGHT{ 0.19f, -0.19f, 0.03f };
-const Vector3 Controller::ELBOW_MIN_RANGE{ -0.05f, -0.1f, -0.2f };
-const Vector3 Controller::ELBOW_MAX_RANGE{ 0.05f, 0.1f, 0.0f };
+constexpr const Vector3 Controller::FORWARD;
+constexpr const Vector3 Controller::UP;
+constexpr const Vector3 Controller::POINTER_OFFSET;
+constexpr const Vector3 Controller::DEFAULT_SHOULDER_RIGHT;
+constexpr const Vector3 Controller::ELBOW_MIN_RANGE;
+constexpr const Vector3 Controller::ELBOW_MAX_RANGE;
+constexpr const Vector3 Controller::NECK_OFFSET;
 
 Controller::Controller()
 : added_elbow_height(0.0f)
@@ -274,27 +275,55 @@ void Controller::ApplyArmModel(const UpdateData &update_data) {
   elbow_rotation = shoulder_rotation * lerp_rotation.Inverted() * controller_orientation;
   wrist_rotation = shoulder_rotation * controller_orientation;
 
+  Vector3 headPosition = Vector3::Zero;
+  // Get the head position.
+  if (is_locked_to_head) {
+    headPosition = ApplyInverseNeckModel(update_data);
+  }
+
   // Determine the relative positions
-  elbow_position = shoulder_rotation.Rotated(elbow_position);
+  elbow_position = headPosition + shoulder_rotation.Rotated(elbow_position);
   wrist_position = elbow_position + elbow_rotation.Rotated(wrist_position);
 }
 
+// Apply inverse neck model to both transform the head position to
+// the center of the head and account for the head's rotation
+// so that the motion feels more natural.
+Vector3 Controller::ApplyInverseNeckModel(const UpdateData& update_data) {
+  Quaternion headRotation = update_data.orientation;
+  Vector3 headPosition = update_data.headPosition;
+  Vector3 rotatedNeckOffset = headRotation.Rotated(NECK_OFFSET) - Vector3{ 0.0f, NECK_OFFSET.y(), 0.0f };
+  headPosition -= rotatedNeckOffset;
+
+  return headPosition;
+}
+
+void Controller::SetIsLockedToHead(bool is_locked) {
+  is_locked_to_head = is_locked;
+}
+
+bool Controller::GetIsLockedToHead() {
+  return is_locked_to_head;
+}
+
 void Controller::UpdateTransparency(const UpdateData &update_data) {
+  Vector3 wrist_relative_to_head = wrist_position - update_data.headPosition;
   // Determine how vertical the controller is pointing.
-  float distance_to_face = wrist_position.Magnitude();
+  float animationDelta = DELTA_ALPHA * update_data.deltaTimeSeconds;
+  float distance_to_face = wrist_relative_to_head.Magnitude();
   if (distance_to_face < fade_distance_from_face) {
-    controller_alpha_value = FMath::Clamp(controller_alpha_value - DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    controller_alpha_value = FMath::Clamp(controller_alpha_value - animationDelta, 0.0f, 1.0f);
   } else {
-    controller_alpha_value = FMath::Clamp(controller_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    controller_alpha_value = FMath::Clamp(controller_alpha_value + animationDelta, 0.0f, 1.0f);
   }
 
   Vector3 wrist_from_head = wrist_position.Normalized() * -1.0f;
   float dot = wrist_rotation.Rotated(UP).Dot(wrist_from_head);
   float min_dot = (tooltip_max_angle_from_camera - 90.0f) / -90.0f;
   if (distance_to_face < fade_distance_from_face || distance_to_face > tooltip_min_distance_from_face || dot < min_dot) {
-    tooltip_alpha_value = FMath::Clamp(tooltip_alpha_value - DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    tooltip_alpha_value = FMath::Clamp(tooltip_alpha_value - animationDelta, 0.0f, 1.0f);
   } else {
-    tooltip_alpha_value = FMath::Clamp(tooltip_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    tooltip_alpha_value = FMath::Clamp(tooltip_alpha_value + animationDelta, 0.0f, 1.0f);
   }
 }
 

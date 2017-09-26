@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding='utf-8' standalone='no'?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-<!-- blaze-out/arm-linux-androideabi-4.8-bionic-libcxx-armv7a-opt/genfiles/vr/gvr/platform/common/android/res/values-th/strings.xml -->
+<!-- blaze-out/arm-linux-androideabi-4.9-bionic-libcxx-armv7a-opt/genfiles/vr/gvr/platform/common/android/res/values-th/strings.xml -->
 <eat-comment/>
 <string name="back_button_content_description" msgid="233061162317617848">"กลับ"</string>
 <string name="cancel_button" msgid="2401572676578172896">"ยกเลิก"</string>
@@ -13,7 +13,7 @@
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"ต้องตั้งค่า"</string>
 <string name="dialog_title_vr_core_not_installed" msgid="6322165810291059770">"ต้องติดตั้งก่อน"</string>
 <string name="dialog_title_warning" msgid="455961049302726493">"คำเตือน"</string>
-<string name="dialog_vr_core_not_enabled" msgid="1966424794507569244">"แอปพลิเคชันอาจทำงานบกพร่องหากไม่เปิดใช้บริการ VR ของ Google โปรดเปิดใช้คุณลักษณะนี้ในการตั้งค่าของโทรศัพท์ก่อนดำเนินการต่อ"</string>
+<string name="dialog_vr_core_not_enabled" msgid="1966424794507569244">"แอปพลิเคชันอาจทำงานบกพร่องหากไม่เปิดใช้บริการ VR ของ Google โปรดเปิดใช้ฟีเจอร์นี้ในการตั้งค่าของโทรศัพท์ก่อนดำเนินการต่อ"</string>
 <string name="dialog_vr_core_not_installed" msgid="7122144659930752678">"แอปพลิเคชันอาจทำงานบกพร่องหากไม่มีบริการ VR ของ Google โปรดติดตั้งบริการ VR ของ Google จาก Play Store ก่อนดำเนินการต่อ"</string>
 <string name="go_to_playstore_button" msgid="6145412853379876634">"ไปที่ Play Store"</string>
 <string name="go_to_vr_listeners_settings_button" msgid="6878752668266068283">"ไปที่การตั้งค่า"</string>
