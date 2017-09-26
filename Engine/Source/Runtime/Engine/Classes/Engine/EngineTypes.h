@@ -1611,7 +1611,7 @@ struct FLightmassPrimitiveSettings
 	float EmissiveLightExplicitInfluenceRadius;
 
 	/** Scales the emissive contribution of all materials applied to this object.	*/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Lightmass)
 	float EmissiveBoost;
 
 	/** Scales the diffuse contribution of all materials applied to this object.	*/
