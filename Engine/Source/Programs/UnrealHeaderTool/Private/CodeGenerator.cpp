@@ -3299,7 +3299,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumInitCode(FOutputDevice& Out
 		TEXT("\tstatic FCompiledInDeferEnum Z_CompiledInDeferEnum_UEnum_%s(%s_StaticEnum, TEXT(\"%s\"), TEXT(\"%s\"), %s, %s, %s);\r\n"),
 		*EnumNameCpp,
 		*EnumNameCpp,
-		*Enum->GetOutermost()->GetName(),
+		bIsDynamic ? *FClass::GetTypePackageName(Enum) : *Enum->GetOutermost()->GetName(),
 		*OverriddenEnumNameCpp,
 		bIsDynamic ? TEXT("true") : TEXT("false"),
 		bIsDynamic ? *AsTEXT(FClass::GetTypePackageName(Enum)) : TEXT("nullptr"),
