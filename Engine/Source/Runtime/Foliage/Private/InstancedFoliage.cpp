@@ -767,6 +767,7 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	}
 
 	UFoliageInstancedStaticMeshComponent* FoliageComponent = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
+	FoliageComponent->KeepInstanceBufferCPUAccess = false;
 	FoliageComponent->InitPerInstanceRenderData(false);
 
 	Component = FoliageComponent;

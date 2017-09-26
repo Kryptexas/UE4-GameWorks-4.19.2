@@ -109,6 +109,11 @@ public:
 		return NumInstances;
 	}
 
+	FORCEINLINE uint32 GetCurrentNumInstances() const
+	{
+		return InstanceData->NumInstances();
+	}
+
 	FORCEINLINE const void* GetRawData() const
 	{
 		return InstanceData->GetDataPointer();

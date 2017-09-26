@@ -876,6 +876,7 @@ void FInstancedStaticMeshSceneProxy::GetDistanceFieldInstanceInfo(int32& NumInst
 UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, UseDynamicInstanceBuffer(false)
+	, KeepInstanceBufferCPUAccess(true)
 	, bPerInstanceRenderDataWasPrebuilt(false)
 {
 	Mobility = EComponentMobility::Movable;
@@ -1521,6 +1522,12 @@ void UInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 
 int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
 {
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
+		return INDEX_NONE;
+	}
+
 	int InstanceIdx = PerInstanceSMData.Num();
 
 	FInstancedStaticMeshInstanceData* NewInstanceData = new(PerInstanceSMData) FInstancedStaticMeshInstanceData();
@@ -1561,6 +1568,12 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
+		return false;
+	}
+
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
 	}
 
@@ -1655,6 +1668,12 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
+		return false;
+	}
+
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
 	}
 
@@ -1905,7 +1924,7 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 	}
 }
 
-void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFromCurrentData, bool RequireCPUAccess, FStaticMeshInstanceData* InSharedInstanceBufferData)
+void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFromCurrentData, FStaticMeshInstanceData* InSharedInstanceBufferData)
 {
 	while (InstancingRandomSeed == 0)
 	{
@@ -1932,12 +1951,12 @@ void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFro
 
 		if (InSharedInstanceBufferData != nullptr)
 		{
-			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, *InSharedInstanceBufferData, FeatureLevel, IsDynamic, RequireCPUAccess));
+			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, *InSharedInstanceBufferData, FeatureLevel, IsDynamic, KeepInstanceBufferCPUAccess));
 			bPerInstanceRenderDataWasPrebuilt = true;
 		}
 		else
 		{
-			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic, RequireCPUAccess, InitializeFromCurrentData));
+			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic, KeepInstanceBufferCPUAccess, InitializeFromCurrentData));
 		}
 	}
 }
@@ -2132,7 +2151,8 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 
 			MarkRenderStateDirty();
 		}
-		else if (PropertyChangedEvent.Property->GetFName() == "UseDynamicInstanceBuffer")
+		else if (PropertyChangedEvent.Property->GetFName() == "UseDynamicInstanceBuffer"
+			|| PropertyChangedEvent.Property->GetFName() == "KeepInstanceBufferCPUAccess")
 		{
 			// Force a full refresh of the instance buffer
 			ReleasePerInstanceRenderData();

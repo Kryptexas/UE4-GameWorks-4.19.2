@@ -1920,6 +1920,12 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int
 		return true;
 	}
 
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
+		return false;
+	}
+
 	TArray<int32> SortedInstancesToRemove = InstancesToRemove;
 
 	// Sort so RemoveAtSwaps don't alter the indices of items still to remove
@@ -1949,6 +1955,12 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
+		return false;
+	}
+
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
 	}
 
@@ -1989,7 +2001,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 	bool Result = Super::UpdateInstanceTransform(InstanceIndex, NewInstanceTransform, bWorldSpace, bMarkRenderStateDirty, bTeleport);
 	
-	if (GetStaticMesh())
+	if (Result && GetStaticMesh() != nullptr)
 	{
 		const FBox NewInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(NewLocalTransform);
 
@@ -2027,17 +2039,21 @@ int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& I
 {
 	int32 InstanceIndex = UInstancedStaticMeshComponent::AddInstance(InstanceTransform);
 
-	if (GetStaticMesh())
+	if (InstanceIndex != INDEX_NONE)
 	{
-		const FBox NewInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(InstanceTransform);
-		UnbuiltInstanceBounds += NewInstanceBounds;
-		UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
-	}
+	
+		if (GetStaticMesh())
+		{
+			const FBox NewInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(InstanceTransform);
+			UnbuiltInstanceBounds += NewInstanceBounds;
+			UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
+		}
 
 
-	if (bAutoRebuildTreeOnInstanceChanges)
-	{
-		BuildTreeIfOutdated(PerInstanceSMData.Num() > 1, false);
+		if (bAutoRebuildTreeOnInstanceChanges)
+		{
+			BuildTreeIfOutdated(PerInstanceSMData.Num() > 1, false);
+		}
 	}
 
 	return InstanceIndex;
