@@ -58,7 +58,7 @@ public:
 		const FVector XAxis(WorldToLight.M[0][0], WorldToLight.M[1][0], WorldToLight.M[2][0]);
 		const FVector ZAxis(WorldToLight.M[0][2], WorldToLight.M[1][2], WorldToLight.M[2][2]);
 
-		LightParameters.NormalizedLightDirection = ZAxis;
+		LightParameters.NormalizedLightDirection = -GetDirection();
 		LightParameters.NormalizedLightTangent = XAxis;
 		LightParameters.SpotAngles = FVector2D( -2.0f, 1.0f );
 		LightParameters.LightSourceRadius = SourceRadius;
