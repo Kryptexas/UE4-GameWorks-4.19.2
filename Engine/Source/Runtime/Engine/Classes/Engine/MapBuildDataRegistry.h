@@ -13,6 +13,7 @@
 #include "Engine/EngineTypes.h"
 #include "SceneTypes.h"
 #include "UObject/UObjectAnnotation.h"
+#include "RenderCommandFence.h"
 #include "MapBuildDataRegistry.generated.h"
 
 class FPrecomputedLightVolumeData;
