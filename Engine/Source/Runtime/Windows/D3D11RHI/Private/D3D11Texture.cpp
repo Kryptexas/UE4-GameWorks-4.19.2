@@ -1702,6 +1702,31 @@ void FD3D11DynamicRHI::RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTextu
 		1
 	};
 
+	bool bValidDest = DestinationBox.Min.X + DestinationOffsetX + (SourceEndX - SourceStartX) <= DestinationTexture->GetSizeX();
+	bValidDest &= DestinationBox.Min.Y + DestinationOffsetY + (SourceEndY - SourceStartY) <= DestinationTexture->GetSizeY();
+	bValidDest &= DestinationBox.Min.X <= DestinationBox.Max.X && DestinationBox.Min.Y <= DestinationBox.Max.Y;
+
+	bool bValidSrc = SourceStartX >= 0 && SourceEndX <= (int32)SourceTexture->GetSizeX();
+	bValidSrc &= SourceStartY >= 0 && SourceEndY <= (int32)SourceTexture->GetSizeY();
+	bValidSrc &= SourceStartX <= SourceEndX && SourceStartY <= SourceEndY;
+
+	if (!ensureMsgf(bValidSrc && bValidDest, TEXT("Invalid copy detected for RHICopySubTextureRegion. Skipping copy.  SrcBox: left:%i, right:%i, top:%i, bottom:%i, DstBox:left:%i, right:%i, top:%i, bottom:%i,  SrcTexSize: %i x %i, DestTexSize: %i x %i "),
+		SourceBox.Min.X,
+		SourceBox.Max.X,
+		SourceBox.Min.Y,
+		SourceBox.Max.Y,
+		DestinationBox.Min.X,
+		DestinationBox.Max.X,
+		DestinationBox.Min.Y,
+		DestinationBox.Max.Y,
+		SourceTexture->GetSizeX(),
+		SourceTexture->GetSizeY(),
+		DestinationTexture->GetSizeX(),
+		DestinationTexture->GetSizeY()))
+	{
+		return;
+	}
+
 	check(GPixelFormats[SourceTexture->GetFormat()].BlockSizeX == 1);
 	check(GPixelFormats[SourceTexture->GetFormat()].BlockSizeY == 1);
 	check(GPixelFormats[DestinationTexture->GetFormat()].BlockSizeX == 1);
