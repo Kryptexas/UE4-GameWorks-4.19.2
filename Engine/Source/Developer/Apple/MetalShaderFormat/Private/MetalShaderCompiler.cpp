@@ -1667,6 +1667,12 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	
 	FString Standard = FString::Printf(TEXT("-std=%s-metal%s"), StandardPlatform, *StandardVersion);
 	
+	bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
+	if (bDirectCompile)
+	{
+		Input.DumpDebugInfoPath = FPaths::GetPath(Input.VirtualSourceFilePath);
+	}
+	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 
 	// Allow the shader pipeline to override the platform default in here.
@@ -1686,7 +1692,6 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 	}
 
-	bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
 	if (!Input.bSkipPreprocessedCache && !bDirectCompile)
 	{
 		FString const* UsingTessellationDefine = Input.Environment.GetDefinitions().Find(TEXT("USING_TESSELLATION"));

@@ -354,7 +354,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
  */
 class FGenerateMetalVisitor : public ir_visitor
 {
-	FMetalCodeBackend* Backend;
+	FMetalCodeBackend& Backend;
 	_mesa_glsl_parse_state* ParseState;
 
 	/** Track which multi-dimensional arrays are used. */
@@ -586,7 +586,7 @@ protected:
 				}
 				else if (t->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE && t->sampler_array)
 				{
-					if (Backend->bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
+					if (Backend.bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
 					{
 						ralloc_asprintf_append(buffer, "texturecube_array");
 					}
@@ -785,7 +785,7 @@ protected:
 					// Atomic RWBuffer -> buffer
 					bool bIsStructuredBuffer = (var->type->inner_type->is_record() || !strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17));
 					bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(var->type->name, "ByteAddressBuffer<", 18));
-                    if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend->TypedMode != EMetalTypeBufferModeUAV || Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
+                    if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend.TypedMode != EMetalTypeBufferModeUAV || Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
 					{
 						check(BufferIndex <= 30);
 						ralloc_asprintf_append(
@@ -796,7 +796,7 @@ protected:
 						{
 							ralloc_asprintf_append(buffer, "atomic_");
 							check(BufferIndex < 8);
-							Backend->AtomicUAVs |= (1 << BufferIndex);
+							Backend.AtomicUAVs |= (1 << BufferIndex);
 						}
 						print_type_pre(PtrType->inner_type);
 						ralloc_asprintf_append(buffer, " *%s", unique_name(var));
@@ -813,7 +813,7 @@ protected:
 						// UAVs require type per channel, not including # of channels
 						print_type_pre(PtrType->inner_type->get_scalar_type());
 						
-						uint32 Access = Backend->ImageRW.FindChecked(var);
+						uint32 Access = Backend.ImageRW.FindChecked(var);
 						switch((EMetalAccess)Access)
 						{
 							case EMetalAccessRead:
@@ -874,7 +874,7 @@ protected:
 					// UAVs require type per channel, not including # of channels
 					print_type_pre(PtrType->inner_type->get_scalar_type());
                     
-                    uint32 Access = Backend->ImageRW.FindChecked(var);
+                    uint32 Access = Backend.ImageRW.FindChecked(var);
                     switch((EMetalAccess)Access)
                     {
                         case EMetalAccessRead:
@@ -919,7 +919,7 @@ protected:
 							
 							bool bIsStructuredBuffer = (var->type->inner_type->is_record() || !strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17));
 							bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(var->type->name, "ByteAddressBuffer<", 18));
-							if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend->TypedMode == EMetalTypeBufferModeNone)
+							if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend.TypedMode == EMetalTypeBufferModeNone)
 							{
 								check(BufferIndex >= 0 && BufferIndex <= 30);
 								ralloc_asprintf_append(
@@ -1123,7 +1123,7 @@ protected:
 						ralloc_asprintf_append(buffer, "/*ir_var_in, is_patch_constant*/");
 					}
 				}
-				else if (Backend->bIsTessellationVSHS && IsMain && var->mode == ir_var_out && var->type->is_array())
+				else if (Backend.bIsTessellationVSHS && IsMain && var->mode == ir_var_out && var->type->is_array())
 				{
 					// Generate a UAV directly as we bypass the normal path.
 					ralloc_asprintf_append(buffer, "device ");
@@ -1192,7 +1192,7 @@ protected:
 				var->constant_value->accept(this);
 			}
 		}
-		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT) && (var->mode == ir_var_auto || var->mode == ir_var_temporary || var->mode == ir_var_shared) && (Buffers.AtomicVariables.find(var) == Buffers.AtomicVariables.end()))
+		else if ((Backend.bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT) && (var->mode == ir_var_auto || var->mode == ir_var_temporary || var->mode == ir_var_shared) && (Buffers.AtomicVariables.find(var) == Buffers.AtomicVariables.end()))
 		{
 			// @todo UE-34355 temporary workaround for 10.12 shader compiler error - really all arrays should be zero'd but only threadgroup shared initialisation works on the Beta drivers.
 			if (!is_struct_type(var->type) && (var->type->base_type != GLSL_TYPE_ARRAY || var->mode == ir_var_shared))
@@ -1211,7 +1211,7 @@ protected:
 		scope_depth++;
 		IsMain = sig->is_main;
 
-		if (sig->is_main && sig->is_early_depth_stencil && Frequency == fragment_shader && Backend && Backend->Version >= 2)
+		if (sig->is_main && sig->is_early_depth_stencil && Frequency == fragment_shader && Backend.Version >= 2)
 		{
 			bExplicitEarlyFragTests = true;
 		}
@@ -1219,7 +1219,7 @@ protected:
 		print_type_full(sig->return_type);
 		ralloc_asprintf_append(buffer, " %s(", sig->function_name());
 		
-        if (sig->is_main && Backend && Backend->bBoundsChecks)
+        if (sig->is_main && Backend.bBoundsChecks)
 		{
             bool bInsertSideTable = false;
             foreach_iter(exec_list_iterator, iter, sig->parameters)
@@ -1236,7 +1236,7 @@ protected:
             }
 		}
 
-		if(Backend && Backend->bIsTessellationVSHS)
+		if(Backend.bIsTessellationVSHS)
 		{
 			check(sig->is_main);
             
@@ -1349,7 +1349,7 @@ protected:
 				indent();
 				if (sig->is_main)
 				{
-					if (Backend->bIsTessellationVSHS)
+					if (Backend.bIsTessellationVSHS)
 					{
 						check(EXEC_AT_INPUT_CP_RATE);
 						ralloc_asprintf_append(buffer, "#define GET_PATCH_COUNT() patchCount[0]\n");
@@ -1378,7 +1378,7 @@ protected:
 					switch (Frequency)
 					{
 					case vertex_shader:
-						if (Backend->bIsTessellationVSHS)
+						if (Backend.bIsTessellationVSHS)
 						{
 							ralloc_asprintf_append(buffer, "kernel ");
 						}
@@ -1542,7 +1542,7 @@ protected:
             expr->operands[0]->accept(this);
             ralloc_asprintf_append(buffer, ")");
         }
-		else if (Backend && Backend->Version >= 2 && numOps == 2 && op == ir_binop_mul && expr->operands[0]->type == expr->operands[1]->type && expr->operands[0]->type->is_float())
+		else if (Backend.Version >= 2 && numOps == 2 && op == ir_binop_mul && expr->operands[0]->type == expr->operands[1]->type && expr->operands[0]->type->is_float())
 		{
 			ralloc_asprintf_append(buffer, "fma(");
 			expr->operands[0]->accept(this);
@@ -1625,7 +1625,7 @@ protected:
 		}
 		else if ((op == ir_ternop_fma || op == ir_ternop_clamp || op == ir_unop_sqrt || op == ir_unop_rsq || op == ir_unop_saturate) && expr->type->base_type == GLSL_TYPE_FLOAT)
 		{
-			if (!Backend->bAllowFastIntriniscs && op != ir_ternop_fma)
+			if (!Backend.bAllowFastIntriniscs && op != ir_ternop_fma)
 			{
 				ralloc_asprintf_append(buffer, "precise::");
 			}
@@ -1646,7 +1646,7 @@ protected:
 			{
 				OpString = (OpString + 1);
 			}
-			else if(!Backend->bAllowFastIntriniscs && expr->type->base_type == GLSL_TYPE_FLOAT)
+			else if(!Backend.bAllowFastIntriniscs && expr->type->base_type == GLSL_TYPE_FLOAT)
 			{
 				ralloc_asprintf_append(buffer, "precise::");
 			}
@@ -1774,7 +1774,7 @@ protected:
 					}
 					case GLSL_SAMPLER_DIM_CUBE:
 					{
-						if (Backend->bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
+						if (Backend.bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
 						{
 							CoordSwizzle = "yz";
 							IndexSwizzle = "w";
@@ -1903,10 +1903,10 @@ protected:
 				
 				bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
 				bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
-				if (Backend->TypedMode != EMetalTypeBufferModeNone && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end() && !bIsStructuredBuffer && !bIsByteAddressBuffer)
+				if (Backend.TypedMode != EMetalTypeBufferModeNone && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end() && !bIsStructuredBuffer && !bIsByteAddressBuffer)
 				{
 					tex->sampler->accept(this);
-					if (Backend->bBoundsChecks)
+					if (Backend.bBoundsChecks)
 					{
 						ralloc_asprintf_append(buffer, ".read(uint2(");
 						tex->coordinate->accept(this);
@@ -2006,7 +2006,7 @@ protected:
 					tex->coordinate->accept(this);
 					ralloc_asprintf_append(buffer, ", %d, BufferSizes)", Index);
 				}
-				else if (Backend && Backend->bBoundsChecks)
+				else if (Backend.bBoundsChecks)
 				{
 					check(Index <= 30);
 					
@@ -2258,7 +2258,7 @@ protected:
 			ralloc_asprintf_append(buffer, "[");
 		}
 		
-		bool bIsVectorArrayIndex = deref->array->type->is_vector() && (Backend->Version < 3 && Backend->bIsDesktop == EMetalGPUSemanticsImmediateDesktop);
+		bool bIsVectorArrayIndex = deref->array->type->is_vector() && (Backend.Version < 3 && Backend.bIsDesktop == EMetalGPUSemanticsImmediateDesktop);
 		if (bIsVectorArrayIndex)
 		{
 			bVectorDerefHelper = true;
@@ -2314,10 +2314,10 @@ protected:
 					
 					bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
 					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
-					if (Backend->TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
+					if (Backend.TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
 					{
 						deref->image->accept(this);
-						if (Backend->bBoundsChecks)
+						if (Backend.bBoundsChecks)
 						{
 							ralloc_asprintf_append(buffer, ".read(uint2(");
 							deref->image_index->accept(this);
@@ -2417,7 +2417,7 @@ protected:
 						deref->image_index->accept(this);
 						ralloc_asprintf_append(buffer, ", %d, BufferSizes)", Index);
 					}
-					else if (Backend && Backend->bBoundsChecks)
+					else if (Backend.bBoundsChecks)
 					{
 						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, "[");
@@ -2555,7 +2555,7 @@ protected:
 					auto* Texture = deref->image->variable_referenced();
 					bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
 					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
-					if (Backend->TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
+					if (Backend.TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
 					{
 						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, ".write(");
@@ -2640,7 +2640,7 @@ protected:
 						src->accept(this);
 						ralloc_asprintf_append(buffer, ")");
 					}
-					else if (Backend && Backend->bBoundsChecks)
+					else if (Backend.bBoundsChecks)
 					{
 						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, "[");
@@ -3173,7 +3173,7 @@ protected:
 
 			indentation++;
 
-			if (Backend->bIsTessellationVSHS)
+			if (Backend.bIsTessellationVSHS)
 			{
 				// Support for MULTI_PATCH
 				// @todo make this more generic -- it should function anywhere...
@@ -3524,7 +3524,7 @@ protected:
 							ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].semantic);
 							print_type_post(s->fields.structure[j].type);
 						}
-						else if (Backend->bIsTessellationVSHS)
+						else if (Backend.bIsTessellationVSHS)
 						{
 							ralloc_asprintf_append(buffer, " /* %s */", s->fields.structure[j].semantic);
 						}
@@ -3980,7 +3980,7 @@ protected:
 			ralloc_asprintf_append(buffer, "// @NumThreads: %d, %d, %d\n", this->NumThreadsX, this->NumThreadsY, this->NumThreadsZ);
 		}
 		
-		if (Backend->bIsTessellationVSHS || Frequency == tessellation_evaluation_shader)
+		if (Backend.bIsTessellationVSHS || Frequency == tessellation_evaluation_shader)
 		{
 			check(tessellation.outputcontrolpoints != 0);
 			ralloc_asprintf_append(buffer, "// @TessellationOutputControlPoints: %d\n", tessellation.outputcontrolpoints);
@@ -4001,13 +4001,13 @@ protected:
 			ralloc_asprintf_append(buffer, "\n");
 		}
 
-		if (Backend->bIsTessellationVSHS)
+		if (Backend.bIsTessellationVSHS)
 		{
-			check(Backend->inputcontrolpoints != 0);
-			ralloc_asprintf_append(buffer, "// @TessellationInputControlPoints: %d\n", Backend->inputcontrolpoints);
+			check(Backend.inputcontrolpoints != 0);
+			ralloc_asprintf_append(buffer, "// @TessellationInputControlPoints: %d\n", Backend.inputcontrolpoints);
 			ralloc_asprintf_append(buffer, "// @TessellationMaxTessFactor: %g\n", tessellation.maxtessfactor);
-			check(Backend->patchesPerThreadgroup != 0);
-			ralloc_asprintf_append(buffer, "// @TessellationPatchesPerThreadGroup: %d\n", Backend->patchesPerThreadgroup);
+			check(Backend.patchesPerThreadgroup != 0);
+			ralloc_asprintf_append(buffer, "// @TessellationPatchesPerThreadGroup: %d\n", Backend.patchesPerThreadgroup);
             
             std::string patchCountName("patchCount");
             int32 patchIndex = Buffers.GetIndex(patchCountName);
@@ -4144,7 +4144,7 @@ protected:
 public:
 
 	/** Constructor. */
-	FGenerateMetalVisitor(FMetalCodeBackend* InBackend, _mesa_glsl_parse_state* InParseState, _mesa_glsl_parser_targets InFrequency, FBuffers& InBuffers)
+	FGenerateMetalVisitor(FMetalCodeBackend& InBackend, _mesa_glsl_parse_state* InParseState, _mesa_glsl_parser_targets InFrequency, FBuffers& InBuffers)
 		: Backend(InBackend)
 		, ParseState(InParseState)
 		, Frequency(InFrequency)
@@ -4167,7 +4167,7 @@ public:
 		, bReverseBitsWAR(false)
 		, bVectorDerefHelper(false)
 		, bExplicitEarlyFragTests(false)
-		, bImplicitEarlyFragTests(InBackend->Version >= 2)
+		, bImplicitEarlyFragTests(InBackend.Version >= 2)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -4205,13 +4205,13 @@ public:
 		declare_structs(ParseState);
 		
         // Use a precise fma based cross-product to avoid reassociation errors messing up WPO
-		if (Backend && Backend->Version >= 2)
+		if (Backend.Version >= 2)
 		{
 			ralloc_asprintf_append(buffer, "\ntemplate<typename T> static T precise_cross(T x, T y) { float3 fx = float3(x); float3 fy = float3(y); return T(fma(fx[1], fy[2], -(fy[1] * fx[2])), fma(fx[2], fy[0], -(fy[2] * fx[0])), fma(fx[0], fy[1], -(fy[0] * fx[1]))); }\n");
 			ralloc_asprintf_append(buffer, "#define cross(x, y) precise_cross(x, y)\n");
 		}
         
-        if ((bExplicitEarlyFragTests || bImplicitEarlyFragTests) && !Backend->bExplicitDepthWrites && Frequency == fragment_shader && Backend->Version >= 2)
+        if ((bExplicitEarlyFragTests || bImplicitEarlyFragTests) && !Backend.bExplicitDepthWrites && Frequency == fragment_shader && Backend.Version >= 2)
 		{
 			ralloc_asprintf_append(buffer, "\n#define FUNC_ATTRIBS [[early_fragment_tests]]\n\n");
 		}
@@ -4230,7 +4230,7 @@ public:
         char* metal_defines = ralloc_asprintf(mem_ctx, "");
         buffer = &metal_defines;
         const char *StageName = shaderPrefix();
-		if (Backend->bIsTessellationVSHS || Frequency == tessellation_evaluation_shader)
+		if (Backend.bIsTessellationVSHS || Frequency == tessellation_evaluation_shader)
 		{
 			check(tessellation.outputcontrolpoints != 0);
 			ralloc_asprintf_append(buffer, "#define TessellationOutputControlPoints %d\n", tessellation.outputcontrolpoints);
@@ -4251,13 +4251,13 @@ public:
 			ralloc_asprintf_append(buffer, "\n");
 		}
 
-		if (Backend->bIsTessellationVSHS)
+		if (Backend.bIsTessellationVSHS)
 		{
-			check(Backend->inputcontrolpoints != 0);
-			ralloc_asprintf_append(buffer, "#define TessellationInputControlPoints %d\n", Backend->inputcontrolpoints);
+			check(Backend.inputcontrolpoints != 0);
+			ralloc_asprintf_append(buffer, "#define TessellationInputControlPoints %d\n", Backend.inputcontrolpoints);
 			ralloc_asprintf_append(buffer, "#define TessellationMaxTessFactor %g\n", tessellation.maxtessfactor);
-			check(Backend->patchesPerThreadgroup != 0);
-			ralloc_asprintf_append(buffer, "#define TessellationPatchesPerThreadGroup %d\n", Backend->patchesPerThreadgroup);
+			check(Backend.patchesPerThreadgroup != 0);
+			ralloc_asprintf_append(buffer, "#define TessellationPatchesPerThreadGroup %d\n", Backend.patchesPerThreadgroup);
 		}
 		
 		if (Frequency == tessellation_evaluation_shader)
@@ -4268,7 +4268,7 @@ public:
         buffer = 0;
 		
 		char* reverse_bits = ralloc_asprintf(mem_ctx, "");
-		if (Backend->Version < 2 && bReverseBitsWAR)
+		if (Backend.Version < 2 && bReverseBitsWAR)
 		{
 			buffer = &reverse_bits;
 			ralloc_asprintf_append(buffer, "static uint reverse_bits(uint x)\n");
@@ -4284,7 +4284,7 @@ public:
 		}
 		
 		char* VectorDerefHelper = ralloc_asprintf(mem_ctx, "");
-		if (Backend->Version < 3 && bVectorDerefHelper)
+		if (Backend.Version < 3 && bVectorDerefHelper)
 		{
 			buffer = &VectorDerefHelper;
 			
@@ -4298,7 +4298,7 @@ public:
 		buffer = 0;
 
 		char* RWBufferLoadStoreHelper = ralloc_asprintf(mem_ctx, "");
-		if (Backend->TypedMode != EMetalTypeBufferModeUAV)
+		if (Backend.TypedMode != EMetalTypeBufferModeUAV)
 		{
 			buffer = &RWBufferLoadStoreHelper;
 			
@@ -4397,7 +4397,7 @@ public:
 		
 		char* CubemapHack = ralloc_asprintf(mem_ctx, "");
 		// Convert CubeMapArray to 2DArray for iOS/tvOS: x=>x, y=>y, z=>Face
-		if (Backend->bIsDesktop == EMetalGPUSemanticsTBDRDesktop && (bCubeArrayHackFloat4 || bCubeArrayHackFloat3))
+		if (Backend.bIsDesktop == EMetalGPUSemanticsTBDRDesktop && (bCubeArrayHackFloat4 || bCubeArrayHackFloat3))
 		{
 			buffer = &CubemapHack;
 			if (bCubeArrayHackFloat4)
@@ -4480,7 +4480,7 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 {
 	// We'll need this Buffers info for the [[buffer()]] index
 	FBuffers Buffers;
-	FGenerateMetalVisitor visitor(this, state, state->target, Buffers);
+	FGenerateMetalVisitor visitor(*this, state, state->target, Buffers);
 
 	// At this point, all inputs and outputs are global uniforms, no structures.
 
@@ -4935,6 +4935,8 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 			}
 		}
 	}
+	
+	TArray<char const*> ClipDistanceFields;
 	if (!EntryPointSig->return_type->is_void() && EntryPointSig->return_type->is_record() && !bIsTessellationVSHS)
 	{
 		for (uint32 i = 0; i < EntryPointSig->return_type->length; ++i)
@@ -4953,6 +4955,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 					{
 						ClipDistancesUsed |= (1 << Index);
 						NumClipDistancesUsed++;
+						ClipDistanceFields.Add(EntryPointSig->return_type->fields.structure[i].name);
 					}
 				}
 				else if (FCStringAnsi::Strnicmp(FieldSemantic, "SV_Depth", 8) == 0)
@@ -4967,6 +4970,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 
 	ParseState->symbols->push_scope();
 
+	TArray<ir_dereference*> ClipDistancVars;
 	// Find all system semantics and generate in/out globals
 	foreach_iter(exec_list_iterator, Iter, EntryPointSig->parameters)
 	{
@@ -5002,8 +5006,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 
 			check(Variable->mode == ir_var_in);
 		}
-		else
-		if (Variable->semantic != NULL || Variable->type->is_record())
+		else if (Variable->semantic != NULL || Variable->type->is_record())
 		{
 			ir_dereference_variable* ArgVarDeref = NULL;
 			switch (Variable->mode)
@@ -5029,6 +5032,10 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 					&PreCallInstructions,
 					&PostCallInstructions
 					);
+				if(Variable->semantic && FCStringAnsi::Strnicmp(Variable->semantic, "SV_ClipDistance", ClipPrefixLen) == 0)
+				{
+					ClipDistancVars.Add(ArgVarDeref->clone(ParseState, nullptr));
+				}
 				break;
 			default:
 			   _mesa_glsl_error(
@@ -5095,6 +5102,53 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 		{
 			EntryPointReturn = MetalUtils::GenerateOutput(Frequency, bIsDesktop, ParseState, EntryPointSig->return_semantic, Qualifier, EntryPointSig->return_type, &DeclInstructions, &PreCallInstructions, &PostCallInstructions);
 		}
+	}
+	
+	// Broken desktop drivers require packing the clip-distance-results into a single value and passing them along as user attributes
+	if (bIsDesktop == EMetalGPUSemanticsImmediateDesktop && EntryPointReturn && NumClipDistancesUsed > 0 && ((!bIsTessellationVSHS && Frequency == HSF_VertexShader) ||  Frequency == HSF_DomainShader))
+	{
+		for (char const* ReturnField : ClipDistanceFields)
+		{
+			ClipDistancVars.Add(new(ParseState)ir_dereference_record(EntryPointReturn, ReturnField));
+		}
+		
+		exec_list ClipPostCallInstructions;
+		ir_dereference_variable* ArgVarDeref = MetalUtils::GenerateOutput(
+																		  Frequency, bIsDesktop,
+																		  ParseState,
+																		  "[[ clip_distance ]]",
+																		  Qualifier,
+																		  glsl_type::float_type,
+																		  &DeclInstructions,
+																		  &PreCallInstructions,
+																		  &ClipPostCallInstructions
+																		  );
+		ArgInstructions.push_tail(ArgVarDeref);
+		
+		ir_constant* zero = ir_constant::zero(ParseState, glsl_type::float_type);
+		
+		ir_expression* Comparison = nullptr;
+		for (ir_dereference* ir : ClipDistancVars)
+		{
+			ir_expression* GEqual = new(ParseState)ir_expression(ir_binop_gequal, ir, zero->clone(ParseState, nullptr));
+			if (Comparison)
+			{
+				Comparison = new(ParseState)ir_expression(ir_binop_logic_and, Comparison, GEqual);
+			}
+			else
+			{
+				Comparison = GEqual;
+			}
+		}
+		
+		ir_if* Branch = new(ParseState)ir_if(Comparison);
+		Branch->mode = ir_if::if_flatten;
+		
+		Branch->then_instructions.push_tail(new(ParseState)ir_assignment(ArgVarDeref->clone(ParseState, nullptr), new(ParseState)ir_constant(1.0f)));
+		Branch->else_instructions.push_tail(new(ParseState)ir_assignment(ArgVarDeref->clone(ParseState, nullptr), new(ParseState)ir_constant(-1.0f)));
+		
+		PostCallInstructions.push_tail(Branch);
+		PostCallInstructions.append_list(&ClipPostCallInstructions);
 	}
 
 		/*
