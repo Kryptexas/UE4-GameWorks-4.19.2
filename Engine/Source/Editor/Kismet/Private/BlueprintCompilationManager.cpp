@@ -24,6 +24,7 @@
 #include "ProfilingDebugging/ScopedTimers.h"
 #include "Serialization/ArchiveHasReferences.h"
 #include "Serialization/ArchiveReplaceOrClearExternalReferences.h"
+#include "Settings/EditorProjectSettings.h"
 #include "TickableEditorObject.h"
 #include "UObject/MetaData.h"
 #include "UObject/ReferenceChainSearch.h"
@@ -345,7 +346,18 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 					if(!IsQueuedForCompilation(DependentBlueprint))
 					{
 						DependentBlueprint->bQueuedForCompilation = true;
-						CurrentlyCompilingBPs.Add(FCompilerData(DependentBlueprint, ECompilationManagerJobType::Normal, nullptr, EBlueprintCompileOptions::None, true));
+						// Because we're adding this as a bytecode only blueprint compile we don't need to 
+						// recursively recompile dependencies. The assumption is that a bytecode only compile
+						// will not change the class layout. @todo: add an ensure to detect class layout changes
+						CurrentlyCompilingBPs.Add(
+							FCompilerData(
+								DependentBlueprint, 
+								ECompilationManagerJobType::Normal, 
+								nullptr, 
+								EBlueprintCompileOptions::None, 
+								true
+							)
+						);
 						BlueprintsToRecompile.Add(DependentBlueprint);
 					}
 				}
@@ -523,30 +535,55 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 
 		// STAGE VII: safely throw away old skeleton CDOs:
 		{
-			TMap<UClass*, UClass*> OldSkeletonToNewSkeleton;
+			TMap<UClass*, UClass*> NewSkeletonToOldSkeleton;
 			for (FCompilerData& CompilerData : CurrentlyCompilingBPs)
 			{
 				UBlueprint* BP = CompilerData.BP;
 				UClass* OldSkeletonClass = BP->SkeletonGeneratedClass;
 				if(OldSkeletonClass)
 				{
-					MoveSkelCDOAside(OldSkeletonClass, OldSkeletonToNewSkeleton);
+					MoveSkelCDOAside(OldSkeletonClass, NewSkeletonToOldSkeleton);
 				}
 			}
-		}
 		
-		// STAGE VIII: recompile skeleton
-		{
-			TMap<UClass*, UClass*> OldSkeletonToNewSkeleton;
+		
+			// STAGE VIII: recompile skeleton
+
+			// if any function signatures have changed in this skeleton class we will need to recompile all dependencies, but if not
+			// then we can avoid dependency recompilation:
+			TSet<UBlueprint*> BlueprintsWithSignatureChanges;
+			const UBlueprintEditorProjectSettings* EditorProjectSettings = GetDefault<UBlueprintEditorProjectSettings>();
+			bool bSkipUnneededDependencyCompilation = EditorProjectSettings->bSkipUnneededDependencyCompilation;
+
 			for (FCompilerData& CompilerData : CurrentlyCompilingBPs)
 			{
 				UBlueprint* BP = CompilerData.BP;
 		
 				if(CompilerData.ShouldRegenerateSkeleton())
 				{
-					UClass* OldSkeleton = BP->SkeletonGeneratedClass;
 					BP->SkeletonGeneratedClass = FastGenerateSkeletonClass(BP, *(CompilerData.Compiler) );
-					OldSkeletonToNewSkeleton.Add(OldSkeleton, BP->SkeletonGeneratedClass);
+					UBlueprintGeneratedClass* AuthoritativeClass = Cast<UBlueprintGeneratedClass>(BP->GeneratedClass);
+					if(AuthoritativeClass && bSkipUnneededDependencyCompilation)
+					{
+						if(CompilerData.InternalOptions.CompileType == EKismetCompileType::Full )
+						{
+							for (TFieldIterator<UFunction> FuncIt(AuthoritativeClass, EFieldIteratorFlags::ExcludeSuper); FuncIt; ++FuncIt)
+							{
+								// We assume that if the func is FUNC_BlueprintCallable that it will be present in the Skeleton class.
+								// If it is not in the skeleton class we will always think that this blueprints public interface has 
+								// changed. Not a huge deal, but will mean we recompile dependencies more often than necessary.
+								if(FuncIt->HasAnyFunctionFlags(EFunctionFlags::FUNC_BlueprintCallable))
+								{
+									UFunction* NewFunction = BP->SkeletonGeneratedClass->FindFunctionByName((*FuncIt)->GetFName());
+									if(NewFunction == nullptr || !NewFunction->IsSignatureCompatibleWith(*FuncIt))
+									{
+										BlueprintsWithSignatureChanges.Add(BP);
+										break;
+									}
+								}
+							}
+						}
+					}
 				}
 				else
 				{
@@ -556,12 +593,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 
 					// CDO needs to be moved aside already:
 					ensure(SkeletonToRelink->ClassDefaultObject == nullptr);
-
-					UClass * const* OverridenParent = OldSkeletonToNewSkeleton.Find(SkeletonToRelink->GetSuperClass());
-					if(OverridenParent && *OverridenParent)
-					{
-						SkeletonToRelink->SetSuperStruct(*OverridenParent);
-					}
+					ensure(!SkeletonToRelink->GetSuperClass()->HasAnyClassFlags(CLASS_NewerVersionExists));
 
 					SkeletonToRelink->Bind();
 					SkeletonToRelink->StaticLink(true);
@@ -574,6 +606,62 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 					BP->bHasBeenRegenerated = true;
 					BP->GeneratedClass->ClearFunctionMapsCaches();
 				}
+			}
+
+			// Skip further compilation for blueprints that are being bytecode compiled as a dependency of something that has
+			// not had a change in its function parameters:
+			auto DependenciesAreCompiled = [&BlueprintsWithSignatureChanges](FCompilerData& Data)
+			{
+				if(Data.InternalOptions.CompileType == EKismetCompileType::BytecodeOnly )
+				{
+					// if our parent is still being compiled, then we still need to be compiled:
+					UClass* Iter = Data.BP->ParentClass;
+					while(Iter)
+					{
+						if(UBlueprint* BP = Cast<UBlueprint>(Iter->ClassGeneratedBy))
+						{
+							if(BP->bBeingCompiled)
+							{
+								return false;
+							}
+						}
+						Iter = Iter->GetSuperClass();
+					}
+
+					// otherwise if we're dependent on a blueprint that had a function signature change, we still need to be compiled:
+					ensure(Data.BP->bCachedDependenciesUpToDate);
+					ensure(Data.BP->CachedDependencies.Num() > 0); // why are we bytecode compiling a blueprint with no dependencies?
+					for(const TWeakObjectPtr<UBlueprint>& Dependency : Data.BP->CachedDependencies)
+					{
+						if (UBlueprint* DependencyBP = Dependency.Get())
+						{
+							if(DependencyBP->bBeingCompiled && BlueprintsWithSignatureChanges.Contains(DependencyBP))
+							{
+								return false;
+							}
+						}
+					}
+					
+					Data.BP->bBeingCompiled = false;
+					if(UPackage* Package = Data.BP->GetOutermost())
+					{
+						Package->SetDirtyFlag(Data.bPackageWasDirty);
+					}
+					if(Data.ResultsLog)
+					{
+						Data.ResultsLog->EndEvent();
+					}
+					Data.BP->bQueuedForCompilation = false;
+					return true;
+				}
+			
+				return false;
+			};
+
+			if(bSkipUnneededDependencyCompilation)
+			{
+				// Order very much matters, but we could RemoveAllSwap and re-sort:
+				CurrentlyCompilingBPs.RemoveAll(DependenciesAreCompiled);
 			}
 		}
 

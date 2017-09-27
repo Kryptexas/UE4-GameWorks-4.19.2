@@ -168,6 +168,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	uint32 bUseCompilationManager:1;
 	
+	/** Flag to enable faster compiles for individual blueprints if they have no function signature changes */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints)
+	uint32 bSkipUnneededDependencyCompilation:1;
+
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
