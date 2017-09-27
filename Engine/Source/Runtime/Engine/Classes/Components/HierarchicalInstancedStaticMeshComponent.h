@@ -88,6 +88,10 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	UPROPERTY()
 	TArray<FBox> UnbuiltInstanceBoundsList;
 
+	// Instance Index of each individual unbuilt instance, used in unbuilt rendering during a wait for the build
+	UPROPERTY()
+	TArray<int32> UnbuiltInstanceIndexList;
+
 	// Enable for detail meshes that don't really affect the game. Disable for anything important.
 	// Typically, this will be enabled for small meshes without collision (e.g. grass) and disabled for large meshes with collision (e.g. trees)
 	UPROPERTY()
@@ -147,8 +151,6 @@ public:
 	void GetOverlappingBoxTransforms(const FBox& Box, TArray<FTransform>& OutTransforms) const;
 
 	virtual bool ShouldCreatePhysicsState() const override;
-
-	virtual int32 GetNumRenderInstances() const override { return NumBuiltRenderInstances + UnbuiltInstanceBoundsList.Num(); }
 
 	bool BuildTreeIfOutdated(bool Async, bool ForceUpdate);
 	static void BuildTreeAnyThread(TArray<FMatrix>& InstanceTransforms, const FBox& MeshBox, TArray<FClusterNode>& OutClusterTree, TArray<int32>& OutSortedInstances, TArray<int32>& OutInstanceReorderTable, int32& OutOcclusionLayerNum, int32 MaxInstancesPerLeaf );

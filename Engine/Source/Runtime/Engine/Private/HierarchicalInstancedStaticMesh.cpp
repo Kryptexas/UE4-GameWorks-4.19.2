@@ -753,7 +753,7 @@ class FHierarchicalStaticMeshSceneProxy : public FInstancedStaticMeshSceneProxy
 
 	TArray<FBox> UnbuiltBounds;
 	int32 FirstUnbuiltIndex;
-	int32 LastUnbuiltIndex;
+	int32 UnbuiltInstanceCount;
 
 	int32 FirstOcclusionNode;
 	int32 LastOcclusionNode;
@@ -779,7 +779,7 @@ public:
 		, ClusterTree(*InComponent->ClusterTreePtr)
 		, UnbuiltBounds(InComponent->UnbuiltInstanceBoundsList)
 		, FirstUnbuiltIndex(InComponent->NumBuiltRenderInstances)
-		, LastUnbuiltIndex(InComponent->GetNumRenderInstances()-1)
+		, UnbuiltInstanceCount(InComponent->UnbuiltInstanceIndexList.Num())
 		, bIsGrass(bInIsGrass)
 		, SceneProxyCreatedFrameNumberRenderThread(UINT32_MAX)
 		, bDitheredLODTransitions(InComponent->SupportsDitheredLODTransitions())
@@ -796,7 +796,7 @@ public:
 		, ClusterTree(*InComponent->ClusterTreePtr)
 		, UnbuiltBounds(InComponent->UnbuiltInstanceBoundsList)
 		, FirstUnbuiltIndex(InComponent->NumBuiltRenderInstances)
-		, LastUnbuiltIndex(InComponent->GetNumRenderInstances()-1)
+		, UnbuiltInstanceCount(InComponent->UnbuiltInstanceIndexList.Num())
 		, bIsGrass(bInIsGrass)
 		, SceneProxyCreatedFrameNumberRenderThread(UINT32_MAX)
 		, bDitheredLODTransitions(InComponent->SupportsDitheredLODTransitions())
@@ -1622,15 +1622,14 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 			}
 
 			// Render unbuilt instances
-			if (FirstUnbuiltIndex <= LastUnbuiltIndex)
+			if (UnbuiltInstanceCount > 0)
 			{
 				FFoliageRenderInstanceParams InstanceParams(true, false, false);
 
 				// disable LOD blending for unbuilt instances as we haven't calculated the correct LOD.
 				ElementParams.bBlendLODs = false;
 
-				const int32 NumUnbuiltInstances = LastUnbuiltIndex - FirstUnbuiltIndex + 1;
-				if (NumUnbuiltInstances < 1000)
+				if (UnbuiltInstanceCount < 1000)
 				{
 					const int32 NumLODs = RenderData->LODResources.Num();
 
@@ -1638,7 +1637,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 					if (Force >= 0)
 					{
 						Force = FMath::Clamp(Force, 0, NumLODs - 1);
-						InstanceParams.AddRun(Force, Force, FirstUnbuiltIndex, LastUnbuiltIndex);
+						InstanceParams.AddRun(Force, Force, FirstUnbuiltIndex, FirstUnbuiltIndex + UnbuiltInstanceCount);
 					}
 					else
 					{
@@ -1682,7 +1681,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 						int32 MaxLOD = NumLODs;
 						CalcLOD(MinLOD, MaxLOD, UnbuiltBounds[0].Min, UnbuiltBounds[0].Max, ViewOriginInLocalZero, ViewOriginInLocalOne, LODPlanesMin, LODPlanesMax);
 						int32 FirstIndexInRun = 0;
-						for (int32 Index = 1; Index < NumUnbuiltInstances; ++Index)
+						for (int32 Index = 1; Index < UnbuiltInstanceCount; ++Index)
 						{
 							int32 TempMinLOD = 0;
 							int32 TempMaxLOD = NumLODs;
@@ -1697,13 +1696,13 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 								FirstIndexInRun = Index;
 							}
 						}
-						InstanceParams.AddRun(MinLOD, MinLOD, FirstIndexInRun + FirstUnbuiltIndex, LastUnbuiltIndex);
+						InstanceParams.AddRun(MinLOD, MinLOD, FirstIndexInRun + FirstUnbuiltIndex, FirstIndexInRun + FirstUnbuiltIndex + UnbuiltInstanceCount);
 					}
 				}
 				else
 				{
 					// more than 1000, render them all at lowest LOD (until we have an updated tree)
-					InstanceParams.AddRun(RenderData->LODResources.Num() - 1, RenderData->LODResources.Num() - 1, FirstUnbuiltIndex, LastUnbuiltIndex);
+					InstanceParams.AddRun(RenderData->LODResources.Num() - 1, RenderData->LODResources.Num() - 1, FirstUnbuiltIndex, FirstUnbuiltIndex + UnbuiltInstanceCount);
 				}
 				FillDynamicMeshElements(Collector, ElementParams, InstanceParams);
 			}
@@ -1865,6 +1864,7 @@ void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 Ins
 	// Remove the instance
 	PerInstanceSMData.RemoveAtSwap(InstanceIndex);
 	InstanceReorderTable.RemoveAtSwap(InstanceIndex);
+	UnbuiltInstanceIndexList.RemoveSwap(InstanceIndex);
 
 #if WITH_EDITOR
 	if (SelectedInstances.Num())
@@ -2040,15 +2040,15 @@ int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& I
 	int32 InstanceIndex = UInstancedStaticMeshComponent::AddInstance(InstanceTransform);
 
 	if (InstanceIndex != INDEX_NONE)
-	{
-	
+	{	
 		if (GetStaticMesh())
 		{
 			const FBox NewInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(InstanceTransform);
 			UnbuiltInstanceBounds += NewInstanceBounds;
 			UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
-		}
 
+			UnbuiltInstanceIndexList.Add(InstanceIndex);
+		}
 
 		if (bAutoRebuildTreeOnInstanceChanges)
 		{
@@ -2072,6 +2072,7 @@ void UHierarchicalInstancedStaticMeshComponent::ClearInstances()
 	SortedInstances.Empty();
 	UnbuiltInstanceBounds.Init();
 	UnbuiltInstanceBoundsList.Empty();
+	UnbuiltInstanceIndexList.Empty();
 	NeedUpdatingInstanceIndexList.Empty();
 
 	if (ProxySize)
@@ -2194,6 +2195,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		UnbuiltInstanceBounds.Init();
 		RemovedInstances.Empty();
 		UnbuiltInstanceBoundsList.Empty();
+		UnbuiltInstanceIndexList.Empty();
 		BuiltInstanceBounds = (Builder.Result->Nodes.Num() > 0 ? FBox(Builder.Result->Nodes[0].BoundMin, Builder.Result->Nodes[0].BoundMax) : FBox(ForceInit));
 
 		ClusterTreePtr = MakeShareable(new TArray<FClusterNode>(MoveTemp(Builder.Result->Nodes)));
@@ -2225,6 +2227,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		RemovedInstances.Empty();
 
 		UnbuiltInstanceBoundsList.Empty();
+		UnbuiltInstanceIndexList.Empty();
 		BuiltInstanceBounds.Init();
 		CacheMeshExtendedBounds = FBoxSphereBounds();
 	}
@@ -2271,6 +2274,7 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClust
 	check(NumBuiltRenderInstances);
 	UnbuiltInstanceBounds.Init();
 	UnbuiltInstanceBoundsList.Empty();
+	UnbuiltInstanceIndexList.Empty();
 	RemovedInstances.Empty();
 	ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);
 	InstanceReorderTable.Empty();
@@ -2360,12 +2364,14 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 			{
 				// There are new outstanding instances, build again!
 				UnbuiltInstanceBoundsList.RemoveAt(0, UnbuiltInstanceBoundsList.Num() - (PerInstanceSMData.Num() - NumBuiltInstances));
+				UnbuiltInstanceIndexList.RemoveAt(0, UnbuiltInstanceIndexList.Num() - (PerInstanceSMData.Num() - NumBuiltInstances));
 				BuildTreeAsync();
 			}
 			else
 			{
 				UnbuiltInstanceBounds.Init();
 				UnbuiltInstanceBoundsList.Empty();
+				UnbuiltInstanceIndexList.Empty();
 				FlushAccumulatedNavigationUpdates();
 			}
 
@@ -2388,7 +2394,7 @@ bool UHierarchicalInstancedStaticMeshComponent::BuildTreeIfOutdated(bool Async, 
 		|| InstanceReorderTable.Num() != PerInstanceSMData.Num()
 		|| NumBuiltInstances != PerInstanceSMData.Num() 
 		|| (GetStaticMesh() != nullptr && CacheMeshExtendedBounds != GetStaticMesh()->GetBounds())
-		|| UnbuiltInstanceBoundsList.Num() > 0
+		|| UnbuiltInstanceBoundsList.Num() > 0 || UnbuiltInstanceIndexList.Num() > 0
 		|| GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES)
 	{
 		if (GetStaticMesh() != nullptr && !GetStaticMesh()->HasAnyFlags(RF_NeedLoad)) // we can build the tree if the static mesh is not even loaded, and we can't call PostLoad as the load is not even done
@@ -2487,6 +2493,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 		CacheMeshExtendedBounds = FBoxSphereBounds();
 
 		UnbuiltInstanceBoundsList.Empty();
+		UnbuiltInstanceIndexList.Empty();
 		BuiltInstanceBounds.Init();
 	}
 }
@@ -2506,8 +2513,8 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
-		// make sure we have instances
-		(GetNumRenderInstances() - RemovedInstances.Num() > 0 || bPerInstanceRenderDataWasPrebuilt) &&
+		// make sure we have instances		
+		(PerInstanceRenderData->InstanceBuffer.GetNumInstances() > 0 || bPerInstanceRenderDataWasPrebuilt) &&
 		// make sure we have an actual staticmesh
 		GetStaticMesh() &&
 		GetStaticMesh()->HasValidRenderData() &&
