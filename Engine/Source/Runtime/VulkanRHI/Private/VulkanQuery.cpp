@@ -206,7 +206,7 @@ void FVulkanCommandListContext::ReadAndCalculateGPUFrameTime()
 
 	if (FrameTiming)
 	{
-		const uint64 Delta = FrameTiming->GetTiming(true);
+		const uint64 Delta = FrameTiming->GetTiming(false);
 		GGPUFrameTime = Delta ? (Delta / 1e6) / FPlatformTime::GetSecondsPerCycle() : 0;
 	}
 	else
