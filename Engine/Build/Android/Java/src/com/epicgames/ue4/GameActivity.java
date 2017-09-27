@@ -177,6 +177,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public static final int DOWNLOAD_INVALID = 5;
 	public static final int DOWNLOAD_NO_PLAY_KEY = 6;
 	public static final String DOWNLOAD_RETURN_NAME = "Result";
+
+	public static enum VirtualKeyboardCommand { VK_CMD_NONE, VK_CMD_SHOW, VK_CMD_HIDE };
+	public static VirtualKeyboardCommand lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_NONE;
+	public static final int lastVirtualKeyboardCommandDelay = 200;
 	
 	static GameActivity _activity;
 	static Bundle _bundle;
@@ -1565,29 +1569,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		//Log.debug("VK: AndroidThunkJava_HideVirtualKeyboardInput");
 
 		//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
+		lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_HIDE;
 		virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
 		virtualKeyboardHandler.postDelayed(new Runnable()
 		{
 			public void run()
 			{
-				if(bKeyboardShowing)
+				if(lastVirtualKeyboardCommand == VirtualKeyboardCommand.VK_CMD_HIDE)
 				{
-					//Log.debug("VK: Hide newVirtualKeyboardInput");
-
-					newVirtualKeyboardInput.clearFocus();
-					//set offscreen
-					newVirtualKeyboardInput.setY(-1000);
-
-					newVirtualKeyboardInput.setVisibility(View.GONE);
-
-					InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-					imm.hideSoftInputFromWindow(newVirtualKeyboardInput.getWindowToken(), 0);
-
-					nativeVirtualKeyboardVisible(false);
-					bKeyboardShowing = false;
+					processLastVirtualKeyboardCommand();
 				}
 			}
-		}, 100);
+		}, lastVirtualKeyboardCommandDelay);
 	}
 
 	//initial settings for the virtual input
@@ -1598,96 +1591,137 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		//Log.debug("VK: AndroidThunkJava_ShowVirtualKeyboardInput");
 		virtualKeyboardInputContent = Contents;
 		virtualKeyboardInputType = inInputType;
-
+		lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_SHOW;
 		//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
 		virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
 		virtualKeyboardHandler.postDelayed(new Runnable()
 		{
 			public void run()
 			{
-				newVirtualKeyboardInput.setVisibility(View.VISIBLE);
-				
-				//newVirtualKeyboardInput.setBackgroundColor(Color.TRANSPARENT);
-				//newVirtualKeyboardInput.setCursorVisible(false);
-
-				//set offscreen
-				newVirtualKeyboardInput.setY(-1000);
-
-				//set new content
-				newVirtualKeyboardInput.setText(virtualKeyboardInputContent);
-				
-				int newVirtualKeyboardInputType = virtualKeyboardInputType;
-
-				//commented: as it will disable text prediction for all devices, 
-				//	for most of them it will also block the VK in latin/english subtype
-				//	disabling chinese or korean subtypes
-				//if((virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0)
-				//{
-					//#jira UE-49117 Chinese and Korean virtual keyboards don't allow native characters
-					//#jira UE-49121 Gboard and Swift swipe entry are not supported by Virtual keyboard
-					//newVirtualKeyboardInputType |= TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
-				//}
-
-				//TYPE: disable text suggestion
-				newVirtualKeyboardInputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
-				//TYPE: disable autocorrect
-				newVirtualKeyboardInputType &= ~InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
-				
-				//TYPE: set input type flags
-				newVirtualKeyboardInput.setInputType(newVirtualKeyboardInputType);
-				newVirtualKeyboardInput.setRawInputType(newVirtualKeyboardInputType);
-
-				//IME: set Done button for single line input
-				int imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI;
-
-
-				if (ANDROID_BUILD_VERSION >=  11)
+				if(lastVirtualKeyboardCommand == VirtualKeyboardCommand.VK_CMD_SHOW)
 				{
-					imeOptions |= EditorInfo.IME_FLAG_NO_FULLSCREEN;
-				}
-
-				//IME: set single/multi line input type
-				if((virtualKeyboardInputType & InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0)
-				{
-					//disable enter for multi-line - will be treated by virtualKeyboardInputType in sendKeyEvent
-					newVirtualKeyboardInput.setSingleLine(false);
-					//#jira UE-49128 Virtual Keyboard text field doesn't appear if there is too much text
-					newVirtualKeyboardInput.setMaxLines(5);
-					imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
-					imeOptions &= ~EditorInfo.IME_ACTION_DONE;
-				}
-				else
-				{
-					newVirtualKeyboardInput.setSingleLine(true);
-					imeOptions &= ~EditorInfo.IME_FLAG_NO_ENTER_ACTION;
-					imeOptions |= EditorInfo.IME_ACTION_DONE;
-				}
-
-				//IME: set IME flags
-				newVirtualKeyboardInput.setImeOptions(imeOptions);
-
-				//TRANSFORMATION: hide input for passwords
-				newVirtualKeyboardInput.setTransformationMethod((
-					virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? 
-					null : 
-					PasswordTransformationMethod.getInstance());
-
-				//SELECTION: move to end
-				newVirtualKeyboardInput.setSelection(newVirtualKeyboardInput.getText().length());
-
-				if(newVirtualKeyboardInput.requestFocus())
-				{
-					//Log.debug("VK: Show newVirtualKeyboardInput");
-					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-					imm.showSoftInput(newVirtualKeyboardInput, 0);
-
-					nativeVirtualKeyboardVisible(true);
-					bKeyboardShowing = true;
+					processLastVirtualKeyboardCommand();
 				}
 			}
-		},100);
+		}, lastVirtualKeyboardCommandDelay);
 	}
 	
+	//jira UE-49141 Virtual keyboard is unresponsive with repeated tapping in control (some devices)
+	//#jira UE-49139 Tapping in the same text box doesn't make the virtual keyboard disappear
+	public void processLastVirtualKeyboardCommand()
+	{
+		Log.debug("VK: process last command " + lastVirtualKeyboardCommand);
+		synchronized(this) {
+			switch(lastVirtualKeyboardCommand)	
+			{
+				case VK_CMD_SHOW:
+				{
+					newVirtualKeyboardInput.setVisibility(View.VISIBLE);
+				
+					//newVirtualKeyboardInput.setBackgroundColor(Color.TRANSPARENT);
+					//newVirtualKeyboardInput.setCursorVisible(false);
+
+					//set offscreen
+					newVirtualKeyboardInput.setY(-1000);
+
+					//set new content
+					newVirtualKeyboardInput.setText(virtualKeyboardInputContent);
+				
+					int newVirtualKeyboardInputType = virtualKeyboardInputType;
+
+					//commented: as it will disable text prediction for all devices, 
+					//	for most of them it will also block the VK in latin/english subtype
+					//	disabling chinese or korean subtypes
+					//if((virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0)
+					//{
+						//#jira UE-49117 Chinese and Korean virtual keyboards don't allow native characters
+						//#jira UE-49121 Gboard and Swift swipe entry are not supported by Virtual keyboard
+						//newVirtualKeyboardInputType |= TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+					//}
+
+					//TYPE: disable text suggestion
+					newVirtualKeyboardInputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+					//TYPE: disable autocorrect
+					newVirtualKeyboardInputType &= ~InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
+				
+					//TYPE: set input type flags
+					newVirtualKeyboardInput.setInputType(newVirtualKeyboardInputType);
+					newVirtualKeyboardInput.setRawInputType(newVirtualKeyboardInputType);
+
+					//IME: set Done button for single line input
+					int imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+
+
+					if (ANDROID_BUILD_VERSION >=  11)
+					{
+						imeOptions |= EditorInfo.IME_FLAG_NO_FULLSCREEN;
+					}
+
+					//IME: set single/multi line input type
+					if((virtualKeyboardInputType & InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0)
+					{
+						//disable enter for multi-line - will be treated by virtualKeyboardInputType in sendKeyEvent
+						newVirtualKeyboardInput.setSingleLine(false);
+						//#jira UE-49128 Virtual Keyboard text field doesn't appear if there is too much text
+						newVirtualKeyboardInput.setMaxLines(5);
+						imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
+						imeOptions &= ~EditorInfo.IME_ACTION_DONE;
+					}
+					else
+					{
+						newVirtualKeyboardInput.setSingleLine(true);
+						imeOptions &= ~EditorInfo.IME_FLAG_NO_ENTER_ACTION;
+						imeOptions |= EditorInfo.IME_ACTION_DONE;
+					}
+
+					//IME: set IME flags
+					newVirtualKeyboardInput.setImeOptions(imeOptions);
+
+					//TRANSFORMATION: hide input for passwords
+					newVirtualKeyboardInput.setTransformationMethod((
+						virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? 
+						null : 
+						PasswordTransformationMethod.getInstance());
+
+					//SELECTION: move to end
+					newVirtualKeyboardInput.setSelection(newVirtualKeyboardInput.getText().length());
+
+					if(newVirtualKeyboardInput.requestFocus())
+					{
+						//Log.debug("VK: Show newVirtualKeyboardInput");
+						InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+						imm.showSoftInput(newVirtualKeyboardInput, 0);
+
+						nativeVirtualKeyboardVisible(true);
+						bKeyboardShowing = true;
+					}
+				}
+				break;
+				case VK_CMD_HIDE:
+				{
+						if(bKeyboardShowing)
+						{
+							//Log.debug("VK: Hide newVirtualKeyboardInput");
+
+							newVirtualKeyboardInput.clearFocus();
+							//set offscreen
+							newVirtualKeyboardInput.setY(-1000);
+
+							newVirtualKeyboardInput.setVisibility(View.GONE);
+
+							InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+							imm.hideSoftInputFromWindow(newVirtualKeyboardInput.getWindowToken(), 0);
+
+							nativeVirtualKeyboardVisible(false);
+							bKeyboardShowing = false;
+						}
+				}
+				break;
+			}
+		}
+		lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_NONE;
+	}
+
 	public void AndroidThunkJava_LaunchURL(String URL)
 	{
 		Log.debug("[JAVA} AndroidThunkJava_LaunchURL: URL = " + URL);
