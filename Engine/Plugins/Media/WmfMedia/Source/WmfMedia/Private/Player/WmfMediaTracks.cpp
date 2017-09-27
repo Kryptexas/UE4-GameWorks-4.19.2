@@ -1373,8 +1373,17 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 			{
 				if (OutputSubType == MFVideoFormat_NV12)
 				{
-					BufferDim.X = Align(OutputDim.X, 16);
-					BufferDim.Y = (IsVideoDevice ? OutputDim.Y : Align(OutputDim.Y, 16)) * 3 / 2;
+					if (IsVideoDevice)
+					{
+						BufferDim.X = OutputDim.X;
+						BufferDim.Y = OutputDim.Y * 3 / 2;
+					}
+					else
+					{
+						BufferDim.X = Align(OutputDim.X, 16);
+						BufferDim.Y = Align(OutputDim.Y, 16) * 3 / 2;
+					}
+
 					BufferStride = BufferDim.X;
 					SampleFormat = EMediaTextureSampleFormat::CharNV12;
 				}
