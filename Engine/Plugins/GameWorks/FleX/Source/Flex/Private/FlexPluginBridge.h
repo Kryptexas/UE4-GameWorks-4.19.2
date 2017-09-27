@@ -4,8 +4,12 @@
 
 class FFlexPluginBridge : public IFlexPluginBridge
 {
+	static class UFlexAsset* GetFlexAsset(class UStaticMesh* StaticMesh);
+
 public:
-	virtual void ReImportAsset(class UFlexAsset* FlexAsset, class UStaticMesh* StaticMesh);
+	virtual bool HasFlexAsset(class UStaticMesh* StaticMesh);
+
+	virtual void ReImportFlexAsset(class UStaticMesh* StaticMesh);
 
 	virtual class UFlexFluidSurfaceComponent* GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurfaceTemplate);
 

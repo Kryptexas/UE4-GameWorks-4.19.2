@@ -623,11 +623,8 @@ public:
 
 	// NvFlex begin
     /** Properties for the associated Flex object */
-	//UPROPERTY()
-	//class UFlexAsset* FlexAsset_DEPRECATED;
-	UPROPERTY(EditAnywhere, Instanced, Category = Flex)
-	class UFlexAsset* FlexAsset;
-
+	UPROPERTY()
+	class UFlexAsset* FlexAsset_DEPRECATED;
 	// NvFlex end
 
 public:

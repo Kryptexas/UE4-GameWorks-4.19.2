@@ -11,6 +11,24 @@
 
 #include "AdvancedPreviewScene.h"
 
+#include "Engine/StaticMesh.h"
+#include "FlexStaticMesh.h"
+
+class UFlexAsset* FFlexEditorPluginBridge::GetFlexAsset(class UStaticMesh* StaticMesh)
+{
+	UFlexStaticMesh* FSM = Cast<UFlexStaticMesh>(StaticMesh);
+	return FSM ? FSM->FlexAsset : nullptr;
+}
+
+void FFlexEditorPluginBridge::SetFlexAsset(class UStaticMesh* StaticMesh, class UFlexAsset* FlexAsset)
+{
+	UFlexStaticMesh* FSM = Cast<UFlexStaticMesh>(StaticMesh);
+	if (FSM)
+	{
+		FSM->FlexAsset = FlexAsset;
+	}
+}
+
 
 class UPrimitiveComponent* FFlexEditorPluginBridge::UpdateFlexPreviewComponent(bool bDrawFlexPreview, class FAdvancedPreviewScene* PreviewScene, class UStaticMesh* StaticMesh, class UPrimitiveComponent* InFlexPreviewComponent)
 {
@@ -22,11 +40,13 @@ class UPrimitiveComponent* FFlexEditorPluginBridge::UpdateFlexPreviewComponent(b
 		FlexPreviewComponent = NULL;
 	}
 
-	bool bDisplayFlexParticles = StaticMesh->FlexAsset && StaticMesh->FlexAsset->ContainerTemplate && bDrawFlexPreview;
+	class UFlexAsset* FlexAsset = FFlexEditorPluginBridge::GetFlexAsset(StaticMesh);
+
+	bool bDisplayFlexParticles = FlexAsset && FlexAsset->ContainerTemplate && bDrawFlexPreview;
 	if (bDisplayFlexParticles)
 	{
 		FlexPreviewComponent = NewObject<UFlexAssetPreviewComponent>();
-		FlexPreviewComponent->FlexAsset = StaticMesh->FlexAsset;
+		FlexPreviewComponent->FlexAsset = FlexAsset;
 		PreviewScene->AddComponent(FlexPreviewComponent, FTransform::Identity);
 	}
 
@@ -35,7 +55,8 @@ class UPrimitiveComponent* FFlexEditorPluginBridge::UpdateFlexPreviewComponent(b
 
 bool FFlexEditorPluginBridge::IsObjectFlexAssetOrContainer(class UObject* ObjectBeingModified, class UStaticMesh* StaticMesh)
 {
-	return (ObjectBeingModified == StaticMesh->FlexAsset || (StaticMesh->FlexAsset && ObjectBeingModified == StaticMesh->FlexAsset->ContainerTemplate));
+	class UFlexAsset* FlexAsset = FFlexEditorPluginBridge::GetFlexAsset(StaticMesh);
+	return (ObjectBeingModified == FlexAsset || (FlexAsset && ObjectBeingModified == FlexAsset->ContainerTemplate));
 }
 
 bool FFlexEditorPluginBridge::IsChildOfFlexAsset(class UClass* Class)
@@ -43,14 +64,17 @@ bool FFlexEditorPluginBridge::IsChildOfFlexAsset(class UClass* Class)
 	return Class->IsChildOf(UFlexAsset::StaticClass());
 }
 
-void FFlexEditorPluginBridge::GetFlexAssetStats(class UFlexAsset* FlexAsset, FlexAssetStats& FlexAssetStats)
+bool FFlexEditorPluginBridge::GetFlexAssetStats(class UStaticMesh* StaticMesh, FlexAssetStats& FlexAssetStats)
 {
+	class UFlexAsset* FlexAsset = FFlexEditorPluginBridge::GetFlexAsset(StaticMesh);
 	if (FlexAsset)
 	{
 		FlexAssetStats.NumParticles = FlexAsset->Particles.Num();
 		FlexAssetStats.NumShapes = FlexAsset->ShapeCenters.Num();
 		FlexAssetStats.NumSprings = FlexAsset->SpringCoefficients.Num();
+		return true;
 	}
+	return false;
 }
 
 bool FFlexEditorPluginBridge::KeepFlexSimulationChanges(class AActor* EditorWorldActor, class AActor* SimWorldActor)

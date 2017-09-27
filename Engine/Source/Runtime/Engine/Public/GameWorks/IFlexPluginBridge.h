@@ -5,7 +5,9 @@
 class IFlexPluginBridge
 {
 public:
-	virtual void ReImportAsset(class UFlexAsset* FlexAsset, class UStaticMesh* StaticMesh) = 0;
+	virtual bool HasFlexAsset(class UStaticMesh* StaticMesh) = 0;
+
+	virtual void ReImportFlexAsset(class UStaticMesh* StaticMesh) = 0;
 
 	/**
 	* Retrieve the UFlexFluidSurfaceComponent corresponding to the UFlexFluidSurface template.

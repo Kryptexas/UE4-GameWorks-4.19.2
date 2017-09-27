@@ -396,7 +396,7 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 AActor* UActorFactoryStaticMesh::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlagsIn, const FName Name)
 {
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
-	if (GFlexEditorPluginBridge && StaticMesh && StaticMesh->FlexAsset && NewActorClassName == TEXT(""))
+	if (GFlexEditorPluginBridge && NewActorClassName == TEXT("") && GFlexEditorPluginBridge->GetFlexAsset(StaticMesh))
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = InLevel;

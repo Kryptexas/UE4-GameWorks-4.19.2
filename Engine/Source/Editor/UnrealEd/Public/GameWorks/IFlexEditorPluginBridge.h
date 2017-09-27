@@ -3,6 +3,9 @@
 class IFlexEditorPluginBridge
 {
 public:
+	virtual class UFlexAsset* GetFlexAsset(class UStaticMesh* StaticMesh) = 0;
+	virtual void SetFlexAsset(class UStaticMesh* StaticMesh, class UFlexAsset* FlexAsset) = 0;
+
 	virtual class UPrimitiveComponent* UpdateFlexPreviewComponent(bool bDrawFlexPreview, class FAdvancedPreviewScene* PreviewScene, class UStaticMesh* StaticMesh, class UPrimitiveComponent* FlexPreviewComponent) = 0;
 
 	virtual bool IsObjectFlexAssetOrContainer(class UObject* ObjectBeingModified, class UStaticMesh* StaticMesh) = 0;
@@ -14,7 +17,7 @@ public:
 		int32 NumShapes = 0;
 		int32 NumSprings = 0;
 	};
-	virtual void GetFlexAssetStats(class UFlexAsset* FlexAsset, FlexAssetStats& FlexAssetStats) = 0;
+	virtual bool GetFlexAssetStats(class UStaticMesh* StaticMesh, FlexAssetStats& FlexAssetStats) = 0;
 
 	virtual bool KeepFlexSimulationChanges(class AActor* EditorWorldActor, class AActor* SimWorldActor) = 0;
 	virtual bool ClearFlexSimulationChanges(class AActor* EditorWorldActor) = 0;

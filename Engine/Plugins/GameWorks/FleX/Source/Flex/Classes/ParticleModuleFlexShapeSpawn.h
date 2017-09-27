@@ -35,6 +35,8 @@ class UParticleModuleFlexShapeSpawn : public UParticleModuleSpawnBase
 	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
 	// End UParticleModule Interface
+
+	class UFlexAsset* GetFlexAsset();
 };
 
 

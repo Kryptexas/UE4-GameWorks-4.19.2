@@ -120,7 +120,7 @@ void FFlexEditorModule::OnFilesLoaded()
 
 			UE_LOG(LogFlexEditor, Log, TEXT("Asset %s %s %s"), *Asset.AssetClass.ToString(), *Asset.AssetName.ToString(), *Asset.PackageName.ToString());
 			UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset.GetAsset());
-			if (StaticMesh->FlexAsset)
+			if (StaticMesh->FlexAsset_DEPRECATED)
 			{
 				StaticMeshesToConvert.Add(StaticMesh);
 			}
@@ -135,8 +135,8 @@ void FFlexEditorModule::OnFilesLoaded()
 				UStaticMesh* StaticMesh = *StaticMeshIt;
 
 				UPackage* Package = StaticMesh->GetOutermost();
-				const FString PackageName = Package->GetFName().ToString();
-				const FString ObjectName = StaticMesh->GetFName().ToString();
+				const FString PackageName = Package->GetName();
+				const FString ObjectName = StaticMesh->GetName();
 
 
 				ObjectTools::FPackageGroupName PGN;
@@ -150,6 +150,13 @@ void FFlexEditorModule::OnFilesLoaded()
 					UFlexStaticMesh* FSM = Cast<UFlexStaticMesh>(StaticDuplicateObject(StaticMesh, Package, *ObjectName, RF_AllFlags, UFlexStaticMesh::StaticClass()));
 					if (FSM)
 					{
+						UE_LOG(LogFlexEditor, Log, TEXT("FlexAsset_DEPRECATED %s %s %x"), *StaticMesh->FlexAsset_DEPRECATED->GetName(), *StaticMesh->FlexAsset_DEPRECATED->GetOutermost()->GetName(), int32(StaticMesh->FlexAsset_DEPRECATED->GetFlags()));
+
+						FSM->FlexAsset = Cast<UFlexAsset>(StaticDuplicateObject(StaticMesh->FlexAsset_DEPRECATED, Package));
+						StaticMesh->FlexAsset_DEPRECATED = nullptr;
+
+						UE_LOG(LogFlexEditor, Log, TEXT("FlexAsset %s %s %x"), *FSM->FlexAsset->GetName(), *FSM->FlexAsset->GetOutermost()->GetName(), int32(FSM->FlexAsset->GetFlags()));
+
 						//Package->MarkPackageDirty();
 
 						// Notify the asset registry

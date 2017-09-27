@@ -835,11 +835,9 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	}
 
 	// NvFlex begin
-	if (GFlexEditorPluginBridge && StaticMesh->FlexAsset)
+	IFlexEditorPluginBridge::FlexAssetStats FlexAssetStats;
+	if (GFlexEditorPluginBridge && GFlexEditorPluginBridge->GetFlexAssetStats(StaticMesh, FlexAssetStats))
 	{
-		IFlexEditorPluginBridge::FlexAssetStats FlexAssetStats;
-		GFlexEditorPluginBridge->GetFlexAssetStats(StaticMesh->FlexAsset, FlexAssetStats);
-
 		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
 			FText::Format(FText::FromString(TEXT("Flex Num Particles: {0}")), FText::AsNumber(FlexAssetStats.NumParticles))));
 

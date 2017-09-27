@@ -1,6 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #include "FlexComponent.h"
+#include "FlexStaticMesh.h"
 
 #include "PhysicsEngine/PhysXSupport.h"
 #include "StaticMeshResources.h"
@@ -20,6 +21,12 @@ DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Active Mesh Particle Count"), STAT_Flex_Act
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Active Mesh Actor Count"), STAT_Flex_ActiveMeshActorCount, STATGROUP_Flex);
 
 #endif
+
+inline class UFlexAsset* UFlexComponent::GetFlexAsset() const
+{
+	UFlexStaticMesh* FlexStaticMesh = Cast<UFlexStaticMesh>(GetStaticMesh());
+	return FlexStaticMesh ? FlexStaticMesh->FlexAsset : nullptr;
+}
 
 
 UFlexComponent::UFlexComponent(const FObjectInitializer& ObjectInitializer)
@@ -63,18 +70,19 @@ void UFlexComponent::OnRegister()
 	}
 #endif
 
-	if (GEngine && GetStaticMesh() && GetStaticMesh()->FlexAsset)
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (GEngine && FlexAsset)
 	{
 		// use the actor's settings instead of the defaults from the asset
 		if (!OverrideAsset)
 		{
-			ContainerTemplate = GetStaticMesh()->FlexAsset->ContainerTemplate;
-			Phase = GetStaticMesh()->FlexAsset->Phase;
-			Mass = GetStaticMesh()->FlexAsset->Mass;
-			AttachToRigids = GetStaticMesh()->FlexAsset->AttachToRigids;
+			ContainerTemplate = FlexAsset->ContainerTemplate;
+			Phase = FlexAsset->Phase;
+			Mass = FlexAsset->Mass;
+			AttachToRigids = FlexAsset->AttachToRigids;
 		}
 
-		const int NumParticles = GetStaticMesh()->FlexAsset->Particles.Num();
+		const int NumParticles = FlexAsset->Particles.Num();
 
 		SimPositions.SetNum(NumParticles);
 		SimNormals.SetNum(NumParticles);
@@ -194,13 +202,15 @@ void UFlexComponent::Synchronize()
 
 		FBox WorldBounds(ForceInit);
 
-		bool bFlexSolid = GetStaticMesh() && (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSolid::StaticClass());
-		bool bFlexCloth = GetStaticMesh() && (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass());
-		bool bFlexSoft = GetStaticMesh() && (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSoft::StaticClass());
+		UFlexAsset* FlexAsset = GetFlexAsset();
+
+		bool bFlexSolid = FlexAsset && (FlexAsset->GetClass() == UFlexAssetSolid::StaticClass());
+		bool bFlexCloth = FlexAsset && (FlexAsset->GetClass() == UFlexAssetCloth::StaticClass());
+		bool bFlexSoft = FlexAsset && (FlexAsset->GetClass() == UFlexAssetSoft::StaticClass());
 
 		if (bFlexCloth)
 		{
-			const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(GetStaticMesh()->FlexAsset);
+			const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(FlexAsset);
 
 			if (ClothAsset->TearingEnabled && TearingAsset && AssetInstance)
 			{
@@ -397,11 +407,12 @@ void UFlexComponent::UpdateSceneProxy(FFlexMeshSceneProxy* Proxy)
 {	
 	// The proxy can only be a FFlexMeshSceneProxy if the Component belongs to a 'non editor' world.
 	check(!IsInEditorWorld());
-	
-	if (Proxy && GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSoft::StaticClass())
+
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (Proxy && FlexAsset && FlexAsset->GetClass() == UFlexAssetSoft::StaticClass())
 	{
 		// copy transforms to render thread
-		const int NumShapes = GetStaticMesh()->FlexAsset->ShapeCenters.Num();
+		const int NumShapes = FlexAsset->ShapeCenters.Num();
 		
 		FFlexShapeTransform* NewTransforms = new FFlexShapeTransform[NumShapes];
 
@@ -436,7 +447,7 @@ void UFlexComponent::UpdateSceneProxy(FFlexMeshSceneProxy* Proxy)
 				// based on the component transform and asset rest poses
 				for (int i = 0; i < NumShapes; ++i)
 				{
-					NewTransforms[i].Translation = GetComponentTransform().TransformPosition(GetStaticMesh()->FlexAsset->ShapeCenters[i]);
+					NewTransforms[i].Translation = GetComponentTransform().TransformPosition(FlexAsset->ShapeCenters[i]);
 					NewTransforms[i].Rotation = GetComponentTransform().GetRotation();
 				}
 			}
@@ -464,7 +475,7 @@ void UFlexComponent::UpdateSceneProxy(FFlexMeshSceneProxy* Proxy)
 	}
 
 	// cloth
-	if (Proxy && GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass())
+	if (Proxy && FlexAsset && FlexAsset->GetClass() == UFlexAssetCloth::StaticClass())
 	{
 		if (AssetInstance)
 		{
@@ -497,14 +508,16 @@ void UFlexComponent::SendRenderTransform_Concurrent()
 
 		if(PreSimPositions.Num() != 0)
 		{
-			const int NumParticles = GetStaticMesh()->FlexAsset->Particles.Num();
-			FBox WorldBounds(ForceInit);
+			UFlexAsset* FlexAsset = GetFlexAsset();
 
-			bool bFlexCloth = GetStaticMesh() && (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass());
-			bool bFlexSoft = GetStaticMesh() && (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSoft::StaticClass());
+			bool bFlexCloth = FlexAsset && (FlexAsset->GetClass() == UFlexAssetCloth::StaticClass());
+			bool bFlexSoft = FlexAsset && (FlexAsset->GetClass() == UFlexAssetSoft::StaticClass());
 
 			if (bFlexCloth || bFlexSoft)
 			{
+				const int NumParticles = FlexAsset->Particles.Num();
+				FBox WorldBounds(ForceInit);
+
 				for (int i=0; i < NumParticles; ++i)
 				{
 					WorldBounds += FVector(SimPositions[i]);
@@ -528,8 +541,10 @@ void UFlexComponent::SendRenderTransform_Concurrent()
 
 FBoxSphereBounds UFlexComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-	if (GetStaticMesh() && ( ContainerInstance || PreSimPositions.Num() != 0 ) && Bounds.SphereRadius > 0.0f 
-		&& (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass() || GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSoft::StaticClass()))
+	UFlexAsset* FlexAsset = GetFlexAsset();
+
+	if (FlexAsset && ( ContainerInstance || PreSimPositions.Num() != 0 ) && Bounds.SphereRadius > 0.0f
+		&& (FlexAsset->GetClass() == UFlexAssetCloth::StaticClass() || FlexAsset->GetClass() == UFlexAssetSoft::StaticClass()))
 	{
 		return LocalBounds.TransformBy(LocalToWorld);
 	}
@@ -553,7 +568,8 @@ void UFlexComponent::DisableSim()
 
 bool UFlexComponent::IsTearingCloth()
 {
-	const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(GetStaticMesh()->FlexAsset);
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	const UFlexAssetCloth* ClothAsset = FlexAsset ? Cast<UFlexAssetCloth>(FlexAsset) : nullptr;
 	
 	if (ClothAsset)
 	{
@@ -567,9 +583,10 @@ bool UFlexComponent::IsTearingCloth()
 
 void UFlexComponent::OnTear_Implementation()
 {
-	const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(GetStaticMesh()->FlexAsset);
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	const UFlexAssetCloth* ClothAsset = FlexAsset ? Cast<UFlexAssetCloth>(FlexAsset) : nullptr;
 
-	if (ClothAsset->TearingEnabled && TearingAsset)
+	if (ClothAsset && ClothAsset->TearingEnabled && TearingAsset)
 	{
 		// update tearing asset inflatable over pressure
 		TearingAsset->inflatable = false;
@@ -584,39 +601,42 @@ void UFlexComponent::EnableSim()
 		if (SimPositions.Num() == 0)
 			return;
 
-		const NvFlexExtAsset* Asset = NULL;
+		const NvFlexExtAsset* Asset = nullptr;
 
-		if (IsTearingCloth())
+		UFlexAsset* FlexAsset = GetFlexAsset();
+		if (FlexAsset)
 		{
-			const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(GetStaticMesh()->FlexAsset);
-
-			if (ClothAsset)
+			if (IsTearingCloth())
 			{
-				// clone asset for 
-				TearingAsset = NvFlexExtCreateTearingClothFromMesh(
-							(float*)&ClothAsset->Particles[0],
-							ClothAsset->Particles.Num(),
-							ClothAsset->Triangles.Num(),	// TODO: set limits correctly
-							&ClothAsset->Triangles[0],
-							ClothAsset->Triangles.Num()/3,
-							ClothAsset->StretchStiffness,
-							ClothAsset->BendStiffness,
-							ClothAsset->EnableInflatable?ClothAsset->OverPressure:0.0f);
+				const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(FlexAsset);
+				if (ClothAsset)
+				{
+					// clone asset for 
+					TearingAsset = NvFlexExtCreateTearingClothFromMesh(
+						(float*)&ClothAsset->Particles[0],
+						ClothAsset->Particles.Num(),
+						ClothAsset->Triangles.Num(),	// TODO: set limits correctly
+						&ClothAsset->Triangles[0],
+						ClothAsset->Triangles.Num() / 3,
+						ClothAsset->StretchStiffness,
+						ClothAsset->BendStiffness,
+						ClothAsset->EnableInflatable ? ClothAsset->OverPressure : 0.0f);
 
-				Asset = TearingAsset;
+					Asset = TearingAsset;
+				}
+			}
+			else
+			{
+				Asset = FlexAsset->GetFlexAsset();
 			}
 		}
-		else
-		{
-			Asset = GetStaticMesh()->FlexAsset->GetFlexAsset();
-		}
-
 
 		AssetInstance = ContainerInstance->CreateInstance(Asset, GetComponentTransform().ToMatrixNoScale(), FVector(0.0f), ContainerInstance->GetPhase(Phase));
 
 		if (AssetInstance)
 		{
-			INC_DWORD_STAT_BY(STAT_Flex_ActiveParticleCount, GetStaticMesh()->FlexAsset->Particles.Num());
+			check(FlexAsset);
+			INC_DWORD_STAT_BY(STAT_Flex_ActiveParticleCount, FlexAsset->Particles.Num());
 			INC_DWORD_STAT(STAT_Flex_ActiveMeshActorCount);
 		
 			// if attach requested then generate attachment points for overlapping shapes
@@ -748,9 +768,10 @@ FMatrix UFlexComponent::GetRenderMatrix() const
 {
 	// Flex components components created in an editor world, do not have FFlexSceneMeshProxy - and so cannot simulate
 	// Only need to return the Identity when we know the SceneProxy is full flex proxy
-	if (GetStaticMesh() && GetStaticMesh()->FlexAsset &&  !IsInEditorWorld())
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (FlexAsset && !IsInEditorWorld())
 	{
-		UClass* FlexAssetCls = GetStaticMesh()->FlexAsset->GetClass();
+		UClass* FlexAssetCls = FlexAsset->GetClass();
 		if (FlexAssetCls == UFlexAssetCloth::StaticClass() || FlexAssetCls == UFlexAssetSoft::StaticClass())
 		{
 			// particles are simulated in world space
@@ -771,9 +792,10 @@ bool UFlexComponent::IsInEditorWorld() const
 FPrimitiveSceneProxy* UFlexComponent::CreateSceneProxy()
 {
 	// if this component has a flex asset then use the subtitute scene proxy for rendering (cloth and soft bodies only)
-	if (GetStaticMesh() && GetStaticMesh()->FlexAsset && !IsInEditorWorld())
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (FlexAsset && !IsInEditorWorld())
 	{
-		UClass* cls = GetStaticMesh()->FlexAsset->GetClass();
+		UClass* cls = FlexAsset->GetClass();
 		if (cls == UFlexAssetCloth::StaticClass() || cls == UFlexAssetSoft::StaticClass())
 		{
 			FFlexMeshSceneProxy* Proxy = new FFlexMeshSceneProxy(this);
@@ -791,8 +813,8 @@ FPrimitiveSceneProxy* UFlexComponent::CreateSceneProxy()
 bool UFlexComponent::ShouldRecreateProxyOnUpdateTransform() const
 {
 	// if this component has a flex asset then don't recreate the proxy
-	if (GetStaticMesh() && GetStaticMesh()->FlexAsset && (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass() ||
-											   GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetSoft::StaticClass()))
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (FlexAsset && (FlexAsset->GetClass() == UFlexAssetCloth::StaticClass() || FlexAsset->GetClass() == UFlexAssetSoft::StaticClass()))
 	{
 		if (AssetInstance && ContainerInstance)
 		{
@@ -810,15 +832,16 @@ bool UFlexComponent::ShouldRecreateProxyOnUpdateTransform() const
 
 void UFlexComponent::UpdateSimPositions()
 {
-	if (GetStaticMesh() == NULL || GetStaticMesh()->FlexAsset == NULL)
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (FlexAsset == nullptr)
 		return;
 
-	const int NumParticles = GetStaticMesh()->FlexAsset->Particles.Num();
+	const int NumParticles = FlexAsset->Particles.Num();
 
 	float InvMassScale = 1.0f;
 	if (OverrideAsset)
 	{
-		InvMassScale = (Mass > 0.0f) ? (GetStaticMesh()->FlexAsset->Mass / Mass) : 0.0f;
+		InvMassScale = (Mass > 0.0f) ? (FlexAsset->Mass / Mass) : 0.0f;
 	}
 
 	if (NumParticles == PreSimPositions.Num())
@@ -826,7 +849,7 @@ void UFlexComponent::UpdateSimPositions()
 		// if pre-sim state still matches the static mesh apply any pre-simulated positions to the particles
 		for (int i = 0; i < NumParticles; ++i)
 		{
-			float mass = GetStaticMesh()->FlexAsset->Particles[i].W*InvMassScale;
+			float mass = FlexAsset->Particles[i].W*InvMassScale;
 
 			SimPositions[i] = FVector4(PreSimPositions[i], mass);
 		}
@@ -840,8 +863,8 @@ void UFlexComponent::UpdateSimPositions()
 		// particles are static mesh positions transformed by actor position
 		for (int i = 0; i < NumParticles; ++i)
 		{
-			FVector LocalPos = GetStaticMesh()->FlexAsset->Particles[i];
-			float mass = GetStaticMesh()->FlexAsset->Particles[i].W*InvMassScale;
+			FVector LocalPos = FlexAsset->Particles[i];
+			float mass = FlexAsset->Particles[i].W*InvMassScale;
 
 			SimPositions[i] = FVector4(FVector(GetComponentTransform().TransformPosition(LocalPos)), mass);
 		}
@@ -850,9 +873,9 @@ void UFlexComponent::UpdateSimPositions()
 	// calculate normals for initial particle positions, this is necessary because otherwise 
 	// the mesh will be rendered incorrectly if it is visible before it is first simulated
 	// todo: serialize these initial normals
-	if (GetStaticMesh()->FlexAsset->GetClass() == UFlexAssetCloth::StaticClass())
+	if (FlexAsset->GetClass() == UFlexAssetCloth::StaticClass())
 	{
-		const TArray<int>& TriIndices = GetStaticMesh()->FlexAsset->Triangles;
+		const TArray<int>& TriIndices = FlexAsset->Triangles;
 		int NumTriangles = TriIndices.Num() / 3;
 
 		const FVector4* RESTRICT Particles = &SimPositions[0];

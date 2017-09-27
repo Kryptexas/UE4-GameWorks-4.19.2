@@ -137,7 +137,7 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 #if WITH_FLEX
 	// cloth and soft bodies currently need access to data on the CPU
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Owner);
-	if (StaticMesh && StaticMesh->FlexAsset)
+	if (GFlexPluginBridge && GFlexPluginBridge->HasFlexAsset(StaticMesh))
 	{
 		bNeedsCPUAccess = true;
 	}
@@ -1413,7 +1413,7 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	bSupportUniformlyDistributedSampling = false;
 
 	// NvFlex begin
-	//FlexAsset_DEPRECATED = nullptr;
+	FlexAsset_DEPRECATED = nullptr;
 	// NvFlex end
 }
 
@@ -1767,15 +1767,6 @@ void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Col
 {
 	UStaticMesh* This = CastChecked<UStaticMesh>(InThis);
 
-	// NvFlex begin
-#if WITH_FLEX
-	if (This->FlexAsset != nullptr)
-	{
-		Collector.AddReferencedObject(This->FlexAsset, This);
-	}
-#endif
-	// NvFlex end
-
 	Super::AddReferencedObjects( This, Collector );
 }
 
@@ -1841,7 +1832,7 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
-		GFlexPluginBridge->ReImportAsset(FlexAsset, this);
+		GFlexPluginBridge->ReImportFlexAsset(this);
 	}
 #endif
 	// NvFlex end

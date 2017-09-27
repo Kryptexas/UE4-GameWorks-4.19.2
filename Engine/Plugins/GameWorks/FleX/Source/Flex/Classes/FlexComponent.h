@@ -172,6 +172,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
 	virtual UFlexContainer* GetContainerTemplate();
 
+	class UFlexAsset* GetFlexAsset() const;
+
 private:
 	void UpdateSimPositions();
 	void SynchronizeAttachments();

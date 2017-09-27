@@ -505,9 +505,12 @@ FFlexMeshSceneProxy::FFlexMeshSceneProxy(UStaticMeshComponent* Component)
 {
 	FlexComponent = Cast<UFlexComponent>(Component);
 	
+	UFlexAsset* FlexAsset = FlexComponent->GetFlexAsset();
+	check(FlexAsset);
+
 	const FStaticMeshLODResources& LOD = Component->GetStaticMesh()->RenderData->LODResources[0];
-	const UFlexAssetSoft* SoftAsset = Cast<UFlexAssetSoft>(FlexComponent->GetStaticMesh()->FlexAsset);
-	const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(FlexComponent->GetStaticMesh()->FlexAsset);
+	const UFlexAssetSoft* SoftAsset = Cast<UFlexAssetSoft>(FlexAsset);
+	const UFlexAssetCloth* ClothAsset = Cast<UFlexAssetCloth>(FlexAsset);
 
 	ERHIFeatureLevel::Type FeatureLevel = Component->GetWorld()->FeatureLevel;
 
@@ -531,7 +534,7 @@ FFlexMeshSceneProxy::FFlexMeshSceneProxy(UStaticMeshComponent* Component)
 								LOD.VertexFactory, 
 								LOD.VertexBuffer.GetNumVertices(),
 								LOD.GetNumTriangles()*3, 
-								&FlexComponent->GetStaticMesh()->FlexAsset->VertexToParticleMap[0],
+								&FlexAsset->VertexToParticleMap[0],
 								LOD.IndexBuffer,
 								LOD.VertexBuffer,
 								LOD.ColorVertexBuffer);
@@ -579,7 +582,7 @@ void FFlexMeshSceneProxy::UpdateClothMesh(const NvFlexExtTearingMeshEdit* Edits,
 void FFlexMeshSceneProxy::UpdateSoftTransforms(const FFlexShapeTransform* NewTransforms, int32 NumShapes)
 {
 	// delete old transforms
-	const UFlexAssetSoft* SoftAsset = Cast<UFlexAssetSoft>(FlexComponent->GetStaticMesh()->FlexAsset);
+	const UFlexAssetSoft* SoftAsset = Cast<UFlexAssetSoft>(FlexComponent->GetFlexAsset());
 
 	const FPositionVertexBuffer& Positions = FlexComponent->GetStaticMesh()->RenderData->LODResources[0].PositionVertexBuffer;
 	const FStaticMeshVertexBuffer& Vertices = FlexComponent->GetStaticMesh()->RenderData->LODResources[0].VertexBuffer;			

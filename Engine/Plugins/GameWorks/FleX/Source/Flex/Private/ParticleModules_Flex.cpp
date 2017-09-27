@@ -29,6 +29,13 @@ UParticleModuleFlexShapeSpawn::UParticleModuleFlexShapeSpawn(const FObjectInitia
 	Velocity = 0.0f;
 }
 
+inline class UFlexAsset* UParticleModuleFlexShapeSpawn::GetFlexAsset()
+{
+	UFlexStaticMesh* FlexStaticMesh = Cast<UFlexStaticMesh>(Mesh);
+	return FlexStaticMesh ? FlexStaticMesh->FlexAsset : nullptr;
+}
+
+
 bool UParticleModuleFlexShapeSpawn::GetSpawnAmount(FParticleEmitterInstance* Owner, int32 Offset, float OldLeftover, float DeltaTime, int32& Number, float& Rate)
 {
 	return false;
@@ -36,9 +43,10 @@ bool UParticleModuleFlexShapeSpawn::GetSpawnAmount(FParticleEmitterInstance* Own
 
 bool UParticleModuleFlexShapeSpawn::GetBurstCount(FParticleEmitterInstance* Owner, int32 Offset, float OldLeftover, float DeltaTime, int32& Number)
 {
-	if (Mesh && Mesh->FlexAsset)
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (FlexAsset)
 	{
-		Number = Mesh->FlexAsset->Particles.Num();
+		Number = FlexAsset->Particles.Num();
 		return true;
 	}
 
@@ -53,15 +61,16 @@ void UParticleModuleFlexShapeSpawn::Spawn(FParticleEmitterInstance* Owner, int32
 {
 	SPAWN_INIT;
 
-	if (Mesh && Mesh->FlexAsset)
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (FlexAsset)
 	{
 		// calculate spawn position based on the particle counter
-		int32 ParticlesPerShape = Mesh->FlexAsset->Particles.Num();
+		int32 ParticlesPerShape = FlexAsset->Particles.Num();
 		int32 ParticleShapeIndex = Owner->ParticleCounter%ParticlesPerShape;
 
 		FVector Vel = Owner->EmitterToSimulation.TransformVector(FVector(0.0f, 0.0f, Velocity));
 
-		Particle.Location += Owner->EmitterToSimulation.TransformVector(FVector(Mesh->FlexAsset->Particles[ParticleShapeIndex]));
+		Particle.Location += Owner->EmitterToSimulation.TransformVector(FVector(FlexAsset->Particles[ParticleShapeIndex]));
 		Particle.Velocity += Vel;
 		Particle.BaseVelocity += Vel;
 	}
@@ -69,8 +78,9 @@ void UParticleModuleFlexShapeSpawn::Spawn(FParticleEmitterInstance* Owner, int32
 
 int32 UParticleModuleFlexShapeSpawn::GetMaximumBurstCount()
 {
-	if (Mesh && Mesh->FlexAsset)
-		return Mesh->FlexAsset->Particles.Num();
+	UFlexAsset* FlexAsset = GetFlexAsset();
+	if (FlexAsset)
+		return FlexAsset->Particles.Num();
 	else
 		return 0;
 }

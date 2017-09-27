@@ -18,5 +18,5 @@ public:
 
 	/** Properties for the associated Flex object */
 	UPROPERTY(EditAnywhere, Instanced, Category = Flex)
-	class UFlexAsset* FlexAsset1;
+	class UFlexAsset* FlexAsset;
 };

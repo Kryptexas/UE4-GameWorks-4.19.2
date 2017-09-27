@@ -11,6 +11,8 @@
 #include "DrawDebugHelpers.h" // FlushPersistentDebugLines
 
 #include "Engine/StaticMesh.h"
+#include "FlexStaticMesh.h"
+
 #include "PhysicsEngine/PhysXSupport.h"
 
 #include "EngineUtils.h"
@@ -22,8 +24,20 @@
 #include "FlexCollisionReportComponent.h"
 
 
-void FFlexPluginBridge::ReImportAsset(class UFlexAsset* FlexAsset, class UStaticMesh* StaticMesh)
+class UFlexAsset* FFlexPluginBridge::GetFlexAsset(class UStaticMesh* StaticMesh)
 {
+	UFlexStaticMesh* FSM = Cast<UFlexStaticMesh>(StaticMesh);
+	return FSM ? FSM->FlexAsset : nullptr;
+}
+
+bool FFlexPluginBridge::HasFlexAsset(class UStaticMesh* StaticMesh)
+{
+	return FFlexPluginBridge::GetFlexAsset(StaticMesh) != nullptr;
+}
+
+void FFlexPluginBridge::ReImportFlexAsset(class UStaticMesh* StaticMesh)
+{
+	class UFlexAsset* FlexAsset = FFlexPluginBridge::GetFlexAsset(StaticMesh);
 	if (FlexAsset)
 	{
 		FlexAsset->ReImport(StaticMesh);

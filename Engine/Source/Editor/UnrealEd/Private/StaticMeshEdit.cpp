@@ -25,6 +25,10 @@
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"
 
+// NvFlex begin
+#include "GameWorks/IFlexEditorPluginBridge.h"
+// NvFlex end
+
 
 bool GBuildStaticMeshCollision = 1;
 
@@ -1056,7 +1060,7 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, Un
 		ExistingMeshDataPtr->ExistingThumbnailInfo = ExistingMesh->ThumbnailInfo;
 
 		ExistingMeshDataPtr->ExistingBodySetup = ExistingMesh->BodySetup;
-		ExistingMeshDataPtr->ExistingFlexAsset = ExistingMesh->FlexAsset;
+		ExistingMeshDataPtr->ExistingFlexAsset = GFlexEditorPluginBridge ? GFlexEditorPluginBridge->GetFlexAsset(ExistingMesh) : nullptr;
 
 		ExistingMeshDataPtr->LpvBiasMultiplier = ExistingMesh->LpvBiasMultiplier;
 		ExistingMeshDataPtr->bHasNavigationData = ExistingMesh->bHasNavigationData;
@@ -1565,9 +1569,9 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 	NewMesh->ThumbnailInfo = ExistingMeshDataPtr->ExistingThumbnailInfo.Get();
 
 
-		if (ExistingMeshDataPtr->ExistingFlexAsset)
+		if (GFlexEditorPluginBridge && ExistingMeshDataPtr->ExistingFlexAsset)
 		{
-			NewMesh->FlexAsset = ExistingMeshDataPtr->ExistingFlexAsset;
+			GFlexEditorPluginBridge->SetFlexAsset(NewMesh, ExistingMeshDataPtr->ExistingFlexAsset);
 		}
 
 	// If we already had some collision info...
