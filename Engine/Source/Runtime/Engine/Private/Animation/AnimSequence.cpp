@@ -5309,6 +5309,11 @@ void UAnimSequence::EnableRootMotionSettingFromMontage(bool bInEnableRootMotion,
 #if WITH_EDITOR
 void UAnimSequence::OnRawDataChanged()
 {
+	CompressedTrackOffsets.Empty();
+	CompressedScaleOffsets.Empty();
+	CompressedByteStream.Empty();
+	bUseRawDataOnly = true;
+
 	RequestSyncAnimRecompression(false);
 	//MDW - Once we have async anim ddc requests we should do this too
 	//RequestDependentAnimRecompression();
