@@ -18,17 +18,17 @@ void SEditorViewportViewMenu::Construct( const FArguments& InArgs, TSharedRef<SE
 		SEditorViewportToolbarMenu::FArguments()
 			.ParentToolBar( InParentToolBar)
 			.Cursor( EMouseCursor::Default )
-			.Label_Static( &SEditorViewportViewMenu::GetViewMenuLabel, Viewport)
-			.LabelIcon( this, &SEditorViewportViewMenu::GetViewMenuLabelBrush)
+			.Label(this, &SEditorViewportViewMenu::GetViewMenuLabel)
+			.LabelIcon(this, &SEditorViewportViewMenu::GetViewMenuLabelIcon)
 			.OnGetMenuContent( this, &SEditorViewportViewMenu::GenerateViewMenuContent )
 	);
 		
 }
 
-FText SEditorViewportViewMenu::GetViewMenuLabel(TWeakPtr<SEditorViewport> InViewport)
+FText SEditorViewportViewMenu::GetViewMenuLabel() const
 {
 	FText Label = LOCTEXT("ViewMenuTitle_Default", "View");
-	TSharedPtr< SEditorViewport > PinnedViewport = InViewport.Pin();
+	TSharedPtr< SEditorViewport > PinnedViewport = Viewport.Pin();
 	if( PinnedViewport.IsValid() )
 	{
 		switch( PinnedViewport->GetViewportClient()->GetViewMode() )
@@ -128,15 +128,10 @@ FText SEditorViewportViewMenu::GetViewMenuLabel(TWeakPtr<SEditorViewport> InView
 	return Label;
 }
 
-const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelBrush() const
-{
-	return GetViewMenuLabelIcon(Viewport).GetIcon();
-}
-
-FSlateIcon SEditorViewportViewMenu::GetViewMenuLabelIcon(TWeakPtr<SEditorViewport> InViewport)
+const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 {
 	FName Icon = NAME_None;
-	TSharedPtr< SEditorViewport > PinnedViewport = InViewport.Pin();
+	TSharedPtr< SEditorViewport > PinnedViewport = Viewport.Pin();
 	if( PinnedViewport.IsValid() )
 	{
 		static FName WireframeIcon( "EditorViewport.WireframeMode" );
@@ -259,23 +254,16 @@ FSlateIcon SEditorViewportViewMenu::GetViewMenuLabelIcon(TWeakPtr<SEditorViewpor
 		}
 	}
 
-	return FSlateIcon( "EditorStyle", Icon );
+	return FEditorStyle::GetBrush(Icon);
 }
 
 TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 {
-	const bool bInShouldCloseWindowAfterMenuSelection = true;
+	const FEditorViewportCommands& BaseViewportActions = FEditorViewportCommands::Get();
 
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder ViewMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtenders);
 
-	GenerateViewMenu(ViewMenuBuilder, ParentToolBar);
-
-	return ViewMenuBuilder.MakeWidget();
-}
-
-void SEditorViewportViewMenu::GenerateViewMenu(FMenuBuilder& ViewMenuBuilder, TWeakPtr<SViewportToolBar> ParentToolBar )
-{
-	const FEditorViewportCommands& BaseViewportActions = FEditorViewportCommands::Get();
 	{
 		// View modes
 		{
@@ -366,6 +354,7 @@ void SEditorViewportViewMenu::GenerateViewMenu(FMenuBuilder& ViewMenuBuilder, TW
 			ViewMenuBuilder.EndSection();
 		}
 	}
+	return ViewMenuBuilder.MakeWidget();
 }
 
 #undef LOCTEXT_NAMESPACE

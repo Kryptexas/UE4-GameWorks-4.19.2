@@ -221,27 +221,21 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	if( UserInterfaceType == EUserInterfaceActionType::Button )
 	{
 		FName BlockStyle = EMultiBlockLocation::ToName(ISlateStyle::Join( StyleName, ".Button" ), BlockLocation);
-		FName ButtonPadding = ISlateStyle::Join(StyleName, ".SToolBarButtonBlock.Button.Padding");
 
 		ChildSlot
 		[
 			// Create a button
 			SNew( SButton )
-				.ContentPadding(StyleSet->GetMargin(ButtonPadding) )
-
+				.ContentPadding(0 )
 				// Use the tool bar item style for this button
 				.ButtonStyle( StyleSet, BlockStyle )
-
 				.ForegroundColor( FSlateColor::UseForeground() )
-
 				.IsFocusable(bIsFocusable)
 				[
 					ButtonContent
 				]
-
 				// Bind the button's "on clicked" event to our object's method for this
 				.OnClicked( this, &SToolBarButtonBlock::OnClicked )
-
 				// Pass along the block's tool-tip string
 				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, nullptr, Action.Pin() ) )
 		];

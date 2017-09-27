@@ -21,15 +21,11 @@ public:
 
 	void Construct( const FArguments& InArgs, TSharedRef<SEditorViewport> InViewport, TSharedRef<class SViewportToolBar> InParentToolBar );
 
-	/** Generate the view menu */
-	static void GenerateViewMenu(FMenuBuilder& InMenuBuilder, TWeakPtr<SViewportToolBar> ParentToolBar);
-
-	static FText GetViewMenuLabel(TWeakPtr<SEditorViewport> InViewport);
-
-	static FSlateIcon GetViewMenuLabelIcon(TWeakPtr<SEditorViewport> InViewport);
+private:
+	FText GetViewMenuLabel() const;
+	const FSlateBrush* GetViewMenuLabelIcon() const;
 
 protected:
-	const FSlateBrush* GetViewMenuLabelBrush() const;
 	virtual TSharedRef<SWidget> GenerateViewMenuContent() const;
 	TWeakPtr<SEditorViewport> Viewport;
 

@@ -46,7 +46,7 @@ void SViewportToolBarComboMenu::Construct( const FArguments& InArgs )
 		TSharedRef<SWidget> ButtonContents =
 			SNew(SButton)
 			.ButtonStyle( FEditorStyle::Get(), EMultiBlockLocation::ToName(ButtonStyle,EMultiBlockLocation::End) )
-			.ContentPadding( FMargin( 5.0f, 2.0f ) )
+			.ContentPadding( FMargin( 5.0f, 0.0f ) )
 			.ToolTipText(InArgs._MenuButtonToolTip)
 			.OnClicked(this, &SViewportToolBarComboMenu::OnMenuClicked)
 			[
