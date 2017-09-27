@@ -114,11 +114,14 @@ namespace iPhonePackager
 			MacName = Config.OverrideMacName != null ? Config.OverrideMacName : Utilities.GetEnvironmentVariable("ue.IOSSigningServer", "a1487");
 			iPhone_SigningDevRootMac = Config.OverrideDevRoot != null ? Config.OverrideDevRoot : "/UE4/Builds";
 
-			bool Results = SSHCommandHelper.Command(MacName, "xcode-select --print-path", "/usr/bin");
-			if (Results)
+			if (!Config.bUseRPCUtil)
 			{
-				XcodeDeveloperDir = (string)SSHCommandHelper.SSHReturn["CommandOutput"] + "/";
-				XcodeDeveloperDir = XcodeDeveloperDir.TrimEnd();
+				bool Results = SSHCommandHelper.Command(MacName, "xcode-select --print-path", "/usr/bin");
+				if (Results)
+				{
+					XcodeDeveloperDir = (string)SSHCommandHelper.SSHReturn["CommandOutput"] + "/";
+					XcodeDeveloperDir = XcodeDeveloperDir.TrimEnd();
+				}
 			}
 
 			// get the path to mirror into on the Mac
