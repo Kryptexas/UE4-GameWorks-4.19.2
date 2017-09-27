@@ -56,7 +56,7 @@ public:
 
 	FFileHelper::EEncodingOptions ForcedEncoding() const
 	{
-		return FFileHelper::EEncodingOptions::ForceUTF8;
+		return FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM;
 	}
 	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const override;
 	virtual void FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& OutDetails) override;
