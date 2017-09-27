@@ -1985,7 +1985,6 @@ void ULandscapeComponent::ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo,
 	const bool bToLayerIsNoWeightBlend = (ToLayerInfo && ToLayerInfo->bNoWeightBlend);
 
 	const bool bRequireNormalization = (bFromLayerIsNoWeightBlend != bToLayerIsNoWeightBlend);
-	checkf(!bRequireNormalization, TEXT("It is not yet supported to replace a layer with another whose bNoWeightBlend setting does not match"))
 
 	if (bMerging)
 	{
