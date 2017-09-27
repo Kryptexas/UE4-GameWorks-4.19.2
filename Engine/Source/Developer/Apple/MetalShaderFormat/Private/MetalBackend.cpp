@@ -2978,7 +2978,7 @@ protected:
 
         if (call->return_deref && call->return_deref->type)
         {
-			if(!Backend.bAllowFastIntriniscs && call->return_deref->type->base_type == GLSL_TYPE_FLOAT && !strcmp(call->callee_name(), "sincos"))
+			if(!Backend.bAllowFastIntriniscs && call->return_deref->type->base_type == GLSL_TYPE_FLOAT && !strcmp(call->callee_name(), "sincos") && Frequency == vertex_shader)
 			{
 				// sincos needs to be "precise" unless we explicitly opt-in to fast-intrinsics because some UE4 shaders expect precise results and correct NAN/INF handling.
 				ralloc_asprintf_append(buffer, "precise::");
