@@ -21,7 +21,7 @@
 #include "ParticleEmitterInstances.h"
 #include "Particles/ParticleEmitter.h"
 #include "FlexParticleEmitterInstance.h"
-#include "FlexCollisionReportComponent.h"
+#include "FlexCollisionComponent.h"
 
 
 class UFlexAsset* FFlexPluginBridge::GetFlexAsset(class UStaticMesh* StaticMesh)
@@ -541,13 +541,13 @@ void FFlexPluginBridge::TickFlexEmitterInstance(struct FParticleEmitterInstance*
 					int32 ShapeReportIndex = Container->CollisionReportIndices[FlexShapeIndex];
 					if (ShapeReportIndex >= 0)
 					{
-						UFlexCollisionReportComponent* ReportComp = Container->CollisionReportComponents[ShapeReportIndex];
+						UFlexCollisionComponent* CollisionComp = Container->CollisionReportComponents[ShapeReportIndex];
 
-						if (ReportComp)
+						if (CollisionComp)
 						{
-							ReportComp->Count++;
+							CollisionComp->Count++;
 
-							if (ReportComp->bDrain)
+							if (CollisionComp->bDrain)
 								bKillParticle = true;
 						}
 					}

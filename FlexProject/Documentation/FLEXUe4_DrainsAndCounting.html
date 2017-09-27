@@ -7,7 +7,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta http-equiv="x-ua-compatible" content="IE=Edge"/>
     
-    <title>Counting and Draining &mdash; Flex Artist Tools 1.0 documentation</title>
+    <title>Draining and Counting &mdash; Flex Artist Tools 1.0 documentation</title>
     
     <link rel="stylesheet" href="_static/flex.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -33,7 +33,7 @@
     <script type="text/javascript" src="_static/jquery.storageapi.js"></script>
     <link rel="top" title="Flex Artist Tools 1.0 documentation" href="index.html" />
     <link rel="next" title="Fluid Rendering" href="FLEXUe4_FluidSurfaceRendering.html" />
-    <link rel="prev" title="Forces" href="FLEXUe4_Forces.html" /> 
+    <link rel="prev" title="Soft Joint" href="FLEXUe4_SoftJoint.html" /> 
   </head>
   <body>
 <nav class="navbar navbar-inverse navbar-default">
@@ -110,8 +110,10 @@
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Forces.html#radial-force-component">Radial Force Component</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Counting and Draining</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#creating-a-drain">Creating a Drain</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FLEXUe4_LocalSpace.html">Local Space Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FLEXUe4_SoftJoint.html">Soft Joint</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Draining and Counting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#enable-draining">Enable Draining</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#counting-particles">Counting Particles</a></li>
 </ul>
 </li>
@@ -123,7 +125,6 @@
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="FLEXUe4_LocalSpace.html">Local Space Simulation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_Debug.html">Debug Commands</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Debug.html#console-commands">Console Commands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Debug.html#stats">Stats</a></li>
@@ -138,8 +139,8 @@
 
   </div>
   <h4>Previous topic</h4>
-  <p class="topless"><a href="FLEXUe4_Forces.html"
-                        title="previous chapter">Forces</a></p>
+  <p class="topless"><a href="FLEXUe4_SoftJoint.html"
+                        title="previous chapter">Soft Joint</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="FLEXUe4_FluidSurfaceRendering.html"
                         title="next chapter">Fluid Rendering</a></p>
@@ -163,23 +164,29 @@
     <div class="document col-md-8">
           <div class="body">
             
-  <div class="section" id="counting-and-draining">
-<span id="flexue4-drainsandcounting"></span><h1>Counting and Draining<a class="headerlink" href="#counting-and-draining" title="Permalink to this headline">¶</a></h1>
-<p>Flex particles that come in contact with static mesh actors can be deleted (drained) or counted. This only works for flex particles spawned by a Cascade emitter. In order to support &#8220;draining&#8221; or &#8220;counting&#8221; the static mesh component needs to be configured with a simplified collision geometry.</p>
-<div class="section" id="creating-a-drain">
-<h2>Creating a Drain<a class="headerlink" href="#creating-a-drain" title="Permalink to this headline">¶</a></h2>
-<p>To create a particle drain from a static mesh actor, the <strong>Advanced Collision</strong> settings of the <strong>Static Mesh Component</strong> in the details property panel needs to be opened. The <strong>Flex Particle Drain</strong> checkbox can used to enable the functionality. Note that the static mesh needs to be configured for simplified collision. Particles that come in contact with the corresponding actor are deleted automatically.</p>
+  <div class="section" id="draining-and-counting">
+<span id="flexue4-drainsandcounting"></span><h1>Draining and Counting<a class="headerlink" href="#draining-and-counting" title="Permalink to this headline">¶</a></h1>
+<p>Flex particles that come in contact with static mesh colliders can be deleted (drained) or counted. This only works for flex particles spawned by a Cascade emitter. In order to support &#8220;draining&#8221; or &#8220;counting&#8221; the static mesh component needs to be configured with a simplified collision geometry and setup for either overlapping or blocking Flex particles. Draining and counting can be enabled on a per Actor Class level by using a <strong>Flex Collision Component</strong>.</p>
 <div class="float-center container">
-<img alt="_images/DrainingAndCounting1.jpg" src="_images/DrainingAndCounting1.jpg" />
+<img alt="_images/DrainingAndCountingComponent.jpg" src="_images/DrainingAndCountingComponent.jpg" />
+</div>
+<div class="section" id="enable-draining">
+<h2>Enable Draining<a class="headerlink" href="#enable-draining" title="Permalink to this headline">¶</a></h2>
+<p>Particles that come in contact with the corresponding actor are deleted automatically.</p>
+<div class="float-center container">
+<img alt="_images/DrainingAndCountingDrain.jpg" src="_images/DrainingAndCountingDrain.jpg" />
 </div>
 </div>
 <div class="section" id="counting-particles">
 <h2>Counting Particles<a class="headerlink" href="#counting-particles" title="Permalink to this headline">¶</a></h2>
-<p>Static mesh components can be configured such that their <strong>Flex Particle Count</strong> property get&#8217;s increased with every particle that comes in contact. Similarly to the draining, the counting functionality can be enabled by checking the <strong>Flex Enable Particle Counter</strong> checkbox in the <strong>Advanced Collision</strong> settings of the <strong>Static Mesh Component</strong>. The particle count value can be accessed in <strong>Blueprint</strong> through the <strong>Static Mesh Component</strong> property <strong>Flex Particle Count</strong> as shows in the image below. While in contact particles are only counted once, however particles that loose contact and re-gain it are counted again. The counting is not accurate if multiple &#8220;counting actors&#8221; intersect each other.</p>
+<p>The count value of the Flex Collision Component contains the accumulated number of all particle overlap events happening. In order to get a per frame count an actor Blueprint can be used.</p>
 <div class="float-center container">
-<img alt="_images/DrainingAndCounting2.jpg" src="_images/DrainingAndCounting2.jpg" />
+<img alt="_images/DrainingAndCountingCount.jpg" src="_images/DrainingAndCountingCount.jpg" />
 </div>
-<p>Draining and counting can be used with the same actor in order to count all deleted particles. Note that both draining and counting are not accurate in a situation where a particle comes in contact with more than 4 actors simultaneously.</p>
+<div class="float-center container">
+<img alt="_images/DrainingAndCountingBlueprint.jpg" src="_images/DrainingAndCountingBlueprint.jpg" />
+</div>
+<p>In order to get the per frame value, the count should be reset to zero after reading it.</p>
 </div>
 </div>
 
