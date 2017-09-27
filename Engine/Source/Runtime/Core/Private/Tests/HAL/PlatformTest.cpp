@@ -11,8 +11,6 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
-float TheCompilerDoesntKnowThisIsAlwaysZero = 0.0f;
-
 struct TestA
 {
 	virtual ~TestA() {}
@@ -54,25 +52,6 @@ bool FPlatformVerificationTest::RunTest (const FString& Parameters)
 #else
 	check(*(uint8*)&Test == 0x12);
 #endif
-	check(FMath::IsNaN(sqrtf(-1.0f)));
-	check(!FMath::IsFinite(sqrtf(-1.0f)));
-	check(!FMath::IsFinite(-1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!FMath::IsFinite(1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!FMath::IsNaN(-1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!FMath::IsNaN(1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!FMath::IsNaN(MAX_FLT));
-	check(FMath::IsFinite(MAX_FLT));
-	check(!FMath::IsNaN(0.0f));
-	check(FMath::IsFinite(0.0f));
-	check(!FMath::IsNaN(1.0f));
-	check(FMath::IsFinite(1.0f));
-	check(!FMath::IsNaN(-1.e37f));
-	check(FMath::IsFinite(-1.e37f));
-	check(FMath::FloorLog2(0) == 0);
-	check(FMath::FloorLog2(1) == 0);
-	check(FMath::FloorLog2(2) == 1);
-	check(FMath::FloorLog2(12) == 3);
-	check(FMath::FloorLog2(16) == 4);
 
 	FGenericPlatformMath::AutoTest();
 

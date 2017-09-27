@@ -83,30 +83,47 @@ void FGenericPlatformMath::FmodReportError(float X, float Y)
 }
 
 #if WITH_DEV_AUTOMATION_TESTS
-extern float TheCompilerDoesntKnowThisIsAlwaysZero;
+
+// Various constants used by the test code below. These are declared
+// volatile to prevent compiler optimizations from removing the checks.
+namespace CompilerHiddenConstants
+{
+	volatile float MinusOne = -1.0f;
+	volatile float Zero = 0.0f;
+	volatile float One = 1.0f;
+	volatile float Two = 2.0f;
+	volatile float Twelve = 12.0f;
+	volatile float Sixteen = 16.0f;
+	volatile float MinusOneE37 = -1.0e37f;
+	volatile float FloatMax = MAX_FLT;
+}
 
 
 void FGenericPlatformMath::AutoTest() 
 {
-	check(IsNaN(sqrtf(-1.0f)));
-	check(!IsFinite(sqrtf(-1.0f)));
-	check(!IsFinite(-1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!IsFinite(1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!IsNaN(-1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!IsNaN(1.0f/TheCompilerDoesntKnowThisIsAlwaysZero));
-	check(!IsNaN(MAX_FLT));
-	check(IsFinite(MAX_FLT));
-	check(!IsNaN(0.0f));
-	check(IsFinite(0.0f));
-	check(!IsNaN(1.0f));
-	check(IsFinite(1.0f));
-	check(!IsNaN(-1.e37f));
-	check(IsFinite(-1.e37f));
-	check(FloorLog2(0) == 0);
-	check(FloorLog2(1) == 0);
-	check(FloorLog2(2) == 1);
-	check(FloorLog2(12) == 3);
-	check(FloorLog2(16) == 4);
+	{
+		using namespace CompilerHiddenConstants;
+
+		check(IsNaN(sqrtf(MinusOne)));
+		check(!IsFinite(sqrtf(MinusOne)));
+		check(!IsFinite(-1.0f / Zero));
+		check(!IsFinite(1.0f / Zero));
+		check(!IsNaN(-1.0f / Zero));
+		check(!IsNaN(1.0f / Zero));
+		check(!IsNaN(FloatMax));
+		check(IsFinite(FloatMax));
+		check(!IsNaN(Zero));
+		check(IsFinite(Zero));
+		check(!IsNaN(One));
+		check(IsFinite(One));
+		check(!IsNaN(MinusOneE37));
+		check(IsFinite(MinusOneE37));
+		check(FloorLog2(Zero) == 0);
+		check(FloorLog2(One) == 0);
+		check(FloorLog2(Two) == 1);
+		check(FloorLog2(Twelve) == 3);
+		check(FloorLog2(Sixteen) == 4);
+	}
 
 	{
 		// Shift test
