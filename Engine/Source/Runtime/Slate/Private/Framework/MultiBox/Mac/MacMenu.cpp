@@ -431,7 +431,7 @@ NSImage* FSlateMacMenu::GetMenuItemIcon(const TSharedRef<const FMenuEntryBlock>&
 {
 	NSImage* MenuImage = nil;
 	FSlateIcon Icon;
-	if (Block->IconOverride.IsSet() && Block->IconOverride.IsSet())
+	if (Block->IconOverride.IsSet())
 	{
 		Icon = Block->IconOverride;
 	}
