@@ -355,8 +355,6 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 	, NumVerts(0)
 	, NumTris(0)
 	, NumIndices(0)
-	, TrackingOrigin(EHMDTrackingOrigin::Eye)
-	, bIs6DoFSupported(false)
 	, DistortEnableCommand(TEXT("vr.googlevr.DistortionCorrection.bEnable"),
 		*NSLOCTEXT("GoogleVR", "CCommandText_DistortEnable",
 			"Gogle VR specific extension.\n"
@@ -405,6 +403,8 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::EnableSustainedPerformanceModeHandler))
 	, CVarSink(FConsoleCommandDelegate::CreateRaw(this, &FGoogleVRHMD::CVarSinkHandler))
 #endif
+	, TrackingOrigin(EHMDTrackingOrigin::Eye)
+	, bIs6DoFSupported(false)
 
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("Initializing FGoogleVRHMD"));

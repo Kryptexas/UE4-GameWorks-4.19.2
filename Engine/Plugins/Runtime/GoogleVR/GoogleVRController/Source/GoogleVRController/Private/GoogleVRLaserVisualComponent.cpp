@@ -22,15 +22,15 @@ DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRMotionController, Log, All);
 
 // Sets default values for this component's properties
 UGoogleVRLaserVisualComponent::UGoogleVRLaserVisualComponent()
-: ReticleBillboardComponent(nullptr)
+: LaserPlaneMesh(nullptr)
 , ControllerReticleMaterial(nullptr)
 , TranslucentSortPriority(1)
-, LaserPlaneMesh(nullptr)
-, LaserPlaneComponent(nullptr)
 , LaserDistanceMax(0.75f)
 , ReticleDistanceMin(0.45f)
 , ReticleDistanceMax(2.5f)
 , ReticleSize(0.05f)
+, LaserPlaneComponent(nullptr)
+, ReticleBillboardComponent(nullptr)
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
