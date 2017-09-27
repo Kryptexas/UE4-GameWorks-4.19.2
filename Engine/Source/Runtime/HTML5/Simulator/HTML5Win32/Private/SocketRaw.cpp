@@ -89,7 +89,7 @@ bool FSocketRaw::Listen( unsigned int MaxBacklog )
 	return listen(SocketRawData->socket, MaxBacklog) == 0 ; 
 }
 
-bool FSocketRaw::HasPendingConnection( bool& bHasPendingConnection )
+bool FSocketRaw::WaitForPendingConnection( bool& bHasPendingConnection, const FTimespan& WaitTime)
 {
 	bool bHasSucceeded = false;
 	bHasPendingConnection = false;
@@ -98,7 +98,7 @@ bool FSocketRaw::HasPendingConnection( bool& bHasPendingConnection )
 	if (SocketCurrentState(SocketRawData->socket, SocketRawEnum::HasError) == SocketRawEnum::No)
 	{
 		// Get the read state
-		SocketRawEnum::Return State = SocketCurrentState(SocketRawData->socket, SocketRawEnum::CanRead);
+		SocketRawEnum::Return State = SocketCurrentState(SocketRawData->socket, SocketRawEnum::CanRead, (unsigned int)WaitTime.GetTotalMilliseconds());
 		// Turn the result into the outputs
 		bHasSucceeded = State != SocketRawEnum::EncounteredError;
 		bHasPendingConnection = State == SocketRawEnum::Yes;

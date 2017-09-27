@@ -23,7 +23,7 @@ public:
 
 	bool Listen(unsigned int MaxBacklog);
 
-	bool HasPendingConnection(bool& bHasPendingConnection);
+	bool WaitForPendingConnection(bool& bHasPendingConnection, const FTimespan& WaitTime)
 
 	bool HasPendingData(unsigned int& PendingDataSize);
 

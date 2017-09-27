@@ -32,9 +32,9 @@ public:
 	 * Creates and initializes a new instance from the specified IP endpoint.
 	 *
 	 * @param LocalEndpoint The local IP endpoint to listen on.
-	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
+	 * @param SleepTime The maximum time to wait for a pending connection inside the polling loop (default = 1 second).
 	 */
-	FTcpListener(const FIPv4Endpoint& LocalEndpoint, const FTimespan& InSleepTime = FTimespan::Zero())
+	FTcpListener(const FIPv4Endpoint& LocalEndpoint, const FTimespan& InSleepTime = FTimespan::FromSeconds(1))
 		: DeleteSocket(true)
 		, Endpoint(LocalEndpoint)
 		, SleepTime(InSleepTime)
@@ -48,9 +48,9 @@ public:
 	 * Creates and initializes a new instance from the specified socket.
 	 *
 	 * @param InSocket The socket to listen on.
-	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
+	 * @param SleepTime SleepTime The maximum time to wait for a pending connection inside the polling loop (default = 1 second).
 	 */
-	FTcpListener(FSocket& InSocket, const FTimespan& InSleepTime = FTimespan::Zero())
+	FTcpListener(FSocket& InSocket, const FTimespan& InSleepTime = FTimespan::FromSeconds(1))
 		: DeleteSocket(false)
 		, SleepTime(InSleepTime)
 		, Socket(&InSocket)
@@ -148,33 +148,44 @@ public:
 	{
 		TSharedRef<FInternetAddr> RemoteAddress = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
+		const bool bHasZeroSleepTime = (SleepTime == FTimespan::Zero());
+
 		while (!Stopping)
 		{
-			bool Pending;
+			bool Pending = false;
 
 			// handle incoming connections
-			if (Socket->HasPendingConnection(Pending) && Pending)
+			if (Socket->WaitForPendingConnection(Pending, SleepTime))
 			{
-				FSocket* ConnectionSocket = Socket->Accept(*RemoteAddress, TEXT("FTcpListener client"));
-
-				if (ConnectionSocket != nullptr)
+				if (Pending)
 				{
-					bool Accepted = false;
+					FSocket* ConnectionSocket = Socket->Accept(*RemoteAddress, TEXT("FTcpListener client"));
 
-					if (ConnectionAcceptedDelegate.IsBound())
+					if (ConnectionSocket != nullptr)
 					{
-						Accepted = ConnectionAcceptedDelegate.Execute(ConnectionSocket, FIPv4Endpoint(RemoteAddress));
-					}
+						bool Accepted = false;
 
-					if (!Accepted)
-					{
-						ConnectionSocket->Close();
-						ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ConnectionSocket);
+						if (ConnectionAcceptedDelegate.IsBound())
+						{
+							Accepted = ConnectionAcceptedDelegate.Execute(ConnectionSocket, FIPv4Endpoint(RemoteAddress));
+						}
+
+						if (!Accepted)
+						{
+							ConnectionSocket->Close();
+							ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ConnectionSocket);
+						}
 					}
 				}
+				else if(bHasZeroSleepTime)
+				{
+					FPlatformProcess::Sleep(0.f);
+				}
 			}
-
-			FPlatformProcess::Sleep(SleepTime.GetSeconds());
+			else
+			{
+				FPlatformProcess::Sleep(SleepTime.GetSeconds());
+			}
 		}
 
 		return 0;

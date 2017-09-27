@@ -111,7 +111,7 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool HasPendingConnection(bool& bHasPendingConnection) override;
+	virtual bool WaitForPendingConnection(bool& bHasPendingConnection, const FTimespan& WaitTime) override;
 
 	/**
 	* Queries the socket to determine if there is pending data on the queue
