@@ -341,8 +341,30 @@ namespace WmfMedia
 	}
 
 
-	TComPtr<IMFMediaType> CreateOutputType(const GUID& MajorType, const GUID& SubType, bool AllowNonStandardCodecs, bool IsVideoDevice)
+	TComPtr<IMFMediaType> CreateOutputType(IMFMediaType& InputType, bool AllowNonStandardCodecs, bool IsVideoDevice)
 	{
+		GUID MajorType;
+		{
+			const HRESULT Result = InputType.GetGUID(MF_MT_MAJOR_TYPE, &MajorType);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to get major type: %s"), *ResultToString(Result));
+				return NULL;
+			}
+		}
+
+		GUID SubType;
+		{
+			const HRESULT Result = InputType.GetGUID(MF_MT_SUBTYPE, &SubType);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to get sub-type: %s"), *ResultToString(Result));
+				return NULL;
+			}
+		}
+
 		TComPtr<IMFMediaType> OutputType;
 		{
 			HRESULT Result = ::MFCreateMediaType(&OutputType);
@@ -407,12 +429,20 @@ namespace WmfMedia
 				}
 			}
 
-			// configure audio output (re-sampling fails for many media types, so we don't attempt it)
+			// configure audio output
 			if (FAILED(OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio)) ||
 				FAILED(OutputType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM)) ||
 				FAILED(OutputType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16u)))
 			{
 				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize audio output type"));
+				return NULL;
+			}
+
+			// copy media type attributes
+			if (FAILED(CopyAttribute(&InputType, OutputType, MF_MT_AUDIO_NUM_CHANNELS)) ||
+				FAILED(CopyAttribute(&InputType, OutputType, MF_MT_AUDIO_SAMPLES_PER_SECOND)))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to copy audio output type attributes"));
 				return NULL;
 			}
 		}
@@ -507,6 +537,14 @@ namespace WmfMedia
 			if (FAILED(Result))
 			{
 				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set video output sub-type: %s"), *ResultToString(Result));
+				return NULL;
+			}
+
+			// copy media type attributes
+			if (FAILED(CopyAttribute(&InputType, OutputType, MF_MT_FRAME_RATE)) ||
+				FAILED(CopyAttribute(&InputType, OutputType, MF_MT_FRAME_SIZE)))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to copy video output type attributes"));
 				return NULL;
 			}
 		}
