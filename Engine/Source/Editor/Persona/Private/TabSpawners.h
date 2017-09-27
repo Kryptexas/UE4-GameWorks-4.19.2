@@ -251,7 +251,7 @@ struct FPreviewViewportSummoner : public FWorkflowTabFactory
 	FSimpleMulticastDelegate& OnPostUndo;
 	TWeakPtr<FBlueprintEditor> BlueprintEditor;
 	FOnViewportCreated OnViewportCreated;
-	TSharedPtr<FExtender> Extenders;
+	TArray<TSharedPtr<FExtender>> Extenders;
 	bool bShowShowMenu;
 	bool bShowLODMenu;
 	bool bShowPlaySpeedMenu;
@@ -260,6 +260,7 @@ struct FPreviewViewportSummoner : public FWorkflowTabFactory
 	bool bAlwaysShowTransformToolbar;
 	bool bShowFloorOptions;
 	bool bShowTurnTable;
+	bool bShowPhysicsMenu;
 };
 
 /////////////////////////////////////////////////////

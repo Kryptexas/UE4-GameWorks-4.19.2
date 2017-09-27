@@ -56,9 +56,10 @@ public:
 		, _ShowStats(true)
 		, _ShowFloorOptions(true)
 		, _ShowTurnTable(true)
+		, _ShowPhysicsMenu(false)
 	{}
 
-	SLATE_ARGUMENT(TSharedPtr<FExtender>, Extenders)
+	SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
 
 	SLATE_ARGUMENT(bool, ShowShowMenu)
 
@@ -71,6 +72,8 @@ public:
 	SLATE_ARGUMENT(bool, ShowFloorOptions)
 
 	SLATE_ARGUMENT(bool, ShowTurnTable)
+
+	SLATE_ARGUMENT(bool, ShowPhysicsMenu)
 
 	SLATE_END_ARGS()
 
@@ -103,7 +106,7 @@ protected:
 	TWeakPtr<class FAssetEditorToolkit> AssetEditorToolkitPtr;
 
 	/** Menu extenders */
-	TSharedPtr<FExtender> Extenders;
+	TArray<TSharedPtr<FExtender>> Extenders;
 
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;
@@ -122,6 +125,9 @@ protected:
 
 	/** Whether to show options relating to turntable */
 	bool bShowTurnTable;
+
+	/** Whether to show options relating to physics */
+	bool bShowPhysicsMenu;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -140,13 +146,14 @@ public:
 		, _AlwaysShowTransformToolbar(false)
 		, _ShowFloorOptions(true)
 		, _ShowTurnTable(true)
+		, _ShowPhysicsMenu(false)
 		{}
 
 		SLATE_ARGUMENT(TWeakPtr<FBlueprintEditor>, BlueprintEditor)
 
 		SLATE_ARGUMENT(FOnInvokeTab, OnInvokeTab)
 
-		SLATE_ARGUMENT(TSharedPtr<FExtender>, Extenders)
+		SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
 
 		SLATE_ARGUMENT(bool, ShowShowMenu)
 
@@ -163,6 +170,8 @@ public:
 		SLATE_ARGUMENT(bool, ShowFloorOptions)
 
 		SLATE_ARGUMENT(bool, ShowTurnTable)
+
+		SLATE_ARGUMENT(bool, ShowPhysicsMenu)
 	SLATE_END_ARGS()
 public:
 

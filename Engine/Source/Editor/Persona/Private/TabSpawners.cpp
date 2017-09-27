@@ -219,6 +219,7 @@ FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditor
 	, bAlwaysShowTransformToolbar(InArgs.bAlwaysShowTransformToolbar)
 	, bShowFloorOptions(InArgs.bShowFloorOptions)
 	, bShowTurnTable(InArgs.bShowTurnTable)
+	, bShowPhysicsMenu(InArgs.bShowPhysicsMenu)
 {
 	TabLabel = LOCTEXT("ViewportTabTitle", "Viewport");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
@@ -243,7 +244,8 @@ TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSp
 		.ShowStats(bShowStats)
 		.AlwaysShowTransformToolbar(bAlwaysShowTransformToolbar)
 		.ShowFloorOptions(bShowFloorOptions)
-		.ShowTurnTable(bShowTurnTable);
+		.ShowTurnTable(bShowTurnTable)
+		.ShowPhysicsMenu(bShowPhysicsMenu);
 
 	OnViewportCreated.ExecuteIfBound(NewViewport);
 
