@@ -2976,9 +2976,14 @@ protected:
 			}
 		}
 
-        if (call->return_deref && call->return_deref->type && call->return_deref->type->is_scalar())
+        if (call->return_deref && call->return_deref->type)
         {
-            if (!strcmp(call->callee_name(), "length"))
+			if(!Backend.bAllowFastIntriniscs && call->return_deref->type->base_type == GLSL_TYPE_FLOAT && !strcmp(call->callee_name(), "sincos"))
+			{
+				// sincos needs to be "precise" unless we explicitly opt-in to fast-intrinsics because some UE4 shaders expect precise results and correct NAN/INF handling.
+				ralloc_asprintf_append(buffer, "precise::");
+			}
+            else if (call->return_deref->type->is_scalar() && !strcmp(call->callee_name(), "length"))
             {
                 bool bIsVector = true;
                 foreach_iter(exec_list_iterator, iter, *call)
@@ -4207,7 +4212,7 @@ public:
         // Use a precise fma based cross-product to avoid reassociation errors messing up WPO
 		if (Backend.Version >= 2)
 		{
-			ralloc_asprintf_append(buffer, "\ntemplate<typename T> static T precise_cross(T x, T y) { float3 fx = float3(x); float3 fy = float3(y); return T(fma(fx[1], fy[2], -(fy[1] * fx[2])), fma(fx[2], fy[0], -(fy[2] * fx[0])), fma(fx[0], fy[1], -(fy[0] * fx[1]))); }\n");
+			ralloc_asprintf_append(buffer, "\ntemplate<typename T> static T precise_cross(T x, T y) { float3 fx = float3(x); float3 fy = float3(y); return T(fma(fx[1], fy[2], -fma(fy[1], fx[2], 0.0)), fma(fx[2], fy[0], -fma(fy[2], fx[0], 0.0)), fma(fx[0], fy[1], -fma(fy[0], fx[1], 0.0))); }\n");
 			ralloc_asprintf_append(buffer, "#define cross(x, y) precise_cross(x, y)\n");
 		}
         
