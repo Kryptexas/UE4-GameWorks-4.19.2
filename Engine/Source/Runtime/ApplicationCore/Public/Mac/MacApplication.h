@@ -132,7 +132,9 @@ struct FMacScreen
 /**
  * Mac-specific application implementation.
  */
-class APPLICATIONCORE_API FMacApplication : public GenericApplication
+class APPLICATIONCORE_API FMacApplication 
+	: public GenericApplication
+	, public IInputInterface
 {
 public:
 
@@ -216,6 +218,16 @@ public:
 	void OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking = false);
 
 	void OnWindowChangedScreen(TSharedRef<FMacWindow> Window);
+
+public:
+    virtual IInputInterface* GetInputInterface() override { return this; }
+    
+	// IInputInterface overrides
+
+	virtual void SetForceFeedbackChannelValue (int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
+	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values) override;
+	virtual void SetHapticFeedbackValues(int32 ControllerId, int32 Hand, const FHapticFeedbackValues& Values) override;
+	virtual void SetLightColor(int32 ControllerId, FColor Color) override { }
 public:
 
 	static void UpdateScreensArray();

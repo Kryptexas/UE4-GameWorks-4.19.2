@@ -17,6 +17,7 @@
 #include "Misc/App.h"
 #include "Mac/MacPlatformApplicationMisc.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "IHapticDevice.h"
 
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>
@@ -1389,6 +1390,63 @@ FCocoaWindow* FMacApplication::FindEventWindow(NSEvent* Event) const
 	}
 
 	return EventWindow;
+}
+
+void FMacApplication::SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
+{
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
+	for (const TSharedPtr<IInputDevice>& InputDevice : ExternalInputDevices)
+	{
+		if (InputDevice.IsValid())
+		{
+			InputDevice->SetChannelValue(ControllerId, ChannelType, Value);
+		}
+	}
+}
+
+void FMacApplication::SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
+{
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
+	for (const TSharedPtr<IInputDevice>& InputDevice : ExternalInputDevices)
+	{
+		if (InputDevice.IsValid())
+		{
+			// Mirrored from the Window's impl: "Ideally, we would want to use 
+			// GetHapticDevice instead but they're not implemented for SteamController"
+			if (InputDevice->IsGamepadAttached())
+			{
+				InputDevice->SetChannelValues(ControllerId, Values);
+			}
+		}
+	}
+}
+
+void FMacApplication::SetHapticFeedbackValues(int32 ControllerId, int32 Hand, const FHapticFeedbackValues& Values)
+{
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
+	for (const TSharedPtr<IInputDevice>& InputDevice : ExternalInputDevices)
+	{
+		if (InputDevice.IsValid())
+		{
+			IHapticDevice* HapticDevice = InputDevice->GetHapticDevice();
+			if (HapticDevice)
+			{
+				HapticDevice->SetHapticFeedbackValues(ControllerId, Hand, Values);
+			}
+		}
+	}
 }
 
 void FMacApplication::UpdateScreensArray()
