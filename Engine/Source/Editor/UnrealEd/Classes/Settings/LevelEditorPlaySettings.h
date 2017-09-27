@@ -99,6 +99,9 @@ enum EPlayOnBuildMode
 
 	/** Build based on project type. */
 	PlayOnBuild_Default UMETA(DisplayName="Only Build Code Projects"),
+
+	/** Build if we're using a locally built (ie. non-promoted) editor. */
+	PlayOnBuild_IfEditorBuiltLocally UMETA(DisplayName="Only If Editor Was Built Locally"),
 };
 
 /* Configuration to use when launching on device. */

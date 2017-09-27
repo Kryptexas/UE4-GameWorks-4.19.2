@@ -540,6 +540,9 @@ void UProjectPackagingSettings::PostInitProperties()
 	bNativizeBlueprintAssets_DEPRECATED = false;
 	bNativizeOnlySelectedBlueprints_DEPRECATED = false;
 
+	// Build code projects by default
+	Build = EProjectPackagingBuild::IfProjectHasCode;
+
 	// Cache the current set of Blueprint assets selected for nativization.
 	CachedNativizeBlueprintAssets = NativizeBlueprintAssets;
 

@@ -2841,7 +2841,7 @@ private:
 	FString PlayUsingLauncherDeviceId;
 	FString PlayUsingLauncherDeviceName;
 	bool bPlayUsingLauncherHasCode;
-	bool bPlayUsingLauncherHasCompiler;
+	bool bPlayUsingLauncherBuild;
 
 	/** Used to prevent reentrant calls to EndPlayMap(). */
 	bool bIsEndingPlay;
