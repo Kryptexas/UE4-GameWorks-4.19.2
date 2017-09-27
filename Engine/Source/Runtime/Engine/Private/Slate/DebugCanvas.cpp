@@ -181,7 +181,10 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 
 		if (LayerID != INVALID_LAYER_ID && (!bDebugInLayer || !bCanvasRenderedLastFrame))
 		{
-			GEngine->StereoRenderingDevice->GetStereoLayers()->DestroyLayer(LayerID);
+			if (GEngine && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->GetStereoLayers())
+			{
+				GEngine->StereoRenderingDevice->GetStereoLayers()->DestroyLayer(LayerID);
+			}
 			LayerID = INVALID_LAYER_ID;
 		}
 	}
