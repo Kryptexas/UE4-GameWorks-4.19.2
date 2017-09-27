@@ -637,11 +637,11 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 		}
 		else if (Event.NotificationName == NSWindowDidBecomeMainNotification)
 		{
-			MessageHandler->OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Activate);
+			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Activate);
 		}
 		else if (Event.NotificationName == NSWindowDidResignMainNotification)
 		{
-			MessageHandler->OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Deactivate);
+			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Deactivate);
 		}
 		else if (Event.NotificationName == NSWindowWillMoveNotification)
 		{
@@ -1071,19 +1071,64 @@ void FMacApplication::OnWindowChangedScreen(TSharedRef<FMacWindow> Window)
 }
 
 
-bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> Window)
+bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 {
 	SCOPED_AUTORELEASE_POOL;
-	if ([Window->GetWindowHandle() isMainWindow])
+	if ([DestroyedWindow->GetWindowHandle() isMainWindow])
 	{
-		MessageHandler->OnWindowActivationChanged(Window, EWindowActivation::Deactivate);
+		OnWindowActivationChanged(DestroyedWindow, EWindowActivation::Deactivate);
 	}
-	Windows.Remove(Window);
-	if (!WindowsToClose.Contains(Window->GetWindowHandle()))
+	Windows.Remove(DestroyedWindow);
+
+	if (!WindowsToClose.Contains(DestroyedWindow->GetWindowHandle()))
 	{
-		WindowsToClose.Add(Window->GetWindowHandle());
+		WindowsToClose.Add(DestroyedWindow->GetWindowHandle());
 	}
+
+	// Figure out which window will now become active and let Slate know without waiting for Cocoa events
+	NSArray* AllWindows = [NSApp orderedWindows];
+	for (uint32 Index = 0; Index < AllWindows.count; Index++)
+	{
+		NSWindow* Window = (NSWindow*)[AllWindows objectAtIndex:Index];
+		if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeMainWindow] && Window != DestroyedWindow->GetWindowHandle())
+		{
+			TSharedPtr<FMacWindow> WindowToActivate = FindWindowByNSWindow((FCocoaWindow*)Window);
+			if (WindowToActivate.IsValid())
+			{
+				OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
+				WindowToActivate->SetWindowFocus();
+				break;
+			}
+		}
+	}
+
 	return true;
+}
+
+void FMacApplication::OnWindowActivated(TSharedRef<FMacWindow> Window)
+{
+	if (ActiveWindow.IsValid())
+	{
+		OnWindowActivationChanged(ActiveWindow.ToSharedRef(), EWindowActivation::Deactivate);
+	}
+	OnWindowActivationChanged(Window, EWindowActivation::Activate);
+}
+
+void FMacApplication::OnWindowActivationChanged(const TSharedRef<FMacWindow>& Window, const EWindowActivation ActivationType)
+{
+	if (ActivationType == EWindowActivation::Deactivate)
+	{
+		if (Window == ActiveWindow)
+		{
+			MessageHandler->OnWindowActivationChanged(Window, ActivationType);
+			ActiveWindow.Reset();
+		}
+	}
+	else if (ActiveWindow != Window)
+	{
+		MessageHandler->OnWindowActivationChanged(Window, ActivationType);
+		ActiveWindow = Window;
+	}
 }
 
 void FMacApplication::OnApplicationDidBecomeActive()
@@ -1662,22 +1707,6 @@ void FMacApplication::CloseQueuedWindows()
 	{
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
-
-			// Set the new key window, if needed. We cannot trust Cocoa to set the key window to the actual top most window. It will prefer windows with title bars so,
-			// for example, will choose the main window over a context menu window, when closing a submenu.
-			NSArray* AllWindows = [NSApp orderedWindows];
-			for (NSWindow* Window : AllWindows)
-			{
-				if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeKeyWindow])
-				{
-					if (Window != [NSApp keyWindow])
-					{
-						[Window makeKeyWindow];
-					}
-					break;
-				}
-			}
-
 			for (FCocoaWindow* Window : WindowsToClose)
 			{
 				[Window close];

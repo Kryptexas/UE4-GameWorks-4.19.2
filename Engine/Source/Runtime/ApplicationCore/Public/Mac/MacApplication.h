@@ -258,12 +258,14 @@ private:
 	void ProcessKeyUpEvent(const FDeferredMacEvent& Event);
 
 	void OnWindowDidMove(TSharedRef<FMacWindow> Window);
-	bool OnWindowDestroyed(TSharedRef<FMacWindow> Window);
+	bool OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow);
+	void OnWindowActivated(TSharedRef<FMacWindow> Window);
 
 	void OnApplicationDidBecomeActive();
 	void OnApplicationWillResignActive();
 	void OnWindowsReordered();
 	void OnActiveSpaceDidChange();
+	void OnWindowActivationChanged(const TSharedRef<FMacWindow>& Window, const EWindowActivation ActivationType);
 
 	void ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event);
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
@@ -317,6 +319,8 @@ private:
 	bool bHasLoadedInputPlugins;
 
 	FCocoaWindow* DraggedWindow;
+
+	TSharedPtr<FMacWindow> ActiveWindow;
 
 	bool bSystemModalMode;
 

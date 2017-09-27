@@ -13,6 +13,7 @@ FMacWindow::FMacWindow()
 ,	DisplayID(kCGNullDirectDisplay)
 ,	bIsVisible(false)
 ,	bIsClosed(false)
+,	bIsFirstTimeVisible(true)
 {
 }
 
@@ -307,12 +308,30 @@ void FMacWindow::Show()
 {
 	if (!bIsClosed && !bIsVisible)
 	{
-		const bool bMakeMainAndKey = [WindowHandle canBecomeKeyWindow] && Definition->ActivationPolicy != EWindowActivationPolicy::Never;
+		// Should the show command include activation?
+		// Do not activate windows that do not take input; e.g. tool-tips and cursor decorators
+		bool bShouldActivate = false;
+		if (Definition->AcceptsInput)
+		{
+			bShouldActivate = Definition->ActivationPolicy == EWindowActivationPolicy::Always;
+			if (bIsFirstTimeVisible && Definition->ActivationPolicy == EWindowActivationPolicy::FirstShown)
+			{
+				bShouldActivate = true;
+			}
+		}
+
+		bIsFirstTimeVisible = false;
 
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
-			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
+			[WindowHandle orderFrontAndMakeMain:bShouldActivate andKey:bShouldActivate];
 		}, UE4ShowEventMode, false);
+
+		if (bShouldActivate)
+		{
+			// Tell MacApplication to send window deactivate and activate messages to Slate without waiting for Cocoa events.
+			MacApplication->OnWindowActivated(SharedThis(this));
+		}
 
 		bIsVisible = true;
 	}
