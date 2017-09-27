@@ -338,6 +338,9 @@ public:
 				{
 					ExtraFunctionFlags |= FUNC_Static;
 				}
+				// We need to mark the function entry as editable so that we can
+				// set metadata on it if it is a blutility:
+				K2Schema->MarkFunctionEntryAsEditable(Graph, true);
 				if( IsBlutility( Blueprint ))
 				{
 					if( FKismetUserDeclaredFunctionMetadata* MetaData = GetGraphFunctionMetaData( Graph ))
@@ -346,7 +349,6 @@ public:
 					}
 				}
 				K2Schema->AddExtraFunctionFlags(Graph, ExtraFunctionFlags);
-				K2Schema->MarkFunctionEntryAsEditable(Graph, true);
 			}
 		}
 	}
