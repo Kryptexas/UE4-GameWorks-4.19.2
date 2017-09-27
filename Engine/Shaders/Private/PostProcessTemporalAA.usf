@@ -307,9 +307,8 @@ float4 MainTemporalAACommon(in float2 UV, in float4 SvPosition, in float InExpos
 		#define AA_ROUND 0
 		#define AA_YCOCG 1
 		#define AA_BICUBIC 1
-		#define AA_DYNAMIC_ANTIGHOST 1
 		#define AA_TONE 1
-		#define AA_CLAMP 1
+		#define AA_DYNAMIC_ANTIGHOST 1
 	#if COMPUTESHADER
 		#define AA_SINGLE_PASS_RESPONSIVE 1
 	#endif
@@ -370,6 +369,7 @@ float4 MainFastTemporalAACommon(in float2 UV, in float InExposureScale)
 	#define AA_AABB 0
 	#define AA_YCOCG 1
 	#define AA_BICUBIC 1
+	#define AA_TONE 1
 #if COMPUTESHADER
 	#define AA_SINGLE_PASS_RESPONSIVE 1
 #endif

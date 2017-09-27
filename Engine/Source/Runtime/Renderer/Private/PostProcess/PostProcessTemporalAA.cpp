@@ -28,7 +28,7 @@ static TAutoConsoleVariable<float> CVarTemporalAAFilterSize(
 
 static TAutoConsoleVariable<int32> CVarTemporalAACatmullRom(
 	TEXT("r.TemporalAACatmullRom"),
-	1,
+	0,
 	TEXT("Whether to use a Catmull-Rom filter kernel. Should be a bit sharper than Gaussian."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 

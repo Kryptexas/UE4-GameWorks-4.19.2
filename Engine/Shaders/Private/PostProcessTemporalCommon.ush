@@ -431,12 +431,14 @@ which can be configured via defines for various temporal AA passes.
 	float BlendFinal = CurrentFrameWeight;
 
 	BlendFinal = lerp( BlendFinal, 0.2, saturate( Velocity / 40 ) );
-	BlendFinal += 0.8 * saturate( 0.02 * LumaHistory / abs( Filtered.x - LumaHistory ) );
 	
+#if 0
 	// Anti-flicker
 	float DistToClamp = 2 * abs( min( LumaHistory - LumaMin, LumaMax - LumaHistory ) / ( LumaMax - LumaMin ) );
 	//BlendFinal *= lerp( 0, 1, saturate(4 * DistToClamp) );
+	BlendFinal += 0.8 * saturate( 0.02 * LumaHistory / abs( Filtered.x - LumaHistory ) );
 	BlendFinal *= (LumaMin * InExposureScale + 0.5) / (LumaMax * InExposureScale + 0.5);
+#endif
 
 	// Make sure to have at least some small contribution
 	BlendFinal = max( BlendFinal, saturate( 0.01 * LumaHistory / abs( Filtered.x - LumaHistory ) ) );
