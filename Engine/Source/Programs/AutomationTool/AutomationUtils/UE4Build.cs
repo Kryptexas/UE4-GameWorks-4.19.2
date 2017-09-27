@@ -104,7 +104,8 @@ namespace AutomationTool
 
 		static bool IsBuildReceipt(string FileName)
 		{
-			return FileName.EndsWith(".target", StringComparison.InvariantCultureIgnoreCase) 
+			return FileName.EndsWith(".version", StringComparison.InvariantCultureIgnoreCase)
+				|| FileName.EndsWith(".target", StringComparison.InvariantCultureIgnoreCase) 
 				|| FileName.EndsWith(".modules", StringComparison.InvariantCultureIgnoreCase)
 				|| FileName.EndsWith("buildid.txt", StringComparison.InvariantCultureIgnoreCase);
 		}
