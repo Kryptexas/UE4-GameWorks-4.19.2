@@ -162,7 +162,7 @@ bool FModuleManager::IsModuleUpToDate(const FName InModuleName) const
 		return false;
 	}
 
-	return CheckModuleCompatibility(*TMap<FName, FString>::TConstIterator(ModulePathMap).Value());
+	return CheckModuleCompatibility(*TMap<FName, FString>::TConstIterator(ModulePathMap).Value(), ECheckModuleCompatibilityFlags::DisplayUpToDateModules);
 }
 
 bool FindNewestModuleFile(TArray<FString>& FilesToSearch, const FDateTime& NewerThan, const FString& ModuleFileSearchDirectory, const FString& Prefix, const FString& Suffix, FString& OutFilename)
@@ -1153,16 +1153,25 @@ const TCHAR *FModuleManager::GetUBTConfiguration()
 }
 
 
-bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
+bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename, ECheckModuleCompatibilityFlags Flags)
 {
 	int32 ModuleApiVersion = FPlatformProcess::GetDllApiVersion(Filename);
 	int32 CompiledInApiVersion = MODULE_API_VERSION;
 
 	if (ModuleApiVersion != CompiledInApiVersion)
 	{
-		UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (API version %d), but it was incompatible with the current engine API version (%d). This is likely a stale module that must be recompiled."), Filename, ModuleApiVersion, CompiledInApiVersion);
+		if (ModuleApiVersion < 0)
+		{
+			UE_LOG(LogModuleManager, Warning, TEXT("Module file %s is missing. This is likely a stale module that must be recompiled."), Filename);
+		}
+		else
+		{
+			UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (API version %d), but it was incompatible with the current engine API version (%d). This is likely a stale module that must be recompiled."), Filename, ModuleApiVersion, CompiledInApiVersion);
+		}
 		return false;
 	}
+
+	UE_CLOG(!!(Flags & ECheckModuleCompatibilityFlags::DisplayUpToDateModules), LogModuleManager, Display, TEXT("Found up-to-date module file %s (API version %d)."), Filename, ModuleApiVersion);
 
 	return true;
 }

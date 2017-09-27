@@ -16,6 +16,7 @@
 #include "Misc/CoreMisc.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
+#include "Misc/EnumClassFlags.h"
 
 #if WITH_HOT_RELOAD
 	/** If true, we are reloading a class for HotReload */
@@ -61,6 +62,17 @@ enum class EModuleChangeReason
 	/** The paths controlling which plug-ins are loaded have been changed and the given module has been found, but not yet loaded. */
 	PluginDirectoryChanged
 };
+
+
+enum class ECheckModuleCompatibilityFlags
+{
+	None = 0x00,
+
+	// Display the loading of an up-to-date module
+	DisplayUpToDateModules = 0x01
+};
+
+ENUM_CLASS_FLAGS(ECheckModuleCompatibilityFlags)
 
 
 /**
@@ -558,7 +570,7 @@ private:
 	}
 
 	/** Compares file versions between the current executing engine version and the specified dll */
-	static bool CheckModuleCompatibility(const TCHAR *Filename);
+	static bool CheckModuleCompatibility(const TCHAR *Filename, ECheckModuleCompatibilityFlags Flags = ECheckModuleCompatibilityFlags::None );
 
 	/** Gets the prefix and suffix for a module file */
 	static void GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix);
