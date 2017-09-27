@@ -1778,14 +1778,10 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 
 						check(ExistingPin && *ExistingPin); // the transaction buffer is corrupt
 						FGuid RequestingPinId = RequestingPin->PinId;
-						UEdGraphPin** LinkedTo = (*ExistingPin)->LinkedTo.FindByPredicate([&RequestingPinId](const UEdGraphPin* Pin) { return Pin && Pin->PinId == RequestingPinId; });
+						UEdGraphPin** LinkedTo = (*ExistingPin)->LinkedTo.FindByPredicate([&RequestingPinId, RequestingPin](const UEdGraphPin* Pin) { return Pin == RequestingPin && Pin->PinId == RequestingPinId; });
 						if (LinkedTo)
 						{
 							// case 1:
-							// The second condition here is to avoid asserting when PinIds are reused.
-							// This occur frequently due to current copy paste implementation, which does 
-							// not generate/fixup PinIds at any point:
-							check(*LinkedTo == RequestingPin || (*ExistingPin)->LinkedTo.FindByPredicate([RequestingPin](const UEdGraphPin* Pin) { return Pin == RequestingPin; }));
 							PinRef = *ExistingPin;
 						}
 						else
