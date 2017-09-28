@@ -1857,6 +1857,8 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 			string AndroidGraphicsDebugger;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AndroidGraphicsDebugger", out AndroidGraphicsDebugger);
+			bool bSupportAdMob = true;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportAdMob", out bSupportAdMob);
 
 			string InstallLocation;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "InstallLocation", out InstallLocation);
@@ -2095,8 +2097,13 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t           android:value=\"@string/app_id\" />");
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.version\"");
 			Text.AppendLine("\t\t           android:value=\"@integer/google_play_services_version\" />");
-			Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
-			Text.AppendLine("\t\t          android:configChanges=\"density|keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
+			if (bSupportAdMob)
+			{
+				Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
+				Text.AppendLine("\t\t          xmlns:tools=\"http://schemas.android.com/tools\"");
+				Text.AppendLine("\t\t          tools:replace=\"android:configChanges\"");
+				Text.AppendLine("\t\t          android:configChanges=\"density|keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
+			}
 			if (!string.IsNullOrEmpty(ExtraApplicationSettings))
 			{
 				ExtraApplicationSettings = ExtraApplicationSettings.Replace("\\n", "\n");
