@@ -693,7 +693,14 @@ namespace UnrealBuildTool
 							{
 								if (Utils.IsRunningOnMono)
 								{
-									OutFile.AddField("command", "xbuild");
+									if (HostPlatform == UnrealTargetPlatform.Mac)
+									{
+										OutFile.AddField("command", "${workspaceRoot}/Engine/Build/BatchFiles/Mac/RunXBuild.sh");
+									}
+									else
+									{
+										OutFile.AddField("command", "xbuild");
+									}
 								}
 								else
 								{
