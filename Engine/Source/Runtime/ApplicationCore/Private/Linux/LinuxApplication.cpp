@@ -34,7 +34,8 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 
 	if (!FLinuxPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : InitSDL() failed, cannot create application instance."));
+		UE_LOG(LogInit, Error, TEXT("FLinuxApplication::CreateLinuxApplication() : InitSDL() failed, cannot create application instance."));
+		FLinuxPlatformMisc::RequestExitWithStatus(true, 1);
 		// unreachable
 		return nullptr;
 	}
