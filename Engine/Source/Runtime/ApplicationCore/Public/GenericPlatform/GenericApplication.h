@@ -361,8 +361,8 @@ struct FDisplayMetrics
 
 	APPLICATIONCORE_API static void GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetrics);
 
-	/** Gets the monitor rect from a position in the global desktop work area */
-	APPLICATIONCORE_API FPlatformRect GetMonitorRectFromPoint(const FVector2D& Point) const;
+	/** Gets the monitor work area from a position in the global display rect */
+	APPLICATIONCORE_API FPlatformRect GetMonitorWorkAreaFromPoint(const FVector2D& Point) const;
 
 	/** Logs out display metrics */
 	APPLICATIONCORE_API void PrintToLog() const;

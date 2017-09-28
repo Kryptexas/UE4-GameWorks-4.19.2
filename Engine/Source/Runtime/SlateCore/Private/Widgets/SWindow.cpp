@@ -270,7 +270,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplicationBase::Get().GetDisplayMetrics( DisplayMetrics );
 	const FPlatformRect& VirtualDisplayRect = DisplayMetrics.VirtualDisplayRect;
-	const FPlatformRect PrimaryDisplayRect = DisplayMetrics.GetMonitorRectFromPoint(WindowPosition);
+	const FPlatformRect PrimaryDisplayRect = DisplayMetrics.GetMonitorWorkAreaFromPoint(WindowPosition);
 
 	// If we're showing a pop-up window, to avoid creation of driver crashing sized 
 	// tooltips we limit the size a pop-up window can be if max size limit is unspecified.

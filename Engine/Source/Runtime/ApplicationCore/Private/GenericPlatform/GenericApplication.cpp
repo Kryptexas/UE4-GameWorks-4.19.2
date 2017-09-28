@@ -133,11 +133,12 @@ struct FSafeZoneConsoleVariables
 
 FSafeZoneConsoleVariables GSafeZoneConsoleVariables;
 
-FPlatformRect FDisplayMetrics::GetMonitorRectFromPoint(const FVector2D& Point) const
+FPlatformRect FDisplayMetrics::GetMonitorWorkAreaFromPoint(const FVector2D& Point) const
 {
 	for (const FMonitorInfo& Info : MonitorInfo)
 	{
-		if (Point.X >= Info.WorkArea.Left && Point.X <= Info.WorkArea.Right && Point.Y >= Info.WorkArea.Top && Point.Y <= Info.WorkArea.Bottom)
+		// The point may not actually be inside the work area (for example on Windows taskbar or Mac menu bar), so we use DisplayRect to find the monitor
+		if (Point.X >= Info.DisplayRect.Left && Point.X <= Info.DisplayRect.Right && Point.Y >= Info.DisplayRect.Top && Point.Y <= Info.DisplayRect.Bottom)
 		{
 			return Info.WorkArea;
 		}
