@@ -249,6 +249,10 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			{
 				DeviceType = IOS_IPadPro_97;
 			}
+			else if (Minor == 11 || Minor == 12)
+			{
+				DeviceType = IOS_IPad5;
+			}
 			else
 			{
 				DeviceType = IOS_IPadPro_129;
@@ -333,24 +337,54 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
                 DeviceType = IOS_IPhone7Plus;
             }
 		}
-        else if (Major >= 10)
+        else if (Major == 10)
         {
-            // for going forward into unknown devices (like 8/8+?), we can't use Minor,
-            // so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
-            if ([UIScreen mainScreen].scale > 2.5f)
-            {
-                DeviceType = IOS_IPhone7Plus;
-            }
-            else
-            {
-                DeviceType = IOS_IPhone7;
-            }
-        }
+			if (Minor == 1 || Minor == 4)
+			{
+				DeviceType = IOS_IPhone8;
+			}
+			else if (Minor == 2 || Minor == 5)
+			{
+				DeviceType = IOS_IPhone8Plus;
+			}
+			else if (Minor == 3 || Minor == 6)
+			{
+				DeviceType = IOS_IPhoneX;
+			}
+		}
+		else if (Major >= 10)
+		{
+			// for going forward into unknown devices (like 8/8+?), we can't use Minor,
+			// so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
+			if ([UIScreen mainScreen].scale > 2.5f)
+			{
+				DeviceType = IOS_IPhone8Plus;
+			}
+			else
+			{
+				DeviceType = IOS_IPhone8;
+			}
+		}
 	}
 	// tvOS
 	else if (DeviceIDString.StartsWith(TEXT("AppleTV")))
 	{
-		DeviceType = IOS_AppleTV;
+		const int Major = FCString::Atoi(&DeviceIDString[6]);
+		const int CommaIndex = DeviceIDString.Find(TEXT(","), ESearchCase::CaseSensitive, ESearchDir::FromStart, 6);
+		const int Minor = FCString::Atoi(&DeviceIDString[CommaIndex + 1]);
+
+		if (Major == 5)
+		{
+			DeviceType = IOS_AppleTV;
+		}
+		else if (Major == 6)
+		{
+			DeviceType = IOS_AppleTV4K;
+		}
+		else if (Major >= 6)
+		{
+			DeviceType = IOS_AppleTV4K;
+		}
 	}
 	// simulator
 	else if (DeviceIDString.StartsWith(TEXT("x86")))
