@@ -272,6 +272,13 @@ namespace UnrealBuildTool
 					RequiredCaps += "\t\t<string>" + Arches[0] + "</string>\n";
 				}
 			}
+			ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirRef, UnrealTargetPlatform.IOS);
+			bool bStartInAR = false;
+			GameIni.GetBool("/Script/EngineSettings.GeneralProjectSettings", "bStartInAR", out bStartInAR);
+			if (bStartInAR)
+			{
+				RequiredCaps += "\t\t<string>arkit</string>\n";
+			}
 
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
 			RequiredCaps += bSupported ? "\t\t<string>opengles-2</string>\n" : "";
@@ -292,9 +299,11 @@ namespace UnrealBuildTool
 						MinVersion = "7.0";
 						break;
 					case "IOS_7":
+						Log.TraceWarning("IOS 7 is no longer supported in UE4 as 4.15");
 						MinVersion = "7.0";
 						break;
 					case "IOS_8":
+						Log.TraceWarning("IOS 8 is no longer supported in UE4 as 4.18");
 						MinVersion = "8.0";
 						break;
 					case "IOS_9":
@@ -310,7 +319,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				MinVersion = "7.0";
+				MinVersion = "9.0";
 			}
 
 			// Get Facebook Support details
@@ -634,6 +643,13 @@ namespace UnrealBuildTool
 						Text.AppendLine("\t" + Line);
 					}
 				}
+			}
+
+			// add the camera usage key
+			if (bStartInAR)
+			{
+				Text.AppendLine("\t<key>NSCameraUsageDescription</key>");
+				Text.AppendLine("\t\t<string>The camera is used for augmenting reality.</string>");
 			}
 
 			// Add remote-notifications as background mode
