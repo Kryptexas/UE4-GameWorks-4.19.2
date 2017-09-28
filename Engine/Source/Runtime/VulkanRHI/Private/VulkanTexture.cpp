@@ -1431,7 +1431,9 @@ VkImageView FVulkanTextureView::StaticCreate(FVulkanDevice& Device, VkImage Imag
 	//instead of PF_DepthStencil, so the cross-platform code could figure out the proper format to pass in for this.
 	if (UEFormat == PF_X24_G8)
 	{
-		ViewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		ensure(ViewInfo.format == VK_FORMAT_UNDEFINED);
+		ViewInfo.format = (VkFormat)GPixelFormats[PF_DepthStencil].PlatformFormat;
+		ViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
 
 	INC_DWORD_STAT(STAT_VulkanNumImageViews);
