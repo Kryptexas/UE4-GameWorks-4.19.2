@@ -60,6 +60,8 @@ void FVisualStudioCodeSourceCodeAccessor::RefreshAvailability()
 	{
 		IDEPath = Matcher.GetCaptureGroup(1);
 	}
+#elif PLATFORM_LINUX
+	IDEPath = TEXT("/usr/bin/code");
 #endif
 
 	if (IDEPath.Len() > 0 && FPaths::FileExists(IDEPath))
@@ -80,7 +82,8 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSourceFiles(const TArray<FString>&
 {
 	if (Location.Len() > 0)
 	{
-		FString Args;
+		FString SolutionDir = FPaths::GetPath(GetSolutionPath());
+		FString Args = TEXT("\"") + SolutionDir + TEXT("\" ");
 
 		for (const FString& SourcePath : AbsoluteSourcePaths)
 		{
@@ -102,6 +105,20 @@ bool FVisualStudioCodeSourceCodeAccessor::AddSourceFiles(const TArray<FString>& 
 
 bool FVisualStudioCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber)
 {
+	if (Location.Len() > 0)
+	{
+		// Column & line numbers are 1-based, so dont allow zero
+		LineNumber = LineNumber > 0 ? LineNumber : 1;
+		ColumnNumber = ColumnNumber > 0 ? ColumnNumber : 1;
+
+		FString SolutionDir = FPaths::GetPath(GetSolutionPath());
+		FString Args = FString::Printf(TEXT("\"%s\" -g \"%s\":%d:%d"), *SolutionDir, *FullPath, LineNumber, ColumnNumber);
+
+		uint32 ProcessID;
+		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *Args, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
+		return hProcess.IsValid();
+	}
+
 	return false;
 }
 
@@ -134,9 +151,11 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolution()
 {
 	if (Location.Len() > 0)
 	{
-		FString SolutionDir = FPaths::GetPath(GetSolutionPath());
+		FString SolutionDir = FPaths::GetPath(GetSolutionPath()); 
+		FString Args = TEXT("\"") + SolutionDir + TEXT("\"");
+
 		uint32 ProcessID;
-		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *SolutionDir, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
+		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *Args, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
 		return hProcess.IsValid();
 	}
 
