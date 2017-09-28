@@ -5344,13 +5344,13 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 						{
 							if (Export.Object)
 							{
-								Export.Object->SetFlags(RF_WasLoaded);
+								Export.Object->SetFlags(RF_WasLoaded|RF_LoadCompleted);
 							}
 						}
 						if (Linker->LinkerRoot)
 						{
 							// And finally set the flag on the package itself.
-							Linker->LinkerRoot->SetFlags(RF_WasLoaded);
+							Linker->LinkerRoot->SetFlags(RF_WasLoaded|RF_LoadCompleted);
 						}
 
 						// Clear dirty flag if desired
