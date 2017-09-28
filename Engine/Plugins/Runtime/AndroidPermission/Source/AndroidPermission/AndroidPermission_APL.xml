@@ -16,7 +16,7 @@
 		</insert>
 	</proguardAdditions>
 	<AARImports> 
-		<insert>com.android.support,support-v13,25.0.0</insert> 
+		<insert>com.android.support,support-v13,25.2.0</insert> 
 		<insertNewline/> 
 	</AARImports>
 </root>
