@@ -610,7 +610,7 @@ public class IOSPlatform : Platform
 			{
 				// Get the path to UBT
 				string InstalledUBT = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/UnrealBuildTool.exe");
-				Arguments = "-XcodeProjectFile " + Arguments;
+				Arguments = "-XcodeProjectFiles " + Arguments;
 				RunUBT(CmdEnv, InstalledUBT, Arguments);
 			}
 			else

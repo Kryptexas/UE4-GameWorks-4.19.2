@@ -5,9 +5,9 @@
 /*
  *  Set this to 1 if BinnedAllocFromOS()/BinnedFreeToOS() need to be pooled.
  * This makes most sense for 32-bit platforms where address space fragmentation can make BAFO() run out of memory.
- * On 64-bit Linux, this speeds up allocations several times (see TestPAL mallocthreadtest), however has some side effects for 64-bit servers, so it is off for them atm.
+ * On 64-bit Linux, this speeds up allocations several times (see TestPAL mallocthreadtest), however has some side effects for 64-bit servers, so it is off for them atm. Non-x86(-64) platforms are also excluded because of RAM usage concerns.
  */
-#define UE4_POOL_BAFO_ALLOCATIONS						((PLATFORM_LINUX && PLATFORM_32BITS) || (PLATFORM_LINUX && !UE_SERVER))
+#define UE4_POOL_BAFO_ALLOCATIONS						(((PLATFORM_LINUX && PLATFORM_32BITS) || (PLATFORM_LINUX && !UE_SERVER)) && PLATFORM_CPU_X86_FAMILY)
 
 /*
  *  Normally pools will just reserve the memory and then commit/evict it when needed. However, Commit/Evict calls on the platform

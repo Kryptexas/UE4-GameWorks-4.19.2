@@ -26,9 +26,13 @@ TSharedRef<IPropertyTypeCustomization> FForceFeedbackAttenuationSettingsCustomiz
 // Helper to return the bool value of a property
 static bool GetValue(TSharedPtr<IPropertyHandle> InProp)
 {
-	bool Val;
-	InProp->GetValue(Val);
-	return Val;
+	if (InProp.IsValid())
+	{
+		bool Val;
+		InProp->GetValue(Val);
+		return Val;
+	}
+	return true;
 }
 
 void FBaseAttenuationSettingsCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
@@ -266,9 +270,12 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IProper
 
 TAttribute<bool> FBaseAttenuationSettingsCustomization::IsAttenuationOverriddenAttribute() const
 {
-	auto Lambda = [this]()
+	TWeakPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakPtr = bOverrideAttenuationHandle;
+	auto Lambda = [bOverrideAttenuationPropertyWeakPtr]()
 	{
-		return bOverrideAttenuationHandle.IsValid() ? GetValue(bOverrideAttenuationHandle) : true;
+		TSharedPtr<IPropertyHandle> SharedPtrToHandle = bOverrideAttenuationPropertyWeakPtr.Pin();
+
+		return GetValue(SharedPtrToHandle);
 	};
 
 	return TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda(Lambda));
@@ -276,10 +283,16 @@ TAttribute<bool> FBaseAttenuationSettingsCustomization::IsAttenuationOverriddenA
 
 TAttribute<bool> FBaseAttenuationSettingsCustomization::GetIsAttenuationEnabledAttribute() const
 {
-	auto Lambda = [this]()
+	TWeakPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakPtr = bOverrideAttenuationHandle;
+	TWeakPtr<IPropertyHandle> bIsAttenuatedPropertyWeakPtr = bIsAttenuatedHandle;
+
+	auto Lambda = [bOverrideAttenuationPropertyWeakPtr, bIsAttenuatedPropertyWeakPtr]()
 	{
-		bool Value = bOverrideAttenuationHandle.IsValid() ? GetValue(bOverrideAttenuationHandle) : true;
-		Value &= GetValue(bIsAttenuatedHandle);
+		TSharedPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakHandle = bOverrideAttenuationPropertyWeakPtr.Pin();
+		TSharedPtr<IPropertyHandle> bIsAttenuatedPropertyWeakHandle = bIsAttenuatedPropertyWeakPtr.Pin();
+
+		bool Value = GetValue(bOverrideAttenuationPropertyWeakHandle);
+		Value &= GetValue(bIsAttenuatedPropertyWeakHandle);
 		return Value;
 	};
 
@@ -321,10 +334,10 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 	// Get handle to layout builder so we can add properties to categories
 	IDetailLayoutBuilder& LayoutBuilder = ChildBuilder.GetParentCategory().GetParentLayout();
 
+	FBaseAttenuationSettingsCustomization::CustomizeChildren(StructPropertyHandle, ChildBuilder, StructCustomizationUtils);
+
 	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bAttenuate)))
 		.EditCondition(IsAttenuationOverriddenAttribute(), nullptr);
-
-	FBaseAttenuationSettingsCustomization::CustomizeChildren(StructPropertyHandle, ChildBuilder, StructCustomizationUtils);
 
 	LayoutBuilder.AddPropertyToCategory(bIsSpatializedHandle)
 		.EditCondition(IsAttenuationOverriddenAttribute(), nullptr);
@@ -549,10 +562,16 @@ void FForceFeedbackAttenuationSettingsCustomization::CustomizeChildren(TSharedRe
 
 TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsFocusEnabledAttribute() const
 {
-	auto Lambda = [this]()
+	TWeakPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakPtr = bOverrideAttenuationHandle;
+	TWeakPtr<IPropertyHandle> bIsFocusedPropertyWeakPtr = bIsFocusedHandle;
+
+	auto Lambda = [bOverrideAttenuationPropertyWeakPtr, bIsFocusedPropertyWeakPtr]()
 	{
-		bool Value = bOverrideAttenuationHandle.IsValid() ? GetValue(bOverrideAttenuationHandle) : true;
-		Value &= GetValue(bIsFocusedHandle);
+		TSharedPtr<IPropertyHandle> bOverrideAttenuationProperty = bOverrideAttenuationPropertyWeakPtr.Pin();
+		TSharedPtr<IPropertyHandle> bIsFocusedProperty = bIsFocusedPropertyWeakPtr.Pin();
+
+		bool Value = GetValue(bOverrideAttenuationProperty);
+		Value &= GetValue(bIsFocusedProperty);
 		return Value;
 	};
 
@@ -561,10 +580,16 @@ TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsFocusEnabledAttrib
 
 TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsOcclusionEnabledAttribute() const
 {
-	auto Lambda = [this]()
+	TWeakPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakPtr = bOverrideAttenuationHandle;
+	TWeakPtr<IPropertyHandle> bIsOcclusionPropertyWeakPtr = bIsOcclusionEnabledHandle;
+
+	auto Lambda = [bOverrideAttenuationPropertyWeakPtr, bIsOcclusionPropertyWeakPtr]()
 	{
-		bool Value = bOverrideAttenuationHandle.IsValid() ? GetValue(bOverrideAttenuationHandle) : true;
-		Value &= GetValue(bIsOcclusionEnabledHandle);
+		TSharedPtr<IPropertyHandle> bOverrideAttenuationProperty = bOverrideAttenuationPropertyWeakPtr.Pin();
+		TSharedPtr<IPropertyHandle> bOcclusionProperty = bIsOcclusionPropertyWeakPtr.Pin();
+
+		bool Value = GetValue(bOverrideAttenuationProperty);
+		Value &= GetValue(bOcclusionProperty);
 		return Value;
 	};
 
@@ -573,10 +598,16 @@ TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsOcclusionEnabledAt
 
 TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsSpatializationEnabledAttribute() const
 {
-	auto Lambda = [this]()
+	TWeakPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakPtr = bOverrideAttenuationHandle;
+	TWeakPtr<IPropertyHandle> bIsSpatializedHandleWeakPtr = bIsSpatializedHandle;
+
+	auto Lambda = [bOverrideAttenuationPropertyWeakPtr, bIsSpatializedHandleWeakPtr]()
 	{
-		bool Value = bOverrideAttenuationHandle.IsValid() ? GetValue(bOverrideAttenuationHandle) : true;
-		Value &= GetValue(bIsSpatializedHandle);
+		TSharedPtr<IPropertyHandle> bOverrideAttenuationProperty = bOverrideAttenuationPropertyWeakPtr.Pin();
+		TSharedPtr<IPropertyHandle> bIsSpatializedProperty = bIsSpatializedHandleWeakPtr.Pin();
+
+		bool Value = GetValue(bOverrideAttenuationProperty);
+		Value &= GetValue(bIsSpatializedProperty);
 		return Value;
 	};
 
@@ -585,10 +616,16 @@ TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsSpatializationEnab
 
 TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsAirAbsorptionEnabledAttribute() const
 {
-	auto Lambda = [this]()
+	TWeakPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakPtr = bOverrideAttenuationHandle;
+	TWeakPtr<IPropertyHandle> bIsAirAbsorptionHandleWeakPtr = bIsAirAbsorptionEnabledHandle;
+
+	auto Lambda = [bOverrideAttenuationPropertyWeakPtr, bIsAirAbsorptionHandleWeakPtr]()
 	{
-		bool Value = bOverrideAttenuationHandle.IsValid() ? GetValue(bOverrideAttenuationHandle) : true;
-		Value &= GetValue(bIsAirAbsorptionEnabledHandle);
+		TSharedPtr<IPropertyHandle> bOverrideAttenuationProperty = bOverrideAttenuationPropertyWeakPtr.Pin();
+		TSharedPtr<IPropertyHandle> bIsAirAbsorptionProperty = bIsAirAbsorptionHandleWeakPtr.Pin();
+
+		bool Value = GetValue(bOverrideAttenuationProperty);
+		Value &= GetValue(bIsAirAbsorptionProperty);
 		return Value;
 	};
 
@@ -597,10 +634,16 @@ TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsAirAbsorptionEnabl
 
 TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsReverbSendEnabledAttribute() const
 {
-	auto Lambda = [this]()
+	TWeakPtr<IPropertyHandle> bOverrideAttenuationPropertyWeakPtr = bOverrideAttenuationHandle;
+	TWeakPtr<IPropertyHandle> bIsReverbSendWeakPtr = bIsReverbSendEnabledHandle;
+
+	auto Lambda = [bOverrideAttenuationPropertyWeakPtr, bIsReverbSendWeakPtr]()
 	{
-		bool Value = bOverrideAttenuationHandle.IsValid() ? GetValue(bOverrideAttenuationHandle) : true;
-		Value &= GetValue(bIsReverbSendEnabledHandle);
+		TSharedPtr<IPropertyHandle> bOverrideAttenuationProperty = bOverrideAttenuationPropertyWeakPtr.Pin();
+		TSharedPtr<IPropertyHandle> bIsReverbSendProperty = bIsReverbSendWeakPtr.Pin();
+
+		bool Value = GetValue(bOverrideAttenuationProperty);
+		Value &= GetValue(bIsReverbSendProperty);
 		return Value;
 	};
 

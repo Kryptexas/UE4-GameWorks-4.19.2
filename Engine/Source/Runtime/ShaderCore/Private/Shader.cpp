@@ -1911,6 +1911,14 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		{
 			KeyString += TEXT("_NoFastMath");
 		}
+		
+		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
+		bool bArchive = false;
+		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bSharedMaterialNativeLibraries"), bArchive, GGameIni);
+		if (bArchive)
+		{
+			KeyString += TEXT("_ARCHIVE");
+		}
 	}
 
 	{
@@ -1966,17 +1974,6 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		if (CVar && CVar->GetValueOnAnyThread() != 0)
 		{
 			KeyString += TEXT("_2bi");
-		}
-	}
-	
-	if (IsMetalPlatform(Platform))
-	{
-		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
-		bool bArchive = false;
-		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bSharedMaterialNativeLibraries"), bArchive, GGameIni);
-		if (bArchive)
-		{
-			KeyString += TEXT("_ARCHIVE");
 		}
 	}
 }

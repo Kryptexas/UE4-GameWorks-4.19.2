@@ -469,6 +469,9 @@ public:
 	/** Returns the volume of the wave instance (ignoring application muting) */
 	float GetVolume() const;
 
+	/** Returns the volume due to application behavior for the wave instance. */
+	float GetVolumeApp() const { return VolumeApp; }
+
 	/** Returns the weighted priority of the wave instance. */
 	float GetVolumeWeightedPriority() const;
 

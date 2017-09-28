@@ -6,6 +6,7 @@
 
 struct APPLICATIONCORE_API FLinuxPlatformApplicationMisc : public FGenericPlatformApplicationMisc
 {
+	static void PreInit();
 	static void Init();
 	static bool InitSDL();
 	static void TearDown();

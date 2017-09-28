@@ -1285,26 +1285,33 @@ bool UEdGraphSchema_K2::PinHasSplittableStructType(const UEdGraphPin* InGraphPin
 
 	if (bCanSplit)
 	{
-		UScriptStruct* StructType = CastChecked<UScriptStruct>(InGraphPin->PinType.PinSubCategoryObject.Get());
-		if (InGraphPin->Direction == EGPD_Input)
+		if (UScriptStruct* StructType = Cast<UScriptStruct>(InGraphPin->PinType.PinSubCategoryObject.Get()))
 		{
-			bCanSplit = UK2Node_MakeStruct::CanBeSplit(StructType);
-			if (!bCanSplit)
+			if (InGraphPin->Direction == EGPD_Input)
 			{
-				const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeMake"));
-				UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
-				bCanSplit = (Function != NULL);
+				bCanSplit = UK2Node_MakeStruct::CanBeSplit(StructType);
+				if (!bCanSplit)
+				{
+					const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeMake"));
+					UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
+					bCanSplit = (Function != NULL);
+				}
+			}
+			else
+			{
+				bCanSplit = UK2Node_BreakStruct::CanBeSplit(StructType);
+				if (!bCanSplit)
+				{
+					const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeBreak"));
+					UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
+					bCanSplit = (Function != NULL);
+				}
 			}
 		}
 		else
 		{
-			bCanSplit = UK2Node_BreakStruct::CanBeSplit(StructType);
-			if (!bCanSplit)
-			{
-				const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeBreak"));
-				UFunction* Function = FindObject<UFunction>(NULL, *MetaData, true);
-				bCanSplit = (Function != NULL);
-			}
+			// If the struct type of a split struct pin no longer exists this can happen
+			bCanSplit = false;
 		}
 	}
 

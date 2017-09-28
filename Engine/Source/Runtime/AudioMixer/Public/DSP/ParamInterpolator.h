@@ -14,14 +14,16 @@ namespace Audio
 			, StartingValue(0.0f)
 			, TargetValue(0.0f)
 			, DeltaValue(0.0f)
+			, bIsInit(true)
 		{}
 
 		// Set the parameter value to the given target value over the given interpolation frames.
 		FORCEINLINE void SetValue(const float InValue, const int32 InNumInterpFrames = 0)
 		{
 			TargetValue = InValue;
-			if (InNumInterpFrames == 0)
+			if (bIsInit || InNumInterpFrames == 0)
 			{
+				bIsInit = false;
 				StartingValue = TargetValue;
 				CurrentValue = TargetValue;
 				DeltaValue = 0.0f;
@@ -31,6 +33,11 @@ namespace Audio
 				DeltaValue = (InValue - CurrentValue) / InNumInterpFrames;
 				StartingValue = CurrentValue;
 			}
+		}
+
+		FORCEINLINE void Init()
+		{
+			bIsInit = true;
 		}
 
 		// Resets the delta value back to 0.0. To be called at beginning of callback render.
@@ -58,6 +65,7 @@ namespace Audio
 		float StartingValue;
 		float TargetValue;
 		float DeltaValue;
+		bool bIsInit;
 	};
 
 }

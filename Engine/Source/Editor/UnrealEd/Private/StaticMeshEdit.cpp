@@ -595,6 +595,7 @@ UStaticMesh* CreateStaticMesh(struct FRawMesh& RawMesh,TArray<FStaticMaterial>& 
 		Info.MaterialIndex = SectionIdx;
 		Info.bEnableCollision = true;
 		StaticMesh->SectionInfoMap.Set(0, SectionIdx, Info);
+		StaticMesh->OriginalSectionInfoMap.Set(0, SectionIdx, Info);
 	}
 
 	//Set the Imported version before calling the build
@@ -1540,6 +1541,7 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 				}
 			}
 		}
+		NewMesh->OriginalSectionInfoMap.CopyFrom(NewMesh->SectionInfoMap);
 	}
 
 	// Assign sockets from old version of this StaticMesh.

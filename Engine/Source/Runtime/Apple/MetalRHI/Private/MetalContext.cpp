@@ -338,6 +338,13 @@ FMetalDeviceContext* FMetalDeviceContext::CreateDeviceContext()
 	FMetalCommandQueue* Queue = new FMetalCommandQueue(Device, GMetalCommandQueueSize);
 	check(Queue);
 	
+	uint32 MetalDebug = GMetalRuntimeDebugLevel;
+	const bool bOverridesMetalDebug = FParse::Value( FCommandLine::Get(), TEXT( "MetalRuntimeDebugLevel=" ), MetalDebug );
+	if (bOverridesMetalDebug)
+	{
+		GMetalRuntimeDebugLevel = MetalDebug;
+	}
+	
 	return new FMetalDeviceContext(Device, DeviceIndex, Queue);
 }
 
@@ -1113,7 +1120,7 @@ void FMetalContext::ResetRenderCommandEncoder()
 	
 	StateCache.InvalidateRenderTargets();
 	
-	SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), false);
+	SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), true);
 }
 
 bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexType)
@@ -1231,7 +1238,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 			}
 		}
 		
-		if (StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false))
+		if (StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), true))
 		{
 			RenderPass.RestartRenderPass(StateCache.GetRenderPassDescriptor());
 		}
@@ -1256,7 +1263,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 		RenderPass.EndRenderPass();
 		
 		StateCache.SetRenderTargetsActive(false);
-		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
+		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), true);
 		
 		RenderPass.BeginRenderPass(StateCache.GetRenderPassDescriptor());
 		
@@ -1274,7 +1281,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 	return true;
 }
 
-void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo, bool const bReset)
+void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo, bool const bRestart)
 {
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (!CommandList.IsImmediate())
@@ -1326,16 +1333,16 @@ void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 			check(IsValidRef(FallbackDepthStencilSurface));
 			Info.DepthStencilRenderTarget = FRHIDepthRenderTargetView(FallbackDepthStencilSurface, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil::DepthRead_StencilRead);
 
-			bSet = StateCache.SetRenderTargetsInfo(Info, QueryBuffer->GetCurrentQueryBuffer()->Buffer, bReset);
+			bSet = StateCache.SetRenderTargetsInfo(Info, QueryBuffer->GetCurrentQueryBuffer()->Buffer, bRestart);
 		}
 		else
 		{
-			bSet = StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer, bReset);
+			bSet = StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer, bRestart);
 		}
 	}
 	else
 	{
-		bSet = StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL, bReset);
+		bSet = StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL, bRestart);
 	}
 	
 	if (bSet && StateCache.GetHasValidRenderTarget())

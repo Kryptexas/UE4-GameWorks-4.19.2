@@ -32,7 +32,8 @@ namespace UnrealBuildTool.Rules
 					"AndroidPermission",
 					"GoogleARCoreRendering",
 					"TangoSDK",
-				}
+                    "AugmentedReality"
+                }
 			);
 
 			PrivateIncludePathModuleNames.AddRange(

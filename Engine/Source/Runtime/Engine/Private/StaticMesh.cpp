@@ -1285,7 +1285,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-			if (!MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->LightmapUVVersion, Owner->ImportVersion))
+			if (!MeshUtilities.BuildStaticMesh(*this, Owner, LODGroup))
 			{
 				UE_LOG(LogStaticMesh, Error, TEXT("Failed to build static mesh. See previous line(s) for details."));
 				return;
@@ -2508,6 +2508,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 				// Assuming billboard material is added last
 				Info.MaterialIndex = StaticMaterials.Num() - 1;
 				SectionInfoMap.Set(LODIndex, 0, Info);
+				OriginalSectionInfoMap.Set(LODIndex, 0, Info);
 			}
 		}
 	}
@@ -2754,6 +2755,11 @@ void UStaticMesh::PostLoad()
 				{
 					SectionInfoMap.Set(LODResourceIndex, SectionIndex, FMeshSectionInfo(MaterialIndex));
 				}
+			}
+			//Make sure the OriginalSectionInfoMap has some information, the post load only add missing slot, this data should be set when importing/re-importing the asset
+			if (!OriginalSectionInfoMap.IsValidSection(LODResourceIndex, SectionIndex))
+			{
+				OriginalSectionInfoMap.Set(LODResourceIndex, SectionIndex, SectionInfoMap.Get(LODResourceIndex, SectionIndex));
 			}
 		}
 	}
@@ -3561,7 +3567,7 @@ void UStaticMesh::GenerateLodsInPackage()
 
 	// Generate the reduced models
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-	if (MeshUtilities.GenerateStaticMeshLODs(SourceModels, LODSettings.GetLODGroup(LODGroup), LightmapUVVersion))
+	if (MeshUtilities.GenerateStaticMeshLODs(this, LODSettings.GetLODGroup(LODGroup)))
 	{
 		// Clear LOD settings
 		LODGroup = NAME_None;

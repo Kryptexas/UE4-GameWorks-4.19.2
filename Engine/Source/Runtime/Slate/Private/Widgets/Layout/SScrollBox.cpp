@@ -420,21 +420,21 @@ bool SScrollBox::InternalScrollDescendantIntoView(const FGeometry& MyGeometry, c
 		if ( InDestination == EDescendantScrollDestination::TopOrLeft )
 		{
 			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position);
+			const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
 			const float MyPosition = InScrollPadding;
 			ScrollOffset = WidgetPosition - MyPosition;
 		}
 		else if ( InDestination == EDescendantScrollDestination::Center )
 		{
 			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.GetLocalPositionAtCoordinates(FVector2D(0.5f, 0.5f)));
+			const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()) + (WidgetGeometry->Geometry.GetLocalSize() / 2));
 			const float MyPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() * FVector2D(0.5f, 0.5f));
 			ScrollOffset = WidgetPosition - MyPosition;
 		}
 		else
 		{
-			const float WidgetStartPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position);
-			const float WidgetEndPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position + WidgetGeometry->Geometry.GetLocalSize());
+			const float WidgetStartPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
+			const float WidgetEndPosition = WidgetStartPosition + GetScrollComponentFromVector(WidgetGeometry->Geometry.GetLocalSize());
 			const float ViewStartPosition = InScrollPadding;
 			const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() - InScrollPadding);
 

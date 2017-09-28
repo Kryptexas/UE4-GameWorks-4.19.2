@@ -35,10 +35,10 @@ public:
 	 * @param PackagesToCheck Packages to check for referencing FSoftObjectPath.
 	 * @param AssetRedirectorMap Map from old asset path to new asset path
 	 */
-	static void RenameReferencingSoftObjectPaths(TArray<UPackage*> PackagesToCheck, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap);
+	void RenameReferencingSoftObjectPaths(TArray<UPackage*> PackagesToCheck, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap) const;
 
 	/** Filters packages list depending on if it actually has soft object paths pointing to the specific object being renamed */
-	static bool CheckPackageForSoftObjectReferences(UPackage* Package, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap, TArray<UObject*>& OutReferencingObjects);
+	bool CheckPackageForSoftObjectReferences(UPackage* Package, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap, TArray<UObject*>& OutReferencingObjects) const;
 
 private:
 	/** Attempts to load and fix redirector references for the supplied assets */
@@ -53,18 +53,19 @@ private:
 	/** Updates the source control status of the packages containing the assets to rename */
 	bool UpdatePackageStatus(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
 
-	/** 
-	  * Loads all referencing packages to assets in AssetsToRename, finds assets whose references can
-	  * not be fixed up to mark that a redirector should be left, and returns a list of referencing packages to save.
-	  * if bFindAllSoftObjectReferences is true, it will load all referencing packages even if they can't be checked out
-	  */
-	void LoadReferencingPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, bool bLoadAllPackages, TArray<UPackage*>& OutReferencingPackagesToSave, TArray<UObject*>& OutSoftReferencingObjects) const;
+	/**
+	 * Loads all referencing packages to assets in AssetsToRename, finds assets whose references can
+	 * not be fixed up to mark that a redirector should be left, and returns a list of referencing packages to save.
+	 * If bLoadAllPackages is true, it will load all referencing packages even if they can't be checked out
+	 * If bCheckStatus is true it will check the source control status
+	 */
+	void LoadReferencingPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, bool bLoadAllPackages, bool bCheckStatus, TArray<UPackage*>& OutReferencingPackagesToSave, TArray<UObject*>& OutSoftReferencingObjects) const;
 
 	/** 
-	  * Prompts to check out the source package and all referencing packages and marks assets whose referencing packages were not checked out to leave a redirector.
-	  * Trims PackagesToSave when necessary.
-	  * Returns true if the user opted to continue the operation or no dialog was required.
-	  */
+	 * Prompts to check out the source package and all referencing packages and marks assets whose referencing packages were not checked out to leave a redirector.
+	 * Trims PackagesToSave when necessary.
+	 * Returns true if the user opted to continue the operation or no dialog was required.
+	 */
 	bool CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave) const;
 
 	/** Finds any collections that are referencing the assets to be renamed. Assets referenced by collections will leave redirectors */
@@ -82,8 +83,14 @@ private:
 	/** Report any failures that may have happened during the rename */
 	void ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
 
-private:
+	/** Called when a package is dirtied, clears the cache */
+	void OnMarkPackageDirty(UPackage* Pkg, bool bWasDirty);
 
 	/** Event issued at the end of the rename process */
 	FAssetPostRenameEvent AssetPostRenameEvent;
+
+	/** Cache of package->soft references, to avoid serializing the same package over and over */
+	mutable TMap<FName, TSet<FSoftObjectPath>> CachedSoftReferences;
+	mutable FDelegateHandle DirtyDelegateHandle;
+
 };

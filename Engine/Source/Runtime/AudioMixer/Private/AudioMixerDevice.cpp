@@ -253,18 +253,6 @@ namespace Audio
 			// Audio rendering was suspended in CheckAudioDeviceChange if it changed.
 			AudioMixerPlatform->ResumePlaybackOnNewDevice();
 		}
-
-		// Update the master volume
-		if (IsAudioDeviceMuted())
-		{
-			AudioMixerPlatform->SetMasterVolume(0.0f);
-		}
-		else
-		{
-			float MasterVolume = GetPlatformAudioHeadroom();
-			MasterVolume *= GetTransientMasterVolume();
-			AudioMixerPlatform->SetMasterVolume(MasterVolume);
-		}
 	}
 
 	double FMixerDevice::GetAudioTime() const
@@ -385,6 +373,12 @@ namespace Audio
 		AudioClock += AudioClockDelta;
 
 		return true;
+	}
+
+	void FMixerDevice::OnAudioStreamShutdown()
+	{
+		// Make sure the source manager pumps any final commands on shutdown. These allow for cleaning up sources, interfacing with plugins, etc.
+		SourceManager.PumpCommandQueue();
 	}
 
 	void FMixerDevice::InitSoundSubmixes()

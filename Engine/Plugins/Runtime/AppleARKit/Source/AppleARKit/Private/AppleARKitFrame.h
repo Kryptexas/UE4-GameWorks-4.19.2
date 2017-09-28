@@ -15,7 +15,7 @@ struct FAppleARKitFrame
 	// Default constructor
 	FAppleARKitFrame();
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 	/** 
 	 * This is a conversion copy-constructor that takes a raw ARFrame and fills this structs members
@@ -45,7 +45,7 @@ struct FAppleARKitFrame
 	/** A timestamp identifying the frame. */
 	double Timestamp;
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 	/** The frame's captured images */
     CVMetalTextureRef CapturedYImage;

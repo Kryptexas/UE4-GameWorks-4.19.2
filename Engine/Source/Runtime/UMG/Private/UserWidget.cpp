@@ -1735,7 +1735,12 @@ void UUserWidget::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	// No-Op
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		UUserWidget* DefeaultWidget = Cast<UUserWidget>(GetClass()->GetDefaultObject());
+		bCanEverTick = DefeaultWidget->bCanEverTick;
+		bCanEverPaint = DefeaultWidget->bCanEverPaint;
+	}
 #else
 	if ( HasAnyFlags(RF_ArchetypeObject) && !HasAllFlags(RF_ClassDefaultObject) )
 	{

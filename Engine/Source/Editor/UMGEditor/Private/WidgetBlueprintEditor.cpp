@@ -1008,6 +1008,9 @@ public:
 
 void GetBindableObjects(UWidgetTree* WidgetTree, TArray<FObjectAndDisplayName>& BindableObjects)
 {
+	// Add the 'this' widget so you can animate it.
+	BindableObjects.Add(FObjectAndDisplayName(LOCTEXT("RootWidgetFormat", "[[This]]"), WidgetTree->GetOuter()));
+
 	WidgetTree->ForEachWidget([&BindableObjects] (UWidget* Widget) {
 		
 		// if the widget has a generated name this is just some unimportant widget, don't show it in the list?

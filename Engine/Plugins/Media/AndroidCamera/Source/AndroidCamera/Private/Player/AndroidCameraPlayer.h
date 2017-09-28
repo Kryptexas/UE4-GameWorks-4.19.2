@@ -167,4 +167,7 @@ private:
 
 	/** Video sample object pool. */
 	FAndroidCameraTextureSamplePool* VideoSamplePool;
+
+	/** Whether or not the current open request should send events on completion. */
+	bool bOpenWithoutEvents;
 };

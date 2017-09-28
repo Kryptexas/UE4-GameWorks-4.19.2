@@ -1128,6 +1128,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 				// clear out any old data
 				StaticMesh->SourceModels.Empty();
 				StaticMesh->SectionInfoMap.Clear();
+				StaticMesh->OriginalSectionInfoMap.Clear();
 				StaticMesh->StaticMaterials.Empty();
 
 				// Lightmap data
@@ -1363,6 +1364,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 							Info.MaterialIndex = MaterialIndex;
 							StaticMesh->SectionInfoMap.Set(LODIndex, MaterialIndex, Info);
 						}
+						StaticMesh->OriginalSectionInfoMap.CopyFrom(StaticMesh->SectionInfoMap);
 					}
 				}
 
@@ -1474,6 +1476,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 					FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, 0);
 					Info.MaterialIndex = MaterialIndex;
 					StaticMesh->SectionInfoMap.Set(LODIndex, 0, Info);
+					StaticMesh->OriginalSectionInfoMap.Set(LODIndex, MaterialIndex, Info);
 				}
 
 				if (OldMaterials.Num() == StaticMesh->StaticMaterials.Num())

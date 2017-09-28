@@ -9,6 +9,7 @@
 #include "PaperCustomVersion.h"
 #include "PaperTileSet.h"
 #include "PaperTileLayer.h"
+#include "Paper2DPrivate.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -77,6 +78,12 @@ void UPaperTileMap::Serialize(FArchive& Ar)
 		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
 	}
 #endif
+
+	if (SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics)
+	{
+		UE_LOG(LogPaper2D, Warning, TEXT("PaperTileMap '%s' was using 2D physics which has been removed, it has been switched to 3D physics."), *GetPathName());
+		SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;
+	}
 }
 
 void UPaperTileMap::PostLoad()

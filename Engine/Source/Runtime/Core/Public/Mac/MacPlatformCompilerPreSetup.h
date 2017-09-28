@@ -156,6 +156,10 @@
 #pragma clang diagnostic ignored "-Wnonportable-include-path" // Ideally this one would be set in MacToolChain, but we don't have a way to check the compiler version in there yet
 #endif
 
+#if (__clang_major__ > 8)
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+#endif
+
 // We can use pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
 #if (__clang_major__ > 7) || (__clang_major__ == 7 && __clang_minor__ >= 3)
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")

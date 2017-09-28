@@ -4916,7 +4916,8 @@ bool FBlueprintEditor::CanPromoteSelectionToMacro() const
 
 	for (UObject* SelectedNode : GetSelectedNodes())
 	{
-		if (UK2Node_Composite* CompositeNode = Cast<UK2Node_Composite>(SelectedNode))
+		UK2Node_Composite* CompositeNode = Cast<UK2Node_Composite>(SelectedNode);
+		if (CompositeNode && CompositeNode->BoundGraph)
 		{
 			TSet<class UEdGraphNode*> NodesInGraph;
 

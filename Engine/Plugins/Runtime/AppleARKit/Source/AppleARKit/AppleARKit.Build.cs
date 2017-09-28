@@ -4,10 +4,6 @@ public class AppleARKit : ModuleRules
 {
 	public AppleARKit(ReadOnlyTargetRules Target) : base(Target)
 	{
-
-		// @todo arkit : just for developing with XCode.
-		bFasterWithoutUnity = true;
-		
 		PublicIncludePaths.AddRange(
 			new string[] {
 				"AppleARKit/Public"
@@ -45,7 +41,8 @@ public class AppleARKit : ModuleRules
                 "Renderer",
                 "RenderCore",
                 "ShaderCore",
-                "HeadMountedDisplay"
+                "HeadMountedDisplay",
+                "AugmentedReality"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

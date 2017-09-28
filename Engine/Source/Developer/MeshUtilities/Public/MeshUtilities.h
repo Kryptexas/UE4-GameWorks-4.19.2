@@ -155,10 +155,8 @@ public:
 	 */
 	virtual bool BuildStaticMesh(
 		class FStaticMeshRenderData& OutRenderData,
-		TArray<struct FStaticMeshSourceModel>& SourceModels,
-		const class FStaticMeshLODGroup& LODGroup,
-		int32 LightmapUVVersion,
-		int32 ImportVersion
+		UStaticMesh* StaticMesh,
+		const class FStaticMeshLODGroup& LODGroup
 		) = 0;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
@@ -179,9 +177,8 @@ public:
 	 * @returns true if the meshes were built successfully.
 	 */
 	virtual bool GenerateStaticMeshLODs(
-		TArray<struct FStaticMeshSourceModel>& Models,
-		const class FStaticMeshLODGroup& LODGroup,
-		int32 LightmapUVVersion
+		UStaticMesh* StaticMesh,
+		const class FStaticMeshLODGroup& LODGroup
 		) = 0;
 
 	/** Builds a signed distance field volume for the given LODModel. */

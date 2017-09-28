@@ -602,13 +602,7 @@ bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FStr
 
 bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
 {
-#if PLATFORM_MAC
-	FString Arguments = TEXT(" -xcodeprojectfile");
-#elif PLATFORM_LINUX
-	FString Arguments = TEXT(" -makefile -kdevelopfile -qmakefile -cmakefile -codelitefile ");
-#else
 	FString Arguments = TEXT(" -projectfiles");
-#endif
 
 	// Build the arguments to pass to UBT. If it's a non-foreign project, just build full project files.
 	if ( !ProjectFileName.IsEmpty() && GetCachedProjectDictionary(RootDir).IsForeignProject(ProjectFileName) )

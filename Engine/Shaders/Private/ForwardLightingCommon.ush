@@ -152,9 +152,9 @@ float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 Cam
 		FDeferredLightData LightData = (FDeferredLightData)0;
 		LightData.LightPositionAndInvRadius = LocalLight.LightPositionAndInvRadius;
 		LightData.LightColorAndFalloffExponent = LocalLight.LightColorAndFalloffExponent;
-		LightData.LightDirection = LocalLight.LightDirectionAndShadowMask.xyz;
-		float SourceLength = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w));
-		LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAnglesAndSourceRadiusPacked.xyz, SourceLength);
+		LightData.LightDirection = LocalLight.LightDirection;
+		float SourceLength = f16tof32(asuint(LocalLight.SourceRadiusPacked));
+		LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAngles, SourceLength);
         LightData.LightTangent = LocalLight.LightTangentAndSoftSourceRadius.xyz;
         LightData.SoftSourceRadius = LocalLight.LightTangentAndSoftSourceRadius.w;
 		LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
@@ -162,7 +162,7 @@ float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 Cam
 		LightData.bSpotLight = LightData.SpotAnglesAndSourceRadius.x > -2.0f;
 		LightData.MinRoughness = MinRoughness;
 
-		uint PackedShadowMapChannelMask = asuint(LocalLight.LightDirectionAndShadowMask.w);
+		uint PackedShadowMapChannelMask = LocalLight.ShadowMask;
 		LightData.ShadowedBits = (PackedShadowMapChannelMask & 0xFF) != 0 ? 1 : 0;
 		// Static shadowing uses ShadowMapChannel, dynamic shadows are packed into light attenuation using PreviewShadowMapChannel
 		LightData.ShadowMapChannelMask = UnpackShadowMapChannelMask(PackedShadowMapChannelMask);

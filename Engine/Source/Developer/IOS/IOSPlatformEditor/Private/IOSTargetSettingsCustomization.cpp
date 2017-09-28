@@ -720,14 +720,15 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 	FSimpleDelegate OnUpdateShaderStandardWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateShaderStandardWarning);
 	FSimpleDelegate OnUpdateOSVersionWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateOSVersionWarning);
+	FSimpleDelegate OnEnableMetalMRT = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateMetalMRTWarning);
 
 /*	GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
 	GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
-	RenderCategory.AddProperty(GLES2PropertyHandle);*/
+	RenderCategory.AddProperty(GLES2PropertyHandle);
 
 	MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
 	MinOSPropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
-	OSInfoCategory.AddProperty(MinOSPropertyHandle);
+	OSInfoCategory.AddProperty(MinOSPropertyHandle);*/
 
 	DevArmV7PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7));
 	DevArmV7PropertyHandle->SetOnPropertyValueChanged(OnUpdateOSVersionWarning);
@@ -755,6 +756,10 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	SETUP_PLIST_PROP(bSupportsLandscapeRightOrientation, OrientationCategory);
 	
 	SETUP_PLIST_PROP(bSupportsMetal, RenderCategory);
+	
+	MRTPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsMetalMRT));
+	MRTPropertyHandle->SetOnPropertyValueChanged(OnEnableMetalMRT);
+	RenderCategory.AddProperty(MRTPropertyHandle);
 
 	SETUP_SOURCEONLY_PROP(bEnableRemoteNotificationsSupport, OnlineCategory)
 //	SETUP_SOURCEONLY_PROP(bAutomaticSigning, ProvisionCategory)
@@ -762,6 +767,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
     // Handle max. shader version a little specially.
     {
         ShaderVersionPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MaxShaderLanguageVersion));
+		ShaderVersionPropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
 		
 		// Drop-downs for setting type of lower and upper bound normalization
 		IDetailPropertyRow& ShaderVersionPropertyRow = RenderCategory.AddProperty(ShaderVersionPropertyHandle.ToSharedRef());
@@ -800,6 +806,49 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 		
 		UpdateShaderStandardWarning();
     }
+
+	// Handle max. shader version a little specially.
+	{
+		MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
+		MinOSPropertyHandle->SetOnPropertyValueChanged(OnUpdateOSVersionWarning);
+
+		// Drop-downs for setting type of lower and upper bound normalization
+		IDetailPropertyRow& MinOSPropertyRow = OSInfoCategory.AddProperty(MinOSPropertyHandle.ToSharedRef());
+		MinOSPropertyRow.CustomWidget()
+		.NameContent()
+		[
+			MinOSPropertyHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		.HAlign(HAlign_Fill)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &FIOSTargetSettingsCustomization::OnGetMinVersionContent)
+				.ContentPadding(FMargin(2.0f, 2.0f))
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(this, &FIOSTargetSettingsCustomization::GetMinVersionDesc)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Fill)
+			.Padding(2)
+			[
+				SAssignNew(IOSVersionWarningTextBox, SErrorText)
+				.AutoWrapText(true)
+			]
+		];
+
+		UpdateOSVersionWarning();
+	}
 
 	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory);
 	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory);
@@ -1637,30 +1686,48 @@ FText FIOSTargetSettingsCustomization::GetMinVersionDesc() const
 
 void FIOSTargetSettingsCustomization::SetShaderStandard(int32 Value)
 {
-    if (Value >= 1 && MinOSPropertyHandle.IsValid() && GLES2PropertyHandle.IsValid())
-    {
-        FText Message;
-        
+	FPropertyAccess::Result Res = ShaderVersionPropertyHandle->SetValue((uint8)Value);
+	check(Res == FPropertyAccess::Success);
+	
+	if (MinOSPropertyHandle.IsValid())
+	{
+		FText Message;
+		
 		uint8 EnumValue = (uint8)EIOSVersion::IOS_10;
 		if (MinOSPropertyHandle.IsValid())
 		{
-		MinOSPropertyHandle->GetValue(EnumValue);
+			MinOSPropertyHandle->GetValue(EnumValue);
 		}
 		
-		bool bHasGL = false;
-		GLES2PropertyHandle->GetValue(bHasGL);
+		bool bMRTEnabled = false;
+		if (MRTPropertyHandle.IsValid())
+		{
+			MRTPropertyHandle->GetValue(bMRTEnabled);
+		}
 		
-		if (Value == 1)
-        {
-			if ((EIOSVersion)EnumValue < EIOSVersion::IOS_9 && !bHasGL)
-			{
-				Message = LOCTEXT("iOSMetalShaderVersion1_1","Enabling Metal Shader Standard v1.1 increases the minimum operating system requirement for Metal from iOS 8.0 or later to iOS 9.0 or later - earlier OS versions would require OpenGL ES2. This does not affect tvOS.");
-			}
-        }
-        else if ((EIOSVersion)EnumValue < EIOSVersion::IOS_10 && !bHasGL)
-        {
-            Message = LOCTEXT("iOSMetalShaderVersion1_2","Enabling Metal Shader Standard v1.2 increases the minimum operating system requirement for Metal from iOS 8.0/tvOS 9.0 or later to iOS/tvOS 10.0 or later - earlier OS versions would require OpenGL ES2.");
-        }
+		if (Value == 1 && ((EIOSVersion)EnumValue < EIOSVersion::IOS_9))
+		{
+			Message = LOCTEXT("iOSMetalShaderVersion1_1","Enabling Metal Shader Standard v1.1 increases the minimum operating system requirement for Metal from iOS 8.0 or later to iOS 9.0 or later. This does not affect tvOS.");
+			SetMinVersion((int32)EIOSVersion::IOS_9);
+		}
+		else if (Value < 2 && bMRTEnabled)
+		{
+			FPropertyAccess::Result ResMRT = ShaderVersionPropertyHandle->SetValue((uint8)2);
+			check(ResMRT == FPropertyAccess::Success);
+
+			Message = LOCTEXT("MetalMRTStandardv1.2","Enabling the Desktop Forward Renderer Metal requires Shader Standard v1.2 which increases the minimum operating system requirement for Metal from iOS 8.0 or later to iOS 10.0 or later.");
+			SetMinVersion((int32)EIOSVersion::IOS_10);
+		}
+		else if (Value == 2 && (EIOSVersion)EnumValue < EIOSVersion::IOS_10)
+		{
+			Message = LOCTEXT("iOSMetalShaderVersion1_2","Enabling Metal Shader Standard v1.2 increases the minimum operating system requirement for Metal from iOS 8.0/tvOS 9.0 or later to iOS/tvOS 10.0 or later.");
+			SetMinVersion((int32)EIOSVersion::IOS_10);
+		}
+		else if (Value == 3 && (EIOSVersion)EnumValue < EIOSVersion::IOS_11)
+		{
+			Message = LOCTEXT("iOSMetalShaderVersion1_2","Enabling Metal Shader Standard v2.0 increases the minimum operating system requirement for Metal from iOS 8.0/tvOS 9.0 or later to iOS/tvOS 11.0 or later.");
+			SetMinVersion((int32)EIOSVersion::IOS_11);
+		}
 		
 		
 		ShaderVersionWarningTextBox->SetError(Message);
@@ -1669,8 +1736,6 @@ void FIOSTargetSettingsCustomization::SetShaderStandard(int32 Value)
 	{
 		ShaderVersionWarningTextBox->SetError(TEXT(""));
 	}
-	FPropertyAccess::Result Res = ShaderVersionPropertyHandle->SetValue((uint8)Value);
-	check(Res == FPropertyAccess::Success);
 }
 
 void FIOSTargetSettingsCustomization::UpdateShaderStandardWarning()
@@ -1683,31 +1748,74 @@ void FIOSTargetSettingsCustomization::UpdateShaderStandardWarning()
 
 void FIOSTargetSettingsCustomization::UpdateOSVersionWarning()
 {
-	bool ArchValue;
-	bool bEnabled = false;
-	DevArmV7PropertyHandle->GetValue(ArchValue);
-	bEnabled |= ArchValue;
-
-	DevArmV7sPropertyHandle->GetValue(ArchValue);
-	bEnabled |= ArchValue;
-
-	ShipArmV7PropertyHandle->GetValue(ArchValue);
-	bEnabled |= ArchValue;
-
-	ShipArmV7sPropertyHandle->GetValue(ArchValue);
-	bEnabled |= ArchValue;
-
-	FText Message;
-	Message = LOCTEXT("IOSDeprecation", "Enabling ArmV7 or ArmV7S will no longer be supported in 4.17.");
-
-	// Update the UI
-	if (bEnabled)
+	bool bMRTEnabled = false;
+	if (MRTPropertyHandle.IsValid())
 	{
+		MRTPropertyHandle->GetValue(bMRTEnabled);
+	}
+	
+	// Due to a driver bug on A8 devices running iOS 9 we can only support the global clip-plane when running iOS 10+
+	static IConsoleVariable* ClipPlaneCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowGlobalClipPlane"));
+	if (MinOSPropertyHandle.IsValid() && IOSVersionWarningTextBox.IsValid() && ((ClipPlaneCVar && ClipPlaneCVar->GetInt() != 0) || bMRTEnabled))
+	{
+		uint8 EnumValue;
+		MinOSPropertyHandle->GetValue(EnumValue);
+		
+		if (EnumValue < (uint8)EIOSVersion::IOS_10)
+		{
+			SetMinVersion((int32)EIOSVersion::IOS_10);
+		}
+		
+		FText Message;
+		if (bMRTEnabled)
+		{
+			Message = LOCTEXT("MetalMRTStandardv1.2","Enabling the Desktop Forward Renderer Metal requires Shader Standard v1.2 which increases the minimum operating system requirement for Metal from iOS 8.0 or later to iOS 10.0 or later.");
+			
+			if (ShaderVersionPropertyHandle.IsValid())
+			{
+				ShaderVersionPropertyHandle->GetValue(EnumValue);
+				if (EnumValue < (uint8)EIOSMetalShaderStandard::IOSMetalSLStandard_1_2)
+				{
+					SetShaderStandard((int32)EIOSMetalShaderStandard::IOSMetalSLStandard_1_2);
+				}
+			}
+		}
+		else
+		{
+			Message = LOCTEXT("GlobalClipPlaneiOS10", "Enabling the Global Clip Plane increases the minimum operating system requirement for Metal from iOS 8.0 or later to iOS 10.0 or later.");
+		}
+		
+		// Update the UI
 		IOSVersionWarningTextBox->SetError(Message);
 	}
-	else
+}
+
+void FIOSTargetSettingsCustomization::UpdateMetalMRTWarning()
+{
+	if (MRTPropertyHandle.IsValid() && ShaderVersionPropertyHandle.IsValid() && MinOSPropertyHandle.IsValid())
 	{
-		IOSVersionWarningTextBox->SetError(TEXT(""));
+		bool bMRTEnabled = false;
+		MRTPropertyHandle->GetValue(bMRTEnabled);
+		
+		if (bMRTEnabled)
+		{
+			uint8 EnumValue;
+			MinOSPropertyHandle->GetValue(EnumValue);
+			if (EnumValue < (uint8)EIOSVersion::IOS_10)
+			{
+				SetMinVersion((int32)EIOSVersion::IOS_10);
+			}
+			
+			ShaderVersionPropertyHandle->GetValue(EnumValue);
+			if (EnumValue < (uint8)EIOSMetalShaderStandard::IOSMetalSLStandard_1_2)
+			{
+				SetShaderStandard((int32)EIOSMetalShaderStandard::IOSMetalSLStandard_1_2);
+			}
+		}
+		else
+		{
+			UpdateOSVersionWarning();
+		}
 	}
 }
 

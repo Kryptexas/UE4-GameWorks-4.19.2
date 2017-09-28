@@ -13,6 +13,32 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#if METAL_DEBUG_OPTIONS
+static NSString* GMetalDebugComputeShader = @"#include <metal_stdlib>\n"
+@"using namespace metal;\n"
+@"kernel void WriteCommandIndexCS(constant uint* Input [[ buffer(0) ]], device atomic_uint* Output [[ buffer(1) ]])\n"
+@"{\n"
+@"	atomic_store_explicit(Output, Input[0], memory_order_relaxed);\n"
+@"}\n";
+
+static id <MTLComputePipelineState> GetDebugComputeShaderState(id<MTLDevice> Device)
+{
+	static id<MTLComputePipelineState> State = nil;
+	if (!State)
+	{
+		id<MTLLibrary> Lib = [Device newLibraryWithSource:GMetalDebugComputeShader options:nil error:nullptr];
+		check(Lib);
+		id<MTLFunction> Func = [Lib newFunctionWithName:@"WriteCommandIndexCS"];
+		check(Func);
+		State = [Device newComputePipelineStateWithFunction:Func error:nil];
+		[Func release];
+		[Lib release];
+	}
+	check(State);
+	return State;
+}
+#endif
+
 @implementation FMetalDebugComputeCommandEncoder
 
 @synthesize Inner;
@@ -74,9 +100,60 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
     [Inner pushDebugGroup:string];
 }
 
+#if METAL_DEBUG_OPTIONS
+- (void)insertDebugDispatch
+{
+	switch (Buffer->DebugLevel)
+	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
+		case EMetalDebugLevelValidation:
+		{
+			uint32 const Index = Buffer->DebugCommands.Num();
+			[Inner setBytes:&Index length:sizeof(Index) atIndex:0];
+			[Inner setBuffer:Buffer->DebugInfoBuffer offset:0 atIndex:1];
+			[Inner setComputePipelineState:GetDebugComputeShaderState(Inner.device)];
+			
+			[Inner dispatchThreadgroups:MTLSizeMake(1, 1, 1) threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+
+			if (Pipeline && Pipeline.ComputePipelineState)
+			{
+				[Inner setComputePipelineState:Pipeline.ComputePipelineState];
+			}
+			
+			if (ShaderBuffers.Buffers[0])
+			{
+				[Inner setBuffer:ShaderBuffers.Buffers[0] offset:ShaderBuffers.Offsets[0] atIndex:0];
+			}
+			else if (ShaderBuffers.Bytes[0])
+			{
+				[Inner setBytes:ShaderBuffers.Bytes[0] length:ShaderBuffers.Offsets[0] atIndex:0];
+			}
+			
+			if (ShaderBuffers.Buffers[1])
+			{
+				[Inner setBuffer:ShaderBuffers.Buffers[1] offset:ShaderBuffers.Offsets[1] atIndex:1];
+			}
+			else if (ShaderBuffers.Bytes[1])
+			{
+				[Inner setBytes:ShaderBuffers.Bytes[1] length:ShaderBuffers.Offsets[1] atIndex:1];
+			}
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+#endif
+
 - (void)popDebugGroup
 {
     [Buffer popDebugGroup];
+#if METAL_DEBUG_OPTIONS
+	[self insertDebugDispatch];
+#endif
     [Inner popDebugGroup];
 }
 
@@ -546,7 +623,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 #if METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS
 - (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useResource:resource usage:usage];
 	}
@@ -554,7 +631,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 
 - (void)useResources:(const id <MTLResource> [])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useResources:resources count:count usage:usage];
 	}
@@ -562,7 +639,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 
 - (void)useHeap:(id <MTLHeap>)heap
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useHeap:heap];
 	}
@@ -570,7 +647,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 
 - (void)useHeaps:(const id <MTLHeap> [])heaps count:(NSUInteger)count
 {
-	if(@available(iOS 11.0, macOS 10.13, *))
+	if (GMetalSupportsIndirectArgumentBuffers)
 	{
 		[Inner useHeaps:heaps count:count];
 	}
@@ -721,6 +798,26 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
 {
 	return self;
 }
+
+#if METAL_SUPPORTS_TILE_SHADERS
+- (void)setImageblockWidth:(NSUInteger)width height:(NSUInteger)height
+{
+	if (GMetalSupportsTileShaders)
+	{
+		[Inner setImageblockWidth:width height:height];
+	}
+}
+#endif
+
+#if METAL_SUPPORTS_CAPTURE_MANAGER && !PLATFORM_TVOS
+- (void)dispatchThreads:(MTLSize)threadsPerGrid threadsPerThreadgroup:(MTLSize)threadsPerThreadgroup
+{
+	if (GMetalSupportsCaptureManager)
+	{
+		[Inner dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
+	}
+}
+#endif
 
 @end
 

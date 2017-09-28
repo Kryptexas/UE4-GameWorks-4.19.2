@@ -32,7 +32,7 @@ FSettings::FSettings() :
 #if PLATFORM_ANDROID
 	Flags.bCompositeDepth = false;
 #else
-	Flags.bCompositeDepth = false;
+	Flags.bCompositeDepth = true;
 #endif
 	EyeRenderViewport[0] = EyeRenderViewport[1] = EyeRenderViewport[2] = FIntRect(0, 0, 0, 0);
 

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SSCSEditor.h"
@@ -5643,18 +5643,35 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 			// Clear the delegate
 			SCS_Node->SetOnNameChanged(FSCSNodeNameChanged());
 
-			// on removal, since we don't move the template from the 
-			// GeneratedClass (which we shouldn't, as it would create a 
-			// discrepancy with existing instances), we rename it instead so that 
-			// we can re-use the name without having to compile (we still have a 
-			// problem if they attempt to name it to what ever we choose here, 
-			// but that is unlikely)
+			// on removal, since we don't move the template from the GeneratedClass (which we shouldn't, as it would create a 
+			// discrepancy with existing instances), we rename it instead so that we can re-use the name without having to compile  
+			// (we still have a problem if they attempt to name it to what ever we choose here, but that is unlikely)
 			// note: skip this for the default scene root; we don't actually destroy that node when it's removed, so we don't need the template to be renamed.
 			if (!InNodePtr->IsDefaultSceneRoot() && SCS_Node->ComponentTemplate != nullptr)
 			{
-				SCS_Node->ComponentTemplate->Modify();
+				const FName TemplateName = SCS_Node->ComponentTemplate->GetFName();
 				const FString RemovedName = SCS_Node->GetVariableName().ToString() + TEXT("_REMOVED_") + FGuid::NewGuid().ToString();
+
+				SCS_Node->ComponentTemplate->Modify();
 				SCS_Node->ComponentTemplate->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
+
+				if (Blueprint)
+				{
+					// Children need to have their inherited component template instance of the component renamed out of the way as well
+					TArray<UClass*> ChildrenOfClass;
+					GetDerivedClasses(Blueprint->GeneratedClass, ChildrenOfClass);
+
+					for (UClass* ChildClass : ChildrenOfClass)
+					{
+						UBlueprintGeneratedClass* BPChildClass = CastChecked<UBlueprintGeneratedClass>(ChildClass);
+
+						if (UActorComponent* Component = (UActorComponent*)FindObjectWithOuter(BPChildClass, UActorComponent::StaticClass(), TemplateName))
+						{
+							Component->Modify();
+							Component->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
+						}
+					}
+				}
 			}
 		}
 	}

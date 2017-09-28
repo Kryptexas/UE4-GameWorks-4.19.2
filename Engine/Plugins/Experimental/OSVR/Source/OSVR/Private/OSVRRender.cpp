@@ -32,7 +32,7 @@ void FOSVRHMD::DrawDistortionMesh_RenderThread(FRenderingCompositePassContext& C
 }
 
 // Based off of the SteamVR Unreal Plugin implementation.
-void FOSVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& rhiCmdList, FTexture2DRHIParamRef backBuffer, FTexture2DRHIParamRef srcTexture) const
+void FOSVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& rhiCmdList, FTexture2DRHIParamRef backBuffer, FTexture2DRHIParamRef srcTexture, FVector2D WindowSize) const
 {
 	check(IsInRenderingThread());
 	const uint32 viewportWidth = backBuffer->GetSizeX();

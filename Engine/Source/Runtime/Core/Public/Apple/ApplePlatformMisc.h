@@ -123,13 +123,12 @@ struct CORE_API FApplePlatformMisc : public FGenericPlatformMisc
 	static TArray<uint8> GetSystemFontBytes();
 	static FString GetDefaultLocale();
 	static FString GetDefaultLanguage();
-	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
-	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
-	static bool DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName);
 	static TArray<FString> GetPreferredLanguages();
 	static FString GetLocalCurrencyCode();
 	static FString GetLocalCurrencySymbol();
-	
+
+	static bool IsOSAtLeastVersion(const uint32 MacOSVersion[3], const uint32 IOSVersion[3], const uint32 TVOSVersion[3]);
+
 #if APPLE_PROFILING_ENABLED
 	static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text);
 	static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text);

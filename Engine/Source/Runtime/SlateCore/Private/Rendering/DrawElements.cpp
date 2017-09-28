@@ -53,7 +53,7 @@ void FSlateDataPayload::SetLinesPayloadProperties( FSlateWindowElementList& Elem
 	bAntialias = bInAntialias;
 }
 
-int32 PixelSnapRenderTransform = 0;
+int32 PixelSnapRenderTransform = 1;
 static FAutoConsoleVariableRef CVarPixelSnapRenderTransform(TEXT("Slate.PixelSnapRenderTransform"), PixelSnapRenderTransform, TEXT("If the element being drawn has a render transform with Rotation, Scale or Shear, we automatically disable pixel snapping."), ECVF_Default);
 
 void FSlateDrawElement::Init(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, ESlateDrawEffect InDrawEffects)

@@ -12,18 +12,19 @@
 	"SupportURL": "",
 	"CanContainContent": true,
 	"IsBetaVersion": true,
+    "EnabledByDefault": true,
 	"Modules": [
 		{
 			"Name": "AppleARKit",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"WhitelistPlatforms" : [ "Win64" ]
+			"WhitelistPlatforms" : [ "Mac", "iOS", "Win64" ]
 		},
 		{
 			"Name": "AppleARKitEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms" : [ "Win64" ]
+			"WhitelistPlatforms" : [ "Mac", "iOS", "Win64" ]
 		}
 	]
 }

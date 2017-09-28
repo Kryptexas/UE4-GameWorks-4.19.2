@@ -1102,6 +1102,18 @@ inline void CalcLOD(int32& InOutMinLOD, int32& InOutMaxLOD, const FVector& Bound
 	}
 }
 
+inline bool CanGroup(const FVector& BoundMin, const FVector& BoundMax, const FVector& ViewOriginInLocalZero, const FVector& ViewOriginInLocalOne, float MaxDrawDist)
+{
+	const FVector Center = (BoundMax + BoundMin) * 0.5f;
+	const float DistCenterZero = FVector::Dist(Center, ViewOriginInLocalZero);
+	const float DistCenterOne = FVector::Dist(Center, ViewOriginInLocalOne);
+	const float HalfWidth = FVector::Dist(BoundMax, BoundMin) * 0.5f;
+	const float FarDot = FMath::Max(DistCenterZero, DistCenterOne) + HalfWidth;
+
+	// We are sure that everything in the bound won't be distance culled
+	return FarDot < MaxDrawDist;
+}
+
 template<bool TUseVector>
 void FHierarchicalStaticMeshSceneProxy::Traverse(const FFoliageCullInstanceParams& Params, int32 Index, int32 MinLOD, int32 MaxLOD, bool bFullyContained) const
 {
@@ -1123,6 +1135,7 @@ void FHierarchicalStaticMeshSceneProxy::Traverse(const FFoliageCullInstanceParam
 			return;
 		}
 	}
+
 	if (Index >= Params.FirstOcclusionNode && Index <= Params.LastOcclusionNode)
 	{
 		check(Params.OcclusionResults != NULL);
@@ -1134,9 +1147,11 @@ void FHierarchicalStaticMeshSceneProxy::Traverse(const FFoliageCullInstanceParam
 		}
 	}
 
-	bool bSplit = (!bFullyContained || MinLOD < MaxLOD || Index < Params.FirstOcclusionNode) 
-		&& Node.FirstChild >= 0 
-		&& (1 + Node.LastInstance - Node.FirstInstance) >= Params.MinInstancesToSplit[MinLOD];
+	bool bShouldGroup = Node.FirstChild < 0
+		|| ((Node.LastInstance - Node.FirstInstance + 1) < Params.MinInstancesToSplit[MinLOD]
+			&& CanGroup(Node.BoundMin, Node.BoundMax, Params.ViewOriginInLocalZero, Params.ViewOriginInLocalOne, Params.LODPlanesMax[Params.LODs - 1]));
+	bool bSplit = (!bFullyContained || MinLOD < MaxLOD || Index < Params.FirstOcclusionNode)
+		&& !bShouldGroup;
 
 	if (!bSplit)
 	{

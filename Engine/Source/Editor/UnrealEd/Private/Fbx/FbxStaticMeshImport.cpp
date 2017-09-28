@@ -1672,6 +1672,7 @@ void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<F
 	// all index is pointing correctly and they're all used. Otherwise we remove them
 	FMeshSectionInfoMap TempOldSectionInfoMap = StaticMesh->SectionInfoMap;
 	StaticMesh->SectionInfoMap.Clear();
+	StaticMesh->OriginalSectionInfoMap.Clear();
 	// fix up section data
 	for (int32 LODResoureceIndex = 0; LODResoureceIndex < StaticMesh->RenderData->LODResources.Num(); ++LODResoureceIndex)
 	{
@@ -1683,6 +1684,7 @@ void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<F
 			if (StaticMesh->StaticMaterials.IsValidIndex(Info.MaterialIndex))
 			{
 				StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
+				StaticMesh->OriginalSectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
 			}
 		}
 	}
@@ -1852,6 +1854,7 @@ void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<F
 			{
 				Info.MaterialIndex = RemapIndex;
 				StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
+				StaticMesh->OriginalSectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
 			}
 		}
 	}

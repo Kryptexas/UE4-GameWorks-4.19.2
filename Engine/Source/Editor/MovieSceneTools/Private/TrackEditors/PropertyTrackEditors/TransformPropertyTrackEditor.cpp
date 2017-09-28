@@ -33,11 +33,7 @@ TSharedPtr<SWidget> FTransformPropertyTrackEditor::BuildOutlinerEditWidget(const
 	{
 		FMenuBuilder MenuBuilder(true, nullptr);
 
-		TSharedPtr<ISequencer> SequencerPtr = WeakSequencer.Pin();
-		if (SequencerPtr.IsValid())
-		{
-			FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
-		}
+		FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, WeakSequencer);
 
 		return MenuBuilder.MakeWidget();
 	};

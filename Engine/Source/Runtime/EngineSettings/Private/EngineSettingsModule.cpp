@@ -71,6 +71,7 @@ UGeneralProjectSettings::UGeneralProjectSettings( const FObjectInitializer& Obje
 	, bShouldWindowPreserveAspectRatio(true)
 	, bUseBorderlessWindow(false)
 	, bStartInVR(false)
+	, bStartInAR(false)
 	, bAllowWindowResize(true)
 	, bAllowClose(true)
 	, bAllowMaximize(true)

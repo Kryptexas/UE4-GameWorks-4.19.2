@@ -145,9 +145,10 @@ public:
 	 * Initialize the track collection.
 	 *
 	 * @param InMediaSource The media source object.
+	 * @param Url The media source URL.
 	 * @see IsInitialized, Shutdown
 	 */
-	void Initialize(IMFMediaSource* InMediaSource);
+	void Initialize(IMFMediaSource* InMediaSource, const FString& Url);
 
 	/**
 	 * Whether this object has been initialized.
@@ -201,10 +202,11 @@ protected:
 	 *
 	 * @param StreamIndex The index of the stream to add.
 	 * @param OutInfo Will contain appended debug information.
+	 * @param IsVideoDevice Whether the stream belongs to a video capture device.
 	 * @return true on success, false otherwise.
 	 * @see AddTrackToTopology
 	 */
-	bool AddStreamToTracks(uint32 StreamIndex, FString& OutInfo);
+	bool AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, FString& OutInfo);
 
 	/**
 	 * Add the given track to the specified playback topology.

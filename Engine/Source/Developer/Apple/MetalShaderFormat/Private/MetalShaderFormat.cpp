@@ -13,6 +13,7 @@
 #include "Serialization/Archive.h"
 #include "ConfigCacheIni.h"
 
+extern bool IsRemoteBuildingConfigured();
 extern uint16 GetXcodeVersion(uint64& BuildVersion);
 extern bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool const bNative);
 extern uint64 AppendShader_Metal(class FName const& Format, class FString const& ArchivePath, const FSHAHash& Hash, TArray<uint8>& Code);
@@ -106,7 +107,7 @@ class FMetalShaderFormat : public IShaderFormat
 public:
 	enum
 	{
-		HEADER_VERSION = 41,
+		HEADER_VERSION = 43,
 	};
 	
 	struct FVersion
@@ -138,7 +139,7 @@ public:
 	}
 	virtual bool CanStripShaderCode(bool const bNativeFormat) const override final
 	{
-		return bNativeFormat;
+		return CanCompileBinaryShaders() && bNativeFormat;
 	}
 	virtual bool StripShaderCode( TArray<uint8>& Code, FString const& DebugOutputDir, bool const bNative ) const override final
 	{
@@ -146,12 +147,20 @@ public:
     }
 	virtual bool SupportsShaderArchives() const override 
 	{ 
-		return true;
+		return CanCompileBinaryShaders();
 	}
     virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const override final
     {
-        return new FMetalShaderFormatArchive(Format, WorkingDirectory);
+		return new FMetalShaderFormatArchive(Format, WorkingDirectory);
     }
+	virtual bool CanCompileBinaryShaders() const override final
+	{
+#if PLATFORM_MAC
+		return FPlatformMisc::IsSupportedXcodeVersionInstalled();
+#else
+		return IsRemoteBuildingConfigured();
+#endif
+	}
 };
 
 uint32 GetMetalFormatVersion(FName Format)

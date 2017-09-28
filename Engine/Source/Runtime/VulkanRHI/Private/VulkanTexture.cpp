@@ -747,6 +747,7 @@ void FVulkanSurface::GetMipSize(uint32 MipIndex, uint32& MipBytes)
 
 void FVulkanSurface::InitialClear(FVulkanCommandListContext& Context,const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable)
 {
+	// Can't use TransferQueue as Vulkan requires that queue to also have Gfx or Compute capabilities...
 	//#todo-rco: This function is only used during loading currently, if used for regular RHIClear then use the ActiveCmdBuffer
 	FVulkanCmdBuffer* CmdBuffer = Context.GetCommandBufferManager()->GetUploadCmdBuffer();
 	ensure(CmdBuffer->IsOutsideRenderPass());
@@ -1286,8 +1287,7 @@ void FVulkanDynamicRHI::InternalUpdateTexture2D(bool bFromRenderingThread, FText
 	VkBufferImageCopy Region;
 	FMemory::Memzero(Region);
 	//#todo-rco: Might need an offset here?
-	check(UpdateRegion.SrcX == 0);
-	check(UpdateRegion.SrcY == 0);
+	check(UpdateRegion.SrcX == 0 && UpdateRegion.SrcY == 0);
 	//Region.bufferOffset = 0;
 	//Region.bufferRowLength = 0;
 	//Region.bufferImageHeight = 0;
@@ -1295,8 +1295,8 @@ void FVulkanDynamicRHI::InternalUpdateTexture2D(bool bFromRenderingThread, FText
 	Region.imageSubresource.mipLevel = MipIndex;
 	Region.imageSubresource.baseArrayLayer = 0;
 	Region.imageSubresource.layerCount = 1;
-	Region.imageOffset.x = UpdateRegion.SrcX;
-	Region.imageOffset.y = UpdateRegion.SrcY;
+	Region.imageOffset.x = UpdateRegion.DestX;
+	Region.imageOffset.y = UpdateRegion.DestY;
 	Region.imageOffset.z = 0;
 	Region.imageExtent.width = UpdateRegion.Width;
 	Region.imageExtent.height = UpdateRegion.Height;
@@ -1355,9 +1355,7 @@ void FVulkanDynamicRHI::InternalUpdateTexture3D(bool bFromRenderingThread, FText
 	VkBufferImageCopy Region;
 	FMemory::Memzero(Region);
 	//#todo-rco: Might need an offset here?
-	check(UpdateRegion.SrcX == 0);
-	check(UpdateRegion.SrcY == 0);
-	check(UpdateRegion.SrcZ == 0);
+	check(UpdateRegion.SrcX == 0 && UpdateRegion.SrcY == 0 && UpdateRegion.SrcZ == 0);
 	//Region.bufferOffset = 0;
 	//Region.bufferRowLength = 0;
 	//Region.bufferImageHeight = 0;
@@ -1365,9 +1363,9 @@ void FVulkanDynamicRHI::InternalUpdateTexture3D(bool bFromRenderingThread, FText
 	Region.imageSubresource.mipLevel = MipIndex;
 	Region.imageSubresource.baseArrayLayer = 0;
 	Region.imageSubresource.layerCount = 1;
-	Region.imageOffset.x = UpdateRegion.SrcX;
-	Region.imageOffset.y = UpdateRegion.SrcY;
-	Region.imageOffset.z = UpdateRegion.SrcZ;
+	Region.imageOffset.x = UpdateRegion.DestX;
+	Region.imageOffset.y = UpdateRegion.DestY;
+	Region.imageOffset.z = UpdateRegion.DestZ;
 	Region.imageExtent.width = UpdateRegion.Width;
 	Region.imageExtent.height = UpdateRegion.Height;
 	Region.imageExtent.depth = UpdateRegion.Depth;

@@ -84,6 +84,7 @@ namespace Audio
 
 		//~ Begin IAudioMixer
 		virtual bool OnProcessAudioStream(AlignedFloatBuffer& OutputBuffer) override;
+		virtual void OnAudioStreamShutdown() override;
 		//~ End IAudioMixer
 
 		FMixerSubmixPtr GetSubmixInstance(USoundSubmix* SoundSubmix);

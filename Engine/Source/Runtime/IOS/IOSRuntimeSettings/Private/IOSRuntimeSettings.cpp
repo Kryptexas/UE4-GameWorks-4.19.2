@@ -4,7 +4,7 @@
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Misc/EngineBuildSettings.h"
-
+#include "HAL/IConsoleManager.h"
 
 UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -174,6 +174,13 @@ void UIOSRuntimeSettings::PostInitProperties()
 	if (!bShipForArm64)
 	{
 		bShipForArm64 = true;
+	}
+	
+	// Due to a driver bug on A8 devices running iOS 9 we can only support the global clip-plane when running iOS 10+
+	static IConsoleVariable* ClipPlaneCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowGlobalClipPlane"));
+	if (ClipPlaneCVar && ClipPlaneCVar->GetInt() != 0 && MinimumiOSVersion < EIOSVersion::IOS_10)
+	{
+		MinimumiOSVersion = EIOSVersion::IOS_10;
 	}
 }
 #endif

@@ -1,6 +1,8 @@
 #pragma once 
 
-#if ARKIT_SUPPORT
+#include "CoreMinimal.h"
+
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 // ARKit
 #include <ARKit/ARKit.h>

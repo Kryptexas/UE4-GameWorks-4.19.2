@@ -270,7 +270,7 @@ void FMetalStateCache::SetComputeShader(FMetalComputeShader* InComputeShader)
 	}
 }
 
-bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bReset)
+bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bRestart)
 {
 	bool bNeedsSet = false;
 	
@@ -338,6 +338,8 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			if (RenderTargetIndex < RenderTargetsInfo.NumColorRenderTargets && RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex].Texture != nullptr)
 			{
 				const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
+				ColorTargets[RenderTargetIndex] = RenderTargetView.Texture;
+				
 				FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
 				FormatKey = Surface.FormatKey;
 				
@@ -433,7 +435,7 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 					ColorAttachment.slice = ArraySliceIndex;
 				}
 				
-				ColorAttachment.loadAction = (Surface.Written || !bImmediate) ? GetMetalRTLoadAction(RenderTargetView.LoadAction) : MTLLoadActionClear;
+				ColorAttachment.loadAction = (Surface.Written || !bImmediate || bRestart) ? GetMetalRTLoadAction(RenderTargetView.LoadAction) : MTLLoadActionClear;
 				FPlatformAtomics::InterlockedExchange(&Surface.Written, 1);
 				
 				bNeedsClear |= (ColorAttachment.loadAction == MTLLoadActionClear);
@@ -455,6 +457,10 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				bHasValidRenderTarget = true;
 				bHasValidColorTarget = true;
+			}
+			else
+			{
+				ColorTargets[RenderTargetIndex].SafeRelease();
 			}
 		}
 		
@@ -760,16 +766,6 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		{
 			DepthStencilSurface.SafeRelease();
 		}
-		
-//		if (bReset)
-//		{
-//			// Reset any existing state as that must be fully reinitialised by the caller.
-//			StencilRef = 0;
-//			BlendFactor = FLinearColor::Transparent;
-//			DepthStencilState.SafeRelease();
-//			RasterizerState.SafeRelease();
-//			GraphicsPSO.SafeRelease();
-//		}
 		
 		[RenderPassDesc release];
 		RenderPassDesc = nil;
@@ -1642,7 +1638,7 @@ bool FMetalStateCache::PrepareToRestart(void)
 			}
 			
 			InvalidateRenderTargets();
-			return SetRenderTargetsInfo(Info, GetVisibilityResultsBuffer(), false) && CanRestartRenderPass();
+			return SetRenderTargetsInfo(Info, GetVisibilityResultsBuffer(), true) && CanRestartRenderPass();
 		}
 		else
 		{

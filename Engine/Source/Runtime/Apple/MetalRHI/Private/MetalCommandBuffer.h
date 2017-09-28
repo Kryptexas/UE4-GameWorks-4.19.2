@@ -74,13 +74,14 @@ struct FMetalDebugCommand
  */
 @interface FMetalDebugCommandBuffer : FApplePlatformObject<MTLCommandBuffer>
 {
-	TArray<FMetalDebugCommand*> DebugCommands;
 	NSMutableArray<NSString*>* DebugGroup;
 	NSString* ActiveEncoder;
 	TSet<id<MTLResource>> Resources;
 	TSet<id> States;
 	@public
+	TArray<FMetalDebugCommand*> DebugCommands;
     EMetalDebugLevel DebugLevel;
+	id<MTLBuffer> DebugInfoBuffer;
 };
 
 /** The wrapped native command-buffer for which we collect debug information. */

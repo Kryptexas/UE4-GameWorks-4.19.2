@@ -1657,6 +1657,18 @@ namespace VulkanRHI
 		VkPipelineStageFlags DestStages = (VkPipelineStageFlags)0;
 		SetImageBarrierInfo(Source, Dest, ImageBarrier, SourceStages, DestStages);
 
+		// special handling for VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (otherwise Mali devices flicker)
+		if (Source == EImageLayoutBarrier::Present)
+		{
+			SourceStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			DestStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		}
+		else if (Dest == EImageLayoutBarrier::Present)
+		{
+			SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		}
+
 		VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, &ImageBarrier);
 	}
 }

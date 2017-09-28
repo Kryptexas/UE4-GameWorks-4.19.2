@@ -1,5 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-// ..
+// ...
 
 #include "CoreMinimal.h"
 #include "MetalShaderFormat.h"
@@ -57,7 +57,7 @@ bool IsRemoteBuildingConfigured()
 	{
 		return false;
 	}
-	
+
 	GRemoteBuildServerHost = "";
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), GRemoteBuildServerHost, GEngineIni);
 	if(GRemoteBuildServerHost.Len() == 0)
@@ -144,7 +144,8 @@ bool IsRemoteBuildingConfigured()
 	
 #endif
 
-	return true;
+	UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote shader compilation temporarily unavailable for 4.18 preview builds.  In previous builds it was almost certainly falling back to a local compile which we no longer allow. Compilation on a Mac will still properly build native shaders."));
+	return false;	
 }
 
 static bool CompileProcessAllowsRuntimeShaderCompiling(const FShaderCompilerInput& InputCompilerEnvironment)
@@ -152,7 +153,7 @@ static bool CompileProcessAllowsRuntimeShaderCompiling(const FShaderCompilerInpu
     bool bArchiving = InputCompilerEnvironment.Environment.CompilerFlags.Contains(CFLAG_Archive);
     bool bDebug = InputCompilerEnvironment.Environment.CompilerFlags.Contains(CFLAG_Debug);
     
-    return !bArchiving || bDebug;
+    return !bArchiving && bDebug;
 }
 
 bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr)
@@ -1193,40 +1194,49 @@ void BuildMetalShaderOutput(
 		FString MetalPath = GetMetalBinaryPath(ShaderInput.Target.Platform);
 		FString MetalToolsPath = GetMetalToolsPath(ShaderInput.Target.Platform);
 		
-		if((PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING) || bRemoteBuildingConfigured)
+		bool bMetalCompilerAvailable = false;
+
+		if (((PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING) || bRemoteBuildingConfigured) && (MetalPath.Len() > 0 && MetalToolsPath.Len() > 0))
 		{
-			if(MetalPath.Len() == 0 || MetalToolsPath.Len() == 0)
-			{
-				if(!GMetalLoggedRemoteCompileNotConfigured)
-				{
-					if (bRemoteBuildingConfigured)
-					{
-						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on the Mac used for remote compilation. Falling back to online compiled text shaders which will be slower on first launch."));
-					}
-					else
-					{
-						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on this Mac. Falling back to online compiled text shaders which will be slower on first launch."));
-					}
-					GMetalLoggedRemoteCompileNotConfigured = true;
-				}
-				bRemoteBuildingConfigured = false;
-			}
-			else
-			{
-				bCompileAtRuntime = false;
-				bSucceeded = false;
-			}
+			bMetalCompilerAvailable = true;
+			bCompileAtRuntime = false;
+			bSucceeded = false;
 		}
-		else if(CompileProcessAllowsRuntimeShaderCompiling(ShaderInput))
+		else if (CompileProcessAllowsRuntimeShaderCompiling(ShaderInput))
 		{
 			bCompileAtRuntime = true;
 			bSucceeded = true;
+		}
+		else
+		{
+			TCHAR const* Message = nullptr;
+			if (PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+			{
+				Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on this Mac and that it has been selected in Xcode > Preferences > Locations > Command-line Tools.");
+			}
+			else if (!bRemoteBuildingConfigured)
+			{
+				Message = TEXT("Remote shader compilation has not been configured in the Editor settings for this project. Please follow the instructions for enabling remote compilation for iOS.");
+			}
+			else
+			{
+				Message = TEXT("Xcode's metal shader compiler was not found, verify Xcode has been installed on the Mac used for remote compilation and that the Mac is accessible via SSH from this machine.");
+			}
+
+			FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+			Error->ErrorVirtualFilePath = InputFilename;
+			Error->ErrorLineString = TEXT("0");
+			Error->StrippedErrorMessage = FString(Message);
+
+			bRemoteBuildingConfigured = false;
+			bCompileAtRuntime = false;
+			bSucceeded = false;
 		}
 		
 		bool bDebugInfoSucceded = false;
 		FMetalShaderBytecode Bytecode;
 		FMetalShaderDebugInfo DebugCode;
-		if (bCompileAtRuntime == false && ((PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING) || bRemoteBuildingConfigured))
+		if (bCompileAtRuntime == false && bMetalCompilerAvailable == true)
 		{
 			bool bUseSharedPCH = false;
 			FString MetalPCHFile;
@@ -1618,13 +1628,6 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		return;
 	}
 	
-	// Force floats if the material requests it
-	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
-	if (bUseFullPrecisionInPS)
-	{
-		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
-	}
-	
     EMetalTypeBufferMode TypeMode = EMetalTypeBufferModeNone;
 	FString MinOSVersion;
 	FString StandardVersion;
@@ -1655,6 +1658,13 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 			break;
 	}
 	
+	// Force floats if the material requests it
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS || (VersionEnum < 2)) // Too many bugs in Metal 1.0 & 1.1 with half floats the more time goes on and the compiler stack changes
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+	}
+	
 	FString Standard = FString::Printf(TEXT("-std=%s-metal%s"), StandardPlatform, *StandardVersion);
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
@@ -1679,13 +1689,6 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
 	if (!Input.bSkipPreprocessedCache && !bDirectCompile)
 	{
-		FString const* UsingWPO = Input.Environment.GetDefinitions().Find(TEXT("USES_WORLD_POSITION_OFFSET"));
-		if (UsingWPO && FString("1") == *UsingWPO)
-		{
-			// FMAs are deoptimised when fast-math is enabled and arguments are literals :(
-			Input.Environment.CompilerFlags.Add(CFLAG_NoFastMath);
-		}
-		
 		FString const* UsingTessellationDefine = Input.Environment.GetDefinitions().Find(TEXT("USING_TESSELLATION"));
 		bool bUsingTessellation = (UsingTessellationDefine != nullptr && FString("1") == *UsingTessellationDefine);
 		if (bUsingTessellation && (Input.Target.Frequency == SF_Vertex))
@@ -2048,8 +2051,9 @@ uint64 AppendShader_Metal(FName const& Format, FString const& WorkingDir, const 
 				const uint8* SourceCodePtr = (uint8*)InShaderCode.GetData() + CodeOffset;
 				
 				// Copy the non-optional shader bytecode
-				int32 ObjectCodeDataSize = ShaderCode.GetActualShaderCodeSize() - CodeOffset;
-				TArrayView<const uint8> ObjectCodeArray(SourceCodePtr, ObjectCodeDataSize);
+				int32 ObjectCodeDataSize = 0;
+				uint8 const* Object = ShaderCode.FindOptionalDataAndSize('o', ObjectCodeDataSize);
+				TArrayView<const uint8> ObjectCodeArray(Object, ObjectCodeDataSize);
 				
 				// Object code segment
 				FString ObjFilename = WorkingDir / FString::Printf(TEXT("Main_%0.8x_%0.8x.o"), Header.SourceLen, Header.SourceCRC);
@@ -2195,7 +2199,7 @@ bool FinalizeLibrary_Metal(FName const& Format, FString const& WorkingDir, FStri
 					ExecRemoteProcess( *MetalArPath, *Params, &ReturnCode, &Results, &Errors );
 					bArchiveFileValid = RemoteFileExists(*ArchivePath);
 					
-                    if (ReturnCode != 0 || !bArchiveFileValid)
+					if (ReturnCode != 0 || !bArchiveFileValid)
 					{
 						UE_LOG(LogShaders, Error, TEXT("Archiving failed: metal-ar failed with code %d: %s"), ReturnCode, *Errors);
 						Params.Empty();
@@ -2239,8 +2243,8 @@ bool FinalizeLibrary_Metal(FName const& Format, FString const& WorkingDir, FStri
 				FString Params = FString::Printf(TEXT("-o=\"%s\" \"%s\""), *RemoteLibPath, *ArchivePath);
 					
 				ExecRemoteProcess( *MetalLibPath, *Params, &ReturnCode, &Results, &Errors );
-					
-                if(ReturnCode == 0)
+				
+				if(ReturnCode == 0)
                 {
                     // There is problem going to location with spaces using remote copy (at least on Mac no combination of \ and/or "" works) - work around this issue @todo investigate this further
                     FString LocalCopyLocation = FPaths::Combine(TEXT("/tmp"),FPaths::GetCleanFilename(LibraryPath));

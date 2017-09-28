@@ -24,7 +24,7 @@ class UNREALED_API UEditorSettings : public UObject
 	bool bEditorAnalyticsEnabled_DEPRECATED;
 
 	/** Sets the path to be used for caching derived data (native textures, compiled shaders, etc...). The editor must be restarted for changes to take effect. */
-	UPROPERTY(EditAnywhere, config, Category=DerivedData)
+	UPROPERTY(EditAnywhere, config, Category=DerivedData, meta = (ConfigRestartRequired = true))
 	FDirectoryPath LocalDerivedDataCache;
 
 	// =====================================================================

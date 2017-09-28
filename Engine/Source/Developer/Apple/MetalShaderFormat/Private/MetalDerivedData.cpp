@@ -133,8 +133,9 @@ const TCHAR* FMetalShaderBytecodeCooker::GetVersionString() const
 FString FMetalShaderBytecodeCooker::GetPluginSpecificCacheKeySuffix() const
 {
 	FString CompilerVersion = GetMetalCompilerVersion(MetalShaderFormatToLegacyShaderPlatform(Job.ShaderFormat));
-		
-	FString VersionedName = FString::Printf(TEXT("%s%u%u%s%s%s%s%s%s%s"), *Job.ShaderFormat.GetPlainNameString(), Job.SourceCRCLen, Job.SourceCRC, *Job.Hash.ToString(), *Job.CompilerVersion, *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, Job.bRetainObjectFile ? TEXT("+Object") : TEXT(""));
+	FString CompilerPath = GetMetalToolsPath(MetalShaderFormatToLegacyShaderPlatform(Job.ShaderFormat));
+	
+	FString VersionedName = FString::Printf(TEXT("%s%u%u%s%s%s%s%s%s%s%d"), *Job.ShaderFormat.GetPlainNameString(), Job.SourceCRCLen, Job.SourceCRC, *Job.Hash.ToString(), *Job.CompilerVersion, *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, Job.bRetainObjectFile ? TEXT("+Object") : TEXT(""), GetTypeHash(CompilerPath));
 	// get rid of some not so filename-friendly characters ('=',' ' -> '_')
     VersionedName = VersionedName.Replace(TEXT("="), TEXT("_")).Replace(TEXT(" "), TEXT("_"));
 
@@ -176,7 +177,7 @@ bool FMetalShaderBytecodeCooker::Build(TArray<uint8>& OutData)
 	FString MetalParams;
 	if (Job.bCompileAsPCH)
 	{
-		MetalParams = FString::Printf(TEXT("-x metal-header %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.MathMode, *Job.Standard, *Job.InputFile, *Job.OutputFile);
+		MetalParams = FString::Printf(TEXT("-x metal-header %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.MathMode, *Job.Standard, *Job.InputFile, *RemoteOutputFilename);
 	}
 	else
 	{

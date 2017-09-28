@@ -143,7 +143,7 @@ namespace Audio
 		bIsReady = true;
  	}
  
-	const uint8* FOutputBuffer::GetBufferData()
+	const uint8* FOutputBuffer::GetBufferData() const
 	{
 		if (DataFormat == EAudioMixerStreamDataFormat::Float)
 		{
@@ -153,6 +153,23 @@ namespace Audio
 		{
 			return (const uint8*)FormattedBuffer.GetData();
 		}
+	}
+
+	uint8* FOutputBuffer::GetBufferData()
+	{
+		if (DataFormat == EAudioMixerStreamDataFormat::Float)
+		{
+			return (uint8*)Buffer.GetData();
+		}
+		else
+		{
+			return (uint8*)FormattedBuffer.GetData();
+		}
+	}
+
+	int32 FOutputBuffer::GetNumFrames() const
+	{
+		return Buffer.Num();
 	}
 
 	void FOutputBuffer::Reset(const int32 InNewNumSamples)
@@ -187,7 +204,6 @@ namespace Audio
 		, CurrentBufferReadIndex(INDEX_NONE)
 		, CurrentBufferWriteIndex(INDEX_NONE)
 		, NumOutputBuffers(0)
-		, TargetMasterVolume(1.0f)
 		, FadeVolume(0.0f)
 		, LastError(TEXT("None"))
 		, bAudioDeviceChanging(false)
@@ -227,31 +243,9 @@ namespace Audio
 		bIsDeviceInitialized = true;
 	}
 
-	void IAudioMixerPlatformInterface::SetMasterVolume(const float InVolume)
+	template<typename BufferType>
+	void IAudioMixerPlatformInterface::ApplyAttenuationInternal(BufferType* BufferDataPtr, const int32 NumFrames)
 	{
-		if (TargetMasterVolume != InVolume)
-		{
-			TargetMasterVolume = InVolume;
-			bUpdateMasterVolume = true;
-		}
-	}
-
-	void IAudioMixerPlatformInterface::ApplyMasterAttenuation()
-	{
-		const int32 NextReadIndex = (CurrentBufferReadIndex + 1) % NumOutputBuffers;
-		FOutputBuffer& CurrentReadBuffer = OutputBuffers[NextReadIndex];
-
-		AlignedFloatBuffer& Buffer = CurrentReadBuffer.GetBuffer();
-		float* BufferDataPtr = Buffer.GetData();
-		const int32 NumFrames = Buffer.Num();
-
-		// Apply master volume changes
-		if (bUpdateMasterVolume)
-		{
-			bUpdateMasterVolume = false;
-			MasterVolumeParam.SetValue(TargetMasterVolume, NumFrames);
-		}
-
 		// Perform fade in and fade out global attenuation to avoid clicks/pops on startup/shutdown
 		if (bPerformingFade)
 		{
@@ -259,7 +253,7 @@ namespace Audio
 
 			for (int32 i = 0; i < NumFrames; ++i)
 			{
-				BufferDataPtr[i] *= MasterVolumeParam.Update() * FadeParam.Update();
+				BufferDataPtr[i] = (BufferType)(BufferDataPtr[i] * FadeParam.Update());
 			}
 
 			bPerformingFade = false;
@@ -268,19 +262,27 @@ namespace Audio
 		else if (bFadedOut)
 		{
 			// If we're faded out, then just zero the data.
-			FPlatformMemory::Memzero((void*)Buffer.GetData(), sizeof(float)*NumFrames);
+			FPlatformMemory::Memzero((void*)BufferDataPtr, sizeof(BufferType)*NumFrames);
+		}
+		FadeParam.Reset();
+	}
+
+	void IAudioMixerPlatformInterface::ApplyMasterAttenuation()
+	{
+		const int32 NextReadIndex = (CurrentBufferReadIndex + 1) % NumOutputBuffers;
+		FOutputBuffer& CurrentReadBuffer = OutputBuffers[NextReadIndex];
+
+		EAudioMixerStreamDataFormat::Type Format = CurrentReadBuffer.GetFormat();
+		uint8* BufferDataPtr = CurrentReadBuffer.GetBufferData();
+		
+		if (Format == EAudioMixerStreamDataFormat::Float)
+		{
+			ApplyAttenuationInternal((float*)BufferDataPtr, CurrentReadBuffer.GetNumFrames());
 		}
 		else
 		{
-			// Only apply the master volume
-			for (int32 i = 0; i < NumFrames; ++i)
-			{
-				BufferDataPtr[i] *= MasterVolumeParam.Update();
-			}
+			ApplyAttenuationInternal((int16*)BufferDataPtr, CurrentReadBuffer.GetNumFrames());
 		}
-
-		MasterVolumeParam.Reset();
-		FadeParam.Reset();
 	}
 
 	void IAudioMixerPlatformInterface::ReadNextBuffer()
@@ -313,7 +315,7 @@ namespace Audio
 			
 			if (!bWarnedBufferUnderrun)
 			{						
-				UE_LOG(LogAudioMixer, Log, TEXT("Audio Buffer Underrun detected."));
+				UE_LOG(LogAudioMixerDebug, Log, TEXT("Audio Buffer Underrun detected."));
 				bWarnedBufferUnderrun = true;
 			}
 		
@@ -326,7 +328,7 @@ namespace Audio
 			// As soon as a valid buffer goes through, allow more warning
 			if (bWarnedBufferUnderrun)
 			{
-				UE_LOG(LogAudioMixer, Error, TEXT("Audio had %d underruns [Total: %d]."), CurrentUnderrunCount, UnderrunCount);
+				UE_LOG(LogAudioMixerDebug, Log, TEXT("Audio had %d underruns [Total: %d]."), CurrentUnderrunCount, UnderrunCount);
 			}
 			CurrentUnderrunCount = 0;
 			bWarnedBufferUnderrun = false;
@@ -468,6 +470,8 @@ namespace Audio
 			// Now wait for a buffer to be consumed, which will bump up the read index.
 			AudioRenderEvent->Wait();
 		}
+
+		OpenStreamParams.AudioMixer->OnAudioStreamShutdown();
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopped;
 		return 0;

@@ -116,27 +116,36 @@ public:
 	/**
 	 * Enumerate available audio capture devices.
 	 *
-	 * @param Filter The types of capture devices to return.
+	 * To filter for a specific subset of devices, use the MakeBitmask node
+	 * with EMediaAudioCaptureDeviceFilter as the Bitmask Enum.
+	 *
 	 * @param OutDevices Will contain the available capture devices.
+	 * @param Filter The types of capture devices to return (-1 = all).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Media|Capture")
-	static void EnumerateAudioCaptureDevices(int32 Filter, TArray<FMediaCaptureDevice>& OutDevices);
+	static void EnumerateAudioCaptureDevices(TArray<FMediaCaptureDevice>& OutDevices, int32 Filter = -1);
 
 	/**
 	 * Enumerate available audio capture devices.
 	 *
-	 * @param Filter The types of capture devices to return.
+	 * To filter for a specific subset of devices, use the MakeBitmask node
+	 * with EMediaVideoCaptureDeviceFilter as the Bitmask Enum.
+	 *
 	 * @param OutDevices Will contain the available capture devices.
+	 * @param Filter The types of capture devices to return (-1 = all).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Media|Capture")
-	static void EnumerateVideoCaptureDevices(int32 Filter, TArray<FMediaCaptureDevice>& OutDevices);
+	static void EnumerateVideoCaptureDevices(TArray<FMediaCaptureDevice>& OutDevices, int32 Filter = -1);
 
 	/**
 	 * Enumerate available audio capture devices.
 	 *
-	 * @param Filter The types of capture devices to return.
+	 * To filter for a specific subset of devices, use the MakeBitmask node
+	 * with EMediaWebcamCaptureDeviceFilter as the Bitmask Enum.
+	 *
 	 * @param OutDevices Will contain the available capture devices.
+	 * @param Filter The types of capture devices to return (-1 = all).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Media|Capture")
-	static void EnumerateWebcamCaptureDevices(int32 Filter, TArray<FMediaCaptureDevice>& OutDevices);
+	static void EnumerateWebcamCaptureDevices(TArray<FMediaCaptureDevice>& OutDevices, int32 Filter = -1);
 };

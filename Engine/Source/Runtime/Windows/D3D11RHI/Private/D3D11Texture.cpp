@@ -1657,7 +1657,7 @@ FTextureReferenceRHIRef FD3D11DynamicRHI::RHICreateTextureReference(FLastRenderT
 	return new FD3D11TextureReference(this,LastRenderTime);
 }
 
-bool FD3D11DynamicRHI::RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTextureRHI, FTexture2DRHIParamRef DestinationTextureRHI, FBox2D SourceBox, FBox2D DestinationBox)
+void FD3D11DynamicRHI::RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTextureRHI, FTexture2DRHIParamRef DestinationTextureRHI, FBox2D SourceBox, FBox2D DestinationBox)
 {
 	FD3D11Texture2D* SourceTexture = ResourceCast(SourceTextureRHI);
 	FD3D11Texture2D* DestinationTexture = ResourceCast(DestinationTextureRHI);
@@ -1708,7 +1708,6 @@ bool FD3D11DynamicRHI::RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTextu
 	check(GPixelFormats[DestinationTexture->GetFormat()].BlockSizeY == 1);
 	ID3D11Texture2D* DestinationRessource = DestinationTexture->GetResource();
 	Direct3DDeviceIMContext->CopySubresourceRegion(DestinationRessource, 0, DestinationBox.Min.X + DestinationOffsetX, DestinationBox.Min.Y + DestinationOffsetY, 0, SourceTexture->GetResource(), 0, &SourceBoxAdjust);
-	return true;
 }
 
 void FD3D11DynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)

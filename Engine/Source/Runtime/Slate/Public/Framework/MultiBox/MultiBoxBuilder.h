@@ -334,8 +334,8 @@ public:
 	 *
 	 * @param	InCommandList	The action list that maps command infos to delegates that should be called for each command associated with a multiblock widget
 	 */
-	FMenuBarBuilder( TSharedPtr< const FUICommandList > InCommandList, TSharedPtr<FExtender> InExtender = TSharedPtr<FExtender>(), const ISlateStyle* InStyleSet = &FCoreStyle::Get(), bool bInInvertLabelsOnHover = true )
-		: FBaseMenuBuilder( EMultiBoxType::MenuBar, false, InCommandList, false, InExtender, InStyleSet )
+	FMenuBarBuilder( TSharedPtr< const FUICommandList > InCommandList, TSharedPtr<FExtender> InExtender = TSharedPtr<FExtender>(), const ISlateStyle* InStyleSet = &FCoreStyle::Get(), bool bInInvertLabelsOnHover = true, EMultiBoxType::Type InType = EMultiBoxType::MenuBar )
+		: FBaseMenuBuilder( InType, false, InCommandList, false, InExtender, InStyleSet )
 		, bInvertLabelsOnHover(bInInvertLabelsOnHover)
 	{
 	}

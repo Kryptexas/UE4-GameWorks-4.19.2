@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "EnumClassFlags.h"
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 #import <ARKit/ARKit.h>
 #endif // ARKIT_SUPPORT
 
@@ -52,7 +52,7 @@ class APPLEARKIT_API FAppleARKitConfiguration
 {
 public:
 	
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 	static ARConfiguration* ToARConfiguration( const FAppleARKitConfiguration& InConfiguration );
 #endif //ARKIT_SUPPORT
 

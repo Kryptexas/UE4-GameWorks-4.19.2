@@ -30,52 +30,10 @@ void FApplePlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR
 	}
 }
 
-// Make sure that SetStoredValue and GetStoredValue generate the same key
-static NSString* MakeStoredValueKeyName(const FString& SectionName, const FString& KeyName)
-{
-	return [NSString stringWithFString:(SectionName + "/" + KeyName)];
-}
-
-bool FApplePlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
-{
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-
-	// convert input to an NSString
-	NSString* StoredValue = [NSString stringWithFString:InValue];
-
-	// store it
-	[UserSettings setObject:StoredValue forKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
-
-	return true;
-}
-
-bool FApplePlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
-{
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-	
-	// get the stored NSString
-	NSString* StoredValue = [UserSettings objectForKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
-
-	// if it was there, convert back to FString
-	if (StoredValue != nil)
-	{
-		OutValue = StoredValue;
-		return true;
-	}
-
-	return false;
-}
-
-bool FApplePlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
-{
-	// No Implementation (currently only used by editor code so not needed on iOS)
-	return false;
-}
-
 void FApplePlatformMisc::LowLevelOutputDebugString( const TCHAR *Message )
 {
 	//NsLog will out to all iOS output consoles, instead of just the Xcode console.
-	NSLog(@"%@", [NSString stringWithUTF8String:TCHAR_TO_UTF8(Message)]);
+	NSLog(@"%s", TCHAR_TO_UTF8(Message));
 }
 
 const TCHAR* FApplePlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
@@ -88,18 +46,14 @@ const TCHAR* FApplePlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 B
 
 FString FApplePlatformMisc::GetDefaultLocale()
 {
-	CFLocaleRef loc = CFLocaleCopyCurrent();
-    
-	TCHAR langCode[20];
-	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
-	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
-	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
-    
-	TCHAR countryCode[20];
-	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
-	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
-    
-	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
+	FString CountryCode((__bridge NSString*)CountryCodeStr);
+	CFRelease(Locale);
+
+	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 FString FApplePlatformMisc::GetDefaultLanguage()
@@ -331,6 +285,25 @@ FString FApplePlatformMisc::GetLocalCurrencyCode()
 FString FApplePlatformMisc::GetLocalCurrencySymbol()
 {
 	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencySymbol]);
+}
+
+bool FApplePlatformMisc::IsOSAtLeastVersion(const uint32 MacOSVersion[3], const uint32 IOSVersion[3], const uint32 TVOSVersion[3])
+{
+	static const uint32 OSVersion[3] = { (uint32)[NSProcessInfo processInfo].operatingSystemVersion.majorVersion, (uint32)[NSProcessInfo processInfo].operatingSystemVersion.minorVersion, (uint32)[NSProcessInfo processInfo].operatingSystemVersion.patchVersion };
+	const uint32* VersionToCompare = PLATFORM_MAC ? MacOSVersion : (PLATFORM_IOS ? IOSVersion : TVOSVersion);
+
+	for (uint32 Index = 0; Index < 3; Index++)
+	{
+		if (OSVersion[Index] < VersionToCompare[Index])
+		{
+			return false;
+		}
+		else if (OSVersion[Index] > VersionToCompare[Index])
+		{
+			return true;
+		}
+	}
+	return true;
 }
 
 #if APPLE_PROFILING_ENABLED

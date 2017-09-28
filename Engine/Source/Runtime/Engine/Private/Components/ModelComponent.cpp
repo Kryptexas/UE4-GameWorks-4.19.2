@@ -668,35 +668,44 @@ bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* Collis
 	for(int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)
 	{
 		FModelElement& Element = Elements[ElementIndex];
-		FRawIndexBuffer16or32* IndexBuffer = (FRawIndexBuffer16or32*)Element.IndexBuffer; // @Bad to assume its always one of these?
+		FRawIndexBuffer16or32* IndexBuffer = Element.IndexBuffer;
 
-		for(uint32 TriIdx=0; TriIdx<Element.NumTriangles; TriIdx++)
+		const int32 IndexBufferSize = IndexBuffer->Indices.Num();
+		if (IndexBufferSize >= 0)
 		{
-			FTriIndices Triangle;
-
-			Triangle.v0 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx*3) + 0];
-			Triangle.v1 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx*3) + 1];
-			Triangle.v2 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx*3) + 2];
-
-			if (AreaThreshold >= 0.f)
+			for (uint32 TriIdx = 0; TriIdx < Element.NumTriangles; TriIdx++)
 			{
-				const FVector V0 = Model->VertexBuffer.Vertices[Triangle.v0].Position;
-				const FVector V1 = Model->VertexBuffer.Vertices[Triangle.v1].Position;
-				const FVector V2 = Model->VertexBuffer.Vertices[Triangle.v2].Position;
+				FTriIndices Triangle;
 
-				const FVector V01 = (V1 - V0);
-				const FVector V02 = (V2 - V0);
-				const FVector Cross = FVector::CrossProduct(V01, V02);
-				const float Area = Cross.Size() * 0.5f;
-				if (Area <= AreaThreshold)
+				Triangle.v0 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 0];
+				Triangle.v1 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 1];
+				Triangle.v2 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 2];
+
+				if (AreaThreshold >= 0.f)
 				{
-					nBadArea++;
-					continue;
-				}
-			}
+					const FVector V0 = Model->VertexBuffer.Vertices[Triangle.v0].Position;
+					const FVector V1 = Model->VertexBuffer.Vertices[Triangle.v1].Position;
+					const FVector V2 = Model->VertexBuffer.Vertices[Triangle.v2].Position;
 
-			CollisionData->Indices.Add(Triangle);
-			CollisionData->MaterialIndices.Add(ElementIndex);
+					const FVector V01 = (V1 - V0);
+					const FVector V02 = (V2 - V0);
+					const FVector Cross = FVector::CrossProduct(V01, V02);
+					const float Area = Cross.Size() * 0.5f;
+					if (Area <= AreaThreshold)
+					{
+						nBadArea++;
+						continue;
+					}
+				}
+
+				CollisionData->Indices.Add(Triangle);
+				CollisionData->MaterialIndices.Add(ElementIndex);
+			}
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("Found bad index buffer when cooking UModelComponent physics data! Component: %s, Buffer Size: %d, Element: %d"), *GetPathName(this), IndexBufferSize, ElementIndex);
+			verify(IndexBufferSize >= 0);
 		}
 	}
 

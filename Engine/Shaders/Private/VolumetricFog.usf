@@ -617,16 +617,16 @@ void LightScatteringCS(
 		{
 			const FLocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, 0);
 
-			float VolumetricScatteringIntensity = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w) >> 16);
+			float VolumetricScatteringIntensity = f16tof32(LocalLight.SourceRadiusPacked >> 16);
 
 			if (VolumetricScatteringIntensity > 0)
 			{
 				FDeferredLightData LightData = (FDeferredLightData)0;
 				LightData.LightPositionAndInvRadius = LocalLight.LightPositionAndInvRadius;
 				LightData.LightColorAndFalloffExponent = LocalLight.LightColorAndFalloffExponent;
-				LightData.LightDirection = LocalLight.LightDirectionAndShadowMask.xyz;
-				float SourceLength = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w));
-				LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAnglesAndSourceRadiusPacked.xyz, SourceLength);
+				LightData.LightDirection = LocalLight.LightDirection;
+				float SourceLength = f16tof32(LocalLight.SourceRadiusPacked);
+				LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAngles, SourceLength);
                 LightData.LightTangent = LocalLight.LightTangentAndSoftSourceRadius.xyz;
                 LightData.SoftSourceRadius = LocalLight.LightTangentAndSoftSourceRadius.w;
 				LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;

@@ -37,10 +37,13 @@ public:
 
 	virtual void Discard() override
 	{
+		//temporarily remove until the semantics around lighting scenarios are fixed.
+#if 0
 		if (!GIsEditor)
 		{
 			Data.Empty();
 		}
+#endif
 	}
 
 	TArray<uint8> Data;

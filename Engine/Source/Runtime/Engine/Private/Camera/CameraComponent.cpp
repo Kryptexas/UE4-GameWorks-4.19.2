@@ -236,10 +236,12 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bLockToHmd && GEngine->XRSystem.IsValid() && GetWorld()->WorldType != EWorldType::Editor)
+	if (bLockToHmd && GEngine->XRSystem.IsValid() && GetWorld()->WorldType != EWorldType::Editor )
 	{
-		auto XRCamera = GEngine->XRSystem->GetXRCamera();
-		if (XRCamera.IsValid())
+		IXRTrackingSystem* XRSystem = GEngine->XRSystem.Get();
+
+		auto XRCamera = XRSystem->GetXRCamera();
+		if (XRSystem->IsHeadTrackingAllowed() && XRCamera.IsValid())
 		{
 			const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
 
@@ -255,6 +257,8 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 			{
 				ResetRelativeTransform();
 			}
+			
+			XRCamera->OverrideFOV(this->FieldOfView);
 		}
 	}
 

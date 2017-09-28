@@ -711,7 +711,7 @@ static void SkinVertexSection(
 			const FMeshToMeshVertData* ClothVertData = nullptr;
 			if (bLODUsesCloth)
 			{
-				ClothVertData = &LOD.ClothVertexBuffer.MappingData(VertexBufferIndex);
+				ClothVertData = &Section.ClothMappingData[VertexIndex];
 				FPlatformMisc::Prefetch(ClothVertData, PLATFORM_CACHE_LINE_SIZE);	// Prefetch next cloth vertex
 			}
 

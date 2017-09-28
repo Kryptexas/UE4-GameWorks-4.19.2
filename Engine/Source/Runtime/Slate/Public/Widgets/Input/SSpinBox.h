@@ -249,7 +249,8 @@ public:
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 				.VirtualKeyboardType(EKeyboardType::Keyboard_Number)
 				.Justification(InArgs._Justification)
-			]			
+				.VirtualKeyboardTrigger(EVirtualKeyboardTrigger::OnAllFocusEvents)
+			]
 
 			+SHorizontalBox::Slot()
 			.AutoWidth()
