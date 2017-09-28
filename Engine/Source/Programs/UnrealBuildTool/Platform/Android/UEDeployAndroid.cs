@@ -2020,14 +2020,14 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
 				Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
 				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\"");
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+				Text.AppendLine("\t\t          android:configChanges=\"density|screenSize|orientation|keyboardHidden|keyboard\"");
 			}
 			else
 			{
 				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
 				Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
 				Text.AppendLine("\t\t          android:theme=\"@android:style/Theme.Black.NoTitleBar.Fullscreen\"");
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+				Text.AppendLine("\t\t          android:configChanges=\"density|screenSize|orientation|keyboardHidden|keyboard\"");
 			}
 			Text.AppendLine("\t\t          android:launchMode=\"singleTask\"");
 			Text.AppendLine(string.Format("\t\t          android:screenOrientation=\"{0}\"", ConvertOrientationIniValue(Orientation)));
@@ -2070,7 +2070,7 @@ namespace UnrealBuildTool
 			{
 				Text.AppendLine("\t\t<activity android:name=\".DownloaderActivity\"");
 				Text.AppendLine(string.Format("\t\t          android:screenOrientation=\"{0}\"", ConvertOrientationIniValue(Orientation)));
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+				Text.AppendLine("\t\t          android:configChanges=\"density|screenSize|orientation|keyboardHidden|keyboard\"");
 				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\" />");
 			}
 			else
@@ -2096,7 +2096,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.version\"");
 			Text.AppendLine("\t\t           android:value=\"@integer/google_play_services_version\" />");
 			Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
-			Text.AppendLine("\t\t          android:configChanges=\"keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
+			Text.AppendLine("\t\t          android:configChanges=\"density|keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
 			if (!string.IsNullOrEmpty(ExtraApplicationSettings))
 			{
 				ExtraApplicationSettings = ExtraApplicationSettings.Replace("\\n", "\n");
