@@ -1891,7 +1891,7 @@ void UEditorEngine::PlayUsingLauncher()
 		}
 		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Default)
 		{
-			bPlayUsingLauncherBuild = bPlayUsingLauncherHasCode;
+			bPlayUsingLauncherBuild = bPlayUsingLauncherHasCode || !FApp::GetEngineIsPromotedBuild();
 		}
 		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_IfEditorBuiltLocally)
 		{

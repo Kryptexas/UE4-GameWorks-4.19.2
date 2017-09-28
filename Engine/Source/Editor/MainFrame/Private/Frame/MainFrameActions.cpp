@@ -694,7 +694,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	}
 	else if(PackagingSettings->Build == EProjectPackagingBuild::IfProjectHasCode)
 	{
-		bBuild = bProjectHasCode;
+		bBuild = bProjectHasCode || !FApp::GetEngineIsPromotedBuild();
 	}
 	else if(PackagingSettings->Build == EProjectPackagingBuild::IfEditorWasBuiltLocally)
 	{

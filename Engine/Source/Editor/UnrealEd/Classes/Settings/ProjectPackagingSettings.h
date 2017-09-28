@@ -55,6 +55,9 @@ enum class EProjectPackagingInternationalizationPresets : uint8
 	All
 };
 
+/**
+ * Determines whether to build the executable when packaging. Note the equivalence between these settings and EPlayOnBuildMode.
+ */
 UENUM()
 enum class EProjectPackagingBuild
 {
@@ -65,10 +68,10 @@ enum class EProjectPackagingBuild
 	Never UMETA(DisplayName="Never"),
 
 	/** Default (if the Never build. */
-	IfProjectHasCode UMETA(DisplayName="If project has code"),
+	IfProjectHasCode UMETA(DisplayName="If project has code, or running a locally built editor"),
 
 	/** If we're not packaging from a promoted build. */
-	IfEditorWasBuiltLocally UMETA(DisplayName="If the editor was built locally")
+	IfEditorWasBuiltLocally UMETA(DisplayName="If running a locally built editor")
 };
 
 /**
