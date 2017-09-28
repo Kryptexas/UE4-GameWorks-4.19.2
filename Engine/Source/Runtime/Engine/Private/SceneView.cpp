@@ -1825,7 +1825,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 			FinalPostProcessSettings.ScreenPercentage *= ScreenPercentageCVar->GetValueOnGameThread() / 100.0f;
 		}
 
-		if (ViewInitOptions.EditorViewScreenPercentage.IsSet())
+		if (ViewInitOptions.EditorViewScreenPercentage.IsSet() && StereoPass == EStereoscopicPass::eSSP_FULL)
 		{
 			FinalPostProcessSettings.ScreenPercentage *= ViewInitOptions.EditorViewScreenPercentage.GetValue() / 100.0f;
 		}
