@@ -2,6 +2,7 @@
 
 #include "AppleARKitModule.h"
 #include "AppleARKitSystem.h"
+#include "ModuleManager.h"
 #include "Features/IModularFeature.h"
 #include "Features/IModularFeatures.h"
 
@@ -27,6 +28,7 @@ FString FAppleARKitModule::GetModuleKeyName() const
 
 void FAppleARKitModule::StartupModule()
 {
+	ensureMsgf(FModuleManager::Get().LoadModule("AugmentedReality"), TEXT("ARKit depends on the AugmentedReality module."));
 	IHeadMountedDisplayModule::StartupModule();
 }
 
