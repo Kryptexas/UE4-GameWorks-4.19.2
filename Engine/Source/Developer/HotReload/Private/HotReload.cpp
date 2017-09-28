@@ -721,8 +721,10 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		// Reload the module if it was loaded before we recompiled
 		if( bWasSuccessful && (bWasModuleLoaded || bForceCodeProject) && bReloadAfterRecompile )
 		{
+			TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
 			Ar.Logf( TEXT( "Reloading module %s after successful compile." ), *InModuleName.ToString() );
 			bWasSuccessful = ModuleManager.LoadModuleWithCallback( InModuleName, Ar );
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 		}
 	}
 
