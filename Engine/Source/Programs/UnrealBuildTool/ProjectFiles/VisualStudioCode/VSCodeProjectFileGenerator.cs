@@ -1089,7 +1089,7 @@ namespace UnrealBuildTool
 
 		private void GetExcludePathsCPP(DirectoryReference BaseDir, List<string> PathsToExclude)
 		{
-			string[] DirWhiteList = { "Build", "Config", "Plugins", "Source", "Private", "Public", "Classes", "Resources" };
+			string[] DirWhiteList = { "Binaries", "Build", "Config", "Plugins", "Source", "Private", "Public", "Classes", "Resources" };
 			foreach (DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(BaseDir, "*", SearchOption.TopDirectoryOnly))
 			{
 				if (Array.Find(DirWhiteList, Dir => Dir == SubDir.GetDirectoryName()) == null)
