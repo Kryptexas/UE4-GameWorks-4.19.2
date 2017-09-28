@@ -1847,6 +1847,8 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 
 		if (bHMDAllocated)
 		{
+			const uint32 OldElementSize = SceneDepthZ->ComputeMemorySize();
+
 			// If SRT and texture are different (MSAA), only modify the resolve render target, to avoid creating a swapchain of MSAA textures
 			if (SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture == SceneDepthZ->GetRenderTargetItem().TargetableTexture)
 			{
@@ -1856,6 +1858,8 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 			{
 				SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture = SRTex;
 			}
+
+			GRenderTargetPool.UpdateElementSize(SceneDepthZ, OldElementSize);
 		}
 
 		SceneStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);

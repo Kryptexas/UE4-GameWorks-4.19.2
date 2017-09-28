@@ -285,6 +285,8 @@ public:
 
 	FVisualizeTexture VisualizeTexture;
 
+	void UpdateElementSize(const TRefCountPtr<IPooledRenderTarget>& Element, const uint32 OldSize);
+
 private:
 
 	bool DoesTargetNeedTransienceOverride(const FPooledRenderTargetDesc& InputDesc, ERenderTargetTransience TransienceHint) const;
