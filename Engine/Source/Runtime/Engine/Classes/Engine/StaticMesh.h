@@ -624,7 +624,7 @@ public:
 	// NvFlex begin
     /** Properties for the associated Flex object */
 	UPROPERTY()
-	class UFlexAsset* FlexAsset_DEPRECATED;
+	UObject* FlexAsset_DEPRECATED;
 	// NvFlex end
 
 public:

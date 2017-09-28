@@ -5363,7 +5363,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 				GFlexPluginBridge->GetFlexFluidSurfaceMaterial(Instance->SpriteTemplate->FlexFluidSurfaceTemplate))
 			{
 				GFlexPluginBridge->RegisterNewFlexFluidSurfaceComponent(Instance, FlexFluidSurfaceOverride);
-	}
+			}
 		}
 #endif
 	}

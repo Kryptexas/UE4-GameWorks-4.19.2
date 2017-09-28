@@ -98,13 +98,14 @@ void FFlexEditorModule::ShutdownModule()
 void FFlexEditorModule::OnFilesLoaded()
 {
 	UE_LOG(LogFlexEditor, Log, TEXT("FFlexEditorModule::OnFilesLoaded() ProjectFilePath = '%s'"), *FPaths::GetProjectFilePath());
-
+#if 0
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
 	TArray<FAssetData> AssetData;
 	FARFilter Filter;
-	Filter.ClassNames.Add(UStaticMesh::StaticClass()->GetFName());
+	//Filter.ClassNames.Add(UStaticMesh::StaticClass()->GetFName());
+	//Filter.ClassNames.Add(UParticleEmitter::StaticClass()->GetFName());
 	Filter.PackagePaths.Add("/Game");
 	Filter.bRecursivePaths = true;
 	if (AssetRegistryModule.Get().GetAssets(Filter, AssetData) && AssetData.Num() > 0)
@@ -118,12 +119,18 @@ void FFlexEditorModule::OnFilesLoaded()
 		{
 			const FAssetData& Asset = *AssetIt;
 
-			UE_LOG(LogFlexEditor, Log, TEXT("Asset %s %s %s"), *Asset.AssetClass.ToString(), *Asset.AssetName.ToString(), *Asset.PackageName.ToString());
+			UE_LOG(LogFlexEditor, Log, TEXT("Asset %s"), *Asset.GetFullName());
 			UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset.GetAsset());
-			if (StaticMesh->FlexAsset_DEPRECATED)
+			if (StaticMesh && StaticMesh->FlexAsset_DEPRECATED)
 			{
+				UE_LOG(LogFlexEditor, Log, TEXT("--- StaticMesh %s"), *StaticMesh->GetFullName());
 				StaticMeshesToConvert.Add(StaticMesh);
 			}
+		}
+
+		if (StaticMeshesToConvert.Num() == 0)
+		{
+			return;
 		}
 
 		const FText Message = FText::Format(NSLOCTEXT("FlexEditorPlugin", "Convert Static Mesh Assets", "Found {0} non-plugin Flex Static Mesh Assets. Would you like to convert them to use with Flex plugin?"), FText::AsNumber(StaticMeshesToConvert.Num()));
@@ -170,4 +177,5 @@ void FFlexEditorModule::OnFilesLoaded()
 			}
 		}
 	}
+#endif
 }

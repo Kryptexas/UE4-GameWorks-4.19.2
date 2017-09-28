@@ -1271,7 +1271,7 @@ public:
 	* Get all of the FleX container templates from all of the emitter instances
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Flex")
-	UFlexContainer* GetFirstFlexContainerTemplate();
+	class UFlexContainer* GetFirstFlexContainerTemplate();
 
 	FORCEINLINE int32 GetCurrentLODIndex() const
 	{
