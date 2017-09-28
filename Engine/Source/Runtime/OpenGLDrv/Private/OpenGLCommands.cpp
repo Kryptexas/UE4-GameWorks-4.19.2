@@ -3320,29 +3320,19 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 	FIntRect PrevScissor = PendingState.Scissor;
 	bool bPrevScissorEnabled = PendingState.bScissorEnabled;
 
-	bool bClearAroundExcludeRect = false;
-
 	bool bScissorChanged = false;
 	GPUProfilingData.RegisterGPUWork(0);
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
 	BindPendingFramebuffer(ContextState);
 
-	if( !bClearAroundExcludeRect )
+	if (bPrevScissorEnabled || PendingState.Viewport.Min.X != 0 || PendingState.Viewport.Min.Y != 0 || PendingState.Viewport.Max.X != PendingState.RenderTargetWidth || PendingState.Viewport.Max.Y != PendingState.RenderTargetHeight)
 	{
-		if (bPrevScissorEnabled)
-		{
-			RHISetScissorRect(true,PrevScissor.Min.X, PrevScissor.Min.Y, PrevScissor.Max.X, PrevScissor.Max.Y);
-			bScissorChanged = true;
-		}
-		else if (PendingState.Viewport.Min.X != 0 || PendingState.Viewport.Min.Y != 0 || PendingState.Viewport.Max.X != PendingState.RenderTargetWidth || PendingState.Viewport.Max.Y != PendingState.RenderTargetHeight)
-		{
-			RHISetScissorRect(true,PendingState.Viewport.Min.X, PendingState.Viewport.Min.Y, PendingState.Viewport.Max.X, PendingState.Viewport.Max.Y);
-			bScissorChanged = true;
-		}
-
-		// Always update in case there are uncommitted changes to disable scissor
-		UpdateScissorRectInOpenGLContext(ContextState);
+		RHISetScissorRect(false, 0, 0, 0, 0);
+		bScissorChanged = true;
 	}
+
+	// Always update in case there are uncommitted changes to disable scissor
+	UpdateScissorRectInOpenGLContext(ContextState);
 
 	int8 ClearType = CT_None;
 
