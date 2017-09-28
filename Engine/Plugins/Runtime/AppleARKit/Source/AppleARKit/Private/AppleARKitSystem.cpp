@@ -598,6 +598,13 @@ namespace AppleARKitSupport
 {
 	TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> CreateAppleARKitSystem()
 	{
-		return TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe>(new FAppleARKitSystem());
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+		const bool bIsARApp = GetDefault<UGeneralProjectSettings>()->bStartInAR;
+		if (bIsARApp)
+		{
+			return TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe>(new FAppleARKitSystem());
+		}
+#endif
+		return TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe>();
 	}
 }
