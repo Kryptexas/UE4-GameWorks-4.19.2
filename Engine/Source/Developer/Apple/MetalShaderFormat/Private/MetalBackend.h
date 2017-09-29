@@ -19,8 +19,9 @@ class FMetalLanguageSpec : public ILanguageSpec
 	uint8 Version;
 public:
 	uint32 ClipDistanceCount;
+	uint32 ClipDistancesUsed;
 	
-	FMetalLanguageSpec(uint8 InVersion) : Version(InVersion), ClipDistanceCount(0) {}
+	FMetalLanguageSpec(uint8 InVersion) : Version(InVersion), ClipDistanceCount(0), ClipDistancesUsed(0) {}
 	
 	uint32 GetClipDistanceCount() const { return ClipDistanceCount; }
 	

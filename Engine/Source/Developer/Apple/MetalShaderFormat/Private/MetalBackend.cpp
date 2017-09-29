@@ -4911,7 +4911,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 		}
 	}
 
-	uint32 ClipDistancesUsed = 0;
+	uint32& ClipDistancesUsed = ((FMetalLanguageSpec*)ParseState->LanguageSpec)->ClipDistancesUsed;
 	uint32& NumClipDistancesUsed = ((FMetalLanguageSpec*)ParseState->LanguageSpec)->ClipDistanceCount;
 	uint32 const ClipPrefixLen = 15;
 	
@@ -4941,7 +4941,6 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 		}
 	}
 	
-	TArray<char const*> ClipDistanceFields;
 	if (!EntryPointSig->return_type->is_void() && EntryPointSig->return_type->is_record() && !bIsTessellationVSHS)
 	{
 		for (uint32 i = 0; i < EntryPointSig->return_type->length; ++i)
@@ -4960,7 +4959,6 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 					{
 						ClipDistancesUsed |= (1 << Index);
 						NumClipDistancesUsed++;
-						ClipDistanceFields.Add(EntryPointSig->return_type->fields.structure[i].name);
 					}
 				}
 				else if (FCStringAnsi::Strnicmp(FieldSemantic, "SV_Depth", 8) == 0)
@@ -4975,7 +4973,6 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 
 	ParseState->symbols->push_scope();
 
-	TArray<ir_dereference*> ClipDistancVars;
 	// Find all system semantics and generate in/out globals
 	foreach_iter(exec_list_iterator, Iter, EntryPointSig->parameters)
 	{
@@ -5037,10 +5034,6 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 					&PreCallInstructions,
 					&PostCallInstructions
 					);
-				if(Variable->semantic && FCStringAnsi::Strnicmp(Variable->semantic, "SV_ClipDistance", ClipPrefixLen) == 0)
-				{
-					ClipDistancVars.Add(ArgVarDeref->clone(ParseState, nullptr));
-				}
 				break;
 			default:
 			   _mesa_glsl_error(
@@ -5107,53 +5100,6 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 		{
 			EntryPointReturn = MetalUtils::GenerateOutput(Frequency, bIsDesktop, ParseState, EntryPointSig->return_semantic, Qualifier, EntryPointSig->return_type, &DeclInstructions, &PreCallInstructions, &PostCallInstructions);
 		}
-	}
-	
-	// Broken desktop drivers require packing the clip-distance-results into a single value and passing them along as user attributes
-	if (bIsDesktop == EMetalGPUSemanticsImmediateDesktop && EntryPointReturn && NumClipDistancesUsed > 0 && ((!bIsTessellationVSHS && Frequency == HSF_VertexShader) ||  Frequency == HSF_DomainShader))
-	{
-		for (char const* ReturnField : ClipDistanceFields)
-		{
-			ClipDistancVars.Add(new(ParseState)ir_dereference_record(EntryPointReturn, ReturnField));
-		}
-		
-		exec_list ClipPostCallInstructions;
-		ir_dereference_variable* ArgVarDeref = MetalUtils::GenerateOutput(
-																		  Frequency, bIsDesktop,
-																		  ParseState,
-																		  "[[ clip_distance ]]",
-																		  Qualifier,
-																		  glsl_type::float_type,
-																		  &DeclInstructions,
-																		  &PreCallInstructions,
-																		  &ClipPostCallInstructions
-																		  );
-		ArgInstructions.push_tail(ArgVarDeref);
-		
-		ir_constant* zero = ir_constant::zero(ParseState, glsl_type::float_type);
-		
-		ir_expression* Comparison = nullptr;
-		for (ir_dereference* ir : ClipDistancVars)
-		{
-			ir_expression* GEqual = new(ParseState)ir_expression(ir_binop_gequal, ir, zero->clone(ParseState, nullptr));
-			if (Comparison)
-			{
-				Comparison = new(ParseState)ir_expression(ir_binop_logic_and, Comparison, GEqual);
-			}
-			else
-			{
-				Comparison = GEqual;
-			}
-		}
-		
-		ir_if* Branch = new(ParseState)ir_if(Comparison);
-		Branch->mode = ir_if::if_flatten;
-		
-		Branch->then_instructions.push_tail(new(ParseState)ir_assignment(ArgVarDeref->clone(ParseState, nullptr), new(ParseState)ir_constant(1.0f)));
-		Branch->else_instructions.push_tail(new(ParseState)ir_assignment(ArgVarDeref->clone(ParseState, nullptr), new(ParseState)ir_constant(-1.0f)));
-		
-		PostCallInstructions.push_tail(Branch);
-		PostCallInstructions.append_list(&ClipPostCallInstructions);
 	}
 
 		/*
