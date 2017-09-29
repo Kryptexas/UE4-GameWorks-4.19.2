@@ -4637,9 +4637,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 								Export.SuperIndex = Linker->MapObject(Struct->GetSuperStruct());
 								checkf(!Export.SuperIndex.IsNull(),
 									TEXT("Export Struct (%s) of type (%s) inheriting from (%s) of type (%s) has not mapped super struct."),
-									*(Struct->GetName()),
+									*GetPathNameSafe(Struct),
 									*(Struct->GetClass()->GetName()),
-									*(Struct->GetSuperStruct()->GetName()),
+									*GetPathNameSafe(Struct->GetSuperStruct()),
 									*(Struct->GetSuperStruct()->GetClass()->GetName())
 								);
 							}
