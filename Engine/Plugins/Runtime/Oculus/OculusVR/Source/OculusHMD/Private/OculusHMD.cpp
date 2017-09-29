@@ -2088,7 +2088,6 @@ namespace OculusHMD
 		ovrp_SetupDistortionWindow3(ovrpDistortionWindowFlag_None);
 		ovrp_SetSystemCpuLevel2(2);
 		ovrp_SetSystemGpuLevel2(3);
-		ovrp_RecenterTrackingOrigin2(ovrpRecenterFlag_Default);
 
 		return true;
 	}
