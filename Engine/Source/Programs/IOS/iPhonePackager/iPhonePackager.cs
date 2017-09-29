@@ -264,6 +264,19 @@ namespace iPhonePackager
 								return false;
 							}
 						}
+                        // get the provisioning uuid
+                        else if (Arg == "-provisioninguuid")
+                        {
+                            // make sure there's at least one more arg
+                            if (Arguments.Length > ArgIndex + 1)
+                            {
+                                Config.ProvisionUUID = Arguments[++ArgIndex];
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
 						else if (Arg == "-manifest")
 						{
 							// make sure there's at least one more arg
@@ -693,6 +706,7 @@ namespace iPhonePackager
 					Log("Configuration switches:");
 					Log("	 -stagedir <path>		  sets the directory to copy staged files from (defaults to none)");
 					Log("	 -project <path>		  path to the project being packaged");
+                    Log("	 -provisioning <uuid>	  uuid of the provisioning selected");
 					Log("	 -compress=fast|best|none  packaging compression level (defaults to none)");
 					Log("	 -strip					strip symbols during packaging");
 					Log("	 -config				   game configuration (e.g., Shipping, Development, etc...)");

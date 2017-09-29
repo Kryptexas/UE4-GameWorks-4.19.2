@@ -1760,6 +1760,11 @@ namespace UnrealBuildTool
 					else
 					{
 						Arguments += "PackageIPA \"" + PathToApp + "\" -createstub";
+                        IOSProvisioningData ProvisioningData = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(Target.Platform)).ReadProvisioningData(ProjectSettings);
+                        if (ProvisioningData != null && ProvisioningData.MobileProvisionUUID != "")
+                        {
+                            Arguments += " -provisioningUUID \"" + ProvisioningData.MobileProvisionUUID + "\"";
+                        }
 						// if we are making the dsym, then we can strip the debug info from the executable
 						if (Target.Rules.bStripSymbolsOnIOS || (Target.Configuration == UnrealTargetConfiguration.Shipping))
 						{
