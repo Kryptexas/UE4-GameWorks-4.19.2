@@ -8,11 +8,13 @@
 #include "SceneViewport.h"
 #include "SceneView.h"
 #include "GoogleARCoreDevice.h"
+#include "ARHitTestingSupport.h"
+#include "ARTrackingQuality.h"
 
 /**
 * Tango Head Mounted Display used for Argument Reality
 */
-class FGoogleARCoreHMD : public FXRTrackingSystemBase, public TSharedFromThis<FGoogleARCoreHMD, ESPMode::ThreadSafe>
+class FGoogleARCoreHMD : public FXRTrackingSystemBase, public IARHitTestingSupport, public IARTrackingQuality, public TSharedFromThis<FGoogleARCoreHMD, ESPMode::ThreadSafe>
 {
 	friend class FGoogleARCoreXRCamera;
 
@@ -47,8 +49,19 @@ public:
 	// @todo move this to some interface
 	virtual float GetWorldToMetersScale() const override;
 
+
+	//~ IARHitTestingSupport
+	//virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
+	//~ IARHitTestingSupport
+
+	//~ IARTrackingQuality
+	virtual EARTrackingQuality ARGetTrackingQuality() const override;
+	//~ IARTrackingQuality
+
 public:
 	FGoogleARCoreHMD();
+
+	~FGoogleARCoreHMD();
 
 	/** Config the TangoHMD.
 	* When bEnableHMD is true, TangoHMD will update game camera position and orientation using Tango pose.

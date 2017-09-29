@@ -81,9 +81,6 @@ void FGoogleARCoreBaseModule::StartupModule()
 	// Register VR-like controller interface.
 	ControllerInstance.RegisterController();
 
-	// Register our ability to hit-test in AR with Unreal
-	IModularFeatures::Get().RegisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), this);
-
 	// Register IHeadMountedDisplayModule
 	IHeadMountedDisplayModule::StartupModule();
 
@@ -97,9 +94,6 @@ void FGoogleARCoreBaseModule::ShutdownModule()
 
 	// Unregister VR-like controller interface.
 	ControllerInstance.UnregisterController();
-
-	// Unregister our ability to hit-test in AR with Unreal
-	IModularFeatures::Get().UnregisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), this);
 
 	// Complete Tango teardown.
 	FGoogleARCoreDevice::GetInstance()->OnModuleUnloaded();

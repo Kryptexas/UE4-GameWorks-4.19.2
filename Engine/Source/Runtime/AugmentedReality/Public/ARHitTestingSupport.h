@@ -18,12 +18,6 @@ struct FARHitTestResult
 	FARHitTestResult() {};
 	
 	/**
-	 * The type of the hit-test result.
-	 */
-	// UPROPERTY( BlueprintReadOnly, Category = "ARHitTestResult" )
-	// EARKitHitTestResultType Type;
-	
-	/**
 	 * The distance from the camera to the intersection in meters.
 	 */
 	UPROPERTY( BlueprintReadOnly, Category = "ARHitTestResult")
@@ -35,14 +29,6 @@ struct FARHitTestResult
 	 */
 	UPROPERTY( BlueprintReadOnly, Category = "ARHitTestResult")
 	FTransform Transform;
-	
-	/**
-	 * The anchor that the hit-test intersected.
-	 *
-	 * An anchor will only be provided for existing plane result types.
-	 */
-	// UPROPERTY( BlueprintReadOnly, Category = "ARHitTestResult")
-	// class UARAnchor* Anchor = nullptr;
 };
 
 
@@ -64,5 +50,6 @@ public:
 		return ModularFeatureName;
 	}
 
-	virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) = 0;
+	// @todo arkit : implement generic hit-test functionality
+	//virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) = 0;
 };

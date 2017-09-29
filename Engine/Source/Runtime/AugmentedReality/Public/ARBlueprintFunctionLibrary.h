@@ -14,8 +14,8 @@ class AUGMENTEDREALITY_API UARBlueprintFunctionLibrary : public UBlueprintFuncti
 {
 	GENERATED_BODY()
 
-	UFUNCTION(BlueprintCallable, Category = "AugmentedReality|LineTrace", meta = (WorldContext = "WorldContextObject", Keywords = "ar augmentedreality augmented reality line trace hit test"))
-	static bool ARLineTraceFromScreenPoint(UObject* WorldContextObject, const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults);
+	//UFUNCTION(BlueprintCallable, Category = "AugmentedReality|LineTrace", meta = (WorldContext = "WorldContextObject", Keywords = "ar augmentedreality augmented reality line trace hit test"))
+	//static bool ARLineTraceFromScreenPoint(UObject* WorldContextObject, const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults);
 	
 	UFUNCTION(BlueprintCallable, Category = "AugmentedReality|Tracking", meta = (WorldContext = "WorldContextObject", Keywords = "ar augmentedreality augmented reality tracking quality"))
 	static EARTrackingQuality GetTrackingQuality( UObject* WorldContextObject );

@@ -44,7 +44,7 @@ public:
 	//~ IXRTrackingSystem
 	
 	//~ IARHitTestingSupport
-	virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
+	//virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
 	//~ IARHitTestingSupport
 	
 	//~ IARTrackingQuality

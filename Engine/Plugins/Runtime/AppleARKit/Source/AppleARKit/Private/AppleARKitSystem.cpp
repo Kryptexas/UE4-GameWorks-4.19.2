@@ -226,11 +226,11 @@ float FAppleARKitSystem::GetWorldToMetersScale() const
 	return 100.0f;
 }
 
-bool FAppleARKitSystem::ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults)
-{
-	const bool bSuccess = HitTestAtScreenPosition(ScreenPosition, EAppleARKitHitTestResultType::ExistingPlaneUsingExtent, OutHitResults);
-	return bSuccess;
-}
+//bool FAppleARKitSystem::ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults)
+//{
+//	const bool bSuccess = HitTestAtScreenPosition(ScreenPosition, EAppleARKitHitTestResultType::ExistingPlaneUsingExtent, OutHitResults);
+//	return bSuccess;
+//}
 
 EARTrackingQuality FAppleARKitSystem::ARGetTrackingQuality() const
 {
