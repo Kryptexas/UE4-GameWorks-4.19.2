@@ -452,14 +452,18 @@ void FStreamableHandle::CompleteLoad()
 		ExecuteDelegate(CompleteDelegate, AsShared());
 		UnbindDelegates();
 
-		// Update any meta handles that are still active
-		for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandles)
+		if (ParentHandles.Num() > 0)
 		{
-			TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
-
-			if (Handle.IsValid())
+			// Update any meta handles that are still active. Copy the array first as elements may be removed from original while iterating
+			TArray<TWeakPtr<FStreamableHandle>> ParentHandlesCopy = ParentHandles;
+			for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandlesCopy)
 			{
-				Handle->UpdateCombinedHandle();
+				TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
+
+				if (Handle.IsValid())
+				{
+					Handle->UpdateCombinedHandle();
+				}
 			}
 		}
 	}
