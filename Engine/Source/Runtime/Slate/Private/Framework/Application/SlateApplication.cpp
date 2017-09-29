@@ -5236,13 +5236,10 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 
 	FReply Reply = FReply::Unhandled();
 
-#if PLATFORM_MAC
-	NSWindow* ActiveNativeWindow = [NSApp keyWindow];
-	TSharedPtr<SWindow> TopLevelWindow;
-#endif
-
 	// Update the drag detector, this release may stop a drag detection.
 	DragDetector.OnPointerRelease(PointerEvent);
+
+	const bool bIsDragDropping = IsDragDropping();
 
 	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
 	{
@@ -5282,9 +5279,6 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 				MouseCaptor.InvalidateCaptureForPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex());
 			}
 
-#if PLATFORM_MAC
-			TopLevelWindow = MouseCaptorPath.TopLevelWindow;
-#endif
 			LOG_EVENT( EEventLog::MouseButtonUp, Reply );
 		}
 	}
@@ -5296,7 +5290,6 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 		FScopedSwitchWorldHack SwitchWorld( LocalWidgetsUnderCursor );
 		
 		// Cache the drag drop content and reset the pointer in case OnMouseButtonUpMessage re-enters as a result of OnDrop
-		const bool bIsDragDropping = IsDragDropping();
 		TSharedPtr< FDragDropOperation > LocalDragDropContent = DragDropContent;
 		DragDropContent.Reset();
 
@@ -5339,25 +5332,25 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 
 			WidgetsUnderCursorLastEvent.Remove( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ) );
 		}
-#if PLATFORM_MAC
-		else if (ActiveNativeWindow == nullptr) // activate only if the app is in the background
-		{
-			TopLevelWindow = LocalWidgetsUnderCursor.TopLevelWindow;
-		}
-#endif
 	}
 
 #if PLATFORM_MAC
-	// Activate a window under the mouse if it's inactive and mouse up didn't bring any window to front
-	TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
-	if ( PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && TopLevelWindow.IsValid() && ActiveWindow != TopLevelWindow
-		&& ActiveNativeWindow == [NSApp keyWindow] && ![(NSWindow*)TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() isMiniaturized] )
+	// Make sure the application and its front window are activated if user wasn't drag & dropping between windows
+	if (PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !bIsDragDropping)
 	{
-		FPlatformApplicationMisc::ActivateApplication();
-
-		if ( !TopLevelWindow->IsVirtualWindow() )
+		TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
+		if (ActiveWindow.IsValid() && !ActiveWindow->GetNativeWindow()->IsForegroundWindow() && !ActiveWindow->GetNativeWindow()->IsMinimized())
 		{
-			TopLevelWindow->BringToFront(true);
+			FPlatformApplicationMisc::ActivateApplication();
+
+			if (!ActiveWindow->IsVirtualWindow())
+			{
+				ActiveWindow->BringToFront(true);
+			}
+		}
+		else if ([NSApp keyWindow] == nullptr)
+		{
+			FPlatformApplicationMisc::ActivateApplication();
 		}
 	}
 #endif
