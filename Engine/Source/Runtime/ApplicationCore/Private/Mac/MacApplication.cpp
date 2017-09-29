@@ -21,6 +21,7 @@
 
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>
+#include "CoreDelegates.h"
 
 FMacApplication* MacApplication = nullptr;
 
@@ -133,6 +134,9 @@ FMacApplication::FMacApplication()
 
 	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
+
+	FCoreDelegates::PreSlateModal.AddRaw(this, &FMacApplication::StartScopedModalEvent);
+    FCoreDelegates::PostSlateModal.AddRaw(this, &FMacApplication::EndScopedModalEvent);
 #endif
 }
 
@@ -173,7 +177,10 @@ FMacApplication::~FMacApplication()
 	{
 		TextInputMethodSystem->Terminate();
 	}
-
+#if WITH_EDITOR
+    FCoreDelegates::PreModal.RemoveAll(this);
+    FCoreDelegates::PostModal.RemoveAll(this);
+#endif
 	MacApplication = nullptr;
 }
 
@@ -334,6 +341,17 @@ void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 
 	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
+}
+void FMacApplication::StartScopedModalEvent()
+{
+    FPlatformApplicationMisc::bMacApplicationModalMode = true;
+    FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
+}
+
+void FMacApplication::EndScopedModalEvent()
+{
+    FPlatformApplicationMisc::bMacApplicationModalMode = false;
+    FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 }
 #endif
 

@@ -2012,8 +2012,10 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 		// Bail out.  The incoming window will never be added, and no native window will be created.
 		return;
 	}
-
-	// Push the active modal window onto the stack.  
+#if WITH_EDITOR
+    FCoreDelegates::PreSlateModal.Broadcast();
+#endif
+    // Push the active modal window onto the stack.
 	ActiveModalWindows.AddUnique( InSlateWindow );
 
 	// Close the open tooltip when a new window is open.  Tooltips from non-modal windows can be dangerous and cause rentrancy into code that shouldnt execute in a modal state.

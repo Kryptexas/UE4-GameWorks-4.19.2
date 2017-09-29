@@ -20,7 +20,9 @@ struct APPLICATIONCORE_API FMacPlatformApplicationMisc : public FGenericPlatform
 	static bool IsThisApplicationForeground();
 	static bool ControlScreensaver(EScreenSaverAction Action);
 	static void ActivateApplication();
+    static void UpdateApplicationMenu();
 	static void UpdateWindowMenu();
+    static void UpdateCocoaButtons();
 	static struct FLinearColor GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma = 1.0f);
 	static float GetDPIScaleFactorAtPoint(float X, float Y);
 	static void PumpMessages(bool bFromMainLoop);
@@ -33,6 +35,8 @@ struct APPLICATIONCORE_API FMacPlatformApplicationMisc : public FGenericPlatform
 	static UpdateCachedMacMenuStateProc UpdateCachedMacMenuState;
 
 	static bool bChachedMacMenuStateNeedsUpdate;
+    
+    static bool bMacApplicationModalMode;
 
 	static id<NSObject> CommandletActivity;
 };

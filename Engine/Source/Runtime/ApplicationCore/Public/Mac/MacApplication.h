@@ -182,6 +182,10 @@ public:
 
 #if WITH_EDITOR
 	virtual void SendAnalytics(IAnalyticsProvider* Provider) override;
+
+	void StartScopedModalEvent();
+
+	void EndScopedModalEvent();
 #endif
 
 public:

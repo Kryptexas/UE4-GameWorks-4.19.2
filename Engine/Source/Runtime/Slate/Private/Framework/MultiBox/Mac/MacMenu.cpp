@@ -166,7 +166,6 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 		FText WindowLabel = NSLOCTEXT("MainMenu", "WindowMenu", "Window");
 		const bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString([Menu title])) == 0);
-
 		int32 ItemIndexOffset = 0;
 		if (bIsWindowMenu)
 		{
@@ -235,15 +234,19 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 					[MenuItem setImage:nil];
 				}
 
-				if (MenuItemState.IsEnabled)
-				{
-					[MenuItem setTarget:MenuItem];
-                    if(!MenuItemState.IsSubMenu)
+                [MenuItem setTarget:MenuItem];
+                if(!MenuItemState.IsSubMenu)
+                {
+                   if(MenuItemState.IsEnabled)
                     {
                         [MenuItem setAction:@selector(performAction)];
                     }
-				}
-
+                    else
+                    {
+                        [MenuItem setAction:nil];
+                    }
+                }
+				
 				if (!MenuItemState.IsSubMenu)
 				{
 					[MenuItem setState:MenuItemState.State];
@@ -282,7 +285,6 @@ void FSlateMacMenu::UpdateCachedState()
 
 	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment
 	// so instead we assume that as long as there's any visible, regular window open, we do have some menu to show/update.
-	if(!FSlateApplication::Get().GetActiveModalWindow().IsValid())
 	{
 		const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
 		for (auto Window : AllWindows)
@@ -293,7 +295,7 @@ void FSlateMacMenu::UpdateCachedState()
 				break;
 			}
 		}
-	}
+    }
 	
 
 	if (bShouldUpdate)
@@ -504,6 +506,11 @@ bool FSlateMacMenu::IsMenuItemEnabled(const TSharedRef<const class FMenuEntryBlo
 		// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
 		bEnabled = DirectActions.CanExecute();
 	}
+    
+    if(FPlatformApplicationMisc::bMacApplicationModalMode)
+    {
+        bEnabled = false;
+    }
 
 	return bEnabled;
 }
