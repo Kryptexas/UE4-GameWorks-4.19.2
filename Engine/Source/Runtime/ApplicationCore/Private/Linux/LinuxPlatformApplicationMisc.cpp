@@ -350,6 +350,7 @@ void FLinuxPlatformApplicationMisc::LoadStartupModules()
 {
 #if !IS_PROGRAM && !UE_SERVER
 	FModuleManager::Get().LoadModule(TEXT("ALAudio"));	// added in Launch.Build.cs for non-server targets
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerSDL"));	// added in Launch.Build.cs for non-server targets
 	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
 #endif // !IS_PROGRAM && !UE_SERVER
 
