@@ -2645,6 +2645,22 @@ void UAnimSequence::RecycleAnimSequence()
 	TranslationCompressionFormat = RotationCompressionFormat = ScaleCompressionFormat = ACF_None;
 #endif // WITH_EDITORONLY_DATA
 }
+
+#if WITH_EDITOR
+void UAnimSequence::CleanAnimSequenceForImport()
+{
+	// Clear RawAnimData
+	RawAnimationData.Empty();
+	RawDataGuid.Invalidate();
+	AnimationTrackNames.Empty();
+	TrackToSkeletonMapTable.Empty();
+	CompressedTrackOffsets.Empty(0);
+	CompressedByteStream.Empty(0);
+	CompressedScaleOffsets.Empty(0);
+	SourceRawAnimationData.Empty(0);
+}
+#endif // WITH_EDITOR
+
 bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq, bool bSkipCopyingNotifies)
 {
 #if WITH_EDITORONLY_DATA
