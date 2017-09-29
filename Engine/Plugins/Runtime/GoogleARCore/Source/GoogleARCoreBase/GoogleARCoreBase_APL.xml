@@ -167,9 +167,9 @@
     <insertNewline/>
     <if condition="bGradle">
       <false>
-        <insert> , tango_java_lib, 0.0.0</insert>
+        <insert>com.google.tango, tango_java_lib, 0.0.0</insert>
         <insertNewline/>
-        <insert> , lighting_estimation, 0.0.0</insert>
+        <insert>com.google.tango, lighting_estimation, 0.0.0</insert>
         <insertNewline/>
       </false>
     </if>

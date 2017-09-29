@@ -125,7 +125,7 @@ FGoogleARCoreDevice::FGoogleARCoreDevice()
 	, bShouldTangoRestart(false)
 	, WorldToMeterScale(100.0f)
 	, PermissionHandler(nullptr)
-	, bDisplayOrientationChanged(true)
+	, bDisplayOrientationChanged(false)
 #if PLATFORM_ANDROID
 	, LowLevelTangoConfig(nullptr)
 #endif
@@ -151,6 +151,8 @@ void FGoogleARCoreDevice::OnModuleLoaded()
 		bIsARCoreSupported = true;
 	}
 #endif
+	// Init display orientation.
+	OnDisplayOrientationChanged();
 	ProjectTangoConfig = GetDefault<UGoogleARCoreEditorSettings>()->DefaultSessionConfig;
 	RequestTangoConfig = ProjectTangoConfig;
 	TangoARCameraManager.SetDefaultCameraOverlayMaterial(GetDefault<UGoogleARCoreCameraOverlayMaterialLoader>()->DefaultCameraOverlayMaterial);
