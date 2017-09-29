@@ -70,10 +70,6 @@ public:
 
 	// Development commands
 	TSharedPtr< FUICommandInfo > SaveIntermediateBuildProducts;
-	TSharedPtr< FUICommandInfo > RecompileGraphEditor;
-	TSharedPtr< FUICommandInfo > RecompileKismetCompiler;
-	TSharedPtr< FUICommandInfo > RecompileBlueprintEditor;
-	TSharedPtr< FUICommandInfo > RecompilePersona;
 	TSharedPtr< FUICommandInfo > GenerateNativeCode;
 	TSharedPtr< FUICommandInfo > ShowActionMenuItemSignatures;
 
