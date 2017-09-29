@@ -1058,16 +1058,19 @@ UK2Node* UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGra
 					{
 						Schema->MovePinLinks(*SubPin, *ExpandedPin);
 					}
-					// We should only discard the pin set when this node owns them.
-					Pins.Remove(SubPin);
-					SubPin->ParentPin = nullptr;
-					SubPin->MarkPendingKill();
 				}
 				else
 				{
 					Schema->TryCreateConnection(Pin, ExpandedPin);
 				}
 			}
+		}
+
+		for(UEdGraphPin* SubPin : Pin->SubPins)
+		{
+			Pins.Remove(SubPin);
+			SubPin->ParentPin = nullptr;
+			SubPin->MarkPendingKill();
 		}
 		Pin->SubPins.Empty();
 	}
