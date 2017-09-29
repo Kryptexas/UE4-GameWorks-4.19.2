@@ -325,7 +325,7 @@ void FMacWindow::Show()
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:bShouldActivate andKey:bShouldActivate];
-		}, UE4ShowEventMode, false);
+		}, UE4ShowEventMode, true);
 
 		if (bShouldActivate)
 		{
@@ -346,7 +346,7 @@ void FMacWindow::Hide()
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderOut:nil];
-		}, UE4CloseEventMode, false);
+		}, UE4CloseEventMode, true);
 	}
 }
 
