@@ -435,20 +435,14 @@ void SDockingArea::OnOwningWindowBeingDestroyed(const TSharedRef<SWindow>& Windo
 void SDockingArea::OnOwningWindowActivated()
 {
 	// Update the global menu bar when the window activation changes.
-	TSharedPtr< SWidget > MenuBar;
-	TSharedPtr<FTabManager> TabManager = MyTabManager.Pin();
-	if(FGlobalTabmanager::Get() == TabManager)
+	TArray< TSharedRef<SDockTab> > AllTabs = GetAllChildTabs();
+	for (int32 TabIndex=0; TabIndex < AllTabs.Num(); ++TabIndex)
 	{
-		TSharedPtr<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
-		TSharedPtr<SDockTab> ActiveTab = GlobalTabManager->GetActiveTab();
-		if(ActiveTab.IsValid())
+		if (AllTabs[TabIndex]->IsForeground())
 		{
-			ActiveTab->GetTabManager()->UpdateMainMenu(true);
+			FGlobalTabmanager::Get()->UpdateMainMenu(AllTabs[TabIndex], true);
+			break;
 		}
-	}
-	else
-	{
-		TabManager->UpdateMainMenu(true);
 	}
 }
 
