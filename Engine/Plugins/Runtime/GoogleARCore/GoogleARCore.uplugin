@@ -8,7 +8,9 @@
     "Category" : "Augmented Reality",
     "CreatedBy" : "Google",
     "CreatedByURL" : "https://developers.google.com/tango/",
-    "CanContainContent" : true,
+    "CanContainContent": true,
+    "IsBetaVersion": true,
+    "EnabledByDefault": false,
     "Modules" :
     [
         {
