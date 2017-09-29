@@ -2102,7 +2102,7 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
 				Text.AppendLine("\t\t          xmlns:tools=\"http://schemas.android.com/tools\"");
 				Text.AppendLine("\t\t          tools:replace=\"android:configChanges\"");
-				Text.AppendLine("\t\t          android:configChanges=\"density|keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
+				Text.AppendLine("\t\t          android:configChanges=\"keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
 			}
 			if (!string.IsNullOrEmpty(ExtraApplicationSettings))
 			{
