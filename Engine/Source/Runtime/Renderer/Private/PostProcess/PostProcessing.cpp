@@ -2519,6 +2519,27 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			AddHighResScreenshotMask(Context, EmptySeparateTranslucency);
 		}
 		
+	
+#if WITH_EDITOR
+		// Show the selection outline if it is in the editor and we aren't in wireframe 
+		// If the engine is in demo mode and game view is on we also do not show the selection outline
+		if ( GIsEditor
+			&& View.Family->EngineShowFlags.SelectionOutline
+			&& !(View.Family->EngineShowFlags.Wireframe)
+			)
+		{
+			// Editor selection outline
+			AddSelectionOutline(Context);
+		}
+
+		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View))
+		{
+			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(false));
+			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
+		}
+#endif
+
 		// Apply ScreenPercentage
 		if (View.UnscaledViewRect != View.ViewRect)
 		{
@@ -2541,25 +2562,6 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			*DoScreenPercentageInTonemapperPtr = false;
 		}
 
-#if WITH_EDITOR
-		// Show the selection outline if it is in the editor and we aren't in wireframe 
-		// If the engine is in demo mode and game view is on we also do not show the selection outline
-		if ( GIsEditor
-			&& View.Family->EngineShowFlags.SelectionOutline
-			&& !(View.Family->EngineShowFlags.Wireframe)
-			)
-		{
-			// Editor selection outline
-			AddSelectionOutline(Context);
-		}
-
-		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View) )
-		{
-			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(false));
-			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-			Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
-		}
-#endif
 
 		const EDebugViewShaderMode DebugViewShaderMode = View.Family->GetDebugViewShaderMode();
 		if(DebugViewShaderMode == DVSM_QuadComplexity)
