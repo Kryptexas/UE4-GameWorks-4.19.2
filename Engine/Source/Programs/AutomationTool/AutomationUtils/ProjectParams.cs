@@ -939,6 +939,15 @@ namespace AutomationTool
                 this.RunTimeoutSeconds = Command.ParseParamInt("runtimeoutseconds");
             }
 
+			// Gather up any '-ini:' arguments and save them. We'll pass these along to other tools that may be spawned in a new process as part of the command.
+			foreach (string Param in Command.Params)
+			{
+				if (Param.StartsWith("ini:", StringComparison.InvariantCultureIgnoreCase))
+				{
+					this.ConfigOverrideParams.Add(Param);
+				}
+			}
+
 			AutodetectSettings(false);
 			ValidateAndLog();
 		}
@@ -1172,6 +1181,11 @@ namespace AutomationTool
         /// Determines if Blueprint assets should be substituted with auto-generated code.
         /// </summary>
         public bool RunAssetNativization;
+
+		/// <summary>
+		/// Keeps track of any '-ini:type:[section]:value' arguments on the command line. These will override cached config settings for the current process, and can be passed along to other tools.
+		/// </summary>
+		public List<string> ConfigOverrideParams = new List<string>();
 
         #endregion
 

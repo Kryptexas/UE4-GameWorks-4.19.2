@@ -107,6 +107,13 @@ public partial class Project : CommandUtils
 			AdditionalArgs += " -skipdeploy"; // skip deploy step in UBT if we going to do it later anyway
 		}
 
+		// Config overrides (-ini)
+		foreach (string ConfigOverrideParam in Params.ConfigOverrideParams)
+		{
+			AdditionalArgs += " -";
+			AdditionalArgs += ConfigOverrideParam;
+		}
+
 		// Setup cooked targets
 		if (Params.HasClientCookedTargets && (!Params.SkipBuildClient) && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
 		{

@@ -245,6 +245,13 @@ public partial class Project : CommandUtils
                     Maps = MapsList.ToArray();
                 }
 
+				// Config overrides (-ini)
+				foreach(string ConfigOverrideParam in Params.ConfigOverrideParams)
+				{
+					CommandletParams += " -";
+					CommandletParams += ConfigOverrideParam;
+				}
+
                 CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, CulturesToCook, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
 
 				SharedCookedBuild.WaitForCopy();

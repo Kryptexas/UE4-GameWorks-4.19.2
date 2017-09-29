@@ -473,6 +473,13 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	{
 		UATCommand += TEXT(" -build");
 
+		// Override the Blueprint nativization method for anything other than "cook by the book" mode. Nativized assets
+		// won't get regenerated otherwise, and we don't want UBT to include generated code assets from a previous cook.
+		if (InProfile->GetCookMode() != ELauncherProfileCookModes::ByTheBook)
+		{
+			UATCommand += TEXT(" -ini:Game:[/Script/UnrealEd.ProjectPackagingSettings]:BlueprintNativizationMethod=Disabled");
+		}
+
 		FCommandDesc Desc;
 		FText Command = FText::Format(LOCTEXT("LauncherBuildDesc", "Build game for {0}"), FText::FromString(Platforms.RightChop(1)));
 		Desc.Name = "Build Task";
@@ -629,8 +636,6 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		UATCommand += TEXT(" -skipcook");
 		break;
 	}
-
-
 
 	if ( InProfile->IsForDistribution() )
 	{
