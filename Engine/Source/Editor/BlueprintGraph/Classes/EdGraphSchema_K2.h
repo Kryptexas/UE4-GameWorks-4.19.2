@@ -544,9 +544,28 @@ public:
 	/** Returns true if the pin has a value field that can be edited inline */
 	bool PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin) const;
 
+	struct FCreateSplitPinNodeParams
+	{
+		FCreateSplitPinNodeParams(const bool bInTransient)
+			: CompilerContext(nullptr)
+			, SourceGraph(nullptr)
+			, bTransient(bInTransient)
+		{}
+
+		FCreateSplitPinNodeParams(class FKismetCompilerContext* InCompilerContext, UEdGraph* InSourceGraph)
+			: CompilerContext(InCompilerContext)
+			, SourceGraph(InSourceGraph)
+			, bTransient(false)
+		{}
+
+		FKismetCompilerContext* CompilerContext;
+		UEdGraph* SourceGraph;
+		bool bTransient;
+	};
+
 	/** Helper function to create the expansion node.  
 		If the CompilerContext is specified this will be created as an intermediate node */
-	class UK2Node* CreateSplitPinNode(UEdGraphPin* Pin, class FKismetCompilerContext* CompilerContext = NULL, UEdGraph* SourceGraph = NULL) const;
+	UK2Node* CreateSplitPinNode(UEdGraphPin* Pin, const FCreateSplitPinNodeParams& Params) const;
 
 	/** Reads in a FString and gets the values of the pin defaults for that type. This can be passed to DefaultValueSimpleValidation to validate. OwningObject can be null */
 	virtual void GetPinDefaultValuesFromString(const FEdGraphPinType& PinType, UObject* OwningObject, const FString& NewValue, FString& UseDefaultValue, UObject*& UseDefaultObject, FText& UseDefaultText) const;

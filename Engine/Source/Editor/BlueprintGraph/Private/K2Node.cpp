@@ -1028,7 +1028,7 @@ UK2Node* UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGra
 
 	if (Pins.Contains(Pin))
 	{
-		ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
+		ExpandedNode = Schema->CreateSplitPinNode(Pin, UEdGraphSchema_K2::FCreateSplitPinNodeParams(CompilerContext, SourceGraph));
 
 		int32 SubPinIndex = 0;
 
