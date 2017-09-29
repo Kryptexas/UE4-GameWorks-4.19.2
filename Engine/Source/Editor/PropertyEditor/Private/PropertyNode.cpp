@@ -2668,7 +2668,7 @@ void FPropertyNode::AdditionalInitializationUDS(UProperty* Property, uint8* RawP
 	}
 }
 
-void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index )
+void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult)
 {
 	UProperty* NodeProperty = GetProperty();
 	UArrayProperty* ArrayProperty = NULL;
@@ -2756,6 +2756,12 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 				ConvertedProperty->ExportText_Direct(OriginalContent, Addr, Addr, nullptr, PPF_None);
 
 				bool bIsDefaultContainerContent = OriginalContent == OriginalContainerContent;
+
+				// Return instance changes result to caller
+				if (PropagationResult != nullptr)
+				{
+					PropagationResult->Add(ActualObjToChange, bIsDefaultContainerContent);
+				}
 
 				if (ArrayProperty)
 				{

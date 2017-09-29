@@ -1211,7 +1211,8 @@ void FPropertyValueImpl::AddChild()
 			// we don't want the objects to be marked dirty)
 			bool bNotifiedPreChange = false;
 
-			TArray< TMap<FString,int32> > ArrayIndicesPerObject;
+			TArray< TMap<FString, int32> > ArrayIndicesPerObject;
+			TArray< TMap<UObject*, bool> > PropagationResultPerObject;
 
 			// List of top level objects sent to the PropertyChangedEvent
 			TArray<const UObject*> TopLevelObjects;
@@ -1252,7 +1253,10 @@ void FPropertyValueImpl::AddChild()
 						{
 							FString OrgContent;
 							NodeProperty->ExportText_Direct(OrgContent, Addr, Addr, nullptr, 0);
-							PropertyNodePin->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Add, -1);
+
+							TMap<UObject*, bool> PropagationResult;
+							PropertyNodePin->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Add, -1, &PropagationResult);
+							PropagationResultPerObject.Add(MoveTemp(PropagationResult));
 						}
 
 						TopLevelObjects.Add(Obj);
@@ -1291,6 +1295,7 @@ void FPropertyValueImpl::AddChild()
 
 			FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ArrayAdd, &TopLevelObjects);
 			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+			ChangeEvent.SetInstancesChangedResultPerArchetype(PropagationResultPerObject);
 
 			if ( bNotifiedPreChange )
 			{
@@ -1448,7 +1453,7 @@ void FPropertyValueImpl::ClearChildren()
 				}
 			}
 
-			FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet, &TopLevelObjects);
+			FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ArrayClear, &TopLevelObjects);
 
 			if ( bNotifiedPreChange )
 			{
@@ -1502,6 +1507,8 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 		FScriptArrayHelper	ArrayHelper(ArrayProperty,Addr);
 		int32 Index = ChildNodePtr->GetArrayIndex();
 
+		TArray< TMap<UObject*, bool> > PropagationResultPerObject;
+
 		// List of top level objects sent to the PropertyChangedEvent
 		TArray<const UObject*> TopLevelObjects;
 
@@ -1515,7 +1522,9 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 				FString OrgArrayContent;
 				ArrayProperty->ExportText_Direct(OrgArrayContent, Addr, Addr, nullptr, 0);
 
-				ChildNodePtr->PropagateContainerPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Insert, Index);
+				TMap<UObject*, bool> PropagationResult;
+				ChildNodePtr->PropagateContainerPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Insert, Index, &PropagationResult);
+				PropagationResultPerObject.Add(MoveTemp(PropagationResult));
 			}
 
 			TopLevelObjects.Add(Obj);
@@ -1536,6 +1545,8 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 
 		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ArrayAdd, &TopLevelObjects);
 		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+		ChangeEvent.SetInstancesChangedResultPerArchetype(PropagationResultPerObject);
+
 		ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 
 		if (PropertyUtilities.IsValid())
@@ -1568,6 +1579,9 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 	USetProperty* SetProperty = Cast<USetProperty>(NodeProperty->GetOuter());
 	UMapProperty* MapProperty = Cast<UMapProperty>(NodeProperty->GetOuter());
 
+	TArray< TMap<FString, int32> > ArrayIndicesPerObject;
+	TArray< TMap<UObject*, bool> > PropagationResultPerObject;
+
 	check(ArrayProperty || SetProperty || MapProperty);
 
 	FReadAddressList ReadAddresses;
@@ -1591,6 +1605,10 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 			{
 				int32 Index = ChildNodePtr->GetArrayIndex();
 
+				//add on array index so we can tell which entry just changed
+				ArrayIndicesPerObject.Add(TMap<FString, int32>());
+				FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[i], ChildNodePtr);
+
 				UObject* Obj = ObjectNode ? ObjectNode->GetUObject(i) : nullptr;
 				if (Obj)
 				{
@@ -1600,7 +1618,11 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 					{
 						FString OrgContent;
 						Cast<UProperty>(NodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
-						ChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Delete, Index);
+
+						TMap<UObject*, bool> PropagationResult;
+						ChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Delete, Index, &PropagationResult);
+
+						PropagationResultPerObject.Add(MoveTemp(PropagationResult));
 					}
 
 					TopLevelObjects.Add(Obj);
@@ -1662,10 +1684,15 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 					MapHelper.RemoveAt(ChildNodePtr->GetArrayIndex());
 					MapHelper.Rehash();
 				}
+
+				ArrayIndicesPerObject[i].Add(NodeProperty->GetName(), Index);
 			}
 		}
 
-		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Unspecified, &TopLevelObjects);
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ArrayRemove, &TopLevelObjects);
+		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+		ChangeEvent.SetInstancesChangedResultPerArchetype(PropagationResultPerObject);
+
 		ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 
 		if (PropertyUtilities.IsValid())
@@ -2136,6 +2163,8 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 		UObject* Obj = ObjectNode ? ObjectNode->GetUObject(0) : nullptr;
 
 		TArray< TMap<FString, int32> > ArrayIndicesPerObject;
+		TArray< TMap<UObject*, bool> > PropagationResultPerObject;
+
 		if (Obj)
 		{
 			if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
@@ -2144,7 +2173,10 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 			{
 				FString OrgContent;
 				Cast<UProperty>(NodeProperty->GetOuter())->ExportText_Direct(OrgContent, Addr, Addr, nullptr, 0);
-				ChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Duplicate, Index);
+
+				TMap<UObject*, bool> PropagationResult;
+				ChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Duplicate, Index, &PropagationResult);
+				PropagationResultPerObject.Add(MoveTemp(PropagationResult));
 			}
 
 			TopLevelObjects.Add(Obj);
@@ -2197,6 +2229,7 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 
 		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Duplicate, &TopLevelObjects);
 		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+		ChangeEvent.SetInstancesChangedResultPerArchetype(PropagationResultPerObject);
 
 		ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 

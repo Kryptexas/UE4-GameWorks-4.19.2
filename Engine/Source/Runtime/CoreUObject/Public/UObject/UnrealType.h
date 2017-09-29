@@ -4302,14 +4302,18 @@ namespace EPropertyChangeType
 	const Type Unspecified = 1 << 0;
 	//Array Add
 	const Type ArrayAdd = 1 << 1;
+	//Array Remove
+	const Type ArrayRemove = 1 << 2;
+	//Array Clear
+	const Type ArrayClear = 1 << 3;
 	//Value Set
-	const Type ValueSet = 1 << 2;
+	const Type ValueSet = 1 << 4;
 	//Duplicate
-	const Type Duplicate = 1 << 3;
+	const Type Duplicate = 1 << 5;
 	//Interactive, e.g. dragging a slider. Will be followed by a ValueSet when finished.
-	const Type Interactive = 1 << 4;
+	const Type Interactive = 1 << 6;
 	//Redirected.  Used when property references are updated due to content hot-reloading, or an asset being replaced during asset deletion (aka, asset consolidation).
-	const Type Redirected = 1 << 5;
+	const Type Redirected = 1 << 7;
 };
 
 /**
@@ -4324,6 +4328,7 @@ struct FPropertyChangedEvent
 		, ChangeType(EPropertyChangeType::Unspecified)
 		, ObjectIteratorIndex(INDEX_NONE)
 		, ArrayIndicesPerObject(nullptr)
+		, InstancesChangedResultPerArchetype(nullptr)
 		, TopLevelObjects(nullptr)
 	{
 	}
@@ -4334,6 +4339,7 @@ struct FPropertyChangedEvent
 		, ChangeType(InChangeType)
 		, ObjectIteratorIndex(INDEX_NONE)
 		, ArrayIndicesPerObject(nullptr)
+		, InstancesChangedResultPerArchetype(nullptr)
 		, TopLevelObjects(InTopLevelObjects)
 	{
 	}
@@ -4352,6 +4358,14 @@ struct FPropertyChangedEvent
 	}
 
 	/**
+	 * Saves off map of instance changed result per archetype being set.
+	 */
+	void SetInstancesChangedResultPerArchetype(const TArray< TMap<UObject*, bool> >& InInstancesChangedResultPerArchetype)
+	{
+		InstancesChangedResultPerArchetype = &InInstancesChangedResultPerArchetype;
+	}
+
+	/**
 	 * Gets the Array Index of the "current object" based on a particular name
 	 * InName - Name of the property to find the array index for
 	 */
@@ -4367,6 +4381,26 @@ struct FPropertyChangedEvent
 				Retval = *ValuePtr;
 			}
 		}
+		return Retval;
+	}
+
+	/**
+	 * Gets the instance changed status of the "current object" based on the instance provided
+	 * InInstance - The instance we want to know the status.
+	 */
+	bool HasArchetypeInstanceChanged(UObject* InInstance) const
+	{
+		bool Retval = true;
+
+		if (InstancesChangedResultPerArchetype && InstancesChangedResultPerArchetype->IsValidIndex(ObjectIteratorIndex))
+		{
+			const bool* ValuePtr = (*InstancesChangedResultPerArchetype)[ObjectIteratorIndex].Find(InInstance);
+			if (ValuePtr)
+			{
+				Retval = *ValuePtr;
+			}
+		}
+
 		return Retval;
 	}
 
@@ -4410,6 +4444,9 @@ struct FPropertyChangedEvent
 private:
 	//In the property window, multiple objects can be selected at once.  In the case of adding/inserting to an array, each object COULD have different indices for the new entries in the array
 	const TArray< TMap<FString,int32> >* ArrayIndicesPerObject;
+	
+	//In the property window, multiple objects can be selected at once. In this case we want to know if an instance was updated for this operation (used in array/set/map context)
+	const TArray< TMap<UObject*, bool> >* InstancesChangedResultPerArchetype;
 
 	/** List of top level objects being changed */
 	const TArray<const UObject*>* TopLevelObjects;
