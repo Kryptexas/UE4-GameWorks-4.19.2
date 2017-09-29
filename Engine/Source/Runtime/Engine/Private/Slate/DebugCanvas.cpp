@@ -161,8 +161,8 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 
 	if (GameThreadCanvas.IsValid())
 	{
-		IStereoLayers* const StereoLayers = (GEngine && GEngine->StereoRenderingDevice.IsValid()) ? GEngine->StereoRenderingDevice->GetStereoLayers() : nullptr;
 		const bool bIsStereoscopic3D = GEngine && GEngine->IsStereoscopic3D();
+		IStereoLayers* const StereoLayers = (bIsStereoscopic3D && GEngine && GEngine->StereoRenderingDevice.IsValid()) ? GEngine->StereoRenderingDevice->GetStereoLayers() : nullptr;
 		const bool bHMDAvailable = StereoLayers && bIsStereoscopic3D;
 
 		static const auto DebugCanvasInLayerCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.DebugCanvasInLayer"));
