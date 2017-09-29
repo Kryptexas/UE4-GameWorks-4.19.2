@@ -207,6 +207,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	virtual bool ShouldCreatePhysicsState() const override;
 
 	virtual void PostLoad() override;
+	virtual void OnComponentCreated() override;
 
 public:
 	/** Render data will be initialized on PostLoad or on demand. Released on the rendering thread. */
@@ -296,6 +297,12 @@ private:
 protected:
 	/** Request to navigation system to update only part of navmesh occupied by specified instance. */
 	virtual void PartialNavigationUpdate(int32 InstanceIdx);
+
+	/** Internal version of AddInstance */
+	int32 AddInstanceInternal(int32 InstanceIndex, FInstancedStaticMeshInstanceData* InNewInstanceData, const FTransform& InstanceTransform);
+	
+	/** Internal version of RemoveInstance */	
+	bool RemoveInstanceInternal(int32 InstanceIndex, bool ReorderInstances, bool InstanceAlreadyRemoved);
 	
 	/** Handles request from navigation system to gather instance transforms in a specific area box. */
 	virtual void GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& InstanceData) const;

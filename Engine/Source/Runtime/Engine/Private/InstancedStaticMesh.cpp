@@ -124,8 +124,8 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 			if (DestInstanceIndex == INDEX_NONE)
 			{
 				DestInstanceIndex = InstanceData->GetNextAvailableInstanceIndex();
-				InComponent->InstanceReorderTable.Add(DestInstanceIndex);
 				check(DestInstanceIndex != INDEX_NONE);
+				InComponent->InstanceReorderTable.Add(DestInstanceIndex);
 			}
 			else
 			{
@@ -171,7 +171,7 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 				}
 			}
 		}
-		else
+		else if (InstanceData->IsValidIndex(InstanceIndex))
 		{
 			InstanceData->NullifyInstance(InstanceIndex);
 		}
@@ -884,14 +884,6 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 
 	PhysicsSerializer = ObjectInitializer.CreateDefaultSubobject<UPhysicsSerializer>(this, TEXT("PhysicsSerializer"));
 	bDisallowMeshPaintPerInstance = true;
-
-	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
-	{
-		while (InstancingRandomSeed == 0)
-		{
-			InstancingRandomSeed = FMath::Rand();
-		}
-	}
 }
 
 UInstancedStaticMeshComponent::~UInstancedStaticMeshComponent()
@@ -1520,18 +1512,16 @@ void UInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 #endif
 }
 
-int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
+int32 UInstancedStaticMeshComponent::AddInstanceInternal(int32 InstanceIndex, FInstancedStaticMeshInstanceData* InNewInstanceData, const FTransform& InstanceTransform)
 {
-	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	FInstancedStaticMeshInstanceData* NewInstanceData = InNewInstanceData;
+
+	if (NewInstanceData == nullptr)
 	{
-		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
-		return INDEX_NONE;
+		NewInstanceData = new(PerInstanceSMData) FInstancedStaticMeshInstanceData();
 	}
 
-	int InstanceIdx = PerInstanceSMData.Num();
-
-	FInstancedStaticMeshInstanceData* NewInstanceData = new(PerInstanceSMData) FInstancedStaticMeshInstanceData();
-	SetupNewInstanceData(*NewInstanceData, InstanceIdx, InstanceTransform);
+	SetupNewInstanceData(*NewInstanceData, InstanceIndex, InstanceTransform);
 
 #if WITH_EDITOR
 	if (SelectedInstances.Num())
@@ -1540,21 +1530,45 @@ int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTrans
 	}
 #endif
 
-	if (!InstanceReorderTable.Contains(InstanceIdx))
+	int32 UpdateInstanceCount = 1;
+
+	if (!InstanceReorderTable.Contains(InstanceIndex))
 	{
-		InstanceReorderTable.Add(InstanceIdx);
+		InstanceReorderTable.Add(InstanceIndex);
+	}
+	else
+	{
+		InstanceReorderTable.Insert(InstanceIndex, InstanceIndex);
+
+		for (int32 i = InstanceIndex + 1; i < InstanceReorderTable.Num(); ++i)
+		{
+			InstanceReorderTable[i] = i;
+		}
+
+		UpdateInstanceCount = InstanceReorderTable.Num() - InstanceIndex;
 	}
 
 	if (PerInstanceRenderData.IsValid())
 	{
-		PerInstanceRenderData->UpdateInstanceData(this, InstanceIdx);
+		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount);
 	}
+
+	PartialNavigationUpdate(InstanceIndex);
 
 	MarkRenderStateDirty();
 
-	PartialNavigationUpdate(InstanceIdx);
+	return InstanceIndex;
+}
 
-	return InstanceIdx;
+int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
+{
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
+		return INDEX_NONE;
+	}
+
+	return AddInstanceInternal(PerInstanceSMData.Num(), nullptr, InstanceTransform);
 }
 
 int32 UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& WorldTransform)
@@ -1564,14 +1578,9 @@ int32 UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& Wor
 	return AddInstance(RelativeTM);
 }
 
-bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+bool UInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex, bool ReorderInstances, bool InstanceAlreadyRemoved)
 {
-	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
-	{
-		return false;
-	}
-
-	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
@@ -1583,7 +1592,7 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 	// Save the render index
 	int32 RemovedRenderIndex = InstanceIndex;
 
-	if (InstanceReorderTable.Num() > 0)
+	if (InstanceReorderTable.Num() > 0 && InstanceReorderTable.IsValidIndex(InstanceIndex))
 	{
 		RemovedRenderIndex = InstanceReorderTable[InstanceIndex];
 	}
@@ -1598,8 +1607,29 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 		PerInstanceRenderData->RemoveInstanceData(this, InstanceIndex);
 	}
 
+	if (InstanceReorderTable.IsValidIndex(InstanceIndex))
+	{
+		InstanceReorderTable.RemoveAt(InstanceIndex);
+	}
+
+	if (ReorderInstances)
+	{
+		for (int32 i = InstanceIndex; i < InstanceReorderTable.Num(); ++i)
+		{
+			InstanceReorderTable[i] = i;
+		}
+
+		if (PerInstanceRenderData.IsValid())
+		{
+			PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, PerInstanceRenderData->InstanceBuffer.GetNumInstances() - InstanceIndex);
+		}
+	}
+
 	// remove instance
-	PerInstanceSMData.RemoveAt(InstanceIndex);
+	if (!InstanceAlreadyRemoved)
+	{
+		PerInstanceSMData.RemoveAt(InstanceIndex);
+	}
 
 #if WITH_EDITOR
 	// remove selection flag if array is filled in
@@ -1616,16 +1646,18 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 		ClearAllInstanceBodies();
 		CreateAllInstanceBodies();
 	}
-		
-	if (InstanceReorderTable.IsValidIndex(InstanceIndex))
-	{
-		InstanceReorderTable.RemoveAt(InstanceIndex);
-	}
+
+	RemovedInstances.Reset();
 
 	// Indicate we need to update render state to reflect changes
 	MarkRenderStateDirty();
 
 	return true;
+}
+
+bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+{
+	return RemoveInstanceInternal(InstanceIndex, false, false);
 }
 
 bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FTransform& OutInstanceTransform, bool bWorldSpace) const
@@ -1671,7 +1703,7 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 		return false;
 	}
 
-	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
@@ -1961,11 +1993,21 @@ void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFro
 	}
 }
 
+void UInstancedStaticMeshComponent::OnComponentCreated()
+{
+	Super::OnComponentCreated();
+
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		InitPerInstanceRenderData(PerInstanceSMData.Num() > 0);
+	}
+}
+
 void UInstancedStaticMeshComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if (!HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
 	{
 		InitPerInstanceRenderData(false);
 
@@ -2119,23 +2161,30 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 {
 	if(PropertyChangedEvent.Property != NULL)
 	{
-		if (PropertyChangedEvent.Property->GetFName() == "PerInstanceSMData")
+		// Only permit editing archetype or instance if instance was changed by an archetype
+		if (PropertyChangedEvent.Property->GetFName() == "PerInstanceSMData" && (HasAnyFlags(RF_ArchetypeObject|RF_ClassDefaultObject) ||  PropertyChangedEvent.HasArchetypeInstanceChanged(this)))
 		{
-			if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd)
+			if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd
+				|| PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
 			{
 				int32 AddedAtIndex = PropertyChangedEvent.GetArrayIndex(PropertyChangedEvent.Property->GetFName().ToString());
 				check(AddedAtIndex != INDEX_NONE);
-				SetupNewInstanceData(PerInstanceSMData[AddedAtIndex], AddedAtIndex, FTransform::Identity);
+
+				AddInstanceInternal(AddedAtIndex, &PerInstanceSMData[AddedAtIndex], FTransform::Identity);
 
 				// added via the property editor, so we will want to interactively work with instances
 				bHasPerInstanceHitProxies = true;
+			}
+			else if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayRemove)
+			{
+				int32 RemovedAtIndex = PropertyChangedEvent.GetArrayIndex(PropertyChangedEvent.Property->GetFName().ToString());
+				check(RemovedAtIndex != INDEX_NONE);
 
-				if (PerInstanceRenderData.IsValid())
-				{
-					PerInstanceRenderData->UpdateInstanceData(this, AddedAtIndex);
-				}
-
-				PartialNavigationUpdate(AddedAtIndex);
+				RemoveInstanceInternal(RemovedAtIndex, true, true);
+			}
+			else if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayClear)
+			{
+				ClearInstances();
 			}
 
 			MarkRenderStateDirty();
