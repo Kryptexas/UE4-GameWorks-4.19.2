@@ -1514,7 +1514,7 @@ public class AndroidPlatform : Platform
 					FinishedRunning = true;
 				}
 
-				Thread.Sleep(10);
+				Thread.Sleep(1000);
 
 				if(!FinishedRunning)
 				{
