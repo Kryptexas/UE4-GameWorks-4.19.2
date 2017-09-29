@@ -49,6 +49,9 @@ namespace ReflectionCaptureCookStats
 }
 #endif
 
+// ES3.0+ devices support seamless cubemap filtering, averaging edges will produce artifacts on those devices
+#define MOBILE_AVERAGE_CUBEMAP_EDGES 0 
+
 /** 
  * Size of all reflection captures.
  * Reflection capture derived data versions must be changed if modifying this
@@ -328,7 +331,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 // Generate a new guid to force a recapture of all reflection data
 // Note: changing this will cause saved capture data in maps to be discarded
 // A resave of those maps will be required to guarantee valid reflections when cooking for ES2
-FGuid ReflectionCaptureDDCVer(0x0c669396, 0x9cb849ae, 0x9f4120ff, 0x5812f4d3);
+FGuid ReflectionCaptureDDCVer(0x3B73E3ED, 0xC1D84B5B, 0xA0E5BB88, 0xB5A22B88);
 
 FReflectionCaptureFullHDR::~FReflectionCaptureFullHDR()
 {
@@ -583,8 +586,8 @@ void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(cons
 		const FFloat16Color*	MipSrcData = (const FFloat16Color*)SourceCubemapData->GetData(SourceMipBaseIndex);
 		FColor*					MipDstData = (FColor*)CapturedData->GetData(DestMipBaseIndex);
 
+#if MOBILE_AVERAGE_CUBEMAP_EDGES
 		// Fix cubemap seams by averaging colors across edges
-
 		int32 CornerTable[4] =
 		{
 			0,
@@ -658,6 +661,7 @@ void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(cons
 				FaceDstDataA[ EdgeTexelA ] = FaceDstDataB[ EdgeTexelB ] = RGBMEncode( AvgColor * Brightness );
 			}
 		}
+#endif // MOBILE_AVERAGE_CUBEMAP_EDGES
 		
 		// Encode rest of texels
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -670,9 +674,11 @@ void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(cons
 			// Convert each texel from linear space FP16 to RGBM FColor
 			// Note: Brightness on the capture is baked into the encoded HDR data
 			// Skip edges
-			for( int32 y = 1; y < MipSize - 1; y++ )
+			const int32 SkipEdges = MOBILE_AVERAGE_CUBEMAP_EDGES ? 1 : 0;
+
+			for( int32 y = SkipEdges; y < MipSize - SkipEdges; y++ )
 			{
-				for( int32 x = 1; x < MipSize - 1; x++ )
+				for( int32 x = SkipEdges; x < MipSize - SkipEdges; x++ )
 				{
 					int32 TexelIndex = x + y * MipSize;
 					const FLinearColor LinearColor = FLinearColor( FaceSourceData[ TexelIndex ]) * Brightness;
