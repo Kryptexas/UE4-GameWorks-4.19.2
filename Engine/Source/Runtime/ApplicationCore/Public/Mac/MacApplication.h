@@ -219,6 +219,8 @@ public:
 
 	void OnWindowChangedScreen(TSharedRef<FMacWindow> Window);
 
+	static void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo);
+
 public:
     virtual IInputInterface* GetInputInterface() override { return this; }
     
@@ -251,7 +253,6 @@ public:
 private:
 
 	static NSEvent* HandleNSEvent(NSEvent* Event);
-	static void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo);
 #if WITH_EDITOR
 	static int32 MTContactCallback(void* Device, void* Data, int32 NumFingers, double TimeStamp, int32 Frame);
 #endif

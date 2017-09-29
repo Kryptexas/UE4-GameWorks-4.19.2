@@ -221,6 +221,12 @@ void FMacPlatformApplicationMisc::PostInit()
 {
 	FMacPlatformMisc::PostInitMacAppInfoUpdate();
 
+	if (MacApplication)
+	{
+		// Now that the engine is initialized we need to recalculate display work areas etc. that depend on DPI settings
+		FMacApplication::OnDisplayReconfiguration(kCGNullDirectDisplay, kCGDisplayDesktopShapeChangedFlag, MacApplication);
+	}
+
 	// Setup the app menu in menu bar
 	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
 	if (bIsBundledApp)
@@ -412,7 +418,7 @@ FLinearColor FMacPlatformApplicationMisc::GetScreenPixelColor(const FVector2D& I
 
 float FMacPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if (GIsEditor && MacApplication && MacApplication->IsHighDPIModeEnabled())
+	if (MacApplication && MacApplication->IsHighDPIModeEnabled())
 	{
 		TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
 		return Screen->Screen.backingScaleFactor;

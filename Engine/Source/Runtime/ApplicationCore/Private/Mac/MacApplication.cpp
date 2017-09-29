@@ -59,7 +59,7 @@ static bool IsAppHighResolutionCapable()
 		bInitialized = true;
 	}
 
-	return bIsAppHighResolutionCapable;
+	return bIsAppHighResolutionCapable && GIsEditor;
 }
 
 FMacApplication* FMacApplication::CreateMacApplication()
@@ -1882,21 +1882,6 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 
 		OutDisplayMetrics.MonitorInfo.Add(Info);
 	}
-
-						// Now that we have the whole workspace rect calculated, we can fix DisplayRect's and WorkArea's top and bottom coordinates
-						//
-						// IMPORTANT!
-						// The following code should not be merged to //UE4/Main. FMacScreen-related code was heavily modified as part of work on high-DPI support
-						// and Info.DisplayRect and Info.WorkArea in //UE4/Main already have the origin in top-left corner, so they don't need this.
-						//
-/********************/	for (FMonitorInfo& Info : OutDisplayMetrics.MonitorInfo)
-/*					*/	{
-/* DO NOT MERGE		*/		Info.DisplayRect.Top = WholeWorkspace.size.height - (Info.DisplayRect.Top + Info.DisplayRect.Bottom);
-/* TO //UE4/Main	*/		Info.DisplayRect.Bottom += Info.DisplayRect.Top;
-/* See comment		*/		Info.WorkArea.Top = WholeWorkspace.size.height - (Info.WorkArea.Top + Info.WorkArea.Bottom);
-/*					*/		Info.WorkArea.Bottom += Info.WorkArea.Top;
-/********************/	}
-
 
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
