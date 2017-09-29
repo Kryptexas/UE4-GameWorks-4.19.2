@@ -343,6 +343,8 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 #endif
 	, LastUpdatedCacheFrame(0)
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	, CachedFinalHeadRotation(EForceInit::ForceInit)
+	, CachedFinalHeadPosition(EForceInit::ForceInitToZero)
 	, DistortedBufferViewportList(nullptr)
 	, NonDistortedBufferViewportList(nullptr)
 	, ActiveViewportList(nullptr)
