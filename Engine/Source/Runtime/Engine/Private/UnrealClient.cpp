@@ -1855,34 +1855,42 @@ void FCommonViewportClient::RequestUpdateEditorScreenPercentage()
 
 TOptional<float> FCommonViewportClient::GetEditorScreenPercentage()
 {
-	if (bShouldUpdateScreenPercentage)
+	// When in high res screenshot do not modify screen percentage based on dpi scale
+	if (GIsHighResScreenshot)
 	{
-		static auto CVarEnableEditorScreenPercentageOverride = IConsoleManager::Get().FindConsoleVariable(TEXT("Editor.OverrideDPIBasedEditorViewportScaling"));
-		if (CVarEnableEditorScreenPercentageOverride->GetInt() == 0)
+		return TOptional<float>();
+	}
+	else
+	{
+		if (bShouldUpdateScreenPercentage)
 		{
-			float EditorScreenPercentageValue;
-			float DPIScale = GetViewportClientWindowDPIScale();
-
-			if (DPIScale > 1.0f)
+			static auto CVarEnableEditorScreenPercentageOverride = IConsoleManager::Get().FindConsoleVariable(TEXT("Editor.OverrideDPIBasedEditorViewportScaling"));
+			if (CVarEnableEditorScreenPercentageOverride->GetInt() == 0)
 			{
-				EditorScreenPercentageValue = 100.f / DPIScale;
+				float EditorScreenPercentageValue;
+				float DPIScale = GetViewportClientWindowDPIScale();
+
+				if (DPIScale > 1.0f)
+				{
+					EditorScreenPercentageValue = 100.f / DPIScale;
+				}
+				else
+				{
+					EditorScreenPercentageValue = 100.0f;
+				}
+
+				EditorScreenPercentage = TOptional<float>(EditorScreenPercentageValue);
 			}
 			else
 			{
-				EditorScreenPercentageValue = 100.0f;
+				EditorScreenPercentage.Reset();
 			}
 
-			EditorScreenPercentage = TOptional<float>(EditorScreenPercentageValue);
-		}
-		else
-		{
-			EditorScreenPercentage.Reset();
+			bShouldUpdateScreenPercentage = false;
 		}
 
-		bShouldUpdateScreenPercentage = false;
+		return EditorScreenPercentage;
 	}
-
-	return EditorScreenPercentage;
 }
 #endif
 

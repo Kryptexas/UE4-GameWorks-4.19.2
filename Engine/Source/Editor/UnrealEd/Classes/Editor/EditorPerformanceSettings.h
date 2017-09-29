@@ -29,7 +29,6 @@ class UEditorPerformanceSettings : public UDeveloperSettings
 	/** 
 	 * By default the editor will adjust scene scaling (quality) for high DPI in order to ensure consistent performance with very large render targets.
 	 * Enabling this will disable automatic adjusting and use the screen percentage specified here
-	 * Values less than 100 will result in a lower quality view but with increased performance.  100 indicates no adjustments will be made
 	 */
 	UPROPERTY(EditAnywhere, config, Category=EditorPerformance, meta=(DisplayName="Disable DPI Based Editor Viewport Scaling", ConsoleVariable="Editor.OverrideDPIBasedEditorViewportScaling"))
 	bool bOverrideDPIBasedEditorViewportScaling;
