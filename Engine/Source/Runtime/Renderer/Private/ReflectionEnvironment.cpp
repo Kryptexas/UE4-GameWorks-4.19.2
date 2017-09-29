@@ -433,8 +433,7 @@ public:
 		TRHICommandList& RHICmdList,
 		const FViewInfo& View,
 		FTextureRHIParamRef SSRTexture,
-		const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO,
-		bool bIsInstancedStereo
+		const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO
 		)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
@@ -475,7 +474,7 @@ public:
 		const FVector OcclusionTint = Scene->SkyLight ? (const FVector&)Scene->SkyLight->OcclusionTint : FVector::ZeroVector;
 		SpecularOcclusionParameters.SetParameters(RHICmdList, ShaderRHI, DynamicBentNormalAO, CVarSkySpecularOcclusionStrength.GetValueOnRenderThread(), FVector4(OcclusionTint, MinOcclusion));
 
-		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, View, bIsInstancedStereo);
+		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, View);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -838,8 +837,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
-			const bool bIsInstancedStereo = View.IsInstancedStereoPass();
-			PixelShader->SetParameters(RHICmdList, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, DynamicBentNormalAO, bIsInstancedStereo);
+			PixelShader->SetParameters(RHICmdList, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, DynamicBentNormalAO);
 
 			DrawRectangle(
 				RHICmdList,
