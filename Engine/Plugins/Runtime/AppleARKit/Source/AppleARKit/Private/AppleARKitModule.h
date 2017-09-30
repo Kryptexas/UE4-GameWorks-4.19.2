@@ -21,9 +21,7 @@ public:
 	virtual void StartupModule() override;
 
 	virtual void ShutdownModule() override;
-	
-private:
-	static TWeakPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> ARKitSystemPtr;
+
 };
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAppleARKit, Log, All);

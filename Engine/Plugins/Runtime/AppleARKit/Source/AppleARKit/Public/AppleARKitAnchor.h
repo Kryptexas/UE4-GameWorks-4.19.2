@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -15,7 +17,7 @@
 #include "AppleARKitAnchor.generated.h"
 
 UCLASS( BlueprintType )
-class UAppleARKitAnchor : public UObject
+class APPLEARKIT_API UAppleARKitAnchor : public UObject
 {
 	GENERATED_BODY()
 
@@ -33,7 +35,7 @@ public:
 	 * NOTE: This does not have Session::BaseTransform applied due to thread safety issues. You'll
 	 * need to apply this yourself in the game thread.
 	 *
-	 * @todo Fix this ^
+	 * @todo arkit Fix this ^
 	 */
 	UFUNCTION( BlueprintPure, Category = "AppleARKitAnchor" )
 	FTransform GetTransform() const;

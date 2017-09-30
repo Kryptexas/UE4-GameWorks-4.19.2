@@ -1,4 +1,8 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
+#include "CoreMinimal.h"
 
 // ARKit
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
@@ -44,14 +48,14 @@ ARHitTestResultType ToARHitTestResultType(EAppleARKitHitTestResultType InTypes);
  * A result of an intersection found during a hit-test.
  */
 USTRUCT( BlueprintType, Category="AppleARKit")
-struct FAppleARKitHitTestResult
+struct APPLEARKIT_API FAppleARKitHitTestResult
 {
     GENERATED_BODY();
 
     // Default constructor
 	FAppleARKitHitTestResult() {};
 
-#if ARKIT_SUPPORT
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 	/** 
 	 * This is a conversion copy-constructor that takes a raw ARHitTestResult and fills this 

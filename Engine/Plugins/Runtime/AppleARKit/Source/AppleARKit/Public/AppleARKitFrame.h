@@ -4,14 +4,19 @@
 
 // AppleARKit
 #include "AppleARKitCamera.h"
-// @todo arkit #include "AppleARKitLightEstimate.h"
+#include "AppleARKitLightEstimate.h"
+
+#include "AppleARKitFrame.generated.h"
 
 /**
  * An object representing a frame processed by FAppleARKitSystem.
  * @discussion Each frame contains information about the current state of the scene.
  */
-struct FAppleARKitFrame
+USTRUCT( BlueprintType, Category="AppleARKit" )
+struct APPLEARKIT_API FAppleARKitFrame
 {
+	GENERATED_BODY()
+	
 	// Default constructor
 	FAppleARKitFrame();
 
@@ -66,7 +71,7 @@ struct FAppleARKitFrame
 	/**
 	 * A light estimate representing the estimated light in the scene.
 	 */
-	// @todo arkit : FAppleARKitLightEstimate LightEstimate;
+	FAppleARKitLightEstimate LightEstimate;
 
 	/* 
 	 * When adding new member variables, don't forget to handle them in the copy constructor and

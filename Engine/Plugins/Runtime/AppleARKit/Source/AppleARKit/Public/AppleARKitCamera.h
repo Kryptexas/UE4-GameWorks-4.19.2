@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 // UE4
@@ -11,6 +13,8 @@
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 #import <ARKit/ARKit.h>
 #endif // ARKIT_SUPPORT
+
+#include "AppleARKitCamera.generated.h"
 
 
 enum class EAppleARKitBackgroundFitMode : uint8
@@ -29,8 +33,11 @@ enum class EAppleARKitBackgroundFitMode : uint8
 /**
  * A model representing the camera and its properties at a single point in time.
  */
+USTRUCT( BlueprintType, Category="AppleARKit" )
 struct APPLEARKIT_API FAppleARKitCamera
 {
+	GENERATED_BODY()
+	
 	// Default constructor
 	FAppleARKitCamera() {};
 

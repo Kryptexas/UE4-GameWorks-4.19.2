@@ -239,6 +239,19 @@ EARTrackingQuality FAppleARKitSystem::ARGetTrackingQuality() const
 		: EARTrackingQuality::NotAvailable;
 }
 
+bool FAppleARKitSystem::GetCurrentFrame(FAppleARKitFrame& OutCurrentFrame) const
+{
+	if( GameThreadFrame.IsValid() )
+	{
+		OutCurrentFrame = *GameThreadFrame;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 // @todo arkit : are the default params OK?
@@ -260,7 +273,7 @@ FARHitTestResult ToARHitTestResult( ARHitTestResult* InARHitTestResult, class UA
 #endif//ARKIT_SUPPORT
 
 
-bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, EAppleARKitHitTestResultType InTypes, TArray< FARHitTestResult >& OutResults)
+bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, EAppleARKitHitTestResultType InTypes, TArray< FAppleARKitHitTestResult >& OutResults)
 {
 	// Sanity check
 	if (!IsRunning())
@@ -295,7 +308,7 @@ bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, 
 		for ( ARHitTestResult* HitTestResult in PlaneHitTestResults )
 		{
 			// Convert to Unreal's Hit Test result format
-			FARHitTestResult OutResult( ToARHitTestResult(HitTestResult) );
+			FAppleARKitHitTestResult OutResult( HitTestResult );
 			
 			// Skip results further than 5m or closer that 20cm from camera
 			if (OutResult.Distance > 500.0f || OutResult.Distance < 20.0f)
@@ -317,7 +330,7 @@ bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, 
 			for ( ARHitTestResult* HitTestResult in PlaneHitTestResults )
 			{
 				// Convert to Unreal's Hit Test result format
-				FARHitTestResult OutResult( ToARHitTestResult(HitTestResult) );
+				FAppleARKitHitTestResult OutResult( HitTestResult );
 				
 				// Skip results further than 5m or closer that 20cm from camera
 				if (OutResult.Distance > 500.0f || OutResult.Distance < 20.0f)
@@ -342,7 +355,7 @@ bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, 
 			for ( ARHitTestResult* HitTestResult in FeatureHitTestResults )
 			{
 				// Convert to Unreal's Hit Test result format
-				FARHitTestResult OutResult( ToARHitTestResult(HitTestResult) );
+				FAppleARKitHitTestResult OutResult( HitTestResult );
 				
 				// Skip results further than 5m or closer that 20cm from camera
 				if (OutResult.Distance > 500.0f || OutResult.Distance < 20.0f)

@@ -14,7 +14,7 @@
 #include "AppleARKitPlaneAnchor.generated.h"
 
 UCLASS( BlueprintType )
-class UAppleARKitPlaneAnchor : public UAppleARKitAnchor
+class APPLEARKIT_API UAppleARKitPlaneAnchor : public UAppleARKitAnchor
 {
 	GENERATED_BODY()
 

@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 // AppleARKit
 #include "AppleARKitFrame.h"
 #include "AppleARKitModule.h"
@@ -7,7 +9,7 @@
 FAppleARKitFrame::FAppleARKitFrame()
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 	: CapturedYImage(nullptr)
-, CapturedCbCrImage( nullptr )
+	, CapturedCbCrImage( nullptr )
 #endif
 {
 };
@@ -16,7 +18,7 @@ FAppleARKitFrame::FAppleARKitFrame()
 
 FAppleARKitFrame::FAppleARKitFrame( ARFrame* InARFrame, CVMetalTextureCacheRef MetalTextureCache )
   : Camera( InARFrame.camera )
-  // @todo arkit , LightEstimate( InARFrame.lightEstimate )
+  , LightEstimate( InARFrame.lightEstimate )
 {
 	// Sanity check
 	check( InARFrame );
@@ -70,7 +72,7 @@ FAppleARKitFrame::FAppleARKitFrame( const FAppleARKitFrame& Other )
   , CapturedCbCrImageWidth( Other.CapturedCbCrImageWidth )
   , CapturedCbCrImageHeight( Other.CapturedCbCrImageHeight )
   , Camera( Other.Camera )
-  // @todo arkit , LightEstimate( Other.LightEstimate )
+  , LightEstimate( Other.LightEstimate )
 {
 }
 
@@ -109,7 +111,7 @@ FAppleARKitFrame& FAppleARKitFrame::operator=( const FAppleARKitFrame& Other )
 	CapturedCbCrImageWidth = Other.CapturedCbCrImageWidth;
 	CapturedCbCrImageHeight = Other.CapturedCbCrImageHeight;
 	Camera = Other.Camera;
-	// @todo arkit LightEstimate = Other.LightEstimate;
+	LightEstimate = Other.LightEstimate;
 
 	return *this;
 }

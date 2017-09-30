@@ -7,13 +7,14 @@
 #include "Features/IModularFeatures.h"
 
 
+TWeakPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitARKitSystemPtr;
+
 TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe> FAppleARKitModule::CreateTrackingSystem()
 {
-    return AppleARKitSupport::CreateAppleARKitSystem();
+	auto NewARKitSystem = AppleARKitSupport::CreateAppleARKitSystem();
+	FAppleARKitARKitSystemPtr = NewARKitSystem;
+    return NewARKitSystem;
 }
-
-
-TWeakPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitARKitSystemPtr;
 
 TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitModule::GetARKitSystem()
 {

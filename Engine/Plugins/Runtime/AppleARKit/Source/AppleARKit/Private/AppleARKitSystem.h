@@ -50,6 +50,9 @@ public:
 	//~ IARTrackingQuality
 	virtual EARTrackingQuality ARGetTrackingQuality() const;
 	//~ IARTrackingQuality
+	
+	// @todo arkit : this is for the blueprint library only; try to get rid of this method
+	bool GetCurrentFrame(FAppleARKitFrame& OutCurrentFrame) const;
 
 private:
 	void Run();
@@ -68,7 +71,7 @@ public:
 #endif // ARKIT_SUPPORT
 
 	
-private:
+public:
 	/**
 	 * Searches the last processed frame for anchors corresponding to a point in the captured image.
 	 *
@@ -81,7 +84,7 @@ private:
 	 * @param ScreenPosition The viewport pixel coordinate of the trace origin.
 	 */
 	UFUNCTION( BlueprintCallable, Category="AppleARKit|Session" )
-	bool HitTestAtScreenPosition( const FVector2D ScreenPosition, EAppleARKitHitTestResultType Types, TArray< FARHitTestResult >& OutResults );
+	bool HitTestAtScreenPosition( const FVector2D ScreenPosition, EAppleARKitHitTestResultType Types, TArray< FAppleARKitHitTestResult >& OutResults );
 	
 	
 private:
