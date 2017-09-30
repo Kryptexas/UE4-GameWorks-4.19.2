@@ -1053,7 +1053,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Abil
 			if (Ability->CanActivateAbility(AbilityToActivate, ActorInfo, nullptr, nullptr, &FailureTags))
 			{
 				// No prediction key, server will assign a server-generated key
-				ServerTryActivateAbility(AbilityToActivate, Spec->InputPressed, FPredictionKey());
+				CallServerTryActivateAbility(AbilityToActivate, Spec->InputPressed, FPredictionKey());
 				return true;
 			}
 			else
@@ -1311,7 +1311,7 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		}
 		else
 		{
-			ServerTryActivateAbility(Handle, Spec->InputPressed, ScopedPredictionKey);
+			CallServerTryActivateAbility(Handle, Spec->InputPressed, ScopedPredictionKey);
 		}
 
 		// When this prediction key is caught up, we better know if the ability was confirmed or rejected
@@ -1476,7 +1476,7 @@ void UAbilitySystemComponent::ReplicateEndOrCancelAbility(FGameplayAbilitySpecHa
 			}
 			else
 			{
-				ServerEndAbility(Handle, ActivationInfo, ScopedPredictionKey);
+				CallServerEndAbility(Handle, ActivationInfo, ScopedPredictionKey);
 			}
 		}
 	}
@@ -2332,12 +2332,16 @@ void UAbilitySystemComponent::AnimMontage_UpdateReplicatedData()
 	if (AnimInstance && LocalAnimMontageInfo.AnimMontage)
 	{
 		RepAnimMontageInfo.AnimMontage = LocalAnimMontageInfo.AnimMontage;
-		RepAnimMontageInfo.PlayRate = AnimInstance->Montage_GetPlayRate(LocalAnimMontageInfo.AnimMontage);
-		RepAnimMontageInfo.Position = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
-		RepAnimMontageInfo.BlendTime = AnimInstance->Montage_GetBlendTime(LocalAnimMontageInfo.AnimMontage);
 
 		// Compressed Flags
 		bool bIsStopped = AnimInstance->Montage_GetIsStopped(LocalAnimMontageInfo.AnimMontage);
+
+		if (!bIsStopped)
+		{
+			RepAnimMontageInfo.PlayRate = AnimInstance->Montage_GetPlayRate(LocalAnimMontageInfo.AnimMontage);
+			RepAnimMontageInfo.Position = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
+			RepAnimMontageInfo.BlendTime = AnimInstance->Montage_GetBlendTime(LocalAnimMontageInfo.AnimMontage);
+		}
 
 		if (RepAnimMontageInfo.IsStopped != bIsStopped)
 		{
@@ -2467,7 +2471,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 					CurrentMontageStop(RepAnimMontageInfo.BlendTime);
 				}
 			}
-			else
+			else if (!RepAnimMontageInfo.SkipPositionCorrection)
 			{
 				const int32 RepSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(RepAnimMontageInfo.Position);
 				const int32 RepNextSectionID = int32(RepAnimMontageInfo.NextSectionID) - 1;
@@ -3078,6 +3082,184 @@ FSimpleMulticastDelegate& UAbilitySystemComponent::AbilityReplicatedEventDelegat
 	return AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey)).GenericEvents[EventType].Delegate;
 }
 
+// ----------------
+
+int32 AbilitySystemLogServerRPCBatching = 0;
+static FAutoConsoleVariableRef CVarAbilitySystemLogServerRPCBatching(TEXT("AbilitySystem.ServerRPCBatching.Log"), AbilitySystemLogServerRPCBatching, TEXT(""), ECVF_Default	);
+
+FScopedServerAbilityRPCBatcher::FScopedServerAbilityRPCBatcher(UAbilitySystemComponent* InASC, FGameplayAbilitySpecHandle InAbilityHandle) 
+: ASC(InASC), AbilityHandle(InAbilityHandle)
+{
+	if (ASC && AbilityHandle.IsValid() && ASC->ShouldDoServerAbilityRPCBatch())
+	{
+		ASC->BeginServerAbilityRPCBatch(InAbilityHandle);
+	}
+	else
+	{
+		ASC = nullptr;
+	}
+}
+
+FScopedServerAbilityRPCBatcher::~FScopedServerAbilityRPCBatcher()
+{
+	if (ASC)
+	{
+		ASC->EndServerAbilityRPCBatch(AbilityHandle);
+	}
+}
+
+bool UAbilitySystemComponent::ServerAbilityRPCBatch_Validate(FServerAbilityRPCBatch BatchInfo)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerAbilityRPCBatch_Implementation(FServerAbilityRPCBatch BatchInfo)
+{
+	ServerAbilityRPCBatch_Internal(BatchInfo);
+}
+
+void UAbilitySystemComponent::ServerAbilityRPCBatch_Internal(FServerAbilityRPCBatch& BatchInfo)
+{
+	UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::ServerAbilityRPCBatch_Implementation %s %s"), *BatchInfo.AbilitySpecHandle.ToString(), *BatchInfo.PredictionKey.ToString());
+
+	ServerTryActivateAbility_Implementation(BatchInfo.AbilitySpecHandle, BatchInfo.InputPressed, BatchInfo.PredictionKey);
+	ServerSetReplicatedTargetData_Implementation(BatchInfo.AbilitySpecHandle, BatchInfo.PredictionKey, BatchInfo.TargetData, FGameplayTag(), BatchInfo.PredictionKey);
+
+	if (BatchInfo.Ended)
+	{
+		// This FakeInfo is probably bogus for the general case but should work for the limited use of batched RPCs
+		FGameplayAbilityActivationInfo FakeInfo;
+		FakeInfo.ServerSetActivationPredictionKey(BatchInfo.PredictionKey);
+		ServerEndAbility(BatchInfo.AbilitySpecHandle, FakeInfo, BatchInfo.PredictionKey);
+	}
+}
+
+void UAbilitySystemComponent::BeginServerAbilityRPCBatch(FGameplayAbilitySpecHandle AbilityHandle)
+{
+	UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::BeginServerAbilityRPCBatch %s"), *AbilityHandle.ToString());
+
+	if (FServerAbilityRPCBatch* ExistingBatchData = LocalServerAbilityRPCBatchData.FindByKey(AbilityHandle))
+	{
+		FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
+		ABILITY_LOG(Warning, TEXT("::BeginServerAbilityRPCBatch called when there is already a batch started for ability (%s)"), Spec ? *GetNameSafe(Spec->Ability) : TEXT("INVALID"));
+		return;
+	}
+	
+	/** Create new FServerAbilityRPCBatch and initiailze it to this AbilityHandle */
+	FServerAbilityRPCBatch& NewBatchData = LocalServerAbilityRPCBatchData[LocalServerAbilityRPCBatchData.AddDefaulted()];
+	NewBatchData.AbilitySpecHandle = AbilityHandle;
+}
+
+void UAbilitySystemComponent::EndServerAbilityRPCBatch(FGameplayAbilitySpecHandle AbilityHandle)
+{
+	/** See if we have batch data for this ability (we should!) and call the ServerAbilityRPCBatch rpc (send what we batched up to the server) */
+	int32 idx = LocalServerAbilityRPCBatchData.IndexOfByKey(AbilityHandle);
+	if (idx != INDEX_NONE)
+	{
+		UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::EndServerAbilityRPCBatch. Calling ServerAbilityRPCBatch. Handle: %s. PredictionKey: %s."), *LocalServerAbilityRPCBatchData[idx].AbilitySpecHandle.ToString(), *LocalServerAbilityRPCBatchData[idx].PredictionKey.ToString());
+
+		FServerAbilityRPCBatch& ThisBatch = LocalServerAbilityRPCBatchData[idx];
+		if (ThisBatch.Started)
+		{
+			if (ThisBatch.PredictionKey.IsValidKey() == false)
+			{
+				ABILITY_LOG(Warning, TEXT("::EndServerAbilityRPCBatch was started but has an invalid prediction key. Handle: %s. PredictionKey: %s."), *ThisBatch.AbilitySpecHandle.ToString(), *ThisBatch.PredictionKey.ToString());
+			}
+
+			ServerAbilityRPCBatch(ThisBatch);
+		}
+
+		LocalServerAbilityRPCBatchData.RemoveAt(idx, 1, false);
+	}
+	else
+	{
+		FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
+		ABILITY_LOG(Warning, TEXT("::EndServerAbilityRPCBatch called on ability %s when no batch has been started."), Spec ? *GetNameSafe(Spec->Ability) : TEXT("INVALID"));
+	}
+}
+
+void UAbilitySystemComponent::CallServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityHandle, bool InputPressed, FPredictionKey PredictionKey)
+{
+	UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::CallServerTryActivateAbility %s %d %s"), *AbilityHandle.ToString(), InputPressed, *PredictionKey.ToString());
+
+	/** Queue this call up if we are in  a batch window, otherwise just push it through now */
+	if (FServerAbilityRPCBatch* ExistingBatchData = LocalServerAbilityRPCBatchData.FindByKey(AbilityHandle))
+	{
+		if (ExistingBatchData->Started)
+		{
+			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
+			ABILITY_LOG(Warning, TEXT("::CallServerTryActivateAbility called multiple times for ability (%s) during a single batch."), Spec ? *GetNameSafe(Spec->Ability) : TEXT("INVALID"));
+			return;
+		}
+
+		ExistingBatchData->Started = true;
+		ExistingBatchData->InputPressed = InputPressed;
+		ExistingBatchData->PredictionKey = PredictionKey;
+	}
+	else
+	{
+		UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("    NO BATCH IN SCOPE"));
+		ServerTryActivateAbility(AbilityHandle, InputPressed, PredictionKey);
+	}
+}
+
+void UAbilitySystemComponent::CallServerSetReplicatedTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, const FGameplayAbilityTargetDataHandle& ReplicatedTargetDataHandle, FGameplayTag ApplicationTag, FPredictionKey CurrentPredictionKey)
+{
+	UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::CallServerSetReplicatedTargetData %s %s %s %s %s"), 
+		*AbilityHandle.ToString(), *AbilityOriginalPredictionKey.ToString(), ReplicatedTargetDataHandle.IsValid(0) ? *ReplicatedTargetDataHandle.Get(0)->ToString() : TEXT("NULL"), *ApplicationTag.ToString(), *CurrentPredictionKey.ToString());
+
+	/** Queue this call up if we are in  a batch window, otherwise just push it through now */
+	if (FServerAbilityRPCBatch* ExistingBatchData = LocalServerAbilityRPCBatchData.FindByKey(AbilityHandle))
+	{
+		if (!ExistingBatchData->Started)
+		{
+			// A batch window was setup but we didn't see the normal try activate -> target data -> end path. So let this unbatched rpc through.
+			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
+			UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::CallServerSetReplicatedTargetData called for ability (%s) when CallServerTryActivateAbility has not been called"), Spec ? *GetNameSafe(Spec->Ability) : TEXT("INVALID"));
+			ServerSetReplicatedTargetData(AbilityHandle, AbilityOriginalPredictionKey, ReplicatedTargetDataHandle, ApplicationTag, CurrentPredictionKey);
+			return;
+		}
+
+		if (ExistingBatchData->PredictionKey.IsValidKey() == false)
+		{
+			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
+			ABILITY_LOG(Warning, TEXT("::CallServerSetReplicatedTargetData called for ability (%s) when the prediction key is not valid."), Spec ? *GetNameSafe(Spec->Ability) : TEXT("INVALID"));
+		}
+
+
+		ExistingBatchData->TargetData = ReplicatedTargetDataHandle;
+	}
+	else
+	{
+		ServerSetReplicatedTargetData(AbilityHandle, AbilityOriginalPredictionKey, ReplicatedTargetDataHandle, ApplicationTag, CurrentPredictionKey);
+	}
+
+}
+
+void UAbilitySystemComponent::CallServerEndAbility(FGameplayAbilitySpecHandle AbilityHandle, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey)
+{
+	UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::CallServerEndAbility %s (%d %s) %s"), *AbilityHandle.ToString(), ActivationInfo.bCanBeEndedByOtherInstance, *ActivationInfo.GetActivationPredictionKey().ToString(), *PredictionKey.ToString());
+
+	/** Queue this call up if we are in  a batch window, otherwise just push it through now */
+	if (FServerAbilityRPCBatch* ExistingBatchData = LocalServerAbilityRPCBatchData.FindByKey(AbilityHandle))
+	{
+		if (!ExistingBatchData->Started)
+		{
+			// A batch window was setup but we didn't see the normal try activate -> target data -> end path. So let this unbatched rpc through.
+			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
+			UE_CLOG(AbilitySystemLogServerRPCBatching, LogAbilitySystem, Display, TEXT("::CallServerEndAbility called for ability (%s) when CallServerTryActivateAbility has not been called"), Spec ? *GetNameSafe(Spec->Ability) : TEXT("INVALID"));
+			ServerEndAbility(AbilityHandle, ActivationInfo, PredictionKey);
+			return;
+		}
+
+		ExistingBatchData->Ended = true;
+	}
+	else
+	{
+		ServerEndAbility(AbilityHandle, ActivationInfo, PredictionKey);
+	}
+}
 
 #undef LOCTEXT_NAMESPACE
+
 

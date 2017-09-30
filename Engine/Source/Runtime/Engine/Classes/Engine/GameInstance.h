@@ -372,6 +372,11 @@ public:
 	/** @return delegate fired when client travel occurs */
 	FOnPreClientTravel& OnNotifyPreClientTravel() { return NotifyPreClientTravelDelegates; }
 
+	/**
+	 * Calls HandleDisconnect on either the OnlineSession if it exists or the engine, to cause a travel back to the default map. The instance must have a world.
+	 */
+	virtual void ReturnToMainMenu();
+
 protected:
 	/** Called when the game instance is started either normally or through PIE. */
 	virtual void OnStart();

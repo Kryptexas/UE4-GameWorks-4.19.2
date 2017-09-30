@@ -25,6 +25,15 @@
 #include "Recast/RecastAlloc.h"
 #include "Recast/RecastAssert.h"
 
+#define DEBUG_RCLAYERS_CRASH 1	
+
+#if DEBUG_RCLAYERS_CRASH
+#include "Logging/LogMacros.h"
+#include "Logging/LogVerbosity.h"
+#include "Misc/OutputDeviceRedirector.h"
+DEFINE_LOG_CATEGORY_STATIC(LogRecastCrashDetails, All, All);
+#endif // DEBUG_RCLAYERS_CRASH
+
 struct rcLayerRegionMonotone
 {
 	int chunkId;
@@ -99,17 +108,104 @@ struct rcLayerSweepSpan
 	unsigned short nei;	// neighbour id
 };
 
+#if DEBUG_RCLAYERS_CRASH
+FString DescribeIntArray(const rcIntArray& InArray)
+{
+	FString Desc = FString::Printf(TEXT("%d{"), InArray.size());
+	for (int32 Idx = 0; Idx < InArray.size(); Idx++)
+	{
+		Desc += FString::Printf(TEXT("%d "), InArray[Idx]);
+	}
+
+	Desc += TEXT("}");
+	return Desc;
+}
+
+void LogDetailsCHF(const rcCompactHeightfield& chf, const int32 x, const int32 y, const int32 i)
+{
+	UE_LOG(LogRecastCrashDetails, Warning, TEXT("LogDetailsCHF x:%d y:%d i:%d"), x, y, i);
+
+	FString CellsDesc;
+	for (int32 IdxY = 0; IdxY < chf.height; IdxY++)
+	{
+		for (int32 IdxX = 0; IdxX < chf.width; IdxX++)
+		{
+			const int32 Index = IdxX + (IdxY * chf.width);
+			const rcCompactCell& c = chf.cells[Index];
+
+			CellsDesc += FString::Printf(TEXT("\n[%d,%d] index:%d count:%d"), IdxX, IdxY, c.index, c.count);
+		}
+	}
+
+	UE_LOG(LogRecastCrashDetails, Warning, TEXT(">> memory - cells:%s"), *CellsDesc);
+	GLog->Flush();
+
+	FString SpanDesc;
+	for (int32 Idx = 0; Idx < chf.spanCount; Idx++)
+	{
+		const rcCompactSpan& span = chf.spans[Idx];
+		SpanDesc += FString::Printf(TEXT("\n[%d] reg:%d y:%d h:%d con:%d"), Idx, span.reg, span.y, span.h, span.con);
+	}
+
+	UE_LOG(LogRecastCrashDetails, Warning, TEXT(">> memory - spans:%s"), *SpanDesc);
+	GLog->Flush();
+}
+
+void LogDetailsSrcRegs(unsigned short* srcReg, const int32 Width, const int32 Height)
+{
+	UE_LOG(LogRecastCrashDetails, Warning, TEXT("LogDetailsSrcRegs width:%d height:%d addr:0x%X"), Width, Height, srcReg);
+
+	FString MemDesc;
+	for (int32 IdxY = 0; IdxY < Height; IdxY++)
+	{
+		MemDesc += TEXT("\n");
+		for (int32 IdxX = 0; IdxX < Width; IdxX++)
+		{
+			const int32 Index = IdxX + (IdxY * Width);
+			MemDesc += FString::Printf(TEXT("%4X "), srcReg[Index]);
+		}
+	}
+
+	UE_LOG(LogRecastCrashDetails, Warning, TEXT(">> memory:%s"), *MemDesc);
+	GLog->Flush();
+}
+
+void LogDetailsMonotoneRegs(const rcLayerRegionMonotone* regs, const int32 nregs, const int32 i)
+{
+	UE_LOG(LogRecastCrashDetails, Warning, TEXT("LogDetailsMonotoneRegs, nregs:%d i:%d"), nregs, i);
+
+	for (int32 Idx = 0; Idx < nregs; Idx++)
+	{
+		const rcLayerRegionMonotone& regInfo = regs[Idx];
+		const FString DescNei = DescribeIntArray(regInfo.neis);
+		const FString DescLayers = DescribeIntArray(regInfo.layers);
+		UE_LOG(LogRecastCrashDetails, Warning, TEXT("  [%d] chunkId:%d ymin:%d, ymax:%d layerId:%d base:%d nei:%s layers:%s"),
+			Idx, regInfo.chunkId, regInfo.ymin, regInfo.ymax, regInfo.layerId, regInfo.base ? 1 : 0, *DescNei, *DescLayers);
+	}
+
+	GLog->Flush();
+}
+
+void LogDetailsRegionOverlaps(const rcIntArray& lregs, const int32 i, const int32 j)
+{
+	UE_LOG(LogRecastCrashDetails, Warning, TEXT("LogDetailsRegionOverlaps i:%d j:%d lregs:%s"), i, j, *DescribeIntArray(lregs));
+}
+
+#endif // DEBUG_RCLAYERS_CRASH
+
 static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf, const int borderSize,
-										unsigned short* srcReg, rcLayerRegionMonotone*& regs, int& nregs)
+	unsigned short* srcReg, rcLayerRegionMonotone*& regs, int& nregs)
 {
 	const int w = chf.width;
 	const int h = chf.height;
 
-	const int nsweeps = chf.width;
-	rcScopedDelete<rcLayerSweepSpan> sweeps = (rcLayerSweepSpan*)rcAlloc(sizeof(rcLayerSweepSpan)*nsweeps, RC_ALLOC_TEMP);
+	// assume 8 unique layers on each place along row
+	const int32 MaxSweeps = w * 8;
+
+	rcScopedDelete<rcLayerSweepSpan> sweeps(MaxSweeps);
 	if (!sweeps)
 	{
-		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsMonotone: Out of memory 'sweeps' (%d).", nsweeps);
+		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsMonotone: Out of memory 'sweeps' (%d).", MaxSweeps);
 		return false;
 	}
 
@@ -117,18 +213,28 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 	rcIntArray prev(256);
 	unsigned short regId = 0;
 
-	for (int y = borderSize; y < h-borderSize; ++y)
+	for (int y = borderSize; y < h - borderSize; ++y)
 	{
-		prev.resize(regId+1);
-		memset(&prev[0],0,sizeof(int)*regId);
+		prev.resize(regId + 1);
+		memset(&prev[0], 0, sizeof(int)*regId);
 		unsigned short sweepId = 0;
+		unsigned int MaxSpanCount = 0;
 
-		for (int x = borderSize; x < w-borderSize; ++x)
+		for (int x = borderSize; x < w - borderSize; ++x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
+			const rcCompactCell& c = chf.cells[x + y*w];
+			MaxSpanCount = rcMax(MaxSpanCount, c.count);
 
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
+#if DEBUG_RCLAYERS_CRASH
+				if (i < 0 || i >= chf.spanCount)
+				{
+					LogDetailsCHF(chf, x, y, i);
+					UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [1] i:%d outside valid range: 0..%d"), i, chf.spanCount - 1);
+				}
+#endif // DEBUG_RCLAYERS_CRASH
+
 				const rcCompactSpan& s = chf.spans[i];
 				if (chf.areas[i] == RC_NULL_AREA) continue;
 
@@ -139,7 +245,15 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 				{
 					const int ax = x + rcGetDirOffsetX(0);
 					const int ay = y + rcGetDirOffsetY(0);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 0);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 0);
+#if DEBUG_RCLAYERS_CRASH
+					if (ai < 0 || ai >= chf.spanCount)
+					{
+						LogDetailsCHF(chf, x, y, i);
+						UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [2] dir:0, ai:%d outside valid range: 0..%d"), ai, chf.spanCount - 1);
+					}
+#endif // DEBUG_RCLAYERS_CRASH
+
 					if (chf.areas[ai] != RC_NULL_AREA && srcReg[ai] != 0xffff)
 						sid = srcReg[ai];
 				}
@@ -147,16 +261,32 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 				if (sid == 0xffff)
 				{
 					sid = sweepId++;
-					sweeps[sid].nei = 0xffff;
-					sweeps[sid].ns = 0;
+					if (sid < MaxSweeps)
+					{
+						sweeps[sid].nei = 0xffff;
+						sweeps[sid].ns = 0;
+					}
+					else
+					{
+						ctx->log(RC_LOG_ERROR, "CollectLayerRegionsMonotone: Layer split is too complex, skipping tile! x:%d y:%d spansTotal:%d spansCurrent:%d spansMax:%d", x, y, chf.spanCount, c.count, MaxSpanCount);
+						return false;
+					}
 				}
 
 				// -y
-				if (rcGetCon(s,3) != RC_NOT_CONNECTED)
+				if (rcGetCon(s, 3) != RC_NOT_CONNECTED)
 				{
 					const int ax = x + rcGetDirOffsetX(3);
 					const int ay = y + rcGetDirOffsetY(3);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 3);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 3);
+#if DEBUG_RCLAYERS_CRASH
+					if (ai < 0 || ai >= chf.spanCount)
+					{
+						LogDetailsCHF(chf, x, y, i);
+						UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [4] dir:3, ai:%d outside valid range: 0..%d"), ai, chf.spanCount - 1);
+					}
+#endif // DEBUG_RCLAYERS_CRASH
+
 					const unsigned short nr = srcReg[ai];
 					if (nr != 0xffff)
 					{
@@ -168,6 +298,16 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 						{
 							// Update existing neighbour
 							sweeps[sid].ns++;
+
+#if DEBUG_RCLAYERS_CRASH
+							if (nr >= prev.size())
+							{
+								LogDetailsSrcRegs(srcReg, w, h);
+								LogDetailsCHF(chf, x, y, i);
+								UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [5] dir:3 ai:%d, nr:%d outside valid range: 0..%d"), ai, nr, prev.size() - 1);
+							}
+#endif // DEBUG_RCLAYERS_CRASH
+
 							prev[nr]++;
 						}
 						else
@@ -186,6 +326,14 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 		// Create unique ID.
 		for (int i = 0; i < sweepId; ++i)
 		{
+#if DEBUG_RCLAYERS_CRASH
+			if (sweeps[i].nei != 0xffff && sweeps[i].nei >= prev.size())
+			{
+				LogDetailsSrcRegs(srcReg, w, h);
+				UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [6] i:%d nei:%d outside valid range: 0..%d"), i, sweeps[i].nei, prev.size() - 1);
+			}
+#endif // DEBUG_RCLAYERS_CRASH
+
 			// If the neighbour is set and there is only one continuous connection to it,
 			// the sweep will be merged with the previous one, else new region is created.
 			if (sweeps[i].nei != 0xffff && prev[sweeps[i].nei] == sweeps[i].ns)
@@ -199,11 +347,19 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 		}
 
 		// Remap local sweep ids to region ids.
-		for (int x = borderSize; x < w-borderSize; ++x)
+		for (int x = borderSize; x < w - borderSize; ++x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
+#if DEBUG_RCLAYERS_CRASH
+				if (i < 0 || i >= chf.spanCount)
+				{
+					LogDetailsCHF(chf, x, y, i);
+					UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [7] i:%d outside valid range: 0..%d"), i, chf.spanCount - 1);
+				}
+#endif // DEBUG_RCLAYERS_CRASH
+
 				if (srcReg[i] != 0xffff)
 					srcReg[i] = sweeps[srcReg[i]].id;
 			}
@@ -212,6 +368,13 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 
 	// Allocate and init layer regions.
 	nregs = (int)regId;
+#if DEBUG_RCLAYERS_CRASH
+	if (nregs < 0 || nregs >= 100000)
+	{
+		UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [8] nregs:%d outside valid range: 0..%d"), nregs, 100000 - 1);
+	}
+#endif // DEBUG_RCLAYERS_CRASH
+
 	regs = (rcLayerRegionMonotone*)rcAlloc(sizeof(rcLayerRegionMonotone)*nregs, RC_ALLOC_TEMP);
 	if (!regs)
 	{
@@ -233,14 +396,31 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 	{
 		for (int x = 0; x < w; ++x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
+			const rcCompactCell& c = chf.cells[x + y*w];
 			lregs.resize(0);
 
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
+#if DEBUG_RCLAYERS_CRASH
+				if (i < 0 || i >= chf.spanCount)
+				{
+					LogDetailsCHF(chf, x, y, i);
+					UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [9] i:%d outside valid range: 0..%d"), i, chf.spanCount - 1);
+				}
+#endif // DEBUG_RCLAYERS_CRASH
+
 				const rcCompactSpan& s = chf.spans[i];
 				const unsigned short ri = srcReg[i];
 				if (ri == 0xffff) continue;
+
+#if DEBUG_RCLAYERS_CRASH
+				if (ri >= nregs)
+				{
+					LogDetailsCHF(chf, x, y, i);
+					LogDetailsSrcRegs(srcReg, w, h);
+					UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [10] ri:%d outside valid range: 0..%d"), ri, nregs - 1);
+				}
+#endif // DEBUG_RCLAYERS_CRASH
 
 				regs[ri].ymin = rcMin(regs[ri].ymin, s.y);
 				regs[ri].ymax = rcMax(regs[ri].ymax, s.y);
@@ -255,8 +435,25 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 					{
 						const int ax = x + rcGetDirOffsetX(dir);
 						const int ay = y + rcGetDirOffsetY(dir);
-						const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, dir);
+						const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, dir);
+#if DEBUG_RCLAYERS_CRASH
+						if (ai < 0 || ai >= chf.spanCount)
+						{
+							LogDetailsCHF(chf, x, y, i);
+							UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [11] dir:%d, ai:%d outside valid range: 0..%d"), dir, ai, chf.spanCount - 1);
+						}
+#endif // DEBUG_RCLAYERS_CRASH
+
 						const unsigned short rai = srcReg[ai];
+#if DEBUG_RCLAYERS_CRASH
+						if (rai != 0xffff && rai >= chf.spanCount)
+						{
+							LogDetailsCHF(chf, x, y, i);
+							LogDetailsSrcRegs(srcReg, w, h);
+							UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [12] dir:%d, ai:%d, rai:%d outside valid range: 0..%d"), dir, ai, rai, chf.spanCount - 1);
+						}
+#endif // DEBUG_RCLAYERS_CRASH
+
 						if (rai != 0xffff && rai != ri)
 							addUnique(regs[ri].neis, rai);
 					}
@@ -266,12 +463,29 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 
 			// Update overlapping regions.
 			const int nlregs = lregs.size();
-			for (int i = 0; i < nlregs-1; ++i)
+			for (int i = 0; i < nlregs - 1; ++i)
 			{
-				for (int j = i+1; j < nlregs; ++j)
+				for (int j = i + 1; j < nlregs; ++j)
 				{
 					if (lregs[i] != lregs[j])
 					{
+#if DEBUG_RCLAYERS_CRASH
+						if (lregs[i] < 0 || lregs[i] >= nregs)
+						{
+							LogDetailsSrcRegs(srcReg, w, h);
+							LogDetailsMonotoneRegs(regs, nregs, -1);
+							LogDetailsRegionOverlaps(lregs, i, j);
+							UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [13] x:%d, y:%d, lregs[i]:%d outside valid range: 0..%d"), x, y, lregs[i], nregs - 1);
+						}
+						if (lregs[j] < 0 || lregs[j] >= nregs)
+						{
+							LogDetailsSrcRegs(srcReg, w, h);
+							LogDetailsMonotoneRegs(regs, nregs, -1);
+							LogDetailsRegionOverlaps(lregs, i, j);
+							UE_LOG(LogRecastCrashDetails, Fatal, TEXT("CollectLayerRegionsMonotone: [14] x:%d, y:%d, lregs[j]:%d outside valid range: 0..%d"), x, y, lregs[j], nregs - 1);
+						}
+#endif // DEBUG_RCLAYERS_CRASH
+
 						rcLayerRegionMonotone& ri = regs[lregs[i]];
 						rcLayerRegionMonotone& rj = regs[lregs[j]];
 						addUnique(ri.layers, lregs[j]);
@@ -292,11 +506,10 @@ static bool CollectLayerRegionsChunky(rcContext* ctx, rcCompactHeightfield& chf,
 	const int w = chf.width;
 	const int h = chf.height;
 
-	const int nsweeps = chunkSize;
-	rcScopedDelete<rcLayerSweepSpan> sweeps = (rcLayerSweepSpan*)rcAlloc(sizeof(rcLayerSweepSpan)*nsweeps, RC_ALLOC_TEMP);
+	rcScopedDelete<rcLayerSweepSpan> sweeps(chunkSize);
 	if (!sweeps)
 	{
-		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsChunky: Out of memory 'sweeps' (%d).", nsweeps);
+		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsChunky: Out of memory 'sweeps' (%d).", chunkSize);
 		return false;
 	}
 
@@ -341,8 +554,17 @@ static bool CollectLayerRegionsChunky(rcContext* ctx, rcCompactHeightfield& chf,
 						if (sid == 0xffff)
 						{
 							sid = sweepId++;
-							sweeps[sid].nei = 0xffff;
-							sweeps[sid].ns = 0;
+							// UE4: multiple spans per single X row may result in more sweeps than originally allocated
+							if (sweeps.resizeGrow(sid + 1))
+							{
+								sweeps[sid].nei = 0xffff;
+								sweeps[sid].ns = 0;
+							}
+							else
+							{
+								ctx->log(RC_LOG_ERROR, "CollectLayerRegionsChunky: Out of memory 'sweeps' resize (%d).", sid + 1);
+								return false;
+							}
 						}
 
 						// -y
@@ -507,6 +729,19 @@ static bool SplitAndStoreLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 
 		while (stack.size())
 		{
+#if DEBUG_RCLAYERS_CRASH
+			if (stack[0] < 0 || stack[0] >= nregs)
+			{
+				LogDetailsMonotoneRegs(regs, nregs, i);
+				UE_LOG(LogRecastCrashDetails, Fatal, TEXT("SplitAndStoreLayerRegions: [1] stack[0]:%d outside valid range: 0..%d"), stack[0], nregs - 1);
+			}
+			if (stack.size() > 100000)
+			{
+				LogDetailsMonotoneRegs(regs, nregs, i);
+				UE_LOG(LogRecastCrashDetails, Fatal, TEXT("SplitAndStoreLayerRegions: [2] stack.size:%d outside valid range: 0..%d"), stack.size(), 100000 - 1);
+			}
+#endif // DEBUG_RCLAYERS_CRASH
+
 			// Pop front
 			rcLayerRegionMonotone& reg = regs[stack[0]];
 			for (int j = 1; j < stack.size(); ++j)
@@ -517,6 +752,14 @@ static bool SplitAndStoreLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 			for (int j = 0; j < nneis; ++j)
 			{
 				const int nei = reg.neis[j];
+#if DEBUG_RCLAYERS_CRASH
+				if (nei < 0 || nei >= nregs)
+				{
+					LogDetailsMonotoneRegs(regs, nregs, i);
+					UE_LOG(LogRecastCrashDetails, Fatal, TEXT("SplitAndStoreLayerRegions: [3] regIdx:%d j:%d nei:%d outside valid range: 0..%d"), stack[0], j, nei, nregs - 1);
+				}
+#endif // DEBUG_RCLAYERS_CRASH
+
 				rcLayerRegionMonotone& regn = regs[nei];
 				// Skip already visited.
 				if (regn.layerId != 0xffff)
@@ -526,7 +769,7 @@ static bool SplitAndStoreLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(root.ymin, regn.ymin);
-				const int ymax = rcMin(root.ymax, regn.ymax);
+				const int ymax = rcMax(root.ymax, regn.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 
@@ -571,7 +814,7 @@ static bool SplitAndStoreLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(ri.ymin, rj.ymin);
-				const int ymax = rcMin(ri.ymax, rj.ymax);
+				const int ymax = rcMax(ri.ymax, rj.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 
@@ -1192,7 +1435,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(reg.ymin, regn.ymin);
-				const int ymax = rcMin(reg.ymax, regn.ymax);
+				const int ymax = rcMax(reg.ymax, regn.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 
@@ -1233,7 +1476,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(ri.ymin, rj.ymin);
-				const int ymax = rcMin(ri.ymax, rj.ymax);
+				const int ymax = rcMax(ri.ymax, rj.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 

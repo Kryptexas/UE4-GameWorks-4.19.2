@@ -814,7 +814,7 @@ void AGameMode::PreCommitMapChange(const FString& PreviousMapName, const FString
 
 void AGameMode::PostCommitMapChange() {}
 
-void AGameMode::NotifyPendingConnectionLost() {}
+void AGameMode::NotifyPendingConnectionLost(const FUniqueNetIdRepl& ConnectionUniqueId) {}
 
 void AGameMode::HandleDisconnect(UWorld* InWorld, UNetDriver* NetDriver)
 {

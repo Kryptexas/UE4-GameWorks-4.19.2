@@ -562,9 +562,15 @@ public:
 	 */
 	static FGlobalDynamicVertexBuffer& Get();
 
+	/** Returns true if log statements should be made because we exceeded GMaxVertexBytesAllocatedPerFrame */
+	bool IsRenderAlarmLoggingEnabled() const;
+
 private:
 	/** The pool of vertex buffers from which allocations are made. */
 	struct FDynamicVertexBufferPool* Pool;
+
+	/** A total of all allocations made since the last commit. Used to alert about spikes in memory usage. */
+	size_t TotalAllocatedSinceLastCommit;
 };
 
 /**

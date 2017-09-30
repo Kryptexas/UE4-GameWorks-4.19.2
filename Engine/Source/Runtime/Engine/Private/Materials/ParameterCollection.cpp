@@ -24,9 +24,11 @@ void UMaterialParameterCollection::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	DefaultResource = new FMaterialParameterCollectionInstanceResource();
+
+	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
-		DefaultResource = new FMaterialParameterCollectionInstanceResource();
+		UpdateDefaultResource();
 	}
 }
 
@@ -55,12 +57,16 @@ void UMaterialParameterCollection::BeginDestroy()
 {
 	if (DefaultResource)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			FRemoveDefaultResourceCommand,
-			FGuid,Id,StateId,
-		{
-			GDefaultMaterialParameterCollectionInstances.Remove(Id);
-		});
+		FGuid Id = StateId;
+		FName Name = DefaultResource->GetOwnerName();
+		ENQUEUE_RENDER_COMMAND(RemoveDefaultResourceCommand)(
+			[Id, Name](FRHICommandListImmediate& RHICmdList)
+			{	
+				GDefaultMaterialParameterCollectionInstances.Remove(Id);			
+				UE_LOG(LogMaterial, Log, TEXT("Removed default parameter collection resource, %s, ID:%s"),
+					*Name.ToString(), *Id.ToString());
+			}
+		);
 
 		DefaultResource->GameThread_Destroy();
 		DefaultResource = NULL;
@@ -430,6 +436,14 @@ void UMaterialParameterCollection::CreateBufferStruct()
 
 void UMaterialParameterCollection::GetDefaultParameterData(TArray<FVector4>& ParameterData) const
 {
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		// Dummy data for our fallback parameter collection, 256 empty vectors
+		ParameterData.Empty(256);
+		ParameterData.AddZeroed(256);
+		return;
+	}
+
 	// The memory layout created here must match the index assignment in UMaterialParameterCollection::GetParameterIndex
 
 	ParameterData.Empty(FMath::DivideAndRoundUp(ScalarParameters.Num(), 4) + VectorParameters.Num());
@@ -461,15 +475,18 @@ void UMaterialParameterCollection::UpdateDefaultResource()
 	// Propagate the new values to the rendering thread
 	TArray<FVector4> ParameterData;
 	GetDefaultParameterData(ParameterData);
-	DefaultResource->GameThread_UpdateContents(StateId, ParameterData);
+	DefaultResource->GameThread_UpdateContents(StateId, ParameterData, GetFName());
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FUpdateDefaultResourceCommand,
-		FGuid,Id,StateId,
-		FMaterialParameterCollectionInstanceResource*,Resource,DefaultResource,
-	{
-		GDefaultMaterialParameterCollectionInstances.Add(Id, Resource);
-	});
+	FGuid Id = StateId;
+	FMaterialParameterCollectionInstanceResource* Resource = DefaultResource;
+	ENQUEUE_RENDER_COMMAND(UpdateDefaultResourceCommand)(
+		[Id, Resource](FRHICommandListImmediate& RHICmdList)
+		{	
+			GDefaultMaterialParameterCollectionInstances.Add(Id, Resource);
+			UE_LOG(LogMaterial, Log, TEXT("Added default parameter collection resource, %s, ID:%s"),
+				Resource ? *Resource->GetOwnerName().ToString() : TEXT("None"), *Id.ToString());
+		}
+	);
 }
 
 UMaterialParameterCollectionInstance::UMaterialParameterCollectionInstance(const FObjectInitializer& ObjectInitializer)
@@ -597,7 +614,7 @@ void UMaterialParameterCollectionInstance::UpdateRenderState()
 	// Propagate the new values to the rendering thread
 	TArray<FVector4> ParameterData;
 	GetParameterData(ParameterData);
-	Resource->GameThread_UpdateContents(Collection ? Collection->StateId : FGuid(), ParameterData);
+	Resource->GameThread_UpdateContents(Collection ? Collection->StateId : FGuid(), ParameterData, GetFName());
 	// Update the world's scene with the new uniform buffer pointer
 	World->UpdateParameterCollectionInstances(false);
 }
@@ -646,26 +663,26 @@ void UMaterialParameterCollectionInstance::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-void FMaterialParameterCollectionInstanceResource::GameThread_UpdateContents(const FGuid& InGuid, const TArray<FVector4>& Data)
+void FMaterialParameterCollectionInstanceResource::GameThread_UpdateContents(const FGuid& InGuid, const TArray<FVector4>& Data, const FName& InOwnerName)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		FUpdateCollectionCommand,
-		FGuid,Id,InGuid,
-		TArray<FVector4>,Data,Data,
-		FMaterialParameterCollectionInstanceResource*,Resource,this,
-	{
-		Resource->UpdateContents(Id, Data);
-	});
+	FMaterialParameterCollectionInstanceResource* Resource = this;
+	ENQUEUE_RENDER_COMMAND(UpdateCollectionCommand)(
+		[InGuid, Data, InOwnerName, Resource](FRHICommandListImmediate& RHICmdList)
+		{
+			Resource->UpdateContents(InGuid, Data, InOwnerName);
+		}
+	);
 }
 
 void FMaterialParameterCollectionInstanceResource::GameThread_Destroy()
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		FDestroyCollectionCommand,
-		FMaterialParameterCollectionInstanceResource*,Resource,this,
-	{
-		delete Resource;
-	});
+	FMaterialParameterCollectionInstanceResource* Resource = this;
+	ENQUEUE_RENDER_COMMAND(DestroyCollectionCommand)(
+		[Resource](FRHICommandListImmediate& RHICmdList)
+		{
+			delete Resource;
+		}
+	);
 }
 
 static FName MaterialParameterCollectionInstanceResourceName(TEXT("MaterialParameterCollectionInstanceResource"));
@@ -680,15 +697,15 @@ FMaterialParameterCollectionInstanceResource::~FMaterialParameterCollectionInsta
 	UniformBuffer.SafeRelease();
 }
 
-void FMaterialParameterCollectionInstanceResource::UpdateContents(const FGuid& InId, const TArray<FVector4>& Data)
+void FMaterialParameterCollectionInstanceResource::UpdateContents(const FGuid& InId, const TArray<FVector4>& Data, const FName& InOwnerName)
 {
 	UniformBuffer.SafeRelease();
 
 	Id = InId;
+	OwnerName = InOwnerName;
 
-	if (InId != FGuid() && Data.Num() > 0)
+	if (Data.Num() > 0)
 	{
-		UniformBuffer.SafeRelease();
 		UniformBufferLayout.ConstantBufferSize = Data.GetTypeSize() * Data.Num();
 		UniformBufferLayout.ResourceOffset = 0;
 		check(UniformBufferLayout.Resources.Num() == 0);

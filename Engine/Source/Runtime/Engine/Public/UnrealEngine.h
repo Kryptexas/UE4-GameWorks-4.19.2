@@ -16,6 +16,8 @@ class FViewportClient;
 class UFont;
 class ULocalPlayer;
 
+extern ENGINE_API int32 GShowMaterialDrawEventTypes;
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 //
 //	FLocalPlayerIterator - Iterates over local players in the game.

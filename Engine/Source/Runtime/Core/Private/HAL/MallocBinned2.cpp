@@ -485,12 +485,18 @@ struct FMallocBinned2::Private
 				{
 					Table.ActivePools.LinkToFront(NodePool);
 				}
+				else
+				{
+					check(NodePool->FirstFreeBlock->Canary == 0 || NodePool->FirstFreeBlock->IsCanaryOk());
+				}
 
 				// Free a pooled allocation.
 				FFreeBlock* Free = (FFreeBlock*)Node;
 				Free->NumFreeBlocks = 1;
 				Free->NextFreeBlock = NodePool->FirstFreeBlock;
 				Free->BlockSize     = InBlockSize;
+				Free->Canary = FFreeBlock::CANARY_VALUE;
+				Free->PoolIndex = InPoolIndex;
 				NodePool->FirstFreeBlock   = Free;
 
 				// Free this pool.
@@ -581,11 +587,12 @@ FMallocBinned2::FPoolInfo& FMallocBinned2::FPoolList::PushNewPoolToFront(FMalloc
 	const uint32 LocalPageSize = Allocator.PageSize;
 
 	// Allocate memory.
-	FFreeBlock* Free = new (Allocator.CachedOSPageAllocator.Allocate(LocalPageSize)) FFreeBlock(LocalPageSize, InBlockSize, InPoolIndex);
-	if (!Free)
+	void* FreePtr = Allocator.CachedOSPageAllocator.Allocate(LocalPageSize);
+	if (!FreePtr)
 	{
 		Private::OutOfMemory(LocalPageSize);
 	}
+	FFreeBlock* Free = new (FreePtr) FFreeBlock(LocalPageSize, InBlockSize, InPoolIndex);
 #if BINNED2_ALLOCATOR_STATS
 	AllocatedOSSmallPoolMemory += (int64)LocalPageSize;
 #endif

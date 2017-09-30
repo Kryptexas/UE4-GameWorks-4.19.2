@@ -17,6 +17,7 @@
 #include "UObject/CoreNet.h"
 #include "UObject/UnrealType.h"
 #include "UObject/Package.h"
+#include "UObject/PropertyPortFlags.h"
 #include "EngineStats.h"
 #include "EngineGlobals.h"
 #include "Engine/EngineBaseTypes.h"
@@ -26,6 +27,7 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
 #include "CollisionQueryParams.h"
+#include "GameFramework/GameModeBase.h"
 #include "Components/PrimitiveComponent.h"
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/UObjectIterator.h"
@@ -128,6 +130,7 @@ DEFINE_STAT(STAT_PacketReservedPacketHandler);
 DEFINE_STAT(STAT_PacketReservedHandshake);
 #endif
 
+DECLARE_CYCLE_STAT(TEXT("NetDriver AddClientConnection"), Stat_NetDriverAddClientConnection, STATGROUP_Net);
 
 #if UE_BUILD_SHIPPING
 #define DEBUG_REMOTEFUNCTION(Format, ...)
@@ -143,25 +146,25 @@ static TAutoConsoleVariable<int32> CVarSetNetDormancyEnabled(
 	TEXT("1 Enables network dormancy. 0 disables network dormancy."),
 	ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarNetDormancyDraw(
-	TEXT("net.DormancyDraw"),
-	0,
-	TEXT("Draws debug information for network dormancy\n")
-	TEXT("1 Enables network dormancy debugging. 0 disables."),
-	ECVF_Default);
-
-static TAutoConsoleVariable<float> CVarNetDormancyDrawCullDistance(
-	TEXT("net.DormancyDrawCullDistance"),
-	5000.f,
-	TEXT("Cull distance for net.DormancyDraw. World Units")
-	TEXT("Max world units an actor can be away from the local view to draw its dormancy status"),
-	ECVF_Default);
-
 static TAutoConsoleVariable<int32> CVarNetDormancyValidate(
 	TEXT("net.DormancyValidate"),
 	0,
 	TEXT("Validates that dormant actors do not change state while in a dormant state (on server only)")
 	TEXT("0: Dont validate. 1: Validate on wake up. 2: Validate on each net update"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetDebugDraw(
+	TEXT("net.DebugDraw"),
+	0,
+	TEXT("Draws debug information for network dormancy and relevancy\n")
+	TEXT("1 Enables network debug drawing. 0 disables."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarNetDebugDrawCullDistance(
+	TEXT("net.DebugDrawCullDistance"),
+	0.f,
+	TEXT("Cull distance for net.DebugDraw. World Units")
+	TEXT("Max world units an actor can be away from the local view to draw its dormancy status. Zero disables culling"),
 	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarUseAdaptiveNetUpdateFrequency(
@@ -192,6 +195,7 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,	Time( 0.f )
 ,	LastTickDispatchRealtime( 0.f )
 ,   bIsPeer(false)
+,	bSkipLocalStats(false)
 ,	InBytes(0)
 ,	OutBytes(0)
 ,	NetGUIDOutBytes(0)
@@ -276,26 +280,19 @@ void UNetDriver::AssertValid()
 	return bUseAdapativeNetFrequency;
 }
 
-FNetworkObjectInfo* UNetDriver::GetNetworkObjectInfo(const AActor* InActor)
+FNetworkObjectInfo* UNetDriver::FindOrAddNetworkObjectInfo(const AActor* InActor)
 {
-	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfo = GetNetworkObjectList().Add(const_cast<AActor*>(InActor), NetDriverName);
+	if (TSharedPtr<FNetworkObjectInfo>* InfoPtr = GetNetworkObjectList().FindOrAdd(const_cast<AActor*>(InActor), NetDriverName))
+	{
+		return InfoPtr->Get();
+	}
 
-	return NetworkObjectInfo ? NetworkObjectInfo->Get() : nullptr;
+	return nullptr;
 }
 
-const FNetworkObjectInfo* UNetDriver::GetNetworkObjectInfo(const AActor* InActor) const
+FNetworkObjectInfo* UNetDriver::FindNetworkObjectInfo(const AActor* InActor)
 {
-	return const_cast<UNetDriver*>(this)->GetNetworkObjectInfo(InActor);
-}
-
-const FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor) const
-{
-	return GetNetworkObjectInfo(InActor);
-}
-
-FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor)
-{
-	return const_cast<UNetDriver*>(this)->GetNetworkObjectInfo(InActor);
+	return GetNetworkObjectList().Find(InActor).Get();
 }
 
 bool UNetDriver::IsNetworkActorUpdateFrequencyThrottled(const FNetworkObjectInfo& InNetworkActor) const
@@ -323,7 +320,7 @@ bool UNetDriver::IsNetworkActorUpdateFrequencyThrottled(const AActor* InActor) c
 	bool bThrottled = false;
 	if (InActor && IsAdaptiveNetUpdateFrequencyEnabled())
 	{
-		if (const FNetworkObjectInfo* NetActor = GetNetworkObjectInfo(InActor))
+		if (const FNetworkObjectInfo* NetActor = FindNetworkObjectInfo(InActor))
 		{
 			bThrottled = IsNetworkActorUpdateFrequencyThrottled(*NetActor);
 		}
@@ -457,6 +454,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			int32 UnAckCount = 0;
 			int32 PendingCount = 0;
 			int32 NetSaturated = 0;
+			int32 NumActiveNetActors = GetNetworkObjectList().GetActiveObjects().Num();
 
 			if (
 #if STATS
@@ -512,72 +510,144 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				VoiceInPercent = (InBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesRecv / (float)InBytes) : 0;
 				VoiceOutPercent = (OutBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesSent / (float)OutBytes) : 0;
 
-				UNetConnection * Connection = (ServerConnection ? ServerConnection : (ClientConnections.Num() > 0 ? ClientConnections[0] : NULL));
-				if (Connection)
+				if (World)
 				{
-					NumActorChannels = Connection->ActorChannels.Num();
-					NumDormantActors = Connection->Driver->GetNetworkObjectList().GetNumDormantActorsForConnection( Connection );
-
-					if (World)
-					{
-						NumActors = World->GetActorCount();
-					}
+					NumActors = World->GetActorCount();
+				}
+				
+				// Handle these stats to do this differently for client & server
+				if (ServerConnection != nullptr)
+				{
+					NumActorChannels = ServerConnection->ActorChannels.Num();
+					NumDormantActors = GetNetworkObjectList().GetNumDormantActorsForConnection(ServerConnection);
 #if STATS
-					Connection->PackageMap->GetNetGUIDStats(AckCount, UnAckCount, PendingCount);
+					ServerConnection->PackageMap->GetNetGUIDStats(AckCount, UnAckCount, PendingCount);
 #endif
-					NetSaturated = Connection->IsNetReady(false) ? 0 : 1;
+					NetSaturated = ServerConnection->IsNetReady(false) ? 0 : 1;
+				}
+				else
+				{
+					int32 SharedDormantActors = GetNetworkObjectList().GetDormantObjectsOnAllConnections().Num();
+					for (int32 i = 0; i < ClientConnections.Num(); i++)
+					{
+						NumActorChannels += ClientConnections[i]->ActorChannels.Num();
+						NumDormantActors += GetNetworkObjectList().GetNumDormantActorsForConnection(ClientConnections[i]);
+#if STATS
+						int32 ClientAckCount = 0;
+						int32 ClientUnAckCount = 0;
+						int32 ClientPendingCount = 0;
+						ClientConnections[i]->PackageMap->GetNetGUIDStats(AckCount, UnAckCount, PendingCount);
+						AckCount += ClientAckCount;
+						UnAckCount += ClientUnAckCount;
+						PendingCount += ClientPendingCount;
+#endif
+						NetSaturated |= ClientConnections[i]->IsNetReady(false) ? 0 : 1;
+					}
+					// Subtract out the duplicate counted dormant actors
+					NumDormantActors -= FMath::Max(0, ClientConnections.Num() - 1) * SharedDormantActors;
 				}
 			}
 
 #if STATS
-			// Copy the net status values over
-			SET_DWORD_STAT(STAT_Ping, Ping);
-			SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
-			SET_DWORD_STAT(STAT_MaxPacketOverhead, MaxPacketOverhead);
+			if (!bSkipLocalStats)
+			{
+				// Copy the net status values over
+				SET_DWORD_STAT(STAT_Ping, Ping);
+				SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
+				SET_DWORD_STAT(STAT_MaxPacketOverhead, MaxPacketOverhead);
 
-			SET_DWORD_STAT(STAT_OutLoss, OutPacketsLost);
-			SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
-			SET_DWORD_STAT(STAT_InRate, InBytes);
-			SET_DWORD_STAT(STAT_OutRate, OutBytes);
-			SET_DWORD_STAT(STAT_OutSaturation, RemoteSaturationMax);
-			SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
-			SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
-			SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
-			SET_DWORD_STAT(STAT_InPacketsClientMax, ClientInPacketsMax);
-			SET_DWORD_STAT(STAT_InPacketsClientMin, ClientInPacketsMin);
-			SET_DWORD_STAT(STAT_InPacketsClientAvg, ClientInPacketsAvg);
-			SET_DWORD_STAT(STAT_OutRateClientMax, ClientOutBytesMax);
-			SET_DWORD_STAT(STAT_OutRateClientMin, ClientOutBytesMin);
-			SET_DWORD_STAT(STAT_OutRateClientAvg, ClientOutBytesAvg);
-			SET_DWORD_STAT(STAT_OutPacketsClientMax, ClientOutPacketsMax);
-			SET_DWORD_STAT(STAT_OutPacketsClientMin, ClientOutPacketsMin);
-			SET_DWORD_STAT(STAT_OutPacketsClientAvg, ClientOutPacketsAvg);
+				SET_DWORD_STAT(STAT_OutLoss, OutPacketsLost);
+				SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
+				SET_DWORD_STAT(STAT_InRate, InBytes);
+				SET_DWORD_STAT(STAT_OutRate, OutBytes);
+				SET_DWORD_STAT(STAT_OutSaturation, RemoteSaturationMax);
+				SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
+				SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
+				SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
+				SET_DWORD_STAT(STAT_InPacketsClientMax, ClientInPacketsMax);
+				SET_DWORD_STAT(STAT_InPacketsClientMin, ClientInPacketsMin);
+				SET_DWORD_STAT(STAT_InPacketsClientAvg, ClientInPacketsAvg);
+				SET_DWORD_STAT(STAT_OutRateClientMax, ClientOutBytesMax);
+				SET_DWORD_STAT(STAT_OutRateClientMin, ClientOutBytesMin);
+				SET_DWORD_STAT(STAT_OutRateClientAvg, ClientOutBytesAvg);
+				SET_DWORD_STAT(STAT_OutPacketsClientMax, ClientOutPacketsMax);
+				SET_DWORD_STAT(STAT_OutPacketsClientMin, ClientOutPacketsMin);
+				SET_DWORD_STAT(STAT_OutPacketsClientAvg, ClientOutPacketsAvg);
 
-			SET_DWORD_STAT(STAT_NetNumClients, NumClients);
-			SET_DWORD_STAT(STAT_InPackets, InPackets);
-			SET_DWORD_STAT(STAT_OutPackets, OutPackets);
-			SET_DWORD_STAT(STAT_InBunches, InBunches);
-			SET_DWORD_STAT(STAT_OutBunches, OutBunches);
+				SET_DWORD_STAT(STAT_NetNumClients, NumClients);
+				SET_DWORD_STAT(STAT_InPackets, InPackets);
+				SET_DWORD_STAT(STAT_OutPackets, OutPackets);
+				SET_DWORD_STAT(STAT_InBunches, InBunches);
+				SET_DWORD_STAT(STAT_OutBunches, OutBunches);
 
-			SET_DWORD_STAT(STAT_NetGUIDInRate, NetGUIDInBytes);
-			SET_DWORD_STAT(STAT_NetGUIDOutRate, NetGUIDOutBytes);
+				SET_DWORD_STAT(STAT_NetGUIDInRate, NetGUIDInBytes);
+				SET_DWORD_STAT(STAT_NetGUIDOutRate, NetGUIDOutBytes);
 
-			SET_DWORD_STAT(STAT_VoicePacketsSent, VoicePacketsSent);
-			SET_DWORD_STAT(STAT_VoicePacketsRecv, VoicePacketsRecv);
-			SET_DWORD_STAT(STAT_VoiceBytesSent, VoiceBytesSent);
-			SET_DWORD_STAT(STAT_VoiceBytesRecv, VoiceBytesRecv);
+				SET_DWORD_STAT(STAT_VoicePacketsSent, VoicePacketsSent);
+				SET_DWORD_STAT(STAT_VoicePacketsRecv, VoicePacketsRecv);
+				SET_DWORD_STAT(STAT_VoiceBytesSent, VoiceBytesSent);
+				SET_DWORD_STAT(STAT_VoiceBytesRecv, VoiceBytesRecv);
 
-			SET_DWORD_STAT(STAT_PercentInVoice, VoiceInPercent);
-			SET_DWORD_STAT(STAT_PercentOutVoice, VoiceOutPercent);
+				SET_DWORD_STAT(STAT_PercentInVoice, VoiceInPercent);
+				SET_DWORD_STAT(STAT_PercentOutVoice, VoiceOutPercent);
 
-			SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
-			SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
-			SET_DWORD_STAT(STAT_NumActors, NumActors);
-			SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetActiveObjects().Num());
-			SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
-			SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
-			SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
-			SET_DWORD_STAT(STAT_NetSaturated, NetSaturated);
+				SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
+				SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
+				SET_DWORD_STAT(STAT_NumActors, NumActors);
+				SET_DWORD_STAT(STAT_NumNetActors, NumActiveNetActors);
+				SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
+				SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
+				SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
+				SET_DWORD_STAT(STAT_NetSaturated, NetSaturated);
+			}
+
+			// If we are to replicate server stats out to an observer, then set those values
+			if (AGameModeBase* GMBase = World->GetAuthGameMode())
+			{
+				if (GMBase->ServerStatReplicator != nullptr)
+				{
+					GMBase->ServerStatReplicator->Channels = NumOpenChannels;
+					GMBase->ServerStatReplicator->MaxPacketOverhead = MaxPacketOverhead;
+					GMBase->ServerStatReplicator->OutLoss = OutPacketsLost;
+					GMBase->ServerStatReplicator->InLoss = InPacketsLost;
+					GMBase->ServerStatReplicator->InRate = InBytes;
+					GMBase->ServerStatReplicator->OutRate = OutBytes;
+					GMBase->ServerStatReplicator->OutSaturation = RemoteSaturationMax;
+					GMBase->ServerStatReplicator->InRateClientMax = ClientInBytesMax;
+					GMBase->ServerStatReplicator->InRateClientMin = ClientInBytesMin;
+					GMBase->ServerStatReplicator->InRateClientAvg = ClientInBytesAvg;
+					GMBase->ServerStatReplicator->InPacketsClientMax = ClientInPacketsMax;
+					GMBase->ServerStatReplicator->InPacketsClientMin = ClientInPacketsMin;
+					GMBase->ServerStatReplicator->InPacketsClientAvg = ClientInPacketsAvg;
+					GMBase->ServerStatReplicator->OutRateClientMax = ClientOutBytesMax;
+					GMBase->ServerStatReplicator->OutRateClientMin = ClientOutBytesMin;
+					GMBase->ServerStatReplicator->OutRateClientAvg = ClientOutBytesAvg;
+					GMBase->ServerStatReplicator->OutPacketsClientMax = ClientOutPacketsMax;
+					GMBase->ServerStatReplicator->OutPacketsClientMin = ClientOutPacketsMin;
+					GMBase->ServerStatReplicator->OutPacketsClientAvg = ClientOutPacketsAvg;
+					GMBase->ServerStatReplicator->NetNumClients = NumClients;
+					GMBase->ServerStatReplicator->InPackets = InPackets;
+					GMBase->ServerStatReplicator->OutPackets = OutPackets;
+					GMBase->ServerStatReplicator->InBunches = InBunches;
+					GMBase->ServerStatReplicator->OutBunches = OutBunches;
+					GMBase->ServerStatReplicator->NetGUIDInRate = NetGUIDInBytes;
+					GMBase->ServerStatReplicator->NetGUIDOutRate = NetGUIDOutBytes;
+					GMBase->ServerStatReplicator->VoicePacketsSent = VoicePacketsSent;
+					GMBase->ServerStatReplicator->VoicePacketsRecv = VoicePacketsRecv;
+					GMBase->ServerStatReplicator->VoiceBytesSent = VoiceBytesSent;
+					GMBase->ServerStatReplicator->VoiceBytesRecv = VoiceBytesRecv;
+					GMBase->ServerStatReplicator->PercentInVoice = VoiceInPercent;
+					GMBase->ServerStatReplicator->PercentOutVoice = VoiceOutPercent;
+					GMBase->ServerStatReplicator->NumActorChannels = NumActorChannels;
+					GMBase->ServerStatReplicator->NumDormantActors = NumDormantActors;
+					GMBase->ServerStatReplicator->NumActors = NumActors;
+					GMBase->ServerStatReplicator->NumNetActors = NumActiveNetActors;
+					GMBase->ServerStatReplicator->NumNetGUIDsAckd = AckCount;
+					GMBase->ServerStatReplicator->NumNetGUIDsPending = UnAckCount;
+					GMBase->ServerStatReplicator->NumNetGUIDsUnAckd = PendingCount;
+					GMBase->ServerStatReplicator->NetSaturated = NetSaturated;
+				}
+			}
 #endif // STATS
 
 #if USE_SERVER_PERF_COUNTERS
@@ -734,7 +804,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		FlushHandler();
 	}
 
-	if (CVarNetDormancyDraw.GetValueOnAnyThread() > 0)
+	if (CVarNetDebugDraw.GetValueOnAnyThread() > 0)
 	{
 		DrawNetDriverDebug();
 	}
@@ -1457,7 +1527,16 @@ void UNetDriver::InternalProcessRemoteFunction
 	}
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
-	const bool LogAsWarning = (CVar && CVar->GetValueOnAnyThread() == 1);
+	bool LogAsWarning = (CVar && CVar->GetValueOnAnyThread() == 1);
+
+	if (LogAsWarning)
+	{
+		// Suppress spammy engine RPCs. This could be made a configable list in the future.
+		if (Function->GetName().Contains(TEXT("ServerUpdateCamera"))) LogAsWarning = false;
+		if (Function->GetName().Contains(TEXT("ClientAckGoodMove"))) LogAsWarning = false;
+		if (Function->GetName().Contains(TEXT("ServerMove"))) LogAsWarning = false;
+	}
+
 
 	FNetBitWriter TempWriter( Bunch.PackageMap, 0 );
 
@@ -1610,7 +1689,7 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 							}
 							// Check for host tampering or crappy upstream bandwidth
 							if (PlayerController->PlayerState &&
-								PlayerController->PlayerState->Ping * 4 > BadPingThreshold)
+								PlayerController->PlayerState->ExactPing > BadPingThreshold)
 							{
 								CountBadPing++;
 							}
@@ -1928,6 +2007,58 @@ bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice&
 	return true;
 }
 
+bool UNetDriver::HandleNetDumpDormancy(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	UProperty* Property = FindField<UProperty>(AActor::StaticClass(), TEXT("NetDormancy"));
+	check(Property != nullptr);
+	Ar.Logf(TEXT(""));
+	TArray<AActor*> Actors;
+	if (FParse::Command(&Cmd, TEXT("ACTIVE")))
+	{
+		for (auto It = GetNetworkObjectList().GetActiveObjects().CreateConstIterator(); It; ++It)
+		{
+			FNetworkObjectInfo* ActorInfo = (*It).Get();
+			Actors.Add(ActorInfo->Actor);
+		}
+		Ar.Logf(TEXT("Logging network dormancy for %d active network objects"), Actors.Num());
+		Ar.Logf(TEXT(""));
+	}
+	else if (FParse::Command(&Cmd, TEXT("ALLDORMANT")))
+	{
+		for (auto It = GetNetworkObjectList().GetDormantObjectsOnAllConnections().CreateConstIterator(); It; ++It)
+		{
+			FNetworkObjectInfo* ActorInfo = (*It).Get();
+			Actors.Add(ActorInfo->Actor);
+		}
+		Ar.Logf(TEXT("Logging network dormancy for %d dormant network objects"), Actors.Num());
+		Ar.Logf(TEXT(""));
+	}
+	else
+	{
+		for (auto It = GetNetworkObjectList().GetAllObjects().CreateConstIterator(); It; ++It)
+		{
+			FNetworkObjectInfo* ActorInfo = (*It).Get();
+			Actors.Add(ActorInfo->Actor);
+		}
+		Ar.Logf(TEXT("Logging network dormancy for %d all network objects"), Actors.Num());
+		Ar.Logf(TEXT(""));
+	}
+	// Iterate through the objects reporting on their dormancy status
+	for (AActor* ThisActor : Actors)
+	{
+		uint8* BaseData = (uint8*)ThisActor;
+		FString ResultStr;
+		for (int32 i = 0; i < Property->ArrayDim; i++)
+		{
+			Property->ExportText_InContainer(i, ResultStr, BaseData, BaseData, ThisActor, PPF_IncludeTransient);
+		}
+
+		Ar.Logf(TEXT("%s.%s = %s"), *ThisActor->GetFullName(), *Property->GetName(), *ResultStr);
+	}
+	Ar.Logf(TEXT(""));
+	return true;
+}
+
 #endif // !UE_BUILD_SHIPPING
 
 bool UNetDriver::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
@@ -1979,6 +2110,10 @@ bool UNetDriver::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleNetDumpServerRPCCommand( Cmd, Ar );	
 	}
+	else if (FParse::Command(&Cmd, TEXT("DUMPDORMANCY")))
+	{
+		return HandleNetDumpDormancy(Cmd, Ar);
+	}
 	else
 #endif // !UE_BUILD_SHIPPING
 	{
@@ -2019,10 +2154,9 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 
 	FActorDestructionInfo* DestructionInfo = NULL;
 	const bool bIsServer = ServerConnection == NULL;
+	
 	if (bIsServer)
 	{
-		const FNetworkObjectInfo* NetworkObjectInfo = GetNetworkObjectInfo( ThisActor );
-
 		const bool bIsActorStatic = !GuidCache->IsDynamicObject( ThisActor );
 		const bool bActorHasRole = ThisActor->GetRemoteRole() != ROLE_None;
 		const bool bShouldCreateDestructionInfo = bIsServer && bIsActorStatic && bActorHasRole && !IsSeamlessTravel;
@@ -2047,6 +2181,7 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 			}
 			else
 			{
+				const FNetworkObjectInfo* NetworkObjectInfo = GetNetworkObjectList().Find( ThisActor ).Get();
 				const bool bDormantOrRecentlyDormant = NetworkObjectInfo && (NetworkObjectInfo->DormantConnections.Contains(Connection) || NetworkObjectInfo->RecentlyDormantConnections.Contains(Connection));
 
 				if (bShouldCreateDestructionInfo || bDormantOrRecentlyDormant)
@@ -2215,6 +2350,22 @@ void UNetDriver::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 	for (auto It = This->ReplicationChangeListMap.CreateIterator(); It; ++It)
 	{
 		if (!It.Value().IsValid())
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	for (auto It = This->ReplicationChangeListMap.CreateIterator(); It; ++It)
+	{
+		if (It.Value().IsValid())
+		{
+			FRepChangelistState* const ChangelistState = It.Value()->GetRepChangelistState();
+			if (ChangelistState && ChangelistState->RepLayout.IsValid())
+			{
+				ChangelistState->RepLayout->AddReferencedObjects(Collector);
+			}
+		}
+		else
 		{
 			It.RemoveCurrent();
 		}
@@ -2513,6 +2664,11 @@ FActorPriority::FActorPriority(class UNetConnection* InConnection, struct FActor
 	}
 }
 
+namespace NetCmds
+{
+	static FAutoConsoleVariable MaxConnectionsToTickPerServerFrame( TEXT( "net.MaxConnectionsToTickPerServerFrame" ), 0, TEXT( "When non-zero, the maximum number of channels that will have changed replicated to them per server update" ) );
+}
+
 #if WITH_SERVER_CODE
 int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSeconds )
 {
@@ -2539,6 +2695,11 @@ int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSecond
 			return 0;
 		}
 		DeltaTimeOverflow = 0.f;
+	}
+
+	if( NetCmds::MaxConnectionsToTickPerServerFrame->GetInt() > 0 )
+	{
+		NumClientsToTick = FMath::Min( ClientConnections.Num(), NetCmds::MaxConnectionsToTickPerServerFrame->GetInt() );
 	}
 
 	bool bFoundReadyConnection = false;
@@ -2613,8 +2774,12 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 
 		AActor* Actor = ActorInfo->Actor;
 
-		if ( Actor->IsPendingKill() )
+		if ( Actor->IsPendingKillPending() )
 		{
+			// Actors aren't allowed to be placed in the NetworkObjectList if they are PendingKillPending.
+			// Actors should also be unconditionally removed from the NetworkObjectList when UWorld::DestroyActor is called.
+			// If this is happening, it means code is not destructing Actors properly, and that's not OK.
+			UE_LOG( LogNet, Warning, TEXT( "Actor %s was found in the NetworkObjectList, but is PendingKillPending" ), *Actor->GetName() );
 			ActorsToRemove.Add( Actor );
 			continue;
 		}
@@ -3116,6 +3281,12 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 			// If the actor wasn't recently relevant, or if it was torn off, close the actor channel if it exists for this connection
 			if ( ( !bIsRecentlyRelevant || Actor->bTearOff ) && Channel != NULL )
 			{
+				// Tell the player controller about the actor which will no longer be network relevant to it.
+				if( Connection->PlayerController != nullptr )
+				{
+					Connection->PlayerController->OnActorNoLongerRelevant( Actor );
+				}
+
 				// Non startup (map) actors have their channels closed immediately, which destroys them.
 				// Startup actors get to keep their channels open.
 
@@ -3439,21 +3610,59 @@ void UNetDriver::DrawNetDriverDebug()
 		return;
 	}
 
-	const float CullDistSqr = FMath::Square(CVarNetDormancyDrawCullDistance.GetValueOnAnyThread());
+	const float MaxDebugDrawDistanceSquare = FMath::Square(CVarNetDebugDrawCullDistance.GetValueOnAnyThread());
+
+	const FVector Extent(20.f);
+	// Used to draw additional boxes to show more state
+	const FBox BoxExpansion = FBox(&Extent, 1);
 
 	for (FActorIterator It(LocalWorld); It; ++It)
 	{
-		if ((It->GetActorLocation() - LocalPlayer->LastViewLocation).SizeSquared() > CullDistSqr)
+		// Skip drawing non-replicated actors and controllers since their bounds are
+		// bogus and represented by the Character/Pawn
+		if (!It->GetIsReplicated() || It->IsA(AController::StaticClass()) || It->IsA(AInfo::StaticClass()))
 		{
 			continue;
 		}
-		
-		const FNetworkObjectInfo* NetworkObjectInfo = Connection->Driver->GetNetworkObjectInfo( *It );
 
-		FColor	DrawColor;
+		FBox Box = It->GetComponentsBoundingBox();
+		// Skip actors without bounds in the world
+		if (Box.GetExtent().IsNearlyZero())
+		{
+			continue;
+		}
+
+		FColor ExtraStateDrawColor;
+
+		bool bWasCulled = false;
+		const bool bIsAlwaysRelevant = It->bAlwaysRelevant;
+		// Determine if we need to show that it was network culled or not
+		if (!bIsAlwaysRelevant && !It->bOnlyRelevantToOwner)
+		{
+			const float DistanceSquared = (It->GetActorLocation() - LocalPlayer->LastViewLocation).SizeSquared();
+			// Check for culling from this view based upon the CVar
+			if (MaxDebugDrawDistanceSquare > 0.f && MaxDebugDrawDistanceSquare < DistanceSquared)
+			{
+				continue;
+			}
+
+			if (DistanceSquared > It->NetCullDistanceSquared)
+			{
+				bWasCulled = true;
+				ExtraStateDrawColor = FColor::White;
+			}
+		}
+		else if (bIsAlwaysRelevant)
+		{
+			ExtraStateDrawColor = FColor::Red;
+		}
+		
+		const FNetworkObjectInfo* NetworkObjectInfo = Connection->Driver->FindNetworkObjectInfo( *It );
+
+		FColor DrawColor;
 		if ( NetworkObjectInfo && NetworkObjectInfo->DormantConnections.Contains( Connection ) )
 		{
-			DrawColor = FColor::Red;
+			DrawColor = FColor::Blue;
 		}
 		else if (Connection->ActorChannels.FindRef(*It) != NULL)
 		{
@@ -3461,11 +3670,18 @@ void UNetDriver::DrawNetDriverDebug()
 		}
 		else
 		{
-			continue;
+			// A replicated actor that is not on a channel and not dormant
+			DrawColor = FColor::Orange;
 		}
 
-		FBox Box = 	It->GetComponentsBoundingBox();
 		DrawDebugBox( LocalWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, DrawColor, false );
+		const bool bDrawSecondBox = bWasCulled || bIsAlwaysRelevant;
+		// Draw a second box around the object if it was net culled
+		if (bDrawSecondBox)
+		{
+			Box += BoxExpansion;
+			DrawDebugBox(LocalWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, ExtraStateDrawColor, false);
+		}
 	}
 #endif
 }
@@ -3490,6 +3706,8 @@ bool UNetDriver::NetObjectIsDynamic(const UObject *Object) const
 
 void UNetDriver::AddClientConnection(UNetConnection * NewConnection)
 {
+	SCOPE_CYCLE_COUNTER(Stat_NetDriverAddClientConnection);
+
 	UE_LOG( LogNet, Log, TEXT( "AddClientConnection: Added client connection: %s" ), *NewConnection->Describe() );
 
 	ClientConnections.Add(NewConnection);

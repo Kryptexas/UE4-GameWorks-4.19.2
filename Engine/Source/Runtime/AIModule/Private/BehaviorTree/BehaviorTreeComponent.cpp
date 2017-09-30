@@ -1356,7 +1356,8 @@ void UBehaviorTreeComponent::ProcessPendingExecution()
 	}
 
 	// execute next task / notify out of nodes
-	if (SavedInfo.NextTask)
+	// validate active instance as well, execution can be delayed AND can have AbortCurrentTask call before using instance index
+	if (SavedInfo.NextTask && InstanceStack.IsValidIndex(ActiveInstanceIdx))
 	{
 		ExecuteTask(SavedInfo.NextTask);
 	}
@@ -1478,6 +1479,12 @@ void UBehaviorTreeComponent::UnregisterAuxNodesInBranch(const UBTCompositeNode* 
 void UBehaviorTreeComponent::ExecuteTask(UBTTaskNode* TaskNode)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_ExecutionTime);
+
+	// We expect that there should be valid instances on the stack
+	if (!ensure(InstanceStack.IsValidIndex(ActiveInstanceIdx)))
+	{
+		return;
+	}
 
 	FBehaviorTreeInstance& ActiveInstance = InstanceStack[ActiveInstanceIdx];
 

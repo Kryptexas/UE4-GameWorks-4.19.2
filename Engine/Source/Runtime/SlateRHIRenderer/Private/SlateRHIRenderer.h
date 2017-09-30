@@ -282,9 +282,12 @@ private:
 	/** These are state management variables for Scenes on the game thread. A similar copy exists on the RHI Rendering Policy for the rendering thread.*/
 	TArray<FSceneInterface*> ActiveScenes;
 	int32 CurrentSceneIndex;
+	
+	/** Version that increments when it is okay to clean up older cached resources */
+	uint32 ResourceVersion;
 };
 
-struct FSlateEndDrawingWindowsCommand : public FRHICommand < FSlateEndDrawingWindowsCommand >
+struct FSlateEndDrawingWindowsCommand final : public FRHICommand < FSlateEndDrawingWindowsCommand >
 {
 	FSlateRHIRenderingPolicy& Policy;
 	FSlateDrawBuffer* DrawBuffer;

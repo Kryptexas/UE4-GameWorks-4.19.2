@@ -3021,8 +3021,8 @@ void UAssetManager::RefreshAssetData(UObject* ChangedObject)
 	if (PrimaryAssetId.IsValid() && OldPrimaryAssetId == PrimaryAssetId)
 	{
 		// Same AssetId, this will update cache out of the in memory object
-		FAssetData NewData;
-		GetAssetDataForPathInternal(AssetRegistry, ChangedObjectPath.ToString(), NewData);
+		UClass* Class = Cast<UClass>(ChangedObject);
+		FAssetData NewData(Class ? Class->ClassGeneratedBy : ChangedObject);
 
 		if (ensure(NewData.IsValid()))
 		{
@@ -3135,5 +3135,67 @@ void UAssetManager::InitializeAssetBundlesFromMetadata(const UStruct* Struct, co
 }
 
 #endif // #if WITH_EDITOR
+
+#if !UE_BUILD_SHIPPING
+
+// Cheat command to load all assets of a given type
+static FAutoConsoleCommandWithWorldAndArgs CVarLoadPrimaryAssetsWithType(
+	TEXT("AssetManager.LoadPrimaryAssetsWithType"),
+	TEXT("Loads all assets of a given type"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Params, UWorld* World)
+{
+	if (Params.Num() == 0)
+	{
+		UE_LOG(LogAssetManager, Log, TEXT("No types specified"));
+	}
+
+	for (const FString& Param : Params)
+	{
+		const FPrimaryAssetType TypeToLoad(*Param);
+
+		FPrimaryAssetTypeInfo Info;
+		if (UAssetManager::Get().GetPrimaryAssetTypeInfo(TypeToLoad, /*out*/ Info))
+		{
+			UE_LOG(LogAssetManager, Log, TEXT("LoadPrimaryAssetsWithType(%s)"), *Param);
+			UAssetManager::Get().LoadPrimaryAssetsWithType(TypeToLoad);
+		}
+		else
+		{
+			UE_LOG(LogAssetManager, Log, TEXT("Cannot get type info for PrimaryAssetType %s"), *Param);
+		}		
+	}
+}), ECVF_Cheat);
+
+// Cheat command to unload all assets of a given type
+static FAutoConsoleCommandWithWorldAndArgs CVarUnloadPrimaryAssetsWithType(
+	TEXT("AssetManager.UnloadPrimaryAssetsWithType"),
+	TEXT("Loads all assets of a given type"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Params, UWorld* World)
+{
+	if (Params.Num() == 0)
+	{
+		UE_LOG(LogAssetManager, Log, TEXT("No types specified"));
+	}
+
+	for (const FString& Param : Params)
+	{
+		const FPrimaryAssetType TypeToLoad(*Param);
+
+		FPrimaryAssetTypeInfo Info;
+		if (UAssetManager::Get().GetPrimaryAssetTypeInfo(TypeToLoad, /*out*/ Info))
+		{
+			UE_LOG(LogAssetManager, Log, TEXT("UnloadPrimaryAssetsWithType(%s)"), *Param);
+			UAssetManager::Get().LoadPrimaryAssetsWithType(TypeToLoad);
+		}
+		else
+		{
+			UE_LOG(LogAssetManager, Log, TEXT("Cannot get type info for PrimaryAssetType %s"), *Param);
+		}
+	}
+}), ECVF_Cheat);
+
+#endif
 
 #undef LOCTEXT_NAMESPACE

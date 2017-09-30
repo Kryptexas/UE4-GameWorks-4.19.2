@@ -21,6 +21,8 @@
 
 #include "NetConnection.generated.h"
 
+#define NETCONNECTION_HAS_SETENCRYPTIONKEY 1
+
 class FObjectReplicator;
 class StatelessConnectHandlerComponent;
 class UActorChannel;
@@ -95,7 +97,9 @@ namespace EClientLoginState
 	{
 		Invalid		= 0,		// This must be a client (which doesn't use this state) or uninitialized.
 		LoggingIn	= 1,		// The client is currently logging in.
-		Welcomed	= 2,		// Fully logged in.
+		Welcomed	= 2,		// Told client to load map and will respond with SendJoin
+		ReceivedJoin = 3,		// NMT_Join received and a player controller has been created
+		CleanedUp	= 4			// Cleanup has been called at least once, the connection is considered abandoned/terminated/gone
 	};
 
 	/** @return the stringified version of the enum passed in */
@@ -114,6 +118,14 @@ namespace EClientLoginState
 			case Welcomed:
 			{
 				return TEXT("Welcomed");
+			}
+			case ReceivedJoin:
+			{
+				return TEXT("ReceivedJoin");
+			}
+			case CleanedUp:
+			{
+				return TEXT("CleanedUp");
 			}
 		}
 		return TEXT("");
@@ -471,7 +483,7 @@ public:
 	/** 
 	 * get the representation of a secondary splitscreen connection that reroutes calls to the parent connection
 	 * @return NULL for this connection.
-     */
+	 */
 	virtual UChildConnection* GetUChildConnection()
 	{
 		return NULL;
@@ -522,11 +534,11 @@ public:
 	ENGINE_API virtual int32 IsNetReady( bool Saturate );
 
 	/** 
-     * Handle the player controller client
-     *
-     * @param PC player controller for this player
-     * @param NetConnection the connection the player is communicating on
-     */
+	 * Handle the player controller client
+	 *
+	 * @param PC player controller for this player
+	 * @param NetConnection the connection the player is communicating on
+	 */
 	ENGINE_API virtual void HandleClientPlayer( class APlayerController* PC, class UNetConnection* NetConnection );
 
 	/** @return the address of the connection as an integer */
@@ -618,6 +630,21 @@ public:
 	 * Sets the encryption key, enables encryption, and sends the encryption ack to the client.
 	 */
 	ENGINE_API void EnableEncryptionWithKeyServer(TArrayView<const uint8> Key);
+
+	/**
+	 * Sets the key for the underlying encryption packet handler component, but doesn't modify encryption enabled state.
+	 */
+	ENGINE_API void SetEncryptionKey(TArrayView<const uint8> Key);
+
+	/**
+	 * Sends an NMT_EncryptionAck message
+	 */
+	ENGINE_API void SendClientEncryptionAck();
+
+	/**
+	 * Enables encryption for the underlying encryption packet handler component.
+	 */
+	ENGINE_API void EnableEncryption();
 
 	/** 
 	* Gets a unique ID for the connection, this ID depends on the underlying connection
@@ -720,13 +747,22 @@ public:
 	/** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
 	void FlushDormancyForObject( UObject* Object );
 
-	/** Wrapper for setting the current client login state, so we can trap for debugging, and verbosity purposes. */
+	/** 
+	 * Wrapper for setting the current client login state, so we can trap for debugging, and verbosity purposes. 
+	 * Only valid on the server
+	 */
 	ENGINE_API void SetClientLoginState( const EClientLoginState::Type NewState );
 
-	/** Wrapper for setting the current expected client login msg type. */
+	/** 
+	 * Wrapper for setting the current expected client login msg type. 
+	 * Only valid on the server
+	 */
 	ENGINE_API void SetExpectedClientLoginMsgType( const uint8 NewType );
 
-	/** This function validates that ClientMsgType is the next expected msg type. */
+	/**
+	 * This function validates that ClientMsgType is the next expected msg type. 
+	 * Only valid on the server
+	 */
 	ENGINE_API bool IsClientMsgTypeValid( const uint8 ClientMsgType );
 
 	/**

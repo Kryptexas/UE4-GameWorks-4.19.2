@@ -64,7 +64,7 @@ protected:
 	void ClearAnalogValues();
 
 	/** Handles updating the cursor position and processing a Mouse Move Event */
-	virtual void UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition);
+	virtual void UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition, bool bForce = false);
 
 	/** Current speed of the cursor */
 	FVector2D CurrentSpeed;

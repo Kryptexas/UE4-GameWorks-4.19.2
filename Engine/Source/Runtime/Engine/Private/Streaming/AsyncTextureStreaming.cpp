@@ -131,6 +131,20 @@ void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture
 	StreamingTexture.SetPerfectWantedMips_Async(MaxSize, MaxSize_VisibleOnly, bLooksLowRes, Settings);
 }
 
+bool FAsyncTextureStreamingTask::AllowPerTextureMipBiasChanges() const
+{
+	const TArray<FStreamingViewInfo>& ViewInfos = StreamingData.GetViewInfos();
+	for (int32 ViewIndex = 0; ViewIndex < ViewInfos.Num(); ++ViewIndex)
+	{
+		const FStreamingViewInfo& ViewInfo = ViewInfos[ViewIndex];
+		if (ViewInfo.BoostFactor > StreamingManager.Settings.PerTextureBiasViewBoostThreshold)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int64& TempMemoryUsed)
 {
 	//*************************************
@@ -248,7 +262,8 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 		// Sort texture, having those that should be dropped first.
 		PrioritizedTextures.Sort(FCompareTextureByRetentionPriority(StreamingTextures));
 
-		if (Settings.bUsePerTextureBias)
+
+		if (Settings.bUsePerTextureBias && AllowPerTextureMipBiasChanges())
 		{
 			//*************************************
 			// Drop Max Resolution until in budget.

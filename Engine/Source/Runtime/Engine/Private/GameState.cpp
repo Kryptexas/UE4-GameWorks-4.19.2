@@ -9,6 +9,7 @@
 #include "GameFramework/GameMode.h"
 #include "GameFramework/WorldSettings.h"
 #include "Net/UnrealNetwork.h"
+#include "CoreDelegates.h"
 
 AGameState::AGameState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -61,6 +62,8 @@ void AGameState::HandleMatchIsWaitingToStart()
 		// Server handles this in AGameMode::HandleMatchIsWaitingToStart
 		GetWorldSettings()->NotifyBeginPlay();
 	}
+
+	FCoreDelegates::GameStateClassChanged.Broadcast(GetClass()->GetName());
 }
 
 void AGameState::HandleMatchHasStarted()

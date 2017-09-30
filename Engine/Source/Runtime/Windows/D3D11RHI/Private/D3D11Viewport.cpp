@@ -49,14 +49,6 @@ namespace RHIConsoleVariables
 		ECVF_RenderThreadSafe
 		);
 
-	int32 SyncInterval = 1;
-	static FAutoConsoleVariableRef CVarSyncInterval(
-		TEXT("RHI.SyncInterval"),
-		SyncInterval,
-		TEXT("When synchronizing with D3D, specifies the interval at which to refresh."),
-		ECVF_RenderThreadSafe
-		);
-
 	float SyncRefreshThreshold = 1.05f;
 	static FAutoConsoleVariableRef CVarSyncRefreshThreshold(
 		TEXT("RHI.SyncRefreshThreshold"),
@@ -466,7 +458,7 @@ bool FD3D11Viewport::Present(bool bLockToVsync)
 #endif	//D3D11_WITH_DWMAPI
 	{
 		// Present the back buffer to the viewport window.
-		bNativelyPresented = PresentChecked(bLockToVsync ? RHIConsoleVariables::SyncInterval : 0);
+		bNativelyPresented = PresentChecked(bLockToVsync ? RHIGetSyncInterval() : 0);
 	}
 	return bNativelyPresented;
 }

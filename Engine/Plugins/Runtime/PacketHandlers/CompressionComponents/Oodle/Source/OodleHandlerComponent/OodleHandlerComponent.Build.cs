@@ -49,6 +49,12 @@ public class OodleHandlerComponent : ModuleRules
                 "Plugins", "Runtime", "PacketHandlers", "CompressionComponents", "Oodle", "Source", "ThirdParty", "NotForLicensees",
                 "Oodle", "215", "XboxOne", "lib");
         }
+        else if (Target.Platform == UnrealTargetPlatform.Mac)
+        {
+            OodleNotForLicenseesLibDir = System.IO.Path.Combine(Target.UEThirdPartySourceDirectory, "..", "..",
+            "Plugins", "Runtime", "PacketHandlers", "CompressionComponents", "Oodle", "Source", "ThirdParty", "NotForLicensees",
+            "Oodle", "215", "Mac", "lib");
+        }
 
         if (OodleNotForLicenseesLibDir.Length > 0)
 		{

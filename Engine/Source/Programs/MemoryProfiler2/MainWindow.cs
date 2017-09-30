@@ -2574,7 +2574,7 @@ namespace MemoryProfiler2
 					Callback(CallStack);
 				}
 			});
-
+            AsyncWorker.WorkerSupportsCancellation = true;
 			AsyncWorker.RunWorkerAsync();
 			ResolveCallstackSymbolInfoAsyncTasks.Add(AsyncWorker);
 		}

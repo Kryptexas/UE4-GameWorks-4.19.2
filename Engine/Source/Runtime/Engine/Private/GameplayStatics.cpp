@@ -1772,7 +1772,7 @@ float UGameplayStatics::GetAudioTimeSeconds(const UObject* WorldContextObject)
 
 void UGameplayStatics::GetAccurateRealTime(const UObject* WorldContextObject, int32& Seconds, float& PartialSeconds)
 {
-	double TimeSeconds = FPlatformTime::Seconds();
+	double TimeSeconds = FPlatformTime::Seconds() - GStartTime;
 	Seconds = floor(TimeSeconds);
 	PartialSeconds = TimeSeconds - double(Seconds);
 }

@@ -548,6 +548,17 @@ public:
 	}
 
 	/**
+	*	Sets the thread that you want to execute the null gather task on. This is useful if the thing waiting for this chain to complete is a single, named thread. 
+	*	CAUTION: This is only legal while executing the task associated with this event.
+	*	@param ThreadToDoGatherOn thread and priority to execute null gather task on
+	**/
+	void SetGatherThreadForDontCompleteUntil(ENamedThreads::Type InThreadToDoGatherOn)
+	{
+		checkThreadGraph(!IsComplete()); // it is not legal to add a DontCompleteUntil after the event has been completed. Basically, this is only legal within a task function.
+		ThreadToDoGatherOn = InThreadToDoGatherOn;
+	}
+
+	/**
 	 *	"Complete" the event. This grabs the list of subsequents and atomically closes it. Then for each subsequent it reduces the number of prerequisites outstanding and if that drops to zero, the task is queued.
 	 *	@param CurrentThreadIfKnown if the current thread is known, provide it here. Otherwise it will be determined via TLS if any task ends up being queued.
 	**/
@@ -579,6 +590,7 @@ private:
 	**/
 	friend struct FGraphEventAndSmallTaskStorage;
 	FGraphEvent(bool bInInline = false)
+		: ThreadToDoGatherOn(ENamedThreads::AnyHiPriThreadHiPriTask)
 	{
 	}
 
@@ -619,11 +631,12 @@ public:
 private:
 
 	/** Threadsafe list of subsequents for the event **/
-	TClosableLockFreePointerListUnorderedSingleConsumer<FBaseGraphTask, 0>		SubsequentList;
+	TClosableLockFreePointerListUnorderedSingleConsumer<FBaseGraphTask, 0>	SubsequentList;
 	/** List of events to wait for until firing. This is not thread safe as it is only legal to fill it in within the context of an executing task. **/
 	FGraphEventArray														EventsToWaitFor;
 	/** Number of outstanding references to this graph event **/
 	FThreadSafeCounter														ReferenceCount;
+	ENamedThreads::Type														ThreadToDoGatherOn;
 };
 
 

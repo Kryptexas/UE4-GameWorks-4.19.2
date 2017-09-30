@@ -910,6 +910,7 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 					COOK_STAT(FScopedDurationTimer ShaderProcessAsyncTimer(DetailedCookStats::TickLoopShaderProcessAsyncResultsTimeSec));
 					GShaderCompilingManager->ProcessAsyncResults(true, false);
 				}
+
 				
 				// Flush the asset registry before GC
 				FAssetRegistryModule::TickAssetRegistry(-1.0f);

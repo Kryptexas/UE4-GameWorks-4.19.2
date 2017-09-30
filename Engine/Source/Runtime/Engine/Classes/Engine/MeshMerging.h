@@ -230,6 +230,14 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category = LandscapeCulling, meta = (EditCondition="bUseLandscapeCulling"))
 	TEnumAsByte<ELandscapeCullingPrecision::Type> LandscapeCullingPrecision;
 
+	/** Whether to allow adjacency buffers for tessellation in the merged mesh */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	bool bAllowAdjacency;
+
+	/** Whether to allow distance field to be computed for this mesh.  Disable this to save memory if you mesh will only rendered in the distance. */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	bool bAllowDistanceField;
+
 	/** Default settings. */
 	FMeshProxySettings()
 		: ScreenSize(300)
@@ -244,6 +252,8 @@ struct FMeshProxySettings
 		, LightMapResolution(256)
 		, bRecalculateNormals(true)
 		, bUseLandscapeCulling(false)
+		, bAllowAdjacency(false)
+		, bAllowDistanceField(false)
 	{ 
 		MaterialSettings.MaterialMergeType = EMaterialMergeType::MaterialMergeType_Simplygon;
 	}

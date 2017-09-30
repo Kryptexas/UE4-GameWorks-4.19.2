@@ -73,6 +73,13 @@ static FAutoConsoleVariableRef CVarStaticMeshUpdateMeshLODGroupSettingsAtLoad(
 	TEXT("If set, LODGroup settings for static meshes will be applied at load time."));
 #endif
 
+int32 GForceStripMeshAdjacencyDataDuringCooking = 0;
+static FAutoConsoleVariableRef CVarForceStripMeshAdjacencyDataDuringCooking(
+	TEXT("r.ForceStripAdjacencyDataDuringCooking"),
+	GForceStripMeshAdjacencyDataDuringCooking,
+	TEXT("If set, adjacency data will be stripped for all static and skeletal meshes during cooking (acting like the target platform did not support tessellation)."));
+
+
 #if ENABLE_COOK_STATS
 namespace StaticMeshCookStats
 {
@@ -139,7 +146,9 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 
 	// Actual flags used during serialization
 	uint8 ClassDataStripFlags = 0;
-	ClassDataStripFlags |= (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::Tessellation)) ? AdjacencyDataStripFlag : 0;
+
+	const bool bWantToStripTessellation = Ar.IsCooking() && ((GForceStripMeshAdjacencyDataDuringCooking != 0) || !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::Tessellation));
+	ClassDataStripFlags |= bWantToStripTessellation ? AdjacencyDataStripFlag : 0;
 
 	FStripDataFlags StripFlags( Ar, ClassDataStripFlags );
 
@@ -1336,7 +1345,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 		}
 		else
 		{
-			UE_LOG(LogStaticMesh, Error, TEXT("Failed to generate distance field data due to missing LODResource for LOD 0."));
+			UE_LOG(LogStaticMesh, Error, TEXT("Failed to generate distance field data for %s due to missing LODResource for LOD 0."), *Owner->GetPathName());
 		}
 	}
 }
@@ -2985,22 +2994,21 @@ void UStaticMesh::CreateBodySetup()
 
 void UStaticMesh::CreateNavCollision(const bool bIsUpdate)
 {
-	// do NOT test properties of BodySetup at load time, they still can change between PostLoad and component's OnRegister
-	if (bHasNavigationData && BodySetup != nullptr && (!bIsUpdate || NavigationHelper::IsBodyNavigationRelevant(*BodySetup)))
+	if (bHasNavigationData && BodySetup != nullptr)
 	{
-		UNavCollision* PrevNavCollision = NavCollision;
-
-		if (NavCollision == nullptr || bIsUpdate)
+		if (NavCollision == nullptr)
 		{
 			NavCollision = NewObject<UNavCollision>(this);
 		}
 
-		if (PrevNavCollision)
+#if WITH_EDITOR
+		if (bIsUpdate)
 		{
-			NavCollision->CopyUserSettings(*PrevNavCollision);
+			NavCollision->InvalidateCollision();
 		}
+#endif // WITH_EDITOR
 
-		NavCollision->Setup(BodySetup);
+		NavCollision->Setup(BodySetup);	
 	}
 	else
 	{

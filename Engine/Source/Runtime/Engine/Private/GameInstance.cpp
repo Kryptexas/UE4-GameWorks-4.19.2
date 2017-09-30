@@ -1066,6 +1066,23 @@ void UGameInstance::NotifyPreClientTravel(const FString& PendingURL, ETravelType
 	OnNotifyPreClientTravel().Broadcast(PendingURL, TravelType, bIsSeamlessTravel);
 }
 
+void UGameInstance::ReturnToMainMenu()
+{
+	UWorld* const World = GetWorld();
+	
+	if (ensureMsgf(World != nullptr, TEXT("UGameInstance::ReturnToMainMenu requires a valid world.")))
+	{
+		if (UOnlineSession* const LocalOnlineSession = GetOnlineSession())
+		{
+			LocalOnlineSession->HandleDisconnect(World, World->GetNetDriver());
+		}
+		else
+		{
+			GetEngine()->HandleDisconnect(World, World->GetNetDriver());
+		}
+	}
+}
+
 void UGameInstance::PreloadContentForURL(FURL InURL)
 {
 	// Preload game mode and other content if needed here

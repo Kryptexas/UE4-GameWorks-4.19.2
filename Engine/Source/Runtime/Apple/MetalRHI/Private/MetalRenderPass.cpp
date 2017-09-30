@@ -906,7 +906,7 @@ void FMetalRenderPass::ConditionalSwitchToTessellation(void)
 		PrologueEncoder.WaitForFence(PassStartFence);
 		PrologueEncoderFence = PrologueEncoder.GetEncoderFence();
 #if METAL_DEBUG_OPTIONS
-		if (GEmitDrawEvents)
+		if (GetEmitDrawEvents())
 		{
 			(*PrologueEncoderFence).label = [NSString stringWithFormat:@"Prologue %@", (*PrologueEncoderFence).label];
 		}
@@ -1016,7 +1016,7 @@ void FMetalRenderPass::ConditionalSwitchToAsyncBlit(void)
 		}
 		PrologueEncoderFence = PrologueEncoder.GetEncoderFence();
 #if METAL_DEBUG_OPTIONS
-		if (GEmitDrawEvents)
+		if (GetEmitDrawEvents())
 		{
 			(*PrologueEncoderFence).label = [NSString stringWithFormat:@"Prologue %@", (*PrologueEncoderFence).label];
 		}

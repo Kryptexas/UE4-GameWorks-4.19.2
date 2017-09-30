@@ -279,6 +279,7 @@ private:
 	FString Url;
 	/** Protocols to use with this connection */
 	TArray<FString> Protocols;
+	/** The upgrade header(s) to send with the upgrade request */
 	FString UpgradeHeader;
 
 	/**

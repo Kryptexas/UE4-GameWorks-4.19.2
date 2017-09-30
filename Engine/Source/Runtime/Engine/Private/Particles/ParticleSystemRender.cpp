@@ -509,6 +509,12 @@ void FDynamicSpriteEmitterDataBase::BuildViewFillData(
 	check(Data.VertexSize == 0 || Data.VertexSize == InVertexSize);
 
 	DynamicVertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( InVertexCount * InVertexSize );
+
+	if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+	{
+		UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), InVertexCount * InVertexSize, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+	}
+
 	Data.VertexData = DynamicVertexAllocation.Buffer;
 	Data.VertexCount = InVertexCount;
 	Data.VertexSize = InVertexSize;
@@ -527,6 +533,12 @@ void FDynamicSpriteEmitterDataBase::BuildViewFillData(
 	{
 		check( InDynamicParameterVertexStride > 0 );
 		*DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( InVertexCount * InDynamicParameterVertexStride );
+
+		if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+		{
+			UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), InVertexCount * InDynamicParameterVertexStride, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+		}
+
 		Data.DynamicParameterData = DynamicParameterAllocation->Buffer;
 	}
 }
@@ -1066,10 +1078,19 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 				// Allocate memory for render data.
 				Allocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * VertexSize * NumVerticesPerParticleInBuffer );
+				if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+				{
+					UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), ParticleCount * VertexSize * NumVerticesPerParticleInBuffer, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+				}
 
 				if (bUsesDynamicParameter)
 				{
 					DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexSize * NumVerticesPerParticleInBuffer );
+
+					if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+					{
+						UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), ParticleCount * DynamicParameterVertexSize * NumVerticesPerParticleInBuffer, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+					}
 				}
 
 				if (Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
@@ -1080,7 +1101,8 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					{
 						SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData);
 						// If material is using unlit translucency and the blend mode is translucent then we need to sort (back to front)
-						const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
+						int32 SelectedMat = GIsEditor && (ViewFamily.EngineShowFlags.Selection) ? bSelected : false;
+						const FMaterial* Material = MaterialResource[SelectedMat] ? MaterialResource[SelectedMat]->GetMaterial(FeatureLevel) : nullptr;
 
 						if (Material && 
 							(Material->GetBlendMode() == BLEND_Translucent || Material->GetBlendMode() == BLEND_AlphaComposite ||
@@ -1403,18 +1425,25 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 
 	check(Source.ParticleStride < 2 * 1024);	// TTP #3375
 
+	TArray<UMaterialInterface*, TInlineAllocator<2> > MeshMaterialsGT;
 	InEmitterInstance->GetMeshMaterials(
-		MeshMaterials,
+		MeshMaterialsGT,
 		InEmitterInstance->SpriteTemplate->LODLevels[InEmitterInstance->CurrentLODLevelIndex],
-		InFeatureLevel);
+		InFeatureLevel);	
 
-	for (int32 i = 0; i < MeshMaterials.Num(); ++i)
+	for (int32 i = 0; i < MeshMaterialsGT.Num(); ++i)
 	{
-		UMaterialInterface* RenderMaterial = MeshMaterials[i];
+		UMaterialInterface* RenderMaterial = MeshMaterialsGT[i];
 		if (RenderMaterial == NULL  || (RenderMaterial->CheckMaterialUsage_Concurrent(MATUSAGE_MeshParticles) == false))
 		{
-			MeshMaterials[i] = UMaterial::GetDefaultMaterial(MD_Surface);
+			MeshMaterialsGT[i] = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
+	}
+
+	MeshMaterials.AddZeroed(MeshMaterialsGT.Num());
+	for (int32 i = 0; i < MeshMaterialsGT.Num(); ++i)
+	{
+		MeshMaterials[i] = MeshMaterialsGT[i]->GetRenderProxy(bInSelected);
 	}
 
 	bUsesDynamicParameter = GetSourceData()->DynamicParameterDataOffset > 0;
@@ -1604,6 +1633,11 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					if (bUsesDynamicParameter)
 					{
 						DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate(ParticleCount * DynamicParameterVertexStride);
+
+						if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+						{
+							UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), ParticleCount * DynamicParameterVertexStride, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+						}
 					}
 
 					if (bGeneratePrevTransformBuffer)
@@ -1731,7 +1765,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			{
 				InstanceVerticesCPU = MeshVertexFactory->GetInstanceVerticesCPU();
 			}
-
+			check(StaticMesh != nullptr);
 			const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
 			const bool bIsWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
 
@@ -1743,7 +1777,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					FMaterialRenderProxy* MaterialProxy = nullptr;
 					if (SectionIndex < MeshMaterials.Num() && MeshMaterials[SectionIndex])
 					{
-						MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						MaterialProxy = MeshMaterials[SectionIndex];
 					}
 					const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 
@@ -1785,7 +1819,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 						else
 						{
 							Mesh.Type = PT_TriangleList;
-							Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+							Mesh.MaterialRenderProxy = MaterialProxy;
 							Mesh.bWireframe = true;	
 							BatchElement.FirstIndex = 0;
 							BatchElement.IndexBuffer = &LODModel.IndexBuffer;
@@ -1795,7 +1829,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					else
 					{
 						Mesh.Type = PT_TriangleList;
-						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						Mesh.MaterialRenderProxy = MaterialProxy;
 						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
 						BatchElement.FirstIndex = Section.FirstIndex;
 						BatchElement.NumPrimitives = Section.NumTriangles;

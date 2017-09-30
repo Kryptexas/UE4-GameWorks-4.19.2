@@ -106,6 +106,10 @@ struct PHYSXVEHICLES_API FWheelSetup
 	UPROPERTY(EditAnywhere, Category=WheelSetup)
 	FVector AdditionalOffset;
 
+	// Disables steering regardless of the wheel data
+	UPROPERTY(EditAnywhere, Category = WheelSetup)
+	bool bDisableSteering;
+
 	FWheelSetup();
 };
 
@@ -319,6 +323,9 @@ class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UPawnMovementC
 	/** Skeletal mesh needs some special handling in the vehicle case */
 	virtual void FixupSkeletalMesh();
 
+	/** Allow the player controller of a different pawn to control this vehicle*/
+	virtual void SetOverrideController(AController* OverrideController);
+
 #if WITH_EDITOR
 	/** Respond to a property change in editor */
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -459,6 +466,8 @@ class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UPawnMovementC
 
 protected:
 
+	AController* GetController() const;
+
 	// replicated state of vehicle 
 	UPROPERTY(Transient, Replicated)
 	FReplicatedVehicleState ReplicatedState;
@@ -567,7 +576,7 @@ protected:
 	/** Updates the COMOffset on the actual body instance */
 
 	/** Read current state for simulation */
-	void UpdateState(float DeltaTime);
+	virtual void UpdateState(float DeltaTime);
 
 	/** Pass current state to server */
 	UFUNCTION(reliable, server, WithValidation)
@@ -657,8 +666,12 @@ protected:
 	class USkinnedMeshComponent* GetMesh();
 
 	void UpdateMassProperties(FBodyInstance* BI);
-	
 
+private:
+	UPROPERTY(transient, Replicated)
+	AController* OverrideController;
+
+	void ShowDebugInfo(class AHUD* HUD, class UCanvas* Canvas, const class FDebugDisplayInfo& DisplayInfo, float& YL, float& YPos);
 };
 
 //some helper functions for converting units

@@ -38,14 +38,6 @@ namespace D3D12RHI
 			ECVF_RenderThreadSafe
 			);
 
-		int32 SyncInterval = 1;
-		static FAutoConsoleVariableRef CVarSyncInterval(
-			TEXT("D3D12.SyncInterval"),
-			SyncInterval,
-			TEXT("When synchronizing with D3D, specifies the interval at which to refresh."),
-			ECVF_RenderThreadSafe
-			);
-
 		float SyncRefreshThreshold = 1.05f;
 		static FAutoConsoleVariableRef CVarSyncRefreshThreshold(
 			TEXT("D3D12.SyncRefreshThreshold"),
@@ -629,7 +621,7 @@ bool FD3D12Viewport::Present(bool bLockToVsync)
 	}
 #endif //PLATFORM_SUPPORTS_MGPU
 
-	const int32 SyncInterval = bLockToVsync ? RHIConsoleVariables::SyncInterval : 0;
+	const int32 SyncInterval = bLockToVsync ? RHIGetSyncInterval() : 0;
 	const bool bNativelyPresented = PresentChecked(SyncInterval);
 	if (bNativelyPresented)
 	{

@@ -134,8 +134,8 @@ public:
 	static void Initialize();
 	static void Terminate();
 
-	void Add(PxBase* Obj);
-	void Remove(PxBase* Obj)	{ if(Obj) { SharedObjects->remove(*Obj); } }
+	void Add(PxBase* Obj, const FString& OwnerName);
+	void Remove(PxBase* Obj) { if (Obj) { SharedObjects->remove(*Obj); OwnerNames.Remove(Obj); } }
 
 	const PxCollection* GetCollection()	{ return SharedObjects; }
 
@@ -143,6 +143,7 @@ public:
 private:
 	/** Collection of shared physx objects */
 	PxCollection* SharedObjects;
+	TMap<PxBase*, FString> OwnerNames;
 	
 	static FPhysxSharedData* Singleton;
 
@@ -388,12 +389,16 @@ public:
 				return B < A;
 			}
 		};
-				
+			
+		size_t TotalSize = 0;
 		AllocationsByType.ValueSort(FSortBySize());
 		for( auto It=AllocationsByType.CreateConstIterator(); It; ++It )
 		{
+			TotalSize += It.Value();
 			Ar->Logf(TEXT("%-10d %s"), It.Value(), *It.Key().ToString());
 		}
+
+		Ar->Logf(TEXT("Total:%-10d"), TotalSize);
 	}
 #endif
 

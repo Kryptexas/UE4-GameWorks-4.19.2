@@ -612,9 +612,17 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
 	uint32 bPerformVoxelFiltering:1;
 
-	/** mark areas with insufficient free height above instead of cutting them out  */
+	/** mark areas with insufficient free height above instead of cutting them out (accessible only for area modifiers using replace mode) */
 	UPROPERTY(EditAnywhere, Category = Generation, config, AdvancedDisplay)
 	uint32 bMarkLowHeightAreas : 1;
+
+	/** if set, only single low height span will be allowed under valid one */
+	UPROPERTY(EditAnywhere, Category = Generation, config, AdvancedDisplay)
+	uint32 bFilterLowSpanSequences : 1;
+
+	/** if set, only low height spans with corresponding area modifier will be stored in tile cache (reduces memory, can't modify without full tile rebuild) */
+	UPROPERTY(EditAnywhere, Category = Generation, config, AdvancedDisplay)
+	uint32 bFilterLowSpanFromTileCache : 1;
 
 	UPROPERTY(EditAnywhere, Category = Generation, config, AdvancedDisplay)
 	uint32 bDoFullyAsyncNavDataGathering : 1;

@@ -737,7 +737,7 @@ public:
 	Ticks the emitter's material overrides.
 	@return True if there were material overrides. Otherwise revert to default behaviour.
 	*/
-	virtual bool Tick_MaterialOverrides();
+	virtual void Tick_MaterialOverrides(int32 EmitterIndex);
 
 	/**
 	* True if this emitter emits in local space
@@ -908,7 +908,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override;
 
-	virtual bool Tick_MaterialOverrides() override;
+	virtual void Tick_MaterialOverrides(int32 EmitterIndex) override;
 
 	/**
 	 *	Retrieves replay data for the emitter

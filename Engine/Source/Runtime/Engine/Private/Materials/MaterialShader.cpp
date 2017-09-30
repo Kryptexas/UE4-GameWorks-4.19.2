@@ -345,6 +345,32 @@ bool FStaticParameterSet::operator==(const FStaticParameterSet& ReferenceSet) co
 	return false;
 }
 
+void FStaticParameterSet::SortForEquivalent()
+{
+	StaticSwitchParameters.Sort([](const FStaticSwitchParameter& A, const FStaticSwitchParameter& B) { return B.ExpressionGUID < A.ExpressionGUID; });
+	StaticComponentMaskParameters.Sort([](const FStaticComponentMaskParameter& A, const FStaticComponentMaskParameter& B) { return B.ExpressionGUID < A.ExpressionGUID; });
+	TerrainLayerWeightParameters.Sort([](const FStaticTerrainLayerWeightParameter& A, const FStaticTerrainLayerWeightParameter& B) { return B.ExpressionGUID < A.ExpressionGUID; });
+}
+
+bool FStaticParameterSet::Equivalent(const FStaticParameterSet& ReferenceSet) const
+{
+	if (StaticSwitchParameters.Num() == ReferenceSet.StaticSwitchParameters.Num()
+		&& StaticComponentMaskParameters.Num() == ReferenceSet.StaticComponentMaskParameters.Num()
+		&& TerrainLayerWeightParameters.Num() == ReferenceSet.TerrainLayerWeightParameters.Num())
+	{
+		// this is not ideal, but it is easy to code up
+		FStaticParameterSet Temp1 = *this;
+		FStaticParameterSet Temp2 = ReferenceSet;
+		Temp1.SortForEquivalent();
+		Temp2.SortForEquivalent();
+		bool bResult = (Temp1 == Temp2);
+		check(!bResult || (*this) == ReferenceSet); // if this never fires, then we really didn't need to sort did we?
+		return bResult;
+	}
+	return false;
+}
+
+
 void FMaterialShaderMapId::Serialize(FArchive& Ar)
 {
 	// Note: FMaterialShaderMapId is saved both in packages (legacy UMaterialInstance) and the DDC (FMaterialShaderMap)

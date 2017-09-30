@@ -116,6 +116,12 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(DisplayName = "Dynamic Indirect Lighting"))
 	uint32 bAffectDynamicIndirectLighting : 1;
 
+	/**
+	* Enables cached shadows for movable primitives for this light even if r.shadow.cachedshadowscastfrommovableprimitives is 0
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay)
+	uint32 bForceCachedShadowsForMovablePrimitives : 1;
+
 	/** 
 	 * Channels that this light should affect.  
 	 * These channels only apply to opaque materials, direct lighting, and dynamic lighting and shadowing.
@@ -249,6 +255,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetShadowBias(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Light")
+	void SetForceCachedShadowsForMovablePrimitives(bool bNewValue);
 
 public:
 	/** The light's scene info. */

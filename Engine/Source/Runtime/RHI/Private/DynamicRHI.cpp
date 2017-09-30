@@ -256,7 +256,7 @@ void FDynamicRHI::EnableIdealGPUCaptureOptions(bool bEnabled)
 	const bool bShouldEnableRHIThread = !bEnabled;
 	const bool bShouldRHICmdBypass = bEnabled;	
 
-	const bool bDrawEvents = GEmitDrawEvents != 0;
+	const bool bDrawEvents = GetEmitDrawEvents() != 0;
 	const bool bMaterialDrawEvents = ShowMaterialDrawEventVar ? ShowMaterialDrawEventVar->GetInt() != 0 : false;
 	const bool bRHIThread = IsRunningRHIInSeparateThread();
 	const bool bRHIBypass = RHICmdBypassVar ? RHICmdBypassVar->GetInt() != 0 : false;
@@ -265,7 +265,7 @@ void FDynamicRHI::EnableIdealGPUCaptureOptions(bool bEnabled)
 	if (bShouldEnableDrawEvents != bDrawEvents)
 	{
 		UE_LOG(LogRHI, Display, TEXT("Toggling draw events: %i"), bShouldEnableDrawEvents ? 1 : 0);
-		GEmitDrawEvents = bShouldEnableDrawEvents;
+		SetEmitDrawEvents(bShouldEnableDrawEvents);
 	}
 	if (bShouldEnableMaterialDrawEvents != bMaterialDrawEvents && ShowMaterialDrawEventVar)
 	{

@@ -16,15 +16,32 @@
 
 #if CSV_PROFILER
   #define CSV_SCOPED_STAT(StatName)							FScopedCsvStat ScopedStat_ ## StatName (#StatName);
-  #define CSV_CUSTOM_STAT(StatName,Value) 					FCsvProfiler::Get()->RecordCustomStat(#StatName, Value)
+  #define CSV_CUSTOM_STAT_SET(StatName,Value) 				FCsvProfiler::Get()->RecordCustomStat(#StatName, Value, ECsvCustomStatType::Set )
+  #define CSV_CUSTOM_STAT_MIN(StatName,Value) 				FCsvProfiler::Get()->RecordCustomStat(#StatName, Value, ECsvCustomStatType::Min )
+  #define CSV_CUSTOM_STAT_MAX(StatName,Value) 				FCsvProfiler::Get()->RecordCustomStat(#StatName, Value, ECsvCustomStatType::Max )
+  #define CSV_CUSTOM_STAT_ACC(StatName,Value) 				FCsvProfiler::Get()->RecordCustomStat(#StatName, Value, ECsvCustomStatType::Accumulate )
+  #define CSV_CUSTOM_STAT_ACC_MAX(StatName,Value) 			FCsvProfiler::Get()->RecordCustomStat(#StatName, Value, ECsvCustomStatType::AccumulateMax )
 #else
   #define CSV_SCOPED_STAT(StatName) 
-  #define CSV_CUSTOM_STAT(StatName,Value)							
+  #define CSV_CUSTOM_STAT_SET(StatName,Value)							
+  #define CSV_CUSTOM_STAT_MIN(StatName,Value) 				
+  #define CSV_CUSTOM_STAT_MAX(StatName,Value) 				
+  #define CSV_CUSTOM_STAT_ACC(StatName,Value)							
+  #define CSV_CUSTOM_STAT_ACC_MAX(StatName,Value) 			
 #endif
 
 #if CSV_PROFILER
 class FCsvProfilerFrame;
 class FCsvProfilerThread;
+
+enum class ECsvCustomStatType : uint8
+{
+	Set,
+	Min,
+	Max,
+	Accumulate,
+	AccumulateMax,
+};
 
 /**
 * FCsvProfiler class. This manages recording and reporting all for CSV stats
@@ -40,18 +57,20 @@ public:
 	ENGINE_API void Init();
 
 	/** Push/pop events */
-	ENGINE_API void BeginStat(const char * StatName);
-	ENGINE_API void EndStat(const char * StatName);
+	ENGINE_API void BeginStat(const char * StatName );
+	ENGINE_API void EndStat(const char * StatName );
 
-	ENGINE_API void RecordCustomStat(const char * StatName, float Value);
+	ENGINE_API void RecordCustomStat(const char * StatName, float Value, ECsvCustomStatType CustomStatType);
+
+	inline bool IsCapturing() { return bRequestStartCapture || bCapturing; }
 
 	/** Per-frame update */
 	void BeginFrame();
 	void EndFrame();
 
 	/** Begin/End Capture */
-	void BeginCapture(int InNumFramesToCapture = -1);
-	void EndCapture();
+	ENGINE_API void BeginCapture(int InNumFramesToCapture = -1);
+	ENGINE_API void EndCapture();
 
 	/** Final cleanup */
 	void Release();

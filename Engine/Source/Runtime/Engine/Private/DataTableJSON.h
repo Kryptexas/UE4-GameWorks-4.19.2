@@ -47,6 +47,8 @@ private:
 	bool bJsonWriterNeedsClose;
 };
 
+#endif // WITH_EDITOR
+
 class FDataTableImporterJSON
 {
 public:
@@ -70,4 +72,3 @@ private:
 	TArray<FString>& ImportProblems;
 };
 
-#endif // WITH_EDITOR

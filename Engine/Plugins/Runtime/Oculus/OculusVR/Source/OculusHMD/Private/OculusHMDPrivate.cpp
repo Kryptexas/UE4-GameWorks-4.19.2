@@ -151,7 +151,7 @@ void ExecuteOnRenderThread_DoNotWait(const std::function<void(FRHICommandListImm
 }
 
 
-struct FRHICommandExecute_Void : public FRHICommand<FRHICommandExecute_Void>
+struct FRHICommandExecute_Void final : public FRHICommand<FRHICommandExecute_Void>
 {
 	std::function<void()> Function;
 
@@ -203,7 +203,7 @@ void ExecuteOnRHIThread_DoNotWait(const std::function<void()>& Function)
 }
 
 
-struct FRHICommandExecute_RHICmdList : public FRHICommand<FRHICommandExecute_RHICmdList>
+struct FRHICommandExecute_RHICmdList final : public FRHICommand<FRHICommandExecute_RHICmdList>
 {
 	std::function<void(FRHICommandList&)> Function;
 

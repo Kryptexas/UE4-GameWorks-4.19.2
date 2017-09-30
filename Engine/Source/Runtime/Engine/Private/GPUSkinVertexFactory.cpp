@@ -175,7 +175,7 @@ static bool DeferSkeletalLockAndFillToRHIThread()
 	return IsRunningRHIInSeparateThread() && CVarRHICmdDeferSkeletalLockAndFillToRHIThread.GetValueOnRenderThread() > 0;
 }
 
-struct FRHICommandUpdateBoneBuffer : public FRHICommand<FRHICommandUpdateBoneBuffer>
+struct FRHICommandUpdateBoneBuffer final : public FRHICommand<FRHICommandUpdateBoneBuffer>
 {
 	FVertexBufferRHIParamRef VertexBuffer;
 	uint32 BufferSize;
@@ -830,7 +830,7 @@ protected:
 	TGPUSkinAPEXClothVertexFactory::ClothShaderType
 -----------------------------------------------------------------------------*/
 
-struct FRHICommandUpdateClothBuffer : public FRHICommand<FRHICommandUpdateClothBuffer>
+struct FRHICommandUpdateClothBuffer final : public FRHICommand<FRHICommandUpdateClothBuffer>
 {
 	FVertexBufferRHIParamRef VertexBuffer;
 	uint32 BufferSize;

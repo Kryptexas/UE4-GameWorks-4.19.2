@@ -31,10 +31,15 @@ struct FTestHotFixPayload
 	bool Result;
 };
 
-// Parameters passed to CrashOverrideParamsChanged used to customize crash report client behavior/appearance
+// Parameters passed to CrashOverrideParamsChanged used to customize crash report client behavior/appearance. If the corresponding bool is not true, this value will not be stored.
 struct FCrashOverrideParameters
 {
 	FString CrashReportClientMessageText;
+	/** Appended to the end of GameName (which is retreived from FApp::GetGameName). */
+	FString GameNameSuffix;
+	/** Default this to true for backward compatibility before these bools were added. */
+	bool bSetCrashReportClientMessageText = true;
+	bool bSetGameNameSuffix = false;
 };
 
 class CORE_API FCoreDelegates
@@ -311,7 +316,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameSessionIDChange, const FString&);
 	static FOnGameSessionIDChange GameSessionIDChanged;
 
-	/** Sent by application code to set params that customize crash reporting behavior */
+	/** Sent when application code changes game state. The exact semantics of this will vary between games but it is useful for analytics, crash reports, etc  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameStateClassChange, const FString&);
+	static FOnGameStateClassChange GameStateClassChanged;
+
+	/** Sent by application code to set params that customize crash reporting behavior. */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCrashOverrideParamsChanged, const FCrashOverrideParameters&);
 	static FOnCrashOverrideParamsChanged CrashOverrideParamsChanged;
 	

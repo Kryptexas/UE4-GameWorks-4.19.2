@@ -380,7 +380,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 		extern int32 GEmitMeshDrawEvent;
 		GEmitMeshDrawEvent = 1;
 #endif
-		GEmitDrawEvents = true;
+		SetEmitDrawEvents(true);
 	}
 	
 	// Force disable vertex-shader-layer point light rendering on GPUs that don't support it properly yet.
@@ -404,7 +404,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 		}
 	}
 	
-	GEmitDrawEvents |= ENABLE_METAL_GPUEVENTS;
+	SetEmitDrawEvents(GetEmitDrawEvents() | ENABLE_METAL_GPUEVENTS);
 
 	GSupportsShaderFramebufferFetch = !PLATFORM_MAC;
 	GHardwareHiddenSurfaceRemoval = true;

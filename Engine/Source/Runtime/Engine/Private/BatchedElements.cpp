@@ -933,6 +933,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, const FDrawingPolicyRen
 						}
 					}
 					int32 NumLinesThisBatch = LineIndex - FirstLineThisBatch;
+					check(NumLinesThisBatch > 0);
 
 					const bool bEnableMSAA = true;
 					const bool bEnableLineAA = false;
@@ -1098,8 +1099,11 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, const FDrawingPolicyRen
 				// Only render blend modes in the filter
 				if (Filter & SpriteFilter)
 				{
-					if (CurrentTexture != Sprite.Texture || CurrentBlendMode != Sprite.BlendMode)
+					if ((CurrentTexture != Sprite.Texture || CurrentBlendMode != Sprite.BlendMode) && SpriteList.Num() >= 3)
 					{
+						checkf(SpriteList.Num() % 3 == 0, TEXT("Invalid batched sprite element setup. Num:%i, BlendMode:%i, Texture:%s"),
+							SpriteList.Num(), (int32)CurrentBlendMode, CurrentTexture ? *(CurrentTexture->GetFriendlyName()) : TEXT("None"));
+
 						//New batch, draw previous and clear
 						const int32 VertexCount = SpriteList.Num();
 						const int32 PrimCount = VertexCount / 3;
@@ -1135,7 +1139,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, const FDrawingPolicyRen
 				}
 			}
 
-			if (SpriteList.Num() > 0)
+			if (SpriteList.Num() >= 3)
 			{
 				const EBlendModeFilter::Type SpriteFilter = GetBlendModeFilter(CurrentBlendMode);
 

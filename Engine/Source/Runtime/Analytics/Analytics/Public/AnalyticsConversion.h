@@ -3,6 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+// This MUST be included here to allow code that uses FGuids to work with the ToString template below.
+// 2-phase instantiation will only find overloads that it knows about at the time of definition,
+// so we must pre-include all types that have a Lex::ToString overload we may want to use.
+// Super ugly, but the only better solution is to have everyone override ToString at the global namespace
+// so ADL would find the implementation at instantiation instead.
 #include "Misc/Guid.h"
 
 /** Helpers for converting various common types to strings that analytics providers can consume. */

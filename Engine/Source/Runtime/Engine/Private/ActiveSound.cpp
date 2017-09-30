@@ -526,15 +526,34 @@ FWaveInstance* FActiveSound::FindWaveInstance( const UPTRINT WaveInstanceHash )
 
 void FActiveSound::UpdateAdjustVolumeMultiplier(const float DeltaTime)
 {
+	// Choose min/max bound and clamp dt to prevent unwanted spikes in volume
+	float MinValue = 0.0f;
+	float MaxValue = 0.0f;
+	if (CurrentAdjustVolumeMultiplier < TargetAdjustVolumeMultiplier)
+	{
+		MinValue = CurrentAdjustVolumeMultiplier;
+		MaxValue = TargetAdjustVolumeMultiplier;
+	}
+	else
+	{
+		MinValue = TargetAdjustVolumeMultiplier;
+		MaxValue = CurrentAdjustVolumeMultiplier;
+	}
+
+	float DeltaTimeValue = FMath::Min(DeltaTime, 0.5f);
+
 	// keep stepping towards our target until we hit our stop time
 	if (PlaybackTime < TargetAdjustVolumeStopTime)
 	{
-		CurrentAdjustVolumeMultiplier += (TargetAdjustVolumeMultiplier - CurrentAdjustVolumeMultiplier) * DeltaTime / (TargetAdjustVolumeStopTime - PlaybackTime);
+		CurrentAdjustVolumeMultiplier += (TargetAdjustVolumeMultiplier - CurrentAdjustVolumeMultiplier) * DeltaTimeValue / (TargetAdjustVolumeStopTime - PlaybackTime);
 	}
 	else
 	{
 		CurrentAdjustVolumeMultiplier = TargetAdjustVolumeMultiplier;
 	}
+
+	// Apply final clamp
+	CurrentAdjustVolumeMultiplier = FMath::Clamp(CurrentAdjustVolumeMultiplier, MinValue, MaxValue);
 } 
 
 void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum)

@@ -39,6 +39,7 @@
 
 #include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
+#include "SImage.h"
 
 #define LOCTEXT_NAMESPACE "HLODOutliner"
 
@@ -133,6 +134,8 @@ namespace HLODOutliner
 		// Disable panel if system is not enabled
 		MainContentPanel->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SHLODOutliner::OutlinerEnabled)));
 
+		SettingsView->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([]() -> bool { return !GetDefault<UHierarchicalLODSettings>()->bForceSettingsInAllMaps; })));
+
 		MainContentPanel->AddSlot()
 			.AutoHeight()
 			.Padding(0.0f, 0.0f, 0.0f, 4.0f)
@@ -161,7 +164,44 @@ namespace HLODOutliner
 				+ SSplitter::Slot()
 				.Value(0.5)
 				[
-					SettingsView.ToSharedRef()										
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
+						.BorderBackgroundColor(FColor(166,137,0))							
+						[
+							SNew(SHorizontalBox)
+							.Visibility_Lambda([this]() -> EVisibility 
+							{
+								return GetDefault<UHierarchicalLODSettings>()->bForceSettingsInAllMaps ? EVisibility::Visible : EVisibility::Collapsed;
+							})
+
+							+ SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							.Padding(4.0f, 0.0f, 4.0f, 0.0f)
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("SettingsEditor.WarningIcon"))
+							]
+
+							+SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("HLODForcedGlobally", "Project level HLOD Settings forced, changing the HLOD settings is disabled"))
+							]
+						]
+					]
+					+ SVerticalBox::Slot()
+					.AutoHeight()					
+					[
+						SettingsView.ToSharedRef()
+					]
 				]		
 			];
 		
@@ -499,7 +539,7 @@ namespace HLODOutliner
 		if (CurrentWorld)
 		{
 			DestroySelectionActors();
-			CurrentWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
+			CurrentWorld->HierarchicalLODBuilder->BuildMeshesForLODActors(false);
 			SetForcedLODLevel(ForcedLODLevel);
 		}
 
@@ -743,7 +783,10 @@ namespace HLODOutliner
 					if (Type == ITreeItem::HierarchicalLODLevel)
 					{
 						FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
-						CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+						if (ActorItem->LODActor->IsDirty())
+						{
+							CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+						}
 					}
 				}
 			}
@@ -1464,13 +1507,14 @@ namespace HLODOutliner
 	void SHLODOutliner::OnHLODTransitionScreenSizeChangedEvent()
 	{
 		if (CurrentWorld)
-		{			
-			int32 MaxLODLevel = FMath::Min(CurrentWorldSettings->HierarchicalLODSetup.Num(), LODLevelTransitionScreenSizes.Num());
+		{	
+			const TArray<struct FHierarchicalSimplification>& HierarchicalLODSetups = CurrentWorldSettings->GetHierarchicalLODSetup();
+			int32 MaxLODLevel = FMath::Min(HierarchicalLODSetups.Num(), LODLevelTransitionScreenSizes.Num());			
 			for (int32 LODLevelIndex = 0; LODLevelIndex < MaxLODLevel; ++LODLevelIndex)
 			{
-				if (LODLevelTransitionScreenSizes[LODLevelIndex] != CurrentWorldSettings->HierarchicalLODSetup[LODLevelIndex].TransitionScreenSize)
+				if (LODLevelTransitionScreenSizes[LODLevelIndex] != HierarchicalLODSetups[LODLevelIndex].TransitionScreenSize)
 				{
-					LODLevelTransitionScreenSizes[LODLevelIndex] = CurrentWorldSettings->HierarchicalLODSetup[LODLevelIndex].TransitionScreenSize;
+					LODLevelTransitionScreenSizes[LODLevelIndex] = HierarchicalLODSetups[LODLevelIndex].TransitionScreenSize;
 					UpdateDrawDistancesForLODLevel(LODLevelIndex);
 				}
 			}
@@ -1522,7 +1566,7 @@ namespace HLODOutliner
 		{
 			// Retrieve current world settings
 			CurrentWorldSettings = CurrentWorld->GetWorldSettings();
-			checkf(CurrentWorldSettings != nullptr, TEXT("CurrentWorld (%s) does not contain a valid WorldSettings actor"), *CurrentWorld->GetName());
+			ensureMsgf(CurrentWorldSettings != nullptr, TEXT("CurrentWorld (%s) does not contain a valid WorldSettings actor"), *CurrentWorld->GetName());
 						
 			// Update settings view
 			SettingsView->SetObject(CurrentWorldSettings);
@@ -1542,7 +1586,8 @@ namespace HLODOutliner
 		if (CurrentWorldSettings)
 		{
 			// Iterate over all LOD levels (Number retrieved from world settings) and add Treeview items for them
-			const uint32 LODLevels = CurrentWorldSettings->HierarchicalLODSetup.Num();			
+			const TArray<struct FHierarchicalSimplification>& HierarchicalLODSetups = CurrentWorldSettings->GetHierarchicalLODSetup();
+			const uint32 LODLevels = HierarchicalLODSetups.Num();
 			for (uint32 LODLevelIndex = 0; LODLevelIndex < LODLevels; ++LODLevelIndex)
 			{
 				FTreeItemRef LevelItem = MakeShareable(new FLODLevelItem(LODLevelIndex));
@@ -1557,7 +1602,7 @@ namespace HLODOutliner
 				// Initialize lod level actors/screen size and build flag
 				LODLevelBuildFlags.Add(true);
 				LODLevelActors.AddDefaulted();					
-				LODLevelTransitionScreenSizes.Add(CurrentWorldSettings->HierarchicalLODSetup[LODLevelIndex].TransitionScreenSize);
+				LODLevelTransitionScreenSizes.Add(HierarchicalLODSetups[LODLevelIndex].TransitionScreenSize);
 
 				TreeItemsMap.Add(LevelItem->GetID(), LevelItem);
 

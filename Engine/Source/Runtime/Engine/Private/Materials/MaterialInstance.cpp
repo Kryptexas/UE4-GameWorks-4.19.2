@@ -2192,6 +2192,12 @@ void UMaterialInstance::FinishDestroy()
 	Super::FinishDestroy();
 }
 
+void UMaterialInstance::NotifyObjectReferenceEliminated() const
+{
+	UE_LOG(LogMaterial, Error, TEXT("Garbage collector eliminated reference from material instance!  Material instance referenced objects should not be cleaned up via MarkPendingKill().\n           MI=%s\n"), 
+		*GetPathName());
+}
+
 void UMaterialInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UMaterialInstance* This = CastChecked<UMaterialInstance>(InThis);
@@ -2933,6 +2939,42 @@ float UMaterialInstance::GetTextureDensity(FName TextureName, const struct FMesh
 	}
 	return Density;
 }
+
+bool UMaterialInstance::Equivalent(const UMaterialInstance* CompareTo) const
+{
+	if (Parent != CompareTo->Parent || 
+		PhysMaterial != CompareTo->PhysMaterial ||
+		bOverrideSubsurfaceProfile != CompareTo->bOverrideSubsurfaceProfile ||
+		BasePropertyOverrides != CompareTo->BasePropertyOverrides
+		)
+	{
+		return false;
+	}
+
+	if (!CompareValueArraysByExpressionGUID(TextureParameterValues, CompareTo->TextureParameterValues))
+	{
+		return false;
+	}
+	if (!CompareValueArraysByExpressionGUID(ScalarParameterValues, CompareTo->ScalarParameterValues))
+	{
+		return false;
+	}
+	if (!CompareValueArraysByExpressionGUID(VectorParameterValues, CompareTo->VectorParameterValues))
+	{
+		return false;
+	}
+	if (!CompareValueArraysByExpressionGUID(FontParameterValues, CompareTo->FontParameterValues))
+	{
+		return false;
+	}
+
+	if (!StaticParameters.Equivalent(CompareTo->StaticParameters))
+	{
+		return false;
+	}
+	return true;
+}
+
 
 UMaterialInstance::FCustomStaticParametersGetterDelegate UMaterialInstance::CustomStaticParametersGetters;
 TArray<UMaterialInstance::FCustomParameterSetUpdaterDelegate> UMaterialInstance::CustomParameterSetUpdaters;

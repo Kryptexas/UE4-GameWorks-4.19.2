@@ -2378,12 +2378,10 @@ void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 	}
 }
 
-#if WITH_EDITOR
 void UScriptStruct::InitializeDefaultValue(uint8* InStructData) const
 {
 	InitializeStruct(InStructData);
 }
-#endif // WITH_EDITOR
 
 void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 {
@@ -3747,10 +3745,6 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 	ClassUnique = 0;
 	ClassReps.Empty();
 	NetFields.Empty();
-	for (TObjectIterator<UPackage> PackageIt; PackageIt; ++PackageIt)
-	{
-		PackageIt->ClassUniqueNameIndexMap.Remove(GetFName());
-	}
 
 #if WITH_EDITOR
 	if (!bRecompilingOnLoad)

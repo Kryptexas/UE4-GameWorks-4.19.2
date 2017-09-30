@@ -179,9 +179,8 @@ protected:
 		bScreenSpaceAOIsValid(false),
 		bCustomDepthIsValid(false),
 		GBufferRefCount(0),
-		LargestDesiredSizeThisFrame( 0, 0 ),
-		LargestDesiredSizeLastFrame( 0, 0 ),
 		ThisFrameNumber( 0 ),
+		CurrentDesiredSizeIndex ( 0 ),
 		bVelocityPass(false),
 		bSeparateTranslucencyPass(false),
 		BufferSize(0, 0),
@@ -208,6 +207,7 @@ protected:
 		DefaultDepthClear(FClearValueBinding::DepthFar),
 		QuadOverdrawIndex(INDEX_NONE)
 		{
+			FMemory::Memset(LargestDesiredSizes, 0);
 		}
 	/** Constructor that creates snapshot */
 	FSceneRenderTargets(const FViewInfo& InView, const FSceneRenderTargets& SnapshotSource);
@@ -636,10 +636,12 @@ private:
 	int32 GBufferRefCount;
 
 	/** as we might get multiple BufferSize requests each frame for SceneCaptures and we want to avoid reallocations we can only go as low as the largest request */
-	FIntPoint LargestDesiredSizeThisFrame;
-	FIntPoint LargestDesiredSizeLastFrame;
+	static const uint32 FrameSizeHistoryCount = 3;
+	FIntPoint LargestDesiredSizes[FrameSizeHistoryCount];
+	
 	/** to detect when LargestDesiredSizeThisFrame is outdated */
 	uint32 ThisFrameNumber;
+	uint32 CurrentDesiredSizeIndex;
 
 	bool bVelocityPass;
 	bool bSeparateTranslucencyPass;

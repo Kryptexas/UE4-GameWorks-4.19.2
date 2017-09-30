@@ -33,7 +33,7 @@ template FD3D12StructuredBuffer* FD3D12Adapter::CreateRHIBuffer<FD3D12Structured
 	FRHIResourceCreateInfo& CreateInfo,
 	bool SkipCreate);
 
-struct FRHICommandUpdateBuffer : public FRHICommand<FRHICommandUpdateBuffer>
+struct FRHICommandUpdateBuffer final : public FRHICommand<FRHICommandUpdateBuffer>
 {
 	FD3D12ResourceLocation Source;
 	FD3D12ResourceLocation* Destination;
@@ -59,7 +59,7 @@ struct FRHICommandUpdateBuffer : public FRHICommand<FRHICommandUpdateBuffer>
 // is done in parallel and this small function is called to switch the resource to point to the correct location
 // a the correct time.
 template<typename ResourceType>
-struct FRHICommandRenameUploadBuffer : public FRHICommand<FRHICommandRenameUploadBuffer<ResourceType>>
+struct FRHICommandRenameUploadBuffer final : public FRHICommand<FRHICommandRenameUploadBuffer<ResourceType>>
 {
 	ResourceType* Resource;
 	FD3D12ResourceLocation NewResource;

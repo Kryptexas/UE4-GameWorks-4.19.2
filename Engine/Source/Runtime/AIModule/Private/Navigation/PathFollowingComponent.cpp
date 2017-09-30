@@ -18,7 +18,6 @@
 #include "Navigation/MetaNavMeshPath.h"
 #include "AIConfig.h"
 
-
 #if UE_BUILD_TEST || UE_BUILD_SHIPPING
 #define SHIPPING_STATIC static
 #else
@@ -873,6 +872,9 @@ void UPathFollowingComponent::UpdatePathSegment()
 		return;
 	}
 
+	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
+	const bool bCanUpdateState = HasMovementAuthority();
+
 	if (!Path->IsValid())
 	{
 		if (!Path->IsWaitingForRepath())
@@ -880,6 +882,15 @@ void UPathFollowingComponent::UpdatePathSegment()
 			UE_VLOG(this, LogPathFollowing, Log, TEXT("Aborting move due to path being invalid and not waiting for repath"));
 			OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath);
 			return;
+		}
+		else if (HasStartedNavLinkMove() && bCanUpdateState && Status == EPathFollowingStatus::Moving)
+		{
+			// pawn needs to get off navlink to unlock path updates (AAIController::ShouldPostponePathUpdates)
+			if (HasReachedCurrentTarget(CurrentLocation))
+			{
+				OnSegmentFinished();
+				SetNextMoveSegment();
+			}
 		}
 		else
 		{
@@ -897,8 +908,6 @@ void UPathFollowingComponent::UpdatePathSegment()
 	const FAIRequestID MoveRequestId = GetCurrentRequestId();
 
 	// if agent has control over its movement, check finish conditions
-	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
-	const bool bCanUpdateState = HasMovementAuthority();
 	if (bCanUpdateState && Status == EPathFollowingStatus::Moving)
 	{
 		const int32 LastSegmentEndIndex = Path->GetPathPoints().Num() - 1;

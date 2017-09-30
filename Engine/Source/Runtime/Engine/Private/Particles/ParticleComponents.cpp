@@ -132,7 +132,7 @@ static TAutoConsoleVariable<float> CVarQLSpawnRateReferenceLevel(
 
 
 /** Whether to allow particle systems to perform work. */
-bool GIsAllowingParticles = true;
+ENGINE_API bool GIsAllowingParticles = true;
 
 /** Whether to calculate LOD on the GameThread in-game. */
 bool GbEnableGameThreadLODCalculation = true;
@@ -3454,6 +3454,12 @@ void UParticleSystemComponent::FinishDestroy()
 	Super::FinishDestroy();
 }
 
+void UParticleSystemComponent::NotifyObjectReferenceEliminated() const
+{
+	UE_LOG(LogParticles, Error, TEXT("Garbage collector eliminated reference from particle system!  Particle system objects should not be cleaned up via MarkPendingKill().\n           ParticleSystem=%s"),
+		*GetPathName());
+}
+
 
 void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
@@ -4057,25 +4063,15 @@ void UParticleSystemComponent::SetMaterial(int32 ElementIndex, UMaterialInterfac
 		}
 		EmitterMaterials[ElementIndex] = Material;
 		bIsViewRelevanceDirty = true;
-
-		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
-		{
-			if (FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex])
-			{
-				if (!Inst->Tick_MaterialOverrides())
-				{
-					if (EmitterMaterials.IsValidIndex(EmitterIndex))
-					{
-						if (EmitterMaterials[EmitterIndex])
-						{
-							Inst->CurrentMaterial = EmitterMaterials[EmitterIndex];
-						}
-					}
-				}
-			}
-		}
-		MarkRenderDynamicDataDirty();
 	}
+	for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+	{
+		if (FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex])
+		{
+			Inst->Tick_MaterialOverrides(EmitterIndex);
+		}
+	}
+	MarkRenderDynamicDataDirty();
 }
 
 void UParticleSystemComponent::ClearDynamicData()
@@ -4371,6 +4367,7 @@ public:
 		{
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueFinalize);
 			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(Target);
+			MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			MyCompletionGraphEvent->DontCompleteUntil(Finalize);
 		}
 #endif
@@ -4654,6 +4651,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueAsync);
 			AsyncWork = TGraphTask<FParticleAsyncTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
 #if !WITH_EDITOR  // we need to not complete until this is done because the game thread finalize task has not beed queued yet
+			ThisTickFunction->GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(AsyncWork);
 #endif
 		}
@@ -4663,6 +4661,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			FGraphEventArray Prereqs;
 			Prereqs.Add(AsyncWork);
 			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(&Prereqs, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
+			ThisTickFunction->GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(Finalize);
 		}
 #endif
@@ -4750,16 +4749,7 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
 
-				if (!Instance->Tick_MaterialOverrides())
-				{
-					if (EmitterMaterials.IsValidIndex(EmitterIndex))
-					{
-						if (EmitterMaterials[EmitterIndex])
-						{
-							Instance->CurrentMaterial = EmitterMaterials[EmitterIndex];
-						}
-					}
-				}
+				Instance->Tick_MaterialOverrides(EmitterIndex);
 				TotalActiveParticles += Instance->ActiveParticles;
 			}
 
@@ -5228,6 +5218,11 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 	{
 		Template = NULL;
 	}
+	if (!ensureMsgf(IsRenderStateDirty() || EmitterMaterials.Num() == 0, TEXT("About to lose material references without calling MarkRenderStateDirty on: %s"), *GetOwner()->GetName()))
+	{
+		MarkRenderStateDirty();
+	}
+	
 	EmitterMaterials.Empty();
 
 	for (int32 Idx = 0; Idx < EmitterInstances.Num(); Idx++)
@@ -5351,6 +5346,19 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		bWasActive = false; // Set to false now, it may get set to true when it's deactivated due to unregister
 		SetComponentTickEnabled(true);
 
+		// Force an LOD update - [op] do this before InitializeSystem, as that's going to set LOD level on all instances 
+		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
+		{
+			FVector EffectPosition = GetComponentLocation();
+			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
+			SetLODLevel(DesiredLODLevel);
+		}
+		else
+		{
+			bForceLODUpdateFromRenderer = true;
+		}
+
+
 		// if no instances, or recycling
 		if (EmitterInstances.Num() == 0 || (bIsGameWorld && (!bAutoActivate || bHasBeenActivated)))
 		{
@@ -5371,17 +5379,6 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		}
 
 
-		// Force an LOD update
-		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
-		{
-			FVector EffectPosition = GetComponentLocation();
-			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
-			SetLODLevel(DesiredLODLevel);
-		}
-		else
-		{
-			bForceLODUpdateFromRenderer = true;
-		}
 
 
 		// Flag the system as having been activated at least once
@@ -7098,6 +7095,7 @@ int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 	}
 	return INDEX_NONE;
 }
+
 
 UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

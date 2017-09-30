@@ -223,9 +223,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bScreenSpaceAOIsValid(SnapshotSource.bScreenSpaceAOIsValid)
 	, bCustomDepthIsValid(SnapshotSource.bCustomDepthIsValid)
 	, GBufferRefCount(SnapshotSource.GBufferRefCount)
-	, LargestDesiredSizeThisFrame(SnapshotSource.LargestDesiredSizeThisFrame)
-	, LargestDesiredSizeLastFrame(SnapshotSource.LargestDesiredSizeLastFrame)
 	, ThisFrameNumber(SnapshotSource.ThisFrameNumber)
+	, CurrentDesiredSizeIndex(SnapshotSource.CurrentDesiredSizeIndex)
 	, bVelocityPass(SnapshotSource.bVelocityPass)
 	, bSeparateTranslucencyPass(SnapshotSource.bSeparateTranslucencyPass)
 	, GBufferResourcesUniformBuffer(SnapshotSource.GBufferResourcesUniformBuffer)
@@ -258,6 +257,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, DefaultDepthClear(SnapshotSource.DefaultDepthClear)
 	, QuadOverdrawIndex(SnapshotSource.QuadOverdrawIndex)
 {
+	FMemory::Memcpy(LargestDesiredSizes, SnapshotSource.LargestDesiredSizes);
 	SnapshotArray(SceneColor, SnapshotSource.SceneColor);
 	SnapshotArray(ReflectionColorScratchCubemap, SnapshotSource.ReflectionColorScratchCubemap);
 	SnapshotArray(DiffuseIrradianceScratchCubemap, SnapshotSource.DiffuseIrradianceScratchCubemap);
@@ -334,9 +334,11 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 
 
 	// we want to shrink the buffer but as we can have multiple scenecaptures per frame we have to delay that a frame to get all size requests
+	// Don't save buffer size in history while making high-res screenshot
+	if(!GIsHighResScreenshot)
 	{
 		// this allows The BufferSize to not grow below the SceneCapture requests (happen before scene rendering, in the same frame with a Grow request)
-		LargestDesiredSizeThisFrame = LargestDesiredSizeThisFrame.ComponentMax(DesiredBufferSize);
+		LargestDesiredSizes[CurrentDesiredSizeIndex] = LargestDesiredSizes[CurrentDesiredSizeIndex].ComponentMax(DesiredBufferSize);
 
 		uint32 FrameNumber = ViewFamily.FrameNumber;
 
@@ -345,11 +347,14 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 		{
 			// this allows the BufferSize to shrink each frame (in game)
 			ThisFrameNumber = FrameNumber;
-			LargestDesiredSizeLastFrame = LargestDesiredSizeThisFrame;
-			LargestDesiredSizeThisFrame = FIntPoint(0, 0);
+			CurrentDesiredSizeIndex = (CurrentDesiredSizeIndex + 1) % FrameSizeHistoryCount;
+			LargestDesiredSizes[CurrentDesiredSizeIndex] = FIntPoint(0, 0);
 		}
 
-		DesiredBufferSize = DesiredBufferSize.ComponentMax(LargestDesiredSizeLastFrame);
+		for (int32 i = 0; i < FrameSizeHistoryCount; ++i)
+		{
+			DesiredBufferSize = DesiredBufferSize.ComponentMax(LargestDesiredSizes[i]);
+		}
 	}
 
 	return DesiredBufferSize;

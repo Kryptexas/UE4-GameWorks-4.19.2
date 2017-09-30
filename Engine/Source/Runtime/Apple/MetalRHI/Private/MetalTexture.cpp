@@ -1566,7 +1566,7 @@ void* FMetalSurface::AsyncLock(class FRHICommandListImmediate& RHICmdList, uint3
 	return BufferData;
 }
             
-struct FMetalRHICommandUnlockTextureUpdate : public FRHICommand<FMetalRHICommandUnlockTextureUpdate>
+struct FMetalRHICommandUnlockTextureUpdate final : public FRHICommand<FMetalRHICommandUnlockTextureUpdate>
 			{
 	FMetalSurface* Surface;
 	void* UpdateData;
@@ -1804,7 +1804,7 @@ void FMetalDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
 }
 
 // deferred unlock commands
-struct FMetalRHICommandAsyncReallocateTexture2D : public FRHICommand<FMetalRHICommandAsyncReallocateTexture2D>
+struct FMetalRHICommandAsyncReallocateTexture2D final : public FRHICommand<FMetalRHICommandAsyncReallocateTexture2D>
 {
 	FMetalContext& Context;
 	FMetalTexture2D* OldTexture;
@@ -1989,7 +1989,7 @@ void FMetalDynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef Textur
 }
 }
 
-struct FMetalRHICommandUpdateTexture2D : public FRHICommand<FMetalRHICommandUpdateTexture2D>
+struct FMetalRHICommandUpdateTexture2D final : public FRHICommand<FMetalRHICommandUpdateTexture2D>
 {
 	FMetalContext& Context;
 	FMetalTexture2D* Texture;
@@ -2399,7 +2399,7 @@ void FMetalDynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef
 	NOT_SUPPORTED("RHIVirtualTextureSetFirstMipVisible");
 }
 
-struct FMetalRHICommandUnaliasTextures : public FRHICommand<FMetalRHICommandUnaliasTextures>
+struct FMetalRHICommandUnaliasTextures final : public FRHICommand<FMetalRHICommandUnaliasTextures>
 {
 	TArray<FTextureRHIParamRef> Textures;
 	
@@ -2457,7 +2457,7 @@ void FMetalDynamicRHI::RHISetResourceAliasability_RenderThread(class FRHICommand
 	}
 }
 
-struct FRHICopySubTextureRegion : public FRHICommand<FRHICopySubTextureRegion>
+struct FRHICopySubTextureRegion final : public FRHICommand<FRHICopySubTextureRegion>
 {
 	FTexture2DRHIParamRef SourceTexture;
 	FTexture2DRHIParamRef DestinationTexture;

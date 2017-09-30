@@ -51,6 +51,7 @@ public:
 
 	FDistanceFieldUploadDataResource()
 	{
+		// PS4 volatile only supports 8Mb, switch to dynamic once that is fixed.
 		// PS4 volatile only supports 8Mb, switch to volatile once that is fixed.
 		UploadData.bVolatile = false;
 

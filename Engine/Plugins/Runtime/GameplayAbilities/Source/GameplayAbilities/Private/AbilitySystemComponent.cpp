@@ -1074,12 +1074,17 @@ void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag Gamepla
 
 	FGameplayCueParameters Parameters(EffectContext);
 
+	AddGameplayCue_Internal(GameplayCueTag, Parameters, GameplayCueContainer);
+}
+
+void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters, FActiveGameplayCueContainer& GameplayCueContainer)
+{
 	if (IsOwnerActorAuthoritative())
 	{
 		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
 
 		ForceReplication();
-		GameplayCueContainer.AddCue(GameplayCueTag, ScopedPredictionKey, Parameters);
+		GameplayCueContainer.AddCue(GameplayCueTag, ScopedPredictionKey, GameplayCueParameters);
 		
 		// For mixed minimal replication mode, we do NOT want the owning client to play the OnActive event through this RPC, since he will get the full replicated 
 		// GE in his AGE array. Generate a prediction key for him, which he will look for on the _Implementation function and ignore.
@@ -1089,13 +1094,16 @@ void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag Gamepla
 			{
 				PredictionKeyForRPC = FPredictionKey::CreateNewServerInitiatedKey(this);
 			}
-			NetMulticast_InvokeGameplayCueAdded_WithParams(GameplayCueTag, PredictionKeyForRPC, Parameters);
+			if (IAbilitySystemReplicationProxyInterface* ReplicationInterface = GetReplicationInterface())
+			{
+				ReplicationInterface->Call_InvokeGameplayCueAdded_WithParams(GameplayCueTag, PredictionKeyForRPC, GameplayCueParameters);
+			}
 		}
 
 		if (!bWasInList)
 		{
 			// Call on server here, clients get it from repnotify
-			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, Parameters);
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, GameplayCueParameters);
 		}
 	}
 	else if (ScopedPredictionKey.IsLocalClientKey())
@@ -1103,8 +1111,8 @@ void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag Gamepla
 		GameplayCueContainer.PredictiveAdd(GameplayCueTag, ScopedPredictionKey);
 
 		// Allow for predictive gameplaycue events? Needs more thought
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, Parameters);
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, Parameters);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, GameplayCueParameters);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, GameplayCueParameters);
 	}
 }
 
@@ -1417,6 +1425,17 @@ bool UAbilitySystemComponent::HasAuthorityOrPredictionKey(const FGameplayAbility
 void UAbilitySystemComponent::SetReplicationMode(EReplicationMode NewReplicationMode)
 {
 	ReplicationMode = NewReplicationMode;
+}
+
+IAbilitySystemReplicationProxyInterface* UAbilitySystemComponent::GetReplicationInterface()
+{
+	if (ReplicationProxyEnabled)
+	{
+		// Note the expectation is that when the avatar actor is null (e.g during a respawn) that we do return null and calling code handles this (by probably not replicating whatever it was going to)
+		return Cast<IAbilitySystemReplicationProxyInterface>(AvatarActor);
+	}
+
+	return Cast<IAbilitySystemReplicationProxyInterface>(this);
 }
 
 void UAbilitySystemComponent::OnPredictiveGameplayCueCatchup(FGameplayTag Tag)

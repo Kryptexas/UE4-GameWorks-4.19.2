@@ -148,6 +148,11 @@ public:
 		StreamingData.ReleaseViews();
 	}
 
+protected:
+
+	/** Ensures that no temporary streaming boost are active which could interfere with texture streaming bias in undesirable ways. */
+	bool AllowPerTextureMipBiasChanges() const;
+
 private:
 
 	friend class FAsyncTask<FAsyncTextureStreamingTask>;

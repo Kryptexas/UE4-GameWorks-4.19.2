@@ -243,6 +243,8 @@ struct FViewMatrices
 private:
 	/** ViewToClip : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
 	FMatrix		ProjectionMatrix;
+	/** ViewToClipNoAA : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. Don't apply any AA jitter */
+	FMatrix		ProjectionNoAAMatrix;
 	/** ClipToView : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
 	FMatrix		InvProjectionMatrix;
 	// WorldToView..
@@ -301,6 +303,11 @@ public:
 	inline const FMatrix& GetProjectionMatrix() const
 	{
 		return ProjectionMatrix;
+	}
+
+	inline const FMatrix& GetProjectionNoAAMatrix() const
+	{
+		return ProjectionNoAAMatrix;
 	}
 
 	inline const FMatrix& GetInvProjectionMatrix() const
@@ -395,9 +402,15 @@ public:
 		OverriddenInvTranslatedViewMatrix = InViewMatrix.Inverse();
 	}
 
+	void SaveProjectionNoAAMatrix()
+	{
+		ProjectionNoAAMatrix = ProjectionMatrix;
+	}
+
 	void HackAddTemporalAAProjectionJitter(const FVector2D& InTemporalAAProjectionJitter)
 	{
 		ensure(TemporalAAProjectionJitter.X == 0.0f && TemporalAAProjectionJitter.Y == 0.0f);
+
 		TemporalAAProjectionJitter = InTemporalAAProjectionJitter;
 
 		ProjectionMatrix.M[2][0] += TemporalAAProjectionJitter.X;
@@ -563,6 +576,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, TranslatedWorldToCameraView) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, CameraViewToTranslatedWorld) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ViewToClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ViewToClipNoAA) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ClipToView) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ClipToTranslatedWorld) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, SVPositionToTranslatedWorld) \

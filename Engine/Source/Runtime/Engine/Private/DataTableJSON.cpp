@@ -9,7 +9,6 @@
 #include "Serialization/JsonSerializer.h"
 #include "Engine/UserDefinedStruct.h"
 
-#if WITH_EDITOR
 
 namespace
 {
@@ -35,7 +34,7 @@ namespace
 			return TEXT("Unknown");
 		}
 	}
-
+#if WITH_EDITOR
 	void WriteJSONObjectStartWithOptionalIdentifier(FDataTableExporterJSON::FDataTableJsonWriter& InJsonWriter, const FString* InIdentifier)
 	{
 		if (InIdentifier)
@@ -60,7 +59,11 @@ namespace
 			InJsonWriter.WriteValue(InValue);
 		}
 	}
+#endif
 }
+
+
+#if WITH_EDITOR
 
 FDataTableExporterJSON::FDataTableExporterJSON(const EDataTableExportFlags InDTExportFlags, FString& OutExportText)
 	: DTExportFlags(InDTExportFlags)
@@ -326,6 +329,8 @@ bool FDataTableExporterJSON::WriteContainerEntry(const UProperty* InProperty, co
 
 	return true;
 }
+
+#endif // WITH_EDITOR
 
 
 FDataTableImporterJSON::FDataTableImporterJSON(UDataTable& InDataTable, const FString& InJSONData, TArray<FString>& OutProblems)
@@ -811,4 +816,4 @@ bool FDataTableImporterJSON::ReadContainerEntry(const TSharedRef<FJsonValue>& In
 	return true;
 }
 
-#endif // WITH_EDITOR
+

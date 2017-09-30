@@ -2261,6 +2261,14 @@ static TAutoConsoleVariable<float> CVarViewDistanceScale(
 	TEXT("Default = 1. Value should be in the range [0.0f, 1.0f]."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarViewDistanceScale_NoScalability(
+	TEXT("r.ViewDistanceScaleNoScalability"),
+	1.0f,
+	TEXT("An additional multiplier to r.ViewDistanceScale, but not affected by scalability settings.\n")
+	TEXT("Higher values will increase view distance but at a performance cost.\n")
+	TEXT("Default = 1. Value should be in the range [0.0f, 1.0f]."),
+	ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarLightFunctionQuality(
 	TEXT("r.LightFunctionQuality"),
 	2,
@@ -2357,7 +2365,7 @@ static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
 static TAutoConsoleVariable<int32> CVarVerifyPeer(
 	TEXT("n.VerifyPeer"),
 	1,
-	TEXT("Sets libcurl's CURL_OPT_SSL_VERIFYPEER option to verify authenticity of the peer's certificate.\n")
+	TEXT("Sets libcurl's CURLOPT_SSL_VERIFYPEER option to verify authenticity of the peer's certificate.\n")
 	TEXT("  0 = disable (allows self-signed certificates)\n")
 	TEXT("  1 = enable [default]"),
 	ECVF_ReadOnly);

@@ -37,6 +37,8 @@ public:
 	
 	/** Returns the callback delegate which will be passed onto ProxyLOD function */
 	FCreateProxyDelegate& GetCallbackDelegate();
+		
+	bool IsProxyGenerationRunning() const;
 protected:
 	/** Called when the map has changed*/
 	void OnMapChange(uint32 MapFlags);

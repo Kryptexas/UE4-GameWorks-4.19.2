@@ -146,7 +146,7 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 		BackBuffer->GetSizeY(),
 		bPresent,
 		bLockToVsync,
-		RHIOpenGLConsoleVariables::SyncInterval
+		RHIGetSyncInterval()
 	);
 
 	// Always consider the Framebuffer in the rendering context dirty after the blit

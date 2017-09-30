@@ -31,6 +31,9 @@ public:
 	// Begin UAnimNotify interface
 	virtual FString GetNotifyName_Implementation() const override;
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
+#if WITH_EDITOR
+	virtual void ValidateAssociatedAssets() override;
+#endif
 	// End UAnimNotify interface
 
 	// Particle System to Spawn

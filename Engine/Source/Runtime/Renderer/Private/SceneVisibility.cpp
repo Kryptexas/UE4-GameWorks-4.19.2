@@ -115,6 +115,19 @@ static TAutoConsoleVariable<float> CVarHLODDistanceScale(
 	TEXT("(higher values make HLODs transition farther away, e.g., 2 is twice the distance)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarHLODDistanceOverride(
+	TEXT("r.HLOD.DistanceOverride"),
+	0.0f,
+	TEXT("If non-zero, overrides the distance that HLOD transitions will take place for all objects.\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static FAutoConsoleVariable CVarHLODMaxDrawDistanceScaleForChildren(
+	TEXT( "r.HLOD.MaxDrawDistanceScaleForChildren" ),
+	2.0f,
+	TEXT( "When set to zero, HLOD will use the furthest possible max draw distance for child actors, guaranteeing a seamless transition but at the cost of extra visibility check render thread time.  When set to anything greater than zero, this sets how far we should scale the original actor's draw distance to increase the likelyhood of a seamless transition, but may not always match up." ),
+	ECVF_RenderThreadSafe
+);
+
 static int32 GOcclusionCullParallelPrimFetch = 0;
 static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
 	TEXT("r.OcclusionCullParallelPrimFetch"),
@@ -303,6 +316,8 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 
 	FThreadSafeCounter NumCulledPrimitives;
 	float MaxDrawDistanceScale = GetCachedScalabilityCVars().ViewDistanceScale;
+	const float MaxDrawDistanceScaleForHLODChildren = CVarHLODMaxDrawDistanceScaleForChildren->GetFloat();
+
 
 	//Primitives per ParallelFor task
 	//Using async FrustumCull. Thanks Yager! See https://udn.unrealengine.com/questions/252385/performance-of-frustumcull.html
@@ -314,7 +329,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 	const int32 NumTasks = FMath::DivideAndRoundUp(BitArrayWords, FrustumCullNumWordsPerTask);
 
 	ParallelFor(NumTasks, 
-		[&NumCulledPrimitives, Scene, &View, MaxDrawDistanceScale](int32 TaskIndex)
+		[&NumCulledPrimitives, Scene, &View, MaxDrawDistanceScale, MaxDrawDistanceScaleForHLODChildren](int32 TaskIndex)
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FrustumCull_Loop);
 			const int32 BitArrayNumInner = View.PrimitiveVisibilityMap.Num();
@@ -346,7 +361,22 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 						VisibilityId = Scene->PrimitiveVisibilityIds[Index].ByteIndex;
 					}
 
-					// If cull distance is disabled, always show (except foliage)
+					// If the primitive's visibility is driven by the HLOD system, we never want to use distance-based culling.
+					// Or if cull distance is disabled, always show the primitive (except foliage)
+					if (Scene->Primitives[Index]->LODParentComponentId.IsValid())
+					{
+						const bool bUseMaxDrawDistanceMultiplier = MaxDrawDistanceScaleForHLODChildren != 0.0f;
+						if( bUseMaxDrawDistanceMultiplier )
+						{
+							MaxDrawDistance *= MaxDrawDistanceScaleForHLODChildren;
+						}
+						else
+						{
+							MaxDrawDistance = FLT_MAX;
+						}
+					}
+
+					// If cull distance is disabled, always show the primitive (except foliage)
 					if (View.Family->EngineShowFlags.DistanceCulledPrimitives
 						&& !Scene->Primitives[Index]->Proxy->IsDetailMesh())
 					{
@@ -2128,6 +2158,9 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		// Still need no jitter to be set for temporal feedback on SSR (it is enabled even when temporal AA is off).
 		View.TemporalJitterPixelsX = 0.0f;
 		View.TemporalJitterPixelsY = 0.0f;
+		
+		// Cache the projection matrix before AA is applied
+		View.ViewMatrices.SaveProjectionNoAAMatrix();
 
 		if (ViewState)
 		{
@@ -3034,6 +3067,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 #endif
 
 		const float HLODDistanceScale = FMath::Max(0.0f, CVarHLODDistanceScale.GetValueOnRenderThread());
+		const float HLODDistanceOverride = FMath::Max( 0.0f, CVarHLODDistanceOverride.GetValueOnRenderThread() );
 
 		// Per-frame initialization
 		FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
@@ -3080,29 +3114,35 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 
 			FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
 			{
-				if (LastHLODDistanceScale != HLODDistanceScale)
+				if (LastHLODDistanceScale != HLODDistanceScale ||
+					LastHLODDistanceOverride != HLODDistanceOverride)
 				{
 					// Determine desired HLOD state
-					const float MinDrawDistance = Scene->Primitives[NodeIndex]->Proxy->GetMinDrawDistance();						
+					float MinDrawDistance = Scene->Primitives[NodeIndex]->Proxy->GetMinDrawDistance();
+					const bool bIsOverridingHLODDistance = HLODDistanceOverride != 0.0f;
+					if( bIsOverridingHLODDistance )
+					{
+						MinDrawDistance = HLODDistanceOverride;
+					}
 					const float AdjustedMinDrawDist = MinDrawDistance * HLODDistanceScale;
 					Bounds.MinDrawDistanceSq = AdjustedMinDrawDist * AdjustedMinDrawDist;
 				}
 			}
 
-			const float DistanceSquared = (Bounds.BoxSphereBounds.Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared();
+			const float DistanceSquared = Bounds.BoxSphereBounds.ComputeSquaredDistanceFromBoxToPoint( View.ViewMatrices.GetViewOrigin() );
 			const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
 			const bool bWasFadingPreUpdate = !!NodeVisibility.bIsFading;
 
+			// Fade when HLODs change threshold on-screen, else snap
+			// TODO: This logic can still be improved to clear state and
+			//       transitions when off-screen, but needs better detection
+			const bool bChangedRange = bIsInDrawRange != !!NodeVisibility.bWasVisible;
+			const bool bIsOnScreen = bIsVisible || NodeVisibility.bWasVisible;
+
 			// Update fading state
 			if (NodeMeshes[0].bDitheredLODTransition)
 			{
-				// Fade when HLODs change threshold on-screen, else snap
-				// TODO: This logic can still be improved to clear state and
-				//       transitions when off-screen, but needs better detection
-				const bool bChangedRange = bIsInDrawRange != !!NodeVisibility.bWasVisible;
-				const bool bIsOnScreen = bIsVisible || NodeVisibility.bWasVisible;
-				
 				// Update with syncs
 				if (bSyncFrame)
 				{
@@ -3130,6 +3170,11 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 					VisibilityFlags[NodeIndex] = !!NodeVisibility.bWasVisible;
 					bIsVisible = !!NodeVisibility.bWasVisible;
 				}
+				else if (!bIsInDrawRange)
+				{
+					VisibilityFlags[NodeIndex] = false;
+					bIsVisible = false;
+				}
 			}
 			else
 			{
@@ -3137,6 +3182,17 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 				NodeVisibility.bWasVisible = NodeVisibility.bIsVisible;
 				NodeVisibility.bIsVisible = bIsInDrawRange;
 				NodeVisibility.bIsFading = false;
+
+				VisibilityFlags[ NodeIndex ] = NodeVisibility.bIsVisible;
+				bIsVisible = NodeVisibility.bIsVisible;
+
+				// For instant HLOD->LOD swaps immediate children can be occlusion culled so we force their visibility
+				if (NodeVisibility.bWasVisible && !NodeVisibility.bIsVisible && bChangedRange)
+				{
+					bool bVisible = true;
+					bool bRecursive = false;
+					UpdateNodeChildrenVisibility(ViewState, Node, VisibilityFlags, bVisible, bRecursive);
+				}
 			}
 
 			if (NodeVisibility.bIsFading)
@@ -3147,7 +3203,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			else if (bIsVisible)
 			{
 				// If stable and visible, override hierarchy visibility
-				HideNodeChildren(ViewState, Node, VisibilityFlags);
+				UpdateNodeChildrenVisibility(ViewState, Node, VisibilityFlags);
 			}
 
 			// Flush cached lighting data when changing visible contents
@@ -3170,6 +3226,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			}
 		}
 		LastHLODDistanceScale = HLODDistanceScale;
+		LastHLODDistanceOverride = HLODDistanceOverride;
 	}	
 }
 
@@ -3200,13 +3257,13 @@ void FLODSceneTree::ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSc
 			// Fading only occurs at the adjacent hierarchy level, below should be hidden
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 			{
-				HideNodeChildren(ViewState, *ChildNode, VisibilityFlags);
+				UpdateNodeChildrenVisibility(ViewState, *ChildNode, VisibilityFlags);
 			}
 		}
 	}
 }
 
-void FLODSceneTree::HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
+void FLODSceneTree::UpdateNodeChildrenVisibility(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, bool bIsVisible /*= false*/, bool bRecursive /*= true*/)
 {
 	checkSlow(ViewState);
 	FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
@@ -3220,12 +3277,15 @@ void FLODSceneTree::HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& 
 		for (const auto& Child : Node.ChildrenSceneInfos)
 		{
 			const int32 ChildIndex = Child->GetIndex();
-			HLODState.HiddenChildPrimitiveMap[ChildIndex] = true;
-			VisibilityFlags[ChildIndex] = false;
+			HLODState.HiddenChildPrimitiveMap[ChildIndex] = !bIsVisible;
+			VisibilityFlags[ChildIndex] = bIsVisible;
 
-			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
+			if (bRecursive)
 			{
-				HideNodeChildren(ViewState, *ChildNode, VisibilityFlags);
+				if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
+				{
+					UpdateNodeChildrenVisibility(ViewState, *ChildNode, VisibilityFlags);
+				}
 			}
 		}
 	}

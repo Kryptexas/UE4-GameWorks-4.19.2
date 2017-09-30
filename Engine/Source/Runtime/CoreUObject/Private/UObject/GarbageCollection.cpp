@@ -423,8 +423,23 @@ public:
 		{
 			//checkSlow(ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) == false);
 			checkSlow(ObjectItem->GetOwnerIndex() <= 0)
+
 			// Null out reference.
 			Object = NULL;
+
+			// Silently nulling out references can be fatal for some objects.  Usually rendering objects which would need to recreate renderthread proxies to avoid using deleted data and crashing.  e.g.
+			// If MarkPendingKill destroyed a UTexture that was still referenced by a Material then that can cause a crash as the RT data of the material will still try to render with the bad texture.
+			// Unfortunately this is often a race condition between threads, so we want to log errors early and deterministically.
+			if (ReferencingObject && !ReferencingObject->IsPendingKill())
+			{
+				const int32 ObjectIndexReferencer = GUObjectArray.ObjectToIndex(ReferencingObject);
+				FUObjectItem* ObjectItemReferencer = GUObjectArray.IndexToObjectUnsafeForGC(ObjectIndexReferencer);
+
+				//set HadReferenceKilled so we can later call NotifyObjectReferenceEliminated() on objects that have had references silently null'd out.  We don't do it immediately here to avoid false positives in the case where
+				//the Referencer is unreachable.  i.e. If the referencing object is dead anyway we don't need to notify it.
+				ObjectItemReferencer->SetFlags(EInternalObjectFlags::HadReferenceKilled);
+				UE_LOG(LogGarbage, Log, TEXT("NotifyObjectReferenceEliminated %s %s %s"), *ReferencingObject->GetPathName(), *ObjectItem->Object->GetFName().ToString(), *ObjectItem->Object->GetOuter()->GetName());				
+			}
 		}
 		// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
 		else if (ObjectItem->IsUnreachable())
@@ -562,6 +577,7 @@ public:
 
 typedef FGCReferenceProcessor<true> FGCReferenceProcessorMultithreaded;
 typedef FGCReferenceProcessor<false> FGCReferenceProcessorSinglethreaded;
+
 
 template <bool bParallel>
 FGCCollector<bParallel>::FGCCollector(FGCReferenceProcessor<bParallel>& InProcessor, FGCArrayStruct& InObjectArrayStruct)
@@ -1467,6 +1483,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 #endif
 					FScopedCBDProfile Profile(Object);
 					Object->ConditionalBeginDestroy();
+
+					ObjectItem->ClearFlags(EInternalObjectFlags::HadReferenceKilled);
 				}
 
 

@@ -31,6 +31,8 @@ APlayerState::APlayerState(const FObjectInitializer& ObjectInitializer)
 
 	EngineMessageClass = UEngineMessage::StaticClass();
 	SessionName = NAME_GameSession;
+
+	bShouldUpdateReplicatedPing = true; // Preserved behavior before bShouldUpdateReplicatedPing was added
 }
 
 void APlayerState::UpdatePing(float InPing)
@@ -74,7 +76,11 @@ void APlayerState::RecalculateAvgPing()
 
 	// Calculate the average, and divide it by 4 to optimize replication
 	ExactPing = (Count > 0 ? ((float)Sum / (float)Count) : 0.f);
-	Ping = FMath::Min(255, (int32)(ExactPing * 0.25f));
+
+	if (bShouldUpdateReplicatedPing || !HasAuthority())
+	{
+		Ping = FMath::Min(255, (int32)(ExactPing * 0.25f));
+	}
 }
 
 void APlayerState::DispatchOverrideWith(APlayerState* PlayerState)
@@ -102,6 +108,7 @@ void APlayerState::CopyProperties(APlayerState* PlayerState)
 {
 	PlayerState->Score = Score;
 	PlayerState->Ping = Ping;
+	PlayerState->ExactPing = ExactPing;
 	PlayerState->PlayerName = PlayerName;
 	PlayerState->PlayerId = PlayerId;
 	PlayerState->SetUniqueId(UniqueId.GetUniqueNetId());
@@ -269,6 +276,10 @@ void APlayerState::SetPlayerName(const FString& S)
 	}
 	OldName = PlayerName;
 	ForceNetUpdate();
+}
+
+void APlayerState::OnRep_PlayerId()
+{
 }
 
 void APlayerState::OnRep_UniqueId()

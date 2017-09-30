@@ -1069,6 +1069,8 @@ void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 				}
 			});
 		}
+
+		UE_LOG(LogSlate, Log, TEXT("FSceneViewport::OnFocusLost() reason %d"), (int32)InFocusEvent.GetCause());
 	}
 }
 

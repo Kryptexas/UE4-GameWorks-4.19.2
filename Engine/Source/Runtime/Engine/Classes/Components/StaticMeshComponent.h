@@ -14,6 +14,7 @@
 #include "PackedNormal.h"
 #include "RawIndexBuffer.h"
 #include "UniquePtr.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
@@ -371,6 +372,7 @@ public:
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;	
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
+	virtual void NotifyObjectReferenceEliminated() const override;
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 	virtual void PreEditUndo() override;
@@ -643,6 +645,7 @@ public:
 	virtual void PropagateLightingScenarioChange() override;
 
 	const FMeshMapBuildData* GetMeshMapBuildData(const FStaticMeshComponentLODInfo& LODInfo) const;
+
 
 #if WITH_EDITOR
 	/** Called when the static mesh changes  */

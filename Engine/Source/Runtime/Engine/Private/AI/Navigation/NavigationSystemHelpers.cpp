@@ -52,6 +52,13 @@ namespace NavigationHelper
 #endif // WITH_RECAST
 	}
 
+	void GatherCollision(const FKAggregateGeom& AggGeom, UNavCollision& NavCollision)
+	{
+#if WITH_RECAST
+		FRecastNavMeshGenerator::ExportAggregatedGeometry(AggGeom, NavCollision.ConvexCollision.VertexBuffer, NavCollision.ConvexCollision.IndexBuffer, NavCollision.ConvexShapeIndices);
+#endif // WITH_RECAST
+	}
+
 	FORCEINLINE_DEBUGGABLE float RawGeometryFall(const AActor* Querier, const FVector& FallStart, const float FallLimit)
 	{
 		float FallDownHeight = 0.f;

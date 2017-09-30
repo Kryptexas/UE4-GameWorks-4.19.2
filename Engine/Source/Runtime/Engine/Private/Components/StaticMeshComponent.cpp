@@ -349,6 +349,12 @@ void UStaticMeshComponent::PostInitProperties()
 	}
 }
 
+void UStaticMeshComponent::NotifyObjectReferenceEliminated() const
+{
+	UE_LOG(LogStaticMesh, Error, TEXT("Garbage collector eliminated reference from staticmeshcomponent!  Static Mesh objects should not be cleaned up via MarkPendingKill().\n           StaticMesh=%s"),
+		*GetPathName());
+}
+
 bool UStaticMeshComponent::AreNativePropertiesIdenticalTo( UObject* Other ) const
 {
 	bool bNativePropertiesAreIdentical = Super::AreNativePropertiesIdenticalTo( Other );
@@ -2245,30 +2251,22 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 
 bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
-	if (GetStaticMesh() != NULL && GetStaticMesh()->NavCollision != NULL)
+	const FVector Scale3D = GetComponentToWorld().GetScale3D();
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision && !Scale3D.IsZero())
 	{
 		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
 		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;
 
 		if (bExportAsObstacle)
 		{
+			// skip default export
 			return false;
 		}
-		
-		if (NavCollision->bHasConvexGeometry)
+
+		const bool bHasData = NavCollision->ExportGeometry(GetComponentToWorld(), GeomExport);
+		if (bHasData)
 		{
-			const FVector Scale3D = GetComponentTransform().GetScale3D();
-			// if any of scales is 0 there's no point in exporting it
-			if (!Scale3D.IsZero())
-			{
-				GeomExport.ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
-					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), GetComponentTransform());
-
-				GeomExport.ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
-					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), GetComponentTransform());
-			}
-
-			// regardless of above we don't want "regular" collision export for this mesh instance
+			// skip default export
 			return false;
 		}
 	}
@@ -2310,7 +2308,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 					}
 				}
 			}
-		}		
+		}
 	}
 
 	return Result;
@@ -2326,7 +2324,8 @@ void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) cons
 {
 	Super::GetNavigationData(Data);
 
-	if (GetStaticMesh() && GetStaticMesh()->NavCollision)	
+	const FVector Scale3D = GetComponentToWorld().GetScale3D();
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision && !Scale3D.IsZero())
 	{
 		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
 		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;

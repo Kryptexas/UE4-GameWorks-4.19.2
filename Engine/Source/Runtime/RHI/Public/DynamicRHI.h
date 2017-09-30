@@ -53,6 +53,23 @@ private:
 	FUpdateTexture3DData();
 };
 
+/** Struct to provide details of swap chain flips */
+struct FRHIFlipDetails
+{
+	uint64 PresentIndex;
+	double FlipTimeInSeconds;
+
+	FRHIFlipDetails()
+		: PresentIndex(0)
+		, FlipTimeInSeconds(0)
+	{}
+
+	FRHIFlipDetails(uint64 InPresentIndex, double InFlipTimeInSeconds)
+		: PresentIndex(InPresentIndex)
+		, FlipTimeInSeconds(InFlipTimeInSeconds)
+	{}
+};
+
 /** The interface which is implemented by the dynamically bound RHI. */
 class RHI_API FDynamicRHI
 {
@@ -892,6 +909,9 @@ public:
 	virtual void RHICopySubTextureRegion_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox);
 	virtual void RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { }
 	
+	virtual FRHIFlipDetails RHIWaitForFlip(double TimeoutInSeconds) { return FRHIFlipDetails(); }
+	virtual void RHISignalFlipEvent() { }
+
 protected:
 	TArray<uint32> PixelFormatBlockBytes;
 };

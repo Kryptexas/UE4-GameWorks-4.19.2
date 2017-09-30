@@ -356,6 +356,17 @@ bool UUserWidget::Initialize()
 			InitializeNamedSlots(bReparentToWidgetTree);
 		}
 
+		// Setup the player context on sub user widgets, if we have a valid context
+		if (PlayerContext.IsValid())
+		{
+			WidgetTree->ForEachWidget([&](UWidget* Widget) {
+				if (UUserWidget* UserWidget = Cast<UUserWidget>(Widget))
+				{
+					UserWidget->SetPlayerContext(PlayerContext);
+				}
+			});
+		}
+
 		return true;
 	}
 

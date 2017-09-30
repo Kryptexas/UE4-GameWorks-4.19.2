@@ -211,6 +211,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastTranslucentShadows(InLightComponent->CastTranslucentShadows)
 	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
 	, bCastShadowsFromCinematicObjectsOnly(InLightComponent->bCastShadowsFromCinematicObjectsOnly)
+	, bForceCachedShadowsForMovablePrimitives(InLightComponent->bForceCachedShadowsForMovablePrimitives)
 	, bAffectTranslucentLighting(InLightComponent->bAffectTranslucentLighting)
 	, bUsedAsAtmosphereSunLight(InLightComponent->IsUsedAsAtmosphereSunLight())
 	, bAffectDynamicIndirectLighting(InLightComponent->bAffectDynamicIndirectLighting)
@@ -356,6 +357,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	MaxDrawDistance = 0.0f;
 	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
+	bForceCachedShadowsForMovablePrimitives = false;
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
@@ -896,6 +898,16 @@ void ULightComponent::SetShadowBias(float NewValue)
 		&& ShadowBias != NewValue)
 	{
 		ShadowBias = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void ULightComponent::SetForceCachedShadowsForMovablePrimitives(bool bNewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& bForceCachedShadowsForMovablePrimitives != bNewValue)
+	{
+		bForceCachedShadowsForMovablePrimitives = bNewValue;
 		MarkRenderStateDirty();
 	}
 }

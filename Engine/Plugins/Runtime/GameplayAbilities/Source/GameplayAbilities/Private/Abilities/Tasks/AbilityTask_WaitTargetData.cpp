@@ -272,7 +272,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(const FGameplayAbili
 		if (!TargetActor->ShouldProduceTargetDataOnServer)
 		{
 			FGameplayTag ApplicationTag; // Fixme: where would this be useful?
-			AbilitySystemComponent->ServerSetReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey(), Data, ApplicationTag, AbilitySystemComponent->ScopedPredictionKey);
+			AbilitySystemComponent->CallServerSetReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey(), Data, ApplicationTag, AbilitySystemComponent->ScopedPredictionKey);
 		}
 		else if (ConfirmationType == EGameplayTargetingConfirmation::UserConfirmed)
 		{

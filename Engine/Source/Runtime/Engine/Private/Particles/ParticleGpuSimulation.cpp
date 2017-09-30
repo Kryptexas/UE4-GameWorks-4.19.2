@@ -2734,6 +2734,11 @@ static void GetNewParticleArray(TArray<FNewParticle>& NewParticles, int32 NumPar
  */
 struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 {
+public:
+	// render proxies for unselected (0) and selected (1) materials
+	FMaterialRenderProxy *MaterialProxies[2];
+	// translucent?
+	bool bIsMaterialTranslucent;
 	/** FX system. */
 	FFXSystem* FXSystem;
 	/** Per-emitter resources. */
@@ -2742,8 +2747,6 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	FParticleSimulationGPU* Simulation;
 	/** Bounds for particles in the simulation. */
 	FBox SimulationBounds;
-	/** The material with which to render sprites. */
-	UMaterialInterface* Material;
 	/** A list of new particles to inject in to the simulation for this emitter. */
 	TArray<FNewParticle> NewParticles;
 	/** A list of tiles to clear that were newly allocated for this emitter. */
@@ -2778,10 +2781,10 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	/** Constructor. */
 	explicit FGPUSpriteDynamicEmitterData( const UParticleModuleRequired* InRequiredModule )
 		: FDynamicEmitterDataBase( InRequiredModule )
+		, bIsMaterialTranslucent(true)
 		, FXSystem(NULL)
 		, Resources(NULL)
 		, Simulation(NULL)
-		, Material(NULL)
 		, SortMode(PSORTMODE_None)
 		, bLocalVectorFieldTileX(false)
 		, bLocalVectorFieldTileY(false)
@@ -2789,6 +2792,8 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		, bLocalVectorFieldUseFixDT(false)
 	{
 		GetNewParticleArray(NewParticles);
+		MaterialProxies[0] = nullptr;
+		MaterialProxies[1] = nullptr;
 	}
 	~FGPUSpriteDynamicEmitterData()
 	{
@@ -2797,8 +2802,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 
 	bool RendersWithTranslucentMaterial() const
 	{
-		EBlendMode BlendMode = Material->GetBlendMode();
-		return IsTranslucentBlendMode(BlendMode);
+		return bIsMaterialTranslucent;
 	}
 
 	/**
@@ -2978,8 +2982,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 					Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
 					Mesh.CastShadow = Proxy->GetCastShadow();
 					Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
-					const bool bUseSelectedMaterial = GIsEditor && (ViewFamily.EngineShowFlags.Selection) ? bSelected : 0;
-					Mesh.MaterialRenderProxy = Material->GetRenderProxy(bUseSelectedMaterial);
+					Mesh.MaterialRenderProxy = GetMaterialRenderProxy(bSelected);
 					Mesh.Type = PT_TriangleList;
 					Mesh.bCanApplyViewModeOverrides = true;
 					Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
@@ -3002,11 +3005,20 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 
 	/**
 	 * Retrieves the material render proxy with which to render sprites.
+	 * Const version of the virtual below, needed because GetDynamicMeshElementsemitter is const
 	 */
+	const FMaterialRenderProxy* GetMaterialRenderProxy(bool bInSelected) const
+	{
+		FMaterialRenderProxy *Proxy = MaterialProxies[bInSelected ? 1 : 0];
+		check(Proxy);
+		return Proxy;
+	}
+
 	virtual const FMaterialRenderProxy* GetMaterialRenderProxy(bool bInSelected) override
 	{
-		check( Material );
-		return Material->GetRenderProxy( bInSelected );
+		FMaterialRenderProxy *Proxy = MaterialProxies[bInSelected ? 1 : 0];
+		check(Proxy);
+		return Proxy;
 	}
 
 	/**
@@ -3194,7 +3206,9 @@ public:
 		FGPUSpriteDynamicEmitterData* DynamicData = new FGPUSpriteDynamicEmitterData(EmitterInfo.RequiredModule);
 		DynamicData->FXSystem = FXSystem;
 		DynamicData->Resources = EmitterInfo.Resources;
-		DynamicData->Material = GetCurrentMaterial();
+		DynamicData->MaterialProxies[0] = GetCurrentMaterial()->GetRenderProxy(false);
+		DynamicData->MaterialProxies[1] = GIsEditor ? GetCurrentMaterial()->GetRenderProxy(true) : DynamicData->MaterialProxies[0];
+		DynamicData->bIsMaterialTranslucent = IsTranslucentBlendMode(GetCurrentMaterial()->GetBlendMode());
 		DynamicData->Simulation = Simulation;
 		DynamicData->SimulationBounds = Template->bUseFixedRelativeBoundingBox ? Template->FixedRelativeBoundingBox.TransformBy(ComponentToWorldMatrix) : Component->Bounds.GetBox();
 		DynamicData->LocalVectorFieldToWorld = VectorFieldToWorld;

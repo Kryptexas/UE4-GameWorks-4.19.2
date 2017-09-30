@@ -496,8 +496,7 @@ FBodyInstance::FBodyInstance()
 	, VelocitySolverIterationCount(1)
 #if WITH_PHYSX
 	, InitialLinearVelocity(0.0f)
-	, PhysxUserData(this)
-#endif // WITH_PHYSX
+#endif
 {
 	MaxAngularVelocity = UPhysicsSettings::Get()->MaxAngularVelocity;
 }
@@ -4052,7 +4051,7 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 
 	if (!bFoundValidBody && !bEarlyOut)
 	{
-		UE_LOG(LogPhysics, Warning, TEXT("GetDistanceToBody: Component (%s) has no simple collision and cannot be queried for closest point."), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
+		UE_LOG(LogPhysics, Verbose, TEXT("GetDistanceToBody: Component (%s) has no simple collision and cannot be queried for closest point."), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
 	}
 
 	if (bFoundValidBody)

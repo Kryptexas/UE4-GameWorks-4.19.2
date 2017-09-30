@@ -317,6 +317,11 @@ public:
 		OnKeyDownHandler = InOnKeyDownHandler;
 	}
 
+	/**
+	 *	Force a single scroll operation. 
+	 */
+	void ForceScroll(int32 UserIndex, float ScrollAxisMagnitude);
+
 protected:
 	//~ Begin SWidget Interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;

@@ -858,7 +858,7 @@ void FMetalDeviceContext::ReleasePooledBuffer(id<MTLBuffer> Buffer)
 	}
 }
 
-struct FMetalRHICommandUpdateFence : public FRHICommand<FMetalRHICommandUpdateFence>
+struct FMetalRHICommandUpdateFence final : public FRHICommand<FMetalRHICommandUpdateFence>
 {
 	enum EMode
 	{

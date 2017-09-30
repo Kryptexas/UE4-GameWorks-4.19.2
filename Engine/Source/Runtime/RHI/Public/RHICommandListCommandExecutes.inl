@@ -649,6 +649,13 @@ void FRHICommandEndDrawingViewport::Execute(FRHICommandListBase& CmdList)
 template<ECmdList CmdListType>
 void FRHICommandPushEvent<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
+#if	RHI_COMMAND_LIST_DEBUG_TRACES
+	extern CORE_API bool GCommandListOnlyDrawEvents;
+	if (GCommandListOnlyDrawEvents)
+	{
+		return;
+	}
+#endif
 	RHISTAT(PushEvent);
 	INTERNAL_DECORATOR_CONTEXT(RHIPushEvent)(Name, Color);
 }
@@ -658,6 +665,13 @@ template struct FRHICommandPushEvent<ECmdList::ECompute>;
 template<ECmdList CmdListType>
 void FRHICommandPopEvent<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
+#if	RHI_COMMAND_LIST_DEBUG_TRACES
+	extern CORE_API bool GCommandListOnlyDrawEvents;
+	if (GCommandListOnlyDrawEvents)
+	{
+		return;
+	}
+#endif
 	RHISTAT(PopEvent);
 	INTERNAL_DECORATOR_CONTEXT(RHIPopEvent)();
 }

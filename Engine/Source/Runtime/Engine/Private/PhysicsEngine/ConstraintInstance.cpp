@@ -1432,4 +1432,5 @@ void FConstraintInstance::DisableParentDominates()
 	ConstraintData->setInvInertiaScale1(1.0f);
 }
 
+
 #undef LOCTEXT_NAMESPACE

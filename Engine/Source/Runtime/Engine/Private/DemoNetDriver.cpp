@@ -56,6 +56,7 @@ static TAutoConsoleVariable<int32> CVarForceDisableAsyncPackageMapLoading( TEXT(
 static TAutoConsoleVariable<int32> CVarDemoUseNetRelevancy( TEXT( "demo.UseNetRelevancy" ), 0, TEXT( "If 1, will enable relevancy checks and distance culling, using all connected clients as reference." ) );
 static TAutoConsoleVariable<float> CVarDemoCullDistanceOverride( TEXT( "demo.CullDistanceOverride" ), 0.0f, TEXT( "If > 0, will represent distance from any viewer where actors will stop being recorded." ) );
 static TAutoConsoleVariable<float> CVarDemoRecordHzWhenNotRelevant( TEXT( "demo.RecordHzWhenNotRelevant" ), 2.0f, TEXT( "Record at this frequency when actor is not relevant." ) );
+static TAutoConsoleVariable<int32> CVarLoopDemo(TEXT("demo.Loop"), 0, TEXT("<1> : play replay from beginning once it reaches the end / <0> : stop replay at the end"));
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
@@ -2352,6 +2353,25 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 	{
 		// We're busy processing tasks, return
 		return;
+	}
+	
+	// If the ExitAfterReplay option is set, automatically shut down at the end of the replay.
+	// Use AtEnd() of the archive instead of checking DemoCurrentTime/DemoTotalTime, because the DemoCurrentTime may never catch up to DemoTotalTime.
+	if (FArchive* const StreamingArchive = ReplayStreamer->GetStreamingArchive())
+	{
+		const bool bIsAtEnd = StreamingArchive->AtEnd() && (PlaybackPackets.Num() == 0 || (DemoCurrentTime + DeltaSeconds >= DemoTotalTime));
+		if (!ReplayStreamer->IsLive() && bIsAtEnd)
+		{
+			if (FParse::Param(FCommandLine::Get(), TEXT("ExitAfterReplay")))
+			{
+				FPlatformMisc::RequestExit(false);
+			}
+
+			if (CVarLoopDemo.GetValueOnGameThread() > 0)
+			{
+				GotoTimeInSeconds(0.0f);
+			}
+		}
 	}
 
 	// Make sure there is data available to read

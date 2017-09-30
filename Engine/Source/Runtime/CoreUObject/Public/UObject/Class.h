@@ -1246,13 +1246,11 @@ public:
 	/** Returns the (native, c++) name of the struct */
 	virtual COREUOBJECT_API FString GetStructCPPName() const;
 
-#if WITH_EDITOR
 	/**
 	 * Initializes this structure to its default values
 	 * @param InStructData		The memory location to initialize
 	 */
 	virtual COREUOBJECT_API void InitializeDefaultValue(uint8* InStructData) const;
-#endif // WITH_EDITOR
 };
 
 /*-----------------------------------------------------------------------------

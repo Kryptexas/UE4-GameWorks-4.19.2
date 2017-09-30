@@ -802,7 +802,7 @@ private:
 					break;
 					default:
 					{
-						UE_LOG(LogGarbage, Fatal, TEXT("Unknown token"));
+						UE_LOG(LogGarbage, Fatal, TEXT("Unknown token. Type:%d ReferenceTokenStreamIndex:%d Class:%s Obj:%s"), ReferenceInfo.Type, ReferenceTokenStreamIndex, CurrentObject ? *GetNameSafe(CurrentObject->GetClass()) : TEXT("Unknown"), *GetPathNameSafe(CurrentObject));
 						break;
 					}
 				}

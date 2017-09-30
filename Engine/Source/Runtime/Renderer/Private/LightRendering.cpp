@@ -291,7 +291,7 @@ void FSceneRenderer::GatherSimpleLights(const FSceneViewFamily& ViewFamily, cons
 void FSceneRenderer::GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy, FString& LightNameWithLevel)
 {
 #if WANTS_DRAW_MESH_EVENTS
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		FString FullLevelName = LightProxy->GetLevelName().ToString();
 		const int32 LastSlashIndex = FullLevelName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);

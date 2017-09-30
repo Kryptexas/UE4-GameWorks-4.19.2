@@ -20,6 +20,12 @@
 #if NV_AFTERMATH
 // Disabled by default since introduces stalls between render and driver threads
 int32 GDX11NVAfterMathEnabled = 0;
+static FAutoConsoleVariableRef CVarDX11NVAfterMathBufferSize(
+	TEXT("r.DX11NVAfterMathEnabled"),
+	GDX11NVAfterMathEnabled,
+	TEXT("Use NV Aftermath for GPU crash analysis"),
+	ECVF_ReadOnly
+);
 #endif
 
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
@@ -1086,6 +1092,12 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				GSupportsTimestampRenderQueries = false;
 			}
 		}
+#if NV_AFTERMATH
+		if (!IsRHIDeviceNVIDIA())
+		{
+			GDX11NVAfterMathEnabled = 0;
+		}
+#endif
 		
 #if PLATFORM_DESKTOP
 		if (IsRHIDeviceNVIDIA())
@@ -1107,6 +1119,23 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			{
 				UE_LOG(LogD3D11RHI, Log, TEXT("NvAPI_D3D_GetCurrentSLIState failed: 0x%x"), (int32)SLIStatus);
 			}
+
+#if NV_AFTERMATH
+			if (GDX11NVAfterMathEnabled)
+			{
+				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, Direct3DDevice);
+				if (Result == GFSDK_Aftermath_Result_Success)
+				{
+					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled and primed"));
+					SetEmitDrawEvents(true);
+				}
+				else
+				{
+					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled but failed to initialize"));
+					GDX11NVAfterMathEnabled = 0;
+				}
+			}
+#endif
 		}
 		else if( IsRHIDeviceAMD() )
 		{
@@ -1147,7 +1176,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				if (Result == GFSDK_Aftermath_Result_Success)
 				{
 					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled and primed"));
-					GEmitDrawEvents = true;
+					SetEmitDrawEvents(true);
 				}
 				else
 				{

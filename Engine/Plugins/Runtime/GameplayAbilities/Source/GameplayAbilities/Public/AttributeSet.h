@@ -255,10 +255,10 @@ struct GAMEPLAYABILITIES_API FScalableFloat
 
 public:
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=ScalableFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ScalableFloat)
 	float	Value;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=ScalableFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ScalableFloat)
 	FCurveTableRowHandle	Curve;
 
 	float GetValueAtLevel(float Level, const FString* ContextString = nullptr) const;

@@ -1815,6 +1815,7 @@ public:
 	FLODSceneTree(FScene* InScene)
 		: Scene(InScene)
 		, LastHLODDistanceScale(-1.0f)
+		, LastHLODDistanceOverride(0.0f)
 	{
 	}
 
@@ -1862,6 +1863,7 @@ private:
 	void ResetHLODDistanceScaleApplication()
 	{
 		LastHLODDistanceScale = -1.0f;
+		LastHLODDistanceOverride = 0.0f;
 	}
 
 	/** Scene this Tree belong to */
@@ -1873,9 +1875,12 @@ private:
 	/** Transition distance scaling */
 	float LastHLODDistanceScale;
 
+	/** The last setting we saw for global distance override */
+	float LastHLODDistanceOverride;
+
 	/** Recursive state updates */
 	void ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut);
-	void HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags);
+	void UpdateNodeChildrenVisibility(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, bool bIsVisible = false, bool bRecursive = true);
 };
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;

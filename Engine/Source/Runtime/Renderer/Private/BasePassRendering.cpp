@@ -633,7 +633,7 @@ public:
 				DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 
 				TDrawEvent<FRHICommandList> MeshEvent;
-				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::BasePass));
 
 				DrawingPolicy.SetMeshRenderState(
 					RHICmdList,

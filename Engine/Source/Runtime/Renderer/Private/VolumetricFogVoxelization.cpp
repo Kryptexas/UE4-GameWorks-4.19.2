@@ -426,7 +426,7 @@ public:
 
 	// FMeshDrawingPolicy interface.
 
-	FDrawingPolicyMatchResult Matches(const FVoxelizeVolumeDrawingPolicy& Other) const;
+	FDrawingPolicyMatchResult Matches(const FVoxelizeVolumeDrawingPolicy& Other, bool bForReals = false) const;
 
 	void SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const
 	{
@@ -499,11 +499,11 @@ FVoxelizeVolumeDrawingPolicy::FVoxelizeVolumeDrawingPolicy(
 }
 
 FDrawingPolicyMatchResult FVoxelizeVolumeDrawingPolicy::Matches(
-	const FVoxelizeVolumeDrawingPolicy& Other
+	const FVoxelizeVolumeDrawingPolicy& Other, bool bForReals
 	) const
 {
 	DRAWING_POLICY_MATCH_BEGIN
-		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 		DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 		DRAWING_POLICY_MATCH(GeometryShader == Other.GeometryShader) &&
 		DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
@@ -630,7 +630,7 @@ void VoxelizeVolumePrimitive(
 		const int32 NumVoxelizationPasses = FMath::DivideAndRoundUp(NumSlices, GetVoxelizationSlicesPerPass(View.GetShaderPlatform()));
 
 		TDrawEvent<FRHICommandList> MeshEvent;
-		BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+		BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::FogVoxelization));
 
 		for (int32 VoxelizationPassIndex = 0; VoxelizationPassIndex < NumVoxelizationPasses; VoxelizationPassIndex++)
 		{

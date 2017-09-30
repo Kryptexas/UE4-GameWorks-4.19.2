@@ -26,6 +26,7 @@
 
 #include "AI/Navigation/AvoidanceManager.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "GameFramework/HUD.h"
 
 #define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 
@@ -140,6 +141,27 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	MinNormalizedTireLoadFiltered = PTireLoadFilterDef.mMinFilteredNormalisedLoad;
 	MaxNormalizedTireLoad = PTireLoadFilterDef.mMaxNormalisedLoad;
 	MaxNormalizedTireLoadFiltered = PTireLoadFilterDef.mMaxFilteredNormalisedLoad;
+
+	SetIsReplicated(true);
+
+	AHUD::OnShowDebugInfo.AddUObject(this, &UWheeledVehicleMovementComponent::ShowDebugInfo);
+}
+
+void UWheeledVehicleMovementComponent::ShowDebugInfo(AHUD* HUD, UCanvas* Canvas, const FDebugDisplayInfo& DisplayInfo, float& YL, float& YPos)
+{
+	static FName NAME_Vehicle = FName(TEXT("Vehicle"));
+
+	if (Canvas && HUD->ShouldDisplayDebug(NAME_Vehicle))
+	{
+		if (APlayerController* Controller = Cast<APlayerController>(GetController()))
+		{
+			if (Controller->IsLocalController())
+			{
+				DrawDebug(Canvas, YL, YPos);
+
+			}
+		}
+	}
 }
 
 void UWheeledVehicleMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
@@ -442,7 +464,7 @@ void UWheeledVehicleMovementComponent::SetupWheels(PxVehicleWheelsSimData* PWhee
 			PxVehicleWheelData PWheelData;
 			PWheelData.mRadius = Wheel->ShapeRadius;
 			PWheelData.mWidth = Wheel->ShapeWidth;
-			PWheelData.mMaxSteer = FMath::DegreesToRadians(Wheel->SteerAngle);
+			PWheelData.mMaxSteer = WheelSetups[WheelIdx].bDisableSteering ? 0.f : FMath::DegreesToRadians(Wheel->SteerAngle);
 			PWheelData.mMaxBrakeTorque = M2ToCm2(Wheel->MaxBrakeTorque);
 			PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? M2ToCm2(Wheel->MaxHandBrakeTorque) : 0.0f;
 
@@ -983,22 +1005,22 @@ void UWheeledVehicleMovementComponent::SetAvoidanceVelocityLock(class UAvoidance
 void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 {
 	// update input values
-	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
-	
-	// TODO: IsLocallyControlled will fail if the owner is unpossessed (i.e. MyOwner->GetController() == nullptr);
+	AController* Controller = GetController();
+
+	// TODO: IsLocallyControlled will fail if the owner is unpossessed (i.e. Controller == nullptr);
 	// Should we remove input instead of relying on replicated state in that case?
-	if (MyOwner && MyOwner->IsLocallyControlled())
+	if (Controller && Controller->IsLocalController())
 	{
 		if(bReverseAsBrake)
 		{
 			//for reverse as state we want to automatically shift between reverse and first gear
 			if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
 			{
-				if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
+				if (RawThrottleInput < -KINDA_SMALL_NUMBER && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
 				{
 					SetTargetGear(-1, true);
 				}
-				else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
+				else if (RawThrottleInput > KINDA_SMALL_NUMBER && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
 				{
 					SetTargetGear(1, true);
 				}
@@ -1366,13 +1388,38 @@ void UWheeledVehicleMovementComponent::Serialize(FArchive& Ar)
 
 void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight, float& OutX )
 {
+
+	//This is very hacky and we should really access this data from physx instead of copying their default values
+	//Copied in order of enum 
+	/*	eJOUNCE = 0,
+	eSUSPFORCE,
+	eTIRELOAD,
+	eNORMALIZED_TIRELOAD,
+	eWHEEL_OMEGA,
+	eTIRE_FRICTION,
+	eTIRE_LONG_SLIP,
+	eNORM_TIRE_LONG_FORCE,
+	eTIRE_LAT_SLIP,
+	eNORM_TIRE_LAT_FORCE,
+	eNORM_TIRE_ALIGNING_MOMENT,
+	eMAX_NB_WHEEL_CHANNELS
+	*/
+
+	float GraphMinY[] = { -2.f, 0.f, 0.f, 0.f, -50.f, 0.f, -0.2f, 0.f, -1.f, 0.f, 0.f };
+	float GraphMaxY[] = { 0.f, 20000.0f, 20000.0f, 3.f, 250.f, 1.1f, 0.2f, 2.f, 1.f, 2.f, 2.f };
+	static_assert(sizeof(GraphMinY) == sizeof(GraphMaxY), "GraphMinY must be the same size as GraphMaxY");
+	static_assert(sizeof(GraphMinY) / sizeof(GraphMinY[0]) == PxVehicleWheelGraphChannel::eMAX_NB_WHEEL_CHANNELS, "Must have same number of entries as enum");
+
+	const float MinY = GraphMinY[Channel];
+	const float MaxY = GraphMaxY[Channel];
+
 	PxF32 PGraphXY[2*PxVehicleGraph::eMAX_NB_SAMPLES];
 	PxVec3 PGraphColor[PxVehicleGraph::eMAX_NB_SAMPLES];
 	char PGraphTitle[PxVehicleGraph::eMAX_NB_TITLE_CHARS];
 
 	PGraph.computeGraphChannel( Channel, PGraphXY, PGraphColor, PGraphTitle );
 
-	FString Label = ANSI_TO_TCHAR(PGraphTitle);
+	FString Label = ANSI_TO_TCHAR(PGraphTitle) + FString::Printf(TEXT("[%.2f,%.2f]"), MinY, MaxY);
 	Canvas->SetDrawColor( FColor( 255, 255, 0 ) );
 	UFont* Font = GEngine->GetSmallFont();
 	Canvas->DrawText( Font, Label, GraphX, GraphY );
@@ -1582,6 +1629,29 @@ void UWheeledVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, flo
 	DrawDebugLines();
 }
 
+void UWheeledVehicleMovementComponent::SetOverrideController(AController* InOverrideController)
+{
+	OverrideController = InOverrideController;
+}
+
+AController* UWheeledVehicleMovementComponent::GetController() const
+{
+	if(OverrideController)
+	{
+		return OverrideController;
+	}
+
+	if (UpdatedComponent)
+	{
+		if (APawn* Pawn = Cast<APawn>(UpdatedComponent->GetOwner()))
+		{
+			return Pawn->Controller;
+		}
+	}
+
+	return nullptr;
+}
+
 
 void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 {
@@ -1736,6 +1806,7 @@ void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLife
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( UWheeledVehicleMovementComponent, ReplicatedState );
+	DOREPLIFETIME(UWheeledVehicleMovementComponent, OverrideController);
 }
 
 /// @endcond
@@ -1943,6 +2014,7 @@ FWheelSetup::FWheelSetup()
 : WheelClass(UVehicleWheel::StaticClass())
 , BoneName(NAME_None)
 , AdditionalOffset(0.0f)
+, bDisableSteering(false)
 {
 
 }

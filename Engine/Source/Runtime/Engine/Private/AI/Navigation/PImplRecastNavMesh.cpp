@@ -1483,19 +1483,26 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 	TArray<NavNodeRef>& FoundPolys, FRecastDebugPathfindingData* DebugData) const
 {
 	ensure(PathingDistance > 0.0f && "PathingDistance <= 0 doesn't make sense");
+	
+	// limit max number of polys found by that function
+	// if you need some, please scan manually using ARecastNavMesh::GetPolyNeighbors for A*/Dijkstra loop
+	// 
+	const int32 MaxSearchLimit = 4096;
+	const int32 MaxSearchNodes = Filter.GetMaxSearchNodes();
+	ensureMsgf(MaxSearchNodes > 0 && MaxSearchNodes <= MaxSearchLimit, TEXT("MaxSearchNodes:%d is not within range: 0..%d"), MaxSearchNodes, MaxSearchLimit);
 
 	// sanity check
-	if (DetourNavMesh == NULL)
+	if (DetourNavMesh == nullptr || MaxSearchNodes <= 0 || MaxSearchNodes > MaxSearchLimit)
 	{
 		return false;
 	}
 
 	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
+	INITIALIZE_NAVQUERY(NavQuery, MaxSearchNodes, LinkFilter);
 
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
 	ensure(QueryFilter);
-	if (QueryFilter == NULL)
+	if (QueryFilter == nullptr)
 	{
 		return false;
 	}
@@ -1509,13 +1516,12 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 	// @TODO add failure handling
 	NavNodeRef StartPolyID = INVALID_NAVNODEREF;
 	NavQuery.findNearestPoly(RecastStartPos, Extent, QueryFilter, &StartPolyID, NULL);
-		
-	FoundPolys.AddUninitialized(Filter.GetMaxSearchNodes());
-	int32 NumPolys;
 
-	dtStatus Status = NavQuery.findPolysInPathDistance(StartPolyID, RecastStartPos
-		, PathingDistance, QueryFilter, FoundPolys.GetData(), &NumPolys, Filter.GetMaxSearchNodes());
+	FoundPolys.Reset(MaxSearchNodes);
+	FoundPolys.AddUninitialized(MaxSearchNodes);
+	int32 NumPolys = 0;
 
+	NavQuery.findPolysInPathDistance(StartPolyID, RecastStartPos, PathingDistance, QueryFilter, FoundPolys.GetData(), &NumPolys, MaxSearchNodes);
 	FoundPolys.RemoveAt(NumPolys, FoundPolys.Num() - NumPolys);
 
 	if (DebugData)

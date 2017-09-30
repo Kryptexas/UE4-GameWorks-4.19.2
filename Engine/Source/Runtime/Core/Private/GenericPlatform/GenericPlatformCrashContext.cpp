@@ -90,6 +90,7 @@ namespace NCachedCrashContextProperties
 	static FString CommandLine;
 	static int32 LanguageLCID;
 	static FString CrashReportClientRichText;
+	static FString GameStateName;
 	static TArray<FString> EnabledPluginsList;
 
 }
@@ -176,9 +177,21 @@ void FGenericCrashContext::Initialize()
 		NCachedCrashContextProperties::GameSessionID = InGameSessionID;
 	});
 
+	FCoreDelegates::GameStateClassChanged.AddLambda([](const FString& InGameStateName)
+	{
+		NCachedCrashContextProperties::GameStateName = InGameStateName;
+	});
+
 	FCoreDelegates::CrashOverrideParamsChanged.AddLambda([](const FCrashOverrideParameters& InParams)
 	{
-		NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
+		if (InParams.bSetCrashReportClientMessageText)
+		{
+			NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
+		}
+		if (InParams.bSetGameNameSuffix)
+		{
+			NCachedCrashContextProperties::GameName = FString(TEXT("UE4-")) + FApp::GetProjectName() + InParams.GameNameSuffix;
+		}
 	});
 
 	FCoreDelegates::IsVanillaProductChanged.AddLambda([](bool bIsVanilla)
@@ -295,6 +308,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "Misc.OSVersionMajor" ), *NCachedCrashContextProperties::OsVersion );
 	AddCrashProperty( TEXT( "Misc.OSVersionMinor" ), *NCachedCrashContextProperties::OsSubVersion );
 
+	AddCrashProperty(TEXT("GameStateName"), *NCachedCrashContextProperties::GameStateName);
 
 	// #CrashReport: 2015-07-21 Move to the crash report client.
 	/*{
@@ -441,6 +455,11 @@ FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
 		.Replace(TEXT("&apos;"), TEXT("'"))
 		.Replace(TEXT("&lt;"), TEXT("<"))
 		.Replace(TEXT("&gt;"), TEXT(">"));
+}
+
+FString FGenericCrashContext::GetCrashGameName()
+{
+	return NCachedCrashContextProperties::GameName;
 }
 
 const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed)

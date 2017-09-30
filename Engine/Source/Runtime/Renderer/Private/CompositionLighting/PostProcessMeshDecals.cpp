@@ -20,6 +20,7 @@
 #include "DecalRenderingCommon.h"
 #include "CompositionLighting/PostProcessDeferredDecals.h"
 #include "SceneRendering.h"
+#include "UnrealEngine.h"
 
 
 /**
@@ -199,7 +200,7 @@ public:
 	* @param Other - draw policy to compare
 	* @return true if the draw policies are a match
 	*/
-	FDrawingPolicyMatchResult Matches(const FMeshDecalsDrawingPolicy& Other) const;
+	FDrawingPolicyMatchResult Matches(const FMeshDecalsDrawingPolicy& Other, bool bForReals = false) const;
 
 	/**
 	* Executes the draw commands which can be shared between any meshes using this drawer.
@@ -265,11 +266,11 @@ FMeshDecalsDrawingPolicy::FMeshDecalsDrawingPolicy(
 }
 
 FDrawingPolicyMatchResult FMeshDecalsDrawingPolicy::Matches(
-	const FMeshDecalsDrawingPolicy& Other
+	const FMeshDecalsDrawingPolicy& Other, bool bForReals
 	) const
 {
 	DRAWING_POLICY_MATCH_BEGIN
-		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 		DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 		DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
 		DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
@@ -500,7 +501,7 @@ private:
 						if (Mask & 1)
 						{
 							TDrawEvent<FRHICommandList> MeshEvent;
-							BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+							BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::CompositionLighting));
 
 							DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FDepthDrawingPolicy::ContextDataType());
 							DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);

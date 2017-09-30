@@ -1059,7 +1059,7 @@ void FBuildAllHandler::BuildFinished()
 void FEditorBuildUtils::TriggerHierarchicalLODBuilder(UWorld* InWorld, FName Id)
 {
 	// Invoke HLOD generator, with either preview or full build
-	InWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
+	InWorld->HierarchicalLODBuilder->BuildMeshesForLODActors(false);
 }
 
 bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, EViewModeIndex SelectedViewMode)

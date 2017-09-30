@@ -566,6 +566,7 @@ public:
 	void EnableParentDominates();
 	void DisableParentDominates();
 
+
 	float GetLastKnownScale() const { return LastKnownScale; }
 
 	//Hacks to easily get zeroed memory for special case when we don't use GC

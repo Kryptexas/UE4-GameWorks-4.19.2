@@ -116,7 +116,7 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 	check( IsInParallelRenderingThread() );
 }
 
-struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertexAndIndexBuffers>
+struct FSlateUpdateVertexAndIndexBuffers final : public FRHICommand<FSlateUpdateVertexAndIndexBuffers>
 {
 	FVertexBufferRHIRef VertexBufferRHI;
 	FIndexBufferRHIRef IndexBufferRHI;
@@ -295,7 +295,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 
 	float TimeSeconds = FApp::GetCurrentTime() - GStartTime;
 	float DeltaTimeSeconds = FApp::GetDeltaTime();
-	float RealTimeSeconds =  FPlatformTime::Seconds() - GStartTime;
+	float RealTimeSeconds = FPlatformTime::Seconds() - GStartTime;
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
 
@@ -328,6 +328,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				)
 				.SetWorldTimes(TimeSeconds, DeltaTimeSeconds, RealTimeSeconds)
 				.SetGammaCorrection(DisplayGamma)
+				.SetRealtimeUpdate(true)
 			);
 		SceneViews[i] = CreateSceneView(SceneViewFamilyContexts[i], BackBuffer, Options.ViewProjectionMatrix);
 	}
@@ -339,10 +340,11 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				&BackBuffer,
 				nullptr,
 				DefaultShowFlags
-				)
+			)
 			.SetWorldTimes(TimeSeconds, DeltaTimeSeconds, RealTimeSeconds)
 			.SetGammaCorrection(DisplayGamma)
-			);
+			.SetRealtimeUpdate(true)
+		);
 	SceneViews[NumScenes-1] = CreateSceneView(SceneViewFamilyContexts[NumScenes-1], BackBuffer, Options.ViewProjectionMatrix);
 
 	TShaderMapRef<FSlateElementVS> GlobalVertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));

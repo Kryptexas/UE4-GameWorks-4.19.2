@@ -13,6 +13,7 @@
 #include "RHI.h"
 #include "RenderResource.h"
 #include "RenderUtils.h"
+#include "EnumClassFlags.h"
 
 class FCanvas;
 class FMaterial;
@@ -22,6 +23,30 @@ class FSceneView;
 class FSceneViewFamily;
 struct FMeshBatch;
 struct FSynthBenchmarkResults;
+
+enum class EShowMaterialDrawEventTypes
+{
+	None						= 0 << 0,  //0
+	CompositionLighting			= 1 << 0,  //1
+	BasePass					= 1 << 1,  //2
+	DepthPositionOnly			= 1 << 2,  //4
+	Depth						= 1 << 3,  //8
+	DistortionDynamic			= 1 << 4,  //16
+	DistortionStatic			= 1 << 5,  //32
+	MobileBasePass				= 1 << 6,  //64
+	MobileTranslucent			= 1 << 7,  //128
+	MobileTranslucentOpacity	= 1 << 8,  //256
+	ShadowDepth					= 1 << 9,  //512
+	ShadowDepthRsm				= 1 << 10, //1024
+	ShadowDepthStatic			= 1 << 11, //2048
+	StaticDraw					= 1 << 12, //4096
+	StaticDrawStereo			= 1 << 13, //8192
+	TranslucentLighting			= 1 << 14, //16384
+	Translucent					= 1 << 15, //32768
+	Velocity					= 1 << 16, //65536
+	FogVoxelization				= 1 << 17, //131072
+};
+ENUM_CLASS_FLAGS(EShowMaterialDrawEventTypes)
 
 // Shortcut for the allocator used by scene rendering.
 class SceneRenderingAllocator

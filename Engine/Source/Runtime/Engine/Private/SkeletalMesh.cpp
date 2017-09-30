@@ -1366,8 +1366,17 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FStaticLODModel::Serialize"), STAT_StaticLODModel_Serialize, STATGROUP_LoadTime );
 
+	// Defined class flags for possible stripping
 	const uint8 LodAdjacencyStripFlag = 1;
-	FStripDataFlags StripFlags( Ar, Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::Tessellation) ? LodAdjacencyStripFlag : 0 );
+
+	// Actual flags used during serialization
+	uint8 ClassDataStripFlags = 0;
+
+	extern int32 GForceStripMeshAdjacencyDataDuringCooking;
+	const bool bWantToStripTessellation = Ar.IsCooking() && ((GForceStripMeshAdjacencyDataDuringCooking != 0) || !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::Tessellation));
+	ClassDataStripFlags |= bWantToStripTessellation ? LodAdjacencyStripFlag : 0;
+
+	FStripDataFlags StripFlags( Ar, ClassDataStripFlags );
 
 	// Skeletal mesh buffers are kept in CPU memory after initialization to support merging of skeletal meshes.
 	bool bKeepBuffersInCPUMemory = true;

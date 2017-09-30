@@ -30,6 +30,7 @@
 
 #include "RendererInterface.h"
 #include "EngineModule.h"
+#include "ParallelFor.h"
 #include "LightMapHelpers.h"
 
 #define SHOW_WIREFRAME_MESH 0
@@ -37,28 +38,27 @@
 FColor BoxBlurSample(TArray<FColor>& InBMP, int32 X, int32 Y, int32 InImageWidth, int32 InImageHeight, bool bIsNormalMap)
 {
 	const int32 SampleCount = 8;
-	static int32 PixelIndices[SampleCount] = { -(InImageWidth + 1), -InImageWidth, -(InImageWidth - 1),
-									 -1, 1,
-									 (InImageWidth + -1), InImageWidth, (InImageWidth + 1) };
+	const int32 PixelIndices[SampleCount] = { -(InImageWidth + 1), -InImageWidth, -(InImageWidth - 1),
+		-1, 1,
+		(InImageWidth + -1), InImageWidth, (InImageWidth + 1) };
 
-	static int32 PixelOffsetX[SampleCount] = { -1, 0, 1,
-									-1, 1,
-									-1, 0, 1 };
+	static const int32 PixelOffsetX[SampleCount] = { -1, 0, 1,
+		-1, 1,
+		-1, 0, 1 };
 
 	int32 PixelsSampled = 0;
 	FLinearColor CombinedColor = FColor::Black;
-	
+
 	// Take samples for blur with square indices
 	for (int32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
 	{
 		const int32 PixelIndex = ((Y * InImageWidth) + X) + PixelIndices[SampleIndex];
-
 		const int32 XIndex = X + PixelOffsetX[SampleIndex];
 
 		// Check if we are not out of texture bounds
 		if (InBMP.IsValidIndex(PixelIndex) && XIndex >= 0 && XIndex < InImageWidth)
 		{
-			FLinearColor SampledColor = InBMP[PixelIndex].ReinterpretAsLinear();
+			const FLinearColor SampledColor = InBMP[PixelIndex].ReinterpretAsLinear();
 			// Check if the pixel is a rendered one (not clear colour)
 			if ((!(SampledColor.R == 1.0f && SampledColor.B == 1.0f && SampledColor.G == 0.0f)) && (!bIsNormalMap || SampledColor.B != 0.0f))
 			{
@@ -77,52 +77,75 @@ FColor BoxBlurSample(TArray<FColor>& InBMP, int32 X, int32 Y, int32 InImageWidth
 	return CombinedColor.ToFColor(false);
 }
 
-void PerformUVBorderSmear(TArray<FColor>& InBMP, int32 InImageWidth, int32 InImageHeight, bool IsNormalMap)
+void PerformUVBorderSmear(TArray<FColor>& InOutPixels, int32 ImageWidth, int32 ImageHeight, bool bIsNormalMap)
 {
-	TArray<FColor> Swap;
-	Swap.Append(InBMP);
+	// This is ONLY possible because this is never called from multiple threads
+	static TArray<FColor> Swap;
+	if (Swap.Num())
+	{
+		Swap.SetNum(0, false);
+	}
+	Swap.Append(InOutPixels);
 
-	TArray<FColor>* Current = &InBMP;
+	TArray<FColor>* Current = &InOutPixels;
 	TArray<FColor>* Scratch = &Swap;
 
-	bool bSwap = false;
-
-	int32 MagentaPixels = 1;
-
-	int32 LoopCount = 0;
 	const int32 MaxIterations = 32;
-	
-	// Sampling
-	while (MagentaPixels && (LoopCount <= MaxIterations))
+	const int32 NumThreads = [&]()
 	{
-		MagentaPixels = 0;
-		// Left / right, Top / down
-		for (int32 Y = 0; Y < InImageHeight; Y++)
-		{		
-			for (int32 X = 0; X < InImageWidth; X++)
-			{
-				int32 PixelIndex = (Y * InImageWidth) + X;
+		return FPlatformProcess::SupportsMultithreading() ? FPlatformMisc::NumberOfCores() : 1;
+	}();
 
-				FColor& Color = (*Current)[PixelIndex];
-				if ((Color.R == 255 && Color.B == 255 && Color.G == 0) || (IsNormalMap && Color.B == 0))
+	const int32 LinesPerThread = FMath::CeilToInt((float)ImageHeight / (float)NumThreads);
+	int32* MagentaPixels = new int32[NumThreads];
+	FMemory::Memzero(MagentaPixels, sizeof(int32) * NumThreads);
+
+	int32 SummedMagentaPixels = 1;
+
+	// Sampling
+	int32 LoopCount = 0;
+	while (SummedMagentaPixels && (LoopCount <= MaxIterations))
+	{
+		SummedMagentaPixels = 0;
+		// Left / right, Top / down
+		ParallelFor(NumThreads, [ImageWidth, ImageHeight, bIsNormalMap, MaxIterations, LoopCount, Current, Scratch, &MagentaPixels, LinesPerThread]
+		(int32 Index)
+		{
+			const int32 StartY = FMath::CeilToInt((Index)* LinesPerThread);
+			const int32 EndY = FMath::Min(FMath::CeilToInt((Index + 1) * LinesPerThread), ImageHeight);
+
+			for (int32 Y = StartY; Y < EndY; Y++)
+			{
+				for (int32 X = 0; X < ImageWidth; X++)
 				{
-					MagentaPixels++;
-					FColor SampledColor = BoxBlurSample(*Scratch, X, Y, InImageWidth, InImageHeight, IsNormalMap);
-					// If it's a valid pixel
-					if ((!(SampledColor.R == 255 && SampledColor.B == 255 && SampledColor.G == 0)) && (!IsNormalMap || SampledColor.B != 0))
+					const int32 PixelIndex = (Y * ImageWidth) + X;
+					FColor& Color = (*Current)[PixelIndex];
+					if ((Color.R == 255 && Color.B == 255 && Color.G == 0) || (bIsNormalMap && Color.B == 0))
 					{
-						Color = SampledColor;
-					}
-					else
-					{
-						// If we are at the end of our iterations, replace the pixels with black
-						if (LoopCount == (MaxIterations - 1))
+						MagentaPixels[Index]++;
+						const FColor SampledColor = BoxBlurSample(*Scratch, X, Y, ImageWidth, ImageHeight, bIsNormalMap);
+						// If it's a valid pixel
+						if ((!(SampledColor.R == 255 && SampledColor.B == 255 && SampledColor.G == 0)) && (!bIsNormalMap || SampledColor.B != 0))
 						{
-							Color = FColor::Black;
+							Color = SampledColor;
+						}
+						else
+						{
+							// If we are at the end of our iterations, replace the pixels with black
+							if (LoopCount == (MaxIterations - 1))
+							{
+								Color = FColor(0, 0, 0, 0);
+							}
 						}
 					}
 				}
 			}
+		});
+
+		for (int32 ThreadIndex = 0; ThreadIndex < NumThreads; ++ThreadIndex)
+		{
+			SummedMagentaPixels += MagentaPixels[ThreadIndex];
+			MagentaPixels[ThreadIndex] = 0;
 		}
 
 		TArray<FColor>& Temp = *Scratch;
@@ -132,11 +155,13 @@ void PerformUVBorderSmear(TArray<FColor>& InBMP, int32 InImageWidth, int32 InIma
 		LoopCount++;
 	}
 
-	if (Current != &InBMP)
+	if (Current != &InOutPixels)
 	{
-		InBMP.Empty();
-		InBMP.Append(*Current);
+		InOutPixels.Empty();
+		InOutPixels.Append(*Current);
 	}
+
+	delete[] MagentaPixels;
 }
 
 /**
@@ -680,7 +705,6 @@ public:
 		MeshElement.VertexFactory = &GMeshVertexFactory;
 		MeshElement.DynamicVertexStride = sizeof(FMaterialMeshVertex);
 		MeshElement.ReverseCulling = false;
-		MeshElement.UseDynamicData = true;
 		MeshElement.Type = PT_TriangleList;
 		MeshElement.DepthPriorityGroup = SDPG_Foreground;		
 		Data.LCI->SetPrecomputedLightingBuffer(LightMapHelpers::CreateDummyPrecomputedLightingUniformBuffer(UniformBuffer_SingleFrame, GMaxRHIFeatureLevel, Data.LCI));
@@ -732,6 +756,8 @@ public:
 		BatchElement.DynamicIndexStride = sizeof(int32);
 		BatchElement.MinVertexIndex = 0;
 		BatchElement.MaxVertexIndex = Verts.Num() - 1;
+
+		check(MeshElement.DynamicVertexData && Verts.Num() > 0);
 
 		GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, MeshElement, false /*bIsHitTesting*/, FHitProxyId());
 	}
@@ -893,6 +919,14 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 			InMaterialData.ShadowMap,
 			InMaterialData.Buffer
 			);
+
+		// In case of running commandlet the RHI is not fully set up on first flush so do it twice TODO 
+		static bool TempForce = true;
+		if (IsRunningCommandlet() && TempForce)
+		{
+			Canvas.Flush_GameThread();
+			TempForce = false;
+		}
 
 		// rendering is performed here
 		Canvas.Flush_GameThread();

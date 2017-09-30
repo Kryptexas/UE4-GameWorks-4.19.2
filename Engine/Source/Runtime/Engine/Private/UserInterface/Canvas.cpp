@@ -793,7 +793,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 		RenderTarget,
 		IsScaledToRenderTarget()
 	};
-	bool bEmitCanvasDrawEvents = GEmitDrawEvents;
+	bool bEmitCanvasDrawEvents = GetEmitDrawEvents();
 
 	ENQUEUE_RENDER_COMMAND(CanvasFlushSetupCommand)(
 		[FlushParameters](FRHICommandList& RHICmdList)

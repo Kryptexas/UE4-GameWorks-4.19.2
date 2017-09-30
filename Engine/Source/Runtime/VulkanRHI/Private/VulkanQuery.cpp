@@ -9,7 +9,7 @@
 #include "VulkanCommandBuffer.h"
 #include "EngineGlobals.h"
 
-struct FRHICommandWaitForFence : public FRHICommand<FRHICommandWaitForFence>
+struct FRHICommandWaitForFence final : public FRHICommand<FRHICommandWaitForFence>
 {
 	FVulkanCommandBufferManager* CmdBufferMgr;
 	FVulkanCmdBuffer* CmdBuffer;

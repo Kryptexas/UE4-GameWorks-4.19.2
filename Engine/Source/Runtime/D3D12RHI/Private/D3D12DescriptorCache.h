@@ -490,7 +490,7 @@ private:
 		TRefCountPtr<ID3D12DescriptorHeap> Heap;
 		FD3D12CLSyncPoint SyncPoint;
 
-		PoolEntry()
+		PoolEntry() 
 		{}
 
 		PoolEntry(const PoolEntry& InPoolEntry) : Heap(InPoolEntry.Heap), SyncPoint(InPoolEntry.SyncPoint)
@@ -500,7 +500,6 @@ private:
 		{
 			Heap = InPoolEntry.Heap;
 			SyncPoint = InPoolEntry.SyncPoint;
-
 			return *this;
 		}
 	};

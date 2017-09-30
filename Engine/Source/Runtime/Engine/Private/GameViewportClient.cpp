@@ -431,7 +431,7 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		return true;
 	}
 
-	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
+	const int32 NumLocalPlayers = World ? World->GetGameInstance()->GetNumLocalPlayers() : 0;
 
 	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
 	{
@@ -916,7 +916,12 @@ void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize ) const
 
 bool UGameViewportClient::IsFullScreenViewport() const
 {
-	return Viewport->IsFullscreen();
+	if (Viewport != nullptr)
+	{
+		return Viewport->IsFullscreen();
+	}
+
+	return false;
 }
 
 bool UGameViewportClient::ShouldForceFullscreenViewport() const
@@ -1209,8 +1214,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 					}
 
-					// Add view information for resource streaming.
-					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.GetViewOrigin(), View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.GetProjectionMatrix().M[0][0]);
+					// Add view information for resource streaming. Allow up to 5X boost for small FOV.
+					const float StreamingScale = 1.f / FMath::Clamp<float>(View->LODDistanceFactor, .2f, 1.f);
+					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.GetViewOrigin(), View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.GetProjectionMatrix().M[0][0], StreamingScale);
 					MyWorld->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.GetViewOrigin());
 				}
 			}

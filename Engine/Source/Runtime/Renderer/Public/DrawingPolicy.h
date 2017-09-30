@@ -195,8 +195,11 @@ public:
 		bLastResult = Result;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		TestResults.Add(Result);
-		TestCondition.Add(condition);
+		if (condition)
+		{
+			TestResults.Add(Result);
+			TestCondition.Add(condition);
+		}
 		Matches += Result;
 #endif
 
@@ -227,7 +230,7 @@ public:
 };
 
 #define DRAWING_POLICY_MATCH_BEGIN FDrawingPolicyMatchResult Result; {
-#define DRAWING_POLICY_MATCH(MatchExp) Result.Append((MatchExp), TEXT(#MatchExp))
+#define DRAWING_POLICY_MATCH(MatchExp) Result.Append((MatchExp), bForReals ? TEXT(#MatchExp) : nullptr)
 #define DRAWING_POLICY_MATCH_END } return Result;
 
 struct FMeshDrawingPolicyOverrideSettings
@@ -324,7 +327,7 @@ public:
 		OnlyApplyDitheredLODTransitionState(DrawRenderState, ViewInfo, Mesh, InAllowStencilDither);
 	}
 
-	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer) const
+	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
 			DRAWING_POLICY_MATCH(VertexFactory == OtherDrawer.VertexFactory) &&

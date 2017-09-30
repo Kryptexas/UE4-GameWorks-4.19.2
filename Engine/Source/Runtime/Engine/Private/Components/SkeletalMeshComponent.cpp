@@ -301,6 +301,12 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
+void USkeletalMeshComponent::NotifyObjectReferenceEliminated() const
+{
+	UE_LOG(LogSkeletalMesh, Error, TEXT("Garbage collector eliminated reference from skeletalmeshcomponent!  SkeletalMesh objects should not be cleaned up via MarkPendingKill().\n           SkeletalMesh=%s"),
+		*GetPathName());
+}
+
 void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 {
 	Super::RegisterComponentTickFunctions(bRegister);
@@ -1927,6 +1933,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 		if ( TickFunction )
 		{
+			TickFunction->GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
 		}
 	}
@@ -2079,9 +2086,12 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	bNeedToFlipSpaceBaseBuffers = true;
 
-	// update physics data from animated data
-	UpdateKinematicBonesToAnim(GetEditableComponentSpaceTransforms(), ETeleportType::None, true);
-	UpdateRBJointMotors();
+	if (Bodies.Num() > 0)
+	{
+		// update physics data from animated data
+		UpdateKinematicBonesToAnim(GetEditableComponentSpaceTransforms(), ETeleportType::None, true);
+		UpdateRBJointMotors();
+	}
 
 	// If we have no physics to blend, we are done
 	if (!ShouldBlendPhysicsBones())

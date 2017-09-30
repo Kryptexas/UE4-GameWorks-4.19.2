@@ -294,6 +294,8 @@ static void StoreCollisionCache(FRecastGeometryExport& GeomExport)
 	const int32 IndicesSize = sizeof(int32) * 3 * NumFaces;
 	const int32 CacheSize = HeaderSize + CoordsSize + IndicesSize;
 
+	HeaderInfo.Validation.DataSize = CacheSize;
+
 	// reserve + add combo to allocate exact amount (without any overhead/slack)
 	GeomExport.Data->CollisionData.Reserve(CacheSize);
 	GeomExport.Data->CollisionData.AddUninitialized(CacheSize);
@@ -740,12 +742,12 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodyTriMesh(UBodySetup& BodySetup, TNavSt
 #endif // WITH_PHYSX
 }
 
-void ExportRigidBodyBoxElements(UBodySetup& BodySetup, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
+void ExportRigidBodyBoxElements(const FKAggregateGeom& AggGeom, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
 								TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld)
 {
-	for (int32 i = 0; i < BodySetup.AggGeom.BoxElems.Num(); i++)
+	for (int32 i = 0; i < AggGeom.BoxElems.Num(); i++)
 	{
-		const FKBoxElem& BoxInfo = BodySetup.AggGeom.BoxElems[i];
+		const FKBoxElem& BoxInfo = AggGeom.BoxElems[i];
 		const FMatrix ElemTM = BoxInfo.GetTransform().ToMatrixWithScale() * LocalToWorld.ToMatrixWithScale();
 		const FVector Extent(BoxInfo.X * 0.5f, BoxInfo.Y * 0.5f, BoxInfo.Z * 0.5f);
 
@@ -790,14 +792,14 @@ void ExportRigidBodyBoxElements(UBodySetup& BodySetup, TNavStatArray<float>& Ver
 	}
 }
 
-void ExportRigidBodySphylElements(UBodySetup& BodySetup, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
+void ExportRigidBodySphylElements(const FKAggregateGeom& AggGeom, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
 								  TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld)
 {
 	TArray<FVector> ArcVerts;
 
-	for (int32 i = 0; i < BodySetup.AggGeom.SphylElems.Num(); i++)
+	for (int32 i = 0; i < AggGeom.SphylElems.Num(); i++)
 	{
-		const FKSphylElem& SphylInfo = BodySetup.AggGeom.SphylElems[i];
+		const FKSphylElem& SphylInfo = AggGeom.SphylElems[i];
 		const FMatrix ElemTM = SphylInfo.GetTransform().ToMatrixWithScale() * LocalToWorld.ToMatrixWithScale();
 
 		const int32 VertBase = VertexBuffer.Num() / 3;
@@ -870,14 +872,14 @@ void ExportRigidBodySphylElements(UBodySetup& BodySetup, TNavStatArray<float>& V
 	}
 }
 
-void ExportRigidBodySphereElements(UBodySetup& BodySetup, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
+void ExportRigidBodySphereElements(const FKAggregateGeom& AggGeom, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
 								   TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld)
 {
 	TArray<FVector> ArcVerts;
 
-	for (int32 i = 0; i < BodySetup.AggGeom.SphereElems.Num(); i++)
+	for (int32 i = 0; i < AggGeom.SphereElems.Num(); i++)
 	{
-		const FKSphereElem& SphereInfo = BodySetup.AggGeom.SphereElems[i];
+		const FKSphereElem& SphereInfo = AggGeom.SphereElems[i];
 		const FMatrix ElemTM = SphereInfo.GetTransform().ToMatrixWithScale() * LocalToWorld.ToMatrixWithScale();
 
 		const int32 VertBase = VertexBuffer.Num() / 3;
@@ -947,9 +949,9 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodySetup(UBodySetup& BodySetup, TNavStat
 
 	ExportRigidBodyTriMesh(BodySetup, VertexBuffer, IndexBuffer, UnrealBounds, LocalToWorld);
 	ExportRigidBodyConvexElements(BodySetup, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
-	ExportRigidBodyBoxElements(BodySetup, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
-	ExportRigidBodySphylElements(BodySetup, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
-	ExportRigidBodySphereElements(BodySetup, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
+	ExportRigidBodyBoxElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
+	ExportRigidBodySphylElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
+	ExportRigidBodySphereElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
 
 	TemporaryShapeBuffer.Reset();
 }
@@ -1557,6 +1559,7 @@ FRecastTileGenerator::FRecastTileGenerator(FRecastNavMeshGenerator& ParentGenera
 {
 	bSucceeded = false;
 	bUpdateGeometry = true;
+	bHasLowAreaModifiers = false;
 
 	TileX = Location.X;
 	TileY = Location.Y;
@@ -1759,7 +1762,7 @@ void FRecastTileGenerator::DoAsyncGeometryGathering()
 			}
 			else
 			{
-				AppendGeometry(ElementData->CollisionData, ElementData->NavDataPerInstanceTransformDelegate);
+				ValidateAndAppendGeometry(ElementData);
 			}
 
 			if (bDumpGeometryData)
@@ -1891,7 +1894,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 				}
 				else
 				{
-					AppendGeometry(Element.Data->CollisionData, Element.Data->NavDataPerInstanceTransformDelegate);
+					ValidateAndAppendGeometry(Element.Data);
 				}
 
 				if (bDumpGeometryData)
@@ -2110,6 +2113,8 @@ void FRecastTileGenerator::AppendModifier(const FCompositeNavModifier& Modifier,
 	{
 		return;
 	}
+
+	bHasLowAreaModifiers = bHasLowAreaModifiers || Modifier.HasLowAreaModifiers();
 	
 	FRecastAreaNavModifierElement ModifierElement;
 
@@ -2126,6 +2131,15 @@ void FRecastTileGenerator::AppendModifier(const FCompositeNavModifier& Modifier,
 		
 	ModifierElement.Areas = Modifier.GetAreas();
 	Modifiers.Add(MoveTemp(ModifierElement));
+}
+
+void FRecastTileGenerator::ValidateAndAppendGeometry(TSharedRef<FNavigationRelevantData, ESPMode::ThreadSafe> ElementData)
+{
+	const FNavigationRelevantData& DataRef = ElementData.Get();
+	if (DataRef.IsCollisionDataValid())
+	{
+		AppendGeometry(DataRef.CollisionData, DataRef.NavDataPerInstanceTransformDelegate);
+	}
 }
 
 void FRecastTileGenerator::AppendGeometry(const TNavStatArray<uint8>& RawCollisionCache, const FNavDataPerInstanceTransformDelegate& InTransformsDelegate)
@@ -2316,6 +2330,9 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 		ApplyVoxelFilter(RasterContext.SolidHF, TileConfig.walkableRadius);
 	}
 
+	// TileConfig.walkableHeight is set to 1 when marking low spans, calculate real value for filtering
+	const int32 FilterWalkableHeight = FMath::CeilToInt(TileConfig.AgentHeight / TileConfig.ch);
+
 	{
 		RECAST_STAT(STAT_Navigation_Async_Recast_Filter);
 		// Once all geometry is rasterized, we do initial pass of filtering to
@@ -2326,6 +2343,20 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 		if (!TileConfig.bMarkLowHeightAreas)
 		{
 			rcFilterWalkableLowHeightSpans(&BuildContext, TileConfig.walkableHeight, *RasterContext.SolidHF);
+		}
+		else if (TileConfig.bFilterLowSpanFromTileCache)
+		{
+			// TODO: investigate if creating detailed 2D map from active modifiers is cheap enough
+			// for now, switch on presence of those modifiers, will save memory as long as they are sparse (should be)
+
+			if (TileConfig.bFilterLowSpanSequences && bHasLowAreaModifiers)
+			{
+				rcFilterWalkableLowHeightSpansSequences(&BuildContext, FilterWalkableHeight, *RasterContext.SolidHF);
+			}
+			else
+			{
+				rcFilterWalkableLowHeightSpans(&BuildContext, FilterWalkableHeight, *RasterContext.SolidHF);
+			}
 		}
 	}
 
@@ -2349,12 +2380,17 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 
 	{
 		RECAST_STAT(STAT_Navigation_Async_Recast_Erode);
-		const int32 HeightThreshold = FMath::CeilToInt(TileConfig.AgentHeight / TileConfig.ch);
 
 		if (TileConfig.walkableRadius > RECAST_VERY_SMALL_AGENT_RADIUS)
 		{
+			uint8 FilterFlags = 0;
+			if (TileConfig.bFilterLowSpanSequences)
+			{
+				FilterFlags = RC_LOW_FILTER_POST_PROCESS | (TileConfig.bFilterLowSpanFromTileCache ? 0 : RC_LOW_FILTER_SEED_SPANS);
+			}
+
 			const bool bEroded = TileConfig.bMarkLowHeightAreas ?
-				rcErodeWalkableAndLowAreas(&BuildContext, TileConfig.walkableRadius, HeightThreshold, RECAST_LOW_AREA, *RasterContext.CompactHF) :
+				rcErodeWalkableAndLowAreas(&BuildContext, TileConfig.walkableRadius, FilterWalkableHeight, RECAST_LOW_AREA, FilterFlags, *RasterContext.CompactHF) :
 				rcErodeWalkableArea(&BuildContext, TileConfig.walkableRadius, *RasterContext.CompactHF);
 
 			if (!bEroded)
@@ -2365,7 +2401,7 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 		}
 		else if (TileConfig.bMarkLowHeightAreas)
 		{
-			rcMarkLowAreas(&BuildContext, HeightThreshold, RECAST_LOW_AREA, *RasterContext.CompactHF);
+			rcMarkLowAreas(&BuildContext, FilterWalkableHeight, RECAST_LOW_AREA, *RasterContext.CompactHF);
 		}
 	}
 
@@ -3203,6 +3239,8 @@ void FRecastNavMeshGenerator::Init()
 	Config.maxSimplificationError = DestNavMesh->MaxSimplificationError;
 	Config.bPerformVoxelFiltering = DestNavMesh->bPerformVoxelFiltering;
 	Config.bMarkLowHeightAreas = DestNavMesh->bMarkLowHeightAreas;
+	Config.bFilterLowSpanSequences = DestNavMesh->bFilterLowSpanSequences;
+	Config.bFilterLowSpanFromTileCache = DestNavMesh->bFilterLowSpanFromTileCache;
 	if (DestNavMesh->bMarkLowHeightAreas)
 	{
 		Config.walkableHeight = 1;
@@ -4247,10 +4285,29 @@ void FRecastNavMeshGenerator::ExportRigidBodyGeometry(UBodySetup& BodySetup, TNa
 
 	VertCoords.Reset();
 	RecastGeometryExport::ExportRigidBodyConvexElements(BodySetup, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodyBoxElements(BodySetup, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodySphylElements(BodySetup, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodySphereElements(BodySetup, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+	RecastGeometryExport::ExportRigidBodyBoxElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+	RecastGeometryExport::ExportRigidBodySphylElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+	RecastGeometryExport::ExportRigidBodySphereElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
 	
+	OutConvexVertexBuffer.Reserve(OutConvexVertexBuffer.Num() + (VertCoords.Num() / 3));
+	for (int32 i = 0; i < VertCoords.Num(); i += 3)
+	{
+		OutConvexVertexBuffer.Add(FVector(VertCoords[i + 0], VertCoords[i + 1], VertCoords[i + 2]));
+	}
+}
+
+void FRecastNavMeshGenerator::ExportAggregatedGeometry(const FKAggregateGeom& AggGeom, TNavStatArray<FVector>& OutConvexVertexBuffer, TNavStatArray<int32>& OutConvexIndexBuffer, TNavStatArray<int32>& OutShapeBuffer, const FTransform& LocalToWorld)
+{
+	TNavStatArray<float> VertCoords;
+	FBox TempBounds;
+
+	// convex and tri mesh are NOT supported, since they require BodySetup.CreatePhysicsMeshes() call
+	// only simple shapes
+
+	RecastGeometryExport::ExportRigidBodyBoxElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+	RecastGeometryExport::ExportRigidBodySphylElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+	RecastGeometryExport::ExportRigidBodySphereElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+
 	OutConvexVertexBuffer.Reserve(OutConvexVertexBuffer.Num() + (VertCoords.Num() / 3));
 	for (int32 i = 0; i < VertCoords.Num(); i += 3)
 	{

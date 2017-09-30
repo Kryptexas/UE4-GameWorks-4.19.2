@@ -297,7 +297,7 @@ void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)
 	// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 	if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 	{
-		bOriginalGEmitDrawEvents = GEmitDrawEvents;
+		bOriginalGEmitDrawEvents = GetEmitDrawEvents();
 	}
 
 	if (bLatchedGProfilingGPU || bLatchedGProfilingGPUHitches)
@@ -310,7 +310,7 @@ void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)
 		}
 		else
 		{
-			GEmitDrawEvents = true;  // thwart an attempt to turn this off on the game side
+			SetEmitDrawEvents(true);  // thwart an attempt to turn this off on the game side
 			bTrackingEvents = true;
 			CurrentEventNodeFrame = new FD3D11EventNodeFrame(InRHI);
 			CurrentEventNodeFrame->StartFrame();
@@ -320,7 +320,7 @@ void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)
 	{
 		// hitch profiler is turning off, clear history and restore draw events
 		GPUHitchEventNodeFrames.Empty();
-		GEmitDrawEvents = bOriginalGEmitDrawEvents;
+		SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 	}
 	bPreviousLatchedGProfilingGPUHitches = bLatchedGProfilingGPUHitches;
 
@@ -330,7 +330,7 @@ void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)
 		FrameTiming.StartTiming();
 	}
 
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 	}
@@ -344,7 +344,7 @@ void FD3D11DynamicRHI::RHIEndFrame()
 
 void FD3DGPUProfiler::EndFrame()
 {
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		PopEvent();
 	}
@@ -380,7 +380,7 @@ void FD3DGPUProfiler::EndFrame()
 	{
 		if (bTrackingEvents)
 		{
-			GEmitDrawEvents = bOriginalGEmitDrawEvents;
+			SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 			UE_LOG(LogD3D11RHI, Warning, TEXT(""));
 			UE_LOG(LogD3D11RHI, Warning, TEXT(""));
 			CurrentEventNodeFrame->DumpEventTree();

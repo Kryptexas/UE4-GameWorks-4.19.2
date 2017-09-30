@@ -52,6 +52,18 @@ struct FFontParameterValue
 	{
 	}
 
+	bool operator==(const FFontParameterValue& Other) const
+	{
+		return
+			ParameterName == Other.ParameterName &&
+			FontValue == Other.FontValue &&
+			FontPage == Other.FontPage &&
+			ExpressionGUID == Other.ExpressionGUID;
+	}
+	bool operator!=(const FFontParameterValue& Other) const
+	{
+		return !((*this) == Other);
+	}
 
 	typedef const UTexture* ValueType;
 	static ValueType GetValue(const FFontParameterValue& Parameter);
@@ -78,6 +90,17 @@ struct FScalarParameterValue
 	{
 	}
 
+	bool operator==(const FScalarParameterValue& Other) const
+	{
+		return
+			ParameterName == Other.ParameterName &&
+			ParameterValue == Other.ParameterValue &&
+			ExpressionGUID == Other.ExpressionGUID;
+	}
+	bool operator!=(const FScalarParameterValue& Other) const
+	{
+		return !((*this) == Other);
+	}
 
 	typedef float ValueType;
 	static ValueType GetValue(const FScalarParameterValue& Parameter) { return Parameter.ParameterValue; }
@@ -104,6 +127,18 @@ struct FTextureParameterValue
 	{
 	}
 
+	bool operator==(const FTextureParameterValue& Other) const
+	{
+		return
+			ParameterName == Other.ParameterName &&
+			ParameterValue == Other.ParameterValue &&
+			ExpressionGUID == Other.ExpressionGUID;
+	}
+	bool operator!=(const FTextureParameterValue& Other) const
+	{
+		return !((*this) == Other);
+	}
+
 
 	typedef const UTexture* ValueType;
 	static ValueType GetValue(const FTextureParameterValue& Parameter) { return Parameter.ParameterValue; }
@@ -124,16 +159,45 @@ struct FVectorParameterValue
 	UPROPERTY()
 	FGuid ExpressionGUID;
 
-
 	FVectorParameterValue()
 		: ParameterValue(ForceInit)
 	{
 	}
 
+	bool operator==(const FVectorParameterValue& Other) const
+	{
+		return
+			ParameterName == Other.ParameterName &&
+			ParameterValue == Other.ParameterValue &&
+			ExpressionGUID == Other.ExpressionGUID;
+	}
+	bool operator!=(const FVectorParameterValue& Other) const
+	{
+		return !((*this) == Other);
+	}
 
 	typedef FLinearColor ValueType;
 	static ValueType GetValue(const FVectorParameterValue& Parameter) { return Parameter.ParameterValue; }
 };
+
+template<class T>
+bool CompareValueArraysByExpressionGUID(const TArray<T>& InA, const TArray<T>& InB)
+{
+	if (InA.Num() != InB.Num())
+	{
+		return false;
+	}
+	if (!InA.Num())
+	{
+		return true;
+	}
+	TArray<T> AA(InA);
+	TArray<T> BB(InB);
+	AA.Sort([](const T& A, const T& B) { return B.ExpressionGUID < A.ExpressionGUID; });
+	BB.Sort([](const T& A, const T& B) { return B.ExpressionGUID < A.ExpressionGUID; });
+	return AA == BB;
+}
+
 
 UCLASS(abstract, BlueprintType,MinimalAPI)
 class UMaterialInstance : public UMaterialInterface
@@ -232,6 +296,8 @@ class UMaterialInstance : public UMaterialInterface
 
 	ENGINE_API virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	ENGINE_API virtual float GetTextureDensity(FName TextureName, const struct FMeshUVChannelInfo& UVChannelData) const override;
+
+	ENGINE_API bool Equivalent(const UMaterialInstance* CompareTo) const;
 
 private:
 
@@ -334,6 +400,7 @@ public:
 	virtual ENGINE_API bool IsReadyForFinishDestroy() override;
 	virtual ENGINE_API void FinishDestroy() override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	ENGINE_API virtual void NotifyObjectReferenceEliminated() const override;
 #if WITH_EDITOR
 	virtual ENGINE_API void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 

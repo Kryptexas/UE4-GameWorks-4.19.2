@@ -121,19 +121,32 @@ void UMeshComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 
 void UMeshComponent::CleanUpOverrideMaterials()
 {
+	bool bUpdated = false;
+
 	//We have to remove material override Ids that are bigger then the material list
 	if (GetNumOverrideMaterials() > GetNumMaterials())
 	{
 		//Remove the override material id that are superior to the static mesh materials number
 		int32 RemoveCount = GetNumOverrideMaterials() - GetNumMaterials();
 		OverrideMaterials.RemoveAt(GetNumMaterials(), RemoveCount);
+		bUpdated = true;
+	}
+
+	if (bUpdated)
+	{
+		MarkRenderStateDirty();
 	}
 }
+#endif
+
 void UMeshComponent::EmptyOverrideMaterials()
 {
-	OverrideMaterials.Reset();
+	if (OverrideMaterials.Num())
+	{
+		OverrideMaterials.Reset();
+		MarkRenderStateDirty();
+	}
 }
-#endif
 
 int32 UMeshComponent::GetNumMaterials() const
 {

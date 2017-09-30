@@ -1424,16 +1424,6 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 					SetCurrentWidgetAxis( EAxisList::None );
 					Invalidate( false, false );
 				}			
-
-				// Turn off any hover effects as we are no longer over them.
-				// @todo Viewport Cleanup
-
-	/*
-				if( HoveredObjects.Num() > 0 )
-				{
-					ClearHoverFromObjects();
-					Invalidate( false, false );
-				}			*/
 			}
 		}
 	}

@@ -145,6 +145,8 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 
 	/** Updates variables in GMacAppInfo that cannot be initialized before PlatformPostInit() */
 	static void PostInitMacAppInfoUpdate();
+
+	static CGDisplayModeRef GetSupportedDisplayMode(CGDirectDisplayID DisplayID, uint32 Width, uint32 Height);
 };
 
 typedef FMacPlatformMisc FPlatformMisc;

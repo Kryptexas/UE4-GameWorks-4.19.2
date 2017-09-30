@@ -26,6 +26,7 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& Obj
 	bEnableSimulationReplanOnResume = true;
 	bRegisteredWithCrowdSimulation = false;
 	bCanCheckMovingTooFar = true;
+	bCanUpdatePathPartInTick = true;
 
 	bEnableAnticipateTurns = false;
 	bEnableObstacleAvoidance = true;
@@ -972,7 +973,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 				OnPathFinished(FPathFollowingResult(EPathFollowingResult::Success, FPathFollowingResultFlags::None));
 			}
 		}
-		else
+		else if (bCanUpdatePathPartInTick)
 		{
 			// override radius multiplier and switch to next path part when closer than 4x agent radius
 			const float NextPartMultiplier = 4.0f;

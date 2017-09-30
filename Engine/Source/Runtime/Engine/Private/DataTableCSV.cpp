@@ -84,6 +84,9 @@ bool FDataTableExporterCSV::WriteStructEntry(const void* InRowData, UProperty* I
 }
 
 
+#endif // WITH_EDITOR
+
+
 FDataTableImporterCSV::FDataTableImporterCSV(UDataTable& InDataTable, FString InCSVData, TArray<FString>& OutProblems)
 	: DataTable(&InDataTable)
 	, CSVData(MoveTemp(InCSVData))
@@ -205,4 +208,3 @@ bool FDataTableImporterCSV::ReadTable()
 	return true;
 }
 
-#endif // WITH_EDITOR

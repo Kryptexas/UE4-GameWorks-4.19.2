@@ -20,6 +20,10 @@
 
 #if MALLOC_LEAKDETECTION
 
+#if USE_MALLOC_PROFILER
+#error There is a deadlock that happens when using both the malloc profiler and leakdetection at the same time. Remove this error when it is fixed.
+#endif
+
 /**
  *	Need forced-initialization of this data as it can be used during global
 *	ctors.

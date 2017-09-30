@@ -1933,7 +1933,19 @@ FObjectImport* FAsyncPackage::FindExistingImport(int32 LocalImportIndex)
 
 						bool bSafeException = (NameImportClass == NAME_BlueprintGeneratedClass && NameActualImportClass == NAME_DynamicClass)
 							|| (NameImportClass == NAME_Function && NameActualImportClass == NAME_DelegateFunction);
-						UE_CLOG(!bSafeException, LogStreaming, Fatal, TEXT("FAsyncPackage::FindExistingImport class mismatch %s != %s"), *NameActualImportClass.ToString(), *NameImportClass.ToString());
+
+						if (!bSafeException)
+						{
+							FString ActualClass = *NameActualImportClass.ToString();
+							FString ImportClass = *NameImportClass.ToString();
+							FString PackageWithReference = *Desc.Name.ToString();
+
+							// ^^^^ Send these to analytics or the crash report
+
+							UE_LOG(LogStreaming, Error, TEXT("FAsyncPackage::FindExistingImport class mismatch %s != %s while reading package %s"), *ActualClass, *ImportClass, *PackageWithReference);
+
+						}
+
 					}
 					AddObjectReference(Import->XObject);
 				}
@@ -2091,7 +2103,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports_Event()
 				// This can happen with editor only classes, not sure if this should be a warning or a silent continue
 				if (!GIsInitialLoad)
 				{
-					UE_LOG(LogStreaming, Warning, TEXT("FAsyncPackage::LoadImports for %s: Skipping import %s, depends on missing native class"), *Desc.NameToLoad.ToString(), *OriginalImport->ObjectName.ToString());
+					UE_LOG(LogStreaming, Warning, TEXT("FAsyncPackage::LoadImports for %s: Skipping import %s, depends on missing native class"), *Desc.NameToLoad.ToString(), *Linker->GetImportFullName(LocalImportIndex));
 				}
 			}
 			else if (!ExistingPackage || bForcePackageLoad)
@@ -7230,7 +7242,7 @@ void FArchiveAsync2::Seek(int64 InPos)
 			FirstExportStarting();
 		}
 	}
-	check(InPos >= 0 && InPos <= TotalSizeOrMaxInt64IfNotReady());
+	checkf(InPos >= 0 && InPos <= TotalSizeOrMaxInt64IfNotReady(), TEXT("Bad position in FArchiveAsync2::Seek. Filename:%s InPos:%lu, Size:%lu"), *FileName, InPos, TotalSizeOrMaxInt64IfNotReady());
 #if DEVIRTUALIZE_FLinkerLoad_Serialize
 	SetPosAndUpdatePrecacheBuffer(InPos);
 #else

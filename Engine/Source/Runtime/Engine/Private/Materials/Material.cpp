@@ -3657,6 +3657,12 @@ void UMaterial::FinishDestroy()
 	Super::FinishDestroy();
 }
 
+void UMaterial::NotifyObjectReferenceEliminated() const
+{
+	UE_LOG(LogMaterial, Error, TEXT("Garbage collector eliminated reference from material!  Material referenced objects should not be cleaned up via MarkPendingKill().\n           Material=%s"), 
+		*GetPathName());
+}
+
 void UMaterial::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);

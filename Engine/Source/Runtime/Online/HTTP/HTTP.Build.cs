@@ -20,6 +20,8 @@ public class HTTP : ModuleRules
 			}
 			);
 
+		bool bWithCurl = false;
+
 		if (Target.Platform == UnrealTargetPlatform.Win32 ||
 			Target.Platform == UnrealTargetPlatform.Win64)
 		{
@@ -27,19 +29,32 @@ public class HTTP : ModuleRules
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "WinHttp");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
 
+			bWithCurl = true;
+
 			PrivateDependencyModuleNames.Add("SSL");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux ||
 			Target.Platform == UnrealTargetPlatform.Android ||
 			Target.Platform == UnrealTargetPlatform.Switch)
 		{
-			AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
-			PrivateDependencyModuleNames.Add("SSL");
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
+            PrivateDependencyModuleNames.Add("SSL");
+
+			bWithCurl = true;
 		}
 		else
 		{
 			Definitions.Add("WITH_SSL=0");
 			Definitions.Add("WITH_LIBCURL=0");
+		}
+
+		if (bWithCurl)
+		{
+			Definitions.Add("CURL_ENABLE_DEBUG_CALLBACK=1");
+			if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+			{
+				Definitions.Add("CURL_ENABLE_NO_TIMEOUTS_OPTION=1");
+			}
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5)

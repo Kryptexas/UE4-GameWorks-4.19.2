@@ -34,7 +34,8 @@ using namespace D3D12RHI;
 
 FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	NumThreadDynamicHeapAllocators(0),
-	ChosenAdapters(ChosenAdaptersIn)
+	ChosenAdapters(ChosenAdaptersIn),
+	FlipEvent(INVALID_HANDLE_VALUE)
 {
 	LLM(D3D12LLM::Initialise());
 
@@ -224,6 +225,8 @@ FD3D12DynamicRHI::~FD3D12DynamicRHI()
 void FD3D12DynamicRHI::Shutdown()
 {
 	check(IsInGameThread() && IsInRenderingThread());  // require that the render thread has been shut down
+
+	RHIShutdownFlipTracking();
 
 	// Cleanup All of the Adapters
 	for (FD3D12Adapter*& Adapter : ChosenAdapters)

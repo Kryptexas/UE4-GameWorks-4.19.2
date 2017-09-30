@@ -464,6 +464,7 @@ void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& Convex
 	ClearPhysicsMeshes();
 
 #if WITH_PHYSX
+	const FString FullName = GetFullName();
 	if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple)
 	{
 		ensure(!bGenerateNonMirroredCollision || ConvexMeshes.Num() == 0 || ConvexMeshes.Num() == AggGeom.ConvexElems.Num());
@@ -482,13 +483,13 @@ void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& Convex
 			if (bGenerateNonMirroredCollision)
 			{
 				ConvexElem.SetConvexMesh(ConvexMeshes[ElementIndex]);
-				FPhysxSharedData::Get().Add(ConvexElem.GetConvexMesh());
+				FPhysxSharedData::Get().Add(ConvexElem.GetConvexMesh(), FullName);
 			}
 
 			if (bGenerateMirroredCollision)
 			{
 				ConvexElem.SetMirroredConvexMesh(ConvexMeshesNegX[ElementIndex]);
-				FPhysxSharedData::Get().Add(ConvexElem.GetMirroredConvexMesh());
+				FPhysxSharedData::Get().Add(ConvexElem.GetMirroredConvexMesh(), FullName);
 			}
 		}
 	}
@@ -497,7 +498,7 @@ void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& Convex
 	{
 		check(TriMesh);
 		TriMeshes.Add(TriMesh);
-		FPhysxSharedData::Get().Add(TriMesh);
+		FPhysxSharedData::Get().Add(TriMesh, FullName);
 	}
 
 	// Clear the cooked data

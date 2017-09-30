@@ -24,6 +24,7 @@
 #include "EngineStats.h"
 #include "Async/ParallelFor.h"
 #include "HAL/LowLevelMemTracker.h"
+#include "UnrealEngine.h"
 
 // Expensive
 #define PER_MESH_DRAW_STATS 0
@@ -173,7 +174,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					DrawCount++;
 
 					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
+					BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::StaticDrawStereo));
 
 					DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
 						RHICmdList,
@@ -194,7 +195,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 				DrawCount++;
 
 				TDrawEvent<FRHICommandList> MeshEvent;
-				BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
+				BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::StaticDraw));
 
 				DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
 					RHICmdList,
@@ -1055,10 +1056,11 @@ void TStaticMeshDrawList<DrawingPolicyType>::CollectClosestMatchingPolicies(
 		}
 
 		const auto* OtherPolicyLink = &DrawingPolicySet[*It];
-		auto Res = DrawingPolicyLink->DrawingPolicy.Matches(OtherPolicyLink->DrawingPolicy);
+		auto Res = DrawingPolicyLink->DrawingPolicy.Matches(OtherPolicyLink->DrawingPolicy, false);
 
 		if (Res.MatchCount() > ClosestMatchCount)
 		{
+			Res = DrawingPolicyLink->DrawingPolicy.Matches(OtherPolicyLink->DrawingPolicy, true);
 			ClosestMatchCount = Res.MatchCount();
 			ClosestMatch = Res;
 		}

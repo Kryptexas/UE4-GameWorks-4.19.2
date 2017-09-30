@@ -516,10 +516,17 @@ void UCheatManager::SetLevelStreamingStatus(FName PackageName, bool bShouldBeLoa
 	{
 		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
+			TArray<FUpdateLevelStreamingLevelStatus> LevelStatuses;
 			for (int32 i = 0; i < GetWorld()->StreamingLevels.Num(); i++)
 			{
-				(*Iterator)->ClientUpdateLevelStreamingStatus((*Iterator)->NetworkRemapPath(GetWorld()->StreamingLevels[i]->GetWorldAssetPackageFName(), false), bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
+				FUpdateLevelStreamingLevelStatus& LevelStatus = *new( LevelStatuses ) FUpdateLevelStreamingLevelStatus();
+				LevelStatus.PackageName = (*Iterator)->NetworkRemapPath(GetWorld()->StreamingLevels[ i ]->GetWorldAssetPackageFName(), false);
+				LevelStatus.bNewShouldBeLoaded = bShouldBeLoaded;
+				LevelStatus.bNewShouldBeVisible = bShouldBeVisible;
+				LevelStatus.bNewShouldBlockOnLoad = false;
+				LevelStatus.LODIndex = INDEX_NONE;
 			}
+			( *Iterator )->ClientUpdateMultipleLevelsStreamingStatus( LevelStatuses );
 		}
 	}
 }
@@ -1214,5 +1221,66 @@ AActor* UCheatManager::GetTarget(APlayerController* PlayerController, struct FHi
     return NULL;
 }
 
+
+void UCheatManager::SpawnServerStatReplicator()
+{
+	DestroyServerStatReplicator();
+
+	AGameModeBase* GameModeBase = GetWorld()->GetAuthGameMode();
+	if (GameModeBase != nullptr && GameModeBase->IsNetMode(NM_DedicatedServer))
+	{
+		check(GameModeBase->ServerStatReplicator == nullptr);
+
+		APlayerController* PlayerController = GetOuterAPlayerController();
+		if (PlayerController->NetConnection != nullptr &&
+			PlayerController->NetConnection->Driver != nullptr)
+		{
+			PlayerController->NetConnection->Driver->bCollectNetStats = true;
+		}
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.Name = FName(TEXT("ServerStatReplicatorInst"));
+		SpawnInfo.Owner = PlayerController;
+		GameModeBase->ServerStatReplicator = GetWorld()->SpawnActor<AServerStatReplicator>(SpawnInfo);
+		UE_LOG(LogCheatManager, Log, TEXT("Spawned stat replicator (%s) for owner (%s)"),
+			*GameModeBase->ServerStatReplicator->GetName(), *PlayerController->GetName());
+	}
+}
+
+void UCheatManager::DestroyServerStatReplicator()
+{
+	AGameModeBase* GameModeBase = GetWorld()->GetAuthGameMode();
+	if (GameModeBase != nullptr && GameModeBase->ServerStatReplicator != nullptr)
+	{
+		UE_LOG(LogCheatManager, Log, TEXT("Destroying stat replicator (%s)"), *GameModeBase->ServerStatReplicator->GetName());
+		GameModeBase->ServerStatReplicator->Destroy(true);
+		GameModeBase->ServerStatReplicator = nullptr;
+
+		// Toggle off stats collection
+		APlayerController* PlayerController = GetOuterAPlayerController();
+		if (PlayerController->NetConnection != nullptr &&
+			PlayerController->NetConnection->Driver != nullptr)
+		{
+			PlayerController->NetConnection->Driver->bCollectNetStats = false;
+		}
+	}
+}
+
+void UCheatManager::ToggleServerStatReplicatorClientOverwrite()
+{
+	AServerStatReplicator* ServerStatReplicator = FindObject<AServerStatReplicator>(ANY_PACKAGE, TEXT("ServerStatReplicatorInst"));
+	if (ServerStatReplicator != nullptr)
+	{
+		ServerStatReplicator->bOverwriteClientStats = !ServerStatReplicator->bOverwriteClientStats;
+	}
+}
+
+void UCheatManager::ToggleServerStatReplicatorUpdateStatNet()
+{
+	AServerStatReplicator* ServerStatReplicator = FindObject<AServerStatReplicator>(ANY_PACKAGE, TEXT("ServerStatReplicatorInst"));
+	if (ServerStatReplicator != nullptr)
+	{
+		ServerStatReplicator->bUpdateStatNet = !ServerStatReplicator->bUpdateStatNet;
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

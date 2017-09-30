@@ -3065,7 +3065,9 @@ bool UWorld::AllowLevelLoadRequests()
 		// We are only flushing levels visibility
 		// There pending unload requests
 		// There pending load requests and gameplay has already started.
-		if (bAreLevelsPendingPurge || FlushLevelStreamingType == EFlushLevelStreamingType::Visibility || (IsAsyncLoading() && GetTimeSeconds() > 1.f))
+		const bool bWorldIsRendering = GetGameViewport() != nullptr && !GetGameViewport()->bDisableWorldRendering;
+		const bool bIsPlayingWhileLoading = ( IsAsyncLoading() && bWorldIsRendering && GetTimeSeconds() > 1.f );
+		if (bAreLevelsPendingPurge || FlushLevelStreamingType == EFlushLevelStreamingType::Visibility || bIsPlayingWhileLoading)
 		{
 			return false;
 		}
@@ -3406,16 +3408,26 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 		}
 
 		// Let server know client sub-levels visibility state
-		for (int32 LevelIndex = 1; LevelIndex < Levels.Num(); LevelIndex++)
 		{
-			ULevel*	SubLevel = Levels[LevelIndex];
-
 			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
 				APlayerController* LocalPlayerController = It->GetPlayerController(this);
 				if (LocalPlayerController != NULL)
 				{
-					LocalPlayerController->ServerUpdateLevelVisibility(LocalPlayerController->NetworkRemapPath(SubLevel->GetOutermost()->GetFName(), false), SubLevel->bIsVisible);
+					TArray<FUpdateLevelVisibilityLevelInfo> LevelVisibilities;
+					for (int32 LevelIndex = 1; LevelIndex < Levels.Num(); LevelIndex++)
+					{
+						ULevel*	SubLevel = Levels[LevelIndex];
+
+						FUpdateLevelVisibilityLevelInfo& LevelVisibility = *new( LevelVisibilities ) FUpdateLevelVisibilityLevelInfo();
+						LevelVisibility.PackageName = LocalPlayerController->NetworkRemapPath(SubLevel->GetOutermost()->GetFName(), false);
+						LevelVisibility.bIsVisible = SubLevel->bIsVisible;
+					}
+
+					if( LevelVisibilities.Num() > 0 )
+					{
+						LocalPlayerController->ServerUpdateMultipleLevelsVisibility( LevelVisibilities );
+					}
 				}
 			}
 		}
@@ -3747,7 +3759,7 @@ void UWorld::AddNetworkActor( AActor* Actor )
 		if (Driver != nullptr)
 		{
 			// Special case the demo net driver, since actors currently only have one associated NetDriverName.
-			Driver->GetNetworkObjectList().Add(Actor, Driver->NetDriverName);
+			Driver->GetNetworkObjectList().FindOrAdd(Actor, Driver->NetDriverName);
 		}
 	});
 }
@@ -4105,7 +4117,7 @@ void UWorld::WelcomePlayer(UNetConnection* Connection)
 	// don't count initial join data for netspeed throttling
 	// as it's unnecessary, since connection won't be fully open until it all gets received, and this prevents later gameplay data from being delayed to "catch up"
 	Connection->QueuedBits = 0;
-	Connection->SetClientLoginState( EClientLoginState::Welcomed );		// Client is fully logged in
+	Connection->SetClientLoginState( EClientLoginState::Welcomed );		// Client has been told to load the map, will respond via SendJoin
 }
 
 bool UWorld::DestroySwappedPC(UNetConnection* Connection)
@@ -4355,6 +4367,9 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 						// Successfully in game.
 						UE_LOG(LogNet, Log, TEXT("Join succeeded: %s"), *Connection->PlayerController->PlayerState->PlayerName);
 						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN"), *Connection->PlayerController->PlayerState->PlayerName, Connection));
+
+						Connection->SetClientLoginState(EClientLoginState::ReceivedJoin);
+
 						// if we're in the middle of a transition or the client is in the wrong world, tell it to travel
 						FString LevelName;
 						FSeamlessTravelHandler &SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld( this );
@@ -4386,8 +4401,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 			{
 				// Handle server-side request for spawning a new controller using a child connection.
 				FString SplitRequestURL;
-				FUniqueNetIdRepl UniqueIdRepl;
-				FNetControlMessage<NMT_JoinSplit>::Receive(Bunch, SplitRequestURL, UniqueIdRepl);
+				FUniqueNetIdRepl SplitRequestUniqueIdRepl;
+				FNetControlMessage<NMT_JoinSplit>::Receive(Bunch, SplitRequestURL, SplitRequestUniqueIdRepl);
+				UE_LOG(LogNet, Log, TEXT("Join splitscreen request: %s userId: %s parentUserId: %s"),
+					*SplitRequestURL,
+					SplitRequestUniqueIdRepl.IsValid() ? *SplitRequestUniqueIdRepl->ToString() : TEXT("Invalid"),
+					Connection->PlayerId.IsValid() ? *Connection->PlayerId->ToString() : TEXT("Invalid"));
 
 				// Compromise for passing splitscreen playercount through to gameplay login code,
 				// without adding a lot of extra unnecessary complexity throughout the login code.
@@ -4414,15 +4433,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				const TCHAR* Tmp = *SplitRequestURL;
 				for (; *Tmp && *Tmp != '?'; Tmp++);
 
-				// keep track of net id for player associated with remote connection
-				Connection->PlayerId = UniqueIdRepl;
-
 				// go through the same full login process for the split player even though it's all in the same frame
 				FString ErrorMsg;
 				AGameModeBase* GameMode = GetAuthGameMode();
 				if (GameMode)
 				{
-					GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), Connection->PlayerId, ErrorMsg);
+					GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), SplitRequestUniqueIdRepl, ErrorMsg);
 				}
 				if (!ErrorMsg.IsEmpty())
 				{
@@ -4442,7 +4458,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					check(CurrentLevel);
 
 					UChildConnection* ChildConn = NetDriver->CreateChild(Connection);
-					ChildConn->PlayerId = Connection->PlayerId;
+					ChildConn->PlayerId = SplitRequestUniqueIdRepl;
 					ChildConn->SetPlayerOnlinePlatformName(Connection->GetPlayerOnlinePlatformName());
 					ChildConn->RequestURL = SplitRequestURL;
 					ChildConn->ClientWorldPackageName = CurrentLevel->GetOutermost()->GetFName();
@@ -5327,7 +5343,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Rename dynamic actors in the old world's PersistentLevel that we want to keep into the new world
 			auto ProcessActor = [this, &KeepAnnotation, &ActuallyKeptActors, NetDriver](AActor* TheActor) -> bool
 			{
-				const FNetworkObjectInfo* NetworkObjectInfo = NetDriver ? NetDriver->GetNetworkObjectInfo(TheActor) : nullptr;
+				const FNetworkObjectInfo* NetworkObjectInfo = NetDriver ? NetDriver->FindNetworkObjectInfo(TheActor) : nullptr;
 
 				const bool bIsInCurrentLevel	= TheActor->GetLevel() == CurrentWorld->PersistentLevel;
 				const bool bManuallyMarkedKeep	= KeepAnnotation.Get(TheActor);

@@ -136,7 +136,7 @@ inline void FVulkanSurface::InternalLockWrite(FVulkanCommandListContext& Context
 	Context.GetCommandBufferManager()->SubmitUploadCmdBuffer(false);
 }
 
-struct FRHICommandLockWriteTexture : public FRHICommand<FRHICommandLockWriteTexture>
+struct FRHICommandLockWriteTexture final : public FRHICommand<FRHICommandLockWriteTexture>
 {
 	FVulkanSurface* Surface;
 	VkImageSubresourceRange SubresourceRange;
@@ -390,7 +390,7 @@ VkImage FVulkanSurface::CreateImage(
 }
 
 
-struct FRHICommandInitialClearTexture : public FRHICommand<FRHICommandInitialClearTexture>
+struct FRHICommandInitialClearTexture final : public FRHICommand<FRHICommandInitialClearTexture>
 {
 	FVulkanSurface* Surface;
 	FClearValueBinding ClearValueBinding;
@@ -1032,7 +1032,7 @@ static void DoAsyncReallocateTexture2D(FVulkanCommandListContext& Context, FVulk
 	//NewTexture->Surface.bSkipBlockOnUnlock = true;
 }
 
-struct FRHICommandVulkanAsyncReallocateTexture2D : public FRHICommand<FRHICommandVulkanAsyncReallocateTexture2D>
+struct FRHICommandVulkanAsyncReallocateTexture2D final : public FRHICommand<FRHICommandVulkanAsyncReallocateTexture2D>
 {
 	FVulkanCommandListContext& Context;
 	FVulkanTexture2D* OldTexture;

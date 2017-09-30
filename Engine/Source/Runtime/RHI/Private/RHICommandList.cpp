@@ -140,7 +140,7 @@ RHI_API FAutoConsoleTaskPriority CPrio_SceneRenderingTask(
 	ENamedThreads::HighTaskPriority 
 	);
 
-struct FRHICommandStat : public FRHICommand<FRHICommandStat>
+struct FRHICommandStat final : public FRHICommand<FRHICommandStat>
 {
 	TStatId CurrentExecuteStat;
 	FORCEINLINE_DEBUGGABLE FRHICommandStat(TStatId InCurrentExecuteStat)
@@ -235,7 +235,7 @@ void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdLis
 	CmdList.bExecuting = true;
 	check(CmdList.Context || CmdList.ComputeContext);
 
-
+	FRHICommandListDebugContext DebugContext;
 	FRHICommandListIterator Iter(CmdList);
 #if STATS
 	bool bDoStats =  CVarRHICmdCollectRHIThreadStatsFromHighLevel.GetValueOnRenderThread() > 0 && FThreadStats::IsCollectingData() && (IsInRenderingThread() || IsInRHIThread());
@@ -249,7 +249,7 @@ void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdLis
 			{
 				FRHICommandBase* Cmd = Iter.NextCommand();
 				//FPlatformMisc::Prefetch(Cmd->Next);
-				Cmd->CallExecuteAndDestruct(CmdList);
+				Cmd->ExecuteAndDestruct(CmdList, DebugContext);
 			}
 		}
 	}
@@ -261,7 +261,7 @@ void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdLis
 			FRHICommandBase* Cmd = Iter.NextCommand();
 			GCurrentCommand = Cmd;
 			//FPlatformMisc::Prefetch(Cmd->Next);
-			Cmd->CallExecuteAndDestruct(CmdList);
+			Cmd->ExecuteAndDestruct(CmdList, DebugContext);
 		}
 	}
 	CmdList.Reset();
@@ -650,7 +650,7 @@ bool FRHICommandListExecutor::IsRHIThreadCompletelyFlushed()
 	return !RenderThreadSublistDispatchTask;
 }
 
-struct FRHICommandRHIThreadFence : public FRHICommand<FRHICommandRHIThreadFence>
+struct FRHICommandRHIThreadFence final : public FRHICommand<FRHICommandRHIThreadFence>
 {
 	FGraphEventRef Fence;
 	FORCEINLINE_DEBUGGABLE FRHICommandRHIThreadFence()
@@ -679,7 +679,7 @@ FGraphEventRef FRHICommandListImmediate::RHIThreadFence(bool bSetLockFence)
 }		
 
 DECLARE_CYCLE_STAT(TEXT("Async Compute CmdList Execute"), STAT_AsyncComputeExecute, STATGROUP_RHICMDLIST);
-struct FRHIAsyncComputeSubmitList : public FRHICommand<FRHIAsyncComputeSubmitList>
+struct FRHIAsyncComputeSubmitList final : public FRHICommand<FRHIAsyncComputeSubmitList>
 {
 	FRHIAsyncComputeCommandList* RHICmdList;
 	FORCEINLINE_DEBUGGABLE FRHIAsyncComputeSubmitList(FRHIAsyncComputeCommandList* InRHICmdList)
@@ -845,7 +845,7 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num Parallel Async Chains Links"), STAT_Paralle
 DECLARE_CYCLE_STAT(TEXT("Wait for Parallel Async CmdList"), STAT_ParallelChainWait, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("Parallel Async Chain Execute"), STAT_ParallelChainExecute, STATGROUP_RHICMDLIST);
 
-struct FRHICommandWaitForAndSubmitSubListParallel : public FRHICommand<FRHICommandWaitForAndSubmitSubListParallel>
+struct FRHICommandWaitForAndSubmitSubListParallel final : public FRHICommand<FRHICommandWaitForAndSubmitSubListParallel>
 {
 	FGraphEventRef TranslateCompletionEvent;
 	IRHICommandContextContainer* ContextContainer;
@@ -896,7 +896,7 @@ DECLARE_CYCLE_STAT(TEXT("Async Chain Execute"), STAT_ChainExecute, STATGROUP_RHI
 
 FGraphEvent* GEventToWaitFor = nullptr;
 
-struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitForAndSubmitSubList>
+struct FRHICommandWaitForAndSubmitSubList final : public FRHICommand<FRHICommandWaitForAndSubmitSubList>
 {
 	FGraphEventRef EventToWaitFor;
 	FRHICommandListBase* RHICmdList;
@@ -1038,6 +1038,7 @@ public:
 				check(ContextContainer);
 
 				FGraphEventRef TranslateCompletionEvent = TGraphTask<FParallelTranslateCommandList>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&RHICmdLists[Start], 1 + Last - Start, ContextContainer, bIsPrepass);
+				MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::Type(CPrio_FParallelTranslateCommandList.Get() | ENamedThreads::HighTaskPriority));
 				MyCompletionGraphEvent->DontCompleteUntil(TranslateCompletionEvent);
 				new (RHICmdList->AllocCommand<FRHICommandWaitForAndSubmitSubListParallel>()) FRHICommandWaitForAndSubmitSubListParallel(TranslateCompletionEvent, ContextContainer, EffectiveThreads, ThreadIndex++);
 				Start = Last + 1;
@@ -1463,7 +1464,7 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num RT Chains Links"), STAT_RTChainLinkCount, S
 DECLARE_CYCLE_STAT(TEXT("Wait for RT CmdList"), STAT_RTChainWait, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("RT Chain Execute"), STAT_RTChainExecute, STATGROUP_RHICMDLIST);
 
-struct FRHICommandWaitForAndSubmitRTSubList : public FRHICommand<FRHICommandWaitForAndSubmitRTSubList>
+struct FRHICommandWaitForAndSubmitRTSubList final : public FRHICommand<FRHICommandWaitForAndSubmitRTSubList>
 {
 	FGraphEventRef EventToWaitFor;
 	FRHICommandList* RHICmdList;
@@ -1523,7 +1524,7 @@ void FRHICommandListBase::QueueAsyncPipelineStateCompile(FGraphEventRef& AsyncCo
 	}
 }
 
-struct FRHICommandSubmitSubList : public FRHICommand<FRHICommandSubmitSubList>
+struct FRHICommandSubmitSubList final : public FRHICommand<FRHICommandSubmitSubList>
 {
 	FRHICommandList* RHICmdList;
 	FORCEINLINE_DEBUGGABLE FRHICommandSubmitSubList(FRHICommandList* InRHICmdList)
@@ -1869,6 +1870,7 @@ void FRHICommandListBase::HandleRTThreadTaskCompletion(const FGraphEventRef& MyC
 	{
 		if (!RTTasks[Index]->IsComplete())
 		{
+			MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::Type(CPrio_FParallelTranslateCommandList.Get() | ENamedThreads::HighTaskPriority));
 			MyCompletionGraphEvent->DontCompleteUntil(RTTasks[Index]);
 		}
 	}
@@ -1986,7 +1988,7 @@ FShaderResourceViewRHIRef FDynamicRHI::CreateShaderResourceView_RenderThread(cla
 	return GDynamicRHI->RHICreateShaderResourceView(Buffer);
 }
 
-struct FRHICommandUpdateVertexBuffer : public FRHICommand<FRHICommandUpdateVertexBuffer>
+struct FRHICommandUpdateVertexBuffer final : public FRHICommand<FRHICommandUpdateVertexBuffer>
 {
 	FVertexBufferRHIParamRef VertexBuffer;
 	void* Buffer;
@@ -2010,7 +2012,7 @@ struct FRHICommandUpdateVertexBuffer : public FRHICommand<FRHICommandUpdateVerte
 	}
 };
 
-struct FRHICommandUpdateIndexBuffer : public FRHICommand<FRHICommandUpdateIndexBuffer>
+struct FRHICommandUpdateIndexBuffer final : public FRHICommand<FRHICommandUpdateIndexBuffer>
 {
 	FIndexBufferRHIParamRef IndexBuffer;
 	void* Buffer;

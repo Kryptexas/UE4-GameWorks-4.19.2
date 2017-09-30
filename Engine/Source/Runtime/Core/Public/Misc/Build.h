@@ -170,6 +170,11 @@
 	#define USE_CHECKS_IN_SHIPPING 0
 #endif
 
+/** Compile flag to force stats to be compiled */
+#ifndef FORCE_USE_STATS
+	#define FORCE_USE_STATS 0
+#endif
+
 /*--------------------------------------------------------------------------------
 	Basic options that by default depend on the build configuration and platform
 
@@ -184,21 +189,21 @@
 #if UE_BUILD_DEBUG
 	#define DO_GUARD_SLOW									1
 	#define DO_CHECK										1
-	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER)
+	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER || FORCE_USE_STATS)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_DEVELOPMENT
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										1
-	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER)
+	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER || FORCE_USE_STATS)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_TEST
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										USE_CHECKS_IN_SHIPPING
-	#define STATS											(USE_MALLOC_PROFILER)
+	#define STATS											(USE_MALLOC_PROFILER || FORCE_USE_STATS)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										!USE_LOGGING_IN_SHIPPING
@@ -213,7 +218,7 @@
 	#else
 		#define DO_GUARD_SLOW								0
 		#define DO_CHECK									USE_CHECKS_IN_SHIPPING
-		#define STATS										0
+		#define STATS										FORCE_USE_STATS
 		#define ALLOW_DEBUG_FILES							0
 		#define ALLOW_CONSOLE								0
 		#define NO_LOGGING									!USE_LOGGING_IN_SHIPPING

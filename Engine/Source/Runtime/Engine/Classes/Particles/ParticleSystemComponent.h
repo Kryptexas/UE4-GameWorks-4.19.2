@@ -11,6 +11,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/Emitter.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "ParticleSystemComponent.generated.h"
 
 class FParticleDynamicData;
@@ -1158,6 +1159,7 @@ public:
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;
 	virtual void FinishDestroy() override;
+	virtual void NotifyObjectReferenceEliminated() const override;
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;

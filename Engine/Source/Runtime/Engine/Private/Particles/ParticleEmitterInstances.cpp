@@ -2658,7 +2658,7 @@ void FParticleEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShi
 	}
 }
 
-bool FParticleEmitterInstance::Tick_MaterialOverrides()
+void FParticleEmitterInstance::Tick_MaterialOverrides(int32 EmitterIndex)
 {
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
 	bool bOverridden = false;
@@ -2689,7 +2689,17 @@ bool FParticleEmitterInstance::Tick_MaterialOverrides()
 		        }
 	        }
 	}
-	return bOverridden;
+
+	if (bOverridden == false && Component)
+	{
+		if (Component->EmitterMaterials.IsValidIndex(EmitterIndex))
+		{
+			if (Component->EmitterMaterials[EmitterIndex])
+			{
+				CurrentMaterial = Component->EmitterMaterials[EmitterIndex];
+			}
+		}
+	}
 }
 
 bool FParticleEmitterInstance::UseLocalSpace()
@@ -3032,13 +3042,13 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 							const FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + SpriteOrbitModuleOffset);
 
 							//this should be our current position
-							const FVector NewPos =  Particle.Location + OrbitPayload.Offset;	
+							const FVector NewPos = Particle.Location + OrbitPayload.Offset;
 							//this should be our previous position
 							const FVector OldPos = Particle.OldLocation + OrbitPayload.PreviousOffset;
 
 							NewDirection = NewPos - OldPos;
-						}	
-					}			              
+						}
+					}
 				}
 				else if (LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
 				{
@@ -3048,8 +3058,8 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 				NewDirection.Normalize();
 				FVector	OldDirection(1.0f, 0.0f, 0.0f);
 
-				FQuat Rotation	= FQuat::FindBetweenNormals(OldDirection, NewDirection);
-				FVector Euler	= Rotation.Euler();
+				FQuat Rotation = FQuat::FindBetweenNormals(OldDirection, NewDirection);
+				FVector Euler = Rotation.Euler();
 				PayloadData->Rotation = PayloadData->InitRotation + Euler;
 				PayloadData->Rotation += PayloadData->CurContinuousRotation;
 			}
@@ -3066,7 +3076,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 	// Call the standard tick
 	FParticleEmitterInstance::Tick(DeltaTime, bSuppressSpawning);
-	
+
 	if (MeshRotationActive && bEnabled)
 	{
 		//Must do this (at least) after module update other wise the reset value of RotationRate is used.
@@ -3085,41 +3095,56 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 	INC_DWORD_STAT_BY(STAT_MeshParticles, ActiveParticles);
 }
 
-bool FParticleMeshEmitterInstance::Tick_MaterialOverrides()
+void FParticleMeshEmitterInstance::Tick_MaterialOverrides(int32 EmitterIndex)
 {
+	// we need to do this here, since CurrentMaterials is unique to mesh emitters, so this can't be done from the component. CurrentMaterials 
+	// may end up in MeshMaterials, so if this doesn't get updated, rendering may access a garbage collected material
+
+	// make sure currentmaterials are all set to the emitter material, so we don't end up with GC'd material pointers
+	// in MeshMaterials when GetMeshMaterials pushes CurrentMaterials to MeshMaterials
+	if (Component && Component->EmitterMaterials.IsValidIndex(EmitterIndex))
+	{
+		if (Component->EmitterMaterials[EmitterIndex])
+		{
+			for (UMaterialInterface *& CurMat : CurrentMaterials)
+			{
+				CurMat = Component->EmitterMaterials[EmitterIndex];
+			}
+		}
+	}	
+
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
 	bool bOverridden = false;
-	if( LODLevel && LODLevel->RequiredModule && Component && Component->Template )
+	if (LODLevel && LODLevel->RequiredModule && Component && Component->Template)
 	{
-	        TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
-	        TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
-	        TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
-	        if (NamedOverrides.Num() > 0)
-	        {
-		        CurrentMaterials.SetNumZeroed(NamedOverrides.Num());
-		        for (int32 MaterialIdx = 0; MaterialIdx < NamedOverrides.Num(); ++MaterialIdx)
-		        {		
-			        //If we have named material overrides then get it's index into the emitter materials array.	
-			        for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
-			        {
-				        if (NamedOverrides[MaterialIdx] == Slots[CheckIdx].Name)
-				        {
-					        //Default to the default material for that slot.
-					        CurrentMaterials[MaterialIdx] = Slots[CheckIdx].Material;
-					        if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
-					        {
-						        //This material has been overridden externally, e.g. from a BP so use that one.
-						        CurrentMaterials[MaterialIdx] = EmitterMaterials[CheckIdx];
-					        }
-        
-					        bOverridden = true;
-					        break;
-				        }
-			        }
-		        }
-	        }
-        }
-	return bOverridden;
+		TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
+		TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
+		TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
+		if (NamedOverrides.Num() > 0)
+		{
+			CurrentMaterials.SetNumZeroed(NamedOverrides.Num());
+			for (int32 MaterialIdx = 0; MaterialIdx < NamedOverrides.Num(); ++MaterialIdx)
+			{
+				//If we have named material overrides then get it's index into the emitter materials array.	
+				for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+				{
+					if (NamedOverrides[MaterialIdx] == Slots[CheckIdx].Name)
+					{
+						//Default to the default material for that slot.
+						CurrentMaterials[MaterialIdx] = Slots[CheckIdx].Material;
+						if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
+						{
+							//This material has been overridden externally, e.g. from a BP so use that one.
+							CurrentMaterials[MaterialIdx] = EmitterMaterials[CheckIdx];
+						}
+
+						bOverridden = true;
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 /**
@@ -3719,6 +3744,7 @@ FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
 	, MaxFacingCameraBlendDistance(0.f)
 {
 }
+
 
 FDynamicSpriteEmitterReplayDataBase::~FDynamicSpriteEmitterReplayDataBase()
 {

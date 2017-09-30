@@ -170,6 +170,9 @@ public:
 	/** Helper to get the standard string for the crash type based on crash event bool values. */
 	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed);
 
+	/** Get the Game Name of the crash */
+	static FString GetCrashGameName();
+
 	/** Gets the "vanilla" status string. */
 	static const TCHAR* EngineModeExString();
 

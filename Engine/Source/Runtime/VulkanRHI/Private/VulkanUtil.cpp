@@ -191,7 +191,7 @@ void FVulkanGPUProfiler::BeginFrame()
 	// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 	if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 	{
-		bOriginalGEmitDrawEvents = GEmitDrawEvents;
+		bOriginalGEmitDrawEvents = GetEmitDrawEvents();
 	}
 
 	if (bLatchedGProfilingGPU || bLatchedGProfilingGPUHitches)
@@ -204,7 +204,7 @@ void FVulkanGPUProfiler::BeginFrame()
 		}
 		else
 		{
-			GEmitDrawEvents = true;  // thwart an attempt to turn this off on the game side
+			SetEmitDrawEvents(true);  // thwart an attempt to turn this off on the game side
 			bTrackingEvents = true;
 			CurrentEventNodeFrame = new FVulkanEventNodeFrame(CmdContext);
 			CurrentEventNodeFrame->StartFrame();
@@ -214,11 +214,11 @@ void FVulkanGPUProfiler::BeginFrame()
 	{
 		// hitch profiler is turning off, clear history and restore draw events
 		GPUHitchEventNodeFrames.Empty();
-		GEmitDrawEvents = bOriginalGEmitDrawEvents;
+		SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 	}
 	bPreviousLatchedGProfilingGPUHitches = bLatchedGProfilingGPUHitches;
 
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 	}
@@ -226,7 +226,7 @@ void FVulkanGPUProfiler::BeginFrame()
 
 void FVulkanGPUProfiler::EndFrameBeforeSubmit()
 {
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		// Finish all open nodes
 		// This is necessary because timestamps must be issued before SubmitDone(), and SubmitDone() happens in RHIEndDrawingViewport instead of RHIEndFrame
@@ -257,7 +257,7 @@ void FVulkanGPUProfiler::EndFrame()
 		{
 			CmdContext->GetDevice()->SubmitCommandsAndFlushGPU();
 
-			GEmitDrawEvents = bOriginalGEmitDrawEvents;
+			SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 			UE_LOG(LogRHI, Warning, TEXT(""));
 			UE_LOG(LogRHI, Warning, TEXT(""));
 			check(CurrentEventNodeFrame);

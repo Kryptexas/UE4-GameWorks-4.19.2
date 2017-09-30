@@ -172,6 +172,11 @@ public:
 		return !(*this == ReferenceSet);
 	}
 
+	bool Equivalent(const FStaticParameterSet& ReferenceSet) const;
+
+	void SortForEquivalent();
+
+
 	FString GetSummaryString() const;
 
 	void AppendKeyString(FString& KeyString) const;

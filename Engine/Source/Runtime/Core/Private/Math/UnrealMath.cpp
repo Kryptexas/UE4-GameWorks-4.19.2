@@ -2594,6 +2594,23 @@ FVector FMath::VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, f
 	}
 }
 
+FVector2D FMath::RandPointInCircle(float CircleRadius)
+{
+	FVector2D Point;
+	float L;
+
+	do
+	{
+		// Check random vectors in the unit circle so result is statistically uniform.
+		Point.X = FRand() * 2.f - 1.f;
+		Point.Y = FRand() * 2.f - 1.f;
+		L = Point.SizeSquared();
+	}
+	while (L > 1.0f);
+
+	return Point * CircleRadius;
+}
+
 FVector FMath::RandPointInBox(const FBox& Box)
 {
 	return FVector(	FRandRange(Box.Min.X, Box.Max.X),

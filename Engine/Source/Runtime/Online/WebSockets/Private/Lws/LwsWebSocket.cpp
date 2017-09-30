@@ -290,7 +290,7 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 			State == EState::ClosingByRequest)
 		{
 			LwsConnection = nullptr;
-			const bool bPeerSpecifiedReason = CloseReasonString.IsEmpty();
+			const bool bPeerSpecifiedReason = !CloseReasonString.IsEmpty();
 			if (!bPeerSpecifiedReason)
 			{
 				CloseReasonString = TEXT("Peer did not specify a reason for initiating the closing");
@@ -446,23 +446,20 @@ void FLwsWebSocket::GameThreadTick()
 		LastGameThreadState = CurrentState;
 	}
 
-	if (CurrentState == EState::Connected)
+	// If we requested a close then we don't care about any messages we receive
+	// No lock, only this thread will modify CloseRequest
+	if (CloseRequest.Code == 0)
 	{
-		// If we requested a close then we don't care about any messages we receive
-		// No lock, only this thread will modify CloseRequest
-		if (CloseRequest.Code == 0)
+		FLwsReceiveBufferTextPtr BufferText;
+		while (ReceiveTextQueue.Dequeue(BufferText))
 		{
-			FLwsReceiveBufferTextPtr BufferText;
-			while (ReceiveTextQueue.Dequeue(BufferText))
-			{
-				OnMessage().Broadcast(BufferText->Text);
-			}
+			OnMessage().Broadcast(BufferText->Text);
+		}
 
-			FLwsReceiveBufferBinaryPtr BufferBinary;
-			while (ReceiveBinaryQueue.Dequeue(BufferBinary))
-			{
-				OnRawMessage().Broadcast(BufferBinary->Payload.GetData(), BufferBinary->Payload.Num(), BufferBinary->BytesRemaining);
-			}
+		FLwsReceiveBufferBinaryPtr BufferBinary;
+		while (ReceiveBinaryQueue.Dequeue(BufferBinary))
+		{
+			OnRawMessage().Broadcast(BufferBinary->Payload.GetData(), BufferBinary->Payload.Num(), BufferBinary->BytesRemaining);
 		}
 	}
 }

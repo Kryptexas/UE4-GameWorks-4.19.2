@@ -106,6 +106,13 @@ TAutoConsoleVariable<int32> CVarStreamingHLODStrategy(
 	TEXT("2: disable streaming"),
 	ECVF_Default);
 
+TAutoConsoleVariable<float> CVarStreamingPerTextureBiasViewBoostThreshold(
+	TEXT("r.Streaming.PerTextureBiasViewBoostThreshold"),
+	1.5,
+	TEXT("Maximum view boost at which per texture bias will be increased"),
+	ECVF_Default
+	);
+
 TAutoConsoleVariable<float> CVarStreamingHiddenPrimitiveScale(
 	TEXT("r.Streaming.HiddenPrimitiveScale"),
 	0.5,
@@ -197,6 +204,7 @@ void FTextureStreamingSettings::Update()
 	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
 	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
 	MinMipForSplitRequest = CVarStreamingMinMipForSplitRequest.GetValueOnAnyThread();
+	PerTextureBiasViewBoostThreshold = CVarStreamingPerTextureBiasViewBoostThreshold.GetValueOnAnyThread();
 
 	bUseMaterialData = bUseNewMetrics && CVarStreamingUseMaterialData.GetValueOnAnyThread() != 0;
 	HiddenPrimitiveScale = bUseNewMetrics ? CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread() : 1.f;

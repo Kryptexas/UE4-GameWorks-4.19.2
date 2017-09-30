@@ -64,12 +64,18 @@ class UDataTable
 	/** Map of name of row to row data structure. */
 	TMap<FName, uint8*>		RowMap;
 
+	/** Set to true to not cook this data table into client builds. Useful for sensitive tables that only servers should know about. */
+	UPROPERTY(EditAnywhere, Category=DataTable)
+	bool bStripFromClientBuilds;
+
 	//~ Begin UObject Interface.
 	ENGINE_API virtual void FinishDestroy() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	ENGINE_API virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
+	virtual bool NeedsLoadForClient() const override { return bStripFromClientBuilds ? false : Super::NeedsLoadForClient(); }
+	virtual bool NeedsLoadForEditorGame() const override { return bStripFromClientBuilds ? false : Super::NeedsLoadForEditorGame(); }
 #if WITH_EDITORONLY_DATA
 	ENGINE_API FName GetRowStructName() const;
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
@@ -219,7 +225,7 @@ public:
 
 	/** Output the fields from a particular row (use RowMap to get RowData) to an existing JsonWriter */
 	ENGINE_API bool WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
-
+#endif
 	/** 
 	 *	Create table from CSV style comma-separated string. 
 	 *	RowStruct must be defined before calling this function. 
@@ -234,13 +240,14 @@ public:
 	*/
 	ENGINE_API TArray<FString> CreateTableFromJSONString(const FString& InString);
 
+	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
+
+#if WITH_EDITOR
 	/** Get an array of all the column titles, using the friendly display name from the property */
 	ENGINE_API TArray<FString> GetColumnTitles() const;
 
 	/** Get an array of all the column titles, using the unique name from the property */
 	ENGINE_API TArray<FString> GetUniqueColumnTitles() const;
-
-	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
 
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData(const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;

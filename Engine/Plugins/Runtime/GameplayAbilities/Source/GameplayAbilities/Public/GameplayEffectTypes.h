@@ -341,12 +341,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	FGameplayEffectContext()
 	: AbilityLevel(1)
 	, bHasWorldOrigin(false)
+	, bReplicateSourceObject(false)
 	{
 	}
 
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
 	: AbilityLevel(1)
 	, bHasWorldOrigin(false)
+	, bReplicateSourceObject(false)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
 	}
@@ -413,6 +415,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	virtual void AddSourceObject(const UObject* NewSourceObject)
 	{
 		SourceObject = NewSourceObject;
+		bReplicateSourceObject = NewSourceObject && NewSourceObject->IsSupportedForNetworking();
 	}
 
 	/** Returns the object this effect was created from. */
@@ -432,11 +435,12 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 
 	virtual const FHitResult* GetHitResult() const
 	{
-		if (HitResult.IsValid())
-		{
-			return HitResult.Get();
-		}
-		return NULL;
+		return const_cast<FGameplayEffectContext*>(this)->GetHitResult();
+	}
+
+	virtual FHitResult* GetHitResult()
+	{
+		return HitResult.Get();
 	}
 
 	virtual void AddOrigin(FVector InOrigin);
@@ -521,7 +525,11 @@ protected:
 	FVector	WorldOrigin;
 
 	UPROPERTY()
-	bool bHasWorldOrigin;
+	uint8 bHasWorldOrigin:1;
+
+	/** True if the SourceObject can be replicated. This bool is not replicated itself. */
+	UPROPERTY()
+	uint8 bReplicateSourceObject:1;
 };
 
 template<>

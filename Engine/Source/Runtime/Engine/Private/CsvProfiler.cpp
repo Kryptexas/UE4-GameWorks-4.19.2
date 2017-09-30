@@ -207,14 +207,17 @@ private:
 //-----------------------------------------------------------------------------
 //	FCsvTimingMarker : records timestamps. Uses StatName pointer as a unique ID
 //-----------------------------------------------------------------------------
-namespace ECsvMarkerType
+enum class ECsvMarkerType : uint8
 {
-	enum Type 
-	{
-		TimestampStart,
-		TimestampEnd,
-		CustomStat
-	};
+	TimestampStart,
+	TimestampEnd,
+	CustomStat_Set,
+	CustomStat_Min,
+	CustomStat_Max,
+	CustomStat_Accumulate,
+	CustomStat_AccumulateMax,
+
+	Count
 };
 
 struct FCsvTimingMarker
@@ -222,7 +225,7 @@ struct FCsvTimingMarker
 	const char*			 StatName;
 	uint64				 Timestamp;
 	float				 CustomValue;
-	ECsvMarkerType::Type MarkerType;
+	ECsvMarkerType		 MarkerType;
 };
 
 //-----------------------------------------------------------------------------
@@ -257,11 +260,12 @@ public:
 		TimingMarkers.CommitElement();
 	}
 
-	void AddCustomStat(const char* StatName, const float Value )
+	void AddCustomStat(const char* StatName, const float Value, ECsvCustomStatType CustomStatType )
 	{
 		FCsvTimingMarker* Marker = TimingMarkers.ReserveElement();
 
-		Marker->MarkerType = ECsvMarkerType::CustomStat;
+		Marker->MarkerType = (ECsvMarkerType)( int32(ECsvMarkerType::CustomStat_Set) + int32(CustomStatType) );
+		check(Marker->MarkerType < ECsvMarkerType::Count);
 		Marker->StatName = StatName;
 		Marker->CustomValue = Value;
 		Marker->Timestamp = FPlatformTime::Cycles64();
@@ -344,12 +348,12 @@ void FCsvProfiler::EndFrame()
 
 	// CSV profiler 
 	{
-		CSV_CUSTOM_STAT(RenderThreadTime, FPlatformTime::ToMilliseconds(GRenderThreadTime));
-		CSV_CUSTOM_STAT(GameThreadTime, FPlatformTime::ToMilliseconds(GGameThreadTime));
-		CSV_CUSTOM_STAT(GPUTime, FPlatformTime::ToMilliseconds(GGPUFrameTime));
+		CSV_CUSTOM_STAT_SET(RenderThreadTime, FPlatformTime::ToMilliseconds(GRenderThreadTime));
+		CSV_CUSTOM_STAT_SET(GameThreadTime, FPlatformTime::ToMilliseconds(GGameThreadTime));
+		CSV_CUSTOM_STAT_SET(GPUTime, FPlatformTime::ToMilliseconds(GGPUFrameTime));
 		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
 		float PhysicalMBFree = float(MemoryStats.AvailablePhysical / 1024) / 1024.0f;
-		CSV_CUSTOM_STAT(MemoryFreeMB, PhysicalMBFree);
+		CSV_CUSTOM_STAT_SET(MemoryFreeMB, PhysicalMBFree);
 	}
 
 	{
@@ -357,7 +361,7 @@ void FCsvProfiler::EndFrame()
 		uint64 CurrentTimeStamp = FPlatformTime::Cycles64();
 		uint64 ElapsedCycles = CurrentTimeStamp - LastEndFrameTimestamp;
 		float ElapsedMs = FPlatformTime::ToMilliseconds64(ElapsedCycles);
-		CSV_CUSTOM_STAT(FrameTime, ElapsedMs);
+		CSV_CUSTOM_STAT_SET(FrameTime, ElapsedMs);
 		LastEndFrameTimestamp = CurrentTimeStamp;
 	}
 
@@ -510,6 +514,45 @@ public:
 		}
 	}
 
+	void AccumulateValue_Max(uint32 Row, uint32 Column, float Value)
+	{
+		if (Column < (uint32)Columns.Num())
+		{
+			float OldValue = Columns[Column]->GetValue(Row);
+			Columns[Column]->SetValue(Row, FMath::Max( OldValue + Value, OldValue ) );
+		}
+		if (Row >= NumRows)
+		{
+			NumRows = Row + 1;
+		}
+	}
+
+
+	void SetValue_Min(uint32 Row, uint32 Column, float Value)
+	{
+		if (Column < (uint32)Columns.Num())
+		{
+			Columns[Column]->SetValue(Row, FMath::Min(Columns[Column]->GetValue(Row), Value));
+		}
+		if (Row >= NumRows)
+		{
+			NumRows = Row + 1;
+		}
+	}
+
+
+	void SetValue_Max(uint32 Row, uint32 Column, float Value)
+	{
+		if (Column < (uint32)Columns.Num())
+		{
+			Columns[Column]->SetValue(Row, FMath::Max( Columns[Column]->GetValue(Row), Value ) );
+		}
+		if (Row >= NumRows)
+		{
+			NumRows = Row + 1;
+		}
+	}
+
 	void WriteToFile(const FString& FileName)
 	{
 		char Comma = ',';
@@ -610,7 +653,7 @@ void FCsvProfiler::WriteCaptureToFile()
 			}
 			else
 			{
-				FString ColumnName = (Marker.MarkerType == ECsvMarkerType::CustomStat) ? StatName : ThreadName + Slash + StatName;
+				FString ColumnName = (Marker.MarkerType >= ECsvMarkerType::CustomStat_Set) ? StatName : ThreadName + Slash + StatName;
 				ColumnIndex = Csv.AddColumn(ColumnName);
 				StatNameToColumnIndex.Add(StatName, ColumnIndex);
 #if 0
@@ -663,14 +706,37 @@ void FCsvProfiler::WriteCaptureToFile()
 					}
 				}
 				break;
-				case ECsvMarkerType::CustomStat:
+
+				case ECsvMarkerType::CustomStat_Set:
 				{
-					// Add the elapsed time to the table entry for this frame/stat 
+					Csv.SetValue(FrameIndex, ColumnIndex, Marker.CustomValue);
+				}
+				break;
+
+				case ECsvMarkerType::CustomStat_Min:
+				{
+					Csv.SetValue_Min(FrameIndex, ColumnIndex, Marker.CustomValue);
+				}
+				break;
+
+				case ECsvMarkerType::CustomStat_Max:
+				{
+					Csv.SetValue_Max(FrameIndex, ColumnIndex, Marker.CustomValue);
+				}
+				break;
+
+				case ECsvMarkerType::CustomStat_Accumulate:
+				{
 					Csv.AccumulateValue(FrameIndex, ColumnIndex, Marker.CustomValue);
 				}
 				break;
-			}
 
+				case ECsvMarkerType::CustomStat_AccumulateMax:
+				{
+					Csv.AccumulateValue_Max(FrameIndex, ColumnIndex, Marker.CustomValue);
+				}
+				break;
+			}
 #if 0
 			if (bCreateEndToEndMarkers)
 			{
@@ -769,13 +835,13 @@ void FCsvProfiler::EndStat(const char * StatName)
 #endif
 }
 
-void FCsvProfiler::RecordCustomStat(const char * StatName, float Value)
+void FCsvProfiler::RecordCustomStat(const char * StatName, float Value, ECsvCustomStatType CustomStatType)
 {
 	if (!bCapturing)
 	{
 		return;
 	}
-	GetProfilerThread()->AddCustomStat(StatName, Value);
+	GetProfilerThread()->AddCustomStat(StatName, Value, CustomStatType);
 }
 
 

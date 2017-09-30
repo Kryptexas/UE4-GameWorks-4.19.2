@@ -61,7 +61,7 @@ void FOnlineSubsystemModule::StartupModule()
 {
 	// These should not be LoadModuleChecked because these modules might not exist
 	// Load dependent modules to ensure they will still exist during ShutdownModule.
-	// We will alwawys load these modules at the cost of extra modules loaded for the few OSS (like Null) that don't use it.
+	// We will always load these modules at the cost of extra modules loaded for the few OSS (like Null) that don't use it.
 	if (FModuleManager::Get().ModuleExists(TEXT("HTTP")))
 	{
 		FModuleManager::Get().LoadModule(TEXT("HTTP"));

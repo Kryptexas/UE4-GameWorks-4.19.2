@@ -25,7 +25,7 @@ public:
 	void ResetMaterial();
 
 	/** @return The material render proxy */
-	FMaterialRenderProxy* GetRenderProxy() const { return MaterialObject->GetRenderProxy(false, false); }
+	FMaterialRenderProxy* GetRenderProxy() const { return MaterialObject ? MaterialObject->GetRenderProxy(false, false) : nullptr; }
 
 	/** @return the material object */
 	const UMaterialInterface* GetMaterialObject() const { return MaterialObject; }

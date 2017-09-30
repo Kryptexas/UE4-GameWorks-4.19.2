@@ -12,7 +12,6 @@
 #include "CoreGlobals.h"
 #include "Misc/ByteSwap.h"
 
-
 /* FString implementation
  *****************************************************************************/
 
@@ -232,6 +231,32 @@ void FString::ToLowerInline()
 	for (int32 i = 0; i < StringLength; ++i)
 	{
 		RawData[i] = FChar::ToLower(RawData[i]);
+	}
+}
+
+void FString::RemoveSpacesInline()
+{
+	const int32 StringLength = Len();
+	if (StringLength == 0)
+	{
+		return;
+	}
+
+	TCHAR* RawData = Data.GetData();
+	int32 CopyToIndex = 0;
+	for (int32 CopyFromIndex = 0; CopyFromIndex < StringLength; ++CopyFromIndex)
+	{
+		if (RawData[CopyFromIndex] != ' ')
+		{	// Copy any character OTHER than space.
+			RawData[CopyToIndex] = RawData[CopyFromIndex];
+			++CopyToIndex;
+		}
+	}
+
+	// Copy null-terminating character.
+	if (CopyToIndex <= StringLength)
+	{
+		RawData[CopyToIndex] = '\0';
 	}
 }
 

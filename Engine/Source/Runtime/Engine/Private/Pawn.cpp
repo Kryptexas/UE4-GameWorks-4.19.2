@@ -448,7 +448,7 @@ void APawn::OnRep_Controller()
 {
 	if ( (Controller != NULL) && (Controller->GetPawn() == NULL) )
 	{
-		// This ensures that APawn::OnRep_Pawn is called. Since we cant ensure replication order of APawn::Controller and AController::Pawn,
+		// This ensures that AController::OnRep_Pawn is called. Since we cant ensure replication order of APawn::Controller and AController::Pawn,
 		// if APawn::Controller is repped first, it will set AController::Pawn locally. When AController::Pawn is repped, the rep value will not
 		// be different from the just set local value, and OnRep_Pawn will not be called. This can cause problems if OnRep_Pawn does anything important.
 		//

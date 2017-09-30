@@ -663,6 +663,6 @@ void PixelMain(
 	OutPosition = float4(0,0,0,2.0f);
 	OutVelocity = float4(0,0,0,0);
 }
-
+ 
 #endif // #if PARTICLE_CLEAR_PIXELSHADER
 

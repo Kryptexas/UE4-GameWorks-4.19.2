@@ -48,11 +48,14 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	 * 2. The override array must not end with a nullptr UMaterialInterface.
 	 */
 	void CleanUpOverrideMaterials();
+#endif
+
 	/** 
 	 * This empties all override materials and used by editor when replacing preview mesh 
 	 */
 	void EmptyOverrideMaterials();
 
+#if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 

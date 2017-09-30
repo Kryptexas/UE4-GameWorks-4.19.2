@@ -59,7 +59,7 @@ struct FAppleARKitHitTestResult
 	 */ 
 	FAppleARKitHitTestResult( ARHitTestResult* InARHitTestResult, class UAppleARKitAnchor* InAnchor = nullptr, float WorldToMetersScale = 100.0f );
 
-#endif // #ARKIT_SUPPORT
+#endif // #ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
 	/**
 	 * The type of the hit-test result.

@@ -1940,7 +1940,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	int32					LastFramePreRendered;
 
 	UStaticMesh*		StaticMesh;
-	TArray<UMaterialInterface*, TInlineAllocator<2> > MeshMaterials;
+	TArray<FMaterialRenderProxy*, TInlineAllocator<2>> MeshMaterials;	
 
 	/** offset to FMeshTypeDataPayload */
 	uint32 MeshTypeDataOffset;

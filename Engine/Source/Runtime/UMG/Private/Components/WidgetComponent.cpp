@@ -1083,13 +1083,14 @@ void UWidgetComponent::RemoveWidgetFromScreen()
 			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
 			if ( LayerManager.IsValid() )
 			{
-				ULocalPlayer* TargetPlayer = GetOwnerPlayer();
-
-				TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
-				if ( Layer.IsValid() )
+				if (ULocalPlayer* TargetPlayer = GetOwnerPlayer())
 				{
-					TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
-					ScreenLayer->RemoveComponent(this);
+					TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
+					if (Layer.IsValid())
+					{
+						TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
+						ScreenLayer->RemoveComponent(this);
+					}
 				}
 			}
 		}
@@ -1284,7 +1285,20 @@ void UWidgetComponent::SetOwnerPlayer(ULocalPlayer* LocalPlayer)
 
 ULocalPlayer* UWidgetComponent::GetOwnerPlayer() const
 {
-	return OwnerPlayer ? OwnerPlayer : GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
+	if (OwnerPlayer)
+	{
+		return OwnerPlayer;
+	}
+	
+	if (UWorld* LocalWorld = GetWorld())
+	{
+		UGameInstance* GameInstance = LocalWorld->GetGameInstance();
+		check(GameInstance);
+
+		return GameInstance->GetFirstGamePlayer();
+	}
+
+	return nullptr;
 }
 
 void UWidgetComponent::SetWidget(UUserWidget* InWidget)

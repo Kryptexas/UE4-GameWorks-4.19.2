@@ -7,6 +7,7 @@
 #include "DrawingPolicy.h"
 #include "SceneUtils.h"
 #include "SceneRendering.h"
+#include "LogMacros.h"
 
 int32 GEmitMeshDrawEvent = 0;
 static FAutoConsoleVariableRef CVarEmitMeshDrawEvent(
@@ -66,6 +67,7 @@ void FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(FDrawingPolicyRende
 
 void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
 {
+	DEFINE_LOG_CATEGORY_STATIC(LogFMeshDrawingPolicyDrawMesh, Warning, All);
 	INC_DWORD_STAT(STAT_MeshDrawCalls);
 	SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, MeshEvent, GEmitMeshDrawEvent != 0, TEXT("Mesh Draw"));
 
@@ -104,7 +106,11 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 	{
 		if(BatchElement.IndexBuffer)
 		{
+			UE_CLOG(!BatchElement.IndexBuffer->IndexBufferRHI, LogFMeshDrawingPolicyDrawMesh, Fatal,
+				TEXT("FMeshDrawingPolicy::DrawMesh - BatchElement has an index buffer object with null RHI resource (drawing using material \"%s\")"),
+				MaterialRenderProxy ? *MaterialRenderProxy->GetFriendlyName() : TEXT("null"));
 			check(BatchElement.IndexBuffer->IsInitialized());
+
 			if (BatchElement.bIsInstanceRuns)
 			{
 				checkSlow(BatchElement.bIsInstanceRuns);

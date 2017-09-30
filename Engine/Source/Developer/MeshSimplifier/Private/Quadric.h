@@ -5,6 +5,8 @@
 
 #include "CoreMinimal.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogQuadric, Log, All);
+
 // [ Hoppe 1999, "New Quadric Metric for Simplifying Meshes with Appearance Attributes" ]
 // [ Hoppe 2000, "Efficient minimization of new quadric metric for simplifying meshes with appearance attributes" ]
 
@@ -252,7 +254,11 @@ inline float FQuadric::Evaluate( const FVector& Point ) const
 	double Q = vAv + 2.0 * btv + d2;
 	
 	//check( Q > -1.0 );
-	check( FMath::IsFinite( Q ) );
+	if ( !FMath::IsFinite( Q ) )
+	{
+		UE_LOG(LogQuadric, Warning, TEXT("Quadric point evaluate detected possible degenerate. Returning 0."));
+		Q = 0;
+	}
 
 	return Q;
 }
@@ -613,7 +619,11 @@ inline float TQuadricAttr< NumAttributes >::Evaluate( const FVector& Point, cons
 	double Q = vAv + 2.0 * btv + d2;
 
 	//check( Q > -1.0 );
-	check( FMath::IsFinite( Q ) );
+	if ( !FMath::IsFinite( Q ) )
+	{
+		UE_LOG(LogQuadric, Warning, TEXT("Quadric point+attributes evaluate detected possible degenerate. Returning 0."));
+		Q = 0;
+	}
 
 	return Q;
 }

@@ -11,6 +11,10 @@
 #include "RHIDefinitions.h"
 #include "Containers/StaticArray.h"
 
+#ifndef RHI_COMMAND_LIST_DEBUG_TRACES
+#define RHI_COMMAND_LIST_DEBUG_TRACES 0
+#endif
+
 class FResourceArrayInterface;
 class FResourceBulkDataInterface;
 
@@ -385,6 +389,9 @@ extern RHI_API bool GRHISupportsHDROutput;
 
 /** Format used for the backbuffer when outputting to a HDR display. */
 extern RHI_API EPixelFormat GRHIHDRDisplayOutputFormat;
+
+/** Counter incremented once on each frame present. Used to support game thread synchronization with swap chain frame flips. */
+extern RHI_API uint64 GRHIPresentCounter;
 
 /** Called once per frame only from within an RHI. */
 extern RHI_API void RHIPrivateBeginFrame();

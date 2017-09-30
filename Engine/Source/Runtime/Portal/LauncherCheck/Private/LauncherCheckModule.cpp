@@ -8,8 +8,8 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "HAL/PlatformProcess.h"
 #include "ILauncherCheckModule.h"
-
 
 #if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 

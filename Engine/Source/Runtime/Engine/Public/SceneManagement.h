@@ -1066,6 +1066,8 @@ public:
 	inline bool NeedsLPVInjection() const { return bAffectDynamicIndirectLighting; }
 	inline const class FStaticShadowDepthMap* GetStaticShadowDepthMap() const { return StaticShadowDepthMap; }
 
+	inline bool GetForceCachedShadowsForMovablePrimitives() const { return bForceCachedShadowsForMovablePrimitives; }
+
 	/**
 	 * Shifts light position and all relevant data by an arbitrary delta.
 	 * Called on world origin changes
@@ -1175,6 +1177,8 @@ protected:
 	const uint32 bCastVolumetricShadow : 1;
 
 	const uint32 bCastShadowsFromCinematicObjectsOnly : 1;
+
+	const uint32 bForceCachedShadowsForMovablePrimitives : 1;
 
 	/** Whether the light affects translucency or not.  Disabling this can save GPU time when there are many small lights. */
 	const uint32 bAffectTranslucentLighting : 1;
@@ -2328,14 +2332,13 @@ extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
 	 * Toggle with "r.ShowMaterialDrawEvents" cvar.
 	 */
-	extern ENGINE_API int32 GShowMaterialDrawEvents;
 	extern ENGINE_API void BeginMeshDrawEvent_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent);
 #endif
 
-FORCEINLINE void BeginMeshDrawEvent(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent)
+FORCEINLINE void BeginMeshDrawEvent(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent, bool ShowMaterialDrawEvent)
 {
 #if WANTS_DRAW_MESH_EVENTS
-	if (GShowMaterialDrawEvents != 0)
+	if (ShowMaterialDrawEvent)
 	{
 		BeginMeshDrawEvent_Inner(RHICmdList, PrimitiveSceneProxy, Mesh, DrawEvent);
 	}

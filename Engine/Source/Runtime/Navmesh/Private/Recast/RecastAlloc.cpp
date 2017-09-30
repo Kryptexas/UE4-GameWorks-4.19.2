@@ -31,6 +31,11 @@ static void rcFreeDefault(void *ptr)
 	free(ptr);
 }
 
+void rcMemCpy(void* dst, void* src, int size)
+{
+	memcpy(dst, src, size);
+}
+
 static rcAllocFunc* sRecastAllocFunc = rcAllocDefault;
 static rcFreeFunc* sRecastFreeFunc = rcFreeDefault;
 
