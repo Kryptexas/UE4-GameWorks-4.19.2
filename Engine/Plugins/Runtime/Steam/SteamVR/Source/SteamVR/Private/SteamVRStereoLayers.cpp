@@ -217,6 +217,12 @@ void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 		return;
 	}
 
+	// Metal is not supported yet
+	if (IsMetalPlatform(GMaxRHIShaderPlatform))
+	{
+		return;
+	}
+
 	static const auto CVarMixLayerPriorities = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.StereoLayers.bMixLayerPriorities"));
 	const bool bUpdateLayerPriorities = (CVarMixLayerPriorities->GetValueOnRenderThread() == 0) && GetStereoLayersDirty();
 	
