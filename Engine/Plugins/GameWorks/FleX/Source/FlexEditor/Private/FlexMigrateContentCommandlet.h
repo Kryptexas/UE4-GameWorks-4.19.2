@@ -14,5 +14,7 @@ class UFlexMigrateContentCommandlet : public UCommandlet
 	virtual int32 Main(const FString& Params) override;
 
 private:
-	bool MigrateStaticMesh(class UStaticMesh* StaticMesh);
+	class UObject* MigrateStaticMesh(class UStaticMesh* StaticMesh, TArray<UPackage*>& DirtiedPackages);
+
+	bool ForceReplaceReferences(const TMap<UObject*, UObject*>& ReplacementMap, TArray<UPackage*>& DirtiedPackages);
 };
