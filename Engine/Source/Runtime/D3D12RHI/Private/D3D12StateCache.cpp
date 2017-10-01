@@ -1127,6 +1127,16 @@ void FD3D12StateCacheBase::InternalSetIndexBuffer(FD3D12ResourceLocation* IndexB
 			PipelineState.Graphics.IBCache.ResidencyHandle = nullptr;
 		}
 	}
+	if (IndexBufferLocation)
+	{
+		FD3D12Resource* const pResource = IndexBufferLocation->GetResource();
+		if (pResource->RequiresResourceStateTracking())
+		{
+			check(pResource->GetSubresourceCount() == 1);
+			FD3D12DynamicRHI::TransitionResource(CmdContext->CommandListHandle, pResource, D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		}
+	}
+
 }
 
 void FD3D12StateCacheBase::InternalSetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Stride, uint32 Offset)
@@ -1172,6 +1182,17 @@ void FD3D12StateCacheBase::InternalSetStreamSource(FD3D12ResourceLocation* Verte
 			PipelineState.Graphics.VBCache.MaxBoundVertexBufferIndex = INDEX_NONE;
 		}
 	}
+
+	if (VertexBufferLocation)
+	{
+		FD3D12Resource* const pResource = VertexBufferLocation->GetResource();
+		if (pResource->RequiresResourceStateTracking())
+		{
+			check(pResource->GetSubresourceCount() == 1);
+			FD3D12DynamicRHI::TransitionResource(CmdContext->CommandListHandle, pResource, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		}
+	}
+
 }
 
 template <EShaderFrequency ShaderFrequency>
