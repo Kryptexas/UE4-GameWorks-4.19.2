@@ -92,37 +92,39 @@ FMacApplication::FMacApplication()
 		TextInputMethodSystem.Reset();
 	}
 
-	AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
-																			  object:[NSApplication sharedApplication]
-																			   queue:[NSOperationQueue mainQueue]
-																		  usingBlock:^(NSNotification* Notification) { OnApplicationDidBecomeActive(); }];
+	MainThreadCall(^{
+		AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
+																				  object:[NSApplication sharedApplication]
+																				   queue:[NSOperationQueue mainQueue]
+																			  usingBlock:^(NSNotification* Notification) { OnApplicationDidBecomeActive(); }];
 
-	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationWillResignActiveNotification
-																				object:[NSApplication sharedApplication]
-																				 queue:[NSOperationQueue mainQueue]
-																			usingBlock:^(NSNotification* Notification) { OnApplicationWillResignActive(); }];
+		AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationWillResignActiveNotification
+																					object:[NSApplication sharedApplication]
+																					 queue:[NSOperationQueue mainQueue]
+																				usingBlock:^(NSNotification* Notification) { OnApplicationWillResignActive(); }];
 
-	WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification
-																								  object:[NSWorkspace sharedWorkspace]
-																								   queue:[NSOperationQueue mainQueue]
-																							  usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = true; }];
+		WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification
+																									  object:[NSWorkspace sharedWorkspace]
+																									   queue:[NSOperationQueue mainQueue]
+																								  usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = true; }];
 
-	WorkspaceDeactivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidResignActiveNotification
-																									object:[NSWorkspace sharedWorkspace]
-																									 queue:[NSOperationQueue mainQueue]
-																								usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = false; }];
+		WorkspaceDeactivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidResignActiveNotification
+																										object:[NSWorkspace sharedWorkspace]
+																										 queue:[NSOperationQueue mainQueue]
+																									usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = false; }];
 
-	WorkspaceActiveSpaceChangeObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceActiveSpaceDidChangeNotification
-																										 object:[NSWorkspace sharedWorkspace]
-																										  queue:[NSOperationQueue mainQueue]
-																									 usingBlock:^(NSNotification* Notification){ OnActiveSpaceDidChange(); }];
+		WorkspaceActiveSpaceChangeObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceActiveSpaceDidChangeNotification
+																											 object:[NSWorkspace sharedWorkspace]
+																											  queue:[NSOperationQueue mainQueue]
+																										 usingBlock:^(NSNotification* Notification){ OnActiveSpaceDidChange(); }];
 
-	MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
-	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* Event) { return HandleNSEvent(Event); }];
+		MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
+		EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* Event) { return HandleNSEvent(Event); }];
+
+		CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+	}, NSDefaultRunLoopMode, true);
 
 	bIsHighDPIModeEnabled = IsAppHighResolutionCapable();
-
-	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 
 #if WITH_EDITOR
 	NSMutableArray* MultiTouchDevices = (__bridge NSMutableArray*)MTDeviceCreateList();
@@ -142,36 +144,38 @@ FMacApplication::FMacApplication()
 
 FMacApplication::~FMacApplication()
 {
-	if (MouseMovedEventMonitor)
-	{
-		[NSEvent removeMonitor:MouseMovedEventMonitor];
-	}
-	if (EventMonitor)
-	{
-		[NSEvent removeMonitor:EventMonitor];
-	}
-	if (AppActivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
-	}
-	if (AppDeactivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
-	}
-	if (WorkspaceActivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActivationObserver];
-	}
-	if (WorkspaceDeactivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
-	}
-	if (WorkspaceActiveSpaceChangeObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActiveSpaceChangeObserver];
-	}
+	MainThreadCall(^{
+		if (MouseMovedEventMonitor)
+		{
+			[NSEvent removeMonitor:MouseMovedEventMonitor];
+		}
+		if (EventMonitor)
+		{
+			[NSEvent removeMonitor:EventMonitor];
+		}
+		if (AppActivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
+		}
+		if (AppDeactivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
+		}
+		if (WorkspaceActivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActivationObserver];
+		}
+		if (WorkspaceDeactivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
+		}
+		if (WorkspaceActiveSpaceChangeObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActiveSpaceChangeObserver];
+		}
 
-	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+		CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+	}, NSDefaultRunLoopMode, true);
 
 	if (TextInputMethodSystem.IsValid())
 	{
