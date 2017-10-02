@@ -214,6 +214,31 @@ EAppReturnType::Type MessageBoxExtImpl(EAppMsgType::Type MsgType, const TCHAR* T
 
 void FMacPlatformApplicationMisc::PreInit()
 {
+	SCOPED_AUTORELEASE_POOL;
+
+	// We don't support running from case-sensitive file systems on Mac yet
+	NSURL* CurrentWorkingDirURL = [NSURL fileURLWithPath:[[NSFileManager defaultManager] currentDirectoryPath] isDirectory:YES];
+	if (CurrentWorkingDirURL)
+	{
+		NSNumber* VolumeSupportsCaseSensitive;
+		if ([CurrentWorkingDirURL getResourceValue:&VolumeSupportsCaseSensitive forKey:NSURLVolumeSupportsCaseSensitiveNamesKey error:nil])
+		{
+			if ([VolumeSupportsCaseSensitive boolValue])
+			{
+				MainThreadCall(^{
+					NSAlert* AlertPanel = [NSAlert new];
+					[AlertPanel setAlertStyle:NSAlertStyleCritical];
+					[AlertPanel setInformativeText:[NSString stringWithFormat:@"Please install the application on a drive formatted as case-insensitive."]];
+					[AlertPanel setMessageText:@"Unreal Engine does not support running from case-sensitive file systems."];
+					[AlertPanel addButtonWithTitle:@"Quit"];
+					[AlertPanel runModal];
+					[AlertPanel release];
+					exit(1);
+				}, NSDefaultRunLoopMode, true);
+			}
+		}
+	}
+
 	FMacApplication::UpdateScreensArray();
 	MessageBoxExtCallback = MessageBoxExtImpl;
 }
