@@ -556,10 +556,21 @@ void FOpenGLDynamicRHI::CachedSetupTextureStage(FOpenGLContextState& ContextStat
 		}
 		TextureState.LimitMip = LimitMip;
 		
-		if(FOpenGL::SupportsTextureMaxLevel() && !bSameNumMips)
+#if PLATFORM_ANDROID
+		if (FOpenGL::SupportsTextureMaxLevel())
+		{
+			// Always set if last target was external texture, or new target is not external and number of mips doesn't match
+			if ((!bSameTarget && TextureState.Target == GL_TEXTURE_EXTERNAL_OES) || ((Target != GL_TEXTURE_EXTERNAL_OES) && !bSameNumMips))
+			{
+				FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_LEVEL, MaxMip);
+			}
+		}
+#else
+		if (FOpenGL::SupportsTextureMaxLevel() && !bSameNumMips)
 		{
 			FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_LEVEL, MaxMip);
 		}
+#endif
 		TextureState.NumMips = NumMips;
 		
 		TextureMipLimits.Add(Resource, TPair<GLenum, GLenum>(BaseMip, MaxMip));

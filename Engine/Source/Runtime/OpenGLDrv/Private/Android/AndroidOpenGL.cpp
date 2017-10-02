@@ -487,56 +487,82 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	const bool bIsMaliBased = RendererString.Contains(TEXT("Mali"));
 
 	// Check for external image support for different ES versions
-	bool bHasImageExternal = ExtensionsString.Contains(TEXT("GL_OES_EGL_image_external ")) || ExtensionsString.EndsWith(TEXT("GL_OES_EGL_image_external"));
-	bool bHasImageExternalESSL3 = ExtensionsString.Contains(TEXT("OES_EGL_image_external_essl3"));
-	if (bHasImageExternal || bHasImageExternalESSL3)
+	ImageExternalType = EImageExternalType::None;
+
+	static const auto CVarOverrideExternalTextureSupport = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.OverrideExternalTextureSupport"));
+	const int32 OverrideExternalTextureSupport = CVarOverrideExternalTextureSupport->GetValueOnAnyThread();
+	switch (OverrideExternalTextureSupport)
 	{
-		bSupportsImageExternal = true;
-		ImageExternalType = EImageExternalType::ImageExternal100;
-		if (bUseES30ShadingLanguage)
-		{
-			if (bHasImageExternalESSL3)
+		case 1:
+			ImageExternalType = EImageExternalType::None;
+			break;
+
+		case 2:
+			ImageExternalType = EImageExternalType::ImageExternal100;
+			break;
+
+		case 3:
+			ImageExternalType = EImageExternalType::ImageExternal300;
+			break;	
+
+		case 4:
+			ImageExternalType = EImageExternalType::ImageExternalESSL300;
+			break;
+
+		case 0:
+		default:
+			// auto-detect by extensions (default)
+			bool bHasImageExternal = ExtensionsString.Contains(TEXT("GL_OES_EGL_image_external ")) || ExtensionsString.EndsWith(TEXT("GL_OES_EGL_image_external"));
+			bool bHasImageExternalESSL3 = ExtensionsString.Contains(TEXT("OES_EGL_image_external_essl3"));
+			if (bHasImageExternal || bHasImageExternalESSL3)
 			{
-				ImageExternalType = EImageExternalType::ImageExternalESSL300;
-			}
-			else
-			{
-				// Adreno 5xx can do essl3 even without extension in list
-				if (bIsAdrenoBased && RendererString.Contains(TEXT("(TM) 5")))
+				ImageExternalType = EImageExternalType::ImageExternal100;
+				if (bUseES30ShadingLanguage)
 				{
-					ImageExternalType = EImageExternalType::ImageExternalESSL300;
+					if (bHasImageExternalESSL3)
+					{
+						ImageExternalType = EImageExternalType::ImageExternalESSL300;
+					}
+					else
+					{
+						// Adreno 5xx can do essl3 even without extension in list
+						if (bIsAdrenoBased && RendererString.Contains(TEXT("(TM) 5")))
+						{
+							ImageExternalType = EImageExternalType::ImageExternalESSL300;
+						}
+					}
+				}
+				if (bIsNvidiaBased)
+				{
+					// Nvidia needs version 100 even though it supports ES3
+					ImageExternalType = EImageExternalType::ImageExternal100;
 				}
 			}
-		}
-		if (bIsNvidiaBased)
-		{
-			// Nvidia needs version 100 even though it supports ES3
-			ImageExternalType = EImageExternalType::ImageExternal100;
-		}
-
-		switch (ImageExternalType)
-		{
-			case EImageExternalType::None:
-				bSupportsImageExternal = false;
-				break;
-
-			case EImageExternalType::ImageExternal100:
-				UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternal100"));
-				break;
-
-			case EImageExternalType::ImageExternal300:
-				UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternal300"));
-				break;
-
-			case EImageExternalType::ImageExternalESSL300:
-				UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternalESSL300"));
-				break;
-
-			default:
-				bSupportsImageExternal = false;
-				UE_LOG(LogRHI, Log, TEXT("Image external disabled; unknown type"));
-		}
+			break;
 	}
+	switch (ImageExternalType)
+	{
+		case EImageExternalType::None:
+			UE_LOG(LogRHI, Log, TEXT("Image external disabled"));
+			break;
+
+		case EImageExternalType::ImageExternal100:
+			UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternal100"));
+			break;
+
+		case EImageExternalType::ImageExternal300:
+			UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternal300"));
+			break;
+
+		case EImageExternalType::ImageExternalESSL300:
+			UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternalESSL300"));
+			break;
+
+		default:
+			ImageExternalType = EImageExternalType::None;
+			UE_LOG(LogRHI, Log, TEXT("Image external disabled; unknown type"));
+	}
+	bSupportsImageExternal = ImageExternalType != EImageExternalType::None;
 
 	if (RendererString.Contains(TEXT("SGX 540")))
 	{
