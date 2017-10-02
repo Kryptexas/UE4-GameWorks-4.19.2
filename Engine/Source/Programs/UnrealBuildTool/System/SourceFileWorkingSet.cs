@@ -289,7 +289,7 @@ namespace UnrealBuildTool
 		/// <returns>Working set instance for the given directory</returns>
 		public static ISourceFileWorkingSet Create(DirectoryReference RootDir, DirectoryReference ProjectDir)
 		{
-			if (Provider == ProviderType.None)
+			if (Provider == ProviderType.None || ProjectFileGenerator.bGenerateProjectFiles)
 			{
 				return new EmptySourceFileWorkingSet();
 			}
