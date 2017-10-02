@@ -506,11 +506,11 @@ void FVREditorActionCallbacks::ToggleAligningToActors(UVREditorMode* InVRMode)
 		{
 			ToggleSelectingCandidateActors(InVRMode);
 		}
-		GUnrealEd->Exec(InVRMode->GetWorld(), TEXT("VI.EnableGuides 0"));
+		GUnrealEd->Exec(InVRMode->GetWorld(), TEXT("VI.ActorSnap 0"));
 	}
 	else
 	{
-		GUnrealEd->Exec(InVRMode->GetWorld(), TEXT("VI.EnableGuides 1"));
+		GUnrealEd->Exec(InVRMode->GetWorld(), TEXT("VI.ActorSnap 1"));
 	}
 }
 
