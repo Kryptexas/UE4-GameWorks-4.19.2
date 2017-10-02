@@ -59,9 +59,6 @@ public class AppleARKit : ModuleRules
 		{
 			Definitions.Add("ARKIT_SUPPORT=1");
 			PublicFrameworks.Add( "ARKit" );
-
-			// Do not precompile by default, since it currently requires a beta version of Xcode
-			PrecompileForTargets = PrecompileTargetsType.None;
 		}
 		else
 		{
