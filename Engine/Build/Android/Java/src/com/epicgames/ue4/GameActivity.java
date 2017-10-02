@@ -70,6 +70,7 @@ import android.view.View.OnTouchListener;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewGroup.MarginLayoutParams;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
@@ -297,6 +298,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private String	localNotificationLaunchActivationEvent = "";
 	private int		localNotificationLaunchFireDate = 0;
 	
+	public int DeviceRotation = -1;
+
 	enum EAlertDialogType
 	{
 		None,
@@ -352,13 +355,19 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public int getDeviceDefaultOrientation() 
 	{
-
 		// WindowManager windowManager =  (WindowManager) getSystemService(WINDOW_SERVICE);
 		WindowManager windowManager =  getWindowManager();
 
 		Configuration config = getResources().getConfiguration();
 
 		int rotation = windowManager.getDefaultDisplay().getRotation();
+		switch (rotation)
+		{
+			case Surface.ROTATION_0:	DeviceRotation = 0;		break;
+			case Surface.ROTATION_90:	DeviceRotation = 90;	break;
+			case Surface.ROTATION_180:	DeviceRotation = 180;	break;
+			case Surface.ROTATION_270:	DeviceRotation = 270;	break;
+		}
 
 		if ( ((rotation == android.view.Surface.ROTATION_0 || rotation == android.view.Surface.ROTATION_180) &&
 				config.orientation == Configuration.ORIENTATION_LANDSCAPE)
@@ -1365,6 +1374,14 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public void onConfigurationChanged(Configuration newConfig)
 	{
 		super.onConfigurationChanged(newConfig);
+
+		switch (getWindowManager().getDefaultDisplay().getRotation())
+		{
+			case Surface.ROTATION_0:	DeviceRotation = 0;		break;
+			case Surface.ROTATION_90:	DeviceRotation = 90;	break;
+			case Surface.ROTATION_180:	DeviceRotation = 180;	break;
+			case Surface.ROTATION_270:	DeviceRotation = 270;	break;
+		}
 
 		// forward the orientation
 		boolean bPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
