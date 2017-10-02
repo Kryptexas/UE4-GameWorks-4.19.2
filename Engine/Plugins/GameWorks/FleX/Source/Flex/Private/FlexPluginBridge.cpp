@@ -23,6 +23,7 @@
 #include "FlexParticleEmitterInstance.h"
 #include "FlexCollisionComponent.h"
 #include "FlexParticleSystemComponent.h"
+#include "FlexParticleEmitter.h"
 
 
 class UFlexAsset* FFlexPluginBridge::GetFlexAsset(class UStaticMesh* StaticMesh)
@@ -372,12 +373,13 @@ void FFlexPluginBridge::AttachFlexToComponent(class USceneComponent* Component, 
 						for (int32 EmitterIndex = 0; EmitterIndex < ParticleSystemComponet->EmitterInstances.Num(); EmitterIndex++)
 						{
 							FParticleEmitterInstance* EmitterInstance = ParticleSystemComponet->EmitterInstances[EmitterIndex];
-							if (EmitterInstance &&
-								EmitterInstance->SpriteTemplate &&
-								EmitterInstance->SpriteTemplate->FlexContainerTemplate &&
-								EmitterInstance->FlexEmitterInstance)
+							if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->FlexEmitterInstance)
 							{
-								EmitterInstance->FlexEmitterInstance->AddPendingComponentToAttach(Component, Radius);
+								auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+								if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
+								{
+									EmitterInstance->FlexEmitterInstance->AddPendingComponentToAttach(Component, Radius);
+								}
 							}
 						}
 
@@ -396,31 +398,35 @@ void FFlexPluginBridge::CreateFlexEmitterInstance(struct FParticleEmitterInstanc
 		EmitterInstance->FlexEmitterInstance = nullptr;
 	}
 
-	if (EmitterInstance->SpriteTemplate->FlexContainerTemplate && (!GIsEditor || GIsPlayInEditorWorld))
+	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+	if (FlexEmitter)
 	{
-		FPhysScene* scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
-
-		if (scene)
+		if (FlexEmitter->FlexContainerTemplate && (!GIsEditor || GIsPlayInEditorWorld))
 		{
-			EmitterInstance->FlexEmitterInstance = new FFlexParticleEmitterInstance(EmitterInstance);
+			FPhysScene* scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
 
-			// need to ensure tick happens after GPU update
-			EmitterInstance->Component->SetTickGroup(TG_EndPhysics);
-
-			USceneComponent* Parent = EmitterInstance->Component->GetAttachParent();
-			if (Parent && EmitterInstance->SpriteTemplate->bLocalSpace)
+			if (scene)
 			{
-				//update frame
-				const FTransform ParentTransform = Parent->GetComponentTransform();
-				const FVector Translation = ParentTransform.GetTranslation();
-				const FQuat Rotation = ParentTransform.GetRotation();
+				EmitterInstance->FlexEmitterInstance = new FFlexParticleEmitterInstance(EmitterInstance);
 
-				NvFlexExtMovingFrameInit(&EmitterInstance->FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
+				// need to ensure tick happens after GPU update
+				EmitterInstance->Component->SetTickGroup(TG_EndPhysics);
+
+				USceneComponent* Parent = EmitterInstance->Component->GetAttachParent();
+				if (Parent && FlexEmitter->bLocalSpace)
+				{
+					//update frame
+					const FTransform ParentTransform = Parent->GetComponentTransform();
+					const FVector Translation = ParentTransform.GetTranslation();
+					const FQuat Rotation = ParentTransform.GetRotation();
+
+					NvFlexExtMovingFrameInit(&EmitterInstance->FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
+				}
 			}
 		}
-	}
 
-	RegisterNewFlexFluidSurfaceComponent(EmitterInstance, EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate);
+		RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexEmitter->FlexFluidSurfaceTemplate);
+	}
 }
 
 void FFlexPluginBridge::DestroyFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance)
@@ -455,6 +461,10 @@ void FFlexPluginBridge::DestroyFlexEmitterInstance(struct FParticleEmitterInstan
 
 void FFlexPluginBridge::TickFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance, float DeltaTime, bool bSuppressSpawning)
 {
+	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+	if (FlexEmitter == nullptr)
+		return;
+
 	if (EmitterInstance->FlexEmitterInstance && EmitterInstance->FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{
 		EmitterInstance->FlexEmitterInstance->ExecutePendingComponentsToAttach();
@@ -524,7 +534,7 @@ void FFlexPluginBridge::TickFlexEmitterInstance(struct FParticleEmitterInstance*
 		if (EmitterInstance->ActiveParticles > 0)
 		{
 			Parent = EmitterInstance->Component->GetAttachParent();
-			if (Parent && EmitterInstance->SpriteTemplate->bLocalSpace)
+			if (Parent && FlexEmitter->bLocalSpace)
 			{
 				//update frame
 				ParentTransform = Parent->GetComponentTransform();
@@ -546,7 +556,7 @@ void FFlexPluginBridge::TickFlexEmitterInstance(struct FParticleEmitterInstance*
 			const uint8* ParticleBase = (const uint8*)&Particle;
 			PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
-			if (Parent && EmitterInstance->SpriteTemplate->bLocalSpace)
+			if (Parent && FlexEmitter->bLocalSpace)
 			{
 				// Localize the position and velocity using the localization API
 				// NOTE: Once we have a feature to detect particle inside the mesh container
@@ -588,14 +598,16 @@ void FFlexPluginBridge::TickFlexEmitterInstance(struct FParticleEmitterInstance*
 
 uint32 FFlexPluginBridge::GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes)
 {
-	if (EmitterInstance->SpriteTemplate->FlexContainerTemplate)
+	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+
+	if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 	{
 		EmitterInstance->FlexDataOffset = EmitterInstance->PayloadOffset + uiBytes;
 
 		// flex particle index
 		uiBytes += sizeof(int32);
 
-		if (EmitterInstance->SpriteTemplate->FlexContainerTemplate->AnisotropyScale > 0.0f)
+		if (FlexEmitter->FlexContainerTemplate->AnisotropyScale > 0.0f)
 		{
 			// 16 byte align for inheriting emitter instance types
 			uiBytes += sizeof(FVector);
@@ -609,7 +621,11 @@ uint32 FFlexPluginBridge::GetFlexEmitterInstanceRequiredBytes(struct FParticleEm
 
 bool FFlexPluginBridge::FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex)
 {
-	const float FlexInvMass = (EmitterInstance->SpriteTemplate->Mass > 0.0f) ? (1.0f / EmitterInstance->SpriteTemplate->Mass) : 0.0f;
+	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+	if (FlexEmitter == nullptr)
+		return true;
+
+	const float FlexInvMass = (FlexEmitter->Mass > 0.0f) ? (1.0f / FlexEmitter->Mass) : 0.0f;
 
 	if (EmitterInstance->FlexEmitterInstance && EmitterInstance->FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{
@@ -706,12 +722,27 @@ void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(class UParticleSyst
 	auto FlexComponent = Cast<UFlexParticleSystemComponent>(Component);
 	if (FlexComponent && FlexComponent->FlexFluidSurfaceOverride)
 	{
-		if (EmitterInstance &&
-			EmitterInstance->SpriteTemplate &&
-			EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate &&
-			EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate->Material)
+		if (EmitterInstance && EmitterInstance->SpriteTemplate)
 		{
-			FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexComponent->FlexFluidSurfaceOverride);
+			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+			auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
+
+			if (FlexFluidSurfaceTemplate && FlexFluidSurfaceTemplate->Material)
+			{
+				FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexComponent->FlexFluidSurfaceOverride);
+			}
 		}
 	}
+}
+
+bool FFlexPluginBridge::IsValidFlexEmitter(class UParticleEmitter* Emitter)
+{
+	auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter);
+	return (FlexEmitter && FlexEmitter->FlexContainerTemplate);
+}
+
+class UFlexFluidSurface* FFlexPluginBridge::GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter)
+{
+	auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter);
+	return FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
 }

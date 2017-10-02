@@ -36,19 +36,23 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	{
 		Emitter = Instance;
 
-		if (Emitter->SpriteTemplate->FlexContainerTemplate)
+		auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter->SpriteTemplate);
+		if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 		{
 			FPhysScene* Scene = Emitter->Component->GetWorld()->GetPhysicsScene();
 
-			Container = GFlexPluginBridge->GetFlexContainer(Scene, Emitter->SpriteTemplate->FlexContainerTemplate);
+			Container = GFlexPluginBridge->GetFlexContainer(Scene, FlexEmitter->FlexContainerTemplate);
 			if (Container)
 			{
 				Container->Register(this);
-				Phase = Container->GetPhase(Emitter->SpriteTemplate->Phase);
+				Phase = Container->GetPhase(FlexEmitter->Phase);
 			}
 		}
-		LinearInertialScale = Emitter->SpriteTemplate->InertialScale.LinearInertialScale;
-		AngularInertialScale = Emitter->SpriteTemplate->InertialScale.AngularInertialScale;
+		if (FlexEmitter)
+		{
+			LinearInertialScale = FlexEmitter->InertialScale.LinearInertialScale;
+			AngularInertialScale = FlexEmitter->InertialScale.AngularInertialScale;
+		}
 	}
 
 	virtual ~FFlexParticleEmitterInstance()

@@ -68,6 +68,9 @@ public:
 	virtual void RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface) = 0;
 	virtual void RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance) = 0;
 
+
+	virtual bool IsValidFlexEmitter(class UParticleEmitter* Emitter) = 0;
+	virtual class UFlexFluidSurface* GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter) = 0;
 };
 
 extern ENGINE_API class IFlexPluginBridge* GFlexPluginBridge;

@@ -776,9 +776,12 @@ UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
 	EmitterEditorColor = FColor(0, 150, 150, 255);
 #endif // WITH_EDITORONLY_DATA
 
-	// Flex
-	Mass = 1.0f;
-	bLocalSpace = false;
+	// NvFlex begin
+	FlexContainerTemplate_DEPRECATED = nullptr;
+	Mass_DEPRECATED = 1.0f;
+	bLocalSpace_DEPRECATED = false;
+	FlexFluidSurfaceTemplate_DEPRECATED = nullptr;
+	// NvFlex end
 }
 
 FParticleEmitterInstance* UParticleEmitter::CreateInstance(UParticleSystemComponent* InComponent)
@@ -4518,21 +4521,22 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	bool bHasFlexEmitter = false;
 
 #if WITH_FLEX
-
-	for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+	if (GFlexPluginBridge)
 	{
-		FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
-		if (Instance && Instance->SpriteTemplate)
+		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
 		{
-			if (Instance->SpriteTemplate->FlexContainerTemplate != NULL)
+			FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
+			if (Instance && Instance->SpriteTemplate)
 			{
-				bHasFlexEmitter = true;
-				bDisallowAsync = true;
-				break;
+				if (GFlexPluginBridge->IsValidFlexEmitter(Instance->SpriteTemplate))
+				{
+					bHasFlexEmitter = true;
+					bDisallowAsync = true;
+					break;
+				}
 			}
 		}
 	}
-
 #endif
 	
 	if (bRequiresReset)

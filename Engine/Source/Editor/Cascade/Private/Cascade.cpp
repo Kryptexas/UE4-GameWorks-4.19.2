@@ -5290,14 +5290,18 @@ void UCascadeParticleSystemComponent::CascadeTickComponent(float DeltaTime, enum
 		for (int32 EmitterIndex = 0; EmitterIndex < NumEmitters; EmitterIndex++)
 		{
 			FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
-			if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate)
+			if (EmitterInstance && EmitterInstance->SpriteTemplate)
 			{
-				class UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate);
-				check(SurfaceComponent);
-				if (!FlexFluidSurfaces.Contains(SurfaceComponent))
+				auto FlexFluidSurfaceTemplate = GFlexPluginBridge->GetFlexFluidSurfaceTemplate(EmitterInstance->SpriteTemplate);
+				if (FlexFluidSurfaceTemplate)
 				{
-					GFlexPluginBridge->TickFlexFluidSurfaceComponent(SurfaceComponent, DeltaTime, TickType, NULL);
-					FlexFluidSurfaces.Add(SurfaceComponent);
+					class UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurfaceTemplate);
+					check(SurfaceComponent);
+					if (!FlexFluidSurfaces.Contains(SurfaceComponent))
+					{
+						GFlexPluginBridge->TickFlexFluidSurfaceComponent(SurfaceComponent, DeltaTime, TickType, NULL);
+						FlexFluidSurfaces.Add(SurfaceComponent);
+					}
 				}
 			}
 		}

@@ -172,28 +172,28 @@ class UParticleEmitter : public UObject
 
 	// NvFlex begin
 	/** The Flex container to emit into */
-	UPROPERTY(EditAnywhere, Category = Flex)
-	class UFlexContainer* FlexContainerTemplate;
+	UPROPERTY()
+	class UObject* FlexContainerTemplate_DEPRECATED; // UFlexContainer*
 
 	/** Phase assigned to spawned Flex particles */
-	UPROPERTY(EditAnywhere, Category = Flex)
-	FFlexPhase Phase;
+	UPROPERTY()
+	FFlexPhase Phase_DEPRECATED;
 
 	/** Enable local-space simulation when parented */
-	UPROPERTY(EditAnywhere, Category = Flex)
-	uint32 bLocalSpace:1;
+	UPROPERTY()
+	uint32 bLocalSpace_DEPRECATED : 1;
 
 	/** Control Local Inertial components */
-	UPROPERTY(EditAnywhere, Category = Flex)
-	FFlexInertialScale InertialScale;
+	UPROPERTY()
+	FFlexInertialScale InertialScale_DEPRECATED;
 
 	/** Mass assigned to Flex particles */
-	UPROPERTY(EditAnywhere, Category = Flex)
-	float Mass;
+	UPROPERTY()
+	float Mass_DEPRECATED;
 
 	/** Optional Flex fluid surface for rendering */
-	UPROPERTY(EditAnywhere, Category = Flex)
-	class UFlexFluidSurface* FlexFluidSurfaceTemplate;
+	UPROPERTY()
+	class UObject* FlexFluidSurfaceTemplate_DEPRECATED; // UFlexFluidSurface*
 	// NvFlex end
 
 	/** If true, then show only this emitter in the editor */
@@ -262,19 +262,19 @@ class UParticleEmitter : public UObject
 
 	//~ Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() override;
+	ENGINE_API virtual void PostLoad() override;
 	//~ End UObject Interface
 
 	// @todo document
-	virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent);
+	ENGINE_API virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent);
 
 	// Sets up this emitter with sensible defaults so we can see some particles as soon as its created.
 	virtual void SetToSensibleDefaults() {}
 
 	// @todo document
-	virtual void UpdateModuleLists();
+	ENGINE_API virtual void UpdateModuleLists();
 
 	// @todo document
 	ENGINE_API void SetEmitterName(FName Name);
@@ -283,7 +283,7 @@ class UParticleEmitter : public UObject
 	ENGINE_API FName& GetEmitterName();
 
 	// @todo document
-	virtual	void						SetLODCount(int32 LODCount);
+	ENGINE_API virtual void	SetLODCount(int32 LODCount);
 
 	// For Cascade
 	// @todo document
@@ -371,7 +371,7 @@ class UParticleEmitter : public UObject
 	 *
 	 *	@return	bool				true if successful, false if not.
 	 */
-	virtual bool		AutogenerateLowestLODLevel(bool bDuplicateHighest = false);
+	ENGINE_API virtual bool		AutogenerateLowestLODLevel(bool bDuplicateHighest = false);
 	
 	/**
 	 *	CalculateMaxActiveParticleCount
@@ -381,7 +381,7 @@ class UParticleEmitter : public UObject
 	 *	@return	true	if the number was determined
 	 *			false	if the number could not be determined
 	 */
-	virtual bool		CalculateMaxActiveParticleCount();
+	ENGINE_API virtual bool		CalculateMaxActiveParticleCount();
 
 	/**
 	 *	Retrieve the parameters associated with this particle system.
