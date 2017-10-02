@@ -737,6 +737,10 @@ public:
 	// Get the default Notify Name for a given blueprint notify asset
 	FString MakeBlueprintNotifyName(FAssetData& NotifyAssetData);
 
+	// Need to make sure tool tips are cleared during node clear up so slate system won't
+	// call into invalid notify.
+	void ClearNodeTooltips();
+
 protected:
 
 	void CreateCommands();
@@ -3710,6 +3714,16 @@ FString SAnimNotifyTrack::MakeBlueprintNotifyName(FAssetData& NotifyAssetData)
 	return DefaultNotifyName;
 }
 
+void SAnimNotifyTrack::ClearNodeTooltips()
+{
+	FText EmptyTooltip;
+
+	for (TSharedPtr<SAnimNotifyNode> Node : NotifyNodes)
+	{
+		Node->SetToolTipText(EmptyTooltip);
+	}
+}
+
 void SAnimNotifyTrack::GetNotifyMenuData(TArray<FAssetData>& NotifyAssetData, TArray<BlueprintNotifyMenuInfo>& OutNotifyMenuData)
 {
 	for(FAssetData& NotifyData : NotifyAssetData)
@@ -4219,6 +4233,13 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 	PanelArea->SetContent(
 		SAssignNew( NotifySlots, SVerticalBox )
 		);
+
+	// Clear node tool tips to stop slate referencing them and possibly
+	// causing a crash if the notify has gone away
+	for (TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
+	{
+		Track->ClearNodeTooltips();
+	}
 
 	NotifyAnimTracks.Empty();
 	NotifyEditorTracks.Empty();
