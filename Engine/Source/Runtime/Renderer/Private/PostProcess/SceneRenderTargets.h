@@ -206,7 +206,8 @@ protected:
 		bSnapshot(false),
 		DefaultColorClear(FClearValueBinding::Black),
 		DefaultDepthClear(FClearValueBinding::DepthFar),
-		QuadOverdrawIndex(INDEX_NONE)
+		QuadOverdrawIndex(INDEX_NONE),
+		bHMDAllocatedDepthTarget(false)
 		{
 		}
 	/** Constructor that creates snapshot */
@@ -797,6 +798,9 @@ private:
 
 	/** All outstanding snapshots */
 	TArray<FSceneRenderTargets*> Snapshots;
+
+	/** True if the depth target is allocated by an HMD plugin. This is a temporary fix to deal with HMD depth target swap chains not tracking the stencil SRV. */
+	bool bHMDAllocatedDepthTarget;
 
 	/** CAUTION: When adding new data, make sure you copy it in the snapshot constructor! **/
 
