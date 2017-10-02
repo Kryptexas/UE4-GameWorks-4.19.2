@@ -447,8 +447,10 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
+#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 		// Initialize OpenGL resources for API
 		gvr_initialize_gl(GVRAPI);
+#endif
 
 		// Log the current viewer
 		UE_LOG(LogHMD, Log, TEXT("The current viewer is %s"), UTF8_TO_TCHAR(gvr_get_viewer_model(GVRAPI)));
