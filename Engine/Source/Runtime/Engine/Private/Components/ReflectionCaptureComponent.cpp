@@ -331,7 +331,10 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 // Generate a new guid to force a recapture of all reflection data
 // Note: changing this will cause saved capture data in maps to be discarded
 // A resave of those maps will be required to guarantee valid reflections when cooking for ES2
-FGuid ReflectionCaptureDDCVer(0x3B73E3ED, 0xC1D84B5B, 0xA0E5BB88, 0xB5A22B88);
+FGuid ReflectionCaptureDDCVer(0x0c669396, 0x9cb849ae, 0x9f4120ff, 0x5812f4d3);
+
+// Bumping this version will invalidate only encoded capture data
+#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER 1
 
 FReflectionCaptureFullHDR::~FReflectionCaptureFullHDR()
 {
@@ -697,7 +700,7 @@ FString FReflectionCaptureEncodedHDRDerivedData::GetDDCKeyString(const FGuid& St
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("REFL_ENC"),
 		*ReflectionCaptureDDCVer.ToString(),
-		*StateId.ToString().Append("_").Append(FString::FromInt(CubemapDimension))
+		*StateId.ToString().Append("_").Append(FString::FromInt(CubemapDimension)).Append("_").Append(FString::FromInt(REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER))
 		);
 }
 
