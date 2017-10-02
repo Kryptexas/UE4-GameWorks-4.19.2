@@ -37,7 +37,6 @@ public:
 
 	/** Retrive the container instance for a template, will create the instance if it doesn't already exist */
 	virtual struct FFlexContainerInstance* GetFlexContainer(class FPhysScene* PhysScene, class UFlexContainer* Template) = 0;
-	virtual class UFlexContainer* GetFirstFlexContainerTemplate(class FPhysScene* PhysScene, class UFlexContainer* Template) = 0;
 
 	virtual void StartFlexRecord(class FPhysScene* PhysScene) = 0;
 	virtual void StopFlexRecord(class FPhysScene* PhysScene) = 0;
@@ -53,23 +52,22 @@ public:
 
 	virtual void ToggleFlexContainerDebugDraw(class UWorld* World) = 0;
 
-	//Flex Surface Component
-	virtual void SendRenderEmitterDynamicData_Concurrent(class UFlexFluidSurfaceComponent* SurfaceComponent, class FParticleSystemSceneProxy* ParticleSystemSceneProxy, struct FDynamicEmitterDataBase* DynamicEmitterData) = 0;
-	virtual void SetEnabledReferenceCounting(class UFlexFluidSurfaceComponent* SurfaceComponent, bool bEnable) = 0;
-
-	virtual class UMaterialInterface* GetFlexFluidSurfaceMaterial(class UFlexFluidSurface* Surface) = 0;
-
-	virtual class UFlexFluidSurface* DuplicateFlexFluidSurface(class UFlexFluidSurface* Surface, class UObject* Outer, class UMaterialInterface* Material) = 0;
-
 	// Particles
-	virtual void RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface) = 0;
-
 	virtual void CreateFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance) = 0;
 	virtual void DestroyFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance) = 0;
 	virtual void TickFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance, float DeltaTime, bool bSuppressSpawning) = 0;
 	virtual uint32 GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes) = 0;
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex) = 0;
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex) = 0;
+
+	// UParticleSystemComponent
+	virtual void UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData) = 0;
+	virtual void ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component) = 0;
+	virtual void SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable) = 0;
+
+	virtual void RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface) = 0;
+	virtual void RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance) = 0;
+
 };
 
 extern ENGINE_API class IFlexPluginBridge* GFlexPluginBridge;
