@@ -89,6 +89,19 @@ public:
 		return ToSoftObjectPath().GetAssetName();
 	}
 
+#if WITH_EDITOR
+	/** Overridden to deal with PIE lookups */
+	FORCEINLINE UObject* Get() const
+	{
+		if (GPlayInEditorID != INDEX_NONE)
+		{
+			// Cannot use or set the cached value in PIE as it may affect other PIE instances or the editor
+			return GetUniqueID().ResolveObject();
+		}
+		return TPersistentObjectPtr<FSoftObjectPath>::Get();
+	}
+#endif
+
 	using TPersistentObjectPtr<FSoftObjectPath>::operator=;
 };
 

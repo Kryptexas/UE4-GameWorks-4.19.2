@@ -2627,6 +2627,18 @@ public:
 		}
 		return *this;
 	}
+
+	virtual FArchive& operator<<(FSoftObjectPtr& Value) override
+	{
+		// Explicitly do nothing, we don't want to accidentally do PIE fixups
+		return *this;
+	}
+
+	virtual FArchive& operator<<(FSoftObjectPath& Value) override
+	{
+		// Explicitly do nothing, we don't want to accidentally do PIE fixups
+		return *this;
+	}
 };
 
 UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld)
