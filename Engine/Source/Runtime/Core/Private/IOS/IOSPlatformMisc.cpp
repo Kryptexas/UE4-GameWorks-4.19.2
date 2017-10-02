@@ -369,7 +369,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 	// tvOS
 	else if (DeviceIDString.StartsWith(TEXT("AppleTV")))
 	{
-		const int Major = FCString::Atoi(&DeviceIDString[6]);
+		const int Major = FCString::Atoi(&DeviceIDString[7]);
 		const int CommaIndex = DeviceIDString.Find(TEXT(","), ESearchCase::CaseSensitive, ESearchDir::FromStart, 6);
 		const int Minor = FCString::Atoi(&DeviceIDString[CommaIndex + 1]);
 
