@@ -14,6 +14,7 @@
 #include "GeneralProjectSettings.h"
 #include "EngineSessionManager.h"
 #include "Misc/EngineVersion.h"
+#include "RHI.h"
 
 bool FEngineAnalytics::bIsInitialized;
 bool FEngineAnalytics::bIsEditorRun;
@@ -146,10 +147,30 @@ void FEngineAnalytics::Initialize()
 			GEngine->CreateStartupAnalyticsAttributes( StartSessionAttributes );
 			// Add project info whether we are in editor or game.
 			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			FString OSMajor;
+			FString OSMinor;
+			FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
 			StartSessionAttributes.Emplace(TEXT("ProjectName"), ProjectSettings.ProjectName);
 			StartSessionAttributes.Emplace(TEXT("ProjectID"), ProjectSettings.ProjectID);
 			StartSessionAttributes.Emplace(TEXT("ProjectDescription"), ProjectSettings.Description);
 			StartSessionAttributes.Emplace(TEXT("ProjectVersion"), ProjectSettings.ProjectVersion);
+			StartSessionAttributes.Emplace(TEXT("GPUVendorID"), GRHIVendorId);
+			StartSessionAttributes.Emplace(TEXT("GPUDeviceID"), GRHIDeviceId);
+			StartSessionAttributes.Emplace(TEXT("GRHIDeviceRevision"), GRHIDeviceRevision);
+			StartSessionAttributes.Emplace(TEXT("GRHIAdapterInternalDriverVersion"), GRHIAdapterInternalDriverVersion);
+			StartSessionAttributes.Emplace(TEXT("GRHIAdapterUserDriverVersion"), GRHIAdapterUserDriverVersion);
+			StartSessionAttributes.Emplace(TEXT("TotalPhysicalRAM"), static_cast<uint64>(Stats.TotalPhysical));
+			StartSessionAttributes.Emplace(TEXT("CPUPhysicalCores"), FPlatformMisc::NumberOfCores());
+			StartSessionAttributes.Emplace(TEXT("CPULogicalCores"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
+			StartSessionAttributes.Emplace(TEXT("DesktopGPUAdapter"), FPlatformMisc::GetPrimaryGPUBrand());
+			StartSessionAttributes.Emplace(TEXT("RenderingGPUAdapter"), GRHIAdapterName);
+			StartSessionAttributes.Emplace(TEXT("CPUVendor"), FPlatformMisc::GetCPUVendor());
+			StartSessionAttributes.Emplace(TEXT("CPUBrand"), FPlatformMisc::GetCPUBrand());
+			FPlatformMisc::GetOSVersions(/*out*/ OSMajor, /*out*/ OSMinor);
+			StartSessionAttributes.Emplace(TEXT("OSMajor"), OSMajor);
+			StartSessionAttributes.Emplace(TEXT("OSMinor"), OSMinor);
+			StartSessionAttributes.Emplace(TEXT("OSVersion"), FPlatformMisc::GetOSVersion());
+			StartSessionAttributes.Emplace(TEXT("Is64BitOS"), FPlatformMisc::Is64bitOperatingSystem());
 			Analytics->StartSession(MoveTemp(StartSessionAttributes));
 
 			bIsInitialized = true;
