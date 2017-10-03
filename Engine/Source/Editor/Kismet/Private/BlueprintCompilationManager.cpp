@@ -918,20 +918,6 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		{
 			UBlueprint* BP = CompilerData.BP;
 			FBlueprintEditorUtils::UpdateDelegatesInBlueprint(BP);
-
-			if (FBlueprintEditorUtils::IsLevelScriptBlueprint(BP))
-			{
-				// When the Blueprint is recompiled, then update the bound events for level scripting
-				ULevelScriptBlueprint* LevelScriptBP = CastChecked<ULevelScriptBlueprint>(BP);
-
-				// ULevel::OnLevelScriptBlueprintChanged needs to be run after the CDO has
-				// been updated as it respawns the actor:
-				if (ULevel* BPLevel = LevelScriptBP->GetLevel())
-				{
-					BPLevel->OnLevelScriptBlueprintChanged(LevelScriptBP);
-				}
-			}
-
 			if(!BP->bIsRegeneratingOnLoad && BP->GeneratedClass)
 			{
 				FKismetEditorUtilities::StripExternalComponents(BP);
@@ -1050,6 +1036,25 @@ void FBlueprintCompilationManagerImpl::FlushReinstancingQueueImpl()
 		
 		TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
 		FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(ClassesToReinstance);
+		
+		for(TPair<UClass*, UClass*> OldToNew : ClassesToReinstance)
+		{
+			UBlueprint* BP = UBlueprint::GetBlueprintFromClass(OldToNew.Value);
+
+			if (FBlueprintEditorUtils::IsLevelScriptBlueprint(BP))
+			{
+				// When the Blueprint is recompiled, then update the bound events for level scripting
+				ULevelScriptBlueprint* LevelScriptBP = CastChecked<ULevelScriptBlueprint>(BP);
+
+				// ULevel::OnLevelScriptBlueprintChanged needs to be run after the CDO has
+				// been updated as it respawns the actor:
+				if (ULevel* BPLevel = LevelScriptBP->GetLevel())
+				{
+					BPLevel->OnLevelScriptBlueprintChanged(LevelScriptBP);
+				}
+			}
+		}
+
 		ClassesToReinstance.Empty();
 	}
 	

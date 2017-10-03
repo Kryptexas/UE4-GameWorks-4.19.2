@@ -245,7 +245,7 @@ FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate() const
 	if( EventOwner )
 	{
 		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-		if (TargetDelegateProp)
+		if (TargetDelegateProp && ensure(EventOwner->IsA(DelegateOwnerClass)))
 		{
 			return TargetDelegateProp->GetPropertyValuePtr_InContainer(EventOwner);
 		}
