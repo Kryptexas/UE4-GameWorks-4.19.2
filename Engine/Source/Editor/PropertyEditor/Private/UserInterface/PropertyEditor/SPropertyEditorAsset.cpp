@@ -506,6 +506,12 @@ SPropertyEditorAsset::EActorReferenceState SPropertyEditorAsset::GetActorReferen
 
 		if (Value.Object != nullptr)
 		{
+			// If this is not an actual actor, this is broken
+			if (!Value.Object->IsA(AActor::StaticClass()))
+			{
+				return EActorReferenceState::Error;
+			}
+
 			return EActorReferenceState::Loaded;
 		}
 		else if (Value.ObjectPath.IsNull())
@@ -519,7 +525,7 @@ SPropertyEditorAsset::EActorReferenceState SPropertyEditorAsset::GetActorReferen
 
 			if (MapObjectPath.ResolveObject())
 			{
-				// If the map is valid but the 
+				// If the map is valid but the object is not
 				return EActorReferenceState::Error;
 			}
 
@@ -627,8 +633,16 @@ FText SPropertyEditorAsset::OnGetAssetName() const
 		{
 			if( bIsActor )
 			{
-				AActor* Actor = CastChecked<AActor>(Value.Object);
-				Name = FText::AsCultureInvariant(Actor->GetActorLabel());
+				AActor* Actor = Cast<AActor>(Value.Object);
+
+				if (Actor)
+				{
+					Name = FText::AsCultureInvariant(Actor->GetActorLabel());
+				}
+				else
+				{
+					Name = FText::AsCultureInvariant(Value.Object->GetName());
+				}
 			}
 			else if (UField* AsField = Cast<UField>(Value.Object))
 			{
