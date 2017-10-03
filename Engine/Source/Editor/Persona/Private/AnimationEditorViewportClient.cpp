@@ -1527,7 +1527,7 @@ bool FAnimationViewportClient::PreviewComponentSelectionOverride(const UPrimitiv
 		USkeletalMesh* Mesh = Component->SkeletalMesh;
 		if (Mesh)
 		{
-			return (Mesh->SelectedEditorSection != INDEX_NONE);
+			return (Mesh->SelectedEditorSection != INDEX_NONE || Mesh->SelectedEditorMaterial != INDEX_NONE);
 		}
 	}
 
