@@ -529,10 +529,14 @@ public class CameraPlayer14
 		CameraOrientation = camInfo.orientation;
 		CameraRotationOffset = 0;
 
-		// fixup for front camera only
+		// fixup for orientation depends on camera facing
 		if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)
 		{
 			CameraRotationOffset = (CameraOrientation + 90) % 360;
+		}
+		else if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK)
+		{
+			CameraRotationOffset = (450 - CameraOrientation) % 360;
 		}
 
 		// store our picks
