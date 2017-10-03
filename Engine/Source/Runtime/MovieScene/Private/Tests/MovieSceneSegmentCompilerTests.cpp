@@ -243,7 +243,8 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 		Track->SectionArray.Add(Section0);
 		Track->SectionArray.Add(Section1);
 
-		FMovieSceneTrackCompiler::FRows Rows(Track->SectionArray, &Track->GetRowCompilerRules().GetValue());
+		TInlineValue<FMovieSceneSegmentCompilerRules> RowCompilerRules = Track->GetRowCompilerRules();
+		FMovieSceneTrackCompiler::FRows Rows(Track->SectionArray, RowCompilerRules.GetPtr(nullptr));
 
 		// Test compiling the track with the additive camera rules
 		{
