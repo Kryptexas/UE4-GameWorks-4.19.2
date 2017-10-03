@@ -788,7 +788,11 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 		}
 		else
 		{
-			check(ViewArray);
+			checkf(ViewArray,
+				TEXT("bWholeSceneShadow=%d, CascadeSettings.ShadowSplitIndex=%d, bDirectionalLight=%s"),
+				bWholeSceneShadow ? TEXT("true") : TEXT("false"),
+				CascadeSettings.ShadowSplitIndex,
+				bDirectionalLight ? TEXT("true") : TEXT("false"));
 
 			for (int32 ViewIndex = 0; ViewIndex < ViewArray->Num(); ViewIndex++)
 			{
@@ -1975,7 +1979,9 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 				break;
 			default:
 				// directional lights are not handled here
-				checkf(false, TEXT("Unexpected LightType appears in CreateWholeSceneProjectedShadow"));
+				checkf(false, TEXT("Unexpected LightType %d appears in CreateWholeSceneProjectedShadow %s"),
+					(int32)LightSceneInfo->Proxy->GetLightType(),
+					*LightSceneInfo->Proxy->GetComponentName().ToString());
 			}
 
 			// Compute FadeAlpha before ShadowResolutionScale contribution (artists want to modify the softness of the shadow, not change the fade ranges)
