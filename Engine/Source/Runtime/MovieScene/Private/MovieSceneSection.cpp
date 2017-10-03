@@ -20,10 +20,12 @@ UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializ
 	, PostRollTime(0)
 {
 	UMovieSceneBuiltInEasingFunction* DefaultEaseIn = ObjectInitializer.CreateDefaultSubobject<UMovieSceneBuiltInEasingFunction>(this, "EaseInFunction");
+	DefaultEaseIn->SetFlags(RF_Public); //@todo Need to be marked public. GLEO occurs when transform sections are added to actor sequence blueprints. Are these not being duplicated properly?
 	DefaultEaseIn->Type = EMovieSceneBuiltInEasing::CubicInOut;
 	Easing.EaseIn = DefaultEaseIn;
 
 	UMovieSceneBuiltInEasingFunction* DefaultEaseOut = ObjectInitializer.CreateDefaultSubobject<UMovieSceneBuiltInEasingFunction>(this, "EaseOutFunction");
+	DefaultEaseOut->SetFlags(RF_Public); //@todo Need to be marked public. GLEO occurs when transform sections are added to actor sequence blueprints. Are these not being duplicated properly?
 	DefaultEaseOut->Type = EMovieSceneBuiltInEasing::CubicInOut;
 	Easing.EaseOut = DefaultEaseOut;
 }
