@@ -1115,29 +1115,39 @@ bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 
 	if (bDestroyingMainWindow)
 	{
-		// Figure out which window will now become active and let Slate know without waiting for Cocoa events.
-		NSArray* AllWindows = [NSApp orderedWindows];
-		uint32 DestroyedWindowIndex = 0;
-		for (uint32 Index = 0; Index < AllWindows.count; Index++)
+		// Figure out which window will now become active and let Slate know without waiting for Cocoa events. Try destroyed window's parent first,
+		// but if there's no parent or it cannot be used, try to find the best window to activate.
+		TWeakPtr<FMacWindow> ParentWindow = DestroyedWindow->GetParentWindow();
+		if (ParentWindow.IsValid() && !WindowsToClose.Contains(ParentWindow.Pin()->GetWindowHandle()) && [ParentWindow.Pin()->GetWindowHandle() canBecomeMainWindow])
 		{
-			if (WindowHandle == [AllWindows objectAtIndex:Index])
-			{
-				DestroyedWindowIndex = Index;
-				break;
-			}
+			OnWindowActivationChanged(ParentWindow.Pin().ToSharedRef(), EWindowActivation::Activate);
+			ParentWindow.Pin()->SetWindowFocus();
 		}
-
-		for (uint32 Index = DestroyedWindowIndex + 1; Index < AllWindows.count; Index++)
+		else
 		{
-			NSWindow* Window = (NSWindow*)[AllWindows objectAtIndex:Index];
-			if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeMainWindow])
+			NSArray* AllWindows = [NSApp orderedWindows];
+			uint32 DestroyedWindowIndex = 0;
+			for (uint32 Index = 0; Index < AllWindows.count; Index++)
 			{
-				TSharedPtr<FMacWindow> WindowToActivate = FindWindowByNSWindow((FCocoaWindow*)Window);
-				if (WindowToActivate.IsValid())
+				if (WindowHandle == [AllWindows objectAtIndex:Index])
 				{
-					OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
-					WindowToActivate->SetWindowFocus();
+					DestroyedWindowIndex = Index;
 					break;
+				}
+			}
+
+			for (uint32 Index = DestroyedWindowIndex + 1; Index < AllWindows.count; Index++)
+			{
+				NSWindow* Window = (NSWindow*)[AllWindows objectAtIndex:Index];
+				if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeMainWindow])
+				{
+					TSharedPtr<FMacWindow> WindowToActivate = FindWindowByNSWindow((FCocoaWindow*)Window);
+					if (WindowToActivate.IsValid())
+					{
+						OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
+						WindowToActivate->SetWindowFocus();
+						break;
+					}
 				}
 			}
 		}
