@@ -114,14 +114,12 @@ namespace UnrealBuildTool
 			BackgroundProcess.StartInfo.RedirectStandardOutput = true;
 			BackgroundProcess.StartInfo.RedirectStandardError = true;
 			BackgroundProcess.StartInfo.UseShellExecute = false;
+			BackgroundProcess.ErrorDataReceived += ErrorDataReceived;
+			BackgroundProcess.OutputDataReceived += OutputDataReceived;
 			try
 			{
 				BackgroundProcess.Start();
-
-				BackgroundProcess.ErrorDataReceived += ErrorDataReceived;
 				BackgroundProcess.BeginErrorReadLine();
-
-				BackgroundProcess.OutputDataReceived += OutputDataReceived;
 				BackgroundProcess.BeginOutputReadLine();
 			}
 			catch
@@ -162,6 +160,17 @@ namespace UnrealBuildTool
 				if(!BackgroundProcess.WaitForExit(500))
 				{
 					Log.WriteLine(LogEventType.Console, "Waiting for 'git status' command to complete");
+				}
+				if(!BackgroundProcess.WaitForExit(15000))
+				{
+					Log.WriteLine(LogEventType.Console, "Terminating git child process due to timeout");
+					try
+					{
+						BackgroundProcess.Kill();
+					}
+					catch
+					{
+					}
 				}
 				BackgroundProcess.WaitForExit();
 				BackgroundProcess.Dispose();
