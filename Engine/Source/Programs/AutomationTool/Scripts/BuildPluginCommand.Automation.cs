@@ -173,7 +173,7 @@ class BuildPlugin : BuildCommand
 		// Add these modules to the build agenda
 		if(ModuleNames.Count > 0)
 		{
-			string Arguments = "";// String.Format("-plugin {0}", CommandUtils.MakePathSafeToUseWithCommandLine(PluginFile.FullName));
+			string Arguments = "-iwyu";// String.Format("-plugin {0}", CommandUtils.MakePathSafeToUseWithCommandLine(PluginFile.FullName));
 			foreach(string ModuleName in ModuleNames)
 			{
 				Arguments += String.Format(" -module {0}", ModuleName);

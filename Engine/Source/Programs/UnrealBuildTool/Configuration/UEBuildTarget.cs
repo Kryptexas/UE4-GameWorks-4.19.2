@@ -4269,7 +4269,7 @@ namespace UnrealBuildTool
 				// Disable shared PCHs for game modules by default (but not game plugins, since they won't depend on the game's PCH!)
 				if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
 				{
-					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory))
+					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory) || Rules.bIWYU)
 					{
 						// Engine module or plugin module -- allow shared PCHs
 						RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
