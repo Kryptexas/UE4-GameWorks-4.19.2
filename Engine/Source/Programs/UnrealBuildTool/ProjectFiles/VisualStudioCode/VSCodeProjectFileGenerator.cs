@@ -174,50 +174,6 @@ namespace UnrealBuildTool
 			return new VSCodeProjectFolder(InitOwnerProjectFileGenerator, InitFolderName);
 		}
 
-		private void GatherBuildProducts(ProjectFile Project, List<BuildProduct> OutToBuild)
-		{
-			if (Project is VSCodeProject)
-			{
-				foreach (ProjectTarget Target in Project.ProjectTargets)
-				{
-					string ProjectName = Target.TargetRules.Name;
-
-					List<UnrealTargetConfiguration> Configs = new List<UnrealTargetConfiguration>();
-					List<UnrealTargetPlatform> Platforms = new List<UnrealTargetPlatform>();
-					Target.TargetRules.GetSupportedConfigurations(ref Configs, true);
-					Target.TargetRules.GetSupportedPlatforms(ref Platforms);
-
-					foreach (UnrealTargetPlatform Platform in Platforms)
-					{
-						if (SupportedPlatforms.Contains(Platform))
-						{
-							foreach (UnrealTargetConfiguration Config in Configs)
-							{
-								OutToBuild.Add(new BuildProduct { ProjectName = ProjectName, Platform = Platform, Config = Config, Type = Target.TargetRules.Type });
-							}
-						}
-					}
-				}
-			}
-			else if (Project is VCSharpProjectFile)
-			{
-				string ProjectName = Project.ProjectFilePath.GetFileNameWithoutExtension();
-
-				VCSharpProjectFile VCSharpProject = Project as VCSharpProjectFile;
-				UnrealTargetConfiguration[] Configs = { UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development };
-
-				foreach (UnrealTargetConfiguration Config in Configs)
-				{
-					CsProjectInfo Info = VCSharpProject.GetProjectInfo(Config);
-
-					if (!Info.IsDotNETCoreProject() && Info.Properties.ContainsKey("OutputPath"))
-					{
-						OutToBuild.Add(new BuildProduct { ProjectName = ProjectName, Platform = HostPlatform, Config = Config, Type = TargetType.Program });
-					}
-				}
-			}
-		}
-
 		protected override bool WriteMasterProjectFile(ProjectFile UBTProject)
 		{
 			VSCodeDir = DirectoryReference.Combine(MasterProjectPath, ".vscode");
@@ -325,33 +281,41 @@ namespace UnrealBuildTool
 						TargetRules.LinkEnvironmentConfiguration LinkEnvironment = new TargetRules.LinkEnvironmentConfiguration(Target.TargetRules);
 						Target.TargetRules.SetupGlobalEnvironment(new TargetInfo(new ReadOnlyTargetRules(Target.TargetRules)), ref LinkEnvironment, ref CppEnvironment);
 
-						List<UnrealTargetConfiguration> Configs = new List<UnrealTargetConfiguration>();
+						Array Configs = Enum.GetValues(typeof(UnrealTargetConfiguration));
 						List<UnrealTargetPlatform> Platforms = new List<UnrealTargetPlatform>();
-						Target.TargetRules.GetSupportedConfigurations(ref Configs, true);
 						Target.TargetRules.GetSupportedPlatforms(ref Platforms);
 
 						ProjectData.Target NewTarget = new ProjectData.Target(NewProject, Target.TargetRules.Name, Target.TargetRules.Type);
 
+						if (HostPlatform != UnrealTargetPlatform.Win64)
+						{
+							Platforms.Remove(UnrealTargetPlatform.Win64);
+							Platforms.Remove(UnrealTargetPlatform.Win32);
+						}
+
 						foreach (UnrealTargetPlatform Platform in Platforms)
 						{
-							if (SupportedPlatforms.Contains(Platform))
+							var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
+							if (SupportedPlatforms.Contains(Platform) && (BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid))
 							{
- 								foreach (UnrealTargetConfiguration Config in Configs)
+								foreach (UnrealTargetConfiguration Config in Configs)
 								{
-									NewTarget.BuildProducts.Add(new ProjectData.BuildProduct
+									if (MSBuildProjectFile.IsValidProjectPlatformAndConfiguration(Target, Platform, Config))
 									{
-										Platform = Platform,
-										Config = Config,
-										OutputType = ProjectData.EOutputType.Exe,
-										OutputFile = GetExecutableFilename(Project, Target, Platform, Config, LinkEnvironment),
-										CSharpInfo = null
-									});
+										NewTarget.BuildProducts.Add(new ProjectData.BuildProduct
+										{
+											Platform = Platform,
+											Config = Config,
+											OutputType = ProjectData.EOutputType.Exe,
+											OutputFile = GetExecutableFilename(Project, Target, Platform, Config, LinkEnvironment),
+											CSharpInfo = null
+										});
+									}
 								}
 							}
 						}
 
 						NewTarget.Defines.AddRange(CppEnvironment.Definitions);
-						//NewTarget.Defines.AddRange(Project.IntelliSensePreprocessorDefinitions);
 					}
 
 					NewProject.IncludePaths = new List<string>();
@@ -575,15 +539,6 @@ namespace UnrealBuildTool
 			OutFile.Write(FileReference.Combine(VSCodeDir, "c_cpp_properties.json"));
 		}
 
-		private class BuildProduct
-		{
-			public string ProjectName { get; set; }
-			public UnrealTargetPlatform Platform { get; set; }
-			public UnrealTargetConfiguration Config{ get; set; }
-			public TargetType Type { get; set; }
-			public FileReference OutputExecutable { get; set; }
-		}
-
 		private void WriteNativeTask(ProjectData.Project InProject, JsonFile OutFile)
 		{
 			string[] Commands = { "Build", "Clean" };
@@ -645,11 +600,10 @@ namespace UnrealBuildTool
 							}
 							OutFile.EndArray();
 							OutFile.AddField("problemMatcher", "$msCompile");
-
 							OutFile.BeginArray("dependsOn");
 							{
 								OutFile.AddUnnamedField("UnrealBuildTool " + HostPlatform.ToString() + " Development Build");
-								if (Target.Type == TargetType.Editor)
+								if (Command == "Build" && Target.Type == TargetType.Editor)
 								{
 									OutFile.AddUnnamedField("ShaderCompileWorker " + HostPlatform.ToString() + " Development Build");
 								}
@@ -897,14 +851,13 @@ namespace UnrealBuildTool
 
 							}
 							OutFile.EndArray();
-							OutFile.AddField("stopAtEntry", false);
 							OutFile.AddField("cwd", MakeWorkspaceRelativePath(BuildProduct.OutputFile.Directory));
-							OutFile.BeginArray("environment");
+							
+							if (HostPlatform == UnrealTargetPlatform.Win64)
 							{
-
+								OutFile.AddField("stopAtEntry", false);
+								OutFile.AddField("externalConsole", true);
 							}
-							OutFile.EndArray();
-							OutFile.AddField("externalConsole", true);
 
 							switch (HostPlatform)
 							{
@@ -917,8 +870,7 @@ namespace UnrealBuildTool
 
 								default:
 									{
-										OutFile.AddField("type", "cppdbg");
-										OutFile.AddField("MIMode", "lldb");
+										OutFile.AddField("type", "lldb");
 										break;
 									}
 							}
