@@ -697,7 +697,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 #if PLATFORM_ANDROID
 	FOpenGL::EImageExternalType ImageExternalType = FOpenGL::GetImageExternalType();
 
-	if (ImageExternalType == FOpenGL::EImageExternalType::ImageExternal100)
+	if (bEmitTextureExternal && ImageExternalType == FOpenGL::EImageExternalType::ImageExternal100)
 	{
 		bUseES30ShadingLanguage = false;
 	}
