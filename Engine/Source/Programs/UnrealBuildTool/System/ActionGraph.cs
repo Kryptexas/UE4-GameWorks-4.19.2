@@ -947,15 +947,11 @@ namespace UnrealBuildTool
 					// legitimate output to always be considered outdated.
 					if (ProducedItem.bExists && (ProducedItem.bIsRemoteFile || ProducedItem.Length > 0 || ProducedItem.IsDirectory))
 					{
-						// When linking incrementally, don't use LIB, EXP pr PDB files when checking for the oldest produced item,
-						// as those files aren't always touched.
-						if (RootAction.bUseIncrementalLinking)
+						// VS 15.3+ does not touch lib files if they do not contain any modifications, so ignore any timestamps on them.
+						String ProducedItemExtension = Path.GetExtension(ProducedItem.AbsolutePath).ToUpperInvariant();
+						if (ProducedItemExtension == ".LIB" || ProducedItemExtension == ".EXP" || ProducedItemExtension == ".PDB")
 						{
-							String ProducedItemExtension = Path.GetExtension(ProducedItem.AbsolutePath).ToUpperInvariant();
-							if (ProducedItemExtension == ".LIB" || ProducedItemExtension == ".EXP" || ProducedItemExtension == ".PDB")
-							{
-								continue;
-							}
+							continue;
 						}
 
 						// Use the oldest produced item's time as the last execution time.
