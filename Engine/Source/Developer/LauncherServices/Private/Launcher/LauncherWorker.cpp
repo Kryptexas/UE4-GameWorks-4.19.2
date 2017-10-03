@@ -470,7 +470,9 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 	// Override the Blueprint nativization method for anything other than "cook by the book" mode. Nativized assets
 	// won't get regenerated otherwise, and we don't want UBT to include generated code assets from a previous cook.
-	if (InProfile->GetCookMode() != ELauncherProfileCookModes::ByTheBook)
+	// Also disable Blueprint nativization if the profile is not configured to also build code. Otherwise nativized
+	// assets generated at cook time will not be linked into the game's executable prior to stage/deployment phases.
+	if (InProfile->GetCookMode() != ELauncherProfileCookModes::ByTheBook || !InProfile->IsBuilding())
 	{
 		UATCommand += TEXT(" -ini:Game:[/Script/UnrealEd.ProjectPackagingSettings]:BlueprintNativizationMethod=Disabled");
 	}
