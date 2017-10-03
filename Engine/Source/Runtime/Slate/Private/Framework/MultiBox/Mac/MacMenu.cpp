@@ -370,19 +370,22 @@ void FSlateMacMenu::UpdateCachedState()
 void FSlateMacMenu::ExecuteMenuItemAction(const TSharedRef< const class FMenuEntryBlock >& Block)
 {
     TSharedPtr< const class FMenuEntryBlock>* MenuBlock = new TSharedPtr< const class FMenuEntryBlock>(Block);
-	GameThreadCall(^{
-		TSharedPtr< const FUICommandList > ActionList = (*MenuBlock)->GetActionList();
-		if (ActionList.IsValid() && (*MenuBlock)->GetAction().IsValid())
-		{
-			ActionList->ExecuteAction((*MenuBlock)->GetAction().ToSharedRef());
-		}
-		else
-		{
-			// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
-			(*MenuBlock)->GetDirectActions().Execute();
-		}
-        delete MenuBlock;
-	}, @[ NSDefaultRunLoopMode ], false);
+	if (!FPlatformApplicationMisc::bMacApplicationModalMode)
+	{
+		GameThreadCall(^{
+			TSharedPtr< const FUICommandList > ActionList = (*MenuBlock)->GetActionList();
+			if (ActionList.IsValid() && (*MenuBlock)->GetAction().IsValid())
+			{
+				ActionList->ExecuteAction((*MenuBlock)->GetAction().ToSharedRef());
+			}
+			else
+			{
+				// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
+				(*MenuBlock)->GetDirectActions().Execute();
+			}
+			delete MenuBlock;
+		}, @[ NSDefaultRunLoopMode ], false);
+	}
 }
 
 static const TSharedRef<SWidget> FindTextBlockWidget(TSharedRef<SWidget> Content)
