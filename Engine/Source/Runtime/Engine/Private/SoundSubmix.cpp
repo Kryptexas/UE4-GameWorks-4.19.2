@@ -8,6 +8,11 @@
 #include "UObject/UObjectIterator.h"
 
 #if WITH_EDITOR
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#endif
+
+#if WITH_EDITOR
 TSharedPtr<ISoundSubmixAudioEditor> USoundSubmix::SoundSubmixAudioEditor = nullptr;
 #endif
 
@@ -50,6 +55,105 @@ void USoundSubmix::PostLoad()
 }
 
 #if WITH_EDITOR
+
+TArray<USoundSubmix*> BackupChildSubmixes;
+
+void USoundSubmix::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	static FName NAME_ChildSubmixes(TEXT("ChildSubmixes"));
+
+	if (PropertyAboutToChange && PropertyAboutToChange->GetFName() == NAME_ChildSubmixes)
+	{
+		// Take a copy of the current state of child classes
+		BackupChildSubmixes = ChildSubmixes;
+	}
+}
+
+void USoundSubmix::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		static const FName NAME_ChildSubmixes(TEXT("ChildSubmixes"));
+		static const FName NAME_ParentSubmix(TEXT("ParentSubmix"));
+
+		if (PropertyChangedEvent.Property->GetFName() == NAME_ChildSubmixes)
+		{
+			// Find child that was changed/added
+			for (int32 ChildIndex = 0; ChildIndex < ChildSubmixes.Num(); ChildIndex++)
+			{
+				if (ChildSubmixes[ChildIndex] != nullptr && !BackupChildSubmixes.Contains(ChildSubmixes[ChildIndex]))
+				{
+					if (ChildSubmixes[ChildIndex]->RecurseCheckChild(this))
+					{
+						// Contains cycle so revert to old layout - launch notification to inform user
+						FNotificationInfo Info(NSLOCTEXT("Engine", "UnableToChangeSoundSubmixChildDueToInfiniteLoopNotification", "Could not change SoundSubmix child as it would create a loop"));
+						Info.ExpireDuration = 5.0f;
+						Info.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Error"));
+						FSlateNotificationManager::Get().AddNotification(Info);
+
+						// Revert to the child submixes
+						ChildSubmixes = BackupChildSubmixes;
+					}
+					else
+					{
+						// Update parentage
+						ChildSubmixes[ChildIndex]->SetParentSubmix(this);
+					}
+					break;
+				}
+			}
+
+			// Update old child's parent if it has been removed
+			for (int32 ChildIndex = 0; ChildIndex < BackupChildSubmixes.Num(); ChildIndex++)
+			{
+				if (BackupChildSubmixes[ChildIndex] != nullptr && !ChildSubmixes.Contains(BackupChildSubmixes[ChildIndex]))
+				{
+					BackupChildSubmixes[ChildIndex]->Modify();
+					BackupChildSubmixes[ChildIndex]->ParentSubmix = nullptr;
+				}
+			}
+
+			RefreshAllGraphs(false);
+		}
+		else if (PropertyChangedEvent.Property->GetFName() == NAME_ParentSubmix)
+		{
+			// Add this sound class to the parent class if it's not already added
+			if (ParentSubmix)
+			{
+				bool bIsChildSubmix = false;
+				for (int32 i = 0; i < ParentSubmix->ChildSubmixes.Num(); ++i)
+				{
+					USoundSubmix* ChildSubmix = ParentSubmix->ChildSubmixes[i];
+					if (ChildSubmix && ChildSubmix == this)
+					{
+						bIsChildSubmix = true;
+						break;
+					}
+				}
+
+				if (!bIsChildSubmix)
+				{
+					ParentSubmix->Modify();
+					ParentSubmix->ChildSubmixes.Add(this);
+				}
+			}
+
+			Modify();
+			RefreshAllGraphs(false);
+		}
+	}
+
+	// Use the main/default audio device for storing and retrieving sound class properties
+	FAudioDeviceManager* AudioDeviceManager = (GEngine ? GEngine->GetAudioDeviceManager() : nullptr);
+
+	// Force the properties to be initialized for this SoundSubmix on all active audio devices
+	if (AudioDeviceManager)
+	{
+		AudioDeviceManager->RegisterSoundSubmix(this);
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
 
 bool USoundSubmix::RecurseCheckChild(USoundSubmix* ChildSoundSubmix)
 {
