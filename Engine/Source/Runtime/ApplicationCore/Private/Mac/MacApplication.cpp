@@ -522,7 +522,7 @@ NSEvent* FMacApplication::HandleNSEvent(NSEvent* Event)
 {
 	NSEvent* ReturnEvent = Event;
 
-	if (MacApplication && !MacApplication->bSystemModalMode)
+	if (MacApplication && !MacApplication->bSystemModalMode && FPlatformApplicationMisc::bMacApplicationModalMode)
 	{
 		const bool bIsResentEvent = [Event type] == NSApplicationDefined && [Event subtype] == (NSEventSubtype)RESET_EVENT_SUBTYPE;
 
@@ -982,7 +982,7 @@ void FMacApplication::ProcessGestureEvent(const FDeferredMacEvent& Event)
 void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow)
 {
 	bool bHandled = false;
-	if (!bSystemModalMode && EventWindow.IsValid())
+	if (!bSystemModalMode && EventWindow.IsValid() && !FPlatformApplicationMisc::bMacApplicationModalMode)
 	{
 		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
 		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
@@ -1015,7 +1015,7 @@ void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event, TShare
 void FMacApplication::ProcessKeyUpEvent(const FDeferredMacEvent& Event)
 {
 	bool bHandled = false;
-	if (!bSystemModalMode && [Event.Characters length] > 0 && [Event.CharactersIgnoringModifiers length] > 0)
+	if (!bSystemModalMode && [Event.Characters length] > 0 && [Event.CharactersIgnoringModifiers length] > 0 && FPlatformApplicationMisc::bMacApplicationModalMode)
 	{
 		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
 		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
