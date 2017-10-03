@@ -669,10 +669,12 @@ bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* Collis
 	{
 		FModelElement& Element = Elements[ElementIndex];
 		FRawIndexBuffer16or32* IndexBuffer = Element.IndexBuffer;
-
-		const int32 IndexBufferSize = IndexBuffer->Indices.Num();
-		if (IndexBufferSize >= 0)
+		int32 IndexBufferSize = 0;
+		// Check index buffer pointer is valid and has something in it
+		if (IndexBuffer != nullptr && IndexBuffer->Indices.Num() >= 0)
 		{
+			IndexBufferSize = IndexBuffer->Indices.Num();
+
 			for (uint32 TriIdx = 0; TriIdx < Element.NumTriangles; TriIdx++)
 			{
 				FTriIndices Triangle;
@@ -704,7 +706,7 @@ bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* Collis
 		}
 		else
 		{
-			UE_LOG(LogPhysics, Warning, TEXT("Found bad index buffer when cooking UModelComponent physics data! Component: %s, Buffer Size: %d, Element: %d"), *GetPathName(this), IndexBufferSize, ElementIndex);
+			UE_LOG(LogPhysics, Warning, TEXT("Found bad index buffer when cooking UModelComponent physics data! Component: %s, Buffer: %x, Buffer Size: %d, Element: %d"), *GetPathName(this), IndexBuffer, IndexBufferSize, ElementIndex);
 			verify(IndexBufferSize >= 0);
 		}
 	}
