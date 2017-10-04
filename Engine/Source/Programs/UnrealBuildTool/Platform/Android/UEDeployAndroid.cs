@@ -72,28 +72,28 @@ namespace UnrealBuildTool
 				if (Plugin.Contains("OnlineSubsystemFacebook_UPL"))
 				{
 					FacebookPluginEnabled = true;
-					break;
+					continue;
 				}
 
 				// check if the ARCore plugin was enabled
 				if (Plugin.Contains("GoogleARCoreBase_APL"))
 				{
 					ARCorePluginEnabled = true;
-					break;
+					continue;
 				}
 
 				// check if the Gear VR plugin was enabled
 				if (Plugin.Contains("GearVR_APL"))
 				{
 					GearVRPluginEnabled = true;
-					break;
+					continue;
 				}
 
 				// check if the GoogleVR plugin was enabled
 				if (Plugin.Contains("GoogleVRHMD"))
 				{
 					GoogleVRPluginEnabled = true;
-					break;
+					continue;
 				}
 
 				// check if Crashlytics plugin was enabled
@@ -101,7 +101,7 @@ namespace UnrealBuildTool
 				if (Plugin.Contains("Crashlytics_UPL.xml"))
 				{
 					CrashlyticsPluginEnabled = true;
-					break;
+					continue;
 				}
 			}
 
@@ -2794,12 +2794,6 @@ namespace UnrealBuildTool
 				Log.TraceInformation("Application display name is different than last build, forcing repackage.");
 			}
 
-			// Write Crashlytics data if enabled
-			if (CrashlyticsPluginEnabled)
-			{
-				WriteCrashlyticsResources(Path.Combine(ProjectDirectory, "Build", "Android"), PackageName, ApplicationDisplayName);
-			}
-
 			// if the manifest matches, look at other settings stored in a file
 			if (bBuildSettingsMatch)
 			{
@@ -2962,6 +2956,13 @@ namespace UnrealBuildTool
 			CopyFileDirectory(GameBuildFilesPath, UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
+
+			// Write Crashlytics data if enabled
+			if (CrashlyticsPluginEnabled)
+			{
+				Trace.TraceInformation("Writing Crashlytics resources");
+				WriteCrashlyticsResources(Path.Combine(ProjectDirectory, "Build", "Android"), PackageName, ApplicationDisplayName);
+			}
 
 			if (!bGradleEnabled)
 			{
