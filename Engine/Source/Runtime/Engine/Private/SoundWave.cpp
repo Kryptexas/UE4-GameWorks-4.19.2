@@ -429,6 +429,8 @@ void USoundWave::PostLoad()
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
 		AssetImportData->SourceData = MoveTemp(Info);
 	}
+
+	bNeedsThumbnailGeneration = true;
 #endif // #if WITH_EDITORONLY_DATA
 
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );

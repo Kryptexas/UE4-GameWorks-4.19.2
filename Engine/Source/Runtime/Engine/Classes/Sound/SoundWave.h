@@ -433,6 +433,8 @@ public:
 	virtual void ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform ) override;
 
 	virtual void WillNeverCacheCookedPlatformDataAgain() override;
+
+	uint32 bNeedsThumbnailGeneration:1;
 #endif
 	
 	/**
