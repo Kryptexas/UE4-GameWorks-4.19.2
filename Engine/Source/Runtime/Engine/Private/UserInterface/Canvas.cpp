@@ -1221,8 +1221,9 @@ void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
 	SizeY = InSizeY;
 	UnsafeSizeX = SizeX;
 	UnsafeSizeY = SizeY;
-	SceneView = InSceneView;		
-	
+	SceneView = InSceneView;
+	Canvas = nullptr;
+
 	Update();
 }
 
