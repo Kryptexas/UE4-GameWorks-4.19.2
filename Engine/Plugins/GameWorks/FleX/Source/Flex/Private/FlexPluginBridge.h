@@ -46,6 +46,8 @@ public:
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex);
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex);
 
+	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial);
+	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component);
 	virtual void UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData);
 	virtual void ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component);
 	virtual void SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable);
@@ -64,7 +66,7 @@ private:
 private:
 	/** Map from Flex fluid surface template to fluid surface components*/
 	typedef TMap<class UFlexFluidSurface*, class UFlexFluidSurfaceComponent*> FFlexFuildSurfaceMap;
-	TMap<class UWorld*, FFlexFuildSurfaceMap> WorldMap;
+	TMap<TWeakObjectPtr<UWorld>, FFlexFuildSurfaceMap> WorldMap;
 
 	struct FPhysSceneContext
 	{

@@ -15,6 +15,8 @@ class UFlexMigrateContentCommandlet : public UCommandlet
 
 private:
 	class UObject* MigrateStaticMesh(class UStaticMesh* StaticMesh, TArray<UPackage*>& DirtiedPackages);
+	class UObject* MigrateParticleEmitter(class UParticleSpriteEmitter* ParticleEmitter, TArray<UPackage*>& DirtiedPackages);
+	//class UObject* MigrateParticleSystemComponent(class UParticleSystemComponent* ParticleSystemComponent, TArray<UPackage*>& DirtiedPackages);
 
 	bool ForceReplaceReferences(const TMap<UObject*, UObject*>& ReplacementMap, TArray<UPackage*>& DirtiedPackages);
 };

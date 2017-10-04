@@ -30,12 +30,12 @@ class UParticleSpriteEmitter : public UParticleEmitter
 
 
 	//~ Begin UObject Interface
-	virtual void PostLoad() override;
+	ENGINE_API virtual void PostLoad() override;
 	//~ End UObject Interface
 
 	//~ Begin UParticleEmitter Interface
-	virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent) override;
-	virtual void SetToSensibleDefaults() override;
+	ENGINE_API virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent) override;
+	ENGINE_API virtual void SetToSensibleDefaults() override;
 	//~ End UParticleEmitter Interface
 };
 

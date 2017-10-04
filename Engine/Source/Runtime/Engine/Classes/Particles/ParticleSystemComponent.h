@@ -1213,8 +1213,20 @@ public:
 	virtual int32 GetNamedMaterialIndex(FName InName) const;
 
 	// NvFlex begin
+	/**
+	* Creates a Dynamic Material Instance for the specified flex material from the supplied material.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
+	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UMaterialInterface* SourceMaterial);
+
+	/**
+	* Get all of the FleX container templates from all of the emitter instances
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Flex")
+	virtual class UObject* GetFirstFlexContainerTemplate(); //returns UFlexContainer*
+
 	UPROPERTY()
-	class UObject* FlexFluidSurfaceOverride_DEPRECATED; //UFlexFluidSurface*
+	class UObject* FlexFluidSurfaceOverride; //holds UFlexFluidSurface*
 	// NvFlex end
 
 protected:

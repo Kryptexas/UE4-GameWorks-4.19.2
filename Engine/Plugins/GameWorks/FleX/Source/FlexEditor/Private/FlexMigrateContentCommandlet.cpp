@@ -6,7 +6,6 @@
 #include "AssetRegistryModule.h"
 #include "Engine/World.h"
 
-#include "Engine/StaticMesh.h"
 #include "FlexStaticMesh.h"
 #include "FlexAsset.h"
 
@@ -14,6 +13,9 @@
 
 #include "Serialization/FindReferencersArchive.h"
 #include "Serialization/ArchiveReplaceObjectRef.h"
+
+#include "FlexParticleEmitter.h"
+//#include "FlexParticleSystemComponent.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogFlexMigrateContentCommandlet, Log, All);
@@ -90,6 +92,53 @@ int32 UFlexMigrateContentCommandlet::Main(const FString& Params)
 			}
 		}
 	}
+#if 0
+	for (TObjectIterator<UParticleSystemComponent> ComponentIt; ComponentIt; ++ComponentIt)
+	{
+		UParticleSystemComponent* ParticleSystemComponent = *ComponentIt;
+		if (ParticleSystemComponent && ParticleSystemComponent->Template)
+		{
+			bool bIsFlexParticleSystem = false;
+			for (auto EmitterIt = ParticleSystemComponent->Template->Emitters.CreateIterator(); EmitterIt; ++EmitterIt)
+			{
+				if ((*EmitterIt)->FlexContainerTemplate_DEPRECATED != nullptr)
+				{
+					bIsFlexParticleSystem = true;
+					break;
+				}
+			}
+
+			if (bIsFlexParticleSystem)
+			{
+				UObject* NewObject = MigrateParticleSystemComponent(ParticleSystemComponent, DirtiedPackages);
+				if (NewObject == nullptr)
+				{
+					UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("failed to migrate ParticleSystemComponent: %s"), *ParticleSystemComponent->GetFullName());
+					bSuccess = false;
+					break;
+				}
+
+				ReplacementMap.Add(ParticleSystemComponent, NewObject);
+			}
+		}
+	}
+#endif
+	for (TObjectIterator<UParticleSpriteEmitter> EmitterIt; EmitterIt; ++EmitterIt)
+	{
+		UParticleSpriteEmitter* ParticleEmitter = *EmitterIt;
+		if (ParticleEmitter && ParticleEmitter->FlexContainerTemplate_DEPRECATED)
+		{
+			UObject* NewObject = MigrateParticleEmitter(ParticleEmitter, DirtiedPackages);
+			if (NewObject == nullptr)
+			{
+				UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("failed to migrate ParticleEmitter: %s"), *ParticleEmitter->GetFullName());
+				bSuccess = false;
+				break;
+			}
+
+			ReplacementMap.Add(ParticleEmitter, NewObject);
+		}
+	}
 
 	if (bSuccess && ReplacementMap.Num() > 0)
 	{
@@ -111,49 +160,100 @@ int32 UFlexMigrateContentCommandlet::Main(const FString& Params)
 		//return UPackage::SavePackage(Package, nullptr, RF_Standalone, *PackageFileName, GError, nullptr, false, true, SAVE_NoError);
 		GEditor->SavePackage(Package, nullptr, RF_Standalone, *PackageFilename, GError, nullptr, false, true, SAVE_NoError);
 	}
-
 	return bSuccess ? 0 : 1;
+}
+
+namespace
+{
+	template <class TR, class T>
+	TR* PreMigrateObject(T* InObject)
+	{
+		UObject* InOuter = InObject->GetOuter();
+		FName InObjectFName = InObject->GetFName();
+
+		UPackage* TempPackage = GetTransientPackage();
+		FString TempObjectName = MakeUniqueObjectName(TempPackage, T::StaticClass(), InObjectFName).ToString();
+
+		if (InObject->Rename(*TempObjectName, TempPackage, REN_DontCreateRedirectors) == false)
+			return nullptr;
+
+		return Cast<TR>(StaticDuplicateObject(InObject, InOuter, InObjectFName, RF_AllFlags, TR::StaticClass()));
+	}
+
+	template <class T>
+	T* PostMigrateObject(T* NewObject, TArray<UPackage*>& DirtiedPackages)
+	{
+		UPackage* Package = NewObject->GetOutermost();
+		Package->SetDirtyFlag(true);
+		DirtiedPackages.AddUnique(Package);
+		return NewObject;
+	}
+
+	template <class TNO, typename TNP, class TOO, typename TOP>
+	void MigratePropetry(TNO* NewObject, typename TNP* TNO::* NewProperty, TOO* OldObject, typename TOP* TOO::* OldProperty)
+	{
+		TOP* OldPropValue = OldObject->*OldProperty;
+		TNP* NewPropValue = NewObject->*NewProperty = Cast<TNP>(OldPropValue);
+		OldObject->*OldProperty = nullptr;
+
+		UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("MigratePropetry: %s"), NewPropValue != nullptr ? *NewPropValue->GetFullName() : TEXT("null"));
+
+		if (NewPropValue)
+		{
+			if (NewPropValue->IsIn(OldObject))
+			{
+				UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("MigratePropetry: change outer!"));
+				NewPropValue->Rename(nullptr, NewObject, REN_DontCreateRedirectors);
+			}
+		}
+	}
 }
 
 UObject* UFlexMigrateContentCommandlet::MigrateStaticMesh(UStaticMesh* StaticMesh, TArray<UPackage*>& DirtiedPackages)
 {
 	UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("MigrateStaticMesh: %s"), *StaticMesh->GetFullName());
 
-	UPackage* Package = StaticMesh->GetOutermost();
-
-	UPackage* TempPackage = GetTransientPackage();
-	FString TempObjectName = MakeUniqueObjectName(TempPackage, UStaticMesh::StaticClass(), StaticMesh->GetFName()).ToString();
-
-	if (StaticMesh->Rename(*TempObjectName, TempPackage, REN_DontCreateRedirectors) == false)
-		return nullptr;
-
-	UFlexStaticMesh* FSM = Cast<UFlexStaticMesh>(StaticDuplicateObject(StaticMesh, Package, NAME_None, RF_AllFlags, UFlexStaticMesh::StaticClass()));
+	auto FSM = PreMigrateObject<UFlexStaticMesh>(StaticMesh);
 	if (FSM == nullptr)
 		return nullptr;
 
-	FSM->FlexAsset = Cast<UFlexAsset>(StaticMesh->FlexAsset_DEPRECATED);
-	StaticMesh->FlexAsset_DEPRECATED = nullptr;
-	if (FSM->FlexAsset)
-	{
-		FSM->FlexAsset->Rename(nullptr, FSM, REN_DontCreateRedirectors);
-	}
-#if 0
-	UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("AFTER: Objects in package %s:"), *Package->GetFullName());
-	for (FObjectIterator It; It; ++It)
-	{
-		UObject* Object = *It;
-		if (Object->IsIn(Package))
-		{
-			UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("%s of %s"), *Object->GetFullName(), *Object->GetOuter()->GetName());
-		}
-	}
-#endif
+	MigratePropetry(FSM, &UFlexStaticMesh::FlexAsset, StaticMesh, &UStaticMesh::FlexAsset_DEPRECATED);
 
-	Package->SetDirtyFlag(true);
-	DirtiedPackages.AddUnique(Package);
-
-	return FSM;
+	return PostMigrateObject(FSM, DirtiedPackages);
 }
+
+class UObject* UFlexMigrateContentCommandlet::MigrateParticleEmitter(class UParticleSpriteEmitter* ParticleEmitter, TArray<UPackage*>& DirtiedPackages)
+{
+	UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("MigrateParticleEmitter: %s"), *ParticleEmitter->GetFullName());
+
+	auto FPE = PreMigrateObject<UFlexParticleEmitter>(ParticleEmitter);
+	if (FPE == nullptr)
+		return nullptr;
+
+	MigratePropetry(FPE, &UFlexParticleEmitter::FlexContainerTemplate, static_cast<UParticleEmitter*>(ParticleEmitter), &UParticleEmitter::FlexContainerTemplate_DEPRECATED);
+	FPE->Phase = ParticleEmitter->Phase_DEPRECATED;
+	FPE->bLocalSpace = ParticleEmitter->bLocalSpace_DEPRECATED;
+	FPE->Mass = ParticleEmitter->Mass_DEPRECATED;
+	FPE->InertialScale = ParticleEmitter->InertialScale_DEPRECATED;
+	MigratePropetry(FPE, &UFlexParticleEmitter::FlexFluidSurfaceTemplate, static_cast<UParticleEmitter*>(ParticleEmitter), &UParticleEmitter::FlexFluidSurfaceTemplate_DEPRECATED);
+
+	return PostMigrateObject(FPE, DirtiedPackages);
+}
+
+#if 0
+class UObject* UFlexMigrateContentCommandlet::MigrateParticleSystemComponent(class UParticleSystemComponent* ParticleSystemComponent, TArray<UPackage*>& DirtiedPackages)
+{
+	UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("MigrateParticleSystemComponent: %s"), *ParticleSystemComponent->GetFullName());
+
+	auto FPSC = PreMigrateObject<UFlexParticleSystemComponent>(ParticleSystemComponent);
+	if (FPSC == nullptr)
+		return nullptr;
+
+	MigratePropetry(FPSC, &UFlexParticleSystemComponent::FlexFluidSurfaceOverride, ParticleSystemComponent, &UParticleSystemComponent::FlexFluidSurfaceOverride_DEPRECATED);
+
+	return PostMigrateObject(FPSC, DirtiedPackages);
+}
+#endif
 
 bool UFlexMigrateContentCommandlet::ForceReplaceReferences(const TMap<UObject*, UObject*>& ReplacementMap, TArray<UPackage*>& DirtiedPackages)
 {
@@ -184,12 +284,38 @@ bool UFlexMigrateContentCommandlet::ForceReplaceReferences(const TMap<UObject*, 
 				ReferencingPropertiesMap.Add(CurObject, CurReferencedProperties);
 				if (CurReferencedProperties.Num() > 0)
 				{
-					UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("Object %s has replacable properties:"), *CurObject->GetFullName());
+					UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("Object %s has properties to replace:"), *CurObject->GetFullName());
 
 					for (TArray<UProperty*>::TConstIterator RefPropIter(CurReferencedProperties); RefPropIter; ++RefPropIter)
 					{
-						UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("== %s"), *(*RefPropIter)->GetFullName());
-						CurObject->PreEditChange(*RefPropIter);
+						UProperty* Prop = *RefPropIter;
+						UObjectProperty* ObjProp = CastChecked<UObjectProperty>(Prop);
+
+						void* Address = nullptr;
+						if (ObjProp->GetOwnerProperty() != ObjProp)
+						{
+							UArrayProperty* ArrayProp = Cast<UArrayProperty>(ObjProp->GetOwnerProperty());
+							if (ArrayProp)
+							{
+								FScriptArray* ArrayPtr = (FScriptArray*)ArrayProp->ContainerPtrToValuePtr<void>(CurObject);
+
+								Address = ObjProp->ContainerPtrToValuePtr<void>(ArrayPtr->GetData());
+							}
+						}
+						else
+						{
+							Address = ObjProp->ContainerPtrToValuePtr<void>(CurObject);
+						}
+
+						if (Address)
+						{
+							UObject* ObjPropValue = ObjProp->GetPropertyValue(Address);
+							auto FindResult = ReplacementMap.Find(ObjPropValue);
+							UObject* ReplaceObj = FindResult ? *FindResult : nullptr;
+
+							UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("--- Prop %s = %s -> %s"), *Prop->GetName(), ObjPropValue ? *ObjPropValue->GetFullName() : TEXT("null"), ReplaceObj ? *ReplaceObj->GetFullName() : TEXT("null"));
+						}
+						CurObject->PreEditChange(Prop);
 					}
 				}
 				else

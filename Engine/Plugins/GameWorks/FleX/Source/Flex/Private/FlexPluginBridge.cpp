@@ -22,7 +22,6 @@
 #include "Particles/ParticleEmitter.h"
 #include "FlexParticleEmitterInstance.h"
 #include "FlexCollisionComponent.h"
-#include "FlexParticleSystemComponent.h"
 #include "FlexParticleEmitter.h"
 
 
@@ -49,17 +48,17 @@ void FFlexPluginBridge::ReImportFlexAsset(class UStaticMesh* StaticMesh)
 class UFlexFluidSurfaceComponent* FFlexPluginBridge::GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(World);
+	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
 
 	check(FlexFluidSurface);
 	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
-	return (Component != NULL) ? *Component : NULL;
+	return (Component != nullptr) ? *Component : nullptr;
 }
 
 class UFlexFluidSurfaceComponent* FFlexPluginBridge::AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(World);
+	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
 
 	check(FlexFluidSurface);
 	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
@@ -86,7 +85,7 @@ class UFlexFluidSurfaceComponent* FFlexPluginBridge::AddFlexFluidSurface(class U
 void FFlexPluginBridge::RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* Component)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(World);
+	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
 
 	check(Component && Component->FlexFluidSurface);
 	FlexFluidSurfaceMap.Remove(Component->FlexFluidSurface);
@@ -355,10 +354,10 @@ void FFlexPluginBridge::AttachFlexToComponent(class USceneComponent* Component, 
 		TArray<UActorComponent*> ParticleComponents = TestActor->GetComponentsByClass(UParticleSystemComponent::StaticClass());
 		for (int32 ComponentIdx = 0; ComponentIdx < ParticleComponents.Num(); ++ComponentIdx)
 		{
-			UFlexParticleSystemComponent* ParticleSystemComponet = Cast<UFlexParticleSystemComponent>(ParticleComponents[ComponentIdx]);
+			auto ParticleSystemComponet = Cast<UParticleSystemComponent>(ParticleComponents[ComponentIdx]);
 
 			// is this a PSC with Flex?
-			if (ParticleSystemComponet && ParticleSystemComponet->GetFirstFlexContainerTemplate())
+			if (ParticleSystemComponet && FFlexPluginBridge::GetFirstFlexContainerTemplate(ParticleSystemComponet))
 			{
 				const FBoxSphereBounds FlexBounds = ParticleSystemComponet->CalcBounds(FTransform::Identity);
 
@@ -668,36 +667,153 @@ void FFlexPluginBridge::FlexEmitterInstanceKillParticle(struct FParticleEmitterI
 	}
 }
 
+UObject* FFlexPluginBridge::GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component)
+{
+	for (int32 EmitterIndex = 0; EmitterIndex < Component->EmitterInstances.Num(); EmitterIndex++)
+	{
+		FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
+		if (EmitterInstance && EmitterInstance->SpriteTemplate)
+		{
+			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+			if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
+			{
+				FPhysScene* Scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
+
+				FFlexContainerInstance* ContainerInstance = FFlexPluginBridge::GetFlexContainer(Scene, FlexEmitter->FlexContainerTemplate);
+				return ContainerInstance ? ContainerInstance->Template : nullptr;
+			}
+		}
+	}
+	return nullptr;
+}
+
+UMaterialInstanceDynamic* FFlexPluginBridge::CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial)
+{
+	if (!SourceMaterial)
+	{
+		return nullptr;
+	}
+
+	for (int32 EmitterIndex = 0; EmitterIndex < Component->EmitterInstances.Num(); EmitterIndex++)
+	{
+		FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
+		if (EmitterInstance && 	EmitterInstance->SpriteTemplate)
+		{
+			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+			if (FlexEmitter && FlexEmitter->FlexFluidSurfaceTemplate && FlexEmitter->FlexFluidSurfaceTemplate->Material)
+			{
+				UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(SourceMaterial);
+
+				if (!MID)
+				{
+					// Create and set the dynamic material instance.
+					MID = UMaterialInstanceDynamic::Create(SourceMaterial, Component);
+				}
+
+				if (MID)
+				{
+					// Make a copy of the FlexFluidSurfaceTemplate
+					auto NewFlexFluidSurface = DuplicateObject<UFlexFluidSurface>(FlexEmitter->FlexFluidSurfaceTemplate, Component);
+					// Set the material in the new FlexFluidSurfaceTemplate
+					NewFlexFluidSurface->Material = MID;
+					// Set the FlexFluidSurfaceTemplate override in this class
+					Component->FlexFluidSurfaceOverride = NewFlexFluidSurface;
+
+					// Tell the ParticleEmiterInstance to update its FlexFluidSurfaceComponent
+					FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, NewFlexFluidSurface);
+				}
+				else
+				{
+					UE_LOG(LogFlex, Warning, TEXT("CreateFlexDynamicMaterialInstance on %s: Material is invalid."), *Component->GetPathName());
+				}
+
+				return MID;
+			}
+		}
+	}
+	return NULL;
+}
+
 void FFlexPluginBridge::UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData)
 {
-	auto FlexComponent = Cast<UFlexParticleSystemComponent>(Component);
-	if (FlexComponent)
+	check(Component);
+	check(EmitterInstance);
+	check(EmitterDynamicData);
+
+	if (Component->SceneProxy)
 	{
-		FlexComponent->UpdateFlexSurfaceDynamicData(EmitterInstance, EmitterDynamicData);
+		auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+		auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
+
+		UFlexFluidSurface* FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
+		UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : FlexFluidSurfaceTemplate;
+		if (FlexFluidSurface)
+		{
+			UFlexFluidSurfaceComponent* SurfaceComponent = FFlexPluginBridge::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
+			check(SurfaceComponent);
+
+			SurfaceComponent->SendRenderEmitterDynamicData_Concurrent((FParticleSystemSceneProxy*)Component->SceneProxy, EmitterDynamicData);
+		}
 	}
 }
 
 void FFlexPluginBridge::ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component)
 {
-	auto FlexComponent = Cast<UFlexParticleSystemComponent>(Component);
-	if (FlexComponent)
+	check(Component);
+	if (Component->SceneProxy)
 	{
-		FlexComponent->ClearFlexSurfaceDynamicData();
+		for (int32 EmitterIndex = 0; EmitterIndex < Component->EmitterInstances.Num(); EmitterIndex++)
+		{
+			FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
+			if (EmitterInstance)
+			{
+				auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+				auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
+
+				UFlexFluidSurface* FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
+				UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : FlexFluidSurfaceTemplate;
+				if (FlexFluidSurface)
+				{
+					UFlexFluidSurfaceComponent* SurfaceComponent = FFlexPluginBridge::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
+					if (SurfaceComponent)
+					{
+						SurfaceComponent->SendRenderEmitterDynamicData_Concurrent((FParticleSystemSceneProxy*)Component->SceneProxy, nullptr);
+					}
+				}
+			}
+		}
 	}
 }
 
 void FFlexPluginBridge::SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable)
 {
-	auto FlexComponent = Cast<UFlexParticleSystemComponent>(Component);
-	if (FlexComponent)
+	check(Component);
+	auto FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
+	if (FlexFluidSurfaceOverride)
 	{
-		if (FlexComponent->FlexFluidSurfaceOverride)
-		{
-			UFlexFluidSurfaceComponent* SurfaceComponent = FFlexPluginBridge::GetFlexFluidSurface(FlexComponent->GetWorld(), FlexComponent->FlexFluidSurfaceOverride);
+		UFlexFluidSurfaceComponent* SurfaceComponent = FFlexPluginBridge::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurfaceOverride);
 
-			check(SurfaceComponent);
-			// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
-			SurfaceComponent->SetEnabledReferenceCounting(bEnable);
+		check(SurfaceComponent);
+		// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
+		SurfaceComponent->SetEnabledReferenceCounting(bEnable);
+	}
+}
+
+void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance)
+{
+	check(Component);
+	auto FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
+	if (FlexFluidSurfaceOverride)
+	{
+		if (EmitterInstance && EmitterInstance->SpriteTemplate)
+		{
+			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+			auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
+
+			if (FlexFluidSurfaceTemplate && FlexFluidSurfaceTemplate->Material)
+			{
+				FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexFluidSurfaceOverride);
+			}
 		}
 	}
 }
@@ -714,24 +830,6 @@ void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(struct FParticleEmi
 	{
 		EmitterInstance->FlexFluidSurfaceComponent = AddFlexFluidSurface(EmitterInstance->GetWorld(), NewFlexFluidSurface);
 		EmitterInstance->FlexFluidSurfaceComponent->RegisterEmitterInstance(EmitterInstance);
-	}
-}
-
-void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance)
-{
-	auto FlexComponent = Cast<UFlexParticleSystemComponent>(Component);
-	if (FlexComponent && FlexComponent->FlexFluidSurfaceOverride)
-	{
-		if (EmitterInstance && EmitterInstance->SpriteTemplate)
-		{
-			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
-			auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
-
-			if (FlexFluidSurfaceTemplate && FlexFluidSurfaceTemplate->Material)
-			{
-				FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexComponent->FlexFluidSurfaceOverride);
-			}
-		}
 	}
 }
 

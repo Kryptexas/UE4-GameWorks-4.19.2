@@ -1,11 +1,11 @@
 #pragma once
-#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleSpriteEmitter.h"
 #include "FlexAsset.h"
 #include "FlexParticleEmitter.generated.h"
 
 
-UCLASS(hidecategories=Object, editinlinenew, abstract, MinimalAPI)
-class UFlexParticleEmitter : public UParticleEmitter
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
+class UFlexParticleEmitter : public UParticleSpriteEmitter
 {
 	GENERATED_UCLASS_BODY()
 

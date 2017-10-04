@@ -61,6 +61,8 @@ public:
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex) = 0;
 
 	// UParticleSystemComponent
+	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial) = 0;
+	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component) = 0; // returns UFlexContainer*
 	virtual void UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData) = 0;
 	virtual void ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component) = 0;
 	virtual void SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable) = 0;

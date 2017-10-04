@@ -3188,9 +3188,29 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 	bWasManagingSignificance = 0;
 
 	// NvFlex begin
-	FlexFluidSurfaceOverride_DEPRECATED = NULL;
+	FlexFluidSurfaceOverride = NULL;
 	// NvFlex end
 }
+
+// NvFlex begin
+class UMaterialInstanceDynamic* UParticleSystemComponent::CreateFlexDynamicMaterialInstance(class UMaterialInterface* SourceMaterial)
+{
+	if (GFlexPluginBridge)
+	{
+		return GFlexPluginBridge->CreateFlexDynamicMaterialInstance(this, SourceMaterial);
+	}
+	return nullptr;
+}
+
+class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
+{
+	if (GFlexPluginBridge)
+	{
+		return GFlexPluginBridge->GetFirstFlexContainerTemplate(this);
+	}
+	return nullptr;
+}
+// NvFlex end
 
 void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance)
 {
