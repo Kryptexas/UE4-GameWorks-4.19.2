@@ -897,6 +897,7 @@ SOutputLog::~SOutputLog()
 	{
 		GLog->RemoveOutputDevice(this);
 	}
+	FCoreDelegates::OnHandleSystemError.RemoveAll(this);
 }
 
 void SOutputLog::OnCrash()
