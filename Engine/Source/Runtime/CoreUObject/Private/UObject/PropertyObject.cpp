@@ -44,6 +44,9 @@ bool UObjectProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uin
 		UObject* PreviousValueObj = PreviousValue.LoadSynchronous();
 		SetPropertyValue_InContainer(Data, PreviousValueObj, Tag.ArrayIndex);
 
+		// Validate the type is proper
+		CheckValidObject(GetPropertyValuePtr_InContainer(Data, Tag.ArrayIndex));
+
 		return true;
 	}
 
