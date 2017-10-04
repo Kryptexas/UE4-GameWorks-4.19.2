@@ -545,16 +545,16 @@ void FTimerManager::Tick(float DeltaTime)
 			// Timer has expired! Fire the delegate, then handle potential looping.
 
 			// Set the relevant level context for this timer
-			const FLevelCollection* LevelCollection = nullptr;
+			int32 LevelCollectionIndex = INDEX_NONE;
 			UWorld* LevelCollectionWorld = nullptr;
 			UWorld* const OwningWorld = OwningGameInstance ? OwningGameInstance->GetWorld() : nullptr;
 			if (OwningGameInstance && OwningWorld)
 			{
-				LevelCollection = OwningWorld->FindCollectionByType(Top.LevelCollection);
+				LevelCollectionIndex = OwningWorld->FindCollectionIndexByType(Top.LevelCollection);
 				LevelCollectionWorld = OwningWorld;
 			}
 
-			FScopedLevelCollectionContextSwitch LevelContext(LevelCollection, LevelCollectionWorld);
+			FScopedLevelCollectionContextSwitch LevelContext(LevelCollectionIndex, LevelCollectionWorld);
 
 			// Remove it from the heap and store it while we're executing
 			ActiveTimerHeap.HeapPop(CurrentlyExecutingTimer, /*bAllowShrinking=*/ false);
