@@ -2587,7 +2587,8 @@ void FLightmassProcessor::InitiateExport()
 		}
 	}
 
-	if (System.GetWorld()->GetWorldSettings()->LightmassSettings.VolumeLightingMethod == VLM_VolumetricLightmap)
+	if (System.GetWorld()->GetWorldSettings()->LightmassSettings.VolumeLightingMethod == VLM_VolumetricLightmap
+		&& !bOnlyBuildVisibility)
 	{
 		Lightmass::FVolumetricLightmapSettings VolumetricLightmapSettings;
 		GetLightmassExporter()->SetVolumetricLightmapSettings(VolumetricLightmapSettings);
