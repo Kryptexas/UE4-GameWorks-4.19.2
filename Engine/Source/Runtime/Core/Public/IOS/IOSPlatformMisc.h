@@ -36,6 +36,7 @@ struct CORE_API FIOSPlatformMisc : public FApplePlatformMisc
 	static bool AreHeadphonesPluggedIn();
 	static int GetBatteryLevel();
 	static bool IsRunningOnBattery();
+	static int32 GetDeviceOrientation();
 
 	static void RegisterForRemoteNotifications();
 	static bool IsRegisteredForRemoteNotifications();

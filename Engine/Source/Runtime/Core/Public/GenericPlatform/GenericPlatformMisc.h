@@ -912,6 +912,12 @@ public:
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+	
+	/**
+	 * Returns the orientation of the device: e.g. Portrait, LandscapeRight.
+	 * @see EScreenOrientation
+	 */
+	static int32 GetDeviceOrientation();
 
 	/**
 	 * Get (or create) the unique ID used to identify this computer.

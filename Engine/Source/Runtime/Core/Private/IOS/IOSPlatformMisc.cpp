@@ -122,6 +122,11 @@ bool FIOSPlatformMisc::IsRunningOnBattery()
 	return [[IOSAppDelegate GetDelegate] IsRunningOnBattery];
 }
 
+int32 FIOSPlatformMisc::GetDeviceOrientation()
+{
+	return [[UIDevice currentDevice] orientation];
+}
+
 #include "ModuleManager.h"
 
 bool FIOSPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
