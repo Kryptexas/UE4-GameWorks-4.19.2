@@ -129,6 +129,8 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 			[WindowHandle setLevel:WindowLevel];
 
+			WindowedModeSavedState.WindowLevel = WindowLevel;
+
 			if( !Definition->HasOSWindowBorder )
 			{
 				[WindowHandle setBackgroundColor: [NSColor clearColor]];
