@@ -781,7 +781,7 @@ private:
 static const int32 GMaxNumReflectionCaptures = 341;
 
 /** Per-reflection capture data needed by the shader. */
-BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,)
+BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureShaderData,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,PositionAndRadius,[GMaxNumReflectionCaptures])
 	// R is brightness, G is array index, B is shape
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureProperties,[GMaxNumReflectionCaptures])
@@ -789,7 +789,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,)
 	// Stores the box transform for a box shape, other data is packed for other shapes
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix,BoxTransform,[GMaxNumReflectionCaptures])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoxScales,[GMaxNumReflectionCaptures])
-END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData)
+END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureShaderData)
 
 /** A FSceneView with additional state used by the scene renderer. */
 class FViewInfo : public FSceneView
@@ -973,7 +973,7 @@ public:
 	int32 NumBoxReflectionCaptures;
 	int32 NumSphereReflectionCaptures;
 	float FurthestReflectionCaptureDistance;
-	TUniformBufferRef<FReflectionCaptureData> ReflectionCaptureUniformBuffer;
+	TUniformBufferRef<FReflectionCaptureShaderData> ReflectionCaptureUniformBuffer;
 
 	/** Used when there is no view state, buffers reallocate every frame. */
 	FForwardLightingViewResources ForwardLightingResourcesStorage;
@@ -1068,13 +1068,16 @@ public:
 	IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const;
 
 	/**Swap the order of the two eye adaptation targets in the double buffer system */
-	void SwapEyeAdaptationRTs() const;
+	void SwapEyeAdaptationRTs(FRHICommandList& RHICmdList) const;
 
 	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
 	bool HasValidEyeAdaptation() const;
 
-	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
+	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once and that it can be used */
 	void SetValidEyeAdaptation() const;
+
+	/** Get the last valid exposure value for eye adapation. */
+	float GetLastEyeAdaptationExposure() const;
 
 	/** Informs sceneinfo that tonemapping LUT has queued commands to compute it at least once */
 	void SetValidTonemappingLUT() const;

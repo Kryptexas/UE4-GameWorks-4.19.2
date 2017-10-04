@@ -51,4 +51,6 @@ public:
 
 	/** Whether or not this widget has a valid property */	
 	virtual bool HasValidProperty() const = 0;
+
+	virtual TSharedPtr<class IPropertyHandle> GetPropertyHandle() const = 0;
 };

@@ -33,12 +33,29 @@ float3 ComputeVolumetricLightmapBrickTextureUVs(float3 WorldPosition)
 	return (BrickOffsetAndSize.xyz * PaddedBrickSize + frac(IndirectionTextureTexelCoordinate / BrickOffsetAndSize.w) * View.VolumetricLightmapBrickSize + .5f) * View.VolumetricLightmapBrickTexelSize;
 }
 
+float3 GetVolumetricLightmapAmbient(float3 BrickTextureUVs)
+{
+	return Texture3DSampleLevel(View.VolumetricLightmapBrickAmbientVector, PIVSharedAmbientSampler, BrickTextureUVs, 0).xyz;
+}
+
+FOneBandSHVectorRGB GetVolumetricLightmapSH1(float3 BrickTextureUVs)
+{
+	float3 AmbientVector = GetVolumetricLightmapAmbient(BrickTextureUVs);
+
+	FOneBandSHVectorRGB IrradianceSH;
+	IrradianceSH.R.V = AmbientVector.x;
+	IrradianceSH.G.V = AmbientVector.y;
+	IrradianceSH.B.V = AmbientVector.z;
+
+	return IrradianceSH;
+}
+
 void GetVolumetricLightmapSHCoefficients0(float3 BrickTextureUVs, out float3 AmbientVector, out float4 SHCoefficients0Red, out float4 SHCoefficients0Green, out float4 SHCoefficients0Blue)
 {
-	AmbientVector = Texture3DSample(View.VolumetricLightmapBrickAmbientVector, PIVSharedAmbientSampler, BrickTextureUVs).xyz;
-	SHCoefficients0Red = Texture3DSample(View.VolumetricLightmapBrickSHCoefficients0, PIVSharedSampler0, BrickTextureUVs) * 2 - 1;
-	SHCoefficients0Green = Texture3DSample(View.VolumetricLightmapBrickSHCoefficients2, PIVSharedSampler2, BrickTextureUVs) * 2 - 1;
-	SHCoefficients0Blue = Texture3DSample(View.VolumetricLightmapBrickSHCoefficients4, PIVSharedSampler4, BrickTextureUVs) * 2 - 1;
+	AmbientVector = GetVolumetricLightmapAmbient(BrickTextureUVs);
+	SHCoefficients0Red = Texture3DSampleLevel(View.VolumetricLightmapBrickSHCoefficients0, PIVSharedSampler0, BrickTextureUVs, 0) * 2 - 1;
+	SHCoefficients0Green = Texture3DSampleLevel(View.VolumetricLightmapBrickSHCoefficients2, PIVSharedSampler2, BrickTextureUVs, 0) * 2 - 1;
+	SHCoefficients0Blue = Texture3DSampleLevel(View.VolumetricLightmapBrickSHCoefficients4, PIVSharedSampler4, BrickTextureUVs, 0) * 2 - 1;
 
 	// Undo normalization done in FIrradianceBrickData::SetFromVolumeLightingSample
 	float4 SHDenormalizationScales0 = float4(
@@ -77,9 +94,9 @@ FThreeBandSHVectorRGB GetVolumetricLightmapSH3(float3 BrickTextureUVs)
 	float4 SHCoefficients0Blue;
 	GetVolumetricLightmapSHCoefficients0(BrickTextureUVs, AmbientVector, SHCoefficients0Red, SHCoefficients0Green, SHCoefficients0Blue);
 
-	float4 SHCoefficients1Red = Texture3DSample(View.VolumetricLightmapBrickSHCoefficients1, PIVSharedSampler1, BrickTextureUVs) * 2 - 1;
-	float4 SHCoefficients1Green = Texture3DSample(View.VolumetricLightmapBrickSHCoefficients3, PIVSharedSampler3, BrickTextureUVs) * 2 - 1;
-	float4 SHCoefficients1Blue = Texture3DSample(View.VolumetricLightmapBrickSHCoefficients5, PIVSharedSampler5, BrickTextureUVs) * 2 - 1;
+	float4 SHCoefficients1Red = Texture3DSampleLevel(View.VolumetricLightmapBrickSHCoefficients1, PIVSharedSampler1, BrickTextureUVs, 0) * 2 - 1;
+	float4 SHCoefficients1Green = Texture3DSampleLevel(View.VolumetricLightmapBrickSHCoefficients3, PIVSharedSampler3, BrickTextureUVs, 0) * 2 - 1;
+	float4 SHCoefficients1Blue = Texture3DSampleLevel(View.VolumetricLightmapBrickSHCoefficients5, PIVSharedSampler5, BrickTextureUVs, 0) * 2 - 1;
 
 	float4 SHDenormalizationScales1 = float4(
 		1.092548f / 0.282095f,
@@ -110,11 +127,11 @@ FThreeBandSHVectorRGB GetVolumetricLightmapSH3(float3 BrickTextureUVs)
 
 float3 GetVolumetricLightmapSkyBentNormal(float3 BrickTextureUVs)
 {
-	float3 SkyBentNormal = Texture3DSample(View.SkyBentNormalBrickTexture, VLSkyBentNormalSharedSampler, BrickTextureUVs).xyz * 2 - 1;
+	float3 SkyBentNormal = Texture3DSampleLevel(View.SkyBentNormalBrickTexture, VLSkyBentNormalSharedSampler, BrickTextureUVs, 0).xyz * 2 - 1;
 	return SkyBentNormal;
 }
 
 float GetVolumetricLightmapDirectionalLightShadowing(float3 BrickTextureUVs)
 {
-	return Texture3DSample(View.DirectionalLightShadowingBrickTexture, VLDirectionalLightShadowingSampler, BrickTextureUVs).x;
+	return Texture3DSampleLevel(View.DirectionalLightShadowingBrickTexture, VLDirectionalLightShadowingSampler, BrickTextureUVs, 0).x;
 }

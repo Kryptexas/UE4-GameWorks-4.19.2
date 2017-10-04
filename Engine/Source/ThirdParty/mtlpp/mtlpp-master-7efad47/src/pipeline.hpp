@@ -5,6 +5,8 @@
 #include "defines.hpp"
 #include "device.hpp"
 
+MTLPP_CLASS(MTLPipelineBufferDescriptor);
+
 namespace mtlpp
 {
 	enum class Mutability
@@ -15,11 +17,11 @@ namespace mtlpp
 	}
 	MTLPP_AVAILABLE(10_13, 11_0);
 	
-	class PipelineBufferDescriptor : public ns::Object
+	class PipelineBufferDescriptor : public ns::Object<MTLPipelineBufferDescriptor*>
 	{
 	public:
 		PipelineBufferDescriptor();
-		PipelineBufferDescriptor(ns::Handle const& h) : ns::Object(h) {}
+		PipelineBufferDescriptor(MTLPipelineBufferDescriptor* h) : ns::Object<MTLPipelineBufferDescriptor*>(h) {}
 		
 		void SetMutability(Mutability m);
 		Mutability GetMutability() const;

@@ -1670,6 +1670,102 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType,bUsingTessellation));
 
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	extern bool D3D11RHI_ShouldCreateWithD3DDebug();
+	static bool bHasD3DDebug = D3D11RHI_ShouldCreateWithD3DDebug();
+	if (bHasD3DDebug)
+	{
+		FBoundShaderStateRHIParamRef BSS = BoundShaderStateHistory.GetLast();
+		if (BSS)
+		{
+			FD3D11BoundShaderState* BoundShaderState = ResourceCast(BSS);
+			FVertexDeclarationRHIParamRef VertexDescRHI = BoundShaderState->CacheLink.GetVertexDeclaration();
+			FD3D11VertexDeclaration* VertexDeclaration = ResourceCast(VertexDescRHI);
+
+			uint32 MaxNumInstances = FMath::Max(NumInstances, 1u);
+
+			ID3D11Buffer* Buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+			uint32 Offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+			uint32 Strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+
+			FMemory::Memzero(Buffers);
+			FMemory::Memzero(Offsets);
+
+			StateCache.GetStreamSources(0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, Buffers, Strides, Offsets);
+
+			// Don't care about the draw call strides anymore - they must come from vertex-declarations
+			FMemory::Memzero(Strides);
+
+			for (uint32 i = 0; i < MaxVertexElementCount && i < (uint32)VertexDeclaration->VertexElements.Num(); i++)
+			{
+				D3D11_INPUT_ELEMENT_DESC Element = VertexDeclaration->VertexElements[i];
+				if (Element.InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA)
+				{
+					if (VertexDeclaration->StreamStrides[i] == 0)
+					{
+						uint32 Stride = 0;
+						switch (Element.Format)
+						{
+						case DXGI_FORMAT_R32_FLOAT:		Stride = sizeof(float); break;
+						case DXGI_FORMAT_R32G32_FLOAT:		Stride = sizeof(float) * 2; break;
+						case DXGI_FORMAT_R32G32B32_FLOAT:		Stride = sizeof(float) * 3; break;
+						case DXGI_FORMAT_R32G32B32A32_FLOAT:		Stride = sizeof(float) * 4; break;
+						case DXGI_FORMAT_R8G8B8A8_UNORM:	Stride = sizeof(char) * 4; break; //TODO: uint32 doesn't work because D3D11 squishes it to 0 in the IA-VS conversion
+						case DXGI_FORMAT_R8G8B8A8_UINT:		Stride = sizeof(char) * 4; break; //TODO: SINT, blendindices
+						case DXGI_FORMAT_B8G8R8A8_UNORM:			Stride = sizeof(char) * 4; break;
+						case DXGI_FORMAT_R16G16_SINT:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_SINT:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16_SNORM:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16_FLOAT:			Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_FLOAT:			Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16B16A16_SNORM:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16_UINT:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_UINT:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16_UNORM:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_UNORM:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R10G10B10A2_UNORM:		Stride = sizeof(uint32); break;
+						default: UE_LOG(LogD3D11RHI, Fatal, TEXT("Unknown RHI vertex element type %u"), (uint8)Element.Format);
+						};
+
+						Strides[Element.InputSlot] += Stride;
+					}
+				}
+			}
+
+			D3D11_BUFFER_DESC BufferDesc;
+			for (uint32 i = 0; i < MaxVertexElementCount && i < (uint32)VertexDeclaration->VertexElements.Num(); i++)
+			{
+				D3D11_INPUT_ELEMENT_DESC Element = VertexDeclaration->VertexElements[i];
+				if (Element.InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA)
+				{
+					uint32 AvailElementCount = 0;
+
+					if (Buffers[Element.InputSlot])
+					{
+						Buffers[Element.InputSlot]->GetDesc(&BufferDesc);
+
+						uint32 Stride = VertexDeclaration->StreamStrides[i] ? VertexDeclaration->StreamStrides[i] : Strides[Element.InputSlot];
+						check(Stride > 0);
+
+						uint32 MaxElements = ((BufferDesc.ByteWidth - Offsets[Element.InputSlot])) / Stride;
+						if (MaxElements > FirstInstance)
+						{
+							AvailElementCount = MaxElements - FirstInstance;
+						}
+					}
+
+					MaxNumInstances = FMath::Min(MaxNumInstances, AvailElementCount);
+				}
+			}
+
+			if (MaxNumInstances < FMath::Max(NumInstances, 1u))
+			{
+				UE_LOG(LogD3D11RHI, Error, TEXT("DrawIndexedPrimitive requested to draw %d NumInstances with %d FirstInstance but stream layout only has data for %d instances."), FMath::Max(NumInstances, 1u), FirstInstance, MaxNumInstances);
+			}
+		}
+	}
+#endif
+
 	if (NumInstances > 1 || FirstInstance != 0)
 	{
 		Direct3DDeviceIMContext->DrawIndexedInstanced(IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance);

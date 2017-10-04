@@ -95,9 +95,13 @@
 #define MTLPP_IF_AVAILABLE(macvers, iosvers) @available(macOS macvers, iOS iosvers, *)
 #define MTLPP_IF_AVAILABLE_MAC(vers) @available(macOS vers, *)
 #define MTLPP_IF_AVAILABLE_IOS(vers) @available(iOS vers, *)
+#define MTLPP_CLASS(name) @class name
+#define MTLPP_PROTOCOL(name) @protocol name
 #else
 #define MTLPP_IF_AVAILABLE(mac, ios) false
 #define MTLPP_IF_AVAILABLE_MAC(mac) false
 #define MTLPP_IF_AVAILABLE_IOS(ios) false
+#define MTLPP_CLASS(name) class name
+#define MTLPP_PROTOCOL(name) class name
 #endif
 

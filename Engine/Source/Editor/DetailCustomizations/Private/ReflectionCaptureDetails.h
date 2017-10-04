@@ -18,9 +18,6 @@ public:
 private:
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
-
-	FReply OnUpdateReflectionCaptures();
 private:
-	/** The selected reflection capture */
-	TWeakObjectPtr<AReflectionCapture> ReflectionCapture;
+
 };

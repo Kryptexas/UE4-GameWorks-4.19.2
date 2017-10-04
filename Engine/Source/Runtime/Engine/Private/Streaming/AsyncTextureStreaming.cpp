@@ -556,7 +556,6 @@ void FAsyncTextureStreamingTask::UpdateStats_Async()
 {
 #if STATS
 	FTextureStreamingStats& Stats = StreamingManager.GatheredStats;
-	FTextureStreamingStats& PrevStats = StreamingManager.DisplayedStats;
 	FTextureStreamingSettings& Settings = StreamingManager.Settings;
 	TArray<FStreamingTexture>& StreamingTextures = StreamingManager.StreamingTextures;
 

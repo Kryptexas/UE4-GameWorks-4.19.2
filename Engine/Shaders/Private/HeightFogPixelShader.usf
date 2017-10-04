@@ -29,5 +29,9 @@ void ExponentialPixelMain(
 	float LightShaftMask = Texture2DSample(OcclusionTexture, OcclusionSampler, TexCoord).x;
 	FogInscatteringAndOpacity.rgb *= LightShaftMask;
 
+#if USE_PREEXPOSURE 
+	FogInscatteringAndOpacity.rgb *= View.PreExposure;
+#endif
+
 	OutColor = RETURN_COLOR(float4(FogInscatteringAndOpacity.rgb, FogInscatteringAndOpacity.w));
 }

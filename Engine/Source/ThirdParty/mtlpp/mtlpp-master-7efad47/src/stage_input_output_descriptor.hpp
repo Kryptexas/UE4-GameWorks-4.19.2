@@ -10,6 +10,10 @@
 #include "defines.hpp"
 #include "device.hpp"
 
+MTLPP_CLASS(MTLBufferLayoutDescriptor);
+MTLPP_CLASS(MTLAttributeDescriptor);
+MTLPP_CLASS(MTLStageInputOutputDescriptor);
+
 namespace mtlpp
 {
     enum class AttributeFormat
@@ -110,11 +114,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
-    class BufferLayoutDescriptor : public ns::Object
+    class BufferLayoutDescriptor : public ns::Object<MTLBufferLayoutDescriptor*>
     {
     public:
         BufferLayoutDescriptor();
-        BufferLayoutDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        BufferLayoutDescriptor(MTLBufferLayoutDescriptor* handle) : ns::Object<MTLBufferLayoutDescriptor*>(handle) { }
 
         uint32_t     GetStride() const;
         StepFunction GetStepFunction() const;
@@ -126,11 +130,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
-    class AttributeDescriptor : public ns::Object
+    class AttributeDescriptor : public ns::Object<MTLAttributeDescriptor*>
     {
     public:
         AttributeDescriptor();
-        AttributeDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        AttributeDescriptor(MTLAttributeDescriptor* handle) : ns::Object<MTLAttributeDescriptor*>(handle) { }
 
         AttributeFormat GetFormat() const;
         uint32_t        GetOffset() const;
@@ -142,11 +146,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
-    class StageInputOutputDescriptor : public ns::Object
+    class StageInputOutputDescriptor : public ns::Object<MTLStageInputOutputDescriptor*>
     {
     public:
         StageInputOutputDescriptor();
-        StageInputOutputDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        StageInputOutputDescriptor(MTLStageInputOutputDescriptor* handle) : ns::Object<MTLStageInputOutputDescriptor*>(handle) { }
 
 
         ns::Array<BufferLayoutDescriptor> GetLayouts() const;

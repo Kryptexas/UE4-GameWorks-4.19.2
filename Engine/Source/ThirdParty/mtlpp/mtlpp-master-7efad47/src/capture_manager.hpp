@@ -5,16 +5,18 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_CLASS(MTLCaptureManager);
+
 namespace mtlpp
 {
 	class Device;
 	class CaptureScope;
 	class CommandQueue;
 	
-	class CaptureManager : public ns::Object
+	class CaptureManager : public ns::Object<MTLCaptureManager*>
 	{
 		CaptureManager() { }
-		CaptureManager(const ns::Handle& handle) : ns::Object(handle) { }
+		CaptureManager(MTLCaptureManager* handle) : ns::Object<MTLCaptureManager*>(handle) { }
 	public:
 		static CaptureManager& SharedCaptureManager();
 		

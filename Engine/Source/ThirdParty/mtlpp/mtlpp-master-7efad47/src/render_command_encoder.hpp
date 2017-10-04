@@ -14,6 +14,8 @@
 #include "fence.hpp"
 #include "stage_input_output_descriptor.hpp"
 
+MTLPP_PROTOCOL(MTLRenderCommandEncoder);
+
 namespace mtlpp
 {
     enum class PrimitiveType
@@ -127,17 +129,17 @@ namespace mtlpp
 
 	class Heap;
 	
-    class RenderCommandEncoder : public CommandEncoder
+	class RenderCommandEncoder : public CommandEncoder<ns::Protocol<id<MTLRenderCommandEncoder>>::type>
     {
     public:
         RenderCommandEncoder() { }
-        RenderCommandEncoder(const ns::Handle& handle) : CommandEncoder(handle) { }
+        RenderCommandEncoder(ns::Protocol<id<MTLRenderCommandEncoder>>::type handle) : CommandEncoder<ns::Protocol<id<MTLRenderCommandEncoder>>::type>(handle) { }
 
         void SetRenderPipelineState(const RenderPipelineState& pipelineState);
         void SetVertexData(const void* bytes, uint32_t length, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
         void SetVertexBuffer(const Buffer& buffer, uint32_t offset, uint32_t index);
         void SetVertexBufferOffset(uint32_t offset, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
-        void SetVertexBuffers(const Buffer* buffers, const uint32_t* offsets, const ns::Range& range);
+        void SetVertexBuffers(const Buffer* buffers, const uint64_t* offsets, const ns::Range& range);
         void SetVertexTexture(const Texture& texture, uint32_t index);
         void SetVertexTextures(const Texture* textures, const ns::Range& range);
         void SetVertexSamplerState(const SamplerState& sampler, uint32_t index);
@@ -156,7 +158,7 @@ namespace mtlpp
         void SetFragmentData(const void* bytes, uint32_t length, uint32_t index);
         void SetFragmentBuffer(const Buffer& buffer, uint32_t offset, uint32_t index);
         void SetFragmentBufferOffset(uint32_t offset, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
-        void SetFragmentBuffers(const Buffer* buffers, const uint32_t* offsets, const ns::Range& range);
+        void SetFragmentBuffers(const Buffer* buffers, const uint64_t* offsets, const ns::Range& range);
         void SetFragmentTexture(const Texture& texture, uint32_t index);
         void SetFragmentTextures(const Texture* textures, const ns::Range& range);
         void SetFragmentSamplerState(const SamplerState& sampler, uint32_t index);
@@ -195,6 +197,35 @@ namespace mtlpp
 		void UseResources(Resource const* resources, uint32_t count, ResourceUsage usage) MTLPP_AVAILABLE(10_13, 11_0);
 		void UseHeap(Heap const& heap) MTLPP_AVAILABLE(10_13, 11_0);
 		void UseHeaps(Heap const* heaps, uint32_t count) MTLPP_AVAILABLE(10_13, 11_0);
+		
+		uint32_t GetTileWidth() MTLPP_AVAILABLE_IOS(11_0);
+		
+		uint32_t GetTileHeight() MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileBytes(const void* bytes, uint32_t length, uint32_t index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileBuffer(const Buffer& buffer, uint32_t offset, uint32_t index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileBufferOffset(uint32_t offset, uint32_t index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileBuffers(const Buffer* buffers, const uint64_t* offsets, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileTexture(const Texture& texture, uint32_t index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileTextures(const Texture* textures, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerState(const SamplerState& sampler, uint32_t index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerStates(const SamplerState* samplers, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerState(const SamplerState& sampler, float lodMinClamp, float lodMaxClamp, uint32_t index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerStates(const SamplerState* samplers, const float* lodMinClamps, const float* lodMaxClamps, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void DispatchThreadsPerTile(Size const& threadsPerTile) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetThreadgroupMemoryLength(uint32_t length, uint32_t offset, uint32_t index) MTLPP_AVAILABLE_IOS(11_0);
+
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }

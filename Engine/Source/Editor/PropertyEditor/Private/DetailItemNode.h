@@ -69,6 +69,8 @@ public:
 	virtual bool IsHighlighted() const override { return bIsHighlighted; }
 	virtual bool IsLeaf() override { return true; }
 	virtual TAttribute<bool> IsPropertyEditingEnabled() const override { return IsParentEnabled; }
+	virtual TSharedPtr<FPropertyNode> GetPropertyNode() const override;
+	virtual TSharedPtr<IDetailPropertyRow> GetRow() const override;
 
 private:
 

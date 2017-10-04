@@ -47,6 +47,8 @@ enum EAutoExposureMethod
 	AEM_Histogram  UMETA(DisplayName = "Auto Exposure Histogram"),
 	/** Not supported on mobile, faster method that computes single value by downsampling */
 	AEM_Basic      UMETA(DisplayName = "Auto Exposure Basic"),
+	/** Uses camera settings. */
+	AEM_Manual   UMETA(DisplayName = "Manual"),
 	AEM_MAX,
 };
 
@@ -59,6 +61,15 @@ enum EBloomMethod
 	BM_FFT  UMETA(DisplayName = "Convolution"),
 	BM_MAX,
 };
+
+UENUM()
+enum class ELightUnits : uint8
+{
+	Unitless,
+	Candelas,
+	Lumens,
+};
+
 
 USTRUCT(BlueprintType)
 struct FColorGradePerRangeSettings
@@ -489,6 +500,10 @@ struct FCameraExposureSettings
 	UPROPERTY(Interp, BlueprintReadWrite, Category="Exposure", AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "16.0"))
 	float HistogramLogMax;
 
+	/** Calibration constant for 18% albedo. */
+	UPROPERTY(Interp, BlueprintReadWrite, Category = "Exposure", AdvancedDisplay, meta=(UIMin = "0", UIMax = "100.0", DisplayName = "Calibration Constant"))
+	float CalibrationConstant;
+
 
 	FCameraExposureSettings()
 	{
@@ -505,6 +520,7 @@ struct FCameraExposureSettings
 		Bias = 0.0f;
 		HistogramLogMin = -8.0f;
 		HistogramLogMax = 4.0f;
+		CalibrationConstant	= 16.0;
 	}
 
 	/* Exports to post process settings with overrides. */
@@ -758,6 +774,12 @@ struct FPostProcessSettings
 	uint32 bOverride_BloomDirtMask:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
+    uint32 bOverride_CameraShutterSpeed:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
+    uint32 bOverride_CameraISO:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
     uint32 bOverride_AutoExposureMethod:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
@@ -771,6 +793,9 @@ struct FPostProcessSettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_AutoExposureMaxBrightness:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_AutoExposureCalibrationConstant:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_AutoExposureSpeedUp:1;
@@ -1240,8 +1265,27 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering Features|Ambient Cubemap", meta=(DisplayName = "Cubemap Texture"))
 	class UTextureCube* AmbientCubemap;
 
+	/** The camera shutter in seconds.*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lens|Camera", meta=(ClampMin = "1.0", ClampMax = "2000.0", editcondition = "bOverride_CameraShutterSpeed", DisplayName = "Shutter Speed (1/s)"))
+    float CameraShutterSpeed;
+
+	/** The camera sensor sensitivity in ISO.*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lens|Camera", meta=(ClampMin = "1.0", tooltip = "The camera sensor sensitivity", editcondition = "bOverride_CameraISO", DisplayName = "ISO"))
+    float CameraISO;
+
+	/** Defines the opening of the camera lens, Aperture is 1/fstop, typical lens go down to f/1.2 (large opening), larger numbers reduce the DOF effect */
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Camera", meta=(ClampMin = "1.0", ClampMax = "32.0", editcondition = "bOverride_DepthOfFieldFstop", DisplayName = "Aperture (F-stop)"))
+	float DepthOfFieldFstop;
+
+	/**
+	 * Logarithmic adjustment for the exposure. Only used if a tonemapper is specified.
+	 * 0: no adjustment, -1:2x darker, -2:4x darker, 1:2x brighter, 2:4x brighter, ...
+	 */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Camera", meta = (UIMin = "-8.0", UIMax = "8.0", editcondition = "bOverride_AutoExposureBias", DisplayName = "Exposure Compensation "))
+	float AutoExposureBias;
+
 	/** Luminance computation method */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lens|Auto Exposure", meta=(editcondition = "bOverride_AutoExposureMethod", DisplayName = "Method"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lens|Exposure", meta=(editcondition = "bOverride_AutoExposureMethod", DisplayName = "Metering Mode"))
     TEnumAsByte<enum EAutoExposureMethod> AutoExposureMethod;
 
 	/**
@@ -1251,7 +1295,7 @@ struct FPostProcessSettings
 	 * bright spots.
 	 * >0, <100, good values are in the range 70 .. 80
 	 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "100.0", editcondition = "bOverride_AutoExposureLowPercent", DisplayName = "Low Percent"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "100.0", editcondition = "bOverride_AutoExposureLowPercent", DisplayName = "Low Percent"))
 	float AutoExposureLowPercent;
 
 	/**
@@ -1261,7 +1305,7 @@ struct FPostProcessSettings
 	 * bright spots.
 	 * >0, <100, good values are in the range 80 .. 95
 	 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "100.0", editcondition = "bOverride_AutoExposureHighPercent", DisplayName = "High Percent"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "100.0", editcondition = "bOverride_AutoExposureHighPercent", DisplayName = "High Percent"))
 	float AutoExposureHighPercent;
 
 	/**
@@ -1271,7 +1315,7 @@ struct FPostProcessSettings
 	 * effect and defined the HDR range - you don't want to change that late in the project development.
 	 * Eye Adaptation is disabled if MinBrightness = MaxBrightness
 	 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", meta=(ClampMin = "0.0", UIMax = "10.0", editcondition = "bOverride_AutoExposureMinBrightness", DisplayName = "Min Brightness"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", meta=(ClampMin = "-10.0", UIMax = "20.0", editcondition = "bOverride_AutoExposureMinBrightness", DisplayName = "Min Brightness"))
 	float AutoExposureMinBrightness;
 
 	/**
@@ -1281,31 +1325,28 @@ struct FPostProcessSettings
 	 * effect and defined the HDR range - you don't want to change that late in the project development.
 	 * Eye Adaptation is disabled if MinBrightness = MaxBrightness
 	 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", meta=(ClampMin = "0.0", UIMax = "10.0", editcondition = "bOverride_AutoExposureMaxBrightness", DisplayName = "Max Brightness"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", meta=(ClampMin = "-10.0", UIMax = "20.0", editcondition = "bOverride_AutoExposureMaxBrightness", DisplayName = "Max Brightness"))
 	float AutoExposureMaxBrightness;
 
 	/** >0 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", meta=(ClampMin = "0.02", UIMax = "20.0", editcondition = "bOverride_AutoExposureSpeedUp", DisplayName = "Speed Up"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", meta=(ClampMin = "0.02", UIMax = "20.0", editcondition = "bOverride_AutoExposureSpeedUp", DisplayName = "Speed Up"))
 	float AutoExposureSpeedUp;
 
 	/** >0 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", meta=(ClampMin = "0.02", UIMax = "20.0", editcondition = "bOverride_AutoExposureSpeedDown", DisplayName = "Speed Down"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", meta=(ClampMin = "0.02", UIMax = "20.0", editcondition = "bOverride_AutoExposureSpeedDown", DisplayName = "Speed Down"))
 	float AutoExposureSpeedDown;
 
-	/**
-	 * Logarithmic adjustment for the exposure. Only used if a tonemapper is specified.
-	 * 0: no adjustment, -1:2x darker, -2:4x darker, 1:2x brighter, 2:4x brighter, ...
-	 */
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Auto Exposure", meta = (UIMin = "-8.0", UIMax = "8.0", editcondition = "bOverride_AutoExposureBias", DisplayName = "Exposure Bias"))
-	float AutoExposureBias;
-
 	/** temporary exposed until we found good values, -8: 1/256, -10: 1/1024 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", AdvancedDisplay, meta=(UIMin = "-16", UIMax = "0.0", editcondition = "bOverride_HistogramLogMin"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", AdvancedDisplay, meta=(UIMin = "-16", UIMax = "0.0", editcondition = "bOverride_HistogramLogMin"))
 	float HistogramLogMin;
 
 	/** temporary exposed until we found good values 4: 16, 8: 256 */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Auto Exposure", AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "16.0", editcondition = "bOverride_HistogramLogMax"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Exposure", AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "16.0", editcondition = "bOverride_HistogramLogMax"))
 	float HistogramLogMax;
+
+	/** Calibration constant for 18% albedo. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Exposure", AdvancedDisplay, meta=(UIMin = "0", UIMax = "100.0", editcondition = "bOverride_AutoExposureCalibrationConstant", DisplayName = "Calibration Constant"))
+	float AutoExposureCalibrationConstant;
 
 	/** Brightness scale of the image cased lens flares (linear) */
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Lens Flares", meta=(UIMin = "0.0", UIMax = "16.0", editcondition = "bOverride_LensFlareIntensity", DisplayName = "Intensity"))
@@ -1418,10 +1459,6 @@ struct FPostProcessSettings
 	/** Enable HQ Gaussian on high end mobile platforms. (ES3_1) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lens|Depth of Field", meta = (editcondition = "bOverride_MobileHQGaussian", DisplayName = "High Quality Gaussian DoF on Mobile"))
 	uint32 bMobileHQGaussian : 1;
-
-	/** CircleDOF only: Defines the opening of the camera lens, Aperture is 1/fstop, typical lens go down to f/1.2 (large opening), larger numbers reduce the DOF effect */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Depth of Field", meta=(ClampMin = "1.0", ClampMax = "32.0", editcondition = "bOverride_DepthOfFieldFstop", DisplayName = "Aperture F-stop"))
-	float DepthOfFieldFstop;
 
 	/** Width of the camera sensor to assume, in mm. */
 	UPROPERTY(BlueprintReadWrite, Category="Lens|Depth of Field", meta=(ForceUnits=mm, ClampMin = "0.1", UIMin="0.1", UIMax= "1000.0", editcondition = "bOverride_DepthOfFieldSensorWidth", DisplayName = "Sensor Width (mm)"))

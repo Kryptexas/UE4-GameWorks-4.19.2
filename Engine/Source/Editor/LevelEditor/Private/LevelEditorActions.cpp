@@ -624,6 +624,20 @@ void FLevelEditorActionCallbacks::ConfigureLightingBuildOptions( const FLighting
 	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildVisibility"),	Options.bOnlyBuildVisibility,		GEditorPerProjectIni );
 }
 
+bool FLevelEditorActionCallbacks::CanBuildLighting()
+{
+	// Building lighting modifies the BuildData package, which the PIE session will also be referencing without getting notified
+	return !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
+}
+
+bool FLevelEditorActionCallbacks::CanBuildReflectionCaptures()
+{
+	// Building reflection captures modifies the BuildData package, which the PIE session will also be referencing without getting notified
+	return !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor)
+		// Build reflection captures requires SM5.  Don't allow building when previewing other feature levels.
+		&& GetWorld()->FeatureLevel >= ERHIFeatureLevel::SM5;
+}
+
 
 void FLevelEditorActionCallbacks::Build_Execute()
 {
@@ -636,7 +650,7 @@ void FLevelEditorActionCallbacks::Build_Execute()
 
 bool FLevelEditorActionCallbacks::Build_CanExecute()
 {
-	return !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
+	return CanBuildLighting() && CanBuildReflectionCaptures();
 }
 
 void FLevelEditorActionCallbacks::BuildAndSubmitToSourceControl_Execute()
@@ -660,12 +674,18 @@ bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-	return bAllowStaticLighting && !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
+	
+	return bAllowStaticLighting && CanBuildLighting() && CanBuildReflectionCaptures();
 }
 
 void FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute()
 {
-	GEditor->UpdateReflectionCaptures();
+	GEditor->BuildReflectionCaptures();
+}
+
+bool FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_CanExecute()
+{
+	return CanBuildReflectionCaptures();
 }
 
 void FLevelEditorActionCallbacks::BuildLightingOnly_VisibilityOnly_Execute()
@@ -2959,10 +2979,10 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( ExportAll, "Export All...", "Exports the entire level to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( ExportSelected, "Export Selected...", "Exports currently-selected objects to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 
-	UI_COMMAND( Build, "Build All Levels", "Builds all levels (precomputes lighting data and visibility data, generates navigation networks and updates brush models.)", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( Build, "Build All Levels", "Builds all levels (precomputes lighting data and visibility data, generates navigation networks and updates brush models.)\nThis action is not available while Play in Editor is active, or when previewing less than Shader Model 5", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildAndSubmitToSourceControl, "Build and Submit...", "Displays a window that allows you to build all levels and submit them to source control", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( BuildLightingOnly, "Build Lighting", "Only precomputes lighting (all levels.)", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control|EModifierKey::Shift, EKeys::Semicolon) );
-	UI_COMMAND( BuildReflectionCapturesOnly, "Update Reflection Captures", "Only updates Reflection Captures (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( BuildLightingOnly, "Build Lighting", "Only precomputes lighting (all levels.)\nThis action is not available while Play in Editor is active, or when previewing less than Shader Model 5", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control|EModifierKey::Shift, EKeys::Semicolon) );
+	UI_COMMAND( BuildReflectionCapturesOnly, "Build Reflection Captures", "Updates Reflection Captures and stores their data in the BuildData package.\nThis action is not available while Play in Editor is active, or when previewing less than Shader Model 5", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildLightingOnly_VisibilityOnly, "Precompute Static Visibility", "Only precomputes static visibility data (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( LightingBuildOptions_UseErrorColoring, "Use Error Coloring", "When enabled, errors during lighting precomputation will be baked as colors into light map data", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( LightingBuildOptions_ShowLightingStats, "Show Lighting Stats", "When enabled, a window containing metrics about lighting performance and memory will be displayed after a successful build.", EUserInterfaceActionType::ToggleButton, FInputChord() );

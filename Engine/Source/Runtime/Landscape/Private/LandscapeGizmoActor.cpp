@@ -63,64 +63,64 @@ public:
 	{
 		return Parent->GetMaterial(InFeatureLevel);
 	}
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("AlphaScaleBias")))
+		if (ParameterInfo.Name == FName(TEXT("AlphaScaleBias")))
 		{
 			*OutValue = ScaleBias;
 			return true;
 		}
 		else
-		if (ParameterName == FName(TEXT("MatrixRow1")))
+		if (ParameterInfo.Name == FName(TEXT("MatrixRow1")))
 		{
 			*OutValue = FLinearColor(WorldToLandscapeMatrix.M[0][0], WorldToLandscapeMatrix.M[0][1], WorldToLandscapeMatrix.M[0][2],WorldToLandscapeMatrix.M[0][3]);
 			return true;
 		}
 		else
-		if (ParameterName == FName(TEXT("MatrixRow2")))
+		if (ParameterInfo.Name == FName(TEXT("MatrixRow2")))
 		{
 			*OutValue = FLinearColor(WorldToLandscapeMatrix.M[1][0], WorldToLandscapeMatrix.M[1][1], WorldToLandscapeMatrix.M[1][2],WorldToLandscapeMatrix.M[1][3]);
 			return true;
 		}
 		else
-		if (ParameterName == FName(TEXT("MatrixRow3")))
+		if (ParameterInfo.Name == FName(TEXT("MatrixRow3")))
 		{
 			*OutValue = FLinearColor(WorldToLandscapeMatrix.M[2][0], WorldToLandscapeMatrix.M[2][1], WorldToLandscapeMatrix.M[2][2],WorldToLandscapeMatrix.M[2][3]);
 			return true;
 		}
 		else
-		if (ParameterName == FName(TEXT("MatrixRow4")))
+		if (ParameterInfo.Name == FName(TEXT("MatrixRow4")))
 		{
 			*OutValue = FLinearColor(WorldToLandscapeMatrix.M[3][0], WorldToLandscapeMatrix.M[3][1], WorldToLandscapeMatrix.M[3][2],WorldToLandscapeMatrix.M[3][3]);
 			return true;
 		}
 
-		return Parent->GetVectorValue(ParameterName, OutValue, Context);
+		return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("Top")))
+		if (ParameterInfo.Name == FName(TEXT("Top")))
 		{
 			*OutValue = TopHeight;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Bottom")))
+		else if (ParameterInfo.Name == FName(TEXT("Bottom")))
 		{
 			*OutValue = BottomHeight;
 			return true;
 		}
-		return Parent->GetScalarValue(ParameterName, OutValue, Context);
+		return Parent->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("AlphaTexture")))
+		if (ParameterInfo.Name == FName(TEXT("AlphaTexture")))
 		{
 			// FIXME: This needs to return a black texture if AlphaTexture is NULL.
 			// Returning NULL will cause the material to use GWhiteTexture.
 			*OutValue = AlphaTexture;
 			return true;
 		}
-		return Parent->GetTextureValue(ParameterName, OutValue, Context);
+		return Parent->GetTextureValue(ParameterInfo, OutValue, Context);
 	}
 };
 

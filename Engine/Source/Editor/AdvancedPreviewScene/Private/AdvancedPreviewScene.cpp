@@ -256,15 +256,15 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 		else
 		{
 			SphereReflectionComponent->SourceCubemapAngle = Profile.LightingRigRotation;
-			SphereReflectionComponent->SetCaptureIsDirty();
+			SphereReflectionComponent->MarkDirtyForRecapture();
 			SphereReflectionComponent->MarkRenderStateDirty();
-			SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
+			UReflectionCaptureComponent::UpdateReflectionCaptureContents(PreviewWorld);
 		}
 
 		InstancedSkyMaterial->SetScalarParameterValueEditorOnly(FName("CubemapRotation"), Profile.LightingRigRotation / 360.0f);
 		InstancedSkyMaterial->PostEditChange();
 
-		PreviewWorld->UpdateAllReflectionCaptures();
+		UReflectionCaptureComponent::UpdateReflectionCaptureContents(PreviewWorld);
 		PreviewWorld->UpdateAllSkyCaptures();
 
 		PreviousRotation = Profile.LightingRigRotation;
@@ -281,9 +281,9 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 		}
 		else
 		{
-			SphereReflectionComponent->SetCaptureIsDirty();
+			SphereReflectionComponent->MarkDirtyForRecapture();
 			SphereReflectionComponent->MarkRenderStateDirty();
-			SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
+			UReflectionCaptureComponent::UpdateReflectionCaptureContents(PreviewWorld);
 		}
 
 

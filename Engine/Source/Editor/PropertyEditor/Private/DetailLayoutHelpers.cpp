@@ -279,7 +279,7 @@ namespace DetailLayoutHelpers
 			TSharedRef<IDetailCustomization> CustomizationInstance = Callback->DetailLayoutDelegate.Execute();
 
 			// Ask for details immediately
-			CustomizationInstance->CustomizeDetails(*LayoutData.DetailLayout);
+			CustomizationInstance->CustomizeDetails(LayoutData.DetailLayout);
 
 			// Save the instance from destruction until we refresh
 			LayoutData.CustomizationClassInstances.Add(CustomizationInstance);
@@ -305,7 +305,7 @@ namespace DetailLayoutHelpers
 			TSharedRef<IDetailCustomization> CustomizationInstance = GenericLayoutDelegate.Execute();
 
 			// Ask for details immediately
-			CustomizationInstance->CustomizeDetails(*LayoutData.DetailLayout);
+			CustomizationInstance->CustomizeDetails(LayoutData.DetailLayout);
 
 			// Save the instance from destruction until we refresh
 			LayoutData.CustomizationClassInstances.Add(CustomizationInstance);
@@ -378,7 +378,7 @@ namespace DetailLayoutHelpers
 							TSharedRef<IDetailCustomization> CustomizationInstance = DetailDelegate.Execute();
 
 							// Ask for details immediately
-							CustomizationInstance->CustomizeDetails(*LayoutData.DetailLayout);
+							CustomizationInstance->CustomizeDetails(LayoutData.DetailLayout);
 
 							// Save the instance from destruction until we refresh
 							LayoutData.CustomizationClassInstances.Add(CustomizationInstance);

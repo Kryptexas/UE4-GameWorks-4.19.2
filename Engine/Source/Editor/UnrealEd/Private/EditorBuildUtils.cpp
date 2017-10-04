@@ -361,6 +361,8 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, FName Id, const bool bAllo
 			GUnrealEd->BuildLighting( LightingBuildOptions );
 			bShouldMapCheck = false;
 		}
+
+		bDirtyPersistentLevel = false;
 	}
 	else if (Id == FBuildOptions::BuildAIPaths)
 	{

@@ -324,16 +324,15 @@ void UMaterialExpressionLandscapeLayerBlend::PostEditChangeProperty(FPropertyCha
 #endif // WITH_EDITOR
 
 
-void UMaterialExpressionLandscapeLayerBlend::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
+void UMaterialExpressionLandscapeLayerBlend::GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const
 {
-	for (int32 LayerIdx = 0; LayerIdx<Layers.Num(); LayerIdx++)
+	for (const FLayerBlendInput& Layer : Layers)
 	{
-		const FLayerBlendInput& Layer = Layers[LayerIdx];
+		int32 CurrentSize = OutParameterInfo.Num();
+		FMaterialParameterInfo NewParameter(Layer.LayerName, InBaseParameterInfo.Association, InBaseParameterInfo.Index);
+		OutParameterInfo.AddUnique(NewParameter);
 
-		int32 CurrentSize = OutParameterNames.Num();
-		OutParameterNames.AddUnique(Layer.LayerName);
-
-		if (CurrentSize != OutParameterNames.Num())
+		if (CurrentSize != OutParameterInfo.Num())
 		{
 			OutParameterIds.Add(ExpressionGUID);
 		}

@@ -124,6 +124,12 @@ inline bool RHISupportsMSAA(EShaderPlatform Platform)
 		&& Platform != SP_METAL_MRT;
 }
 
+/** Whether the platform supports reading from volume textures (does not cover rendering to volume textures). */
+inline bool RHISupportsVolumeTextures(ERHIFeatureLevel::Type FeatureLevel)
+{
+	return FeatureLevel >= ERHIFeatureLevel::SM4;
+}
+
 // Wrapper for GRHI## global variables, allows values to be overridden for mobile preview modes.
 template <typename TValueType>
 class TRHIGlobal

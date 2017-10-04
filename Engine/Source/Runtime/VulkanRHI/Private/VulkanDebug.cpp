@@ -93,7 +93,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 		ensure(0);
 	}
 
-	FString LayerCode = FString::Printf(TEXT("%s%d"), ANSI_TO_TCHAR(LayerPrefix), MsgCode);
+	FString LayerCode = FString::Printf(TEXT("%s%x"), ANSI_TO_TCHAR(LayerPrefix), MsgCode);
 
 	static TSet<FString> SeenCodes;
 	if (GCVarUniqueValidationMessages->GetInt() == 0 || !SeenCodes.Contains(LayerCode))
@@ -1744,7 +1744,7 @@ namespace VulkanRHI
 
 	void DumpCreatePipelineCache(VkDevice Device, const VkPipelineCacheCreateInfo* CreateInfo, VkPipelineCache* PipelineCache)
 	{
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreatePipelineCache(CreateInfo=0x%016llx, OutPipelineCache=0x%016llx)[...]"), CreateInfo, PipelineCache));
+		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreatePipelineCache(CreateInfo=0x%016llx, OutPipelineCache=0x%016llx) InitialSize=%d Data=%p "), CreateInfo, PipelineCache, (uint32)CreateInfo.initialDataSize, CreateInfo.pInitialData));
 		FlushDebugWrapperLog();
 	}
 

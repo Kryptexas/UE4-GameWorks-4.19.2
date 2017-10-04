@@ -113,6 +113,14 @@ void FPixelInspectorModule::ReadBackSync()
 	HPixelInspectorWindow->ReadBackRequestData();
 }
 
+void FPixelInspectorModule::OnTabClosed(TSharedRef<SDockTab> TabBeingClosed)
+{
+	if (HPixelInspectorWindow.IsValid())
+	{
+		HPixelInspectorWindow->OnWindowClosed();
+	}
+}
+
 void FPixelInspectorModule::RegisterTabSpawner(const TSharedPtr<FWorkspaceItem>& WorkspaceGroup)
 {
 	if (bHasRegisteredTabSpawners)
@@ -160,7 +168,10 @@ TSharedRef<SDockTab> FPixelInspectorModule::MakePixelInspectorTab(const FSpawnTa
 	TSharedRef<SDockTab> PixelInspectorTab = SNew(SDockTab)
 	.Icon(FPixelInspectorStyle::Get()->GetBrush("PixelInspector.TabIcon"))
 	.TabRole(ETabRole::NomadTab);
+	
 	PixelInspectorTab->SetContent(CreatePixelInspectorWidget());
+	PixelInspectorTab->SetOnTabClosed( SDockTab::FOnTabClosedCallback::CreateRaw( this, &FPixelInspectorModule::OnTabClosed ) );
+	
 	return PixelInspectorTab;
 }
 

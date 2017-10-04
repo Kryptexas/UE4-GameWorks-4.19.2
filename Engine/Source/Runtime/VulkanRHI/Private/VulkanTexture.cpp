@@ -283,12 +283,7 @@ VkImage FVulkanSurface::CreateImage(
 	ImageCreateInfo.queueFamilyIndexCount = 0;
 	ImageCreateInfo.pQueueFamilyIndices = nullptr;
 
-	if(ResourceType == VK_IMAGE_VIEW_TYPE_3D)
-	{
-		check(true);
-	}
-
-	if (ImageCreateInfo.tiling == VK_IMAGE_TILING_LINEAR)
+	if (ImageCreateInfo.tiling == VK_IMAGE_TILING_LINEAR && NumSamples > 1)
 	{
 		UE_LOG(LogVulkanRHI, Warning, TEXT("Not allowed to create Linear textures with %d samples, reverting to 1 sample"), NumSamples);
 		NumSamples = 1;
@@ -1257,21 +1252,15 @@ void FVulkanDynamicRHI::InternalUpdateTexture2D(bool bFromRenderingThread, FText
 
 	VkFormat Format = UEToVkFormat(PixelFormat, false);
 
-	// TO DO - add appropriate offsets to source data when necessary
-	check(UpdateRegion.SrcX == 0);
-	check(UpdateRegion.SrcY == 0);
-
 	FVulkanCommandListContext& Context = Device->GetImmediateContext();
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
 	const uint32 AlignedSourcePitch = Align(SourcePitch, Limits.optimalBufferCopyRowPitchAlignment);
 	const uint32 BufferSize = Align(UpdateRegion.Height * AlignedSourcePitch, Limits.minMemoryMapAlignment);
+	const uint32 AlignedSourceWidth = AlignedSourcePitch / GPixelFormats[PixelFormat].BlockBytes;
 
 	VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(BufferSize);
 	void* Memory = StagingBuffer->GetMappedPointer();
-
-	uint32 Size = UpdateRegion.Height * SourcePitch;
-	check(Size <= BufferSize);
-
+	
 	VkImageSubresourceRange SubresourceRange;
 	FMemory::Memzero(SubresourceRange);
 	SubresourceRange.aspectMask = Texture->Surface.GetFullAspectMask();
@@ -1280,17 +1269,20 @@ void FVulkanDynamicRHI::InternalUpdateTexture2D(bool bFromRenderingThread, FText
 	//SubresourceRange.baseArrayLayer = 0;
 	SubresourceRange.layerCount = 1;
 
-	//#todo-rco: Probably needs some work (see D3D12)
-	FMemory::Memcpy(Memory, SourceData, Size);
-	//FMemory::Memzero(Memory, Size);
-
+	uint8* RowData = (uint8*)Memory;
+	uint8* SourceRowData = (uint8*)SourceData;
+	const uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[PixelFormat].BlockBytes;
+	check(CopyPitch <= SourcePitch);
+	for (uint32 i = 0; i < UpdateRegion.Height; i++)
+	{
+		FMemory::Memcpy(RowData, SourceRowData, CopyPitch);
+		SourceRowData += SourcePitch;
+		RowData += AlignedSourcePitch;
+	}
+	
 	VkBufferImageCopy Region;
 	FMemory::Memzero(Region);
-	//#todo-rco: Might need an offset here?
-	check(UpdateRegion.SrcX == 0 && UpdateRegion.SrcY == 0);
-	//Region.bufferOffset = 0;
-	//Region.bufferRowLength = 0;
-	//Region.bufferImageHeight = 0;
+	Region.bufferRowLength = AlignedSourceWidth;
 	Region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	Region.imageSubresource.mipLevel = MipIndex;
 	Region.imageSubresource.baseArrayLayer = 0;
@@ -1324,21 +1316,15 @@ void FVulkanDynamicRHI::InternalUpdateTexture3D(bool bFromRenderingThread, FText
 
 	VkFormat Format = UEToVkFormat(PixelFormat, false);
 
-	// TO DO - add appropriate offsets to source data when necessary
-	check(UpdateRegion.SrcX == 0);
-	check(UpdateRegion.SrcY == 0);
-	check(UpdateRegion.SrcZ == 0);
-
 	FVulkanCommandListContext& Context = Device->GetImmediateContext();
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
-	const uint32 AlignedSourcePitch = Align(SourceRowPitch, Limits.optimalBufferCopyRowPitchAlignment);
-	const uint32 BufferSize = Align(UpdateRegion.Height * UpdateRegion.Depth * AlignedSourcePitch, Limits.minMemoryMapAlignment);
+
+	const uint32 AlignedSourcePitch = Align(SourceRowPitch, Limits.optimalBufferCopyRowPitchAlignment);	
+	const int32 SlicePitch = AlignedSourcePitch * UpdateRegion.Height;
+	const uint32 BufferSize = Align(UpdateRegion.Depth * SlicePitch, Limits.minMemoryMapAlignment);
 
 	VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(BufferSize);
 	void* Memory = StagingBuffer->GetMappedPointer();
-
-	uint32 Size = UpdateRegion.Height * UpdateRegion.Depth * SourceRowPitch;
-	check(Size <= BufferSize);
 
 	VkImageSubresourceRange SubresourceRange;
 	FMemory::Memzero(SubresourceRange);
@@ -1348,17 +1334,26 @@ void FVulkanDynamicRHI::InternalUpdateTexture3D(bool bFromRenderingThread, FText
 	//SubresourceRange.baseArrayLayer = 0;
 	SubresourceRange.layerCount = 1;
 
-	//#todo-rco: Probably needs some work (see D3D12)
-	FMemory::Memcpy(Memory, SourceData, Size);
-	//FMemory::Memzero(Memory, Size);
+	uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
+	check(CopyPitch <= SourceRowPitch);
+	uint8* RowData = (uint8*)Memory;
+	for (uint32 i = 0; i < UpdateRegion.Depth; i++)
+	{
+		uint8* DestRowData = RowData + SlicePitch * i;
+		const uint8* SourceRowData = SourceData + SourceDepthPitch * i;
+		for (uint32 j = 0; j < UpdateRegion.Height; j++)
+		{
+			FMemory::Memcpy(DestRowData, SourceRowData, CopyPitch);
+			SourceRowData += SourceRowPitch;
+			DestRowData += AlignedSourcePitch;
+		}
+	}
 
 	VkBufferImageCopy Region;
 	FMemory::Memzero(Region);
-	//#todo-rco: Might need an offset here?
-	check(UpdateRegion.SrcX == 0 && UpdateRegion.SrcY == 0 && UpdateRegion.SrcZ == 0);
 	//Region.bufferOffset = 0;
-	//Region.bufferRowLength = 0;
-	//Region.bufferImageHeight = 0;
+	Region.bufferRowLength = UpdateRegion.Width;
+	Region.bufferImageHeight = UpdateRegion.Height;
 	Region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	Region.imageSubresource.mipLevel = MipIndex;
 	Region.imageSubresource.baseArrayLayer = 0;
@@ -1436,7 +1431,9 @@ VkImageView FVulkanTextureView::StaticCreate(FVulkanDevice& Device, VkImage Imag
 	//instead of PF_DepthStencil, so the cross-platform code could figure out the proper format to pass in for this.
 	if (UEFormat == PF_X24_G8)
 	{
-		ViewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		ensure(ViewInfo.format == VK_FORMAT_UNDEFINED);
+		ViewInfo.format = (VkFormat)GPixelFormats[PF_DepthStencil].PlatformFormat;
+		ViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
 
 	INC_DWORD_STAT(STAT_VulkanNumImageViews);

@@ -59,6 +59,7 @@ static TSet<FMetalViewport*> Viewports;
 FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen,EPixelFormat Format)
 : DisplayID(0)
 , Block(nil)
+, bIsFullScreen(bInIsFullscreen)
 #if PLATFORM_MAC
 , CustomPresent(nullptr)
 #endif
@@ -146,6 +147,8 @@ uint32 FMetalViewport::GetViewportIndex(EMetalViewportAccessFlag Accessor) const
 void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen,EPixelFormat Format)
 {
 	bool bCanUseHDR = GRHISupportsHDROutput;
+	
+	bIsFullScreen = bInIsFullscreen;
 	
 #if PLATFORM_MAC
 	static bool sbHDROSVersionSafe = FPlatformMisc::MacOSXVersionCompare(10,13,0) >= 0;
@@ -344,7 +347,7 @@ void FMetalViewport::Present(FMetalCommandQueue& CommandQueue, bool bLockToVsync
 	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesSupportsVSyncToggle))
 	{
 		FCAMetalLayer* CurrentLayer = (FCAMetalLayer*)[View layer];
-		CurrentLayer.displaySyncEnabled = bLockToVsync;
+		CurrentLayer.displaySyncEnabled = bLockToVsync || !(IsRunningGame() && bIsFullScreen);
 	}
 #endif
 	

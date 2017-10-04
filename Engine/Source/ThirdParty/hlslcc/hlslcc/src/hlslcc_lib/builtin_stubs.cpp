@@ -1265,19 +1265,20 @@ void make_intrinsic_sm5_functions(exec_list *ir, _mesa_glsl_parse_state *state)
 		{
 			ir_unop_bitcount, ir_unop_msb, ir_unop_lsb, ir_unop_bitreverse
 		};
-		bool use_base_type[] = {
+		bool use_base_type[] =
+		{
 			true, false, false, true
 		};
 
 		for (size_t i = 0; i < sizeof(funcName) / sizeof(char*); i++)
 		{
 			ir_function* func = new(ctx)ir_function(funcName[i]);
-
+			bool bUseBaseType = use_base_type[i];
 			for (int base_type = GLSL_TYPE_UINT; base_type <= GLSL_TYPE_INT; ++base_type)
 			{
 				for (int vec_size = 1; vec_size <= 4; vec_size++)
 				{
-					const glsl_type* type = use_base_type ? glsl_type::get_instance(base_type, vec_size, 1) : glsl_type::get_instance(GLSL_TYPE_INT, vec_size, 1);
+					const glsl_type* type = bUseBaseType ? glsl_type::get_instance(base_type, vec_size, 1) : glsl_type::get_instance(GLSL_TYPE_INT, vec_size, 1);
 					ir_function_signature* sig = new(ctx)ir_function_signature(type);
 					sig->is_builtin = true;
 					sig->is_defined = true;

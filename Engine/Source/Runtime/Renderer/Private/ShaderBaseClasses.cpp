@@ -442,6 +442,24 @@ IMPLEMENT_MATERIAL_SHADER_SetParameters( FComputeShaderRHIParamRef );
 
 #endif
 
+FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	if (View.bIsViewInfo)
+	{
+		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
+		if (ViewInfo.HasValidEyeAdaptation())
+		{
+			IPooledRenderTarget* EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
+			if (EyeAdaptationRT)
+			{
+				return EyeAdaptationRT->GetRenderTargetItem().TargetableTexture;
+			}
+		}
+	}
+	return GWhiteTexture->TextureRHI;
+}
+
 bool FMaterialShader::Serialize(FArchive& Ar)
 {
 	const bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
@@ -478,25 +496,6 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << PerFramePrevVectorExpressions;
 
 	return bShaderHasOutdatedParameters;
-}
-
-FTextureRHIRef& FMaterialShader::GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
-{
-	IPooledRenderTarget* EyeAdaptationRT = NULL;
-	if (View.bIsViewInfo)
-	{
-		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
-		if (ViewInfo.HasValidEyeAdaptation()) {
-			EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
-		}
-	}
-
-	if( EyeAdaptationRT )
-	{
-		return EyeAdaptationRT->GetRenderTargetItem().TargetableTexture;
-	}
-	
-	return GWhiteTexture->TextureRHI;
 }
 
 uint32 FMaterialShader::GetAllocatedSize() const

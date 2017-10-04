@@ -1366,7 +1366,7 @@ FAudioDevice* UWorld::GetAudioDevice()
  *
  * @param	bInMapNeedsLightingFullyRebuild			The new value.
  */
-void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
+void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects, int32 InNumUnbuiltReflectionCaptures)
 {
 	static const TConsoleVariableData<int32>* AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
@@ -1375,13 +1375,15 @@ void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
 	if (bAllowStaticLighting && WorldSettings && !WorldSettings->bForceNoPrecomputedLighting)
 	{
 		check(IsInGameThread());
-		if (NumLightingUnbuiltObjects != InNumLightingUnbuiltObjects && (NumLightingUnbuiltObjects == 0 || InNumLightingUnbuiltObjects == 0))
+		if ((NumLightingUnbuiltObjects != InNumLightingUnbuiltObjects && (NumLightingUnbuiltObjects == 0 || InNumLightingUnbuiltObjects == 0))
+			|| (NumUnbuiltReflectionCaptures != InNumUnbuiltReflectionCaptures && (NumUnbuiltReflectionCaptures == 0 || InNumUnbuiltReflectionCaptures == 0)))
 		{
 			// Save the lighting invalidation for transactions.
 			Modify(false);
 		}
 
 		NumLightingUnbuiltObjects = InNumLightingUnbuiltObjects;
+		NumUnbuiltReflectionCaptures = InNumUnbuiltReflectionCaptures;
 
 		// Update last time unbuilt lighting was encountered.
 		if (NumLightingUnbuiltObjects > 0)

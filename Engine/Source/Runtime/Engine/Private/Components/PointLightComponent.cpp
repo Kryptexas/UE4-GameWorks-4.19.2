@@ -196,6 +196,28 @@ void UPointLightComponent::SetSourceLength(float NewValue)
 	}
 }
 
+float UPointLightComponent::ComputeLightBrightness() const
+{
+	float LightBrightness = Super::ComputeLightBrightness();
+
+	if (bUseInverseSquaredFalloff)
+	{
+		if (IntensityUnits == ELightUnits::Candelas)
+		{
+			LightBrightness *= (100.f * 100.f); // Conversion from cm2 to m2
+		}
+		else if (IntensityUnits == ELightUnits::Lumens)
+		{
+			LightBrightness *= (100.f * 100.f / 4 / PI); // Conversion from cm2 to m2 and 4PI from the sphere area in the 1/r2 attenuation
+		}
+		else
+		{
+			LightBrightness *= 16; // Legacy scale of 16
+		}
+	}
+	return LightBrightness;
+}
+
 bool UPointLightComponent::AffectsBounds(const FBoxSphereBounds& InBounds) const
 {
 	if((InBounds.Origin - GetComponentTransform().GetLocation()).SizeSquared() > FMath::Square(AttenuationRadius + InBounds.SphereRadius))
@@ -359,3 +381,42 @@ void UPointLightComponent::PushRadiusToRenderThread()
 	}
 }
 
+float UPointLightComponent::GetUnitsConversionFactor(ELightUnits SrcUnits, ELightUnits TargetUnits)
+{
+	if (SrcUnits == TargetUnits)
+	{
+		return 1.f;
+	}
+	else
+	{
+		float CnvFactor = 1.f;
+		
+		if (SrcUnits == ELightUnits::Candelas)
+		{
+			CnvFactor = 100.f * 100.f;
+		}
+		else if (SrcUnits == ELightUnits::Lumens)
+		{
+			CnvFactor = 100.f * 100.f / 4 / PI;
+		}
+		else
+		{
+			CnvFactor = 16.f;
+		}
+
+		if (TargetUnits == ELightUnits::Candelas)
+		{
+			CnvFactor *= 1.f / 100.f / 100.f;
+		}
+		else if (TargetUnits == ELightUnits::Lumens)
+		{
+			CnvFactor *= 4.f  * PI / 100.f / 100.f;
+		}
+		else
+		{
+			CnvFactor *= 1.f / 16.f;
+		}
+
+		return CnvFactor;
+	}
+}

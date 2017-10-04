@@ -11,6 +11,8 @@
 #include "pixel_format.hpp"
 #include "resource.hpp"
 
+MTLPP_PROTOCOL(MTLBuffer);
+
 namespace mtlpp
 {
     class Texture;
@@ -20,7 +22,7 @@ namespace mtlpp
     {
     public:
         Buffer() { }
-        Buffer(const ns::Handle& handle) : Resource(handle) { }
+        Buffer(ns::Protocol<id<MTLBuffer>>::type handle) : Resource((ns::Protocol<id<MTLResource>>::type)handle) { }
 
         uint32_t GetLength() const;
         void*    GetContents();

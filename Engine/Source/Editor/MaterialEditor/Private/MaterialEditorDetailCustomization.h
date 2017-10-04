@@ -27,7 +27,10 @@ public:
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
-private:
+protected:
+	/** Default constructor for child overrides */
+	FMaterialExpressionParameterDetails();
+
 	/** Populates the group name that this parameter details uses */
 	void PopulateGroups();
 
@@ -39,7 +42,7 @@ private:
 	FText OnGetText() const;
 	void OnSliderMinMaxEdited();
 
-private:
+protected:
 	/** The property handle to the groups */
 	TSharedPtr<class IPropertyHandle> GroupPropertyHandle;
 
@@ -56,6 +59,22 @@ private:
 
 	TArray<TWeakObjectPtr<UObject>> ScalarParameterObjects;
 	TArray<TSharedPtr<IPropertyHandle>> DefaultValueHandles;
+};
+
+class FMaterialExpressionLayersParameterDetails : public FMaterialExpressionParameterDetails
+{
+public:
+
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<class IDetailCustomization> MakeInstance(FOnCollectParameterGroups InCollectGroupsDelegate);
+
+	/** Constructor requires a delegate to populate group names with */
+	FMaterialExpressionLayersParameterDetails(FOnCollectParameterGroups InCollectGroupsDelegate);
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
+
+	void ResetCategory(IDetailLayoutBuilder* DetailLayout);
 };
 
 /** 

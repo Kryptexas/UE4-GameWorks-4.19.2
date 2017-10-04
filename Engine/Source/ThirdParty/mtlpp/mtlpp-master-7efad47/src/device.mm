@@ -21,7 +21,7 @@ namespace mtlpp
 {
 	ArgumentDescriptor::ArgumentDescriptor()
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-	: ns::Object(ns::Handle{ [MTLArgumentDescriptor new] }, false)
+	: ns::Object<MTLArgumentDescriptor*>([MTLArgumentDescriptor new], false)
 #endif
 	{
 	}
@@ -87,14 +87,14 @@ namespace mtlpp
 	}
 	
     CompileOptions::CompileOptions() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLCompileOptions alloc] init] }, false)
+        ns::Object<MTLCompileOptions*>([[MTLCompileOptions alloc] init], false)
     {
     }
 
 	ns::String Device::GetWasAddedNotification()
 	{
 #if MTLPP_IS_AVAILABLE_MAC(10_13)
-		return ns::Handle{ MTLDeviceWasAddedNotification };
+		return MTLDeviceWasAddedNotification;
 #else
 		return ns::String();
 #endif
@@ -103,7 +103,7 @@ namespace mtlpp
 	ns::String Device::GetRemovalRequestedNotification()
 	{
 #if MTLPP_IS_AVAILABLE_MAC(10_13)
-		return ns::Handle{ MTLDeviceRemovalRequestedNotification };
+		return MTLDeviceRemovalRequestedNotification;
 #else
 		return ns::String();
 #endif
@@ -112,26 +112,26 @@ namespace mtlpp
 	ns::String Device::GetWasRemovedNotification()
 	{
 #if MTLPP_IS_AVAILABLE_MAC(10_13)
-		return ns::Handle{ MTLDeviceWasRemovedNotification };
+		return MTLDeviceWasRemovedNotification;
 #else
 		return ns::String();
 #endif
 	}
 	
-	ns::Array<Device> Device::CopyAllDevicesWithObserver(ns::Object observer, std::function<void(const Device&, ns::String const&)> handler)
+	ns::Array<ns::Ref<Device>> Device::CopyAllDevicesWithObserver(ns::Object<NSObject*> observer, std::function<void(const ns::Ref<Device>&, ns::String const&)> handler)
 	{
 #if MTLPP_IS_AVAILABLE_MAC(10_13)
 		id<NSObject> obj = (id<NSObject>)observer.GetPtr();
-		return ns::Handle{ MTLCopyAllDevicesWithObserver((id<NSObject>*)(obj ? &obj : nil), ^(id<MTLDevice>  _Nonnull device, MTLDeviceNotificationName  _Nonnull notifyName)
+		return MTLCopyAllDevicesWithObserver((id<NSObject>*)(obj ? &obj : nil), ^(id<MTLDevice>  _Nonnull device, MTLDeviceNotificationName  _Nonnull notifyName)
 			{
-			handler(ns::Handle{ device }, ns::String(ns::Handle{ notifyName }));
-		}) };
+			handler(ns::Ref<Device>(new Device(device)), ns::String(notifyName));
+		});
 #else
-		return ns::Array<Device>();
+		return ns::Array<ns::Ref<Device>>();
 #endif
 	}
 	
-	void Device::RemoveDeviceObserver(ns::Object observer)
+	void Device::RemoveDeviceObserver(ns::Object<NSObject*> observer)
 	{
 #if MTLPP_IS_AVAILABLE_MAC(10_13)
 		if (observer)
@@ -141,31 +141,31 @@ namespace mtlpp
 #endif
 	}
 	
-    Device Device::CreateSystemDefaultDevice()
+    ns::Ref<Device> Device::CreateSystemDefaultDevice()
     {
-        return ns::Handle{ (__bridge void*)MTLCreateSystemDefaultDevice() };
+        return new Device(MTLCreateSystemDefaultDevice());
     }
 
-    ns::Array<Device> Device::CopyAllDevices()
+    ns::Array<ns::Ref<Device>> Device::CopyAllDevices()
     {
 #if MTLPP_PLATFORM_MAC
-        return ns::Handle{ (__bridge void*)MTLCopyAllDevices() };
+        return MTLCopyAllDevices();
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
     ns::String Device::GetName() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr name] };
+        return [(id<MTLDevice>)m_ptr name];
     }
 
     Size Device::GetMaxThreadsPerThreadgroup() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        MTLSize mtlSize = [(__bridge id<MTLDevice>)m_ptr maxThreadsPerThreadgroup];
+        MTLSize mtlSize = [(id<MTLDevice>)m_ptr maxThreadsPerThreadgroup];
         return Size(uint32_t(mtlSize.width), uint32_t(mtlSize.height), uint32_t(mtlSize.depth));
 #else
         return Size(0, 0, 0);
@@ -176,7 +176,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_PLATFORM_MAC
-        return [(__bridge id<MTLDevice>)m_ptr isLowPower];
+        return [(id<MTLDevice>)m_ptr isLowPower];
 #else
         return false;
 #endif
@@ -186,7 +186,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_PLATFORM_MAC
-        return [(__bridge id<MTLDevice>)m_ptr isHeadless];
+        return [(id<MTLDevice>)m_ptr isHeadless];
 #else
         return false;
 #endif
@@ -196,7 +196,7 @@ namespace mtlpp
     {
 #if MTLPP_PLATFORM_MAC
 		if(@available(macOS 10.12, *))
-			return [(__bridge id<MTLDevice>)m_ptr recommendedMaxWorkingSetSize];
+			return [(id<MTLDevice>)m_ptr recommendedMaxWorkingSetSize];
 		else
 #endif
         return 0;
@@ -206,7 +206,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_PLATFORM_MAC
-        return [(__bridge id<MTLDevice>)m_ptr isDepth24Stencil8PixelFormatSupported];
+        return [(id<MTLDevice>)m_ptr isDepth24Stencil8PixelFormatSupported];
 #else
         return true;
 #endif
@@ -261,20 +261,20 @@ namespace mtlpp
     CommandQueue Device::NewCommandQueue()
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newCommandQueue] };
+        return [(id<MTLDevice>)m_ptr newCommandQueue];
     }
 
     CommandQueue Device::NewCommandQueue(uint32_t maxCommandBufferCount)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newCommandQueueWithMaxCommandBufferCount:maxCommandBufferCount] };
+        return [(id<MTLDevice>)m_ptr newCommandQueueWithMaxCommandBufferCount:maxCommandBufferCount];
     }
 
     SizeAndAlign Device::HeapTextureSizeAndAlign(const TextureDescriptor& desc)
     {
 		if (@available(macOS 10.13, iOS 10.0, *))
 		{
-			MTLSizeAndAlign mtlSizeAndAlign = [(__bridge id<MTLDevice>)m_ptr heapTextureSizeAndAlignWithDescriptor:(__bridge MTLTextureDescriptor*)desc.GetPtr()];
+			MTLSizeAndAlign mtlSizeAndAlign = [(id<MTLDevice>)m_ptr heapTextureSizeAndAlignWithDescriptor:(MTLTextureDescriptor*)desc.GetPtr()];
 			return SizeAndAlign{ uint32_t(mtlSizeAndAlign.size), uint32_t(mtlSizeAndAlign.align) };
 		}
         return SizeAndAlign{0, 0};
@@ -284,7 +284,7 @@ namespace mtlpp
     {
 		if (@available(macOS 10.13, iOS 10.0, *))
 		{
-			MTLSizeAndAlign mtlSizeAndAlign = [(__bridge id<MTLDevice>)m_ptr heapBufferSizeAndAlignWithLength:length options:MTLResourceOptions(options)];
+			MTLSizeAndAlign mtlSizeAndAlign = [(id<MTLDevice>)m_ptr heapBufferSizeAndAlignWithLength:length options:MTLResourceOptions(options)];
 			return SizeAndAlign{ uint32_t(mtlSizeAndAlign.size), uint32_t(mtlSizeAndAlign.align) };
 		}
         return SizeAndAlign{0, 0};
@@ -294,52 +294,50 @@ namespace mtlpp
     {
 		if (@available(macOS 10.13, iOS 10.0, *))
 		{
-			return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newHeapWithDescriptor:(__bridge MTLHeapDescriptor*)descriptor.GetPtr()] };
+			return [(id<MTLDevice>)m_ptr newHeapWithDescriptor:(MTLHeapDescriptor*)descriptor.GetPtr()];
 		}
-		return ns::Handle{ nullptr };
+		return nullptr;
     }
 
     Buffer Device::NewBuffer(uint32_t length, ResourceOptions options)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newBufferWithLength:length options:MTLResourceOptions(options)] };
+        return [(id<MTLDevice>)m_ptr newBufferWithLength:length options:MTLResourceOptions(options)];
     }
 
     Buffer Device::NewBuffer(const void* pointer, uint32_t length, ResourceOptions options)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newBufferWithBytes:pointer length:length options:MTLResourceOptions(options)] };
+        return [(id<MTLDevice>)m_ptr newBufferWithBytes:pointer length:length options:MTLResourceOptions(options)];
     }
 
 
     Buffer Device::NewBuffer(void* pointer, uint32_t length, ResourceOptions options, std::function<void (void* pointer, uint32_t length)> deallocator)
     {
         Validate();
-        return ns::Handle{
-            (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newBufferWithBytesNoCopy:pointer
+        return [(id<MTLDevice>)m_ptr newBufferWithBytesNoCopy:pointer
                                                                              length:length
                                                                             options:MTLResourceOptions(options)
-                                                                        deallocator:^(void* pointer, NSUInteger length) { deallocator(pointer, uint32_t(length)); }]
-        };
+                                                                        deallocator:^(void* pointer, NSUInteger length) { deallocator(pointer, uint32_t(length)); }];
     }
 
     DepthStencilState Device::NewDepthStencilState(const DepthStencilDescriptor& descriptor)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newDepthStencilStateWithDescriptor:(__bridge MTLDepthStencilDescriptor*)descriptor.GetPtr()] };
+        return [(id<MTLDevice>)m_ptr newDepthStencilStateWithDescriptor:(MTLDepthStencilDescriptor*)descriptor.GetPtr()];
     }
 
     Texture Device::NewTexture(const TextureDescriptor& descriptor)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newTextureWithDescriptor:(__bridge MTLTextureDescriptor*)descriptor.GetPtr()] };
+        return [(id<MTLDevice>)m_ptr newTextureWithDescriptor:(MTLTextureDescriptor*)descriptor.GetPtr()];
     }
 	
 	Texture Device::NewTextureWithDescriptor(const TextureDescriptor& descriptor, ns::IOSurface& iosurface, uint32_t plane)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_MAC(10_11)
-		return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newTextureWithDescriptor:(__bridge MTLTextureDescriptor*)descriptor.GetPtr() iosurface:(IOSurfaceRef)iosurface.GetPtr() plane:plane] };
+		return [(id<MTLDevice>)m_ptr newTextureWithDescriptor:(MTLTextureDescriptor*)descriptor.GetPtr() iosurface:(IOSurfaceRef)iosurface.GetPtr() plane:plane];
 #else
 		return Texture();
 #endif
@@ -348,28 +346,28 @@ namespace mtlpp
     SamplerState Device::NewSamplerState(const SamplerDescriptor& descriptor)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newSamplerStateWithDescriptor:(__bridge MTLSamplerDescriptor*)descriptor.GetPtr()] };
+        return [(id<MTLDevice>)m_ptr newSamplerStateWithDescriptor:(MTLSamplerDescriptor*)descriptor.GetPtr()];
     }
 
     Library Device::NewDefaultLibrary()
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newDefaultLibrary] };
+        return [(id<MTLDevice>)m_ptr newDefaultLibrary];
     }
 
     Library Device::NewLibrary(const ns::String& filepath, ns::Error* error)
     {
         Validate();
-        NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newLibraryWithFile:(__bridge NSString*)filepath.GetPtr() error:&nsError] };
+        NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+        return [(id<MTLDevice>)m_ptr newLibraryWithFile:(NSString*)filepath.GetPtr() error:nsError];
     }
 	
 	Library Device::NewDefaultLibraryWithBundle(const ns::Bundle& bundle, ns::Error* error)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-		NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-		return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newDefaultLibraryWithBundle:(__bridge NSBundle*)bundle.GetPtr() error:&nsError] };
+		NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+		return [(id<MTLDevice>)m_ptr newDefaultLibraryWithBundle:(NSBundle*)bundle.GetPtr() error:nsError];
 #else
 		return Library();
 #endif
@@ -379,20 +377,18 @@ namespace mtlpp
     {
         Validate();
         NSString* nsSource = [NSString stringWithUTF8String:source];
-        NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-        return ns::Handle{
-            (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newLibraryWithSource:nsSource
-                                                                        options:(__bridge MTLCompileOptions*)options.GetPtr()
-                                                                          error:&nsError]
-        };
+        NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+        return [(id<MTLDevice>)m_ptr newLibraryWithSource:nsSource
+                                                                        options:(MTLCompileOptions*)options.GetPtr()
+                                                                          error:nsError];
     }
 	
 	Library Device::NewLibrary(ns::URL const& url, ns::Error* error)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-		return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newLibraryWithURL:(__bridge NSURL*)url.GetPtr() error:&nsError] };
+		NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+		return [(id<MTLDevice>)m_ptr newLibraryWithURL:(NSURL*)url.GetPtr() error:nsError];
 #else
 		return Library();
 #endif
@@ -402,46 +398,42 @@ namespace mtlpp
     {
         Validate();
         NSString* nsSource = [NSString stringWithUTF8String:source];
-        [(__bridge id<MTLDevice>)m_ptr newLibraryWithSource:nsSource
-                                                    options:(__bridge MTLCompileOptions*)options.GetPtr()
+        [(id<MTLDevice>)m_ptr newLibraryWithSource:nsSource
+                                                    options:(MTLCompileOptions*)options.GetPtr()
                                           completionHandler:^(id <MTLLibrary> library, NSError * error) {
                                                 completionHandler(
-                                                    ns::Handle{ (__bridge void*)library },
-                                                    ns::Handle{ (__bridge void*)error });
+                                                    library,
+                                                    error);
                                           }];
     }
 
     RenderPipelineState Device::NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, ns::Error* error)
     {
         Validate();
-        NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-        return ns::Handle{
-            (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(__bridge MTLRenderPipelineDescriptor*)descriptor.GetPtr()
-                                                                                          error:&nsError]
-        };
+        NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+        return [(id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor*)descriptor.GetPtr()
+                                                                                          error:nsError];
     }
 
     RenderPipelineState Device::NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, PipelineOption options, RenderPipelineReflection* outReflection, ns::Error* error)
     {
         Validate();
-        NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-        MTLRenderPipelineReflection* mtlReflection = outReflection ? (__bridge MTLRenderPipelineReflection*)outReflection->GetPtr() : nullptr;
-        return ns::Handle{
-            (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(__bridge MTLRenderPipelineDescriptor*)descriptor.GetPtr()
+        NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+        MTLRenderPipelineReflection* mtlReflection = outReflection ? (MTLRenderPipelineReflection*)outReflection->GetPtr() : nullptr;
+        return [(id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor*)descriptor.GetPtr()
                                                                                         options:MTLPipelineOption(options)
                                                                                      reflection:&mtlReflection
-                                                                                          error:&nsError]
-        };
+                                                                                          error:nsError];
     }
 
     void Device::NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, std::function<void(const RenderPipelineState&, const ns::Error&)> completionHandler)
     {
         Validate();
-        [(__bridge id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(__bridge MTLRenderPipelineDescriptor*)descriptor.GetPtr()
+        [(id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor*)descriptor.GetPtr()
                                                           completionHandler:^(id <MTLRenderPipelineState> renderPipelineState, NSError * error) {
                                                               completionHandler(
-                                                                  ns::Handle{ (__bridge void*)renderPipelineState },
-                                                                  ns::Handle{ (__bridge void*)error }
+                                                                  renderPipelineState,
+                                                                  error
                                                               );
                                                           }];
     }
@@ -449,13 +441,13 @@ namespace mtlpp
     void Device::NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, PipelineOption options, std::function<void(const RenderPipelineState&, const RenderPipelineReflection&, const ns::Error&)> completionHandler)
     {
         Validate();
-        [(__bridge id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(__bridge MTLRenderPipelineDescriptor*)descriptor.GetPtr()
+        [(id<MTLDevice>)m_ptr newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor*)descriptor.GetPtr()
                                                                     options:MTLPipelineOption(options)
                                                           completionHandler:^(id <MTLRenderPipelineState> renderPipelineState, MTLRenderPipelineReflection * reflection, NSError * error) {
                                                               completionHandler(
-                                                                  ns::Handle{ (__bridge void*)renderPipelineState },
-                                                                  ns::Handle{ (__bridge void*)reflection },
-                                                                  ns::Handle{ (__bridge void*)error }
+                                                                  renderPipelineState,
+                                                                  reflection,
+                                                                  error
                                                               );
                                                           }];
     }
@@ -463,27 +455,30 @@ namespace mtlpp
     ComputePipelineState Device::NewComputePipelineState(const Function& computeFunction, ns::Error* error)
     {
         Validate();
-        NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-        return ns::Handle{
-            (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newComputePipelineStateWithFunction:(__bridge id<MTLFunction>)computeFunction.GetPtr()
-                                                                                         error:&nsError]
-        };
+        NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+        return [(id<MTLDevice>)m_ptr newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction.GetPtr()
+                                                                                         error:nsError];
     }
 
     ComputePipelineState Device::NewComputePipelineState(const Function& computeFunction, PipelineOption options, ComputePipelineReflection& outReflection, ns::Error* error)
     {
         Validate();
-        return ns::Handle{ nullptr };
+		NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+		MTLComputePipelineReflection* mtlReflection = outReflection ? (MTLComputePipelineReflection*)outReflection.GetPtr() : nullptr;
+		return [(id<MTLDevice>)m_ptr newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction.GetPtr()
+																  options:MTLPipelineOption(options)
+															   reflection:&mtlReflection
+																	error:nsError];
     }
 
     void Device::NewComputePipelineState(const Function& computeFunction, std::function<void(const ComputePipelineState&, const ns::Error&)> completionHandler)
     {
         Validate();
-        [(__bridge id<MTLDevice>)m_ptr newComputePipelineStateWithFunction:(__bridge id<MTLFunction>)computeFunction.GetPtr()
+        [(id<MTLDevice>)m_ptr newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction.GetPtr()
                                                          completionHandler:^(id <MTLComputePipelineState> computePipelineState, NSError * error) {
                                                              completionHandler(
-                                                                 ns::Handle{ (__bridge void*)computePipelineState },
-                                                                 ns::Handle{ (__bridge void*)error }
+                                                                 computePipelineState,
+                                                                 error
                                                              );
                                                          }];
     }
@@ -491,13 +486,13 @@ namespace mtlpp
     void Device::NewComputePipelineState(const Function& computeFunction, PipelineOption options, std::function<void(const ComputePipelineState&, const ComputePipelineReflection&, const ns::Error&)> completionHandler)
     {
         Validate();
-        [(__bridge id<MTLDevice>)m_ptr newComputePipelineStateWithFunction:(__bridge id<MTLFunction>)computeFunction.GetPtr()
+        [(id<MTLDevice>)m_ptr newComputePipelineStateWithFunction:(id<MTLFunction>)computeFunction.GetPtr()
                                                                    options:MTLPipelineOption(options)
                                                          completionHandler:^(id <MTLComputePipelineState> computePipelineState, MTLComputePipelineReflection * reflection, NSError * error) {
                                                              completionHandler(
-                                                                 ns::Handle{ (__bridge void*)computePipelineState },
-                                                                 ns::Handle{ (__bridge void*)reflection },
-                                                                 ns::Handle{ (__bridge void*)error }
+                                                                 computePipelineState,
+                                                                 reflection,
+                                                                 error
                                                              );
                                                          }];
     }
@@ -506,15 +501,14 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-        MTLComputePipelineReflection* mtlReflection = outReflection ? (__bridge MTLComputePipelineReflection*)outReflection->GetPtr() : nullptr;
-        return ns::Handle{
-            (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newComputePipelineStateWithDescriptor:(__bridge MTLComputePipelineDescriptor*)descriptor.GetPtr()
+        NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+        MTLComputePipelineReflection* mtlReflection = outReflection ? (MTLComputePipelineReflection*)outReflection->GetPtr() : nullptr;
+        return [(id<MTLDevice>)m_ptr newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor*)descriptor.GetPtr()
                                                                                          options:MTLPipelineOption(options)
                                                                                       reflection:&mtlReflection
-                                                                                           error:&nsError] };
+                                                                                           error:nsError];
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
@@ -522,14 +516,14 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        [(__bridge id<MTLDevice>)m_ptr newComputePipelineStateWithDescriptor:(__bridge MTLComputePipelineDescriptor*)descriptor.GetPtr()
+        [(id<MTLDevice>)m_ptr newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor*)descriptor.GetPtr()
                                                                      options:MTLPipelineOption(options)
                                                          completionHandler:^(id <MTLComputePipelineState> computePipelineState, MTLComputePipelineReflection * reflection, NSError * error)
                                                                     {
                                                                         completionHandler(
-                                                                            ns::Handle{ (__bridge void*)computePipelineState },
-                                                                            ns::Handle{ (__bridge void*)reflection },
-                                                                            ns::Handle{ (__bridge void*)error });
+                                                                            computePipelineState,
+                                                                            reflection,
+                                                                            error);
                                                                     }];
 #endif
     }
@@ -538,32 +532,32 @@ namespace mtlpp
     {
         Validate();
 		if (@available(macOS 10.13, iOS 10.0, *))
-			return ns::Handle{ (__bridge void*)[(__bridge id<MTLDevice>)m_ptr newFence] };
+			return [(id<MTLDevice>)m_ptr newFence];
 		else
-			return ns::Handle{ nullptr };
+			return nullptr;
     }
 
     bool Device::SupportsFeatureSet(FeatureSet featureSet) const
     {
         Validate();
-        return [(__bridge id<MTLDevice>)m_ptr supportsFeatureSet:MTLFeatureSet(featureSet)];
+        return [(id<MTLDevice>)m_ptr supportsFeatureSet:MTLFeatureSet(featureSet)];
     }
 
     bool Device::SupportsTextureSampleCount(uint32_t sampleCount) const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return [(__bridge id<MTLDevice>)m_ptr supportsTextureSampleCount:sampleCount];
+        return [(id<MTLDevice>)m_ptr supportsTextureSampleCount:sampleCount];
 #else
         return true;
 #endif
     }
 	
-	uint32_t Device::GetMinimumTextureAlignmentForPixelFormat(PixelFormat format) const
+	uint32_t Device::GetMinimumLinearTextureAlignmentForPixelFormat(PixelFormat format) const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(__bridge id<MTLDevice>)m_ptr minimumLinearTextureAlignmentForPixelFormat:(MTLPixelFormat)format];
+		return [(id<MTLDevice>)m_ptr minimumLinearTextureAlignmentForPixelFormat:(MTLPixelFormat)format];
 #else
 		return 0;
 #endif
@@ -573,7 +567,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(__bridge id<MTLDevice>)m_ptr maxThreadgroupMemoryLength];
+		return [(id<MTLDevice>)m_ptr maxThreadgroupMemoryLength];
 #else
 		return 0;
 #endif
@@ -583,7 +577,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(__bridge id<MTLDevice>)m_ptr areProgrammableSamplePositionsSupported];
+		return [(id<MTLDevice>)m_ptr areProgrammableSamplePositionsSupported];
 #else
 		return false;
 #endif
@@ -593,7 +587,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(__bridge id<MTLDevice>)m_ptr getDefaultSamplePositions:(MTLSamplePosition *)positions count:count];
+		[(id<MTLDevice>)m_ptr getDefaultSamplePositions:(MTLSamplePosition *)positions count:count];
 #endif
 	}
 	
@@ -601,9 +595,37 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(__bridge id<MTLDevice>)m_ptr newArgumentEncoderWithArguments:(NSArray<MTLArgumentDescriptor *> *)arguments.GetPtr()] };
+		return [(id<MTLDevice>)m_ptr newArgumentEncoderWithArguments:(NSArray<MTLArgumentDescriptor *> *)arguments.GetPtr()];
 #else
 		return ArgumentEncoder();
+#endif
+	}
+	
+	RenderPipelineState Device::NewRenderPipelineState(const TileRenderPipelineDescriptor& descriptor, PipelineOption options, RenderPipelineReflection* outReflection, ns::Error* error)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
+		MTLRenderPipelineReflection* mtlReflection = outReflection ? (MTLRenderPipelineReflection*)outReflection->GetPtr() : nullptr;
+		return [m_ptr newRenderPipelineStateWithTileDescriptor:descriptor.GetPtr() options:(MTLPipelineOption)options reflection:&mtlReflection error:nsError];
+#else
+		return RenderPipelineState();
+#endif
+	}
+	
+	void Device::NewRenderPipelineState(const TileRenderPipelineDescriptor& descriptor, PipelineOption options, std::function<void(const RenderPipelineState&, const RenderPipelineReflection&, const ns::Error&)> completionHandler)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(id<MTLDevice>)m_ptr newRenderPipelineStateWithTileDescriptor: descriptor.GetPtr()
+														   options:MTLPipelineOption(options)
+												 completionHandler:^(id <MTLRenderPipelineState> renderPipelineState, MTLRenderPipelineReflection * reflection, NSError * error) {
+													 completionHandler(
+																	   renderPipelineState,
+																	   reflection,
+																	   error
+																	   );
+												 }];
 #endif
 	}
 }

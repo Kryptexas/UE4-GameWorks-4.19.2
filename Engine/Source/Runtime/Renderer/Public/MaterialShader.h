@@ -17,6 +17,8 @@
 #include "MaterialShaderType.h"
 #include "SceneRenderTargetParameters.h"
 
+FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
+
 template<typename TBufferStruct> class TUniformBufferRef;
 
 template<typename ParameterType> 
@@ -154,8 +156,6 @@ public:
 		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer,
 		bool bDeferredPass, 
 		ESceneRenderTargetsMode::Type TextureMode);
-
-	FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override;

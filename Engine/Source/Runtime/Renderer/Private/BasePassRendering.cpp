@@ -215,6 +215,7 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
 	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;
 	int32 ArrayIndex = 0;
+	float AverageBrightness = 1.0f;
 	const FReflectionCaptureProxy* ReflectionProxy = PrimitiveSceneInfo ? PrimitiveSceneInfo->CachedReflectionCaptureProxy : nullptr;
 	FVector4 CaptureOffsetAndAverageBrightnessValue(0, 0, 0, 1);
 	FVector4 PositionAndRadius = FVector4(0, 0, 0, 1);
@@ -222,8 +223,8 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 
 	if (PrimitiveSceneInfo && ReflectionProxy && View.Family->EngineShowFlags.ReflectionEnvironment)
 	{
-		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex);
-		CaptureOffsetAndAverageBrightnessValue = FVector4(ReflectionProxy->CaptureOffset, ReflectionProxy->AverageBrightness);
+		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex, AverageBrightness);
+		CaptureOffsetAndAverageBrightnessValue = FVector4(ReflectionProxy->CaptureOffset, AverageBrightness);
 		PositionAndRadius = FVector4(ReflectionProxy->Position, ReflectionProxy->InfluenceRadius);
 		Brightness = ReflectionProxy->Brightness;
 	}

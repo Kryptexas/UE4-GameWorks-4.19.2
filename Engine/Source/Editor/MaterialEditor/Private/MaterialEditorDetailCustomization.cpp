@@ -11,6 +11,8 @@
 #include "DetailWidgetRow.h"
 #include "DetailCategoryBuilder.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
+#include "MaterialLayersFunctionsCustomization.h"
+#include "PropertyEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -23,6 +25,10 @@ TSharedRef<IDetailCustomization> FMaterialExpressionParameterDetails::MakeInstan
 
 FMaterialExpressionParameterDetails::FMaterialExpressionParameterDetails(FOnCollectParameterGroups InCollectGroupsDelegate)
 	: CollectGroupsDelegate(InCollectGroupsDelegate)
+{
+}
+
+FMaterialExpressionParameterDetails::FMaterialExpressionParameterDetails()
 {
 }
 
@@ -78,48 +84,50 @@ void FMaterialExpressionParameterDetails::CustomizeDetails( IDetailLayoutBuilder
 	// Get a handle to the property we are about to edit
 	GroupPropertyHandle = DetailLayout.GetProperty( "Group" );
 
-	GroupPropertyHandle->MarkHiddenByCustomization();
-
-	PopulateGroups();
-
 	TSharedPtr<SComboButton> NewComboButton;
 	TSharedPtr<SEditableText> NewEditBox;
 	TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
-	
-	Category.AddCustomRow( GroupPropertyHandle->GetPropertyDisplayName() )
-	.NameContent()
-	[
-		SNew( STextBlock )
-		.Text( GroupPropertyHandle->GetPropertyDisplayName() )
-		.Font( IDetailLayoutBuilder::GetDetailFont() )
-	]
-	.ValueContent()
-	[
-		SAssignNew(NewComboButton, SComboButton)
-		.ContentPadding(FMargin(2.0f, 2.0f))
-		.ButtonContent()
-		[
-			SAssignNew(NewEditBox, SEditableText)
+
+	if (GroupPropertyHandle->IsValidHandle())
+	{
+		GroupPropertyHandle->MarkHiddenByCustomization();
+
+		PopulateGroups();	
+
+		Category.AddCustomRow(GroupPropertyHandle->GetPropertyDisplayName())
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Text(GroupPropertyHandle->GetPropertyDisplayName())
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		.ValueContent()
+			[
+				SAssignNew(NewComboButton, SComboButton)
+				.ContentPadding(FMargin(2.0f, 2.0f))
+			.ButtonContent()
+			[
+				SAssignNew(NewEditBox, SEditableText)
 				.Text(this, &FMaterialExpressionParameterDetails::OnGetText)
-				.OnTextCommitted(this, &FMaterialExpressionParameterDetails::OnTextCommitted)
-		]
+			.OnTextCommitted(this, &FMaterialExpressionParameterDetails::OnTextCommitted)
+			]
 		.MenuContent()
-		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
 			.AutoHeight()
 			.MaxHeight(400.0f)
 			[
 				SAssignNew(NewListView, SListView<TSharedPtr<FString>>)
-					.ListItemsSource(&GroupsSource)
-					.OnGenerateRow(this, &FMaterialExpressionParameterDetails::MakeDetailsGroupViewWidget)
-					.OnSelectionChanged(this, &FMaterialExpressionParameterDetails::OnSelectionChanged)
+				.ListItemsSource(&GroupsSource)
+			.OnGenerateRow(this, &FMaterialExpressionParameterDetails::MakeDetailsGroupViewWidget)
+			.OnSelectionChanged(this, &FMaterialExpressionParameterDetails::OnSelectionChanged)
 			]
-		]
-	];
+			]
+			];
 
-
-	Category.AddProperty("SortPriority");
+		Category.AddProperty("SortPriority");
+	}
 
 	GroupComboButton = NewComboButton;
 	GroupEditBox = NewEditBox;
@@ -427,7 +435,7 @@ void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& Detai
 				if(		PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) 
 					&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, BlendMode) 
 					&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, OpacityMaskClipValue) 
-					&&  	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, NumCustomizedUVs) )
+					&& 	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, NumCustomizedUVs) )
 				{
 					DetailLayout.HideProperty( PropertyHandle );
 				}
@@ -453,6 +461,30 @@ void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& Detai
 			}
 		}
 	}
+}
+
+TSharedRef<class IDetailCustomization> FMaterialExpressionLayersParameterDetails::MakeInstance(FOnCollectParameterGroups InCollectGroupsDelegate)
+{
+	return MakeShareable(new FMaterialExpressionLayersParameterDetails(InCollectGroupsDelegate));
+}
+
+FMaterialExpressionLayersParameterDetails::FMaterialExpressionLayersParameterDetails(FOnCollectParameterGroups InCollectGroupsDelegate)
+{
+	CollectGroupsDelegate = InCollectGroupsDelegate;
+}
+
+void FMaterialExpressionLayersParameterDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
+{
+	FMaterialExpressionParameterDetails::CustomizeDetails(DetailLayout);
+	// for expression parameters all their properties are in one category based on their class name.
+	FName LayerCategory = FName("Layers");
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory(LayerCategory);
+	// Get a handle to the property we are about to edit
+	GroupPropertyHandle = DetailLayout.GetProperty("DefaultLayers");
+	GroupPropertyHandle->MarkHiddenByCustomization();
+	TSharedRef<FMaterialLayersFunctionsCustomization> MaterialLayersFunctionsCustomization = MakeShareable(new FMaterialLayersFunctionsCustomization(GroupPropertyHandle, &DetailLayout));
+	Category.AddCustomBuilder(MaterialLayersFunctionsCustomization);
+	
 }
 
 #undef LOCTEXT_NAMESPACE

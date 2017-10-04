@@ -41,6 +41,14 @@ struct FMeshUVChannelInfo
 	/** Constructor which initializes all components to zero. */
 	FMeshUVChannelInfo(ENoInit) { }
 
+	FMeshUVChannelInfo(float DefaultDensity) : bInitialized(true), bOverrideDensities(false)
+	{
+		for (float& Density : LocalUVDensities)
+		{
+			Density = DefaultDensity;
+		}
+	}
+
 	UPROPERTY()
 	bool bInitialized;
 

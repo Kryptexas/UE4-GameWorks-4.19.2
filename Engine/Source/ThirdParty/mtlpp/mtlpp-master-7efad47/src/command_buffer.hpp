@@ -10,6 +10,8 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_PROTOCOL(MTLCommandBuffer);
+
 namespace mtlpp
 {
     class Device;
@@ -48,11 +50,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class CommandBuffer : public ns::Object
+    class CommandBuffer : public ns::Object<ns::Protocol<id<MTLCommandBuffer>>::type>
     {
     public:
         CommandBuffer() { }
-        CommandBuffer(const ns::Handle& handle) : ns::Object(handle) { }
+        CommandBuffer(ns::Protocol<id<MTLCommandBuffer>>::type handle) : ns::Object<ns::Protocol<id<MTLCommandBuffer>>::type>(handle) { }
 
         Device              GetDevice() const;
         CommandQueue        GetCommandQueue() const;

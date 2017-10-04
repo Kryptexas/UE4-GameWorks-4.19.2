@@ -12,6 +12,9 @@
 #include "buffer.hpp"
 #include "types.hpp"
 
+MTLPP_CLASS(MTLTextureDescriptor);
+MTLPP_PROTOCOL(MTLTexture);
+
 namespace mtlpp
 {
     enum class TextureType
@@ -38,11 +41,11 @@ namespace mtlpp
     MTLPP_AVAILABLE(10_11, 9_0);
 
 
-    class TextureDescriptor : public ns::Object
+    class TextureDescriptor : public ns::Object<MTLTextureDescriptor*>
     {
     public:
         TextureDescriptor();
-        TextureDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        TextureDescriptor(MTLTextureDescriptor* handle) : ns::Object<MTLTextureDescriptor*>(handle) { }
 
         static TextureDescriptor Texture2DDescriptor(PixelFormat pixelFormat, uint32_t width, uint32_t height, bool mipmapped);
         static TextureDescriptor TextureCubeDescriptor(PixelFormat pixelFormat, uint32_t size, bool mipmapped);
@@ -79,7 +82,7 @@ namespace mtlpp
     {
     public:
         Texture() { }
-        Texture(const ns::Handle& handle) : Resource(handle) { }
+        Texture(ns::Protocol<id<MTLTexture>>::type handle) : Resource((ns::Protocol<id<MTLResource>>::type)handle) { }
 
         Resource     GetRootResource() const MTLPP_DEPRECATED(10_11, 10_12, 8_0, 10_0);
         Texture      GetParentTexture() const MTLPP_AVAILABLE(10_11, 9_0);

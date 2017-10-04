@@ -1580,14 +1580,6 @@ public:
 
 		FVector4 LightColorAndExponent(SimpleLight.Color, SimpleLight.Exponent);
 
-		if (SimpleLight.Exponent == 0)
-		{
-			// Correction for lumen units
-			LightColorAndExponent.X *= 16.0f;
-			LightColorAndExponent.Y *= 16.0f;
-			LightColorAndExponent.Z *= 16.0f;
-		}
-
 		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightColorAndExponent, LightColorAndExponent);
 	}
 

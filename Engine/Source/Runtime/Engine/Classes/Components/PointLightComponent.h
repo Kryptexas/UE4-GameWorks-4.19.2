@@ -19,6 +19,14 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 {
 	GENERATED_UCLASS_BODY()
 
+	/** 
+	 * Units used for the intensity. 
+	 * The peak luminous intensity is measured in candelas,
+	 * while the luminous power is measured in lumens.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(DisplayName="Intensity Units", EditCondition="bUseInverseSquaredFalloff"))
+	ELightUnits IntensityUnits;
+
 	UPROPERTY()
 	float Radius_DEPRECATED;
 
@@ -86,12 +94,17 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
 	void SetSourceLength(float NewValue);
 
+	UFUNCTION(BlueprintPure, Category="Rendering|Lighting")
+	static float GetUnitsConversionFactor(ELightUnits SrcUnits, ELightUnits TargetUnits);
+
 protected:
 	//~ Begin UActorComponent Interface
 	virtual void SendRenderTransform_Concurrent() override;
 	//~ End UActorComponent Interface
 
 public:
+
+	virtual float ComputeLightBrightness() const override;
 
 	//~ Begin ULightComponent Interface.
 	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const override;

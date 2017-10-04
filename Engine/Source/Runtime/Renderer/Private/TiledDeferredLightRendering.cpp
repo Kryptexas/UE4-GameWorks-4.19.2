@@ -171,10 +171,6 @@ public:
 
 				if (LightSceneInfo->Proxy->IsInverseSquared())
 				{
-					// Correction for lumen units
-					LightData.LightColorAndFalloffExponent[LightIndex].X *= 16.0f;
-					LightData.LightColorAndFalloffExponent[LightIndex].Y *= 16.0f;
-					LightData.LightColorAndFalloffExponent[LightIndex].Z *= 16.0f;
 					LightData.LightColorAndFalloffExponent[LightIndex].W = 0;
 				}
 
@@ -222,12 +218,6 @@ public:
 				LightData2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(FVector(1, 0, 0), 0);
 				LightData2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(-2, 1, 0, 1);
 				LightData2.ShadowMapChannelMask[LightIndex] = FVector4(0, 0, 0, 0);
-
-				if( SimpleLight.Exponent == 0.0f )
-				{
-					// Correction for lumen units
-					LightData.LightColorAndFalloffExponent[LightIndex] *= 16.0f;
-				}
 			}
 		}
 

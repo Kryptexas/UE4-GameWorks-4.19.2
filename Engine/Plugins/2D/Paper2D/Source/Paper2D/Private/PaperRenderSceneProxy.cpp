@@ -203,26 +203,26 @@ public:
 		return Parent->GetMaterial(InFeatureLevel);
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return Parent->GetVectorValue(ParameterName, OutValue, Context);
+		return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return Parent->GetScalarValue(ParameterName, OutValue, Context);
+		return Parent->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo, const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
-		if (ParameterName == TextureParameterName)
+		if (ParameterInfo.Name == TextureParameterName)
 		{
 			*OutValue = ApplyEditorOverrides(BaseTexture);
 			return true;
 		}
-		else if (ParameterName.GetComparisonIndex() == AdditionalTextureParameterRootName.GetComparisonIndex())
+		else if (ParameterInfo.Name.GetComparisonIndex() == AdditionalTextureParameterRootName.GetComparisonIndex())
 		{
-			const int32 AdditionalSlotIndex = ParameterName.GetNumber() - 1;
+			const int32 AdditionalSlotIndex = ParameterInfo.Name.GetNumber() - 1;
 			if (AdditionalTextures.IsValidIndex(AdditionalSlotIndex))
 			{
 				*OutValue = ApplyEditorOverrides(AdditionalTextures[AdditionalSlotIndex]);
@@ -230,7 +230,7 @@ public:
 			}
 		}
 		
-		return Parent->GetTextureValue(ParameterName, OutValue, Context);
+		return Parent->GetTextureValue(ParameterInfo, OutValue, Context);
 	}
 
 #if WITH_EDITOR

@@ -16,6 +16,7 @@
 #include "Materials/MaterialExpressionFontSample.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionMaterialAttributeLayers.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
@@ -230,6 +231,10 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 		// Previously FColor(0, 116, 255);
 		return Settings->FunctionCallNodeTitleColor;
 	}
+	else if (MaterialExpression->IsA(UMaterialExpressionMaterialAttributeLayers::StaticClass()))
+	{
+		return Settings->FunctionCallNodeTitleColor;
+	}
 	else if (MaterialExpression->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
 	{
 		// Previously FColor(255, 155, 0);
@@ -332,7 +337,8 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 				|| MaterialExpression->IsA(UMaterialExpressionConstant3Vector::StaticClass())
 				|| MaterialExpression->IsA(UMaterialExpressionConstant4Vector::StaticClass())
 				|| MaterialExpression->IsA(UMaterialExpressionTextureSample::StaticClass())
-				|| MaterialExpression->IsA(UMaterialExpressionComponentMask::StaticClass()))
+				|| MaterialExpression->IsA(UMaterialExpressionComponentMask::StaticClass())
+				|| MaterialExpression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass()))
 			{
 				Context.MenuBuilder->BeginSection("MaterialEditorMenu1");
 				{

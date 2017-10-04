@@ -1229,8 +1229,7 @@ public:
 	 **/
 	uint32 NumLightingUnbuiltObjects;
 	
-	/** Num of reflection capture components missing valid data. This can be non-zero only in game with FeatureLevel < SM4*/
-	uint32 NumInvalidReflectionCaptureComponents;
+	uint32 NumUnbuiltReflectionCaptures;
 
 	/** Num of components missing valid texture streaming data. Updated in map check. */
 	int32 NumTextureStreamingUnbuiltComponents;
@@ -2177,9 +2176,6 @@ public:
 	 */
 	void CommitModelSurfaces();
 
-	/** Purges all reflection capture cached derived data and forces a re-render of captured scene data. */
-	void UpdateAllReflectionCaptures();
-
 	/** Purges all sky capture cached derived data and forces a re-render of captured scene data. */
 	void UpdateAllSkyCaptures();
 
@@ -2187,7 +2183,7 @@ public:
 	ULevel* GetActiveLightingScenario() const;
 
 	/** Propagates a change to the active lighting scenario. */
-	void PropagateLightingScenarioChange(bool bLevelWasMadeVisible);
+	void PropagateLightingScenarioChange();
 
 	/**
 	 * Associates the passed in level with the world. The work to make the level visible is spread across several frames and this
@@ -3106,7 +3102,7 @@ public:
 	 * Sets NumLightingUnbuiltObjects to the specified value.  Marks the worldsettings package dirty if the value changed.
 	 * @param	InNumLightingUnbuiltObjects			The new value.
 	 */
-	void SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects);
+	void SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects, int32 InNumUnbuiltReflectionCaptures);
 
 	/** Returns TimerManager instance for this world. */
 	inline FTimerManager& GetTimerManager() const

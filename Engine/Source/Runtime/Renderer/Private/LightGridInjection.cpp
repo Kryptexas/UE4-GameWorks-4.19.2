@@ -373,10 +373,6 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 						if (LightProxy->IsInverseSquared())
 						{
-							// Correction for lumen units
-							LightParameters.LightColorAndFalloffExponent.X *= 16.0f;
-							LightParameters.LightColorAndFalloffExponent.Y *= 16.0f;
-							LightParameters.LightColorAndFalloffExponent.Z *= 16.0f;
 							LightParameters.LightColorAndFalloffExponent.W = 0;
 						}
 
@@ -523,12 +519,6 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 					const uint32 PackedWInt = ((uint32)SimpleLightSourceLength16f.Encoded) | ((uint32)VolumetricScatteringIntensity16f.Encoded << 16);
 		
 					LightData.SpotAnglesAndSourceRadiusPacked = FVector4(-2, 1, 0, *(float*)&PackedWInt);
-
-					if( SimpleLight.Exponent == 0.0f )
-					{
-						// Correction for lumen units
-						LightData.LightColorAndFalloffExponent *= 16.0f;
-					}
 				}
 			}
 

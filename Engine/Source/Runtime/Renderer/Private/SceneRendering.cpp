@@ -35,6 +35,7 @@
 #include "WideCustomResolveShaders.h"
 #include "PipelineStateCache.h"
 #include "GPUSkinCache.h"
+#include "PrecomputedVolumetricLightmap.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -120,6 +121,12 @@ static TAutoConsoleVariable<int32> CVarMonoscopicFarFieldMode(
 	TEXT(", 3 stereo near field with far field pixel depth test disabled")
 	TEXT(", 4 mono far field only"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarUsePreExposure(
+	TEXT("r.UsePreExposure"),
+	0,
+	TEXT("0 to disable pre-exposure (default), 1 to enable."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarDebugCanvasInLayer(
 	TEXT("vr.DebugCanvasInLayer"),
@@ -742,24 +749,29 @@ void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShade
 
 void SetupPrecomputedVolumetricLightmapUniformBufferParameters(const FScene* Scene, FViewUniformShaderParameters& ViewUniformShaderParameters)
 {
-	if (Scene)
+	if (Scene && Scene->VolumetricLightmapSceneData.GetLevelVolumetricLightmap())
 	{
-		ViewUniformShaderParameters.VolumetricLightmapIndirectionTexture = OrBlack3DUintIfNull(Scene->VolumetricLightmapSceneData.IndirectionTexture);
-		ViewUniformShaderParameters.VolumetricLightmapBrickAmbientVector = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.AmbientVectorTextureRHI);
-		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients0 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[0]);
-		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients1 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[1]);
-		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients2 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[2]);
-		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients3 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[3]);
-		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients4 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[4]);
-		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients5 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[5]);
-		ViewUniformShaderParameters.SkyBentNormalBrickTexture = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SkyBentNormalTextureRHI);
-		ViewUniformShaderParameters.DirectionalLightShadowingBrickTexture = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.DirectionalLightShadowingTextureRHI);
+		const FPrecomputedVolumetricLightmapData* VolumetricLightmapData = Scene->VolumetricLightmapSceneData.GetLevelVolumetricLightmap()->Data;
 
-		ViewUniformShaderParameters.VolumetricLightmapWorldToUVScale = Scene->VolumetricLightmapSceneData.VolumeWorldToUVScale;
-		ViewUniformShaderParameters.VolumetricLightmapWorldToUVAdd = Scene->VolumetricLightmapSceneData.VolumeWorldToUVAdd;
-		ViewUniformShaderParameters.VolumetricLightmapIndirectionTextureSize = Scene->VolumetricLightmapSceneData.IndirectionTextureSize;
-		ViewUniformShaderParameters.VolumetricLightmapBrickSize = Scene->VolumetricLightmapSceneData.BrickSize;
-		ViewUniformShaderParameters.VolumetricLightmapBrickTexelSize = Scene->VolumetricLightmapSceneData.BrickDataTexelSize;
+		ViewUniformShaderParameters.VolumetricLightmapIndirectionTexture = OrBlack3DUintIfNull(VolumetricLightmapData->IndirectionTexture.Texture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickAmbientVector = OrBlack3DIfNull(VolumetricLightmapData->BrickData.AmbientVector.Texture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients0 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[0].Texture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients1 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[1].Texture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients2 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[2].Texture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients3 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[3].Texture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients4 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[4].Texture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients5 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[5].Texture);
+		ViewUniformShaderParameters.SkyBentNormalBrickTexture = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SkyBentNormal.Texture);
+		ViewUniformShaderParameters.DirectionalLightShadowingBrickTexture = OrBlack3DIfNull(VolumetricLightmapData->BrickData.DirectionalLightShadowing.Texture);
+
+		const FBox& VolumeBounds = VolumetricLightmapData->GetBounds();
+		const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
+
+		ViewUniformShaderParameters.VolumetricLightmapWorldToUVScale = InvVolumeSize;
+		ViewUniformShaderParameters.VolumetricLightmapWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
+		ViewUniformShaderParameters.VolumetricLightmapIndirectionTextureSize = FVector(VolumetricLightmapData->IndirectionTextureDimensions);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSize = VolumetricLightmapData->BrickSize;
+		ViewUniformShaderParameters.VolumetricLightmapBrickTexelSize = FVector(1.0f, 1.0f, 1.0f) / FVector(VolumetricLightmapData->BrickDataDimensions);
 	}
 	else
 	{
@@ -943,8 +955,12 @@ void FViewInfo::SetupUniformBufferParameters(
 		ViewUniformShaderParameters.TranslucencyLightingVolumeInvSize[CascadeIndex] = FVector4(FVector(1.0f) / VolumeSize, VolumeVoxelSize);
 	}
 	
-	float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
-	ViewUniformShaderParameters.ExposureScale = ExposureScale; // Only used for MobileHDR == false
+	const float PreExposure = (ViewState && !bDisablePreExposure) ? ViewState->PreExposure : 0.f;
+	const float LastPreExposure = (ViewState && !bDisablePreExposure) ? ViewState->LastPreExposure : 0.f;
+	ViewUniformShaderParameters.PreExposure = PreExposure > 0 ? PreExposure : 1.f;
+	ViewUniformShaderParameters.OneOverPreExposure = PreExposure > 0 ? (1.f / PreExposure) : 1.f;
+	ViewUniformShaderParameters.LastOneOverPreExposure = LastPreExposure > 0 ? (1.f / LastPreExposure) : 1.f;
+
 	ViewUniformShaderParameters.DepthOfFieldFocalDistance = FinalPostProcessSettings.DepthOfFieldFocalDistance;
 	ViewUniformShaderParameters.DepthOfFieldSensorWidth = FinalPostProcessSettings.DepthOfFieldSensorWidth;
 	ViewUniformShaderParameters.DepthOfFieldFocalRegion = FinalPostProcessSettings.DepthOfFieldFocalRegion;
@@ -1060,7 +1076,7 @@ void FViewInfo::SetupUniformBufferParameters(
 		ViewUniformShaderParameters.HMDEyePaddingOffset = 1.0f;
 	}
 
-	ViewUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread());
+	ViewUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(UReflectionCaptureComponent::GetReflectionCaptureSize());
 
 	ViewUniformShaderParameters.ShowDecalsMask = Family->EngineShowFlags.Decals ? 1.0f : 0.0f;
 
@@ -1228,7 +1244,7 @@ IPooledRenderTarget* FViewInfo::GetLastEyeAdaptationRT(FRHICommandList& RHICmdLi
 	return Result;
 }
 
-void FViewInfo::SwapEyeAdaptationRTs() const
+void FViewInfo::SwapEyeAdaptationRTs(FRHICommandList& RHICmdList) const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
 	if (EffectiveViewState)
@@ -1241,7 +1257,8 @@ bool FViewInfo::HasValidEyeAdaptation() const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();	
 
-	if (EffectiveViewState)
+	// Because eye adapation also contains pre-exposure, make sure it isn't used in scene captures.
+	if (EffectiveViewState && Family && Family->bResolveScene && Family->EngineShowFlags.PostProcessing)
 	{
 		return EffectiveViewState->HasValidEyeAdaptation();
 	}
@@ -1256,6 +1273,16 @@ void FViewInfo::SetValidEyeAdaptation() const
 	{
 		EffectiveViewState->SetValidEyeAdaptation();
 	}
+}
+
+float FViewInfo::GetLastEyeAdaptationExposure() const
+{
+	const FSceneViewState* EffectiveViewState = GetEffectiveViewState();	
+	if (EffectiveViewState)
+	{
+		return EffectiveViewState->GetLastEyeAdaptationExposure();
+	}
+	return 0.f; // Invalid exposure
 }
 
 void FViewInfo::SetValidTonemappingLUT() const
@@ -2231,7 +2258,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 		{
 			// Note: reading NumUncachedStaticLightingInteractions on the game thread here which is written to by the rendering thread
 			// This is reliable because the RT uses interlocked mechanisms to update it
-			World->SetMapNeedsLightingFullyRebuilt(Scene->NumUncachedStaticLightingInteractions);
+			World->SetMapNeedsLightingFullyRebuilt(Scene->NumUncachedStaticLightingInteractions, Scene->NumUnbuiltReflectionCaptures);
 		}
 	
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
@@ -2285,7 +2312,7 @@ void FRendererModule::PostRenderAllViewports()
 
 void FRendererModule::UpdateMapNeedsLightingFullyRebuiltState(UWorld* World)
 {
-	World->SetMapNeedsLightingFullyRebuilt(World->Scene->GetRenderScene()->NumUncachedStaticLightingInteractions);
+	World->SetMapNeedsLightingFullyRebuilt(World->Scene->GetRenderScene()->NumUncachedStaticLightingInteractions, World->Scene->GetRenderScene()->NumUnbuiltReflectionCaptures);
 }
 
 void FRendererModule::DrawRectangle(

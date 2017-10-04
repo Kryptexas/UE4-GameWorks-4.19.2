@@ -11,158 +11,180 @@
 
 namespace mtlpp
 {
-    RenderPassAttachmentDescriptor::RenderPassAttachmentDescriptor() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLRenderPassAttachmentDescriptor alloc] init] }, false)
+	template<typename T>
+    RenderPassAttachmentDescriptor<T>::RenderPassAttachmentDescriptor()
     {
     }
 
-    Texture RenderPassAttachmentDescriptor::GetTexture() const
+	template<typename T>
+    Texture RenderPassAttachmentDescriptor<T>::GetTexture() const
     {
-        Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr texture] };
+        this->Validate();
+        return [this->m_ptr texture];
     }
 
-    uint32_t RenderPassAttachmentDescriptor::GetLevel() const
+	template<typename T>
+    uint32_t RenderPassAttachmentDescriptor<T>::GetLevel() const
     {
-        Validate();
-        return uint32_t([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr level]);
+       this-> Validate();
+        return uint32_t([this->m_ptr level]);
     }
 
-    uint32_t RenderPassAttachmentDescriptor::GetSlice() const
+	template<typename T>
+    uint32_t RenderPassAttachmentDescriptor<T>::GetSlice() const
     {
-        Validate();
-        return uint32_t([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr slice]);
+        this->Validate();
+        return uint32_t([this->m_ptr slice]);
     }
 
-    uint32_t RenderPassAttachmentDescriptor::GetDepthPlane() const
+	template<typename T>
+    uint32_t RenderPassAttachmentDescriptor<T>::GetDepthPlane() const
     {
-        Validate();
-        return uint32_t([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr depthPlane]);
+        this->Validate();
+        return uint32_t([this->m_ptr depthPlane]);
     }
 
-    Texture RenderPassAttachmentDescriptor::GetResolveTexture() const
+	template<typename T>
+    Texture RenderPassAttachmentDescriptor<T>::GetResolveTexture() const
     {
-        Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr resolveTexture] };
+        this->Validate();
+        return [this->m_ptr resolveTexture];
     }
 
-    uint32_t RenderPassAttachmentDescriptor::GetResolveLevel() const
+	template<typename T>
+    uint32_t RenderPassAttachmentDescriptor<T>::GetResolveLevel() const
     {
-        Validate();
-        return uint32_t([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr resolveLevel]);
+        this->Validate();
+        return uint32_t([this->m_ptr resolveLevel]);
     }
 
-    uint32_t RenderPassAttachmentDescriptor::GetResolveSlice() const
+	template<typename T>
+    uint32_t RenderPassAttachmentDescriptor<T>::GetResolveSlice() const
     {
-        Validate();
-        return uint32_t([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr resolveSlice]);
+        this->Validate();
+        return uint32_t([this->m_ptr resolveSlice]);
     }
 
-    uint32_t RenderPassAttachmentDescriptor::GetResolveDepthPlane() const
+	template<typename T>
+    uint32_t RenderPassAttachmentDescriptor<T>::GetResolveDepthPlane() const
     {
-        Validate();
-        return uint32_t([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr resolveDepthPlane]);
+        this->Validate();
+        return uint32_t([this->m_ptr resolveDepthPlane]);
     }
 
-    LoadAction RenderPassAttachmentDescriptor::GetLoadAction() const
+	template<typename T>
+    LoadAction RenderPassAttachmentDescriptor<T>::GetLoadAction() const
     {
-        Validate();
-        return LoadAction([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr loadAction]);
+        this->Validate();
+        return LoadAction([this->m_ptr loadAction]);
     }
 
-    StoreAction RenderPassAttachmentDescriptor::GetStoreAction() const
+	template<typename T>
+    StoreAction RenderPassAttachmentDescriptor<T>::GetStoreAction() const
     {
-        Validate();
-        return StoreAction([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr storeAction]);
+        this->Validate();
+        return StoreAction([this->m_ptr storeAction]);
     }
 	
-	StoreActionOptions RenderPassAttachmentDescriptor::GetStoreActionOptions() const
+	template<typename T>
+	StoreActionOptions RenderPassAttachmentDescriptor<T>::GetStoreActionOptions() const
 	{
-		Validate();
+		this->Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return StoreActionOptions([(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr storeActionOptions]);
+		return StoreActionOptions([this->m_ptr storeActionOptions]);
 #else
 		return 0;
 #endif
 	}
 
-    void RenderPassAttachmentDescriptor::SetTexture(const Texture& texture)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetTexture(const Texture& texture)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setTexture:(__bridge id<MTLTexture>)texture.GetPtr()];
+        this->Validate();
+        [this->m_ptr setTexture:(id<MTLTexture>)texture.GetPtr()];
     }
 
-    void RenderPassAttachmentDescriptor::SetLevel(uint32_t level)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetLevel(uint32_t level)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setLevel:level];
+        this->Validate();
+        [this->m_ptr setLevel:level];
     }
 
-    void RenderPassAttachmentDescriptor::SetSlice(uint32_t slice)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetSlice(uint32_t slice)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setSlice:slice];
+        this->Validate();
+        [this->m_ptr setSlice:slice];
     }
 
-    void RenderPassAttachmentDescriptor::SetDepthPlane(uint32_t depthPlane)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetDepthPlane(uint32_t depthPlane)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setDepthPlane:depthPlane];
+        this->Validate();
+        [this->m_ptr setDepthPlane:depthPlane];
     }
 
-    void RenderPassAttachmentDescriptor::SetResolveTexture(const Texture& texture)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetResolveTexture(const Texture& texture)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setResolveTexture:(__bridge id<MTLTexture>)texture.GetPtr()];
+        this->Validate();
+        [this->m_ptr setResolveTexture:(id<MTLTexture>)texture.GetPtr()];
     }
 
-    void RenderPassAttachmentDescriptor::SetResolveLevel(uint32_t resolveLevel)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetResolveLevel(uint32_t resolveLevel)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setResolveLevel:resolveLevel];
+        this->Validate();
+        [this->m_ptr setResolveLevel:resolveLevel];
     }
 
-    void RenderPassAttachmentDescriptor::SetResolveSlice(uint32_t resolveSlice)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetResolveSlice(uint32_t resolveSlice)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setResolveSlice:resolveSlice];
+        this->Validate();
+        [this->m_ptr setResolveSlice:resolveSlice];
     }
 
-    void RenderPassAttachmentDescriptor::SetResolveDepthPlane(uint32_t resolveDepthPlane)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetResolveDepthPlane(uint32_t resolveDepthPlane)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setResolveDepthPlane:resolveDepthPlane];
+        this->Validate();
+        [this->m_ptr setResolveDepthPlane:resolveDepthPlane];
     }
 
-    void RenderPassAttachmentDescriptor::SetLoadAction(LoadAction loadAction)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetLoadAction(LoadAction loadAction)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setLoadAction:MTLLoadAction(loadAction)];
+        this->Validate();
+        [this->m_ptr setLoadAction:MTLLoadAction(loadAction)];
     }
 
-    void RenderPassAttachmentDescriptor::SetStoreAction(StoreAction storeAction)
+	template<typename T>
+    void RenderPassAttachmentDescriptor<T>::SetStoreAction(StoreAction storeAction)
     {
-        Validate();
-        [(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setStoreAction:MTLStoreAction(storeAction)];
+        this->Validate();
+        [this->m_ptr setStoreAction:MTLStoreAction(storeAction)];
     }
 	
-	void RenderPassAttachmentDescriptor::SetStoreActionOptions(StoreActionOptions options)
+	template<typename T>
+	void RenderPassAttachmentDescriptor<T>::SetStoreActionOptions(StoreActionOptions options)
 	{
-		Validate();
+		this->Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(__bridge MTLRenderPassAttachmentDescriptor*)m_ptr setStoreActionOptions:(MTLStoreActionOptions)options];
+		[this->m_ptr setStoreActionOptions:(MTLStoreActionOptions)options];
 #endif
 	}
 
     RenderPassColorAttachmentDescriptor::RenderPassColorAttachmentDescriptor() :
-        RenderPassAttachmentDescriptor(ns::Handle{ (__bridge void*)[[MTLRenderPassColorAttachmentDescriptor alloc] init] })
+        RenderPassAttachmentDescriptor([[MTLRenderPassColorAttachmentDescriptor alloc] init])
     {
     }
 
     ClearColor RenderPassColorAttachmentDescriptor::GetClearColor() const
     {
         Validate();
-        MTLClearColor mtlClearColor = [(__bridge MTLRenderPassColorAttachmentDescriptor*)m_ptr clearColor];
+        MTLClearColor mtlClearColor = [(MTLRenderPassColorAttachmentDescriptor*)m_ptr clearColor];
         return ClearColor(mtlClearColor.red, mtlClearColor.green, mtlClearColor.blue, mtlClearColor.alpha);
     }
 
@@ -170,25 +192,25 @@ namespace mtlpp
     {
         Validate();
         MTLClearColor mtlClearColor = { clearColor.Red, clearColor.Green, clearColor.Blue, clearColor.Alpha };
-        [(__bridge MTLRenderPassColorAttachmentDescriptor*)m_ptr setClearColor:mtlClearColor];
+        [(MTLRenderPassColorAttachmentDescriptor*)m_ptr setClearColor:mtlClearColor];
     }
 
     RenderPassDepthAttachmentDescriptor::RenderPassDepthAttachmentDescriptor() :
-        RenderPassAttachmentDescriptor(ns::Handle{ (__bridge void*)[[MTLRenderPassDepthAttachmentDescriptor alloc] init] })
+        RenderPassAttachmentDescriptor([[MTLRenderPassDepthAttachmentDescriptor alloc] init])
     {
     }
 
     double RenderPassDepthAttachmentDescriptor::GetClearDepth() const
     {
         Validate();
-        return [(__bridge MTLRenderPassDepthAttachmentDescriptor*)m_ptr clearDepth];
+        return [(MTLRenderPassDepthAttachmentDescriptor*)m_ptr clearDepth];
     }
 
     MultisampleDepthResolveFilter RenderPassDepthAttachmentDescriptor::GetDepthResolveFilter() const
     {
         Validate();
 #if MTLPP_PLATFORM_IOS
-        return MultisampleDepthResolveFilter([(__bridge MTLRenderPassDepthAttachmentDescriptor*)m_ptr depthResolveFilter]);
+        return MultisampleDepthResolveFilter([(MTLRenderPassDepthAttachmentDescriptor*)m_ptr depthResolveFilter]);
 #else
         return MultisampleDepthResolveFilter(0);
 #endif
@@ -197,68 +219,68 @@ namespace mtlpp
     void RenderPassDepthAttachmentDescriptor::SetClearDepth(double clearDepth)
     {
         Validate();
-        [(__bridge MTLRenderPassDepthAttachmentDescriptor*)m_ptr setClearDepth:clearDepth];
+        [(MTLRenderPassDepthAttachmentDescriptor*)m_ptr setClearDepth:clearDepth];
     }
 
     void RenderPassDepthAttachmentDescriptor::SetDepthResolveFilter(MultisampleDepthResolveFilter depthResolveFilter)
     {
         Validate();
 #if MTLPP_PLATFORM_IOS
-        [(__bridge MTLRenderPassDepthAttachmentDescriptor*)m_ptr setDepthResolveFilter:MTLMultisampleDepthResolveFilter(depthResolveFilter)];
+        [(MTLRenderPassDepthAttachmentDescriptor*)m_ptr setDepthResolveFilter:MTLMultisampleDepthResolveFilter(depthResolveFilter)];
 #endif
     }
 
     RenderPassStencilAttachmentDescriptor::RenderPassStencilAttachmentDescriptor() :
-        RenderPassAttachmentDescriptor(ns::Handle{ (__bridge void*)[[MTLRenderPassStencilAttachmentDescriptor alloc] init] })
+        RenderPassAttachmentDescriptor([[MTLRenderPassStencilAttachmentDescriptor alloc] init])
     {
     }
 
     uint32_t RenderPassStencilAttachmentDescriptor::GetClearStencil() const
     {
         Validate();
-        return uint32_t([(__bridge MTLRenderPassStencilAttachmentDescriptor*)m_ptr clearStencil]);
+        return uint32_t([(MTLRenderPassStencilAttachmentDescriptor*)m_ptr clearStencil]);
     }
 
     void RenderPassStencilAttachmentDescriptor::SetClearStencil(uint32_t clearStencil)
     {
         Validate();
-        [(__bridge MTLRenderPassStencilAttachmentDescriptor*)m_ptr setClearStencil:clearStencil];
+        [(MTLRenderPassStencilAttachmentDescriptor*)m_ptr setClearStencil:clearStencil];
     }
 
     RenderPassDescriptor::RenderPassDescriptor() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLRenderPassDescriptor alloc] init] }, false)
+        ns::Object<MTLRenderPassDescriptor*>([[MTLRenderPassDescriptor alloc] init], false)
     {
     }
 
     ns::Array<RenderPassColorAttachmentDescriptor> RenderPassDescriptor::GetColorAttachments() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLRenderPassDescriptor*)m_ptr colorAttachments] };
+        return (NSArray*)[(MTLRenderPassDescriptor*)m_ptr colorAttachments];
     }
 
     RenderPassDepthAttachmentDescriptor RenderPassDescriptor::GetDepthAttachment() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLRenderPassDescriptor*)m_ptr depthAttachment] };
+        return [(MTLRenderPassDescriptor*)m_ptr depthAttachment];
     }
 
     RenderPassStencilAttachmentDescriptor RenderPassDescriptor::GetStencilAttachment() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLRenderPassDescriptor*)m_ptr stencilAttachment] };
+        return [(MTLRenderPassDescriptor*)m_ptr stencilAttachment];
     }
 
     Buffer RenderPassDescriptor::GetVisibilityResultBuffer() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLRenderPassDescriptor*)m_ptr visibilityResultBuffer] };
+        return [(MTLRenderPassDescriptor*)m_ptr visibilityResultBuffer];
     }
 
     uint32_t RenderPassDescriptor::GetRenderTargetArrayLength() const
     {
         Validate();
 #if MTLPP_PLATFORM_MAC
-        return uint32_t([(__bridge MTLRenderPassDescriptor*)m_ptr renderTargetArrayLength]);
+        return uint32_t([(MTLRenderPassDescriptor*)m_ptr renderTargetArrayLength]);
 #else
         return 0;
 #endif
@@ -267,26 +289,26 @@ namespace mtlpp
     void RenderPassDescriptor::SetDepthAttachment(const RenderPassDepthAttachmentDescriptor& depthAttachment)
     {
         Validate();
-        [(__bridge MTLRenderPassDescriptor*)m_ptr setDepthAttachment:(__bridge MTLRenderPassDepthAttachmentDescriptor*)depthAttachment.GetPtr()];
+        [(MTLRenderPassDescriptor*)m_ptr setDepthAttachment:(MTLRenderPassDepthAttachmentDescriptor*)depthAttachment.GetPtr()];
     }
 
     void RenderPassDescriptor::SetStencilAttachment(const RenderPassStencilAttachmentDescriptor& stencilAttachment)
     {
         Validate();
-        [(__bridge MTLRenderPassDescriptor*)m_ptr setStencilAttachment:(__bridge MTLRenderPassStencilAttachmentDescriptor*)stencilAttachment.GetPtr()];
+        [(MTLRenderPassDescriptor*)m_ptr setStencilAttachment:(MTLRenderPassStencilAttachmentDescriptor*)stencilAttachment.GetPtr()];
     }
 
     void RenderPassDescriptor::SetVisibilityResultBuffer(const Buffer& visibilityResultBuffer)
     {
         Validate();
-        [(__bridge MTLRenderPassDescriptor*)m_ptr setVisibilityResultBuffer:(__bridge id<MTLBuffer>)visibilityResultBuffer.GetPtr()];
+        [(MTLRenderPassDescriptor*)m_ptr setVisibilityResultBuffer:(id<MTLBuffer>)visibilityResultBuffer.GetPtr()];
     }
 
     void RenderPassDescriptor::SetRenderTargetArrayLength(uint32_t renderTargetArrayLength)
     {
         Validate();
 #if MTLPP_PLATFORM_MAC
-        [(__bridge MTLRenderPassDescriptor*)m_ptr setRenderTargetArrayLength:renderTargetArrayLength];
+        [(MTLRenderPassDescriptor*)m_ptr setRenderTargetArrayLength:renderTargetArrayLength];
 #endif
     }
 	
@@ -294,7 +316,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(__bridge MTLRenderPassDescriptor*)m_ptr setSamplePositions:(const MTLSamplePosition *)positions count:count];
+		[(MTLRenderPassDescriptor*)m_ptr setSamplePositions:(const MTLSamplePosition *)positions count:count];
 #endif
 	}
 	
@@ -302,9 +324,135 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(__bridge MTLRenderPassDescriptor*)m_ptr getSamplePositions:(MTLSamplePosition *)positions count:count];
+		return [(MTLRenderPassDescriptor*)m_ptr getSamplePositions:(MTLSamplePosition *)positions count:count];
 #else
 		return 0;
+#endif
+	}
+	
+	uint32_t RenderPassDescriptor::GetImageblockSampleLength() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPassDescriptor*)m_ptr imageblockSampleLength];
+#else
+		return 0;
+#endif
+	}
+	
+	uint32_t RenderPassDescriptor::GetThreadgroupMemoryLength() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPassDescriptor*)m_ptr threadgroupMemoryLength];
+#else
+		return 0;
+#endif
+	}
+	
+	uint32_t RenderPassDescriptor::GetTileWidth() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPassDescriptor*)m_ptr tileWidth];
+#else
+		return 0;
+#endif
+	}
+	
+	uint32_t RenderPassDescriptor::GetTileHeight() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPassDescriptor*)m_ptr tileHeight];
+#else
+		return 0;
+#endif
+	}
+	
+	uint32_t RenderPassDescriptor::GetDefaultRasterSampleCount() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPassDescriptor*)m_ptr defaultRasterSampleCount];
+#else
+		return 0;
+#endif
+	}
+	
+	uint32_t RenderPassDescriptor::GetRenderTargetWidth() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPassDescriptor*)m_ptr renderTargetWidth];
+#else
+		return 0;
+#endif
+	}
+	
+	uint32_t RenderPassDescriptor::GetRenderTargetHeight() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPassDescriptor*)m_ptr renderTargetHeight];
+#else
+		return 0;
+#endif
+	}
+	
+	void RenderPassDescriptor::SetImageblockSampleLength(uint32_t Val)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(MTLRenderPassDescriptor*)m_ptr setImageblockSampleLength:Val];
+#endif
+	}
+	
+	void RenderPassDescriptor::SetThreadgroupMemoryLength(uint32_t Val)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(MTLRenderPassDescriptor*)m_ptr setThreadgroupMemoryLength:Val];
+#endif
+	}
+	
+	void RenderPassDescriptor::SetTileWidth(uint32_t Val)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(MTLRenderPassDescriptor*)m_ptr setTileWidth:Val];
+#endif
+	}
+	
+	void RenderPassDescriptor::SetTileHeight(uint32_t Val)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(MTLRenderPassDescriptor*)m_ptr setRenderTargetHeight:Val];
+#endif
+	}
+	
+	void RenderPassDescriptor::SetDefaultRasterSampleCount(uint32_t Val)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(MTLRenderPassDescriptor*)m_ptr setDefaultRasterSampleCount:Val];
+#endif
+	}
+	
+	void RenderPassDescriptor::SetRenderTargetWidth(uint32_t Val)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(MTLRenderPassDescriptor*)m_ptr setRenderTargetWidth:Val];
+#endif
+	}
+	
+	void RenderPassDescriptor::SetRenderTargetHeight(uint32_t Val)
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		[(MTLRenderPassDescriptor*)m_ptr setRenderTargetHeight:Val];
 #endif
 	}
 }

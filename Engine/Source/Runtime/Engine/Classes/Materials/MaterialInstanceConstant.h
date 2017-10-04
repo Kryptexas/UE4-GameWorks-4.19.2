@@ -24,6 +24,9 @@ class UMaterialInstanceConstant : public UMaterialInstance
 	 *  Updated on changes in the editor to allow those changes to be detected */
 	UPROPERTY()
 	FGuid ParameterStateId;
+
+	UPROPERTY()
+	TMap<FString, bool> LayerParameterExpansion;
 #endif
 
 #if WITH_EDITOR
@@ -49,10 +52,10 @@ class UMaterialInstanceConstant : public UMaterialInstance
 	 * @param ParameterName - The parameter's name.
 	 * @param Value - The value to set.
 	 */
-	ENGINE_API void SetVectorParameterValueEditorOnly(FName ParameterName, FLinearColor Value);
-	ENGINE_API void SetScalarParameterValueEditorOnly(FName ParameterName, float Value);
-	ENGINE_API void SetTextureParameterValueEditorOnly(FName ParameterName, class UTexture* Value);
-	ENGINE_API void SetFontParameterValueEditorOnly(FName ParameterName, class UFont* FontValue, int32 FontPage);
+	ENGINE_API void SetVectorParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, FLinearColor Value);
+	ENGINE_API void SetScalarParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, float Value);
+	ENGINE_API void SetTextureParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, class UTexture* Value);
+	ENGINE_API void SetFontParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, class UFont* FontValue, int32 FontPage);
 
 	/**
 	 * Clear all parameter overrides on this material instance. This function

@@ -11,6 +11,7 @@
 #include "MaterialExpressionLandscapeLayerWeight.generated.h"
 
 class UTexture;
+struct FMaterialParameterInfo;
 
 UCLASS(collapsecategories, hidecategories=Object)
 class LANDSCAPE_API UMaterialExpressionLandscapeLayerWeight : public UMaterialExpression
@@ -56,7 +57,7 @@ public:
 	/**
 	 * Called to get list of parameter names for static parameter sets
 	 */
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	void GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfox) const;
 
 	//~ Begin UObject Interface
 	/**

@@ -21,6 +21,7 @@
 #include "CompositionLighting/PostProcessDeferredDecals.h"
 #include "SceneRendering.h"
 #include "UnrealEngine.h"
+#include "DebugViewModeRendering.h"
 
 
 /**
@@ -190,8 +191,8 @@ public:
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& MaterialResouce,
 		ERHIFeatureLevel::Type InFeatureLevel,
-		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
-		);
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		EDebugViewShaderMode InDebugViewShaderMode);
 
 	// FMeshDrawingPolicy interface.
 
@@ -202,12 +203,15 @@ public:
 	*/
 	FDrawingPolicyMatchResult Matches(const FMeshDecalsDrawingPolicy& Other, bool bForReals = false) const;
 
+	// Override blend state, depth stencil state, etc.
+	void SetupPipelineState(FDrawingPolicyRenderState& OutDrawRenderState, const FSceneView& InView) const;
+
 	/**
 	* Executes the draw commands which can be shared between any meshes using this drawer.
 	* @param CI - The command interface to execute the draw commands on.
 	* @param View - The view of the scene being drawn.
 	*/
-	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FViewInfo* View, const ContextDataType PolicyContext) const;
 	
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
@@ -245,8 +249,9 @@ FMeshDecalsDrawingPolicy::FMeshDecalsDrawingPolicy(
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
 	ERHIFeatureLevel::Type InFeatureLevel,
-	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings)
-	: FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings)
+	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+	EDebugViewShaderMode InDebugViewShaderMode)
+	: FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode)
 {
 	HullShader = NULL;
 	DomainShader = NULL;
@@ -278,41 +283,76 @@ FDrawingPolicyMatchResult FMeshDecalsDrawingPolicy::Matches(
 	DRAWING_POLICY_MATCH_END
 }
 
+void FMeshDecalsDrawingPolicy::SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const
+{
+	if (UseDebugViewPS())
+	{
+		// Deferred decals can only use translucent blend mode
+		if (View.Family->EngineShowFlags.ShaderComplexity)
+		{
+			// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
+			DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
+		}
+		else if (View.Family->GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
+		{
+			// Otherwise, force translucent blend mode (shaders will use an hardcoded alpha).
+			DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+		}
+	}
+}
+
 void FMeshDecalsDrawingPolicy::SetSharedState(
 	FRHICommandList& RHICmdList, 
 	const FDrawingPolicyRenderState& DrawRenderState,
-	const FSceneView* View,
+	const FViewInfo* View,
 	const ContextDataType PolicyContext
 	) const
 {
-	// Set shared mesh resources
-	FMeshDrawingPolicy::SetSharedState(RHICmdList, DrawRenderState, View, PolicyContext);
 
-	// Set the translucent shader parameters for the material instance
-	VertexShader->SetParameters(RHICmdList, VertexFactory,MaterialRenderProxy,View);
-
-	if(HullShader && DomainShader)
+	if (View->Family->UseDebugViewVSDSHS())
 	{
-		HullShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
-		DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
+		FDebugViewMode::SetParametersVSHSDS(RHICmdList, MaterialRenderProxy, MaterialResource, *View, VertexFactory, HullShader && DomainShader);
+	}
+	else
+	{
+		// Set shared mesh resources
+		FMeshDrawingPolicy::SetSharedState(RHICmdList, DrawRenderState, View, PolicyContext);
+
+		// Set the translucent shader parameters for the material instance
+		VertexShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View);
+
+		if (HullShader && DomainShader)
+		{
+			HullShader->SetParameters(RHICmdList, MaterialRenderProxy, *View);
+			DomainShader->SetParameters(RHICmdList, MaterialRenderProxy, *View);
+		}
 	}
 
-	PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
+	if (UseDebugViewPS())
+	{
+		FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
+	}
+	else
+	{
+		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *View);
+	}
 }
 
 FBoundShaderStateInput FMeshDecalsDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	FPixelShaderRHIParamRef PixelShaderRHIRef = NULL;
-
-	PixelShaderRHIRef = PixelShader->GetPixelShader();
-
-	return FBoundShaderStateInput(
+	FBoundShaderStateInput BoundShaderStateInput(
 		FMeshDrawingPolicy::GetVertexDeclaration(), 
 		VertexShader->GetVertexShader(),
 		GETSAFERHISHADER_HULL(HullShader), 
 		GETSAFERHISHADER_DOMAIN(DomainShader),
-		PixelShaderRHIRef,
+		PixelShader->GetPixelShader(),
 		FGeometryShaderRHIRef());
+
+	if (UseDebugViewPS())
+	{
+		FDebugViewMode::PatchBoundShaderState(BoundShaderStateInput, MaterialResource, VertexFactory, InFeatureLevel, GetDebugViewShaderMode());
+	}
+	return BoundShaderStateInput;
 }
 
 void FMeshDecalsDrawingPolicy::SetMeshRenderState(
@@ -328,14 +368,22 @@ void FMeshDecalsDrawingPolicy::SetMeshRenderState(
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-	// Set transforms
-	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
-
-	if(HullShader && DomainShader)
+	// If debug view shader mode are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
+	if (View.Family->UseDebugViewVSDSHS())
 	{
-		HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
-		DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
-	}	
+		FDebugViewMode::SetMeshVSHSDS(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState, MaterialResource, HullShader && DomainShader);
+	}
+	else
+	{
+		// Set transforms
+		VertexShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
+
+		if (HullShader && DomainShader)
+		{
+			HullShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
+			DomainShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
+		}
+	}
 }
 
 
@@ -489,7 +537,13 @@ private:
 					FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 					DrawingContext.SetState(Material, DrawRenderStateLocal);
 
-					FMeshDecalsDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *Material, View.GetFeatureLevel(), ComputeMeshOverrideSettings(Mesh));
+					FMeshDecalsDrawingPolicy DrawingPolicy(
+						Mesh.VertexFactory,
+						MaterialRenderProxy,
+						*Material,
+						View.GetFeatureLevel(),
+						ComputeMeshOverrideSettings(Mesh),
+						View.Family->GetDebugViewShaderMode());
 					DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
 					CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 					DrawingPolicy.SetSharedState(RHICmdList, DrawRenderStateLocal, &View, FDepthDrawingPolicy::ContextDataType(bIsInstancedStereo, bNeedsInstancedStereoBias));

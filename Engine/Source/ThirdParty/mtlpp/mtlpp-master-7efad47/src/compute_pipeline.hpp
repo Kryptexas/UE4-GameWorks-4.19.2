@@ -12,25 +12,29 @@
 #include "argument.hpp"
 #include "stage_input_output_descriptor.hpp"
 
+MTLPP_CLASS(MTLComputePipelineReflection);
+MTLPP_CLASS(MTLComputePipelineDescriptor);
+MTLPP_PROTOCOL(MTLComputePipelineState);
+
 namespace mtlpp
 {
 	class PipelineBufferDescriptor;
 	
-    class ComputePipelineReflection : public ns::Object
+    class ComputePipelineReflection : public ns::Object<MTLComputePipelineReflection*>
     {
     public:
         ComputePipelineReflection();
-        ComputePipelineReflection(const ns::Handle& handle) : ns::Object(handle) { }
+        ComputePipelineReflection(MTLComputePipelineReflection* handle) : ns::Object<MTLComputePipelineReflection*>(handle) { }
 
         ns::Array<Argument> GetArguments() const;
     }
     MTLPP_AVAILABLE(10_11, 9_0);
 
-    class ComputePipelineDescriptor : public ns::Object
+    class ComputePipelineDescriptor : public ns::Object<MTLComputePipelineDescriptor*>
     {
     public:
         ComputePipelineDescriptor();
-        ComputePipelineDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        ComputePipelineDescriptor(MTLComputePipelineDescriptor* handle) : ns::Object<MTLComputePipelineDescriptor*>(handle) { }
 
         ns::String                 GetLabel() const;
         Function                   GetComputeFunction() const;
@@ -48,16 +52,18 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 9_0);
 
-    class ComputePipelineState : public ns::Object
+    class ComputePipelineState : public ns::Object<ns::Protocol<id<MTLComputePipelineState>>::type>
     {
     public:
         ComputePipelineState() { }
-        ComputePipelineState(const ns::Handle& handle) : ns::Object(handle) { }
+        ComputePipelineState(ns::Protocol<id<MTLComputePipelineState>>::type handle) : ns::Object<ns::Protocol<id<MTLComputePipelineState>>::type>(handle) { }
 
         Device   GetDevice() const;
         uint32_t GetMaxTotalThreadsPerThreadgroup() const;
         uint32_t GetThreadExecutionWidth() const;
 		uint32_t GetStaticThreadgroupMemoryLength() const MTLPP_AVAILABLE(10_13, 11_0);
+		
+		uint32_t GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) MTLPP_AVAILABLE_IOS(11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }

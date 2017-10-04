@@ -417,7 +417,7 @@ public:
 		SetResource(Resource);
 		SetSize(BufferSize);
 
-		if (IsCPUWritable(Resource->GetHeapType()))
+		if (!IsCPUInaccessible(Resource->GetHeapType()))
 		{
 			SetMappedBaseAddress(Resource->Map());
 		}

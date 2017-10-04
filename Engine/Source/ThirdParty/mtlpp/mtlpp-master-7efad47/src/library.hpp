@@ -11,6 +11,13 @@
 #include "ns.hpp"
 #include "argument.hpp"
 
+MTLPP_CLASS(MTLVertexAttribute);
+MTLPP_CLASS(MTLAttribute);
+MTLPP_CLASS(MTLFunctionConstant);
+MTLPP_PROTOCOL(MTLFunction);
+MTLPP_CLASS(MTLCompileOptions);
+MTLPP_PROTOCOL(MTLLibrary);
+
 namespace mtlpp
 {
 	class ArgumentEncoder;
@@ -25,11 +32,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
-    class VertexAttribute : public ns::Object
+    class VertexAttribute : public ns::Object<MTLVertexAttribute*>
     {
     public:
         VertexAttribute();
-        VertexAttribute(const ns::Handle& handle) : ns::Object(handle) { }
+        VertexAttribute(MTLVertexAttribute* handle) : ns::Object<MTLVertexAttribute*>(handle) { }
 
         ns::String   GetName() const;
         uint32_t     GetAttributeIndex() const;
@@ -40,11 +47,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class Attribute : public ns::Object
+    class Attribute : public ns::Object<MTLAttribute*>
     {
     public:
         Attribute();
-        Attribute(const ns::Handle& handle) : ns::Object(handle) { }
+        Attribute(MTLAttribute* handle) : ns::Object<MTLAttribute*>(handle) { }
 
         ns::String   GetName() const;
         uint32_t     GetAttributeIndex() const;
@@ -63,11 +70,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class FunctionConstant : public ns::Object
+    class FunctionConstant : public ns::Object<MTLFunctionConstant*>
     {
     public:
         FunctionConstant();
-        FunctionConstant(const ns::Handle& handle) : ns::Object(handle) { }
+        FunctionConstant(MTLFunctionConstant* handle) : ns::Object<MTLFunctionConstant*>(handle) { }
 
         ns::String GetName() const;
         DataType   GetType() const;
@@ -76,11 +83,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
-    class Function : public ns::Object
+    class Function : public ns::Object<ns::Protocol<id<MTLFunction>>::type>
     {
     public:
         Function() { }
-        Function(const ns::Handle& handle) : ns::Object(handle) { }
+        Function(ns::Protocol<id<MTLFunction>>::type handle) : ns::Object<ns::Protocol<id<MTLFunction>>::type>(handle) { }
 
         ns::String                                   GetLabel() const MTLPP_AVAILABLE(10_12, 10_0);
         Device                                       GetDevice() const;
@@ -108,18 +115,18 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 9_0);
 
-    class CompileOptions : public ns::Object
+    class CompileOptions : public ns::Object<MTLCompileOptions*>
     {
     public:
         CompileOptions();
-        CompileOptions(const ns::Handle& handle) : ns::Object(handle) { }
+        CompileOptions(MTLCompileOptions* handle) : ns::Object<MTLCompileOptions*>(handle) { }
 
         ns::Dictionary<ns::String, ns::String> GetPreprocessorMacros() const;
         bool                                   IsFastMathEnabled() const;
         LanguageVersion                        GetLanguageVersion() const MTLPP_AVAILABLE(10_11, 9_0);
 
         void SetFastMathEnabled(bool fastMathEnabled);
-        void SetLanguagesVersion(LanguageVersion languageVersion) MTLPP_AVAILABLE(10_11, 9_0);
+        void SetLanguageVersion(LanguageVersion languageVersion) MTLPP_AVAILABLE(10_11, 9_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
@@ -142,11 +149,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class Library : public ns::Object
+    class Library : public ns::Object<ns::Protocol<id<MTLLibrary>>::type>
     {
     public:
         Library() { }
-        Library(const ns::Handle& handle) : ns::Object(handle) { }
+        Library(ns::Protocol<id<MTLLibrary>>::type handle) : ns::Object<ns::Protocol<id<MTLLibrary>>::type>(handle) { }
 
         ns::String            GetLabel() const;
         Device                GetDevice() const;
@@ -154,9 +161,9 @@ namespace mtlpp
 
         void SetLabel(const ns::String& label);
 
-        Function NewFunction(const ns::String& functionName);
-        Function NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, ns::Error* error) MTLPP_AVAILABLE(10_12, 10_0);
-        void NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, std::function<void(const Function&, const ns::Error&)> completionHandler) MTLPP_AVAILABLE(10_12, 10_0);
+        Function NewFunction(const ns::String& functionName) const;
+        Function NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, ns::Error* error) const MTLPP_AVAILABLE(10_12, 10_0);
+        void NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, std::function<void(const Function&, const ns::Error&)> completionHandler) const MTLPP_AVAILABLE(10_12, 10_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }

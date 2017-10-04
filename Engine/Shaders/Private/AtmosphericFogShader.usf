@@ -62,4 +62,8 @@ void AtmosphericPixelMain(
 	float LightShaftMask = Texture2DSample(OcclusionTexture, OcclusionTextureSampler, TexCoord).x;
 	OutColor.rgb = OutColor.rgb * LightShaftMask;
 #endif
+
+#if USE_PREEXPOSURE 
+	OutColor.rgb *= View.PreExposure;
+#endif
 }

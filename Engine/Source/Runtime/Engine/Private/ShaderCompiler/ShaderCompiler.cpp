@@ -47,6 +47,8 @@
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
+SHADERCORE_API bool UsePreExposure(EShaderPlatform Platform);
+
 #if ENABLE_COOK_STATS
 namespace GlobalShaderCookStats
 {
@@ -1794,8 +1796,17 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 								{
 									UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *Errors[ErrorIndex]);
 								}
-								// Assert if a default material could not be compiled, since there will be nothing for other failed materials to fall back on.
-								UE_LOG(LogShaderCompilers, Fatal,TEXT("Failed to compile default material %s!"), *Material->GetBaseMaterialPathName());
+#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
+								if (!Material->IsEditorOnlyDefaultMaterial())
+								{
+									UE_LOG(LogShaderCompilers, Error,TEXT("Failed to compile default material %s!"), *Material->GetBaseMaterialPathName());
+								}
+								else
+#endif
+								{
+									// Assert if a default material could not be compiled, since there will be nothing for other failed materials to fall back on.
+									UE_LOG(LogShaderCompilers, Fatal,TEXT("Failed to compile default material %s!"), *Material->GetBaseMaterialPathName());
+								}
 							}
 
 							UE_ASSET_LOG(LogShaderCompilers, Warning, *Material->GetBaseMaterialPathName(), TEXT("Failed to compile Material for platform %s, Default Material will be used in game."),
@@ -2886,6 +2897,10 @@ void GlobalBeginCompileShader(
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SelectiveBasePassOutputs"));
 		Input.Environment.SetDefine(TEXT("SELECTIVE_BASEPASS_OUTPUTS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
+	}
+
+	{
+		Input.Environment.SetDefine(TEXT("USE_PREEXPOSURE"), UsePreExposure((EShaderPlatform)Target.Platform) ? 1 : 0);
 	}
 
 	{

@@ -327,8 +327,11 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingGfxState(nullptr)
 	, PendingComputeState(nullptr)
 	, FrameCounter(0)
-	, GpuProfiler(this)
+	, GpuProfiler(this, InDevice)
 {
+	FrameTiming = new FVulkanGPUTiming(this, InDevice);
+	FrameTiming->Initialize();
+
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
 
@@ -341,9 +344,6 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	DescriptorPools.Add(Pool);
 
 	UniformBufferUploader = new FVulkanUniformBufferUploader(Device, VULKAN_UB_RING_BUFFER_SIZE);
-
-	FrameTiming = new FVulkanGPUTiming(this);
-	FrameTiming->Initialize();
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -516,13 +516,14 @@ void FVulkanDynamicRHI::CreateInstance()
 	InstInfo.enabledExtensionCount = InstanceExtensions.Num();
 	InstInfo.ppEnabledExtensionNames = InstInfo.enabledExtensionCount > 0 ? (const ANSICHAR* const*)InstanceExtensions.GetData() : nullptr;
 	
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		InstInfo.enabledLayerCount = (GValidationCvar.GetValueOnAnyThread() > 0) ? InstanceLayers.Num() : 0;
-		InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? InstanceLayers.GetData() : nullptr;
-		bSupportsDebugCallbackExt = InstanceExtensions.ContainsByPredicate([](const ANSICHAR* Key) { 
+	InstInfo.enabledLayerCount = InstanceLayers.Num();
+	InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? InstanceLayers.GetData() : nullptr;
+#if VULKAN_HAS_DEBUGGING_ENABLED
+	bSupportsDebugCallbackExt = InstanceExtensions.ContainsByPredicate([](const ANSICHAR* Key)
+		{ 
 			return Key && !FCStringAnsi::Strcmp(Key, VK_EXT_DEBUG_REPORT_EXTENSION_NAME); 
 		});
-	#endif
+#endif
 
 	VkResult Result = VulkanRHI::vkCreateInstance(&InstInfo, nullptr, &Instance);
 	
@@ -1416,7 +1417,7 @@ uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
 
 void FVulkanDynamicRHI::SavePipelineCache()
 {
-	FString CacheFile = FPaths::ProjectSavedDir() / TEXT("VulkanPSO.cache");
+	FString CacheFile = GetPipelineCacheFilename();
 
 	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->Save(CacheFile);

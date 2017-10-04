@@ -11,6 +11,9 @@
 #include "depth_stencil.hpp"
 #include "device.hpp"
 
+MTLPP_CLASS(MTLSamplerDescriptor);
+MTLPP_PROTOCOL(MTLSamplerState);
+
 namespace mtlpp
 {
     enum class SamplerMinMagFilter
@@ -46,11 +49,11 @@ namespace mtlpp
         OpaqueWhite = 2,       // {1,1,1,1}
     };
 
-    class SamplerDescriptor : public ns::Object
+    class SamplerDescriptor : public ns::Object<MTLSamplerDescriptor*>
     {
     public:
         SamplerDescriptor();
-        SamplerDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        SamplerDescriptor(MTLSamplerDescriptor* handle) : ns::Object<MTLSamplerDescriptor*>(handle) { }
 
         SamplerMinMagFilter GetMinFilter() const;
         SamplerMinMagFilter GetMagFilter() const;
@@ -84,11 +87,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class SamplerState : public ns::Object
+    class SamplerState : public ns::Object<ns::Protocol<id<MTLSamplerState>>::type>
     {
     public:
         SamplerState() { }
-        SamplerState(const ns::Handle& handle) : ns::Object(handle) { }
+        SamplerState(ns::Protocol<id<MTLSamplerState>>::type handle) : ns::Object<ns::Protocol<id<MTLSamplerState>>::type>(handle) { }
 
         ns::String GetLabel() const;
         Device     GetDevice() const;

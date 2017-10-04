@@ -373,7 +373,6 @@ struct FReflectionCaptureSortData
 	FMatrix BoxTransform;
 	FVector4 BoxScales;
 	FVector4 CaptureOffsetAndAverageBrightness;
-	FTexture* SM4FullHDRCubemap;
 
 	bool operator < (const FReflectionCaptureSortData& Other) const
 	{
@@ -388,7 +387,7 @@ struct FReflectionCaptureSortData
 	}
 };
 
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,TEXT("ReflectionCapture"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FReflectionCaptureShaderData,TEXT("ReflectionCapture"));
 
 /** Compute shader that does tiled deferred culling of reflection captures, then sorts and composites them. */
 class FReflectionEnvironmentTiledDeferredPS : public FGlobalShader
@@ -464,7 +463,7 @@ public:
 
 		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, TStaticSamplerState<SF_Point>::GetRHI(), SSRTexture);
 
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FReflectionCaptureData>(), View.ReflectionCaptureUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FReflectionCaptureShaderData>(), View.ReflectionCaptureUniformBuffer);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	
@@ -696,19 +695,20 @@ void GatherAndSortReflectionCaptures(const FViewInfo& View, const FScene* Scene,
 			FReflectionCaptureSortData NewSortEntry;
 
 			NewSortEntry.CaptureIndex = -1;
+			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, 1.0f);
+
 			if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 			{
 				const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(CurrentCapture->Component);
 				NewSortEntry.CaptureIndex = ComponentStatePtr ? ComponentStatePtr->CaptureIndex : -1;
 				check(NewSortEntry.CaptureIndex < MaxCubemaps);
+				NewSortEntry.CaptureOffsetAndAverageBrightness.W = ComponentStatePtr ? ComponentStatePtr->AverageBrightness : 1.0f;
 			}
 
-			NewSortEntry.SM4FullHDRCubemap = CurrentCapture->SM4FullHDRCubemap;
 			NewSortEntry.Guid = CurrentCapture->Guid;
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, NewSortEntry.CaptureIndex, ShapeTypeValue, 0);
-			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
@@ -751,7 +751,7 @@ void FDeferredShadingSceneRenderer::SetupReflectionCaptureBuffers(FViewInfo& Vie
 		
 	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 	{
-		FReflectionCaptureData SamplePositionsBuffer;
+		FReflectionCaptureShaderData SamplePositionsBuffer;
 
 		for (int32 CaptureIndex = 0; CaptureIndex < SortData.Num(); CaptureIndex++)
 		{
@@ -762,7 +762,7 @@ void FDeferredShadingSceneRenderer::SetupReflectionCaptureBuffers(FViewInfo& Vie
 			SamplePositionsBuffer.BoxScales[CaptureIndex] = SortData[CaptureIndex].BoxScales;
 		}
 
-		View.ReflectionCaptureUniformBuffer = TUniformBufferRef<FReflectionCaptureData>::CreateUniformBufferImmediate(SamplePositionsBuffer, UniformBuffer_SingleFrame);
+		View.ReflectionCaptureUniformBuffer = TUniformBufferRef<FReflectionCaptureShaderData>::CreateUniformBufferImmediate(SamplePositionsBuffer, UniformBuffer_SingleFrame);
 	}
 }
 

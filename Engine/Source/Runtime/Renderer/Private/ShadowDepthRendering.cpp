@@ -187,6 +187,13 @@ public:
 			return false;
 		}
 
+#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
+		if (Material->IsEditorOnlyDefaultMaterial())
+		{
+			return (!bUsePositionOnlyStream || VertexFactoryType->SupportsPositionOnly()) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		}
+#endif
+
 		//Note: This logic needs to stay in sync with OverrideWithDefaultMaterialForShadowDepth!
 		// Compile for special engine materials.
 		if(bRenderReflectiveShadowMap)

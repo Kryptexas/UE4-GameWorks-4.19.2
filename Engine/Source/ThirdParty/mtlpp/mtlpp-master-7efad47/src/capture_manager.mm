@@ -14,7 +14,7 @@ namespace mtlpp
 	CaptureManager& CaptureManager::SharedCaptureManager()
 	{
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		static CaptureManager CaptureMan(ns::Handle{ [MTLCaptureManager sharedCaptureManager] });
+		static CaptureManager CaptureMan([MTLCaptureManager sharedCaptureManager]);
 #else
 		static CaptureManager;
 #endif
@@ -25,7 +25,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(MTLCaptureManager*) m_ptr newCaptureScopeWithDevice:(id<MTLDevice>)Device.GetPtr()] };
+		return [(MTLCaptureManager*) m_ptr newCaptureScopeWithDevice:(id<MTLDevice>)Device.GetPtr()];
 #else
 		return CaptureScope();
 #endif
@@ -35,7 +35,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(MTLCaptureManager*) m_ptr newCaptureScopeWithCommandQueue:(id<MTLCommandQueue>)Queue.GetPtr()] };
+		return [(MTLCaptureManager*) m_ptr newCaptureScopeWithCommandQueue:(id<MTLCommandQueue>)Queue.GetPtr()];
 #else
 		return CaptureScope();
 #endif
@@ -77,7 +77,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(MTLCaptureManager*) m_ptr defaultCaptureScope] };
+		return [(MTLCaptureManager*) m_ptr defaultCaptureScope];
 #else
 		return CaptureScope();
 #endif

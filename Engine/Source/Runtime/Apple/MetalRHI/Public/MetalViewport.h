@@ -68,6 +68,7 @@ private:
 	FMetalViewportPresentHandler Block;
 	volatile int32 FrameAvailable;
 	TRefCountPtr<FMetalTexture2D> LastCompleteFrame;
+	bool bIsFullScreen;
 
 #if PLATFORM_MAC
 	FMetalView* View;

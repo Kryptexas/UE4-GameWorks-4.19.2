@@ -1309,13 +1309,9 @@ public:
 
 	int32 PackedIndex;
 
-	/** Used in Feature level SM4 */
-	FTexture* SM4FullHDRCubemap;
-
-	float AverageBrightness;
-
 	/** Used in Feature level ES2 */
 	FTexture* EncodedHDRCubemap;
+	float EncodedHDRAverageBrightness;
 
 	EReflectionCaptureShape::Type Shape;
 
@@ -1335,9 +1331,9 @@ public:
 	FPlane ReflectionPlane;
 	FVector4 ReflectionXAxisAndYScale;
 
-	FReflectionCaptureProxy(const class UReflectionCaptureComponent* InComponent);
+	bool bUsingPreviewCaptureData;
 
-	void InitializeAverageBrightness(const float& AverageBrightness);
+	FReflectionCaptureProxy(const class UReflectionCaptureComponent* InComponent);
 
 	void SetTransform(const FMatrix& InTransform);
 };

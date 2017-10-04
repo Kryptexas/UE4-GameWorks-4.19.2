@@ -6,7 +6,6 @@
 
 #include "Common.ush"
 #include "PostProcessCommon.ush"
-#include "PostProcessHistogramCommon.ush"
 #include "DeferredShadingCommon.ush"		// GBufferData
 
 // only the red channel is used, 1.0f for the bit to be on, 0..1 to get fade

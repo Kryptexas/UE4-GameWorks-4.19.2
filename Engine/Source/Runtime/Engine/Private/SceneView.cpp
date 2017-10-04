@@ -236,6 +236,23 @@ static TAutoConsoleVariable<int32> CVarDefaultAntiAliasing(
 	TEXT(" 3: MSAA (Forward shading only)"),
     ECVF_RenderThreadSafe);
 
+// see ELightUnits
+static TAutoConsoleVariable<int32> CVarDefaultPointLightUnits(
+	TEXT("r.DefaultFeature.PointLightUnits"),
+	1,
+	TEXT("Default units to use for point lights\n")
+	TEXT(" 0: unitless \n")
+	TEXT(" 1: candelas (default)\n")
+	TEXT(" 2: lumens"));
+
+static TAutoConsoleVariable<int32> CVarDefaultSpotLightUnits(
+	TEXT("r.DefaultFeature.SpotLightUnits"),
+	1,
+	TEXT("Default units to use for point lights\n")
+	TEXT(" 0: unitless \n")
+	TEXT(" 1: candelas (default)\n")
+	TEXT(" 2: lumens"));
+
 static TAutoConsoleVariable<float> CVarMotionBlurScale(
 	TEXT("r.MotionBlur.Scale"),
 	1.0f,
@@ -631,6 +648,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsMobileMultiViewEnabled(false)
 	, bIsMobileMultiViewDirectEnabled(false)
 	, bShouldBindInstancedViewUB(false)
+	, bDisablePreExposure(false)
 	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
@@ -1320,10 +1338,13 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(BloomConvolutionPreFilterMult);
 		LERP_PP(AmbientCubemapIntensity);
 		LERP_PP(AmbientCubemapTint);
+		LERP_PP(CameraShutterSpeed);
+		LERP_PP(CameraISO);
 		LERP_PP(AutoExposureLowPercent);
 		LERP_PP(AutoExposureHighPercent);
 		LERP_PP(AutoExposureMinBrightness);
 		LERP_PP(AutoExposureMaxBrightness);
+		LERP_PP(AutoExposureCalibrationConstant);
 		LERP_PP(AutoExposureSpeedUp);
 		LERP_PP(AutoExposureSpeedDown);
 		LERP_PP(AutoExposureBias);

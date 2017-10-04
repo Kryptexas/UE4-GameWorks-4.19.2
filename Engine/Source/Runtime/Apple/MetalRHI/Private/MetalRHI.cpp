@@ -22,7 +22,6 @@ DEFINE_LOG_CATEGORY(LogMetal)
 
 bool GMetalSupportsHeaps = false;
 bool GMetalSupportsIndirectArgumentBuffers = false;
-bool GMetalSupportsCaptureManager = false;
 bool GMetalSupportsTileShaders = false;
 bool GMetalSupportsStoreActionOptions = false;
 bool GMetalSupportsDepthClipMode = false;
@@ -95,7 +94,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GSupportsVolumeTextureRendering = false;
 	
 	// Metal always needs a render target to render with fragment shaders!
-	GRHIRequiresRenderTargetForPixelShaderUAVs = true;
+	// GRHIRequiresRenderTargetForPixelShaderUAVs = true;
 
 	//@todo-rco: Query name from API
 	GRHIAdapterName = TEXT("Metal");
@@ -310,10 +309,9 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	if (FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){10, 13, 0}, (uint32[]){11, 0, 0}, (uint32[]){11, 0, 0}))
 	{
 		GMetalSupportsIndirectArgumentBuffers = true;
-		GMetalSupportsCaptureManager = true;
 		GMetalSupportsStoreActionOptions = true;
 	}
-	if (FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){0, 0, 0}, (uint32[]){11, 0, 0}, (uint32[]){11, 0, 0}))
+	if (!PLATFORM_MAC && FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){0, 0, 0}, (uint32[]){11, 0, 0}, (uint32[]){11, 0, 0}))
 	{
 		GMetalSupportsTileShaders = true;
 	}

@@ -1027,8 +1027,8 @@ static FORCEINLINE_DEBUGGABLE bool CullNode(const FFoliageCullInstanceParams& Pa
 		checkSlow(Params.ViewFrustumLocal.PermutedPlanes.Num() == 4);
 
 		//@todo, once we have more than one mesh per tree, these should be aligned
-		VectorRegister BoxMin = VectorLoadFloat3(&Node.BoundMin);
-		VectorRegister BoxMax = VectorLoadFloat3(&Node.BoundMax);
+		VectorRegister BoxMin = VectorLoad(&Node.BoundMin);
+		VectorRegister BoxMax = VectorLoad(&Node.BoundMax);
 
 		VectorRegister BoxDiff = VectorSubtract(BoxMax,BoxMin);
 		VectorRegister BoxSum = VectorAdd(BoxMax,BoxMin);
@@ -1048,14 +1048,10 @@ static FORCEINLINE_DEBUGGABLE bool CullNode(const FFoliageCullInstanceParams& Pa
 		const FPlane* RESTRICT PermutedPlanePtr = (FPlane*)Params.ViewFrustumLocal.PermutedPlanes.GetData();
 		// Process four planes at a time until we have < 4 left
 		// Load 4 planes that are already all Xs, Ys, ...
-		VectorRegister PlanesX = VectorLoadAligned(PermutedPlanePtr);
-		PermutedPlanePtr++;
-		VectorRegister PlanesY = VectorLoadAligned(PermutedPlanePtr);
-		PermutedPlanePtr++;
-		VectorRegister PlanesZ = VectorLoadAligned(PermutedPlanePtr);
-		PermutedPlanePtr++;
-		VectorRegister PlanesW = VectorLoadAligned(PermutedPlanePtr);
-		PermutedPlanePtr++;
+		VectorRegister PlanesX = VectorLoadAligned(&PermutedPlanePtr[0]);
+		VectorRegister PlanesY = VectorLoadAligned(&PermutedPlanePtr[1]);
+		VectorRegister PlanesZ = VectorLoadAligned(&PermutedPlanePtr[2]);
+		VectorRegister PlanesW = VectorLoadAligned(&PermutedPlanePtr[3]);
 		// Calculate the distance (x * x) + (y * y) + (z * z) - w
 		VectorRegister DistX = VectorMultiply(OrigX,PlanesX);
 		VectorRegister DistY = VectorMultiplyAdd(OrigY,PlanesY,DistX);
@@ -1080,7 +1076,7 @@ static FORCEINLINE_DEBUGGABLE bool CullNode(const FFoliageCullInstanceParams& Pa
 	return false;
 }
 
-inline void CalcLOD(int32& InOutMinLOD, int32& InOutMaxLOD, const FVector& BoundMin, const FVector& BoundMax, const FVector& ViewOriginInLocalZero, const FVector& ViewOriginInLocalOne, const float LODPlanesMin[], const float LODPlanesMax[])
+inline void CalcLOD(int32& InOutMinLOD, int32& InOutMaxLOD, const FVector& BoundMin, const FVector& BoundMax, const FVector& ViewOriginInLocalZero, const FVector& ViewOriginInLocalOne, const float (&LODPlanesMin)[MAX_STATIC_MESH_LODS], const float (&LODPlanesMax)[MAX_STATIC_MESH_LODS])
 {
 	if (InOutMinLOD != InOutMaxLOD)
 	{

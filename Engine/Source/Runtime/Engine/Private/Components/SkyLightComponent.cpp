@@ -23,6 +23,25 @@
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 
+void OnUpdateSkylights(UWorld* InWorld)
+{
+	for (TObjectIterator<USkyLightComponent> It; It; ++It)
+	{
+		USkyLightComponent* SkylightComponent = *It;
+		if (InWorld->ContainsActor(SkylightComponent->GetOwner()) && !SkylightComponent->IsPendingKill())
+		{			
+			SkylightComponent->SetCaptureIsDirty();			
+		}
+	}
+	USkyLightComponent::UpdateSkyCaptureContents(InWorld);
+}
+
+FAutoConsoleCommandWithWorld CaptureConsoleCommand(
+	TEXT("r.SkylightRecapture"),
+	TEXT("Updates all stationary and movable skylights, useful for debugging the capture pipeline"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(OnUpdateSkylights)
+	);
+
 void FSkyTextureCubeResource::InitRHI()
 {
 	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)

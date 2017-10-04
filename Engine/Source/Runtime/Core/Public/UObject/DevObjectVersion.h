@@ -5,7 +5,6 @@
 #include "UObject/NameTypes.h"
 #include "Misc/Guid.h"
 #include "Serialization/CustomVersion.h"
-#include "LoadTimesObjectVersion.h"
 
 class CORE_API FDevVersionRegistration :  public FCustomVersionRegistration
 {

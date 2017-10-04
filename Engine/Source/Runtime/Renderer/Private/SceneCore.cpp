@@ -424,6 +424,11 @@ FStaticMesh::~FStaticMesh()
 	// Remove this static mesh from the scene's list.
 	PrimitiveSceneInfo->Scene->StaticMeshes.RemoveAt(Id);
 
+	if (BatchVisibilityId != INDEX_NONE)
+	{
+		PrimitiveSceneInfo->Scene->StaticMeshBatchVisibility.RemoveAt(BatchVisibilityId);
+	}
+
 	// This is cheaper than calling RemoveFromDrawLists, since it 
 	// doesn't unlink meshes which are about to be destroyed
 	for (int32 i = 0; i < DrawListLinks.Num(); i++)

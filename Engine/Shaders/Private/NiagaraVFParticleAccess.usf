@@ -5,7 +5,6 @@
 Buffer<float> NiagaraParticleDataFloat;
 Buffer<int> NiagaraParticleDataInt;
 uint SafeComponentBufferSize;			// stride of data in buffers
-uint VertexID : SV_VertexID;
 
 float GetFloat(int RegisterIdx, uint InstanceID)
 {

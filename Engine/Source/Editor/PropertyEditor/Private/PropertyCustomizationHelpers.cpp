@@ -30,6 +30,7 @@
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "IDocumentation.h"
 #include "SResetToDefaultPropertyEditor.h"
+#include "EditorFontGlyphs.h"
 
 #define LOCTEXT_NAMESPACE "PropertyCustomizationHelpers"
 
@@ -82,6 +83,20 @@ namespace PropertyCustomizationHelpers
 	private:
 		FSimpleDelegate OnClickAction;
 	};
+
+	TSharedRef<SWidget> MakeResetButton(FSimpleDelegate OnResetClicked, TAttribute<FText> OptionalToolTipText /*= FText()*/, TAttribute<bool> IsEnabled /*= true*/)
+	{
+		return
+			SNew(SPropertyEditorButton)
+			.Text(LOCTEXT("ResetButtonLabel", "ResetToDefault"))
+			.ToolTipText(OptionalToolTipText.Get().IsEmpty() ? LOCTEXT("ResetButtonToolTipText", "Resets Element to Default Value") : OptionalToolTipText)
+			.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+			.OnClickAction(OnResetClicked)
+			.IsEnabled(IsEnabled)
+			.Visibility(IsEnabled.Get() ? EVisibility::Visible : EVisibility::Collapsed)
+			.IsFocusable(false);
+	}
+
 
 	TSharedRef<SWidget> MakeAddButton( FSimpleDelegate OnAddClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled )
 	{
@@ -153,6 +168,32 @@ namespace PropertyCustomizationHelpers
 			.OnClickAction( OnClearClicked )
 			.IsEnabled(IsEnabled)
 			.IsFocusable( false );
+	}
+
+	FText GetVisibilityDisplay(TAttribute<bool> bEnabled)
+	{
+		return bEnabled.Get() ? FEditorFontGlyphs::Eye : FEditorFontGlyphs::Eye_Slash;
+	}
+
+	TSharedRef<SWidget> MakeVisibilityButton(FOnClicked OnVisibilityClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> VisibilityDelegate)
+	{
+		TAttribute<FText>::FGetter DynamicVisibilityGetter;
+		DynamicVisibilityGetter.BindStatic(&GetVisibilityDisplay, VisibilityDelegate);
+		TAttribute<FText> DynamicVisibilityAttribute = TAttribute<FText>::Create(DynamicVisibilityGetter);
+		return
+			SNew( SButton )
+			.OnClicked( OnVisibilityClicked )
+			.IsEnabled(true)
+			.IsFocusable( false )
+			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+			.ToolTipText(LOCTEXT("ToggleVisibility", "Toggle Visibility"))
+			.ContentPadding(2.0f)
+			.ForegroundColor(FSlateColor::UseForeground())
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+				.Text(DynamicVisibilityAttribute)
+			];
 	}
 
 	TSharedRef<SWidget> MakeBrowseButton( FSimpleDelegate OnFindClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled )

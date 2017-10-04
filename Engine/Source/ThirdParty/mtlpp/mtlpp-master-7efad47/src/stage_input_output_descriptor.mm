@@ -14,9 +14,9 @@ namespace mtlpp
 {
     BufferLayoutDescriptor::BufferLayoutDescriptor() :
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLBufferLayoutDescriptor alloc] init] }, false)
+        ns::Object<MTLBufferLayoutDescriptor*>([[MTLBufferLayoutDescriptor alloc] init], false)
 #else
-        ns::Object(ns::Handle{ nullptr })
+        ns::Object<MTLBufferLayoutDescriptor*>(nullptr)
 #endif
     {
     }
@@ -25,7 +25,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(__bridge MTLBufferLayoutDescriptor*)m_ptr stride]);
+        return uint32_t([(MTLBufferLayoutDescriptor*)m_ptr stride]);
 #else
         return 0;
 #endif
@@ -35,7 +35,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return StepFunction([(__bridge MTLBufferLayoutDescriptor*)m_ptr stepFunction]);
+        return StepFunction([(MTLBufferLayoutDescriptor*)m_ptr stepFunction]);
 #else
         return StepFunction(0);
 #endif
@@ -45,7 +45,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(__bridge MTLBufferLayoutDescriptor*)m_ptr stepRate]);
+        return uint32_t([(MTLBufferLayoutDescriptor*)m_ptr stepRate]);
 #else
         return 0;
 #endif
@@ -55,7 +55,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLBufferLayoutDescriptor*)m_ptr setStride:stride];
+        [(MTLBufferLayoutDescriptor*)m_ptr setStride:stride];
 #endif
     }
 
@@ -63,7 +63,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLBufferLayoutDescriptor*)m_ptr setStepFunction:MTLStepFunction(stepFunction)];
+        [(MTLBufferLayoutDescriptor*)m_ptr setStepFunction:MTLStepFunction(stepFunction)];
 #endif
     }
 
@@ -71,15 +71,15 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLBufferLayoutDescriptor*)m_ptr setStepRate:stepRate];
+        [(MTLBufferLayoutDescriptor*)m_ptr setStepRate:stepRate];
 #endif
     }
 
     AttributeDescriptor::AttributeDescriptor() :
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLAttributeDescriptor alloc] init] }, false)
+        ns::Object<MTLAttributeDescriptor*>([[MTLAttributeDescriptor alloc] init], false)
 #else
-        ns::Object(ns::Handle{ nullptr })
+        ns::Object<MTLAttributeDescriptor*>(nullptr)
 #endif
     {
     }
@@ -88,7 +88,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return AttributeFormat([(__bridge MTLAttributeDescriptor*)m_ptr format]);
+        return AttributeFormat([(MTLAttributeDescriptor*)m_ptr format]);
 #else
         return AttributeFormat(0);
 #endif
@@ -98,7 +98,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(__bridge MTLAttributeDescriptor*)m_ptr offset]);
+        return uint32_t([(MTLAttributeDescriptor*)m_ptr offset]);
 #else
         return 0;
 #endif
@@ -108,7 +108,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(__bridge MTLAttributeDescriptor*)m_ptr bufferIndex]);
+        return uint32_t([(MTLAttributeDescriptor*)m_ptr bufferIndex]);
 #else
         return 0;
 #endif
@@ -118,7 +118,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLAttributeDescriptor*)m_ptr setFormat:MTLAttributeFormat(format)];
+        [(MTLAttributeDescriptor*)m_ptr setFormat:MTLAttributeFormat(format)];
 #endif
     }
 
@@ -126,7 +126,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLAttributeDescriptor*)m_ptr setOffset:offset];
+        [(MTLAttributeDescriptor*)m_ptr setOffset:offset];
 #endif
     }
 
@@ -134,15 +134,15 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLAttributeDescriptor*)m_ptr setBufferIndex:bufferIndex];
+        [(MTLAttributeDescriptor*)m_ptr setBufferIndex:bufferIndex];
 #endif
     }
 
     StageInputOutputDescriptor::StageInputOutputDescriptor() :
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLStageInputOutputDescriptor alloc] init] }, false)
+        ns::Object<MTLStageInputOutputDescriptor*>([[MTLStageInputOutputDescriptor alloc] init], false)
 #else
-        ns::Object(ns::Handle{ nullptr })
+        ns::Object<MTLStageInputOutputDescriptor*>(nullptr)
 #endif
     {
     }
@@ -151,9 +151,9 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ (__bridge void*)[(__bridge MTLStageInputOutputDescriptor*)m_ptr layouts] };
+        return (NSArray*)[(MTLStageInputOutputDescriptor*)m_ptr layouts];
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
@@ -161,9 +161,9 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ (__bridge void*)[(__bridge MTLStageInputOutputDescriptor*)m_ptr attributes] };
+        return (NSArray*)[(MTLStageInputOutputDescriptor*)m_ptr attributes];
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
@@ -171,7 +171,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return IndexType([(__bridge MTLStageInputOutputDescriptor*)m_ptr indexType]);
+        return IndexType([(MTLStageInputOutputDescriptor*)m_ptr indexType]);
 #else
         return IndexType(0);
 #endif
@@ -181,7 +181,7 @@ namespace mtlpp
    {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(__bridge MTLStageInputOutputDescriptor*)m_ptr indexBufferIndex]);
+        return uint32_t([(MTLStageInputOutputDescriptor*)m_ptr indexBufferIndex]);
 #else
         return 0;
 #endif
@@ -191,7 +191,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLStageInputOutputDescriptor*)m_ptr setIndexType:MTLIndexType(indexType)];
+        [(MTLStageInputOutputDescriptor*)m_ptr setIndexType:MTLIndexType(indexType)];
 #endif
     }
 
@@ -199,7 +199,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLStageInputOutputDescriptor*)m_ptr setIndexBufferIndex:indexBufferIndex];
+        [(MTLStageInputOutputDescriptor*)m_ptr setIndexBufferIndex:indexBufferIndex];
 #endif
     }
 
@@ -207,7 +207,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLStageInputOutputDescriptor*)m_ptr reset];
+        [(MTLStageInputOutputDescriptor*)m_ptr reset];
 #endif
     }
 }

@@ -6744,6 +6744,115 @@ void UParticleSystemComponent::AutoPopulateInstanceProperties()
 	}
 }
 
+void UParticleLODLevel::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, const TArray<FNamedEmitterMaterial>& Slots, const TArray<class UMaterialInterface*>& EmitterMaterials) const
+{
+	// Only process enabled emitters
+	if (bEnabled)
+	{
+		const UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(TypeDataModule);
+
+		if (MeshTypeData && MeshTypeData->Mesh)
+		{
+			const FStaticMeshLODResources& LODModel = MeshTypeData->Mesh->RenderData->LODResources[0];
+
+			// Gather the materials applied to the LOD.
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+			{
+				UMaterialInterface* Material = NULL;
+							
+				TArray<FName>& NamedOverrides = RequiredModule->NamedMaterialOverrides;
+
+				if (NamedOverrides.IsValidIndex(SectionIndex))
+				{	
+					//If we have named material overrides then get it's index into the emitter materials array.	
+					for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+					{
+						if (NamedOverrides[SectionIndex] == Slots[CheckIdx].Name)
+						{
+							//Default to the default material for that slot.
+							Material = Slots[CheckIdx].Material;
+							if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
+							{
+								//This material has been overridden externally, e.g. from a BP so use that one.
+								Material = EmitterMaterials[CheckIdx];
+							}
+
+							break;
+						}
+					}
+				}
+
+				// See if there is a mesh material module.
+				if (Material == NULL)
+				{
+					// Walk in reverse order as in the case of multiple modules, only the final result will be applied
+					for (int32 ModuleIndex = Modules.Num()-1; ModuleIndex >= 0; --ModuleIndex)
+					{
+						UParticleModuleMeshMaterial* MeshMatModule = Cast<UParticleModuleMeshMaterial>(Modules[ModuleIndex]);
+						if (MeshMatModule && MeshMatModule->bEnabled)
+						{
+							if (SectionIndex < MeshMatModule->MeshMaterials.Num())
+							{
+								Material = MeshMatModule->MeshMaterials[SectionIndex];
+								break;
+							}
+						}
+					}
+				}
+
+				// Overriding the material?
+				if (Material == NULL && MeshTypeData->bOverrideMaterial == true)
+				{
+					Material = RequiredModule->Material;
+				}
+
+				// Use the material set on the mesh.
+				if (Material == NULL)
+				{
+					Material = MeshTypeData->Mesh->GetMaterial(LODModel.Sections[SectionIndex].MaterialIndex);
+				}
+
+				if (Material)
+				{
+					OutMaterials.Add(Material);
+				}
+			}
+		}
+		else
+		{
+			UMaterialInterface* Material = NULL;
+							
+			TArray<FName>& NamedOverrides = RequiredModule->NamedMaterialOverrides;
+
+			if (NamedOverrides.Num() > 0)
+			{
+				for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+				{
+					if (NamedOverrides[0] == Slots[CheckIdx].Name)
+					{
+						//Default to the default material for that slot.
+						Material = Slots[CheckIdx].Material;
+						if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
+						{
+							//This material has been overridden externally, e.g. from a BP so use that one.
+							Material = EmitterMaterials[CheckIdx];
+						}
+        
+						break;
+					}
+				}
+			}
+
+			if (!Material)
+			{
+				Material = RequiredModule->Material;
+			}
+
+			OutMaterials.Add(Material);
+		}
+	}
+}
+
 void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	if (Template)
@@ -6759,119 +6868,85 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 			for (int32 LodIndex = 0; LodIndex < Emitter->LODLevels.Num(); ++LodIndex)
 			{
 				const UParticleLODLevel* LOD = Emitter->LODLevels[LodIndex];
-
-				// Only process enabled emitters
-				if (LOD->bEnabled)
+				if (LOD)
 				{
-					const UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(LOD->TypeDataModule);
-
-					if (MeshTypeData && MeshTypeData->Mesh)
-					{
-						const FStaticMeshLODResources& LODModel = MeshTypeData->Mesh->RenderData->LODResources[0];
-
-						// Gather the materials applied to the LOD.
-						for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
-						{
-							UMaterialInterface* Material = NULL;
-							
-							TArray<FName>& NamedOverrides = LOD->RequiredModule->NamedMaterialOverrides;
-							TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
-
-							if (NamedOverrides.IsValidIndex(SectionIndex))
-							{	
-								//If we have named material overrides then get it's index into the emitter materials array.	
-								for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
-								{
-									if (NamedOverrides[SectionIndex] == Slots[CheckIdx].Name)
-									{
-										//Default to the default material for that slot.
-										Material = Slots[CheckIdx].Material;
-										if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
-										{
-											//This material has been overridden externally, e.g. from a BP so use that one.
-											Material = EmitterMaterials[CheckIdx];
-										}
-
-										break;
-									}
-								}
-							}
-
-							// See if there is a mesh material module.
-							if (Material == NULL)
-							{
-								// Walk in reverse order as in the case of multiple modules, only the final result will be applied
-								for (int32 ModuleIndex = LOD->Modules.Num()-1; ModuleIndex >= 0; --ModuleIndex)
-								{
-									UParticleModuleMeshMaterial* MeshMatModule = Cast<UParticleModuleMeshMaterial>(LOD->Modules[ModuleIndex]);
-									if (MeshMatModule && MeshMatModule->bEnabled)
-									{
-										if (SectionIndex < MeshMatModule->MeshMaterials.Num())
-										{
-											Material = MeshMatModule->MeshMaterials[SectionIndex];
-											break;
-										}
-									}
-								}
-							}
-
-							// Overriding the material?
-							if (Material == NULL && MeshTypeData->bOverrideMaterial == true)
-							{
-								Material = LOD->RequiredModule->Material;
-							}
-
-							// Use the material set on the mesh.
-							if (Material == NULL)
-							{
-								Material = MeshTypeData->Mesh->GetMaterial(LODModel.Sections[SectionIndex].MaterialIndex);
-							}
-
-							if (Material)
-							{
-								OutMaterials.Add(Material);
-							}
-						}
-					}
-					else
-					{
-						UMaterialInterface* Material = NULL;
-							
-						TArray<FName>& NamedOverrides = LOD->RequiredModule->NamedMaterialOverrides;
-						TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
-
-						if (NamedOverrides.Num() > 0)
-						{
-							for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
-							{
-								if (NamedOverrides[0] == Slots[CheckIdx].Name)
-								{
-									//Default to the default material for that slot.
-									Material = Slots[CheckIdx].Material;
-									if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
-									{
-										//This material has been overridden externally, e.g. from a BP so use that one.
-										Material = EmitterMaterials[CheckIdx];
-									}
-        
-									break;
-								}
-							}
-						}
-
-						if (!Material)
-						{
-							Material = LOD->RequiredModule->Material;
-						}
-
-						OutMaterials.Add(Material);
-					}
+					LOD->GetUsedMaterials(OutMaterials, Template->NamedMaterialSlots, EmitterMaterials);
 				}
 			}
 		}
 	}
 
 	OutMaterials.Append(EmitterMaterials);
+}
+
+typedef TPair<const UMaterialInterface*, float> FMaterialWithScale;
+
+void AddMaterials(TArray<FMaterialWithScale, TInlineAllocator<12> >& OutMaterialWithScales, const TArray<UMaterialInterface*>& InMaterials, float InScale)
+{
+	for (const UMaterialInterface* Material : InMaterials)
+	{
+		if (Material)
+		{
+			FMaterialWithScale* Entry = OutMaterialWithScales.FindByPredicate([&](const FMaterialWithScale& Ref) { return Ref.Key == Material; });
+			if (Entry)
+			{
+				Entry->Value = FMath::Max<int32>(Entry->Value, InScale);
+			}
+			else
+			{
+				new (OutMaterialWithScales) FMaterialWithScale(Material, InScale);
+			}
+		}
+	}
+}
+
+void UParticleSystemComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	TArray<FMaterialWithScale, TInlineAllocator<12> > MaterialWithScales;
+
+	if (Template)
+	{
+		// Find the max sub uv scale of each texture as we can't apply them incrementally
+		TArray<UMaterialInterface*> LODLevelMaterials;
+
+		for (int32 EmitterIdx = 0; EmitterIdx < Template->Emitters.Num(); ++EmitterIdx)
+		{
+			const UParticleEmitter* Emitter = Template->Emitters[EmitterIdx];
+			if (!Emitter)
+			{
+				continue;
+			}
+
+			for (int32 LodIndex = 0; LodIndex < Emitter->LODLevels.Num(); ++LodIndex)
+			{
+				const UParticleLODLevel* LOD = Emitter->LODLevels[LodIndex];
+				if (!LOD || !LOD->RequiredModule)
+				{
+					continue;
+				}
+
+				LODLevelMaterials.Reset();
+				LOD->GetUsedMaterials(LODLevelMaterials, Template->NamedMaterialSlots, EmitterMaterials);
+				AddMaterials(MaterialWithScales, LODLevelMaterials, (float)FMath::Max<int32>(LOD->RequiredModule->SubImages_Horizontal, LOD->RequiredModule->SubImages_Vertical));
+			}
+		}
+
+		AddMaterials(MaterialWithScales, EmitterMaterials, 1.f);
+
+		if (MaterialWithScales.Num())
+		{
+			static const FMeshUVChannelInfo UVChannelData(1.f);
+			FPrimitiveMaterialInfo MaterialData;
+			MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
+			MaterialData.UVChannelData = &UVChannelData;
+
+			for (const FMaterialWithScale& MaterialWithScale : MaterialWithScales)
+			{
+				MaterialData.Material = MaterialWithScale.Key;
+				LevelContext.ProcessMaterial(Bounds, MaterialData, Bounds.SphereRadius * MaterialWithScale.Value, OutStreamingTextures);
+			}
+		}
+	}
 }
 
 FBodyInstance* UParticleSystemComponent::GetBodyInstance(FName BoneName /*= NAME_None*/, bool bGetWelded /*= true*/) const

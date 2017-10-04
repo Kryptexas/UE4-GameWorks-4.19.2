@@ -187,6 +187,7 @@
 #include "Engine/LODActor.h"
 #include "Engine/AssetManager.h"
 #include "GameplayTagsManager.h"
+#include "SceneManagement.h"
 
 #if !UE_BUILD_SHIPPING
 	#include "HAL/ExceptionHandling.h"
@@ -595,6 +596,30 @@ void RefreshSamplerStatesCallback()
 			UTexture2D* Texture = *It;
 			Texture->RefreshSamplerStates();
 		}
+	
+		// The shared sampler states don't have an associated texture so must be manually refreshed
+		if (Wrap_WorldGroupSettings || Clamp_WorldGroupSettings)
+		{
+			FSharedSamplerState* WrapState = Wrap_WorldGroupSettings;
+			FSharedSamplerState* ClampState = Clamp_WorldGroupSettings;
+			ENQUEUE_RENDER_COMMAND(RefreshSharedSamplerStatesCommand)(
+				[WrapState, ClampState](FRHICommandListImmediate& RHICmdList)
+			{
+				if (WrapState)
+				{
+					WrapState->ReleaseRHI();
+					WrapState->InitRHI();
+				}
+
+				if (ClampState)
+				{
+					ClampState->ReleaseRHI();
+					ClampState->InitRHI();
+				}
+			}
+			);
+		}
+
 		UMaterialInterface::RecacheAllMaterialUniformExpressions();
 	}
 }
@@ -8290,22 +8315,30 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 		MessageY += FontSizeY;
 	}
 
-	// Warn about invalid reflection captures, this can appear only with FeatureLevel < SM4
-	if (World->NumInvalidReflectionCaptureComponents > 0)
+	if (World->NumUnbuiltReflectionCaptures > 0)
 	{
-		SmallTextItem.SetColor(FLinearColor::Red);
-		if( World->IsGameWorld())
+		int32 NumLightingScenariosEnabled = 0;
+
+		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
 		{
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("INVALID REFLECTION CAPTURES (%u Components, resave map in the editor)"), World->NumInvalidReflectionCaptureComponents));
+			ULevel* Level = World->GetLevels()[LevelIndex];
+
+			if (Level->bIsLightingScenario && Level->bIsVisible)
+			{
+				NumLightingScenariosEnabled++;
+			}
 		}
-		else
+
+		if (NumLightingScenariosEnabled <= 1)
 		{
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("REFLECTION CAPTURE UPDATE REQUIRED (%u out-of-date reflection capture(s))"), World->NumInvalidReflectionCaptureComponents));
+			SmallTextItem.SetColor(FLinearColor::White);
+			SmallTextItem.Text = FText::FromString( FString::Printf(TEXT("REFLECTION CAPTURES NEED TO BE REBUILT (%u unbuilt)"), World->NumUnbuiltReflectionCaptures) );		
+
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
 		}
-		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-		MessageY += FontSizeY;
 	}
-	
+
 	// Check HLOD clusters and show warning if unbuilt
 #if WITH_EDITOR
 	if (World->GetWorldSettings()->bEnableHierarchicalLODSystem)

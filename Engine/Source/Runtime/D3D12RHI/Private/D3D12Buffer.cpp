@@ -266,13 +266,15 @@ void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferT
 					FScopeResourceBarrier ScopeResourceBarrierSource(hCommandList, pResource, pResource->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
 					// Don't need to transition upload heaps
 
+					uint64 SubAllocOffset = Buffer->ResourceLocation.GetOffsetFromBaseOfResource();
+
 					DefaultContext.numCopies++;
 					hCommandList.FlushResourceBarriers();	// Must flush so the desired state is actually set.
 					hCommandList->CopyBufferRegion(
 						StagingBuffer->GetResource(),
 						0,
 						pResource->GetResource(),
-						Offset, Size);
+						SubAllocOffset + Offset, Size);
 
 					hCommandList.UpdateResidency(StagingBuffer);
 					hCommandList.UpdateResidency(pResource);
@@ -290,7 +292,7 @@ void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferT
 				}
 				else
 				{
-					check(IsInRHIThread());
+					check(IsInRenderingThread() && !GRHIThreadId);
 					pfnCopyContents();
 				}
 			}

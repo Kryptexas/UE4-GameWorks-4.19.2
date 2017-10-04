@@ -617,54 +617,54 @@ public:
 	{
 		return Parent->GetMaterial(InFeatureLevel);
 	}
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("Landscape_RedMask")))
+		if (ParameterInfo.Name == FName(TEXT("Landscape_RedMask")))
 		{
 			*OutValue = R;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_GreenMask")))
+		else if (ParameterInfo.Name == FName(TEXT("Landscape_GreenMask")))
 		{
 			*OutValue = G;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_BlueMask")))
+		else if (ParameterInfo.Name == FName(TEXT("Landscape_BlueMask")))
 		{
 			*OutValue = B;
 			return true;
 		}
 		else
 		{
-			return Parent->GetVectorValue(ParameterName, OutValue, Context);
+			return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 		}
 	}
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 	{
-		return Parent->GetScalarValue(ParameterName, OutValue, Context);
+		return Parent->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
 		// NOTE: These should be returning black textures when NULL. The material will
 		// use a white texture if they are.
-		if (ParameterName == FName(TEXT("Landscape_RedTexture")))
+		if (ParameterInfo.Name == FName(TEXT("Landscape_RedTexture")))
 		{
 			*OutValue = RedTexture;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_GreenTexture")))
+		else if (ParameterInfo.Name == FName(TEXT("Landscape_GreenTexture")))
 		{
 			*OutValue = GreenTexture;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_BlueTexture")))
+		else if (ParameterInfo.Name == FName(TEXT("Landscape_BlueTexture")))
 		{
 			*OutValue = BlueTexture;
 			return true;
 		}
 		else
 		{
-			return Parent->GetTextureValue(ParameterName, OutValue, Context);
+			return Parent->GetTextureValue(ParameterInfo, OutValue, Context);
 		}
 	}
 };
@@ -686,32 +686,32 @@ public:
 	{
 		return Parent->GetMaterial(InFeatureLevel);
 	}
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("HighlightColor")))
+		if (ParameterInfo.Name == FName(TEXT("HighlightColor")))
 		{
 			*OutValue = FLinearColor(1.f, 0.5f, 0.5f);
 			return true;
 		}
 		else
 		{
-			return Parent->GetVectorValue(ParameterName, OutValue, Context);
+			return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 		}
 	}
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 	{
-		return Parent->GetScalarValue(ParameterName, OutValue, Context);
+		return Parent->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("SelectedData")))
+		if (ParameterInfo.Name == FName(TEXT("SelectedData")))
 		{
 			*OutValue = SelectTexture;
 			return true;
 		}
 		else
 		{
-			return Parent->GetTextureValue(ParameterName, OutValue, Context);
+			return Parent->GetTextureValue(ParameterInfo, OutValue, Context);
 		}
 	}
 };
@@ -735,29 +735,29 @@ public:
 	{
 		return Parent->GetMaterial(InFeatureLevel);
 	}
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
-		return Parent->GetVectorValue(ParameterName, OutValue, Context);
+		return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("bInverted")))
+		if (ParameterInfo.Name == FName(TEXT("bInverted")))
 		{
 			*OutValue = bInverted;
 			return true;
 		}
-		return Parent->GetScalarValue(ParameterName, OutValue, Context);
+		return Parent->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("SelectedData")))
+		if (ParameterInfo.Name == FName(TEXT("SelectedData")))
 		{
 			*OutValue = SelectTexture;
 			return true;
 		}
 		else
 		{
-			return Parent->GetTextureValue(ParameterName, OutValue, Context);
+			return Parent->GetTextureValue(ParameterInfo, OutValue, Context);
 		}
 	}
 };
@@ -782,7 +782,7 @@ public:
 	{
 		return Parent->GetMaterial(InFeatureLevel);
 	}
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
 		static FName ColorNames[] =
 		{
@@ -800,35 +800,35 @@ public:
 
 		for (int32 i = 0; i < ARRAY_COUNT(ColorNames) && i < LayerColors.Num(); i++)
 		{
-			if (ParameterName == ColorNames[i])
+			if (ParameterInfo.Name == ColorNames[i])
 			{
 				*OutValue = LayerColors[i];
 				return true;
 			}
 		}
-		return Parent->GetVectorValue(ParameterName, OutValue, Context);
+		return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("Rotation")))
+		if (ParameterInfo.Name == FName(TEXT("Rotation")))
 		{
 			*OutValue = Rotation;
 			return true;
 		}
-		if (ParameterName == FName(TEXT("NumStripes")))
+		if (ParameterInfo.Name == FName(TEXT("NumStripes")))
 		{
 			*OutValue = LayerColors.Num();
 			return true;
 		}
-		if (ParameterName == FName(TEXT("ComponentSizeVerts")))
+		if (ParameterInfo.Name == FName(TEXT("ComponentSizeVerts")))
 		{
 			*OutValue = ComponentSizeVerts;
 			return true;
 		}		
-		return Parent->GetScalarValue(ParameterName, OutValue, Context);
+		return Parent->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
-		return Parent->GetTextureValue(ParameterName, OutValue, Context);
+		return Parent->GetTextureValue(ParameterInfo, OutValue, Context);
 	}
 };

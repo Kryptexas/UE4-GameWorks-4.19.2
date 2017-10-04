@@ -990,7 +990,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return SupportsGPUParticles(Platform) && IsParticleCollisionModeSupported(Platform, CollisionMode);
+		return SupportsGPUParticles(Platform) && IsParticleCollisionModeSupported(Platform, CollisionMode, true);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

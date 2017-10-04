@@ -273,6 +273,11 @@ public:
 		return bIsImageOwner;
 	}
 
+	inline VulkanRHI::FDeviceMemoryAllocation* GetAllocation() const
+	{
+		return Allocation;
+	}
+
 	FVulkanDevice* Device;
 
 	VkImage Image;
@@ -1029,9 +1034,9 @@ class FVulkanShaderResourceView : public FRHIShaderResourceView, public VulkanRH
 public:
 	FVulkanShaderResourceView(FVulkanDevice* Device, FVulkanResourceMultiBuffer* InSourceBuffer, uint32 InSize, EPixelFormat InFormat);
 
-	FVulkanShaderResourceView(FVulkanDevice* Device, FRHITexture* InSourceTexture, uint32 InMipLevel, int32 InNumMips)
+	FVulkanShaderResourceView(FVulkanDevice* Device, FRHITexture* InSourceTexture, uint32 InMipLevel, int32 InNumMips, EPixelFormat InFormat)
 		: VulkanRHI::FDeviceChild(Device)
-		, BufferViewFormat(PF_Unknown)
+		, BufferViewFormat(InFormat)
 		, SourceTexture(InSourceTexture)
 		, SourceStructuredBuffer(nullptr)
 		, MipLevel(InMipLevel)

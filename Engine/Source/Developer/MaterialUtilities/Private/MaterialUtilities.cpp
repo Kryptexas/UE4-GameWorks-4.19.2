@@ -118,23 +118,27 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 			UTexture* Texture = FMaterialUtilities::CreateTexture(OuterPackage, TEXT("T_") + AssetName + TEXT("_") + TrimmedPropertyName, DataSize, ColorData, CompressionSettings, TEXTUREGROUP_HierarchicalLOD, RF_Public | RF_Standalone, bSRGBEnabled);
 
 			// Set texture parameter value on instance material
-			Material->SetTextureParameterValueEditorOnly(*(TrimmedPropertyName + "Texture"), Texture);
+			FMaterialParameterInfo ParameterInfo(*(TrimmedPropertyName + TEXT("Texture")));
+			Material->SetTextureParameterValueEditorOnly(ParameterInfo, Texture);
+
 			FStaticSwitchParameter SwitchParameter;
-			SwitchParameter.ParameterName = *("Use" + TrimmedPropertyName);
+			SwitchParameter.ParameterInfo.Name = *(TEXT("Use") + TrimmedPropertyName);
 			SwitchParameter.Value = true;
 			SwitchParameter.bOverride = true;
 			NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 		}
 		else
 		{
-			// Otherwise set either float4 or float constnat values on instance material
+			// Otherwise set either float4 or float constant values on instance material
+			FMaterialParameterInfo ParameterInfo(*(TrimmedPropertyName + TEXT("Const")));
+
 			if (Property == MP_BaseColor || Property == MP_EmissiveColor)
 			{
-				Material->SetVectorParameterValueEditorOnly(*(TrimmedPropertyName + "Const"), ColorData[0].ReinterpretAsLinear());
+				Material->SetVectorParameterValueEditorOnly(ParameterInfo, ColorData[0].ReinterpretAsLinear());
 			}
 			else
 			{
-				Material->SetScalarParameterValueEditorOnly(*(TrimmedPropertyName + "Const"), ColorData[0].ReinterpretAsLinear().R);
+				Material->SetScalarParameterValueEditorOnly(ParameterInfo, ColorData[0].ReinterpretAsLinear().R);
 			}
 		}
 	}
@@ -144,7 +148,8 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 	{
 		if (BakeOutput.EmissiveScale != 1.0f)
 		{
-			Material->SetScalarParameterValueEditorOnly("EmissiveScale", BakeOutput.EmissiveScale);
+			FMaterialParameterInfo ParameterInfo(TEXT("EmissiveScale"));
+			Material->SetScalarParameterValueEditorOnly(ParameterInfo, BakeOutput.EmissiveScale);
 		}
 	}
 
@@ -152,13 +157,12 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 	if (MeshData.TextureCoordinateIndex != 0)
 	{
 		FStaticSwitchParameter SwitchParameter;
-		SwitchParameter.ParameterName = TEXT("UseCustomUV");
+		SwitchParameter.ParameterInfo.Name = TEXT("UseCustomUV");
 		SwitchParameter.Value = true;
 		SwitchParameter.bOverride = true;
-
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 
-		SwitchParameter.ParameterName = *("UseUV" + FString::FromInt(MeshData.TextureCoordinateIndex));
+		SwitchParameter.ParameterInfo.Name = *(TEXT("UseUV") + FString::FromInt(MeshData.TextureCoordinateIndex));
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 	}
 
@@ -398,7 +402,7 @@ public:
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 		Material = InMaterialInterface->GetMaterial();
-		Material->AppendReferencedTextures(ReferencedTextures);
+		InMaterialInterface->AppendReferencedTextures(ReferencedTextures);
 		FPlatformMisc::CreateGuid(Id);
 
 		FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
@@ -478,19 +482,19 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
+		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterInfo,OutValue,Context);
 	}
 
 	// Material properties.
@@ -2802,7 +2806,7 @@ void FMaterialUtilities::DetermineMaterialImportance(const TArray<UMaterialInter
 	for (UMaterialInterface* Material : InMaterials)
 	{
 		TArray<UTexture*> UsedTextures;
-		Material->GetMaterial()->AppendReferencedTextures(UsedTextures);
+		Material->AppendReferencedTextures(UsedTextures);
 		if (UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(Material))
 		{
 			for (const FTextureParameterValue& TextureParameter : MaterialInstance->TextureParameterValues)

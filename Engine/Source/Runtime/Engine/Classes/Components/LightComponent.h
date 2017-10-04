@@ -325,7 +325,7 @@ public:
 	}
 
 	/** Compute current light brightness based on whether there is a valid IES profile texture attached, and whether IES brightness is enabled */
-	float ComputeLightBrightness() const;
+	virtual float ComputeLightBrightness() const;
 
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;

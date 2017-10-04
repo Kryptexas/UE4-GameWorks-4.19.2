@@ -22,11 +22,9 @@ void FVulkanGPUTiming::PlatformStaticInitialize(void* UserData)
 	check( !GAreGlobalsInitialized );
 
 	FVulkanGPUTiming* Caller = (FVulkanGPUTiming*)UserData;
-	if (Caller)
+	if (Caller && Caller->Device)
 	{
-		FVulkanDevice * Device = Caller->CmdContext->GetDevice();
-
-		bool bSupportsTimestamps = (Device->GetDeviceProperties().limits.timestampComputeAndGraphics == VK_TRUE);
+ 		bool bSupportsTimestamps = (Caller->Device->GetDeviceProperties().limits.timestampComputeAndGraphics == VK_TRUE);
 		if (!bSupportsTimestamps)
 		{
 			UE_LOG(LogVulkanRHI, Warning, TEXT("Timestamps not supported on Device"));
@@ -92,12 +90,16 @@ void FVulkanGPUTiming::StartTiming(FVulkanCmdBuffer* CmdBuffer)
  * End a GPU timing measurement.
  * The timing for this particular measurement will be resolved at a later time by the GPU.
  */
-void FVulkanGPUTiming::EndTiming()
+void FVulkanGPUTiming::EndTiming(FVulkanCmdBuffer* CmdBuffer)
 {
 	// Issue a timestamp query for the 'end' time.
-	if ( GIsSupported && bIsTiming )
+	if (GIsSupported && bIsTiming)
 	{
-		CmdContext->RHIEndRenderQuery(EndTimer);
+		if (CmdBuffer == nullptr)
+		{
+			CmdBuffer = CmdContext->GetCommandBufferManager()->GetActiveCmdBuffer();
+		}
+		CmdContext->EndRenderQueryInternal(CmdBuffer, EndTimer);
 		bIsTiming = false;
 		bEndTimestampIssued = true;
 	}
@@ -206,7 +208,7 @@ void FVulkanGPUProfiler::BeginFrame()
 		{
 			SetEmitDrawEvents(true);  // thwart an attempt to turn this off on the game side
 			bTrackingEvents = true;
-			CurrentEventNodeFrame = new FVulkanEventNodeFrame(CmdContext);
+			CurrentEventNodeFrame = new FVulkanEventNodeFrame(CmdContext, Device);
 			CurrentEventNodeFrame->StartFrame();
 		}
 	}

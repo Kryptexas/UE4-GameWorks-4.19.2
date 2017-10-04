@@ -36,6 +36,7 @@
 #include "SimulationEditorExtender.h"
 #include "ClothingSimulationFactoryInterface.h"
 #include "ClothingSystemEditorInterfaceModule.h"
+#include "Widgets/SWidget.h"
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"
 
@@ -256,7 +257,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::MakeViewportToolbar(TSharedPtr<class S
 		LOCTEXT("ViewMenu", "View"),
 		LOCTEXT("ViewMenuToolTip", "Change the rendering mode"),
 		TAttribute<FSlateIcon>::Create(TAttribute<FSlateIcon>::FGetter::CreateStatic(&SEditorViewportViewMenu::GetViewMenuLabelIcon, WeakViewport)),
-		FNewMenuDelegate::CreateStatic(&SEditorViewportViewMenu::GenerateViewMenu, WeakToolbar),
+		FNewMenuDelegate::CreateStatic(&SEditorViewportViewMenu::GenerateViewMenu, WeakToolbar, InRealViewport->BuildFixedEV100Menu(), false),
 		"AnimViewportViewMenu");
 
 	if(bShowShowMenu)

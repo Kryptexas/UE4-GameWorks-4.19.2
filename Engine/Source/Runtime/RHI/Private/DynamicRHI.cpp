@@ -183,6 +183,16 @@ void RHIInit(bool bHasEditorToken)
 				GDynamicRHI->Init();
 				GRHICommandList.GetImmediateCommandList().SetContext(GDynamicRHI->RHIGetDefaultContext());
 				GRHICommandList.GetImmediateAsyncComputeCommandList().SetComputeContext(GDynamicRHI->RHIGetDefaultAsyncComputeContext());
+
+				if (bHasEditorToken && GMaxRHIFeatureLevel < ERHIFeatureLevel::SM5)
+				{
+					FString FeatureLevelString;
+					GetFeatureLevelName(GMaxRHIFeatureLevel, FeatureLevelString);
+					FString ShaderPlatformString = LegacyShaderPlatformToShaderFormat(GetFeatureLevelShaderPlatform(GMaxRHIFeatureLevel)).ToString();
+					FString Error = FString::Printf(TEXT("A Feature Level 5 video card is required to run the editor.\nAvailableFeatureLevel = %s, ShaderPlatform = %s"), *FeatureLevelString, *ShaderPlatformString);
+					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Error));
+					FPlatformMisc::RequestExit(1);
+				}
 			}
 #if PLATFORM_ALLOW_NULL_RHI
 			else

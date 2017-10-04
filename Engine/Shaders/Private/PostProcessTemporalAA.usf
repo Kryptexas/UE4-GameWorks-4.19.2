@@ -161,6 +161,14 @@ float4 WeightedLerp( float4 ColorA, float WeightA, float4 ColorB, float WeightB,
 // Useful for verifying that the camera motion reprojection is correct, and the history texture contains the right values
 float3 MinimalReprojectionForDebugging(float2 UV, float4 SvPosition)
 {
+#if USE_PREEXPOSURE
+	const float OneOverPreExposure = View.OneOverPreExposure;
+	const float PreExposure = View.PreExposure;
+#else
+	const float OneOverPreExposure = 1.f;
+	const float PreExposure = 1.f;
+#endif
+
 	float3 PosN; 
 	PosN.xy = SvPositionToScreenPosition(SvPosition).xy;
 	PosN.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UV, 0).r;
@@ -176,11 +184,11 @@ float3 MinimalReprojectionForDebugging(float2 UV, float4 SvPosition)
 	BackN.y = clamp(BackN.y, -1.0 + ViewportSize.w, 1.0 - ViewportSize.w);
 	BackN = (BackN * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5) * PostprocessInput0Size.zw;
 
-	float3 OldColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0).rgb;
-	float3 CurrentFrameSceneColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0).rgb;
+	float3 OldColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0).rgb * OneOverPreExposure;
+	float3 CurrentFrameSceneColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0).rgb * OneOverPreExposure;
 
 	float FixedLerp = .1f;
-	float3 NewColor = lerp(OldColor, CurrentFrameSceneColor, FixedLerp);
+	float3 NewColor = lerp(OldColor, CurrentFrameSceneColor, FixedLerp) * PreExposure;
 	return NewColor;
 }
 
@@ -307,9 +315,8 @@ float4 MainTemporalAACommon(in float2 UV, in float4 SvPosition, in float InExpos
 		#define AA_ROUND 0
 		#define AA_YCOCG 1
 		#define AA_BICUBIC 1
-		#define AA_DYNAMIC_ANTIGHOST 1
 		#define AA_TONE 1
-		#define AA_CLAMP 1
+		#define AA_DYNAMIC_ANTIGHOST 1
 	#if COMPUTESHADER
 		#define AA_SINGLE_PASS_RESPONSIVE 1
 	#endif
@@ -370,6 +377,7 @@ float4 MainFastTemporalAACommon(in float2 UV, in float InExposureScale)
 	#define AA_AABB 0
 	#define AA_YCOCG 1
 	#define AA_BICUBIC 1
+	#define AA_TONE 1
 #if COMPUTESHADER
 	#define AA_SINGLE_PASS_RESPONSIVE 1
 #endif

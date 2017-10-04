@@ -423,6 +423,10 @@ bool FMetalShaderOutputCooker::Build(TArray<uint8>& OutData)
 		{
 			const FString& Line = ErrorLines[LineIndex];
 			CrossCompiler::ParseHlslccError(Output.Errors, Line, bDirectCompile);
+			if (bDirectCompile)
+			{
+				UE_LOG(LogShaders, Error, TEXT("%s"), *Line);
+			}
 		}
 	}
 

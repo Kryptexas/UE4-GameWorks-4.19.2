@@ -692,8 +692,6 @@ void FSlateRHIRenderingPolicy::DrawElements(
 			ESlateShaderResource::Type ResourceType = ShaderResource ? ShaderResource->GetType() : ESlateShaderResource::Invalid;
 			if( ResourceType != ESlateShaderResource::Material && ShaderType != ESlateShader::PostProcess ) 
 			{
-				SLATE_DRAW_EVENT(RHICmdList, TextureBatch);
-
 				check(RenderBatch.NumIndices > 0);
 				FSlateElementPS* PixelShader = nullptr;
 
@@ -1116,6 +1114,9 @@ void FSlateRHIRenderingPolicy::DrawElements(
 
 				// This element is custom and has no Slate geometry.  Tell it to render itself now
 				CustomDrawer->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());
+				
+				//We reset the maskingID here because otherwise the RT might not get re-set in the lines above see: if (bClearStencil || bForceStateChange)
+				MaskingID = 0;
 
 				// Something may have messed with the viewport size so set it back to the full target.
 				RHICmdList.SetViewport( 0,0,0,BackBuffer.GetSizeXY().X, BackBuffer.GetSizeXY().Y, 0.0f ); 

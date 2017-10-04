@@ -123,6 +123,11 @@ int32 GDefragmentationRetryCounter = 10;
 /** Number of times to retry to reallocate a texture before trying a panic defragmentation, subsequent times. */
 int32 GDefragmentationRetryCounterLong = 100;
 
+#if STATS
+int64 GUITextureMemory = 0;
+int64 GNeverStreamTextureMemory = 0;
+#endif
+
 /** Turn on ENABLE_TEXTURE_TRACKING in ContentStreaming.cpp and setup GTrackedTextures to track specific textures through the streaming system. */
 extern bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture, bool bForceMipLevelsToBeResident, const FStreamingManagerTexture* Manager );
 
@@ -1180,6 +1185,17 @@ void FTexture2DResource::InitRHI()
 	INC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 	INC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );
 
+#if STATS
+	if (Owner->LODGroup == TEXTUREGROUP_UI)
+	{
+		GUITextureMemory += TextureSize;
+	}
+	else if (Owner->NeverStream)
+	{
+		GNeverStreamTextureMemory += TextureSize;
+	}
+#endif
+
 	const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
 	const int32 RequestedMips = OwnerMips.Num() - CurrentFirstMip;
 	uint32 SizeX = OwnerMips[CurrentFirstMip].SizeX;
@@ -1344,6 +1360,17 @@ void FTexture2DResource::ReleaseRHI()
 
 	DEC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 	DEC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );
+
+#if STATS
+	if (Owner->LODGroup == TEXTUREGROUP_UI)
+	{
+		GUITextureMemory -= TextureSize;
+	}
+	else if (Owner->NeverStream)
+	{
+		GNeverStreamTextureMemory -= TextureSize;
+	}
+#endif
 
 	FTextureResource::ReleaseRHI();
 	Texture2DRHI.SafeRelease();

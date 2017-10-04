@@ -12,15 +12,17 @@
 #include "render_pass.hpp"
 #include "command_encoder.hpp"
 
+MTLPP_PROTOCOL(MTLParallelRenderCommandEncoder);
+
 namespace mtlpp
 {
     class RenderCommandEncoder;
 
-    class ParallelRenderCommandEncoder : public ns::Object
+    class ParallelRenderCommandEncoder : public CommandEncoder<ns::Protocol<id<MTLParallelRenderCommandEncoder>>::type>
     {
     public:
         ParallelRenderCommandEncoder() { }
-        ParallelRenderCommandEncoder(const ns::Handle& handle) : ns::Object(handle) { }
+        ParallelRenderCommandEncoder(ns::Protocol<id<MTLParallelRenderCommandEncoder>>::type handle) : CommandEncoder<ns::Protocol<id<MTLParallelRenderCommandEncoder>>::type>(handle) { }
 
         RenderCommandEncoder GetRenderCommandEncoder();
 

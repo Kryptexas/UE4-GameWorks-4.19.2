@@ -50,6 +50,8 @@
 #include "Engine/LevelStreaming.h"
 #include "UnrealEngine.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "EditorLevelUtils.h"
+#include "MessageDialog.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 
@@ -126,6 +128,27 @@ static NSwarm::TChannelFlags LM_DEBUGOUTPUT_CHANNEL_FLAGS		= NSwarm::SWARM_JOB_C
 	static NSwarm::TChannelFlags LM_MATERIAL_CHANNEL_FLAGS		= NSwarm::SWARM_CHANNEL_WRITE;
 #endif
 	
+#define VERIFYLIGHTMASSINI(x)			{bool bSucceeded = x; if (!bSucceeded) { VerifyLightmassIni(#x,__FILE__,__LINE__); }}
+
+void VerifyLightmassIni(const ANSICHAR* Code,const ANSICHAR* Filename,uint32 Line)
+{
+	if (FApp::IsUnattended())
+	{
+		UE_LOG(LogLightmassSolver, Fatal,TEXT("%s failed \n at %s:%u"),ANSI_TO_TCHAR(Code),ANSI_TO_TCHAR(Filename),Line);
+	}
+	else
+	{
+		FString Error = FString::Printf(
+			TEXT("Fatal error: A required key was missing from BaseLightmass.ini.  This can happen if BaseLightmass.ini is overwritten with an old version.\n")
+			TEXT("Create a DefaultLightmass.ini in your project and override just the values you need, then the overrides will continue to work on version upgrades.\n")
+			TEXT("https://docs.unrealengine.com/latest/INT/Programming/Basics/ConfigurationFiles\n\n")
+			TEXT("%s failed \n at %s:%u"),
+			ANSI_TO_TCHAR(Code),ANSI_TO_TCHAR(Filename),Line);
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Error));
+		FPlatformMisc::RequestExit(1);
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	FLightmassExporter
 -----------------------------------------------------------------------------*/
@@ -1026,9 +1049,10 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		TArray<FFloat16Color> RadianceMap;
 
 		// Capture the scene's emissive and send it to lightmass
+		// Note: FLightmassProcessor::InitiateExport hid all but the current lighting scenario
 		Light->CaptureEmissiveRadianceEnvironmentCubeMap(SkyData.IrradianceEnvironmentMap, RadianceMap);
 
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseFilteredCubemapForSkylight"), SkyData.bUseFilteredCubemap, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseFilteredCubemapForSkylight"), SkyData.bUseFilteredCubemap, GLightmassIni));
 		SkyData.RadianceEnvironmentMapDataSize = RadianceMap.Num();
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
 		Swarm.WriteChannel( Channel, &SkyData, sizeof(SkyData) );
@@ -1864,14 +1888,14 @@ void FLightmassExporter::SetVolumetricLightmapSettings(Lightmass::FVolumetricLig
 	OutSettings.VolumeMin = CombinedImportanceVolume.Min;
 	const FVector RequiredVolumeSize = FVector(MaxExtent * 2);
 
-	verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("BrickSize"), OutSettings.BrickSize, GLightmassIni));
-	verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MaxRefinementLevels"), OutSettings.MaxRefinementLevels, GLightmassIni));
-	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForGeometry"), OutSettings.VoxelizationCellExpansionForGeometry, GLightmassIni));
-	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForLights"), OutSettings.VoxelizationCellExpansionForLights, GLightmassIni));
-	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MinBrickError"), OutSettings.MinBrickError, GLightmassIni));
-	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("SurfaceLightmapMinTexelsPerVoxelAxis"), OutSettings.SurfaceLightmapMinTexelsPerVoxelAxis, GLightmassIni));
-	verify(GConfig->GetBool(TEXT("DevOptions.VolumetricLightmaps"), TEXT("bCullBricksBelowLandscape"), OutSettings.bCullBricksBelowLandscape, GLightmassIni));
-	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("LightBrightnessSubdivideThreshold"), OutSettings.LightBrightnessSubdivideThreshold, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("BrickSize"), OutSettings.BrickSize, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MaxRefinementLevels"), OutSettings.MaxRefinementLevels, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForGeometry"), OutSettings.VoxelizationCellExpansionForGeometry, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForLights"), OutSettings.VoxelizationCellExpansionForLights, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MinBrickError"), OutSettings.MinBrickError, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("SurfaceLightmapMinTexelsPerVoxelAxis"), OutSettings.SurfaceLightmapMinTexelsPerVoxelAxis, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.VolumetricLightmaps"), TEXT("bCullBricksBelowLandscape"), OutSettings.bCullBricksBelowLandscape, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("LightBrightnessSubdivideThreshold"), OutSettings.LightBrightnessSubdivideThreshold, GLightmassIni));
 
 	OutSettings.BrickSize = FMath::RoundUpToPowerOfTwo(OutSettings.BrickSize);
 	OutSettings.MaxRefinementLevels = FMath::Clamp(OutSettings.MaxRefinementLevels, 1, 6);
@@ -1899,7 +1923,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 	bool bConfigBool = false;
 	//@todo - need a mechanism to automatically catch when a new setting has been added but doesn't get initialized
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bAllowMultiThreadedStaticLighting"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bAllowMultiThreadedStaticLighting"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bAllowMultiThreadedStaticLighting = bConfigBool;
 		Scene.GeneralSettings.NumUnusedLocalCores = NumUnusedLocalCores;
 		Scene.GeneralSettings.NumIndirectLightingBounces = LevelSettings.NumIndirectLightingBounces;
@@ -1912,21 +1936,21 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 			Scene.GeneralSettings.IndirectLightingQuality = FMath::Min(Scene.GeneralSettings.IndirectLightingQuality, 1.0f);
 		}
 
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("ViewSingleBounceNumber"), Scene.GeneralSettings.ViewSingleBounceNumber, GLightmassIni));
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseConservativeTexelRasterization"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("ViewSingleBounceNumber"), Scene.GeneralSettings.ViewSingleBounceNumber, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseConservativeTexelRasterization"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bUseConservativeTexelRasterization = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bAccountForTexelSize"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bAccountForTexelSize"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bAccountForTexelSize = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseMaxWeight"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseMaxWeight"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bUseMaxWeight = bConfigBool;
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MaxTriangleLightingSamples"), Scene.GeneralSettings.MaxTriangleLightingSamples, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MaxTriangleIrradiancePhotonCacheSamples"), Scene.GeneralSettings.MaxTriangleIrradiancePhotonCacheSamples, GLightmassIni));
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseEmbree"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MaxTriangleLightingSamples"), Scene.GeneralSettings.MaxTriangleLightingSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MaxTriangleIrradiancePhotonCacheSamples"), Scene.GeneralSettings.MaxTriangleIrradiancePhotonCacheSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseEmbree"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bUseEmbree = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bVerifyEmbree"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bVerifyEmbree"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bVerifyEmbree = Scene.GeneralSettings.bUseEmbree && bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseEmbreePacketTracing"), Scene.GeneralSettings.bUseEmbreePacketTracing, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MappingSurfaceCacheDownsampleFactor"), Scene.GeneralSettings.MappingSurfaceCacheDownsampleFactor, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseEmbreePacketTracing"), Scene.GeneralSettings.bUseEmbreePacketTracing, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MappingSurfaceCacheDownsampleFactor"), Scene.GeneralSettings.MappingSurfaceCacheDownsampleFactor, GLightmassIni));
 
 		int32 CheckQualityLevel;
 		GConfig->GetInt( TEXT("LightingBuildOptions"), TEXT("QualityLevel"), CheckQualityLevel, GEditorPerProjectIni);
@@ -1963,20 +1987,20 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 	}
 	{
 		float GlobalLevelScale = 1.0f;
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("StaticLightingLevelScale"), GlobalLevelScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("StaticLightingLevelScale"), GlobalLevelScale, GLightmassIni));
 		Scene.SceneConstants.StaticLightingLevelScale = GlobalLevelScale * LevelSettings.StaticLightingLevelScale;
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityRayOffsetDistance"), Scene.SceneConstants.VisibilityRayOffsetDistance, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityNormalOffsetDistance"), Scene.SceneConstants.VisibilityNormalOffsetDistance, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityNormalOffsetSampleRadiusScale"), Scene.SceneConstants.VisibilityNormalOffsetSampleRadiusScale, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityTangentOffsetSampleRadiusScale"), Scene.SceneConstants.VisibilityTangentOffsetSampleRadiusScale, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("SmallestTexelRadius"), Scene.SceneConstants.SmallestTexelRadius, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("LightGridSize"), Scene.SceneConstants.LightGridSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityRayOffsetDistance"), Scene.SceneConstants.VisibilityRayOffsetDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityNormalOffsetDistance"), Scene.SceneConstants.VisibilityNormalOffsetDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityNormalOffsetSampleRadiusScale"), Scene.SceneConstants.VisibilityNormalOffsetSampleRadiusScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("VisibilityTangentOffsetSampleRadiusScale"), Scene.SceneConstants.VisibilityTangentOffsetSampleRadiusScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("SmallestTexelRadius"), Scene.SceneConstants.SmallestTexelRadius, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("LightGridSize"), Scene.SceneConstants.LightGridSize, GLightmassIni));
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLightingMaterial"), TEXT("bUseDebugMaterial"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLightingMaterial"), TEXT("bUseDebugMaterial"), bConfigBool, GLightmassIni));
 		Scene.MaterialSettings.bUseDebugMaterial = bConfigBool;
 		FString ShowMaterialAttributeName;
-		verify(GConfig->GetString(TEXT("DevOptions.StaticLightingMaterial"), TEXT("ShowMaterialAttribute"), ShowMaterialAttributeName, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetString(TEXT("DevOptions.StaticLightingMaterial"), TEXT("ShowMaterialAttribute"), ShowMaterialAttributeName, GLightmassIni));
 
 		Scene.MaterialSettings.ViewMaterialAttribute = Lightmass::VMA_None;
 		if (ShowMaterialAttributeName.Contains(TEXT("Emissive")) )
@@ -1997,15 +2021,15 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 			Scene.MaterialSettings.ViewMaterialAttribute = Lightmass::VMA_Normal;
 		}
 
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("EmissiveSampleSize"), Scene.MaterialSettings.EmissiveSize, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("DiffuseSampleSize"), Scene.MaterialSettings.DiffuseSize, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("TransmissionSampleSize"), Scene.MaterialSettings.TransmissionSize, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("NormalSampleSize"), Scene.MaterialSettings.NormalSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("EmissiveSampleSize"), Scene.MaterialSettings.EmissiveSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("DiffuseSampleSize"), Scene.MaterialSettings.DiffuseSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("TransmissionSampleSize"), Scene.MaterialSettings.TransmissionSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticLightingMaterial"), TEXT("NormalSampleSize"), Scene.MaterialSettings.NormalSize, GLightmassIni));
 
 		const FString DiffuseStr = GConfig->GetStr(TEXT("DevOptions.StaticLightingMaterial"), TEXT("DebugDiffuse"), GLightmassIni);
-		verify(FParse::Value(*DiffuseStr, TEXT("R="), Scene.MaterialSettings.DebugDiffuse.R));
-		verify(FParse::Value(*DiffuseStr, TEXT("G="), Scene.MaterialSettings.DebugDiffuse.G));
-		verify(FParse::Value(*DiffuseStr, TEXT("B="), Scene.MaterialSettings.DebugDiffuse.B));
+		VERIFYLIGHTMASSINI(FParse::Value(*DiffuseStr, TEXT("R="), Scene.MaterialSettings.DebugDiffuse.R));
+		VERIFYLIGHTMASSINI(FParse::Value(*DiffuseStr, TEXT("G="), Scene.MaterialSettings.DebugDiffuse.G));
+		VERIFYLIGHTMASSINI(FParse::Value(*DiffuseStr, TEXT("B="), Scene.MaterialSettings.DebugDiffuse.B));
 
 		Scene.MaterialSettings.EnvironmentColor = FLinearColor(LevelSettings.EnvironmentColor) * LevelSettings.EnvironmentIntensity;
 
@@ -2013,16 +2037,16 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.MaterialSettings.bUseNormalMapsForLighting = CVar->GetValueOnGameThread() != 0;
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.MeshAreaLights"), TEXT("bVisualizeMeshAreaLightPrimitives"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.MeshAreaLights"), TEXT("bVisualizeMeshAreaLightPrimitives"), bConfigBool, GLightmassIni));
 		Scene.MeshAreaLightSettings.bVisualizeMeshAreaLightPrimitives = bConfigBool;
-		verify(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("EmissiveIntensityThreshold"), Scene.MeshAreaLightSettings.EmissiveIntensityThreshold, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightGridSize"), Scene.MeshAreaLightSettings.MeshAreaLightGridSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("EmissiveIntensityThreshold"), Scene.MeshAreaLightSettings.EmissiveIntensityThreshold, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightGridSize"), Scene.MeshAreaLightSettings.MeshAreaLightGridSize, GLightmassIni));
 		float MeshAreaLightSimplifyNormalAngleThreshold;
-		verify(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightSimplifyNormalAngleThreshold"), MeshAreaLightSimplifyNormalAngleThreshold, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightSimplifyNormalAngleThreshold"), MeshAreaLightSimplifyNormalAngleThreshold, GLightmassIni));
 		Scene.MeshAreaLightSettings.MeshAreaLightSimplifyNormalCosAngleThreshold = FMath::Cos(FMath::Clamp(MeshAreaLightSimplifyNormalAngleThreshold, 0.0f, 90.0f) * (float)PI / 180.0f);
-		verify(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightSimplifyCornerDistanceThreshold"), Scene.MeshAreaLightSettings.MeshAreaLightSimplifyCornerDistanceThreshold, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightSimplifyMeshBoundingRadiusFractionThreshold"), Scene.MeshAreaLightSettings.MeshAreaLightSimplifyMeshBoundingRadiusFractionThreshold, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightGeneratedDynamicLightSurfaceOffset"), Scene.MeshAreaLightSettings.MeshAreaLightGeneratedDynamicLightSurfaceOffset, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightSimplifyCornerDistanceThreshold"), Scene.MeshAreaLightSettings.MeshAreaLightSimplifyCornerDistanceThreshold, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightSimplifyMeshBoundingRadiusFractionThreshold"), Scene.MeshAreaLightSettings.MeshAreaLightSimplifyMeshBoundingRadiusFractionThreshold, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.MeshAreaLights"), TEXT("MeshAreaLightGeneratedDynamicLightSurfaceOffset"), Scene.MeshAreaLightSettings.MeshAreaLightGeneratedDynamicLightSurfaceOffset, GLightmassIni));
 	}
 	{
 		Scene.AmbientOcclusionSettings.bUseAmbientOcclusion = LevelSettings.bUseAmbientOcclusion;
@@ -2035,21 +2059,21 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.AmbientOcclusionSettings.MaxOcclusionDistance = LevelSettings.MaxOcclusionDistance;
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("bVisualizeVolumeLightSamples"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("bVisualizeVolumeLightSamples"), bConfigBool, GLightmassIni));
 		Scene.DynamicObjectSettings.bVisualizeVolumeLightSamples = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("bVisualizeVolumeLightInterpolation"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("bVisualizeVolumeLightInterpolation"), bConfigBool, GLightmassIni));
 		Scene.DynamicObjectSettings.bVisualizeVolumeLightInterpolation = bConfigBool;
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("NumHemisphereSamplesScale"), Scene.DynamicObjectSettings.NumHemisphereSamplesScale, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("SurfaceLightSampleSpacing"), Scene.DynamicObjectSettings.SurfaceLightSampleSpacing, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("FirstSurfaceSampleLayerHeight"), Scene.DynamicObjectSettings.FirstSurfaceSampleLayerHeight, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("SurfaceSampleLayerHeightSpacing"), Scene.DynamicObjectSettings.SurfaceSampleLayerHeightSpacing, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("NumSurfaceSampleLayers"), Scene.DynamicObjectSettings.NumSurfaceSampleLayers, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("DetailVolumeSampleSpacing"), Scene.DynamicObjectSettings.DetailVolumeSampleSpacing, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("VolumeLightSampleSpacing"), Scene.DynamicObjectSettings.VolumeLightSampleSpacing, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("MaxVolumeSamples"), Scene.DynamicObjectSettings.MaxVolumeSamples, GLightmassIni));
-		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("bUseMaxSurfaceSampleNum"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("NumHemisphereSamplesScale"), Scene.DynamicObjectSettings.NumHemisphereSamplesScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("SurfaceLightSampleSpacing"), Scene.DynamicObjectSettings.SurfaceLightSampleSpacing, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("FirstSurfaceSampleLayerHeight"), Scene.DynamicObjectSettings.FirstSurfaceSampleLayerHeight, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("SurfaceSampleLayerHeightSpacing"), Scene.DynamicObjectSettings.SurfaceSampleLayerHeightSpacing, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("NumSurfaceSampleLayers"), Scene.DynamicObjectSettings.NumSurfaceSampleLayers, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("DetailVolumeSampleSpacing"), Scene.DynamicObjectSettings.DetailVolumeSampleSpacing, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("VolumeLightSampleSpacing"), Scene.DynamicObjectSettings.VolumeLightSampleSpacing, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("MaxVolumeSamples"), Scene.DynamicObjectSettings.MaxVolumeSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("bUseMaxSurfaceSampleNum"), bConfigBool, GLightmassIni));
 		Scene.DynamicObjectSettings.bUseMaxSurfaceSampleNum = bConfigBool;
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("MaxSurfaceLightSamples"), Scene.DynamicObjectSettings.MaxSurfaceLightSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("MaxSurfaceLightSamples"), Scene.DynamicObjectSettings.MaxSurfaceLightSamples, GLightmassIni));
 
 		Scene.DynamicObjectSettings.SurfaceLightSampleSpacing *= LevelSettings.VolumeLightSamplePlacementScale;
 		Scene.DynamicObjectSettings.VolumeLightSampleSpacing *= LevelSettings.VolumeLightSamplePlacementScale;
@@ -2059,19 +2083,19 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		SetVolumetricLightmapSettings(Scene.VolumetricLightmapSettings);
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bVisualizePrecomputedVisibility"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bVisualizePrecomputedVisibility"), bConfigBool, GLightmassIni));
 		Scene.PrecomputedVisibilitySettings.bVisualizePrecomputedVisibility = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bPlaceCellsOnOpaqueOnly"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bPlaceCellsOnOpaqueOnly"), bConfigBool, GLightmassIni));
 		Scene.PrecomputedVisibilitySettings.bPlaceCellsOnOpaqueOnly = bConfigBool;
 		Scene.PrecomputedVisibilitySettings.bPlaceCellsOnlyAlongCameraTracks = World->GetWorldSettings()->bPlaceCellsOnlyAlongCameraTracks;
 		Scene.PrecomputedVisibilitySettings.CellSize = World->GetWorldSettings()->VisibilityCellSize;
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellDistributionBuckets"), Scene.PrecomputedVisibilitySettings.NumCellDistributionBuckets, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedVisibility"), TEXT("PlayAreaHeight"), Scene.PrecomputedVisibilitySettings.PlayAreaHeight, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedVisibility"), TEXT("MeshBoundsScale"), Scene.PrecomputedVisibilitySettings.MeshBoundsScale, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("MinMeshSamples"), Scene.PrecomputedVisibilitySettings.MinMeshSamples, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("MaxMeshSamples"), Scene.PrecomputedVisibilitySettings.MaxMeshSamples, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellSamples"), Scene.PrecomputedVisibilitySettings.NumCellSamples, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumImportanceSamples"), Scene.PrecomputedVisibilitySettings.NumImportanceSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellDistributionBuckets"), Scene.PrecomputedVisibilitySettings.NumCellDistributionBuckets, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedVisibility"), TEXT("PlayAreaHeight"), Scene.PrecomputedVisibilitySettings.PlayAreaHeight, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedVisibility"), TEXT("MeshBoundsScale"), Scene.PrecomputedVisibilitySettings.MeshBoundsScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("MinMeshSamples"), Scene.PrecomputedVisibilitySettings.MinMeshSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("MaxMeshSamples"), Scene.PrecomputedVisibilitySettings.MaxMeshSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellSamples"), Scene.PrecomputedVisibilitySettings.NumCellSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumImportanceSamples"), Scene.PrecomputedVisibilitySettings.NumImportanceSamples, GLightmassIni));
 	}
 	if (World->GetWorldSettings()->VisibilityAggressiveness != VIS_LeastAggressive)
 	{
@@ -2080,123 +2104,123 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 			TEXT("DevOptions.PrecomputedVisibilityModeratelyAggressive"), 
 			TEXT("DevOptions.PrecomputedVisibilityMostAggressive")};
 		const TCHAR* ActiveSection = AggressivenessSectionNames[World->GetWorldSettings()->VisibilityAggressiveness];
-		verify(GConfig->GetFloat(ActiveSection, TEXT("MeshBoundsScale"), Scene.PrecomputedVisibilitySettings.MeshBoundsScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(ActiveSection, TEXT("MeshBoundsScale"), Scene.PrecomputedVisibilitySettings.MeshBoundsScale, GLightmassIni));
 	}
 	{
-		verify(GConfig->GetFloat(TEXT("DevOptions.VolumeDistanceField"), TEXT("VoxelSize"), Scene.VolumeDistanceFieldSettings.VoxelSize, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.VolumeDistanceField"), TEXT("VolumeMaxDistance"), Scene.VolumeDistanceFieldSettings.VolumeMaxDistance, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.VolumeDistanceField"), TEXT("NumVoxelDistanceSamples"), Scene.VolumeDistanceFieldSettings.NumVoxelDistanceSamples, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.VolumeDistanceField"), TEXT("MaxVoxels"), Scene.VolumeDistanceFieldSettings.MaxVoxels, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumeDistanceField"), TEXT("VoxelSize"), Scene.VolumeDistanceFieldSettings.VoxelSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumeDistanceField"), TEXT("VolumeMaxDistance"), Scene.VolumeDistanceFieldSettings.VolumeMaxDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumeDistanceField"), TEXT("NumVoxelDistanceSamples"), Scene.VolumeDistanceFieldSettings.NumVoxelDistanceSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumeDistanceField"), TEXT("MaxVoxels"), Scene.VolumeDistanceFieldSettings.MaxVoxels, GLightmassIni));
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticShadows"), TEXT("bUseZeroAreaLightmapSpaceFilteredLights"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticShadows"), TEXT("bUseZeroAreaLightmapSpaceFilteredLights"), bConfigBool, GLightmassIni));
 		Scene.ShadowSettings.bUseZeroAreaLightmapSpaceFilteredLights = bConfigBool;
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("NumShadowRays"), Scene.ShadowSettings.NumShadowRays, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("NumPenumbraShadowRays"), Scene.ShadowSettings.NumPenumbraShadowRays, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("NumBounceShadowRays"), Scene.ShadowSettings.NumBounceShadowRays, GLightmassIni));
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticShadows"), TEXT("bFilterShadowFactor"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("NumShadowRays"), Scene.ShadowSettings.NumShadowRays, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("NumPenumbraShadowRays"), Scene.ShadowSettings.NumPenumbraShadowRays, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("NumBounceShadowRays"), Scene.ShadowSettings.NumBounceShadowRays, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticShadows"), TEXT("bFilterShadowFactor"), bConfigBool, GLightmassIni));
 		Scene.ShadowSettings.bFilterShadowFactor = bConfigBool;
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("ShadowFactorGradientTolerance"), Scene.ShadowSettings.ShadowFactorGradientTolerance, GLightmassIni));
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticShadows"), TEXT("bAllowSignedDistanceFieldShadows"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("ShadowFactorGradientTolerance"), Scene.ShadowSettings.ShadowFactorGradientTolerance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticShadows"), TEXT("bAllowSignedDistanceFieldShadows"), bConfigBool, GLightmassIni));
 		Scene.ShadowSettings.bAllowSignedDistanceFieldShadows = bConfigBool;
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MaxTransitionDistanceWorldSpace"), Scene.ShadowSettings.MaxTransitionDistanceWorldSpace, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("ApproximateHighResTexelsPerMaxTransitionDistance"), Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("MinDistanceFieldUpsampleFactor"), Scene.ShadowSettings.MinDistanceFieldUpsampleFactor, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceX"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceY"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapSuperSampleFactor"), Scene.ShadowSettings.StaticShadowDepthMapSuperSampleFactor, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapMaxSamples"), Scene.ShadowSettings.StaticShadowDepthMapMaxSamples, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MinUnoccludedFraction"), Scene.ShadowSettings.MinUnoccludedFraction, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MaxTransitionDistanceWorldSpace"), Scene.ShadowSettings.MaxTransitionDistanceWorldSpace, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("ApproximateHighResTexelsPerMaxTransitionDistance"), Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("MinDistanceFieldUpsampleFactor"), Scene.ShadowSettings.MinDistanceFieldUpsampleFactor, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceX"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceY"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapSuperSampleFactor"), Scene.ShadowSettings.StaticShadowDepthMapSuperSampleFactor, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapMaxSamples"), Scene.ShadowSettings.StaticShadowDepthMapMaxSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MinUnoccludedFraction"), Scene.ShadowSettings.MinUnoccludedFraction, GLightmassIni));
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseStratifiedSampling"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseStratifiedSampling"), bConfigBool, GLightmassIni));
 		Scene.ImportanceTracingSettings.bUseStratifiedSampling = bConfigBool;
-		verify(GConfig->GetInt(TEXT("DevOptions.ImportanceTracing"), TEXT("NumHemisphereSamples"), Scene.ImportanceTracingSettings.NumHemisphereSamples, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.ImportanceTracing"), TEXT("NumAdaptiveRefinementLevels"), Scene.ImportanceTracingSettings.NumAdaptiveRefinementLevels, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.ImportanceTracing"), TEXT("NumHemisphereSamples"), Scene.ImportanceTracingSettings.NumHemisphereSamples, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.ImportanceTracing"), TEXT("NumAdaptiveRefinementLevels"), Scene.ImportanceTracingSettings.NumAdaptiveRefinementLevels, GLightmassIni));
 		float MaxHemisphereAngleDegrees;
-		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("MaxHemisphereRayAngle"), MaxHemisphereAngleDegrees, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("MaxHemisphereRayAngle"), MaxHemisphereAngleDegrees, GLightmassIni));
 		Scene.ImportanceTracingSettings.MaxHemisphereRayAngle = MaxHemisphereAngleDegrees * (float)PI / 180.0f;
-		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveBrightnessThreshold"), Scene.ImportanceTracingSettings.AdaptiveBrightnessThreshold, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveFirstBouncePhotonConeAngle"), Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveSkyVarianceThreshold"), Scene.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveBrightnessThreshold"), Scene.ImportanceTracingSettings.AdaptiveBrightnessThreshold, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveFirstBouncePhotonConeAngle"), Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveSkyVarianceThreshold"), Scene.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold, GLightmassIni));
 
 		float AdaptiveFirstBouncePhotonConeAngle;
-		verify(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveFirstBouncePhotonConeAngle"), AdaptiveFirstBouncePhotonConeAngle, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.ImportanceTracing"), TEXT("AdaptiveFirstBouncePhotonConeAngle"), AdaptiveFirstBouncePhotonConeAngle, GLightmassIni));
 		Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle = FMath::Clamp(AdaptiveFirstBouncePhotonConeAngle, 0.0f, 90.0f) * (float)PI / 180.0f;
 
-		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseRadiositySolverForSkylightMultibounce"), Scene.ImportanceTracingSettings.bUseRadiositySolverForSkylightMultibounce, GLightmassIni));
-		verify(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bCacheFinalGatherHitPointsForRadiosity"), Scene.ImportanceTracingSettings.bCacheFinalGatherHitPointsForRadiosity, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseRadiositySolverForSkylightMultibounce"), Scene.ImportanceTracingSettings.bUseRadiositySolverForSkylightMultibounce, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bCacheFinalGatherHitPointsForRadiosity"), Scene.ImportanceTracingSettings.bCacheFinalGatherHitPointsForRadiosity, GLightmassIni));
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonMapping"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonMapping"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bUsePhotonMapping = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUseFinalGathering"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUseFinalGathering"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bUseFinalGathering = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonDirectLightingInFinalGather"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonDirectLightingInFinalGather"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bUsePhotonDirectLightingInFinalGather = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizeCachedApproximateDirectLighting"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizeCachedApproximateDirectLighting"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUseIrradiancePhotons"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUseIrradiancePhotons"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bUseIrradiancePhotons = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bCacheIrradiancePhotonsOnSurfaces"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bCacheIrradiancePhotonsOnSurfaces"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bCacheIrradiancePhotonsOnSurfaces = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizePhotonPaths"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizePhotonPaths"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bVisualizePhotonPaths = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizePhotonGathers"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizePhotonGathers"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bVisualizePhotonGathers = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizePhotonImportanceSamples"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizePhotonImportanceSamples"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bVisualizePhotonImportanceSamples = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizeIrradiancePhotonCalculation"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bVisualizeIrradiancePhotonCalculation"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bVisualizeIrradiancePhotonCalculation = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bEmitPhotonsOutsideImportanceVolume"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bEmitPhotonsOutsideImportanceVolume"), bConfigBool, GLightmassIni));
 		Scene.PhotonMappingSettings.bEmitPhotonsOutsideImportanceVolume = bConfigBool;
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("ConeFilterConstant"), Scene.PhotonMappingSettings.ConeFilterConstant, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PhotonMapping"), TEXT("NumIrradianceCalculationPhotons"), Scene.PhotonMappingSettings.NumIrradianceCalculationPhotons, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("FinalGatherImportanceSampleFraction"), Scene.PhotonMappingSettings.FinalGatherImportanceSampleFraction, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("ConeFilterConstant"), Scene.PhotonMappingSettings.ConeFilterConstant, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PhotonMapping"), TEXT("NumIrradianceCalculationPhotons"), Scene.PhotonMappingSettings.NumIrradianceCalculationPhotons, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("FinalGatherImportanceSampleFraction"), Scene.PhotonMappingSettings.FinalGatherImportanceSampleFraction, GLightmassIni));
 		float FinalGatherImportanceSampleConeAngle;
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("FinalGatherImportanceSampleConeAngle"), FinalGatherImportanceSampleConeAngle, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("FinalGatherImportanceSampleConeAngle"), FinalGatherImportanceSampleConeAngle, GLightmassIni));
 		Scene.PhotonMappingSettings.FinalGatherImportanceSampleCosConeAngle = FMath::Cos(FMath::Clamp(FinalGatherImportanceSampleConeAngle, 0.0f, 90.0f) * (float)PI / 180.0f);
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonEmitDiskRadius"), Scene.PhotonMappingSettings.IndirectPhotonEmitDiskRadius, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonEmitDiskRadius"), Scene.PhotonMappingSettings.IndirectPhotonEmitDiskRadius, GLightmassIni));
 		float IndirectPhotonEmitConeAngleDegrees;
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonEmitConeAngle"), IndirectPhotonEmitConeAngleDegrees, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonEmitConeAngle"), IndirectPhotonEmitConeAngleDegrees, GLightmassIni));
 		Scene.PhotonMappingSettings.IndirectPhotonEmitConeAngle = FMath::Clamp(IndirectPhotonEmitConeAngleDegrees, 0.0f, 90.0f) * (float)PI / 180.0f;
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("MaxImportancePhotonSearchDistance"), Scene.PhotonMappingSettings.MaxImportancePhotonSearchDistance, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("MinImportancePhotonSearchDistance"), Scene.PhotonMappingSettings.MinImportancePhotonSearchDistance, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.PhotonMapping"), TEXT("NumImportanceSearchPhotons"), Scene.PhotonMappingSettings.NumImportanceSearchPhotons, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("OutsideImportanceVolumeDensityScale"), Scene.PhotonMappingSettings.OutsideImportanceVolumeDensityScale, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("DirectPhotonDensity"), Scene.PhotonMappingSettings.DirectPhotonDensity, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("DirectIrradiancePhotonDensity"), Scene.PhotonMappingSettings.DirectIrradiancePhotonDensity, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("DirectPhotonSearchDistance"), Scene.PhotonMappingSettings.DirectPhotonSearchDistance, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonPathDensity"), Scene.PhotonMappingSettings.IndirectPhotonPathDensity, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonDensity"), Scene.PhotonMappingSettings.IndirectPhotonDensity, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectIrradiancePhotonDensity"), Scene.PhotonMappingSettings.IndirectIrradiancePhotonDensity, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonSearchDistance"), Scene.PhotonMappingSettings.IndirectPhotonSearchDistance, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("PhotonSearchAngleThreshold"), Scene.PhotonMappingSettings.PhotonSearchAngleThreshold, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("MaxImportancePhotonSearchDistance"), Scene.PhotonMappingSettings.MaxImportancePhotonSearchDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("MinImportancePhotonSearchDistance"), Scene.PhotonMappingSettings.MinImportancePhotonSearchDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PhotonMapping"), TEXT("NumImportanceSearchPhotons"), Scene.PhotonMappingSettings.NumImportanceSearchPhotons, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("OutsideImportanceVolumeDensityScale"), Scene.PhotonMappingSettings.OutsideImportanceVolumeDensityScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("DirectPhotonDensity"), Scene.PhotonMappingSettings.DirectPhotonDensity, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("DirectIrradiancePhotonDensity"), Scene.PhotonMappingSettings.DirectIrradiancePhotonDensity, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("DirectPhotonSearchDistance"), Scene.PhotonMappingSettings.DirectPhotonSearchDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonPathDensity"), Scene.PhotonMappingSettings.IndirectPhotonPathDensity, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonDensity"), Scene.PhotonMappingSettings.IndirectPhotonDensity, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectIrradiancePhotonDensity"), Scene.PhotonMappingSettings.IndirectIrradiancePhotonDensity, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IndirectPhotonSearchDistance"), Scene.PhotonMappingSettings.IndirectPhotonSearchDistance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("PhotonSearchAngleThreshold"), Scene.PhotonMappingSettings.PhotonSearchAngleThreshold, GLightmassIni));
 		float IrradiancePhotonSearchConeAngle;
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IrradiancePhotonSearchConeAngle"), IrradiancePhotonSearchConeAngle, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IrradiancePhotonSearchConeAngle"), IrradiancePhotonSearchConeAngle, GLightmassIni));
 		Scene.PhotonMappingSettings.MinCosIrradiancePhotonSearchCone = FMath::Cos((90.0f - FMath::Clamp(IrradiancePhotonSearchConeAngle, 1.0f, 90.0f)) * (float)PI / 180.0f);
-		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonSegmentsForVolumeLighting"), Scene.PhotonMappingSettings.bUsePhotonSegmentsForVolumeLighting, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("PhotonSegmentMaxLength"), Scene.PhotonMappingSettings.PhotonSegmentMaxLength, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("GeneratePhotonSegmentChance"), Scene.PhotonMappingSettings.GeneratePhotonSegmentChance, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonSegmentsForVolumeLighting"), Scene.PhotonMappingSettings.bUsePhotonSegmentsForVolumeLighting, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("PhotonSegmentMaxLength"), Scene.PhotonMappingSettings.PhotonSegmentMaxLength, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("GeneratePhotonSegmentChance"), Scene.PhotonMappingSettings.GeneratePhotonSegmentChance, GLightmassIni));
 	}
 	{
-		verify(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bAllowIrradianceCaching"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bAllowIrradianceCaching"), bConfigBool, GLightmassIni));
 		Scene.IrradianceCachingSettings.bAllowIrradianceCaching = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bUseIrradianceGradients"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bUseIrradianceGradients"), bConfigBool, GLightmassIni));
 		Scene.IrradianceCachingSettings.bUseIrradianceGradients = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bShowGradientsOnly"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bShowGradientsOnly"), bConfigBool, GLightmassIni));
 		Scene.IrradianceCachingSettings.bShowGradientsOnly = bConfigBool;
-		verify(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bVisualizeIrradianceSamples"), bConfigBool, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bVisualizeIrradianceSamples"), bConfigBool, GLightmassIni));
 		Scene.IrradianceCachingSettings.bVisualizeIrradianceSamples = bConfigBool;
-		verify(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("RecordRadiusScale"), Scene.IrradianceCachingSettings.RecordRadiusScale, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("InterpolationMaxAngle"), Scene.IrradianceCachingSettings.InterpolationMaxAngle, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("PointBehindRecordMaxAngle"), Scene.IrradianceCachingSettings.PointBehindRecordMaxAngle, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("DistanceSmoothFactor"), Scene.IrradianceCachingSettings.DistanceSmoothFactor, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("AngleSmoothFactor"), Scene.IrradianceCachingSettings.AngleSmoothFactor, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("SkyOcclusionSmoothnessReduction"), Scene.IrradianceCachingSettings.SkyOcclusionSmoothnessReduction, GLightmassIni));
-		verify(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("MaxRecordRadius"), Scene.IrradianceCachingSettings.MaxRecordRadius, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.IrradianceCache"), TEXT("CacheTaskSize"), Scene.IrradianceCachingSettings.CacheTaskSize, GLightmassIni));
-		verify(GConfig->GetInt(TEXT("DevOptions.IrradianceCache"), TEXT("InterpolateTaskSize"), Scene.IrradianceCachingSettings.InterpolateTaskSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("RecordRadiusScale"), Scene.IrradianceCachingSettings.RecordRadiusScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("InterpolationMaxAngle"), Scene.IrradianceCachingSettings.InterpolationMaxAngle, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("PointBehindRecordMaxAngle"), Scene.IrradianceCachingSettings.PointBehindRecordMaxAngle, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("DistanceSmoothFactor"), Scene.IrradianceCachingSettings.DistanceSmoothFactor, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("AngleSmoothFactor"), Scene.IrradianceCachingSettings.AngleSmoothFactor, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("SkyOcclusionSmoothnessReduction"), Scene.IrradianceCachingSettings.SkyOcclusionSmoothnessReduction, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.IrradianceCache"), TEXT("MaxRecordRadius"), Scene.IrradianceCachingSettings.MaxRecordRadius, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.IrradianceCache"), TEXT("CacheTaskSize"), Scene.IrradianceCachingSettings.CacheTaskSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.IrradianceCache"), TEXT("InterpolateTaskSize"), Scene.IrradianceCachingSettings.InterpolateTaskSize, GLightmassIni));
 	}
 
 	// Modify settings based on the quality level required
@@ -2210,73 +2234,73 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 			TEXT("DevOptions.StaticLightingProductionQuality")};
 
 		float NumShadowRaysScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumShadowRaysScale"), NumShadowRaysScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumShadowRaysScale"), NumShadowRaysScale, GLightmassIni));
 		Scene.ShadowSettings.NumShadowRays = FMath::TruncToInt(Scene.ShadowSettings.NumShadowRays * NumShadowRaysScale);
 
 		float NumPenumbraShadowRaysScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumPenumbraShadowRaysScale"), NumPenumbraShadowRaysScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumPenumbraShadowRaysScale"), NumPenumbraShadowRaysScale, GLightmassIni));
 		Scene.ShadowSettings.NumPenumbraShadowRays = FMath::TruncToInt(Scene.ShadowSettings.NumPenumbraShadowRays * NumPenumbraShadowRaysScale);
 
 		float ApproximateHighResTexelsPerMaxTransitionDistanceScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("ApproximateHighResTexelsPerMaxTransitionDistanceScale"), ApproximateHighResTexelsPerMaxTransitionDistanceScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("ApproximateHighResTexelsPerMaxTransitionDistanceScale"), ApproximateHighResTexelsPerMaxTransitionDistanceScale, GLightmassIni));
 		Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance = FMath::TruncToInt(Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance * ApproximateHighResTexelsPerMaxTransitionDistanceScale);
 
-		verify(GConfig->GetInt(QualitySectionNames[QualityLevel], TEXT("MinDistanceFieldUpsampleFactor"), Scene.ShadowSettings.MinDistanceFieldUpsampleFactor, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(QualitySectionNames[QualityLevel], TEXT("MinDistanceFieldUpsampleFactor"), Scene.ShadowSettings.MinDistanceFieldUpsampleFactor, GLightmassIni));
 
 		float NumHemisphereSamplesScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumHemisphereSamplesScale"), NumHemisphereSamplesScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumHemisphereSamplesScale"), NumHemisphereSamplesScale, GLightmassIni));
 		Scene.ImportanceTracingSettings.NumHemisphereSamples = FMath::TruncToInt(Scene.ImportanceTracingSettings.NumHemisphereSamples * NumHemisphereSamplesScale);
 
 		float NumImportanceSearchPhotonsScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumImportanceSearchPhotonsScale"), NumImportanceSearchPhotonsScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumImportanceSearchPhotonsScale"), NumImportanceSearchPhotonsScale, GLightmassIni));
 		Scene.PhotonMappingSettings.NumImportanceSearchPhotons = FMath::TruncToInt(Scene.PhotonMappingSettings.NumImportanceSearchPhotons * NumImportanceSearchPhotonsScale);
 
 		float NumDirectPhotonsScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumDirectPhotonsScale"), NumDirectPhotonsScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumDirectPhotonsScale"), NumDirectPhotonsScale, GLightmassIni));
 		Scene.PhotonMappingSettings.DirectPhotonDensity = Scene.PhotonMappingSettings.DirectPhotonDensity * NumDirectPhotonsScale;
 		Scene.PhotonMappingSettings.DirectIrradiancePhotonDensity = Scene.PhotonMappingSettings.DirectIrradiancePhotonDensity * NumDirectPhotonsScale; 
 
 		float DirectPhotonSearchDistanceScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("DirectPhotonSearchDistanceScale"), DirectPhotonSearchDistanceScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("DirectPhotonSearchDistanceScale"), DirectPhotonSearchDistanceScale, GLightmassIni));
 		Scene.PhotonMappingSettings.DirectPhotonSearchDistance = Scene.PhotonMappingSettings.DirectPhotonSearchDistance * DirectPhotonSearchDistanceScale;
 
 		float NumIndirectPhotonPathsScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumIndirectPhotonPathsScale"), NumIndirectPhotonPathsScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumIndirectPhotonPathsScale"), NumIndirectPhotonPathsScale, GLightmassIni));
 		Scene.PhotonMappingSettings.IndirectPhotonPathDensity = Scene.PhotonMappingSettings.IndirectPhotonPathDensity * NumIndirectPhotonPathsScale;
 
 		float NumIndirectPhotonsScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumIndirectPhotonsScale"), NumIndirectPhotonsScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumIndirectPhotonsScale"), NumIndirectPhotonsScale, GLightmassIni));
 		Scene.PhotonMappingSettings.IndirectPhotonDensity = Scene.PhotonMappingSettings.IndirectPhotonDensity * NumIndirectPhotonsScale;
 
 		float NumIndirectIrradiancePhotonsScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumIndirectIrradiancePhotonsScale"), NumIndirectIrradiancePhotonsScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumIndirectIrradiancePhotonsScale"), NumIndirectIrradiancePhotonsScale, GLightmassIni));
 		Scene.PhotonMappingSettings.IndirectIrradiancePhotonDensity = Scene.PhotonMappingSettings.IndirectIrradiancePhotonDensity * NumIndirectIrradiancePhotonsScale;
 
 		float RecordRadiusScaleScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("RecordRadiusScaleScale"), RecordRadiusScaleScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("RecordRadiusScaleScale"), RecordRadiusScaleScale, GLightmassIni));
 		Scene.IrradianceCachingSettings.RecordRadiusScale = Scene.IrradianceCachingSettings.RecordRadiusScale * RecordRadiusScaleScale;
 
 		float InterpolationMaxAngleScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("InterpolationMaxAngleScale"), InterpolationMaxAngleScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("InterpolationMaxAngleScale"), InterpolationMaxAngleScale, GLightmassIni));
 		Scene.IrradianceCachingSettings.InterpolationMaxAngle = Scene.IrradianceCachingSettings.InterpolationMaxAngle * InterpolationMaxAngleScale;
 
 		float IrradianceCacheSmoothFactor;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("IrradianceCacheSmoothFactor"), IrradianceCacheSmoothFactor, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("IrradianceCacheSmoothFactor"), IrradianceCacheSmoothFactor, GLightmassIni));
 		Scene.IrradianceCachingSettings.DistanceSmoothFactor *= IrradianceCacheSmoothFactor;
 		Scene.IrradianceCachingSettings.AngleSmoothFactor *= IrradianceCacheSmoothFactor;
 
-		verify(GConfig->GetInt(QualitySectionNames[QualityLevel], TEXT("NumAdaptiveRefinementLevels"), Scene.ImportanceTracingSettings.NumAdaptiveRefinementLevels, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(QualitySectionNames[QualityLevel], TEXT("NumAdaptiveRefinementLevels"), Scene.ImportanceTracingSettings.NumAdaptiveRefinementLevels, GLightmassIni));
 
 		float AdaptiveBrightnessThresholdScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveBrightnessThresholdScale"), AdaptiveBrightnessThresholdScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveBrightnessThresholdScale"), AdaptiveBrightnessThresholdScale, GLightmassIni));
 		Scene.ImportanceTracingSettings.AdaptiveBrightnessThreshold = Scene.ImportanceTracingSettings.AdaptiveBrightnessThreshold * AdaptiveBrightnessThresholdScale;
 
 		float AdaptiveFirstBouncePhotonConeAngleScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveFirstBouncePhotonConeAngleScale"), AdaptiveFirstBouncePhotonConeAngleScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveFirstBouncePhotonConeAngleScale"), AdaptiveFirstBouncePhotonConeAngleScale, GLightmassIni));
 		Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle = Scene.ImportanceTracingSettings.AdaptiveFirstBouncePhotonConeAngle * AdaptiveFirstBouncePhotonConeAngleScale;
 
 		float AdaptiveSkyVarianceThresholdScale;
-		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveSkyVarianceThresholdScale"), AdaptiveSkyVarianceThresholdScale, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("AdaptiveSkyVarianceThresholdScale"), AdaptiveSkyVarianceThresholdScale, GLightmassIni));
 		Scene.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold = Scene.ImportanceTracingSettings.AdaptiveSkyVarianceThreshold * AdaptiveSkyVarianceThresholdScale;
 	}
 }
@@ -2309,7 +2333,7 @@ void FLightmassExporter::WriteDebugInput( Lightmass::FDebugLightingInputData& In
 	InputData.CameraPosition = ViewPosition;
 	int32 DebugVisibilityId = INDEX_NONE;
 	bool bVisualizePrecomputedVisibility = false;
-	verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bVisualizePrecomputedVisibility"), bVisualizePrecomputedVisibility, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bVisualizePrecomputedVisibility"), bVisualizePrecomputedVisibility, GLightmassIni));
 	if (bVisualizePrecomputedVisibility)
 	{
 		for (FSelectedActorIterator It(World); It; ++It)
@@ -2546,7 +2570,7 @@ void FLightmassProcessor::InitiateExport()
 	double StartTime = FPlatformTime::Seconds();
 
 	int32 NumCellDistributionBuckets;
-	verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellDistributionBuckets"), NumCellDistributionBuckets, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellDistributionBuckets"), NumCellDistributionBuckets, GLightmassIni));
 	
 	for ( int32 LevelIndex=0; LevelIndex < System.GetWorld()->GetNumLevels(); LevelIndex++ )
 	{
@@ -2565,7 +2589,8 @@ void FLightmassProcessor::InitiateExport()
 		}
 	}
 
-	if (System.GetWorld()->GetWorldSettings()->LightmassSettings.VolumeLightingMethod == VLM_VolumetricLightmap)
+	if (System.GetWorld()->GetWorldSettings()->LightmassSettings.VolumeLightingMethod == VLM_VolumetricLightmap
+		&& !bOnlyBuildVisibility)
 	{
 		Lightmass::FVolumetricLightmapSettings VolumetricLightmapSettings;
 		GetLightmassExporter()->SetVolumetricLightmapSettings(VolumetricLightmapSettings);
@@ -2573,7 +2598,7 @@ void FLightmassProcessor::InitiateExport()
 		const int32 NumTopLevelBricks = VolumetricLightmapSettings.TopLevelGridSize.X * VolumetricLightmapSettings.TopLevelGridSize.Y * VolumetricLightmapSettings.TopLevelGridSize.Z;
 		
 		int32 TargetNumVolumetricLightmapTasks;
-		verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("TargetNumVolumetricLightmapTasks"), TargetNumVolumetricLightmapTasks, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("TargetNumVolumetricLightmapTasks"), TargetNumVolumetricLightmapTasks, GLightmassIni));
 
 		const int32 NumTasksPerTopLevelBrick = FMath::Clamp(TargetNumVolumetricLightmapTasks / NumTopLevelBricks, 1, VolumetricLightmapSettings.BrickSize * VolumetricLightmapSettings.BrickSize * VolumetricLightmapSettings.BrickSize);
 
@@ -2586,7 +2611,25 @@ void FLightmassProcessor::InitiateExport()
 		}
 	}
 
+	TArray<ULevel*> LevelsToRestore;
+
+	// Hide all other lighting scenarios before we export skylights, which capture the rendered scene
+	for (ULevel* Level : System.GetWorld()->GetLevels())
+	{
+		if (Level->bIsVisible && !System.ShouldOperateOnLevel(Level))
+		{
+			LevelsToRestore.Add(Level);
+			EditorLevelUtils::SetLevelVisibilityTemporarily(Level, false);
+		}
+	}
+
 	Exporter->WriteToChannel(Statistics, DebugMappingGuid);
+
+	// Restore level state
+	for (ULevel* Level : LevelsToRestore)
+	{
+		EditorLevelUtils::SetLevelVisibilityTemporarily(Level, true);
+	}
 }
 
 bool FLightmassProcessor::ExecuteAmortizedMaterialExport()
@@ -2619,7 +2662,7 @@ bool FLightmassProcessor::BeginRun()
 	{
 		FLightmassStatistics::FScopedGather ExportStatScope(Statistics.ExportTime);
 		bool bGarbageCollectAfterExport = false;
-		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bGarbageCollectAfterExport"), bGarbageCollectAfterExport, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bGarbageCollectAfterExport"), bGarbageCollectAfterExport, GLightmassIni));
 		if (bGarbageCollectAfterExport == true)
 		{
 			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
@@ -2634,7 +2677,7 @@ bool FLightmassProcessor::BeginRun()
 	// Check if we can use 64-bit Lightmass.
 	bool bUse64bitProcess = false;
 	bool bAllow64bitProcess = true;
-	verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bAllow64bitProcess"), bAllow64bitProcess, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bAllow64bitProcess"), bAllow64bitProcess, GLightmassIni));
 	if ( bAllow64bitProcess && FPlatformMisc::Is64bitOperatingSystem() )
 	{
 		bUse64bitProcess = true;
@@ -3405,16 +3448,16 @@ void FLightmassProcessor::ApplyPrecomputedVisibility()
 			TEXT("DevOptions.PrecomputedVisibilityModeratelyAggressive"), 
 			TEXT("DevOptions.PrecomputedVisibilityMostAggressive")};
 		const TCHAR* ActiveSection = AggressivenessSectionNames[System.GetWorld()->GetWorldSettings()->VisibilityAggressiveness];
-		verify(GConfig->GetInt(ActiveSection, TEXT("VisibilitySpreadingIterations"), VisibilitySpreadingIterations, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(ActiveSection, TEXT("VisibilitySpreadingIterations"), VisibilitySpreadingIterations, GLightmassIni));
 		bool bCompressVisibilityData;
-		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bCompressVisibilityData"), bCompressVisibilityData, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bCompressVisibilityData"), bCompressVisibilityData, GLightmassIni));
 		const float CellSize = System.GetWorld()->GetWorldSettings()->VisibilityCellSize;
 		float PlayAreaHeight = 0;
-		verify(GConfig->GetFloat(TEXT("DevOptions.PrecomputedVisibility"), TEXT("PlayAreaHeight"), PlayAreaHeight, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.PrecomputedVisibility"), TEXT("PlayAreaHeight"), PlayAreaHeight, GLightmassIni));
 		int32 CellBucketSize = 0;
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("CellRenderingBucketSize"), CellBucketSize, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("CellRenderingBucketSize"), CellBucketSize, GLightmassIni));
 		int32 NumCellBuckets = 0;
-		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellRenderingBuckets"), NumCellBuckets, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.PrecomputedVisibility"), TEXT("NumCellRenderingBuckets"), NumCellBuckets, GLightmassIni));
 
 		int32 TotalNumQueries = 0;
 		int32 QueriesVisibleFromSpreadingNeighbors = 0;
@@ -3907,6 +3950,8 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 
 		ReadArray(Channel, CurrentLightData.DepthMap.DepthSamples);
 		Swarm.CloseChannel(Channel);
+
+		CurrentLightData.FinalizeLoad();
 	}
 	else
 	{

@@ -14,19 +14,21 @@
 #include "command_buffer.hpp"
 #include "fence.hpp"
 
+MTLPP_PROTOCOL(MTLComputeCommandEncoder);
+
 namespace mtlpp
 {
-    class ComputeCommandEncoder : public CommandEncoder
+	class ComputeCommandEncoder : public CommandEncoder<ns::Protocol<id<MTLComputeCommandEncoder>>::type>
     {
     public:
         ComputeCommandEncoder() { }
-        ComputeCommandEncoder(const ns::Handle& handle) : CommandEncoder(handle) { }
+        ComputeCommandEncoder(ns::Protocol<id<MTLComputeCommandEncoder>>::type handle) : CommandEncoder<ns::Protocol<id<MTLComputeCommandEncoder>>::type>(handle) { }
 
         void SetComputePipelineState(const ComputePipelineState& state);
         void SetBytes(const void* data, uint32_t length, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
         void SetBuffer(const Buffer& buffer, uint32_t offset, uint32_t index);
         void SetBufferOffset(uint32_t offset, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
-        void SetBuffers(const Buffer* buffers, const uint32_t* offsets, const ns::Range& range);
+        void SetBuffers(const Buffer* buffers, const uint64_t* offsets, const ns::Range& range);
         void SetTexture(const Texture& texture, uint32_t index);
         void SetTextures(const Texture* textures, const ns::Range& range);
         void SetSamplerState(const SamplerState& sampler, uint32_t index);
@@ -34,6 +36,7 @@ namespace mtlpp
         void SetSamplerState(const SamplerState& sampler, float lodMinClamp, float lodMaxClamp, uint32_t index);
         void SetSamplerStates(const SamplerState* samplers, const float* lodMinClamps, const float* lodMaxClamps, const ns::Range& range);
         void SetThreadgroupMemory(uint32_t length, uint32_t index);
+		void SetImageblock(uint32_t width, uint32_t height) MTLPP_AVAILABLE_IOS(11_0);
         void SetStageInRegion(const Region& region) MTLPP_AVAILABLE(10_12, 10_0);
         void DispatchThreadgroups(const Size& threadgroupsPerGrid, const Size& threadsPerThreadgroup);
         void DispatchThreadgroupsWithIndirectBuffer(const Buffer& indirectBuffer, uint32_t indirectBufferOffset, const Size& threadsPerThreadgroup) MTLPP_AVAILABLE(10_11, 9_0);

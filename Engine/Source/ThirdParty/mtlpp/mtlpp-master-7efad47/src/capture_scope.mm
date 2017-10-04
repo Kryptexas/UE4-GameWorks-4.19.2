@@ -30,7 +30,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(id<MTLCaptureScope>) m_ptr label] };
+		return [(id<MTLCaptureScope>) m_ptr label];
 #else
 		return ns::String();
 #endif
@@ -48,7 +48,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(id<MTLCaptureScope>) m_ptr device] };
+		return [(id<MTLCaptureScope>) m_ptr device];
 #else
 		return Device();
 #endif
@@ -58,7 +58,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(id<MTLCaptureScope>) m_ptr commandQueue] };
+		return [(id<MTLCaptureScope>) m_ptr commandQueue];
 #else
 		return CommandQueue();
 #endif

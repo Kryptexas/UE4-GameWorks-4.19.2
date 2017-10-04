@@ -125,12 +125,6 @@ void SetDeferredLightParameters(
 		DeferredLightUniformsValue.ContactShadowLength = LightSceneInfo->Proxy->GetContactShadowLength();
 	}
 
-	if( LightSceneInfo->Proxy->IsInverseSquared() )
-	{
-		// Correction for lumen units
-		DeferredLightUniformsValue.LightColor *= 16.0f;
-	}
-
 	// When rendering reflection captures, the direct lighting of the light is actually the indirect specular from the main view
 	if (View.bIsReflectionCapture)
 	{

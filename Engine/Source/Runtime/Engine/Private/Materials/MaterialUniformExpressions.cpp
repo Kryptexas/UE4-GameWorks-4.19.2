@@ -700,7 +700,7 @@ void FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const U
 
 		if (MatInst)
 		{
-			const FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->VectorParameterValues, ParameterName);
+			const FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->VectorParameterValues, ParameterInfo);
 			if(ParameterValue)
 			{
 				OutValue = ParameterValue->ParameterValue;
@@ -733,7 +733,7 @@ void FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const U
 
 		if (MatInst)
 		{
-			const FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->ScalarParameterValues, ParameterName);
+			const FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->ScalarParameterValues, ParameterInfo);
 			if(ParameterValue)
 			{
 				OutValue = ParameterValue->ParameterValue;

@@ -387,7 +387,7 @@ public:
 			if (!GIsRequestingExit && NumFontPages > 0)
 			{
 				TArray<FGuid> FontParameterIds;
-				InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameters, FontParameterIds);
+				InMaterial->GetAllFontParameterInfo(FontParameters, FontParameterIds);
 
 				if (FontParameters.Num() > 0)
 				{
@@ -397,9 +397,9 @@ public:
 
 						// If the user provided a custom MID, we can't do anything but use that single MID for page 0
 						UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(InMaterial);
-						for (const FName FontParameterName : FontParameters)
+						for (const FMaterialParameterInfo FontParameterInfo : FontParameters)
 						{
-							MID->SetFontParameterValue(FontParameterName, InFont, 0);
+							MID->SetFontParameterValue(FontParameterInfo, InFont, 0);
 						}
 						MIDs.Add(MID);
 					}
@@ -409,9 +409,9 @@ public:
 						for (int32 FontPageIndex = 0; FontPageIndex < NumFontPages; ++FontPageIndex)
 						{
 							UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(InMaterial, nullptr);
-							for (const FName FontParameterName : FontParameters)
+							for (const FMaterialParameterInfo FontParameterInfo : FontParameters)
 							{
-								MID->SetFontParameterValue(FontParameterName, InFont, FontPageIndex);
+								MID->SetFontParameterValue(FontParameterInfo, InFont, FontPageIndex);
 							}
 							MIDs.Add(MID);
 						}
@@ -432,14 +432,14 @@ public:
 
 				if (!bIsStale)
 				{
-					TArray<FName> FontParameterNames;
+					TArray<FMaterialParameterInfo> FontParameterInfo;
 					TArray<FGuid> FontParameterIds;
-					InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameterNames, FontParameterIds);
+					InMaterial->GetAllFontParameterInfo(FontParameterInfo, FontParameterIds);
 
-					bIsStale = FontParameters.Num() != FontParameterNames.Num();
+					bIsStale = FontParameters.Num() != FontParameterInfo.Num();
 					for (int32 FontParamIndex = 0; !bIsStale && FontParamIndex < FontParameters.Num(); ++FontParamIndex)
 					{
-						bIsStale = FontParameters[FontParamIndex] != FontParameterNames[FontParamIndex];
+						bIsStale = FontParameters[FontParamIndex] != FontParameterInfo[FontParamIndex];
 					}
 				}
 			}
@@ -449,7 +449,7 @@ public:
 
 
 		TArray<UMaterialInstanceDynamic*> MIDs;
-		TArray<FName> FontParameters;
+		TArray<FMaterialParameterInfo> FontParameters;
 		bool bIsCustomMID;
 	};
 

@@ -44,6 +44,8 @@ class ENGINE_API USpotLightComponent : public UPointLightComponent
 	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const override;
 	virtual ELightComponentType GetLightType() const override;
 	virtual FLightSceneProxy* CreateSceneProxy() const override;
+	virtual float ComputeLightBrightness() const override;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

@@ -468,7 +468,10 @@ public:
 	UPROPERTY()
 	FGuid LevelBuildDataId;
 
-	/** Registry for data from the map build.  This is stored in a separate package from the level to speed up saving / autosaving. */
+	/** 
+	 * Registry for data from the map build.  This is stored in a separate package from the level to speed up saving / autosaving. 
+	 * ReleaseRenderingResources must be called before changing what is referenced, to update the rendering thread state.
+	 */
 	UPROPERTY()
 	UMapBuildDataRegistry* MapBuildData;
 

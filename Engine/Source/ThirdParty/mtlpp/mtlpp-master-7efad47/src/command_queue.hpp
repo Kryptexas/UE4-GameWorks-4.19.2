@@ -10,16 +10,18 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_PROTOCOL(MTLCommandQueue);
+
 namespace mtlpp
 {
     class Device;
     class CommandBuffer;
 
-    class CommandQueue : public ns::Object
+    class CommandQueue : public ns::Object<ns::Protocol<id<MTLCommandQueue>>::type>
     {
     public:
         CommandQueue() { }
-        CommandQueue(const ns::Handle& handle) : ns::Object(handle) { }
+        CommandQueue(ns::Protocol<id<MTLCommandQueue>>::type handle) : ns::Object<ns::Protocol<id<MTLCommandQueue>>::type>(handle) { }
 
         ns::String GetLabel() const;
         Device     GetDevice() const;
@@ -28,7 +30,7 @@ namespace mtlpp
 
         class CommandBuffer CommandBufferWithUnretainedReferences();
         class CommandBuffer CommandBuffer();
-        void                InsertDebugCaptureBoundary();
+        void                InsertDebugCaptureBoundary() MTLPP_DEPRECATED(10_11, 10_13, 8_0, 11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }

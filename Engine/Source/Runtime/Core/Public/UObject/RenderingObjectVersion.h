@@ -60,6 +60,10 @@ struct CORE_API FRenderingObjectVersion
 
 		VolumetricLightmaps,
 
+		MaterialAttributeLayerParameters,
+
+		StoreReflectionCaptureBrightnessForCooking,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

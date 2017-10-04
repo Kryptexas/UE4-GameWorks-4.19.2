@@ -10,7 +10,6 @@ TextureStreamingHelpers.cpp: Definitions of classes used for texture streaming.
 
 /** Streaming stats */
 
-// Streaming
 DECLARE_MEMORY_STAT_POOL(TEXT("Safety Pool"), STAT_Streaming01_SafetyPool, STATGROUP_Streaming, FPlatformMemory::MCR_TexturePool);
 DECLARE_MEMORY_STAT_POOL(TEXT("Temporary Pool"), STAT_Streaming02_TemporaryPool, STATGROUP_Streaming, FPlatformMemory::MCR_TexturePool);
 DECLARE_MEMORY_STAT_POOL(TEXT("Streaming Pool"), STAT_Streaming03_StreamingPool, STATGROUP_Streaming, FPlatformMemory::MCR_TexturePool);
@@ -31,6 +30,17 @@ DECLARE_CYCLE_STAT(TEXT("Setup Async Task"), STAT_Streaming01_SetupAsyncTask, ST
 DECLARE_CYCLE_STAT(TEXT("Update Streaming Data"), STAT_Streaming02_UpdateStreamingData, STATGROUP_Streaming);
 DECLARE_CYCLE_STAT(TEXT("Streaming Texture"), STAT_Streaming03_StreamTextures, STATGROUP_Streaming);
 DECLARE_CYCLE_STAT(TEXT("Notifications"), STAT_Streaming04_Notifications, STATGROUP_Streaming);
+
+/** Streaming Overview stats */
+
+DECLARE_MEMORY_STAT_POOL(TEXT("Streamable Textures"),	STAT_StreamingOverview01_StreamableTextures, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("     Required"),			STAT_StreamingOverview02_Required, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("     Cached"),			STAT_StreamingOverview03_Cached, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Streaming Overbudget"),	STAT_StreamingOverview04_StreamingOverbudget, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Unstreambale Textures"), STAT_StreamingOverview05_UnstreamableTextures, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("     NeverStream"),		STAT_StreamingOverview06_NeverStream, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("     UI Group"),			STAT_StreamingOverview07_UIGroup, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Average Required PoolSize"),	STAT_StreamingOverview08_AverageRequiredPool, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
 
 DEFINE_STAT(STAT_GameThreadUpdateTime);
 
@@ -239,9 +249,19 @@ float GShadowmapStreamingFactor = 0.09f;
 */
 bool GNeverStreamOutTextures = false;
 
+#if STATS
+extern int64 GUITextureMemory;
+extern int64 GNeverStreamTextureMemory;
+
+int64 GRequiredPoolSizeSum = 0;
+int64 GRequiredPoolSizeCount= 0;
+int64 GAverageRequiredPool = 0;
+#endif
 
 void FTextureStreamingStats::Apply()
 {
+	/** Streaming stats */
+
 	SET_MEMORY_STAT(MCR_TexturePool, TexturePool); 
 	SET_MEMORY_STAT(MCR_StreamingPool, StreamingPool);
 	SET_MEMORY_STAT(MCR_UsedStreamingPool, UsedStreamingPool);
@@ -266,4 +286,39 @@ void FTextureStreamingStats::Apply()
 	SET_CYCLE_COUNTER(STAT_Streaming02_UpdateStreamingData, UpdateStreamingDataCycles);
 	SET_CYCLE_COUNTER(STAT_Streaming03_StreamTextures, StreamTexturesCycles);
 	SET_CYCLE_COUNTER(STAT_Streaming04_Notifications, CallbacksCycles);
+
+	/** Streaming Overview stats */
+
+#if STATS
+	GRequiredPoolSizeSum += RequiredPool + (GPoolSizeVRAMPercentage > 0 ? 0 : NonStreamingMips);
+	GRequiredPoolSizeCount += 1;
+	GAverageRequiredPool = (int64)((double)GRequiredPoolSizeSum / (double)FMath::Max<int64>(1, GRequiredPoolSizeCount));
+#endif
+
+	SET_MEMORY_STAT(STAT_StreamingOverview01_StreamableTextures, RequiredPool + CachedMips); 
+	SET_MEMORY_STAT(STAT_StreamingOverview02_Required, RequiredPool);
+	SET_MEMORY_STAT(STAT_StreamingOverview03_Cached, CachedMips); 
+	SET_MEMORY_STAT(STAT_StreamingOverview04_StreamingOverbudget, FMath::Max<int64>(RequiredPool - StreamingPool, 0)); 
+	SET_MEMORY_STAT(STAT_StreamingOverview05_UnstreamableTextures, NonStreamingMips);
+	SET_MEMORY_STAT(STAT_StreamingOverview06_NeverStream, GNeverStreamTextureMemory);
+	SET_MEMORY_STAT(STAT_StreamingOverview07_UIGroup, GUITextureMemory);
+	SET_MEMORY_STAT(STAT_StreamingOverview08_AverageRequiredPool, GAverageRequiredPool); 
+}
+
+void ResetAverageRequiredTexturePoolSize()
+{
+#if STATS
+	GRequiredPoolSizeSum = 0;
+	GRequiredPoolSizeCount= 0;
+	GAverageRequiredPool = 0;
+#endif
+}
+
+int64 GetAverageRequiredTexturePoolSize()
+{
+#if STATS
+	return GAverageRequiredPool;
+#else
+	return 0;
+#endif
 }

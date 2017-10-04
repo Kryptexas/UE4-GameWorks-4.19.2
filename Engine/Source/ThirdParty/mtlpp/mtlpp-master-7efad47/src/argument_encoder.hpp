@@ -5,6 +5,8 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_PROTOCOL(MTLArgumentEncoder);
+
 namespace mtlpp
 {
 	class Device;
@@ -12,11 +14,11 @@ namespace mtlpp
 	class Texture;
 	class SamplerState;
 	
-	class ArgumentEncoder : public ns::Object
+	class ArgumentEncoder : public ns::Object<ns::Protocol<id<MTLArgumentEncoder>>::type>
 	{
 	public:
 		ArgumentEncoder() { }
-		ArgumentEncoder(const ns::Handle& handle) : ns::Object(handle) { }
+		ArgumentEncoder(ns::Protocol<id<MTLArgumentEncoder>>::type handle) : ns::Object<ns::Protocol<id<MTLArgumentEncoder>>::type>(handle) { }
 		
 		Device     GetDevice() const;
 		ns::String GetLabel() const;
@@ -30,7 +32,7 @@ namespace mtlpp
 		void SetArgumentBuffer(const Buffer& buffer, uint32_t offset, uint32_t index);
 		
 		void SetBuffer(const Buffer& buffer, uint32_t offset, uint32_t index);
-		void SetBuffers(const Buffer* buffers, const unsigned long* offsets, const ns::Range& range);
+		void SetBuffers(const Buffer* buffers, const uint64_t* offsets, const ns::Range& range);
 		void SetTexture(const Texture& texture, uint32_t index);
 		void SetTextures(const Texture* textures, const ns::Range& range);
 		void SetSamplerState(const SamplerState& sampler, uint32_t index);

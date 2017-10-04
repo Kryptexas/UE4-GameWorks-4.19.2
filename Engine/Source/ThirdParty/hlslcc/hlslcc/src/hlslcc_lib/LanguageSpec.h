@@ -45,6 +45,9 @@ struct ILanguageSpec
     
     // Whether the backend allows reads from non-scalar UAVs
     virtual bool AllowsImageLoadsForNonScalar() const { return true; }
+	
+	// GLSL doesn't allow non-comparison sampling operations on shadow/depth textures, but that's not universally true
+	virtual bool AllowsAllTextureOperationsOnDepthTextures() const { return false; }
 };
 
 enum

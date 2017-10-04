@@ -2841,9 +2841,6 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 
 					if( Proxy->IsInverseSquared() )
 					{
-						// Correction for lumen units
-						Color *= 16.0f;
-						
 						float LightRadiusMask = FMath::Square( 1.0f - FMath::Square( DistanceSqr * FMath::Square( LightParameters.LightPositionAndInvRadius.W ) ) );
 						Color.A = LightRadiusMask;
 					}

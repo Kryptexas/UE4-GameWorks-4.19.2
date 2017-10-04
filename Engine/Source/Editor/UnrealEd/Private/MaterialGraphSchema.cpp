@@ -669,7 +669,7 @@ void UMaterialGraphSchema::DroppedAssetsOnGraph(const TArray<struct FAssetData>&
 		bool bAddedNode = false;
 		UObject* Asset = Assets[AssetIdx].GetAsset();
 		UClass* MaterialExpressionClass = Cast<UClass>(Asset);
-		UMaterialFunction* Func = Cast<UMaterialFunction>(Asset);
+		UMaterialFunctionInterface* Func = Cast<UMaterialFunctionInterface>(Asset);
 		UTexture* Tex = Cast<UTexture>(Asset);
 		UMaterialParameterCollection* ParameterCollection = Cast<UMaterialParameterCollection>(Asset);
 		
@@ -860,13 +860,13 @@ bool UMaterialGraphSchema::HasCompatibleConnection(const FAssetData& FunctionAss
 {
 	if (TestType != 0)
 	{
-		uint32 CombinedInputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedInputTypes));
-		uint32 CombinedOutputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedOutputTypes));
+		uint32 CombinedInputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunctionInterface, CombinedInputTypes));
+		uint32 CombinedOutputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunctionInterface, CombinedOutputTypes));
 
 		if (CombinedOutputTypes == 0)
 		{
 			// Need to load function to build combined output types
-			UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(FunctionAssetData.GetAsset());
+			UMaterialFunctionInterface* MaterialFunction = Cast<UMaterialFunctionInterface>(FunctionAssetData.GetAsset());
 			if (MaterialFunction != nullptr)
 			{
 				CombinedInputTypes = MaterialFunction->CombinedInputTypes;

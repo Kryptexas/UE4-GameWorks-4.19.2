@@ -1823,7 +1823,7 @@ void ULevel::SetLightingScenario(bool bNewIsLightingScenario)
 {
 	bIsLightingScenario = bNewIsLightingScenario;
 
-	OwningWorld->PropagateLightingScenarioChange(true);
+	OwningWorld->PropagateLightingScenarioChange();
 }
 
 #if WITH_EDITOR

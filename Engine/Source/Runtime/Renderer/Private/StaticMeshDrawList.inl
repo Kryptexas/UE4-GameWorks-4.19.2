@@ -950,6 +950,13 @@ void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(E
 
 			if (Proxy)
 			{
+#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
+				if (Proxy->IsDeleted())
+				{
+					continue;
+				}
+#endif
+
 				check(!Proxy->IsDeleted());
 				FMaterial* MaterialResource = Proxy->GetMaterialNoFallback(InFeatureLevel);
 

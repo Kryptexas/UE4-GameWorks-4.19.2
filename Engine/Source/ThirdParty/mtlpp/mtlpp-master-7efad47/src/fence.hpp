@@ -11,14 +11,15 @@
 #include "ns.hpp"
 #include "device.hpp"
 
+MTLPP_PROTOCOL(MTLFence);
 
 namespace mtlpp
 {
-    class Fence : public ns::Object
+    class Fence : public ns::Object<ns::Protocol<id<MTLFence>>::type>
     {
     public:
         Fence() { }
-        Fence(const ns::Handle& handle) : ns::Object(handle) { }
+        Fence(ns::Protocol<id<MTLFence>>::type handle) : ns::Object<ns::Protocol<id<MTLFence>>::type>(handle) { }
 
         Device    GetDevice() const;
         ns::String GetLabel() const;

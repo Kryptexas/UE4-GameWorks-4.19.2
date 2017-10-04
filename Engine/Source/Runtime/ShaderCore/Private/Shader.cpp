@@ -21,6 +21,13 @@
 
 DEFINE_LOG_CATEGORY(LogShaders);
 
+SHADERCORE_API bool UsePreExposure(EShaderPlatform Platform)
+{
+	// Mobile platforms are excluded because they use a different pre-exposure logic in MobileBasePassPixelShader.usf
+	static const auto CVarUsePreExposure = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UsePreExposure"));
+	return CVarUsePreExposure->GetValueOnAnyThread() != 0 && !IsMobilePlatform(Platform) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+}
+
 static const ECompressionFlags ShaderCompressionFlag = ECompressionFlags::COMPRESS_ZLIB;
 
 static TAutoConsoleVariable<int32> CVarUsePipelines(
@@ -949,7 +956,8 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			Ar << StructName;
 
 			FUniformBufferStruct* Struct = FindUniformBufferStructByName(*StructName);
-			FShaderUniformBufferParameter* Parameter = Struct ? Struct->ConstructTypedParameter() : new FShaderUniformBufferParameter();
+			checkf(Struct, TEXT("Uniform Buffer Struct %s no longer exists, which shader of type %s was compiled with.  Modify ShaderVersion.ush to invalidate old shaders."), *StructName, Type->GetName());
+			FShaderUniformBufferParameter* Parameter = Struct->ConstructTypedParameter();
 
 			Ar << *Parameter;
 
@@ -1784,6 +1792,10 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		{
 			KeyString += TEXT("_SO");
 		}
+	}
+
+	{
+		KeyString += UsePreExposure(Platform) ? TEXT("_PreExp") : TEXT("");
 	}
 
 	{

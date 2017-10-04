@@ -13,7 +13,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{[(id<MTLArgumentEncoder>) m_ptr device]};
+		return [(id<MTLArgumentEncoder>) m_ptr device];
 #else
 		return Device();
 #endif
@@ -23,7 +23,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{[(id<MTLArgumentEncoder>) m_ptr label]};
+		return [(id<MTLArgumentEncoder>) m_ptr label];
 #else
 		return ns::String();
 #endif
@@ -91,7 +91,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void ArgumentEncoder::SetBuffers(const Buffer* buffers, const unsigned long* offsets, const ns::Range& range)
+	void ArgumentEncoder::SetBuffers(const Buffer* buffers, const uint64_t* offsets, const ns::Range& range)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
@@ -99,7 +99,7 @@ namespace mtlpp
 		for (uint32_t i = 0; i < range.Length; i++)
 			array[i] = (id<MTLBuffer>)buffers[i].GetPtr();
 		
-		[(id<MTLArgumentEncoder>) m_ptr setBuffers:array offsets:offsets withRange:NSMakeRange(range.Location, range.Length)];
+		[(id<MTLArgumentEncoder>) m_ptr setBuffers:array offsets:(const NSUInteger*)offsets withRange:NSMakeRange(range.Location, range.Length)];
 #endif
 	}
 	
@@ -147,7 +147,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_MAC(10_13)
-		return ns::Handle{[(id<MTLArgumentEncoder>) m_ptr newArgumentEncoderForBufferAtIndex:index]};
+		return [(id<MTLArgumentEncoder>) m_ptr newArgumentEncoderForBufferAtIndex:index];
 #else
 		return ArgumentEncoder();
 #endif

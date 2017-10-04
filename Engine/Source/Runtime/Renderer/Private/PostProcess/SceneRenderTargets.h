@@ -716,7 +716,7 @@ private:
 		{
 			return ESceneColorFormatType::Mobile;
 		}
-		else if (CurrentShadingPath == EShadingPath::Deferred && (bRequireSceneColorAlpha || CurrentSceneColorFormat == PF_FloatRGBA))
+		else if (CurrentShadingPath == EShadingPath::Deferred && (bRequireSceneColorAlpha || GetSceneColorFormat() == PF_FloatRGBA))
 		{
 			return ESceneColorFormatType::HighEndWithAlpha;
 		}

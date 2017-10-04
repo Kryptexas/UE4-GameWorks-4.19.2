@@ -12,6 +12,7 @@
 
 class UTexture;
 struct FPropertyChangedEvent;
+struct FMaterialParameterInfo;
 
 UENUM()
 enum ELandscapeLayerBlendType
@@ -96,7 +97,7 @@ class LANDSCAPE_API UMaterialExpressionLandscapeLayerBlend : public UMaterialExp
 	/**
 	 * Get list of parameter names for static parameter sets
 	 */
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	void GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const;
 };
 
 

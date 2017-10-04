@@ -14,20 +14,20 @@ namespace mtlpp
     uint32_t Buffer::GetLength() const
     {
         Validate();
-        return uint32_t([(__bridge id<MTLBuffer>)m_ptr length]);
+        return uint32_t([(id<MTLBuffer>)m_ptr length]);
     }
 
     void* Buffer::GetContents()
     {
         Validate();
-        return [(__bridge id<MTLBuffer>)m_ptr contents];
+        return [(id<MTLBuffer>)m_ptr contents];
     }
 
     void Buffer::DidModify(const ns::Range& range)
     {
         Validate();
 #if MTLPP_PLATFORM_MAC
-        [(__bridge id<MTLBuffer>)m_ptr didModifyRange:NSMakeRange(range.Location, range.Length)];
+        [(id<MTLBuffer>)m_ptr didModifyRange:NSMakeRange(range.Location, range.Length)];
 #endif
     }
 
@@ -36,23 +36,23 @@ namespace mtlpp
         Validate();
 		if (@available(macOS 10.13, iOS 8.0, *))
 		{
-			MTLTextureDescriptor* mtlTextureDescriptor = (__bridge MTLTextureDescriptor*)descriptor.GetPtr();
-			return ns::Handle{ (__bridge void*)[(__bridge id<MTLBuffer>)m_ptr newTextureWithDescriptor:mtlTextureDescriptor offset:offset bytesPerRow:bytesPerRow] };
+			MTLTextureDescriptor* mtlTextureDescriptor = (MTLTextureDescriptor*)descriptor.GetPtr();
+			return [(id<MTLBuffer>)m_ptr newTextureWithDescriptor:mtlTextureDescriptor offset:offset bytesPerRow:bytesPerRow];
 		}
-        return ns::Handle{ nullptr };
+        return nullptr;
     }
 
     void Buffer::AddDebugMarker(const ns::String& marker, const ns::Range& range)
     {
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge id<MTLBuffer>)m_ptr addDebugMarker:(__bridge NSString*)marker.GetPtr() range:NSMakeRange(range.Location, range.Length)];
+        [(id<MTLBuffer>)m_ptr addDebugMarker:(NSString*)marker.GetPtr() range:NSMakeRange(range.Location, range.Length)];
 #endif
     }
 
     void Buffer::RemoveAllDebugMarkers()
     {
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge id<MTLBuffer>)m_ptr removeAllDebugMarkers];
+        [(id<MTLBuffer>)m_ptr removeAllDebugMarkers];
 #endif
     }
 }

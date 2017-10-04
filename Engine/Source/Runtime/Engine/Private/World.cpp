@@ -895,6 +895,9 @@ void UWorld::PostLoad()
 		}
 	}
 #endif
+
+	// Reset between worlds so that the metric is only relevant to the current world.
+	ResetAverageRequiredTexturePoolSize();
 }
 
 

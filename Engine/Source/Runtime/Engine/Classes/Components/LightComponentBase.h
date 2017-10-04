@@ -28,8 +28,6 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 
 	/** 
 	 * Total energy that the light emits.  
-	 * For point/spot lights with inverse squared falloff, this is in units of lumens.  1700 lumens corresponds to a 100W lightbulb. 
-	 * For other lights, this is just a brightness multiplier. 
 	 */
 	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(DisplayName = "Intensity", UIMin = "0.0", UIMax = "20.0"))
 	float Intensity;
@@ -179,6 +177,7 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 #if WITH_EDITOR
 	/** UActorComponent Interface */
 	virtual void OnRegister() override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif
 
 	/** We return a small bounds to allow us to non-interpenetrates when placing lights in the level. */

@@ -103,10 +103,6 @@ FMobileBasePassDynamicPointLightInfo::FMobileBasePassDynamicPointLightInfo(const
 
 				if (LightProxy->IsInverseSquared())
 				{
-					// Correction for lumen units
-					LightColorAndFalloffExponent[NumDynamicPointLights].X *= 16.0f;
-					LightColorAndFalloffExponent[NumDynamicPointLights].Y *= 16.0f;
-					LightColorAndFalloffExponent[NumDynamicPointLights].Z *= 16.0f;
 					LightColorAndFalloffExponent[NumDynamicPointLights].W = 0;
 				}
 

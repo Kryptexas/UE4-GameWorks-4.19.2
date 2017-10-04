@@ -15,6 +15,13 @@
 #include "argument.hpp"
 #include "function_constant_values.hpp"
 
+MTLPP_CLASS(MTLRenderPipelineColorAttachmentDescriptor);
+MTLPP_CLASS(MTLRenderPipelineReflection);
+MTLPP_CLASS(MTLRenderPipelineDescriptor);
+MTLPP_PROTOCOL(MTLRenderPipelineState);
+MTLPP_CLASS(MTLTileRenderPipelineColorAttachmentDescriptor);
+MTLPP_CLASS(MTLTileRenderPipelineDescriptor);
+
 namespace mtlpp
 {
 	class PipelineBufferDescriptor;
@@ -54,7 +61,7 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    enum class ColorWriteMask
+    enum ColorWriteMask
     {
         None  = 0,
         Red   = 0x1 << 3,
@@ -106,11 +113,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
-    class RenderPipelineColorAttachmentDescriptor : public ns::Object
+    class RenderPipelineColorAttachmentDescriptor : public ns::Object<MTLRenderPipelineColorAttachmentDescriptor*>
     {
     public:
         RenderPipelineColorAttachmentDescriptor();
-        RenderPipelineColorAttachmentDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        RenderPipelineColorAttachmentDescriptor(MTLRenderPipelineColorAttachmentDescriptor* handle) : ns::Object<MTLRenderPipelineColorAttachmentDescriptor*>(handle) { }
 
         PixelFormat     GetPixelFormat() const;
         bool            IsBlendingEnabled() const;
@@ -134,22 +141,23 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPipelineReflection : public ns::Object
+    class RenderPipelineReflection : public ns::Object<MTLRenderPipelineReflection*>
     {
     public:
         RenderPipelineReflection();
-        RenderPipelineReflection(const ns::Handle& handle) : ns::Object(handle) { }
+        RenderPipelineReflection(MTLRenderPipelineReflection* handle) : ns::Object<MTLRenderPipelineReflection*>(handle) { }
 
         const ns::Array<Argument> GetVertexArguments() const;
         const ns::Array<Argument> GetFragmentArguments() const;
+		const ns::Array<Argument> GetTileArguments() const;
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPipelineDescriptor : public ns::Object
+    class RenderPipelineDescriptor : public ns::Object<MTLRenderPipelineDescriptor*>
     {
     public:
         RenderPipelineDescriptor();
-        RenderPipelineDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        RenderPipelineDescriptor(MTLRenderPipelineDescriptor* handle) : ns::Object<MTLRenderPipelineDescriptor*>(handle) { }
 
         ns::String                                         GetLabel() const;
         Function                                           GetVertexFunction() const;
@@ -202,14 +210,55 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPipelineState : public ns::Object
+    class RenderPipelineState : public ns::Object<ns::Protocol<id<MTLRenderPipelineState>>::type>
     {
     public:
         RenderPipelineState() { }
-        RenderPipelineState(const ns::Handle& handle) : ns::Object(handle) { }
+        RenderPipelineState(ns::Protocol<id<MTLRenderPipelineState>>::type handle) : ns::Object<ns::Protocol<id<MTLRenderPipelineState>>::type>(handle) { }
 
         ns::String GetLabel() const;
         Device     GetDevice() const;
+		
+		uint32_t GetMaxTotalThreadsPerThreadgroup() const MTLPP_AVAILABLE_IOS(11_0);
+		bool GetThreadgroupSizeMatchesTileSize() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetImageblockSampleLength() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) const MTLPP_AVAILABLE_IOS(11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
+	
+	class TileRenderPipelineColorAttachmentDescriptor : public ns::Object<MTLTileRenderPipelineColorAttachmentDescriptor*>
+	{
+	public:
+		TileRenderPipelineColorAttachmentDescriptor();
+		TileRenderPipelineColorAttachmentDescriptor(MTLTileRenderPipelineColorAttachmentDescriptor* handle) : ns::Object<MTLTileRenderPipelineColorAttachmentDescriptor*>(handle) { }
+		
+		PixelFormat     GetPixelFormat() const;
+		
+		void SetPixelFormat(PixelFormat pixelFormat);
+	}
+	MTLPP_AVAILABLE_IOS(11_0);
+	
+	class TileRenderPipelineDescriptor : public ns::Object<MTLTileRenderPipelineDescriptor*>
+	{
+	public:
+		TileRenderPipelineDescriptor();
+		TileRenderPipelineDescriptor(MTLTileRenderPipelineDescriptor* handle) : ns::Object<MTLTileRenderPipelineDescriptor*>(handle) { }
+		
+		ns::String                                         GetLabel() const;
+		Function                                           GetTileFunction() const;
+		uint32_t                                           GetRasterSampleCount() const;
+		ns::Array<TileRenderPipelineColorAttachmentDescriptor> GetColorAttachments() const;
+		bool                                        GetThreadgroupSizeMatchesTileSize() const;
+		ns::Array<PipelineBufferDescriptor> GetTileBuffers() const MTLPP_AVAILABLE_IOS(11_0);
+		
+		
+		void SetLabel(const ns::String& label);
+		void SetTileFunction(const Function& tileFunction);
+		void SetRasterSampleCount(uint32_t sampleCount);
+		void SetThreadgroupSizeMatchesTileSize(bool threadgroupSizeMatchesTileSize);
+		void SetTileBuffers(ns::Array<PipelineBufferDescriptor> const& array) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void Reset();
+	}
+	MTLPP_AVAILABLE_IOS(11_0);
 }

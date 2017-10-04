@@ -1410,7 +1410,7 @@ void ProcessBasePassMeshForSimpleForwardShading(
 			Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING), Parameters.Mesh.LCI);
 		}
 	}
-	if (bIsLitMaterial
+	else if (bIsLitMaterial
 		&& bAllowStaticLighting
 		&& Action.UseVolumetricLightmap()
 		&& Parameters.PrimitiveSceneProxy)

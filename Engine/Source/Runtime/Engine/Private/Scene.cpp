@@ -282,7 +282,7 @@ static void DoPostProcessSettingsSanityCheck()
 
 	{
 		TMap<FString, FString> RenameMap;
-		VerifyPostProcessingProperties(TEXT("AutoExposure"),
+		VerifyPostProcessingProperties(TEXT("Exposure"),
 			TArray<const UStruct*>({
 				FCameraExposureSettings::StaticStruct()}),
 			RenameMap);
@@ -408,6 +408,9 @@ FPostProcessSettings::FPostProcessSettings()
 	LPVGeometryVolumeBias = 0.384f;
 	LPVEmissiveInjectionIntensity = 1.0f;
 	// next value might get overwritten by r.DefaultFeature.AutoExposure.Method
+	CameraShutterSpeed = 60.f;
+	CameraISO = 100.f;
+	AutoExposureCalibrationConstant = 16.f;
 	AutoExposureMethod = AEM_Histogram;
 	AutoExposureLowPercent = 80.0f;
 	AutoExposureHighPercent = 98.3f;

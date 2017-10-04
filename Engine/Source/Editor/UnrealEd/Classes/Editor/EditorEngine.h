@@ -2315,7 +2315,7 @@ public:
 	/**
 	* Update any outstanding reflection captures
 	*/
-	void UpdateReflectionCaptures(UWorld* World = GWorld);
+	void BuildReflectionCaptures(UWorld* World = GWorld);
 
 	/**
 	 * Convenience method for adding a Slate modal window that is parented to the main frame (if it exists)

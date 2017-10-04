@@ -13,6 +13,8 @@
 #include "ShadowRendering.h"
 #include "SceneRendering.h"
 
+FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
+
 template<typename ShaderRHIParamRef>
 void SetSimpleDeferredLightParameters(
 	FRHICommandList& RHICmdList, 
@@ -91,6 +93,11 @@ public:
 		return bRadialLight ? IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) : true;
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+	}
+
 	TDeferredLightVS()	{}
 	TDeferredLightVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -121,7 +128,9 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 	//~ End FShader Interface
+
 private:
+
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };
 

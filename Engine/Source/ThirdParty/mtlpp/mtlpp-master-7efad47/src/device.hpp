@@ -13,6 +13,10 @@
 #include "resource.hpp"
 #include "library.hpp"
 
+MTLPP_CLASS(NSObject);
+MTLPP_CLASS(MTLArgumentDescriptor);
+MTLPP_PROTOCOL(MTLDevice);
+
 namespace mtlpp
 {
 	class ArgumentEncoder;
@@ -37,6 +41,7 @@ namespace mtlpp
     class RenderPipelineDescriptor;
     class RenderPassDescriptor;
     class RenderPipelineReflection;
+	class TileRenderPipelineDescriptor;
     class ComputePipelineDescriptor;
     class ComputePipelineReflection;
     class CommandQueueDescriptor;
@@ -103,11 +108,11 @@ namespace mtlpp
         uint32_t Align;
     };
 	
-	class ArgumentDescriptor : public ns::Object
+	class ArgumentDescriptor : public ns::Object<MTLArgumentDescriptor*>
 	{
 	public:
 		ArgumentDescriptor();
-		ArgumentDescriptor(const ns::Handle& handle) : ns::Object(handle) {}
+		ArgumentDescriptor(MTLArgumentDescriptor* handle) : ns::Object<MTLArgumentDescriptor*>(handle) {}
 		
 		DataType GetDataType() const;
 		uint32_t GetIndex() const;
@@ -118,21 +123,21 @@ namespace mtlpp
 	}
 	MTLPP_AVAILABLE(10_13, 11_0);
 
-    class Device : public ns::Object
+	class Device : public ns::Object<ns::Protocol<id<MTLDevice>>::type>
     {
     public:
         Device() { }
-        Device(const ns::Handle& handle) : ns::Object(handle) { }
+        Device(ns::Protocol<id<MTLDevice>>::type handle) : ns::Object<ns::Protocol<id<MTLDevice>>::type>(handle) { }
 
 		static ns::String GetWasAddedNotification() MTLPP_AVAILABLE_MAC(10_13);
 		static ns::String GetRemovalRequestedNotification() MTLPP_AVAILABLE_MAC(10_13);
 		static ns::String GetWasRemovedNotification() MTLPP_AVAILABLE_MAC(10_13);
 		
-		static ns::Array<Device> CopyAllDevicesWithObserver(ns::Object observer, std::function<void(const Device&, ns::String const&)> handler) MTLPP_AVAILABLE_MAC(10_13);
-		static void RemoveDeviceObserver(ns::Object observer) MTLPP_AVAILABLE_MAC(10_13);
+		static ns::Array<ns::Ref<Device>> CopyAllDevicesWithObserver(ns::Object<NSObject*> observer, std::function<void(const ns::Ref<Device>&, ns::String const&)> handler) MTLPP_AVAILABLE_MAC(10_13);
+		static void RemoveDeviceObserver(ns::Object<NSObject*> observer) MTLPP_AVAILABLE_MAC(10_13);
 		
-        static Device CreateSystemDefaultDevice() MTLPP_AVAILABLE(10_11, 8_0);
-        static ns::Array<Device> CopyAllDevices() MTLPP_AVAILABLE(10_11, NA);
+        static ns::Ref<Device> CreateSystemDefaultDevice() MTLPP_AVAILABLE(10_11, 8_0);
+        static ns::Array<ns::Ref<Device>> CopyAllDevices() MTLPP_AVAILABLE(10_11, NA);
 
         ns::String GetName() const;
         Size       GetMaxThreadsPerThreadgroup() const MTLPP_AVAILABLE(10_11, 9_0);
@@ -181,11 +186,13 @@ namespace mtlpp
         Fence NewFence() MTLPP_AVAILABLE(NA, 10_0);
         bool SupportsFeatureSet(FeatureSet featureSet) const;
         bool SupportsTextureSampleCount(uint32_t sampleCount) const MTLPP_AVAILABLE(10_11, 9_0);
-		uint32_t GetMinimumTextureAlignmentForPixelFormat(PixelFormat format) const MTLPP_AVAILABLE(10_13, 11_0);
+		uint32_t GetMinimumLinearTextureAlignmentForPixelFormat(PixelFormat format) const MTLPP_AVAILABLE(10_13, 11_0);
 		uint32_t GetMaxThreadgroupMemoryLength() const MTLPP_AVAILABLE(10_13, 11_0);
 		bool AreProgrammableSamplePositionsSupported() const MTLPP_AVAILABLE(10_13, 11_0);
 		void GetDefaultSamplePositions(SamplePosition* positions, uint32_t count) MTLPP_AVAILABLE(10_13, 11_0);
 		ArgumentEncoder NewArgumentEncoderWithArguments(ns::Array<ArgumentDescriptor> const& arguments) MTLPP_AVAILABLE(10_13, 11_0);
+		RenderPipelineState NewRenderPipelineState(const TileRenderPipelineDescriptor& descriptor, PipelineOption options, RenderPipelineReflection* outReflection, ns::Error* error) MTLPP_AVAILABLE_IOS(11_0);
+		void NewRenderPipelineState(const TileRenderPipelineDescriptor& descriptor, PipelineOption options, std::function<void(const RenderPipelineState&, const RenderPipelineReflection&, const ns::Error&)> completionHandler) MTLPP_AVAILABLE_IOS(11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }

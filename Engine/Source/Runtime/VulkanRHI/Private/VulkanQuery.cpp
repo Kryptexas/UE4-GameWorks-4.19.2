@@ -9,6 +9,8 @@
 #include "VulkanCommandBuffer.h"
 #include "EngineGlobals.h"
 
+FCriticalSection GQueryLock;
+
 struct FRHICommandWaitForFence final : public FRHICommand<FRHICommandWaitForFence>
 {
 	FVulkanCommandBufferManager* CmdBufferMgr;
@@ -51,6 +53,7 @@ FVulkanRenderQuery::~FVulkanRenderQuery()
 	{
 		if (QueryIndices[Index] != -1)
 		{
+			FScopeLock Lock(&GQueryLock);
 			((FVulkanBufferedQueryPool*)QueryPools[Index])->ReleaseQuery(QueryIndices[Index]);
 		}
 	}
@@ -89,7 +92,7 @@ bool FVulkanRenderQuery::GetResult(FVulkanDevice* Device, uint64& Result, bool b
 {
 	if (GetActiveQueryIndex() != -1)
 	{
-		check(IsInActualRenderingThread() || IsInRHIThread());
+		check(IsInRenderingThread() || IsInRHIThread());
 		FVulkanCommandListContext& Context = Device->GetImmediateContext();
 		FVulkanBufferedQueryPool* Pool = (FVulkanBufferedQueryPool*)GetActiveQueryPool();
 		return Pool->GetResults(Context, this, bWait, Result);
@@ -203,17 +206,19 @@ void FVulkanCommandListContext::ReadAndCalculateGPUFrameTime()
 
 	if (FrameTiming)
 	{
-		uint64 Delta = FrameTiming->GetTiming(true);
-		if (Delta == 0)
-		{
-			GGPUFrameTime = 0;
-			return;
-		}
-		GGPUFrameTime = (Delta / 1e6) / FPlatformTime::GetSecondsPerCycle();
+		const uint64 Delta = FrameTiming->GetTiming(false);
+		GGPUFrameTime = Delta ? (Delta / 1e6) / FPlatformTime::GetSecondsPerCycle() : 0;
 	}
 	else
 	{
 		GGPUFrameTime = 0;
+	}
+
+	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Vulkan.ProfileCmdBuffers"));
+	if (CVar->GetInt() != 0)
+	{
+		const uint64 Delta = GetCommandBufferManager()->CalculateGPUTime();
+		GGPUFrameTime = Delta ? (Delta / 1e6) / FPlatformTime::GetSecondsPerCycle() : 0;
 	}
 }
 
@@ -269,19 +274,24 @@ void FVulkanCommandListContext::AdvanceQuery(FVulkanRenderQuery* Query)
 	{
 		uint32 QueryIndex = 0;
 		FVulkanBufferedQueryPool* Pool = nullptr;
-		if (Query->QueryType == RQT_AbsoluteTime)
-		{
-			Pool = &Device->FindAvailableTimestampQueryPool();
-		}
-		else
-		{
-			Pool = &Device->FindAvailableOcclusionQueryPool();
-		}
-		ensure(Pool);
 
-		bool bResult = Pool->AcquireQuery(QueryIndex);
-		check(bResult);
+		{
+			FScopeLock Lock(&GQueryLock);
 
+			if (Query->QueryType == RQT_AbsoluteTime)
+			{
+				Pool = &Device->FindAvailableTimestampQueryPool();
+			}
+			else
+			{
+				Pool = &Device->FindAvailableOcclusionQueryPool();
+			}
+			ensure(Pool);
+
+			bool bResult = Pool->AcquireQuery(QueryIndex);
+			check(bResult);
+		}
+		
 		Query->SetActiveQueryIndex(QueryIndex);
 		Query->SetActiveQueryPool(Pool);
 	}
