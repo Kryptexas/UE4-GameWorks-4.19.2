@@ -214,7 +214,6 @@ public class UnrealEd : ModuleRules
 				"SourceCodeAccess",
 				"ReferenceViewer",
 				"HotReload",
-				"IOSPlatformEditor",
 				"HTML5PlatformEditor",
 				"SizeMap",
 				"PortalProxies",
@@ -226,6 +225,11 @@ public class UnrealEd : ModuleRules
 				"ClothPainter",
 			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			DynamicallyLoadedModuleNames.Add("IOSPlatformEditor");
+		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
