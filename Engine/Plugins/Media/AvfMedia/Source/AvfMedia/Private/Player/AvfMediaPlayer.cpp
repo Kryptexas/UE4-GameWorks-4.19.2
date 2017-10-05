@@ -8,6 +8,7 @@
 #include "MediaSamples.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
+#include "Misc/CoreDelegates.h"
 
 #if PLATFORM_MAC
 	#include "Mac/CocoaThread.h"
@@ -241,6 +242,18 @@ void FAvfMediaPlayer::Close()
 		return;
 	}
 
+    if (ResumeHandle.IsValid())
+    {
+        FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Remove(ResumeHandle);
+        ResumeHandle.Reset();
+    }
+    
+    if (PauseHandle.IsValid())
+    {
+        FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Remove(PauseHandle);
+        PauseHandle.Reset();
+    }
+    
 	CurrentTime = 0;
 	MediaUrl = FString();
 	
@@ -450,6 +463,18 @@ bool FAvfMediaPlayer::Open(const FString& Url, const IMediaOptions* /*Options*/)
 	MediaPlayer.rate = 0.0;
 	CurrentTime = FTimespan::Zero();
 		
+    if (!ResumeHandle.IsValid())
+    {
+        FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FAvfMediaPlayer::HandleApplicationHasEnteredForeground);
+        ResumeHandle.Reset();
+    }
+    
+    if (!PauseHandle.IsValid())
+    {
+        FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddRaw(this, &FAvfMediaPlayer::HandleApplicationWillEnterBackground);
+        PauseHandle.Reset();
+    }
+    
 	return true;
 }
 
@@ -633,4 +658,22 @@ bool FAvfMediaPlayer::SetRate(float Rate)
 	}
 
 	return true;
+}
+
+void FAvfMediaPlayer::HandleApplicationHasEnteredForeground()
+{
+    // check the state to ensure we are still playing
+    if ((CurrentState == EMediaState::Playing) && MediaPlayer != nil)
+    {
+        [MediaPlayer play];
+    }
+}
+
+void FAvfMediaPlayer::HandleApplicationWillEnterBackground()
+{
+    // check the state to ensure we are still playing
+    if ((CurrentState == EMediaState::Playing) && MediaPlayer != nil)
+    {
+        [MediaPlayer pause];
+    }
 }
