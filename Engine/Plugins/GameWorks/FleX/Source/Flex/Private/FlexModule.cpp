@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 #include "IFlexModule.h"
+#include "Interfaces/IPluginManager.h"
 
 #include "FlexManager.h"
 #include "FlexFluidSurfaceRendering.h"
@@ -25,8 +26,13 @@ IMPLEMENT_MODULE( FFlexModule, Flex )
 
 void FFlexModule::StartupModule()
 {
+	auto FlexPlugin = IPluginManager::Get().FindPlugin(TEXT("FleX"));
+	check(FlexPlugin.IsValid());
+
 	//load FlexLibrary DLLs
 	{
+		FString FlexBinariesDir = FlexPlugin->GetBaseDir() / TEXT("Binaries/ThirdParty");
+
 		auto LoadDll([](const FString& Path) -> void*
 		{
 			void* Handle = FPlatformProcess::GetDllHandle(*Path);
@@ -38,7 +44,7 @@ void FFlexModule::StartupModule()
 		});
 
 #if PLATFORM_64BITS
-		FString FlexBinariesPath = FPaths::EngineDir() / TEXT("Plugins/GameWorks/FleX/Binaries/ThirdParty/Win64/");
+		FString FlexBinariesPath = FlexBinariesDir / TEXT("Win64/");
 
 #if WITH_FLEX_CUDA
 		CudaRtHandle = LoadDll(*(FlexBinariesPath + "cudart64_80.dll"));
@@ -55,7 +61,7 @@ void FFlexModule::StartupModule()
 #endif // WITH_FLEX_DX
 
 #else 
-		FString FlexBinariesPath = FPaths::EngineDir() / TEXT("Engine/Plugins/GameWorks/FleX/Binaries/ThirdParty/Win32/");
+		FString FlexBinariesPath = FlexBinariesDir / TEXT("Win32/");
 
 #if WITH_FLEX_CUDA
 		CudaRtHandle = LoadDll(*(FlexBinariesPath + "cudart32_80.dll"));
