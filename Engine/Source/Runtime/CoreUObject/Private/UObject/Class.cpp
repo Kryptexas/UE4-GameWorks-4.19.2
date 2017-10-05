@@ -4038,16 +4038,6 @@ bool UClass::HotReloadPrivateStaticClass(
 		UE_LOG(LogClass, Error, TEXT("VTable for class %s did not change?"),*GetName());
 	}
 
-	// Mark class as no longer constructed and collapse the Children list so that it gets rebuilt
-	ClassFlags &= ~CLASS_Constructed;
-	for (UField* Child = Children; Child; )
-	{
-		UField* NextChild = Child->Next;
-		Child->Next = nullptr;
-		Child = NextChild;
-	}
-	Children = nullptr;
-
 	return true;
 }
 
