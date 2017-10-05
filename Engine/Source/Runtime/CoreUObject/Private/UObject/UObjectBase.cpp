@@ -630,10 +630,10 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 {
 	if (!bDynamic)
 	{
+		UClass* ClassToHotReload = nullptr;
 #if WITH_HOT_RELOAD
 		// Either add all classes if not hot-reloading, or those which have changed
 		TMap<FName, FFieldCompiledInInfo*>& DeferMap = GetDeferRegisterClassMap();
-		UClass* ClassToHotReload = nullptr;
 		if (GIsHotReload)
 		{
 			FFieldCompiledInInfo* FoundInfo = DeferMap.FindChecked(Name);
