@@ -50,7 +50,7 @@ static bool		GRemoteBuildConfigured = false;
 // Add (|| PLATFORM_MAC) to enable Mac to Mac remote building
 #define UNIXLIKE_TO_MAC_REMOTE_BUILDING (PLATFORM_LINUX)
 
-bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment = nullptr)
+bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 {
 	// if we have gotten an environment, then it is possible the remote server data has changed, in all other cases, it is not possible for it change
 	if (!GRemoteBuildConfigured || InEnvironment != nullptr)
