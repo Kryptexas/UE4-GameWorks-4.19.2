@@ -926,9 +926,9 @@ bool FGenericPlatformMisc::IsRunningOnBattery()
 	return false;
 }
 
-int32 FGenericPlatformMisc::GetDeviceOrientation()
+EDeviceScreenOrientation FGenericPlatformMisc::GetDeviceOrientation()
 {
-	return 0;
+	return EDeviceScreenOrientation::Unknown;
 }
 
 FGuid FGenericPlatformMisc::GetMachineId()

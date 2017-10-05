@@ -122,9 +122,28 @@ bool FIOSPlatformMisc::IsRunningOnBattery()
 	return [[IOSAppDelegate GetDelegate] IsRunningOnBattery];
 }
 
-int32 FIOSPlatformMisc::GetDeviceOrientation()
+EDeviceScreenOrientation ConvertFromUIDeviceOrientation(UIDeviceOrientation Orientation)
 {
-	return [[UIDevice currentDevice] orientation];
+	switch(Orientation)
+	{
+		default:
+		case UIDeviceOrientationUnknown : return EDeviceScreenOrientation::Unknown; break;
+		case UIDeviceOrientationPortrait : return EDeviceScreenOrientation::Portrait; break;
+		case UIDeviceOrientationPortraitUpsideDown : return EDeviceScreenOrientation::PortraitUpsideDown; break;
+		case UIDeviceOrientationLandscapeLeft : return EDeviceScreenOrientation::LandscapeLeft; break;
+		case UIDeviceOrientationLandscapeRight : return EDeviceScreenOrientation::LandscapeRight; break;
+		case UIDeviceOrientationFaceUp : return EDeviceScreenOrientation::FaceUp; break;
+		case UIDeviceOrientationFaceDown : return EDeviceScreenOrientation::FaceDown; break;
+	}
+}
+
+EDeviceScreenOrientation FIOSPlatformMisc::GetDeviceOrientation()
+{
+#if !PLATFORM_TVOS
+	return ConvertFromUIDeviceOrientation([[UIDevice currentDevice] orientation]);
+#else
+	return EDeviceScreenOrientation::Unknown;
+#endif
 }
 
 #include "ModuleManager.h"
