@@ -221,7 +221,7 @@ public:
 	// UCanvas interface.
 	
 	/** Initializes the canvas. */
-	void Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView);
+	void Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView, FCanvas* InCanvas);
 
 	virtual void BeginDestroy() override;
 

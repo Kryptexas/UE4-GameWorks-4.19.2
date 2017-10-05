@@ -1214,7 +1214,7 @@ UCanvas::UCanvas(const FObjectInitializer& ObjectInitializer)
 	FCoreDelegates::OnSafeFrameChangedEvent.AddUObject(this, &UCanvas::UpdateSafeZoneData);
 }
 
-void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
+void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView, FCanvas* InCanvas)
 {
 	HmdOrientation = FQuat::Identity;
 	SizeX = InSizeX;
@@ -1222,7 +1222,7 @@ void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
 	UnsafeSizeX = SizeX;
 	UnsafeSizeY = SizeY;
 	SceneView = InSceneView;
-	Canvas = nullptr;
+	Canvas = InCanvas;
 
 	Update();
 }
