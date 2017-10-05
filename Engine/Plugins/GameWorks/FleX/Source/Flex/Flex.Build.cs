@@ -41,7 +41,7 @@ namespace UnrealBuildTool.Rules
                     "ShaderCore",
                     "Renderer",
                     "UtilityShaders",
-                    "FLEX0",
+                    "FlexLibrary",
 					// ... add private dependencies that you statically link with here ...
 				}
 				);

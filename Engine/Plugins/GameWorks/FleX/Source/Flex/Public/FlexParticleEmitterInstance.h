@@ -43,7 +43,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 		{
 			FPhysScene* Scene = Emitter->Component->GetWorld()->GetPhysicsScene();
 
-			Container = GFlexPluginBridge->GetFlexContainer(Scene, FlexEmitter->FlexContainerTemplate);
+			Container = FFlexManager::get().GetFlexContainer(Scene, FlexEmitter->FlexContainerTemplate);
 			if (Container)
 			{
 				Container->Register(this);

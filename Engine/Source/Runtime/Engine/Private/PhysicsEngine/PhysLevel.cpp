@@ -30,13 +30,7 @@
 #endif
 
 #if WITH_FLEX
-// fwd declare error func
-//void FlexErrorFunc(NvFlexErrorSeverity level, const char* msg, const char* file, int line);
-void FlexErrorFunc(NvFlexErrorSeverity, const char* msg, const char* file, int line)
-{
-	//UE_LOG(LogFlex, Warning, TEXT("Flex Error: %s, %s:%d"), ANSI_TO_TCHAR(msg), ANSI_TO_TCHAR(file), line);
-}
-
+#include "GameWorks/IFlexPluginBridge.h"
 #endif
 
 FPhysCommandHandler * GPhysCommandHandler = NULL;
@@ -452,56 +446,20 @@ void InitGamePhys()
 void InitGamePhysPostRHI()
 {
 #if WITH_FLEX
-
-	if (!GUsingNullRHI)
+	if (GFlexPluginBridge)
 	{
-
-		NvFlexInitDesc desc;
-		memset(&desc, 0, sizeof(NvFlexInitDesc));
-		
-#if WITH_FLEX_CUDA
-		// query the CUDA device index from the NVIDIA control panel
-		int SuggestedOrdinal = NvFlexDeviceGetSuggestedOrdinal();
-
-		// create an optimized CUDA context for Flex, the context will
-		// be made current on the calling thread, note that if using
-		// GPU PhysX then it is recommended to skip this step and use
-		// the same CUDA context as PhysX
-		NvFlexDeviceCreateCudaContext(SuggestedOrdinal);
-
-		desc.computeType = eNvFlexCUDA;
-#else
-
-		static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
-		desc.computeType = bD3D12 ? eNvFlexD3D12 : eNvFlexD3D11;
-
-#endif
-
-		GFlexLib = NvFlexInit(NV_FLEX_VERSION, FlexErrorFunc, &desc);
-		
-		if (GFlexLib)
-		{
-			UE_LOG(LogInit, Display, TEXT("Initialized Flex with GPU: %s"), ANSI_TO_TCHAR(NvFlexGetDeviceName(GFlexLib)));
-		}
-	}
-
-	if (GFlexLib != NULL)
-	{
-		GFlexIsInitialized = true;
+		GFlexPluginBridge->InitGamePhysPostRHI();
 	}
 #endif // WITH_FLEX
 }
 
 void TermGamePhys()
 {
-
 #if WITH_FLEX
-	if (GFlexIsInitialized)
+	if (GFlexPluginBridge)
 	{
-		NvFlexShutdown(GFlexLib);
-
-		GFlexIsInitialized = false;
-	}		
+		GFlexPluginBridge->TermGamePhys();
+	}
 #endif // WITH_FLEX
 
 #if WITH_BOX2D

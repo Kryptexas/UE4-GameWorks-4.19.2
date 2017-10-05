@@ -5,6 +5,9 @@
 class IFlexPluginBridge
 {
 public:
+	virtual void InitGamePhysPostRHI() = 0;
+	virtual void TermGamePhys() = 0;
+
 	virtual bool HasFlexAsset(class UStaticMesh* StaticMesh) = 0;
 
 	virtual void ReImportFlexAsset(class UStaticMesh* StaticMesh) = 0;

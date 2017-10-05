@@ -11,6 +11,11 @@ FlexFluidSurfaceRendering.h: Flex fluid surface rendering definitions.
 class FFlexFluidSurfaceRenderer : public IFlexFluidSurfaceRenderer
 {
 public:
+	static FFlexFluidSurfaceRenderer& get()
+	{
+		static FFlexFluidSurfaceRenderer instance;
+		return instance;
+	}
 
 	/**
 	 * Iterates through DynamicMeshElements picking out all corresponding fluid surface proxies and storing them 

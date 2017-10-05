@@ -546,28 +546,16 @@ namespace UnrealBuildTool
 			{
 				Definitions.Add("WITH_NVCLOTH=0");
 			}
-
+//*
             if (Target.bCompileNvFlexD3D == true || Target.bCompileNvFlexCUDA == true)
             {
-                AddEngineThirdPartyPrivateStaticDependencies(Target, "FLEX0");
                 Definitions.Add("WITH_FLEX=1");
-
-                if (Target.bCompileNvFlexD3D == true)
-                {
-                    Definitions.Add("WITH_FLEX_DX=1");
-                    Definitions.Add("WITH_FLEX_CUDA=0");
-                }
-
-                if (Target.bCompileNvFlexCUDA == true)
-                {
-                    Definitions.Add("WITH_FLEX_CUDA=1");
-                    Definitions.Add("WITH_FLEX_DX=0");
-                }
             }
             else
             {
                 Definitions.Add("WITH_FLEX=0");
             }
+//*/
 		}
 
 		/// <summary>

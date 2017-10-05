@@ -1,4 +1,4 @@
-#include "FlexPluginBridge.h"
+#include "FlexManager.h"
 
 #include "FlexAsset.h"
 
@@ -13,8 +13,6 @@
 #include "Engine/StaticMesh.h"
 #include "FlexStaticMesh.h"
 
-#include "PhysicsEngine/PhysXSupport.h"
-
 #include "EngineUtils.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -24,28 +22,87 @@
 #include "FlexCollisionComponent.h"
 #include "FlexParticleEmitter.h"
 
+void FlexErrorFunc(NvFlexErrorSeverity, const char* msg, const char* file, int line)
+{
+	UE_LOG(LogFlex, Warning, TEXT("Flex Error: %s, %s:%d"), ANSI_TO_TCHAR(msg), ANSI_TO_TCHAR(file), line);
+}
 
-class UFlexAsset* FFlexPluginBridge::GetFlexAsset(class UStaticMesh* StaticMesh)
+FFlexManager::FFlexManager()
+{
+	bFlexInitialized = false;
+	FlexLib = nullptr;
+}
+
+void FFlexManager::InitGamePhysPostRHI()
+{
+	if (!GUsingNullRHI)
+	{
+		NvFlexInitDesc desc;
+		memset(&desc, 0, sizeof(NvFlexInitDesc));
+
+#if WITH_FLEX_CUDA
+		// query the CUDA device index from the NVIDIA control panel
+		int SuggestedOrdinal = NvFlexDeviceGetSuggestedOrdinal();
+
+		// create an optimized CUDA context for Flex, the context will
+		// be made current on the calling thread, note that if using
+		// GPU PhysX then it is recommended to skip this step and use
+		// the same CUDA context as PhysX
+		NvFlexDeviceCreateCudaContext(SuggestedOrdinal);
+
+		desc.computeType = eNvFlexCUDA;
+#else
+
+		static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
+		desc.computeType = bD3D12 ? eNvFlexD3D12 : eNvFlexD3D11;
+
+#endif
+		FlexLib = NvFlexInit(NV_FLEX_VERSION, FlexErrorFunc, &desc);
+		if (FlexLib)
+		{
+			UE_LOG(LogFlex, Display, TEXT("Initialized Flex with GPU: %s"), ANSI_TO_TCHAR(NvFlexGetDeviceName(FlexLib)));
+		}
+	}
+
+	if (FlexLib != nullptr)
+	{
+		bFlexInitialized = true;
+	}
+}
+
+void FFlexManager::TermGamePhys()
+{
+	if (bFlexInitialized)
+	{
+		NvFlexShutdown(FlexLib);
+		FlexLib = nullptr;
+
+		bFlexInitialized = false;
+	}
+}
+
+
+class UFlexAsset* FFlexManager::GetFlexAsset(class UStaticMesh* StaticMesh)
 {
 	UFlexStaticMesh* FSM = Cast<UFlexStaticMesh>(StaticMesh);
 	return FSM ? FSM->FlexAsset : nullptr;
 }
 
-bool FFlexPluginBridge::HasFlexAsset(class UStaticMesh* StaticMesh)
+bool FFlexManager::HasFlexAsset(class UStaticMesh* StaticMesh)
 {
-	return FFlexPluginBridge::GetFlexAsset(StaticMesh) != nullptr;
+	return FFlexManager::GetFlexAsset(StaticMesh) != nullptr;
 }
 
-void FFlexPluginBridge::ReImportFlexAsset(class UStaticMesh* StaticMesh)
+void FFlexManager::ReImportFlexAsset(class UStaticMesh* StaticMesh)
 {
-	class UFlexAsset* FlexAsset = FFlexPluginBridge::GetFlexAsset(StaticMesh);
+	class UFlexAsset* FlexAsset = FFlexManager::GetFlexAsset(StaticMesh);
 	if (FlexAsset)
 	{
 		FlexAsset->ReImport(StaticMesh);
 	}
 }
 
-class UFlexFluidSurfaceComponent* FFlexPluginBridge::GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
+class UFlexFluidSurfaceComponent* FFlexManager::GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
 {
 	check(World);
 	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
@@ -55,7 +112,7 @@ class UFlexFluidSurfaceComponent* FFlexPluginBridge::GetFlexFluidSurface(class U
 	return (Component != nullptr) ? *Component : nullptr;
 }
 
-class UFlexFluidSurfaceComponent* FFlexPluginBridge::AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
+class UFlexFluidSurfaceComponent* FFlexManager::AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
 {
 	check(World);
 	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
@@ -82,7 +139,7 @@ class UFlexFluidSurfaceComponent* FFlexPluginBridge::AddFlexFluidSurface(class U
 	}
 }
 
-void FFlexPluginBridge::RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* Component)
+void FFlexManager::RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* Component)
 {
 	check(World);
 	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
@@ -93,14 +150,14 @@ void FFlexPluginBridge::RemoveFlexFluidSurface(class UWorld* World, class UFlexF
 	Actor->Destroy();
 }
 
-void FFlexPluginBridge::TickFlexFluidSurfaceComponent(class UFlexFluidSurfaceComponent* SurfaceComponent, float DeltaTime, enum ELevelTick TickType, struct FActorComponentTickFunction *ThisTickFunction)
+void FFlexManager::TickFlexFluidSurfaceComponent(class UFlexFluidSurfaceComponent* SurfaceComponent, float DeltaTime, enum ELevelTick TickType, struct FActorComponentTickFunction *ThisTickFunction)
 {
 	SurfaceComponent->TickComponent(DeltaTime, TickType, NULL);
 }
 
-struct FFlexContainerInstance* FFlexPluginBridge::GetFlexSoftJointContainer(class FPhysScene* PhysScene, class UFlexContainer* Template)
+struct FFlexContainerInstance* FFlexManager::GetFlexSoftJointContainer(class FPhysScene* PhysScene, class UFlexContainer* Template)
 {
-	if (!GFlexIsInitialized)
+	if (!bFlexInitialized)
 	{
 		return nullptr;
 	}
@@ -118,9 +175,9 @@ struct FFlexContainerInstance* FFlexPluginBridge::GetFlexSoftJointContainer(clas
 	}
 }
 
-void FFlexPluginBridge::WaitFlexScenes(class FPhysScene* PhysScene)
+void FFlexManager::WaitFlexScenes(class FPhysScene* PhysScene)
 {
-	if (!GFlexIsInitialized)
+	if (!bFlexInitialized)
 	{
 		return;
 	}
@@ -159,9 +216,9 @@ void FFlexPluginBridge::WaitFlexScenes(class FPhysScene* PhysScene)
 	}
 }
 
-void FFlexPluginBridge::TickFlexScenes(class FPhysScene* PhysScene, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt)
+void FFlexManager::TickFlexScenes(class FPhysScene* PhysScene, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt)
 {
-	if (GPhysXSDK && GFlexIsInitialized)
+	if (GPhysXSDK && bFlexInitialized)
 	{
 		FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
@@ -172,7 +229,7 @@ void FFlexPluginBridge::TickFlexScenes(class FPhysScene* PhysScene, ENamedThread
 		if (bFlexAsync)
 		{
 			PhysSceneContext.FlexSimulateTaskRef = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FFlexPluginBridge::TickFlexScenesTask, PhysScene, dt),
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FFlexManager::TickFlexScenesTask, PhysScene, dt),
 				GET_STATID(STAT_TotalPhysicsTime));
 		}
 		else
@@ -182,7 +239,7 @@ void FFlexPluginBridge::TickFlexScenes(class FPhysScene* PhysScene, ENamedThread
 	}
 }
 
-void FFlexPluginBridge::TickFlexScenesTask(class FPhysScene* PhysScene, float dt)
+void FFlexManager::TickFlexScenesTask(class FPhysScene* PhysScene, float dt)
 {
 	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
@@ -190,7 +247,7 @@ void FFlexPluginBridge::TickFlexScenesTask(class FPhysScene* PhysScene, float dt
 	// this would be done automatically when making a Flex API call
 	// but by acquiring explicitly in advance we save some unnecessary
 	// CUDA calls to repeatedly set/unset the context
-	NvFlexAcquireContext(GFlexLib);
+	NvFlexAcquireContext(FlexLib);
 
 	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
 	{
@@ -206,12 +263,12 @@ void FFlexPluginBridge::TickFlexScenesTask(class FPhysScene* PhysScene, float dt
 		}
 	}
 
-	NvFlexRestoreContext(GFlexLib);
+	NvFlexRestoreContext(FlexLib);
 }
 
-void FFlexPluginBridge::CleanupFlexScenes(class FPhysScene* PhysScene)
+void FFlexManager::CleanupFlexScenes(class FPhysScene* PhysScene)
 {
-	if (!GFlexIsInitialized)
+	if (!bFlexInitialized)
 	{
 		return;
 	}
@@ -235,9 +292,9 @@ void FFlexPluginBridge::CleanupFlexScenes(class FPhysScene* PhysScene)
 	}
 }
 
-struct FFlexContainerInstance* FFlexPluginBridge::GetFlexContainer(class FPhysScene* PhysScene, class UFlexContainer* Template)
+struct FFlexContainerInstance* FFlexManager::GetFlexContainer(class FPhysScene* PhysScene, class UFlexContainer* Template)
 {
-	if (!GFlexIsInitialized)
+	if (!bFlexInitialized)
 	{
 		return nullptr;
 	}
@@ -263,7 +320,7 @@ struct FFlexContainerInstance* FFlexPluginBridge::GetFlexContainer(class FPhysSc
 	}
 }
 
-void FFlexPluginBridge::StartFlexRecord(class FPhysScene* PhysScene)
+void FFlexManager::StartFlexRecord(class FPhysScene* PhysScene)
 {
 #if 0
 	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
@@ -278,7 +335,7 @@ void FFlexPluginBridge::StartFlexRecord(class FPhysScene* PhysScene)
 #endif
 }
 
-void FFlexPluginBridge::StopFlexRecord(class FPhysScene* PhysScene)
+void FFlexManager::StopFlexRecord(class FPhysScene* PhysScene)
 {
 #if 0
 	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
@@ -292,7 +349,7 @@ void FFlexPluginBridge::StopFlexRecord(class FPhysScene* PhysScene)
 #endif
 }
 
-void FFlexPluginBridge::AddRadialForceToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
+void FFlexManager::AddRadialForceToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
 {
 	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
@@ -303,7 +360,7 @@ void FFlexPluginBridge::AddRadialForceToFlex(class FPhysScene* PhysScene, FVecto
 	}
 }
 
-void FFlexPluginBridge::AddRadialImpulseToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
+void FFlexManager::AddRadialImpulseToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
 {
 	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
@@ -315,7 +372,7 @@ void FFlexPluginBridge::AddRadialImpulseToFlex(class FPhysScene* PhysScene, FVec
 
 }
 
-void FFlexPluginBridge::ToggleFlexContainerDebugDraw(class UWorld* InWorld)
+void FFlexManager::ToggleFlexContainerDebugDraw(class UWorld* InWorld)
 {
 	FFlexContainerInstance::sGlobalDebugDraw = !FFlexContainerInstance::sGlobalDebugDraw;
 
@@ -324,7 +381,7 @@ void FFlexPluginBridge::ToggleFlexContainerDebugDraw(class UWorld* InWorld)
 		FlushPersistentDebugLines(InWorld);
 }
 
-void FFlexPluginBridge::AttachFlexToComponent(class USceneComponent* Component, float Radius)
+void FFlexManager::AttachFlexToComponent(class USceneComponent* Component, float Radius)
 {
 	const FVector Origin = Component->GetComponentLocation();
 
@@ -357,7 +414,7 @@ void FFlexPluginBridge::AttachFlexToComponent(class USceneComponent* Component, 
 			auto ParticleSystemComponet = Cast<UParticleSystemComponent>(ParticleComponents[ComponentIdx]);
 
 			// is this a PSC with Flex?
-			if (ParticleSystemComponet && FFlexPluginBridge::GetFirstFlexContainerTemplate(ParticleSystemComponet))
+			if (ParticleSystemComponet && FFlexManager::GetFirstFlexContainerTemplate(ParticleSystemComponet))
 			{
 				const FBoxSphereBounds FlexBounds = ParticleSystemComponet->CalcBounds(FTransform::Identity);
 
@@ -389,7 +446,7 @@ void FFlexPluginBridge::AttachFlexToComponent(class USceneComponent* Component, 
 	}
 }
 
-void FFlexPluginBridge::CreateFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance)
+void FFlexManager::CreateFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance)
 {
 	if (EmitterInstance->FlexEmitterInstance)
 	{
@@ -428,7 +485,7 @@ void FFlexPluginBridge::CreateFlexEmitterInstance(struct FParticleEmitterInstanc
 	}
 }
 
-void FFlexPluginBridge::DestroyFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance)
+void FFlexManager::DestroyFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance)
 {
 	if (EmitterInstance->FlexEmitterInstance)
 	{
@@ -458,7 +515,7 @@ void FFlexPluginBridge::DestroyFlexEmitterInstance(struct FParticleEmitterInstan
 	}
 }
 
-void FFlexPluginBridge::TickFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance, float DeltaTime, bool bSuppressSpawning)
+void FFlexManager::TickFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance, float DeltaTime, bool bSuppressSpawning)
 {
 	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
 	if (FlexEmitter == nullptr)
@@ -595,7 +652,7 @@ void FFlexPluginBridge::TickFlexEmitterInstance(struct FParticleEmitterInstance*
 	}
 }
 
-uint32 FFlexPluginBridge::GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes)
+uint32 FFlexManager::GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes)
 {
 	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
 
@@ -618,7 +675,7 @@ uint32 FFlexPluginBridge::GetFlexEmitterInstanceRequiredBytes(struct FParticleEm
 	return uiBytes;
 }
 
-bool FFlexPluginBridge::FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex)
+bool FFlexManager::FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex)
 {
 	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
 	if (FlexEmitter == nullptr)
@@ -650,7 +707,7 @@ bool FFlexPluginBridge::FlexEmitterInstanceSpawnParticle(struct FParticleEmitter
 	return true;
 }
 
-void FFlexPluginBridge::FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex)
+void FFlexManager::FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex)
 {
 	if (EmitterInstance->FlexEmitterInstance && EmitterInstance->FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{
@@ -667,7 +724,7 @@ void FFlexPluginBridge::FlexEmitterInstanceKillParticle(struct FParticleEmitterI
 	}
 }
 
-UObject* FFlexPluginBridge::GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component)
+UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component)
 {
 	for (int32 EmitterIndex = 0; EmitterIndex < Component->EmitterInstances.Num(); EmitterIndex++)
 	{
@@ -679,7 +736,7 @@ UObject* FFlexPluginBridge::GetFirstFlexContainerTemplate(class UParticleSystemC
 			{
 				FPhysScene* Scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
 
-				FFlexContainerInstance* ContainerInstance = FFlexPluginBridge::GetFlexContainer(Scene, FlexEmitter->FlexContainerTemplate);
+				FFlexContainerInstance* ContainerInstance = FFlexManager::GetFlexContainer(Scene, FlexEmitter->FlexContainerTemplate);
 				return ContainerInstance ? ContainerInstance->Template : nullptr;
 			}
 		}
@@ -687,7 +744,7 @@ UObject* FFlexPluginBridge::GetFirstFlexContainerTemplate(class UParticleSystemC
 	return nullptr;
 }
 
-UMaterialInstanceDynamic* FFlexPluginBridge::CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial)
+UMaterialInstanceDynamic* FFlexManager::CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial)
 {
 	if (!SourceMaterial)
 	{
@@ -720,7 +777,7 @@ UMaterialInstanceDynamic* FFlexPluginBridge::CreateFlexDynamicMaterialInstance(c
 					Component->FlexFluidSurfaceOverride = NewFlexFluidSurface;
 
 					// Tell the ParticleEmiterInstance to update its FlexFluidSurfaceComponent
-					FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, NewFlexFluidSurface);
+					FFlexManager::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, NewFlexFluidSurface);
 				}
 				else
 				{
@@ -734,7 +791,7 @@ UMaterialInstanceDynamic* FFlexPluginBridge::CreateFlexDynamicMaterialInstance(c
 	return NULL;
 }
 
-void FFlexPluginBridge::UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData)
+void FFlexManager::UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData)
 {
 	check(Component);
 	check(EmitterInstance);
@@ -749,7 +806,7 @@ void FFlexPluginBridge::UpdateFlexSurfaceDynamicData(class UParticleSystemCompon
 		UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : FlexFluidSurfaceTemplate;
 		if (FlexFluidSurface)
 		{
-			UFlexFluidSurfaceComponent* SurfaceComponent = FFlexPluginBridge::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
+			UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
 			check(SurfaceComponent);
 
 			SurfaceComponent->SendRenderEmitterDynamicData_Concurrent((FParticleSystemSceneProxy*)Component->SceneProxy, EmitterDynamicData);
@@ -757,7 +814,7 @@ void FFlexPluginBridge::UpdateFlexSurfaceDynamicData(class UParticleSystemCompon
 	}
 }
 
-void FFlexPluginBridge::ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component)
+void FFlexManager::ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component)
 {
 	check(Component);
 	if (Component->SceneProxy)
@@ -774,7 +831,7 @@ void FFlexPluginBridge::ClearFlexSurfaceDynamicData(class UParticleSystemCompone
 				UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : FlexFluidSurfaceTemplate;
 				if (FlexFluidSurface)
 				{
-					UFlexFluidSurfaceComponent* SurfaceComponent = FFlexPluginBridge::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
+					UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
 					if (SurfaceComponent)
 					{
 						SurfaceComponent->SendRenderEmitterDynamicData_Concurrent((FParticleSystemSceneProxy*)Component->SceneProxy, nullptr);
@@ -785,13 +842,13 @@ void FFlexPluginBridge::ClearFlexSurfaceDynamicData(class UParticleSystemCompone
 	}
 }
 
-void FFlexPluginBridge::SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable)
+void FFlexManager::SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable)
 {
 	check(Component);
 	auto FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
 	if (FlexFluidSurfaceOverride)
 	{
-		UFlexFluidSurfaceComponent* SurfaceComponent = FFlexPluginBridge::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurfaceOverride);
+		UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurfaceOverride);
 
 		check(SurfaceComponent);
 		// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
@@ -799,7 +856,7 @@ void FFlexPluginBridge::SetEnabledReferenceCounting(class UParticleSystemCompone
 	}
 }
 
-void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance)
+void FFlexManager::RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance)
 {
 	check(Component);
 	auto FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
@@ -812,13 +869,13 @@ void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(class UParticleSyst
 
 			if (FlexFluidSurfaceTemplate && FlexFluidSurfaceTemplate->Material)
 			{
-				FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexFluidSurfaceOverride);
+				FFlexManager::RegisterNewFlexFluidSurfaceComponent(EmitterInstance, FlexFluidSurfaceOverride);
 			}
 		}
 	}
 }
 
-void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface)
+void FFlexManager::RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface)
 {
 	if (EmitterInstance->FlexFluidSurfaceComponent)
 	{
@@ -833,13 +890,13 @@ void FFlexPluginBridge::RegisterNewFlexFluidSurfaceComponent(struct FParticleEmi
 	}
 }
 
-bool FFlexPluginBridge::IsValidFlexEmitter(class UParticleEmitter* Emitter)
+bool FFlexManager::IsValidFlexEmitter(class UParticleEmitter* Emitter)
 {
 	auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter);
 	return (FlexEmitter && FlexEmitter->FlexContainerTemplate);
 }
 
-class UFlexFluidSurface* FFlexPluginBridge::GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter)
+class UFlexFluidSurface* FFlexManager::GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter)
 {
 	auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter);
 	return FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;

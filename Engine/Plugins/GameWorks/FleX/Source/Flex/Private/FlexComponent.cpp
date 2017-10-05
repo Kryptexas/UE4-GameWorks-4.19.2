@@ -3,7 +3,6 @@
 #include "FlexComponent.h"
 #include "FlexStaticMesh.h"
 
-#include "PhysicsEngine/PhysXSupport.h"
 #include "StaticMeshResources.h"
 
 #include "PhysicsPublic.h"
@@ -11,7 +10,7 @@
 #include "FlexContainerInstance.h"
 #include "FlexRender.h"
 
-#include "GameWorks/IFlexPluginBridge.h"
+#include "FlexManager.h"
 
 #if STATS
 
@@ -96,7 +95,7 @@ void UFlexComponent::OnRegister()
 
 			if (PhysScene)
 			{
-				FFlexContainerInstance* Container = GFlexPluginBridge->GetFlexContainer(PhysScene, ContainerTemplate);
+				FFlexContainerInstance* Container = FFlexManager::get().GetFlexContainer(PhysScene, ContainerTemplate);
 				if (Container)
 				{
 					ContainerInstance = Container;

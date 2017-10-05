@@ -6,10 +6,10 @@
 #include "FlexAssetSoft.h"
 #include "FlexAssetPreviewComponent.h"
 
-#include "PhysicsEngine/PhysXSupport.h"
+#include "FlexManager.h"
 
 #include "StaticMeshResources.h"
-
+#include "DynamicMeshBuilder.h"
 
 UFlexAsset::UFlexAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

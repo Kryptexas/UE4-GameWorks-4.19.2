@@ -19,7 +19,7 @@ FlexFluidSurfaceComponent.cpp: Fluid surface implementation.
 
 #include "UObject/ConstructorHelpers.h"
 
-#include "GameWorks/IFlexPluginBridge.h"
+#include "FlexManager.h"
 
 /*=============================================================================
 Helper
@@ -513,7 +513,7 @@ void UFlexFluidSurfaceComponent::UnregisterEmitterInstance(struct FParticleEmitt
 		if (bReferenceCountingEnabled && EmitterInstances.Num() == 0 && GetWorld() != NULL)
 		{
 			//this will destroy the actor. 
-			GFlexPluginBridge->RemoveFlexFluidSurface(GetWorld(), this);
+			FFlexManager::get().RemoveFlexFluidSurface(GetWorld(), this);
 
 			//no other operations should go here.
 		}
@@ -527,7 +527,7 @@ void UFlexFluidSurfaceComponent::SetEnabledReferenceCounting(bool bEnable)
 	if (bReferenceCountingEnabled && EmitterInstances.Num() == 0 && GetWorld() != NULL)
 	{
 		//this will destroy the actor. 
-		GFlexPluginBridge->RemoveFlexFluidSurface(GetWorld(), this);
+		FFlexManager::get().RemoveFlexFluidSurface(GetWorld(), this);
 
 		//no other operations should go here.
 	}

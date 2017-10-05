@@ -16,7 +16,7 @@
 #include "Particles/ParticleSystemComponent.h"
 
 #include "EngineUtils.h"
-#include "GameWorks/IFlexPluginBridge.h"
+#include "FlexManager.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SOFTJOINTCOMPONENT
@@ -129,7 +129,7 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
 		if (PhysScene)
 		{
-			FFlexContainerInstance* Container = GFlexPluginBridge->GetFlexSoftJointContainer(PhysScene, ContainerTemplate);
+			FFlexContainerInstance* Container = FFlexManager::get().GetFlexSoftJointContainer(PhysScene, ContainerTemplate);
 			if (Container)
 			{
 				ContainerInstance = Container;

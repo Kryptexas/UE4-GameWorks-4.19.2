@@ -32,13 +32,6 @@
 			void* APEX_ClothingHandle = nullptr;
 		#endif  //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
-
-	#if WITH_FLEX
-		void* CudaRtHandle = 0;
-		void* FLEXCoreHandle = 0;
-		void* FLEXExtHandle = 0;
-		void* FLEXDeviceHandle = 0;
-#endif
 #endif
 
 
@@ -52,7 +45,6 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
 	FString APEXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
 	FString SharedBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
-	FString FLEXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/FLEX-1.1.0/");
 
 	#if _MSC_VER >= 1900
 		FString VSDirectory(TEXT("VS2015/"));
@@ -64,7 +56,6 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 		FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win64/") + VSDirectory);
 		FString RootAPEXPath(APEXBinariesRoot + TEXT("Win64/") + VSDirectory);
 		FString RootSharedPath(SharedBinariesRoot + TEXT("Win64/") + VSDirectory);
-		FString RootFLEXPath(FLEXBinariesRoot + TEXT("Win64/"));
 
 		FString ArchName(TEXT("_x64"));
 		FString ArchBits(TEXT("64"));
@@ -72,7 +63,6 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 		FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win32/") + VSDirectory);
 		FString RootAPEXPath(APEXBinariesRoot + TEXT("Win32/") + VSDirectory);
 		FString RootSharedPath(SharedBinariesRoot + TEXT("Win32/") + VSDirectory);
-		FString RootFLEXPath(FLEXBinariesRoot + TEXT("Win32/"));
 
 		FString ArchName(TEXT("_x86"));
 		FString ArchBits(TEXT("32"));
@@ -125,40 +115,6 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 			APEX_ClothingHandle = LoadPhysicsLibrary(RootAPEXPath + "APEX_Clothing" + APEXSuffix);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
-			
-	#if PLATFORM_64BITS
-
-		#if WITH_FLEX_CUDA
-			CudaRtHandle = LoadPhysicsLibrary(*(RootFLEXPath + "cudart64_80.dll"));
-			FLEXCoreHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexReleaseCUDA_x64.dll"));
-			FLEXExtHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexExtReleaseCUDA_x64.dll"));
-			FLEXDeviceHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexDeviceRelease_x64.dll"));
-		#endif // WITH_FLEX_CUDA
-
-		#if WITH_FLEX_DX
-			FPlatformProcess::PushDllDirectory(*RootFLEXPath);
-			FLEXCoreHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexReleaseD3D_x64.dll"));
-			FLEXExtHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexExtReleaseD3D_x64.dll"));
-			FPlatformProcess::PopDllDirectory(*RootFLEXPath);
-		#endif // WITH_FLEX_DX
-
-	#else 
-
-		#if WITH_FLEX_CUDA
-			CudaRtHandle = LoadPhysicsLibrary(*(RootFLEXPath + "cudart32_80.dll"));
-			FLEXCoreHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexReleaseCUDA_x86.dll"));
-			FLEXExtHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexExtReleaseCUDA_x86.dll"));
-			FLEXDeviceHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexDeviceRelease_x86.dll"));
-		#endif // WITH_FLEX_CUDA
-
-		#if WITH_FLEX_DX
-			FPlatformProcess::PushDllDirectory(*RootFLEXPath);
-			FLEXCoreHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexReleaseD3D_x86.dll"));
-			FLEXExtHandle = LoadPhysicsLibrary(*(RootFLEXPath + "NvFlexExtReleaseD3D_x86.dll"));
-			FPlatformProcess::PopDllDirectory();
-		#endif // WITH_FLEX_DX
-
-	#endif // PLATFORM_64BITS
 
 #elif PLATFORM_MAC
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/Mac/");
@@ -244,12 +200,6 @@ void UnloadPhysXModules()
 			FPlatformProcess::FreeDllHandle(APEX_ClothingHandle);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
-	#if WITH_FLEX
-		FPlatformProcess::FreeDllHandle(CudaRtHandle);
-		FPlatformProcess::FreeDllHandle(FLEXCoreHandle);
-		FPlatformProcess::FreeDllHandle(FLEXExtHandle);
-		FPlatformProcess::FreeDllHandle(FLEXDeviceHandle);
-	#endif // WITH_FLEX
 #endif
 }
 

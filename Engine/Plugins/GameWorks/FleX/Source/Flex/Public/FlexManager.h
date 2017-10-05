@@ -2,11 +2,30 @@
 
 #include "GameWorks/IFlexPluginBridge.h"
 
-class FFlexPluginBridge : public IFlexPluginBridge
-{
-	static class UFlexAsset* GetFlexAsset(class UStaticMesh* StaticMesh);
+#include "NvFlex.h"
+#include "NvFlexExt.h"
+#include "NvFlexDevice.h"
 
+
+class FFlexManager : public IFlexPluginBridge
+{
 public:
+	static FFlexManager& get()
+	{
+		static FFlexManager instance;
+		return instance;
+	}
+
+	NvFlexLibrary* GetFlexLib() { return FlexLib; }
+
+
+	FFlexManager();
+	virtual ~FFlexManager() {}
+
+	// IFlexPluginBridge impl.
+	virtual void InitGamePhysPostRHI();
+	virtual void TermGamePhys();
+
 	virtual bool HasFlexAsset(class UStaticMesh* StaticMesh);
 
 	virtual void ReImportFlexAsset(class UStaticMesh* StaticMesh);
@@ -58,12 +77,17 @@ public:
 	virtual bool IsValidFlexEmitter(class UParticleEmitter* Emitter);
 	virtual class UFlexFluidSurface* GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter);
 
-	virtual ~FFlexPluginBridge() {}
 
 private:
 	void TickFlexScenesTask(class FPhysScene* PhysScene, float dt);
 
+	static class UFlexAsset* GetFlexAsset(class UStaticMesh* StaticMesh);
+
 private:
+
+	bool bFlexInitialized;
+	NvFlexLibrary* FlexLib;
+
 	/** Map from Flex fluid surface template to fluid surface components*/
 	typedef TMap<class UFlexFluidSurface*, class UFlexFluidSurfaceComponent*> FFlexFuildSurfaceMap;
 	TMap<TWeakObjectPtr<UWorld>, FFlexFuildSurfaceMap> WorldMap;

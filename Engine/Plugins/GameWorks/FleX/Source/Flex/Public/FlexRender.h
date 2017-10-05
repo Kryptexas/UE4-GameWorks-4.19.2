@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PhysicsEngine/PhysXSupport.h"
+#include "FlexManager.h"
 #include "StaticMeshResources.h"
 
 // if true GPU skinning will be used for soft bodies on SM4+ devices

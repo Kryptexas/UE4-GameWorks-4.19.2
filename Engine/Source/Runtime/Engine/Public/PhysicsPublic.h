@@ -125,12 +125,6 @@ extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 
 #endif // WITH_PHYSX
 
-#if WITH_FLEX
-class UFlexContainer;
-struct FFlexContainerInstance;
-extern ENGINE_API bool GFlexIsInitialized;
-#endif
-
 /** Information about a specific object involved in a rigid body collision */
 struct ENGINE_API FRigidBodyCollisionInfo
 {

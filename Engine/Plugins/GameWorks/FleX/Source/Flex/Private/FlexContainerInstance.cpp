@@ -3,10 +3,11 @@
 #include "FlexContainerInstance.h"
 #include "FlexCollisionComponent.h"
 
-#include "DrawDebugHelpers.h"
-#include "PhysicsEngine/PhysXSupport.h"
-#include "PhysXPublic.h"
+#include "FlexManager.h"
 
+#include "PhysXPublic.h"
+#include "Physics/PhysicsFiltering.h"
+#include "DrawDebugHelpers.h"
 
 bool FFlexContainerInstance::sGlobalDebugDraw = false;
 
@@ -106,7 +107,7 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 	if (Mesh)
 	{
 		// destroy and remove from cache
-		NvFlexDestroyTriangleMesh(GFlexLib, *Mesh);
+		NvFlexDestroyTriangleMesh(FFlexManager::get().GetFlexLib(), *Mesh);
 		TriangleMeshes.Remove(observed);
 
 		DEC_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount);
@@ -117,7 +118,7 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 	if (Convex)
 	{
 		// destroy and remove from cache
-		NvFlexDestroyConvexMesh(GFlexLib, *Convex);
+		NvFlexDestroyConvexMesh(FFlexManager::get().GetFlexLib(), *Convex);
 		ConvexMeshes.Remove(observed);
 
 		DEC_DWORD_STAT(STAT_Flex_StaticConvexMeshCount);
@@ -143,7 +144,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeigh
 	}
 	else
 	{
-		NvFlexTriangleMeshId NewMesh = NvFlexCreateTriangleMesh(GFlexLib);
+		NvFlexTriangleMeshId NewMesh = NvFlexCreateTriangleMesh(FFlexManager::get().GetFlexLib());
 
 		// clear temporary arrays for building trimesh data
 		TriMeshVerts.map();
@@ -210,7 +211,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeigh
 		TriMeshVerts.unmap();
 		TriMeshIndices.unmap();
 
-		NvFlexUpdateTriangleMesh(GFlexLib, NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
+		NvFlexUpdateTriangleMesh(FFlexManager::get().GetFlexLib(), NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
 
 		// add to cache
 		TriangleMeshes.Add((void*)HeightField, NewMesh);
@@ -233,7 +234,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTrian
 	}
 	else
 	{
-		NvFlexTriangleMeshId NewMesh = NvFlexCreateTriangleMesh(GFlexLib);
+		NvFlexTriangleMeshId NewMesh = NvFlexCreateTriangleMesh(FFlexManager::get().GetFlexLib());
 
 		int32 NumVerts = TriMesh->getNbVertices();
 		int32 NumIndices = TriMesh->getNbTriangles()*3;
@@ -270,7 +271,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTrian
 
 		PxBounds3 LocalBounds = TriMesh->getLocalBounds();
 
-		NvFlexUpdateTriangleMesh(GFlexLib, NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
+		NvFlexUpdateTriangleMesh(FFlexManager::get().GetFlexLib(), NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
 
 		// add to cache
 		TriangleMeshes.Add((void*)TriMesh, NewMesh);
@@ -294,7 +295,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexM
 	}
 	else
 	{
-		NvFlexConvexMeshId NewMesh = NvFlexCreateConvexMesh(GFlexLib);
+		NvFlexConvexMeshId NewMesh = NvFlexCreateConvexMesh(FFlexManager::get().GetFlexLib());
 
 		ConvexMeshPlanes.map();
 		ConvexMeshPlanes.resize(0);
@@ -315,7 +316,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexM
 
 		PxBounds3 ConvexBounds = ConvexMesh->getLocalBounds();
 		
-		NvFlexUpdateConvexMesh(GFlexLib, NewMesh, ConvexMeshPlanes.buffer, ConvexMeshPlanes.size(), &ConvexBounds.minimum.x, &ConvexBounds.maximum.x);
+		NvFlexUpdateConvexMesh(FFlexManager::get().GetFlexLib(), NewMesh, ConvexMeshPlanes.buffer, ConvexMeshPlanes.size(), &ConvexBounds.minimum.x, &ConvexBounds.maximum.x);
 
 		ConvexMeshes.Add((void*)ConvexMesh, NewMesh);
 
@@ -745,22 +746,22 @@ void FFlexContainerInstance::UpdateCollisionData()
 
 FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhysScene* OwnerScene)
 	: Bounds(FVector(0.0f), FVector(0.0f), 0.0f),
-	Anisotropy1(GFlexLib),
-	Anisotropy2(GFlexLib),
-	Anisotropy3(GFlexLib),
-	SmoothPositions(GFlexLib),
-	ShapeGeometry(GFlexLib),
-	ShapeFlags(GFlexLib),
-	ShapePositions(GFlexLib),
-	ShapeRotations(GFlexLib),
-	ShapePositionsPrev(GFlexLib),
-	ShapeRotationsPrev(GFlexLib),
-	TriMeshVerts(GFlexLib),
-	TriMeshIndices(GFlexLib),
-	ConvexMeshPlanes(GFlexLib),
-	ContactIndices(GFlexLib),
-	ContactVelocities(GFlexLib),
-	ContactCounts(GFlexLib)
+	Anisotropy1(FFlexManager::get().GetFlexLib()),
+	Anisotropy2(FFlexManager::get().GetFlexLib()),
+	Anisotropy3(FFlexManager::get().GetFlexLib()),
+	SmoothPositions(FFlexManager::get().GetFlexLib()),
+	ShapeGeometry(FFlexManager::get().GetFlexLib()),
+	ShapeFlags(FFlexManager::get().GetFlexLib()),
+	ShapePositions(FFlexManager::get().GetFlexLib()),
+	ShapeRotations(FFlexManager::get().GetFlexLib()),
+	ShapePositionsPrev(FFlexManager::get().GetFlexLib()),
+	ShapeRotationsPrev(FFlexManager::get().GetFlexLib()),
+	TriMeshVerts(FFlexManager::get().GetFlexLib()),
+	TriMeshIndices(FFlexManager::get().GetFlexLib()),
+	ConvexMeshPlanes(FFlexManager::get().GetFlexLib()),
+	ContactIndices(FFlexManager::get().GetFlexLib()),
+	ContactVelocities(FFlexManager::get().GetFlexLib()),
+	ContactCounts(FFlexManager::get().GetFlexLib())
 {
 	INC_DWORD_STAT(STAT_Flex_ContainerCount);
 
@@ -777,8 +778,8 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
     SolverDesc.maxDiffuseParticles = 0;
     SolverDesc.featureMode = eNvFlexFeatureModeDefault;
 
-    Solver = NvFlexCreateSolver(GFlexLib, &SolverDesc);
-    Container = NvFlexExtCreateContainer(GFlexLib, Solver, Template->MaxParticles);
+    Solver = NvFlexCreateSolver(FFlexManager::get().GetFlexLib(), &SolverDesc);
+    Container = NvFlexExtCreateContainer(FFlexManager::get().GetFlexLib(), Solver, Template->MaxParticles);
 
 	ForceFieldCallback = NvFlexExtCreateForceFieldCallback(Solver);
 	
@@ -834,14 +835,14 @@ FFlexContainerInstance::~FFlexContainerInstance()
 	// destroy any remaining cached triangle meshes
 	for (auto It = TriangleMeshes.CreateIterator(); It; ++It)
 	{
-		NvFlexDestroyTriangleMesh(GFlexLib, It->Value);
+		NvFlexDestroyTriangleMesh(FFlexManager::get().GetFlexLib(), It->Value);
 	}
 
 	TriangleMeshes.Reset();
 
 	for (auto It = ConvexMeshes.CreateIterator(); It; ++It)
 	{
-		NvFlexDestroyConvexMesh(GFlexLib, It->Value);
+		NvFlexDestroyConvexMesh(FFlexManager::get().GetFlexLib(), It->Value);
 	}
 
 	ConvexMeshes.Reset();
@@ -1134,7 +1135,7 @@ void FFlexContainerInstance::Simulate(float DeltaTime)
 	}
 
 	// ensure copies have been kicked off
-	NvFlexFlush(GFlexLib);
+	NvFlexFlush(FFlexManager::get().GetFlexLib());
 
 	SET_DWORD_STAT(STAT_Flex_ForceFieldCount, ForceFields.Num());
 
@@ -1307,7 +1308,7 @@ void FFlexContainerInstance::DebugDraw()
 				int ConvexMeshId = Geo.convexMesh.mesh;
 
 				FVector Lower, Upper;
-				NvFlexGetConvexMeshBounds(GFlexLib, ConvexMeshId, &Lower.X, &Upper.X);
+				NvFlexGetConvexMeshBounds(FFlexManager::get().GetFlexLib(), ConvexMeshId, &Lower.X, &Upper.X);
 
 				FVector Scale = (FVector&)Geo.convexMesh.scale;
 				Lower *= Scale;
@@ -1360,9 +1361,9 @@ void FFlexContainerInstance::DebugDraw()
 		for (int32 i = 0; i < NumActive; ++i)
 			DrawDebugPoint(Owner->GetOwningWorld(), Particles[ActiveIndices[i]], 10.0f, Colors[Phases[ActiveIndices[i]]%8], true);
 
-		NvFlexVector<FPlane> TmpContactPlanes(GFlexLib, Template->MaxParticles*MaxContactsPerParticle);
-		NvFlexVector<int32> TmpContactIndices(GFlexLib, Template->MaxParticles);
-		NvFlexVector<uint32> TmpContactCounts(GFlexLib, Template->MaxParticles);
+		NvFlexVector<FPlane> TmpContactPlanes(FFlexManager::get().GetFlexLib(), Template->MaxParticles*MaxContactsPerParticle);
+		NvFlexVector<int32> TmpContactIndices(FFlexManager::get().GetFlexLib(), Template->MaxParticles);
+		NvFlexVector<uint32> TmpContactCounts(FFlexManager::get().GetFlexLib(), Template->MaxParticles);
 	
 		NvFlexGetContacts(Solver, TmpContactPlanes.buffer, NULL, TmpContactIndices.buffer, TmpContactCounts.buffer);
 

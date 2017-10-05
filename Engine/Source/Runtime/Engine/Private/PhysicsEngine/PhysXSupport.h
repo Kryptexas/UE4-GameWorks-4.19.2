@@ -13,12 +13,6 @@
 #include "Containers/Queue.h"
 #include "Physics/PhysicsFiltering.h"
 
-#if WITH_FLEX
-#include "NvFlex.h"
-#include "NvFlexExt.h"
-#include "NvFlexDevice.h"
-#endif // #if WITH_FLEX
-
 class UBodySetup;
 class UPhysicalMaterial;
 struct FByteBulkData;
@@ -156,10 +150,6 @@ extern ENGINE_API TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 
 /** Array of PxMaterial objects which are awaiting cleaning up. */
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;
-
-#if WITH_FLEX
-extern ENGINE_API NvFlexLibrary*				GFlexLib;
-#endif
 
 #if WITH_PHYSX
 extern const physx::PxQuat U2PSphylBasis;
