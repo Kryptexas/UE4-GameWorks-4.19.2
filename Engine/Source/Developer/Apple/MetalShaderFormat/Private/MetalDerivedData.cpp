@@ -11,7 +11,7 @@
 #include "Misc/Paths.h"
 #include "Misc/Compression.h"
 
-extern bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment = 0);
+extern bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment = nullptr);
 extern bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr);
 extern FString GetXcodePath();
 extern FString GetMetalStdLibPath(FString const& PlatformPath);
