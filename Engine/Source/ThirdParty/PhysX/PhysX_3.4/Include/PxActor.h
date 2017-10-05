@@ -374,7 +374,7 @@ protected:
 	PX_INLINE					PxActor(PxBaseFlags baseFlags) : PxBase(baseFlags) {}
 	virtual						~PxActor()	{}
 
-#if __EMSCRIPTEN__
+#if PX_EMSCRIPTEN
 public:
 #endif
 	virtual		bool			isKindOf(const char* name)	const		{	return !::strcmp("PxActor", name) || PxBase::isKindOf(name); }

@@ -293,7 +293,7 @@ protected:
 	PX_INLINE					PxRigidActor(PxBaseFlags baseFlags) : PxActor(baseFlags) {}
 	virtual						~PxRigidActor()	{}
 
-#if __EMSCRIPTEN__
+#if PX_EMSCRIPTEN
 public:
 #endif
 	virtual		bool			isKindOf(const char* name)	const	{	return !::strcmp("PxRigidActor", name) || PxActor::isKindOf(name); }
