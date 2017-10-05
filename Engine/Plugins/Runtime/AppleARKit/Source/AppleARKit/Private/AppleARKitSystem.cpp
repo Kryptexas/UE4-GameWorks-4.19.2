@@ -40,6 +40,17 @@ private:
 		if (ARKitSystem.GameThreadFrame.IsValid())
 		{
 			InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen(EAppleARKitBackgroundFitMode::Fill);
+			
+			// @todo arkit : account for different aspect ratio when in portrait mode
+//			if (ARKitSystem.DeviceOrientation == EScreenOrientation::Portrait || ARKitSystem.DeviceOrientation == EScreenOrientation::PortraitUpsideDown)
+//			{
+//				InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen_Portrait(EAppleARKitBackgroundFitMode::Fill);
+//			}
+//			else
+//			{
+//				// Assume landscape
+//				InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen(EAppleARKitBackgroundFitMode::Fill);
+//			}
 		}
 	}
 	
@@ -119,6 +130,7 @@ private:
 
 FAppleARKitSystem::FAppleARKitSystem()
 : DeviceOrientation(EScreenOrientation::Unknown)
+, DerivedTrackingToUnrealRotation(FRotator::ZeroRotator)
 {
 	// See Initialize(), as we have access to SharedThis()
 }
@@ -160,30 +172,9 @@ bool FAppleARKitSystem::GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FV
 {
 	if (DeviceId == IXRTrackingSystem::HMDDeviceId && GameThreadFrame.IsValid())
 	{
-		// We rotate the camera to counteract the portrait vs. landscape viewport rotation
-		FRotator DeviceRot = FRotator::ZeroRotator;
-		switch (DeviceOrientation)
-		{
-			case EScreenOrientation::Portrait:
-				DeviceRot = FRotator(0.0f, 0.0f, -90.0f);
-				break;
-
-			case EScreenOrientation::PortraitUpsideDown:
-				DeviceRot = FRotator(0.0f, 0.0f, 90.0f);
-				break;
-
-			default:
-			case EScreenOrientation::LandscapeLeft:
-				break;
-
-			case EScreenOrientation::LandscapeRight:
-				DeviceRot = FRotator(0.0f, 0.0f, 180.0f);
-				break;
-		};
-		
 		// Do not have to lock here, because we are on the game
 		// thread and GameThreadFrame is only written to from the game thread.
-		OutOrientation = GameThreadFrame->Camera.Orientation * DeviceRot.Quaternion();
+		OutOrientation = GameThreadFrame->Camera.Orientation * DerivedTrackingToUnrealRotation.Quaternion();
 		OutPosition = GameThreadFrame->Camera.Translation;
 		
 		return true;
@@ -211,12 +202,37 @@ bool FAppleARKitSystem::EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTr
 	return false;
 }
 
+FRotator DeriveTrackingToWorldRotation( EScreenOrientation::Type DeviceOrientation )
+{
+	// We rotate the camera to counteract the portrait vs. landscape viewport rotation
+	FRotator DeviceRot = FRotator::ZeroRotator;
+	switch (DeviceOrientation)
+	{
+		case EScreenOrientation::Portrait:
+			DeviceRot = FRotator(0.0f, 0.0f, -90.0f);
+			break;
+			
+		case EScreenOrientation::PortraitUpsideDown:
+			DeviceRot = FRotator(0.0f, 0.0f, 90.0f);
+			break;
+			
+		default:
+		case EScreenOrientation::LandscapeLeft:
+			break;
+			
+		case EScreenOrientation::LandscapeRight:
+			DeviceRot = FRotator(0.0f, 0.0f, 180.0f);
+			break;
+	};
+	
+	return DeviceRot;
+}
 
 void FAppleARKitSystem::RefreshPoses()
 {
 	if (DeviceOrientation == EScreenOrientation::Unknown)
 	{
-		DeviceOrientation = static_cast<EScreenOrientation::Type>(FPlatformMisc::GetDeviceOrientation());
+		SetDeviceOrientation( static_cast<EScreenOrientation::Type>(FPlatformMisc::GetDeviceOrientation()) );
 	}
 	
 	{
@@ -335,6 +351,24 @@ bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, 
 		
 		// Convert the screen position to normalised coordinates in the capture image space
 		FVector2D NormalizedImagePosition = FAppleARKitCamera( HitTestFrame.camera ).GetImageCoordinateForScreenPosition( ScreenPosition, EAppleARKitBackgroundFitMode::Fill );
+		switch (DeviceOrientation)
+		{
+			case EScreenOrientation::Portrait:
+				NormalizedImagePosition = FVector2D( NormalizedImagePosition.Y, 1.0f - NormalizedImagePosition.X );
+				break;
+				
+			case EScreenOrientation::PortraitUpsideDown:
+				NormalizedImagePosition = FVector2D( 1.0f - NormalizedImagePosition.Y, NormalizedImagePosition.X );
+				break;
+				
+			default:
+			case EScreenOrientation::LandscapeLeft:
+				break;
+				
+			case EScreenOrientation::LandscapeRight:
+				NormalizedImagePosition = FVector2D(1.0f, 1.0f) - NormalizedImagePosition;
+				break;
+		};
 		
 		// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Hit Test At Screen Position: x: %f, y: %f"), NormalizedImagePosition.X, NormalizedImagePosition.Y));
 		
@@ -422,6 +456,12 @@ bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, 
 #endif // ARKIT_SUPPORT
 	
 	return (OutResults.Num() > 0);
+}
+
+void FAppleARKitSystem::SetDeviceOrientation( EScreenOrientation::Type InOrientation )
+{
+	DeviceOrientation = InOrientation;
+	DerivedTrackingToUnrealRotation = DeriveTrackingToWorldRotation( InOrientation );
 }
 
 
@@ -544,7 +584,7 @@ bool FAppleARKitSystem::Pause()
 void FAppleARKitSystem::OrientationChanged(const int32 NewOrientationRaw)
 {
 	const EScreenOrientation::Type NewOrientation = static_cast<EScreenOrientation::Type>(NewOrientationRaw);
-	DeviceOrientation = NewOrientation;
+	SetDeviceOrientation(NewOrientation);
 }
 						
 void FAppleARKitSystem::SessionDidUpdateFrame_DelegateThread(TSharedPtr< FAppleARKitFrame, ESPMode::ThreadSafe > Frame)

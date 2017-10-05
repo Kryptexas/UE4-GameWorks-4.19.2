@@ -94,8 +94,13 @@ private:
 	
 	bool bIsRunning = false;
 	
+	void SetDeviceOrientation( EScreenOrientation::Type InOrientation );
+	
 	/** The orientation of the device; see EScreenOrientation */
 	EScreenOrientation::Type DeviceOrientation;
+	
+	/** A rotation from ARKit TrackingSpace to Unreal Space. It is re-derived based on other parameters; users should not set it directly. */
+	FRotator DerivedTrackingToUnrealRotation;
 	
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
