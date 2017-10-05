@@ -94,7 +94,7 @@ private:
 	
 	virtual void PostRenderMobileBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override
 	{
-		VideoOverlay.RenderVideoOverlay_RenderThread(RHICmdList, InView);
+		VideoOverlay.RenderVideoOverlay_RenderThread(RHICmdList, InView, ARKitSystem.DeviceOrientation);
 		
 		FDefaultXRCamera::PostRenderMobileBasePass_RenderThread(RHICmdList, InView);
 	}
