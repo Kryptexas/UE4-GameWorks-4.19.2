@@ -19,7 +19,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
     FrameRateLock = EPowerUsageFrameRateLock::PUFRL_30;
 	bSupportsIPad = true;
 	bSupportsIPhone = true;
-	MinimumiOSVersion = EIOSVersion::IOS_8;
+	MinimumiOSVersion = EIOSVersion::IOS_9;
 	EnableRemoteShaderCompile = false;
 	bGeneratedSYMFile = false;
 	bGeneratedSYMBundle = false;
@@ -163,7 +163,7 @@ void UIOSRuntimeSettings::PostInitProperties()
 	{
 		bShipForArmV7S = false;
 	}
-	if (!bSupportsMetal)
+	if (!bSupportsMetal && !bSupportsMetalMRT)
 	{
 		bSupportsMetal = true;
 	}
