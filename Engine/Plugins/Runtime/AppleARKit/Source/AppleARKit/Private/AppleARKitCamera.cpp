@@ -70,6 +70,24 @@ float FAppleARKitCamera::GetVerticalFieldOfView() const
 		: 0.0f;
 }
 
+float FAppleARKitCamera::GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode ) const
+{
+	// Use the global viewport size as the screen size
+	FVector2D ViewportSize;
+	GEngine->GameViewport->GetViewportSize( ViewportSize );
+	
+	return GetHorizontalFieldOfViewForScreen( BackgroundFitMode, ViewportSize.X, ViewportSize.Y );
+}
+
+float FAppleARKitCamera::GetHorizontalFieldOfViewForScreen_Portrait( EAppleARKitBackgroundFitMode BackgroundFitMode ) const
+{
+	// Use the global viewport size as the screen size
+	FVector2D ViewportSize;
+	GEngine->GameViewport->GetViewportSize( ViewportSize );
+	
+	return GetHorizontalFieldOfViewForScreen( BackgroundFitMode, ViewportSize.Y, ViewportSize.X );
+}
+
 float FAppleARKitCamera::GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const
 {
 	// Sanity check?

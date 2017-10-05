@@ -99,14 +99,10 @@ struct APPLEARKIT_API FAppleARKitCamera
 	float GetVerticalFieldOfView() const;
 
 	/** Returns the effective horizontal field of view for the screen dimensions and fit mode in those dimensions */
-	float GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode ) const
-	{
-		// Use the global viewport size as the screen size
-		FVector2D ViewportSize;
-		GEngine->GameViewport->GetViewportSize( ViewportSize );
-
-		return GetHorizontalFieldOfViewForScreen( BackgroundFitMode, ViewportSize.X, ViewportSize.Y );
-	}
+	float GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode ) const;
+	
+	/** Returns the effective horizontal field of view for the screen when a device is in portrait mode */
+	float GetHorizontalFieldOfViewForScreen_Portrait( EAppleARKitBackgroundFitMode BackgroundFitMode ) const;
 
 	/** Returns the effective horizontal field of view for the screen dimensions and fit mode in those dimensions */
 	float GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const;
