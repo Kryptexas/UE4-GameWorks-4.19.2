@@ -13,7 +13,7 @@
 #include "Serialization/Archive.h"
 #include "ConfigCacheIni.h"
 
-extern bool IsRemoteBuildingConfigured();
+extern bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment = 0);
 extern uint16 GetXcodeVersion(uint64& BuildVersion);
 extern bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool const bNative);
 extern uint64 AppendShader_Metal(class FName const& Format, class FString const& ArchivePath, const FSHAHash& Hash, TArray<uint8>& Code);

@@ -2823,6 +2823,22 @@ void GlobalBeginCompileShader(
 		{
 			Input.Environment.CompilerFlags.Add(CFLAG_Debug);
 		}
+		else
+		{
+			// populate the data in the shader input environment
+			FString RemoteServer;
+			FString UserName;
+			FString SSHKey;
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), RemoteServer, GEngineIni);
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RSyncUsername"), UserName, GEngineIni);
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("SSHPrivateKeyOverridePath"), SSHKey, GEngineIni);
+			Input.Environment.RemoteServerData.Add(TEXT("RemoteServerName"), RemoteServer);
+			Input.Environment.RemoteServerData.Add(TEXT("RSyncUsername"), UserName);
+			if (SSHKey.Len() > 0)
+			{
+				Input.Environment.RemoteServerData.Add(TEXT("SSHPrivateKeyOverridePath"), SSHKey);
+			}
+		}
 		
 		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
 		bool bArchive = false;
