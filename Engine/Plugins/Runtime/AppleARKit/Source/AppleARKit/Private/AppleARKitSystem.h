@@ -7,6 +7,7 @@
 #include "ARHitTestingSupport.h"
 #include "ARTrackingQuality.h"
 #include "AppleARKitHitTestResult.h"
+#include "Kismet/BlueprintPlatformLibrary.h"
 
 // ARKit
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
@@ -26,6 +27,7 @@ class FAppleARKitSystem : public FXRTrackingSystemBase, public IARHitTestingSupp
 	
 public:
 	FAppleARKitSystem();
+	void Initialize();
 	~FAppleARKitSystem();
 	
 	/** Thread safe anchor map getter */
@@ -59,6 +61,7 @@ private:
 	bool RunWithConfiguration(const FAppleARKitConfiguration& InConfiguration);
 	bool IsRunning() const;
 	bool Pause();
+	void OrientationChanged(const int32 NewOrientation);
 	
 public:
 	// Session delegate callbacks
@@ -90,6 +93,9 @@ public:
 private:
 	
 	bool bIsRunning = false;
+	
+	/** The orientation of the device; see EScreenOrientation */
+	EScreenOrientation::Type DeviceOrientation;
 	
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
