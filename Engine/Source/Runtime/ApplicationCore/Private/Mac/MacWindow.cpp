@@ -34,7 +34,6 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 	OwningApplication = Application;
 	Definition = InDefinition;
-	ParentWindow = InParent;
 
 	// Finally, let's initialize the new native window object.  Calling this function will often cause OS
 	// window messages to be sent! (such as activation messages)
@@ -254,6 +253,8 @@ void FMacWindow::BringToFront( bool bForce )
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:IsRegularWindow() andKey:IsRegularWindow()];
 		}, UE4ShowEventMode, true);
+
+		MacApplication->OnWindowOrderedFront(SharedThis(this));
 	}
 }
 
@@ -335,6 +336,10 @@ void FMacWindow::Show()
 			// Tell MacApplication to send window deactivate and activate messages to Slate without waiting for Cocoa events.
 			MacApplication->OnWindowActivated(SharedThis(this));
 		}
+		else
+		{
+			MacApplication->OnWindowOrderedFront(SharedThis(this));
+		}
 
 		bIsVisible = true;
 	}
@@ -411,6 +416,8 @@ void FMacWindow::SetWindowFocus()
 		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle orderFrontAndMakeMain:true andKey:true];
 	}, UE4ShowEventMode, true);
+
+	MacApplication->OnWindowOrderedFront(SharedThis(this));
 }
 
 void FMacWindow::SetOpacity( const float InOpacity )
@@ -657,7 +664,7 @@ void FMacWindow::UpdateFullScreenState(bool bToggleFullScreen)
 			}
 			[NSApp setPresentationOptions:NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar];
 		}
-		else
+		else if (WindowHandle.level != WindowedModeSavedState.WindowLevel)
 		{
 			[WindowHandle setLevel:WindowedModeSavedState.WindowLevel];
 			[NSApp setPresentationOptions:NSApplicationPresentationDefault];

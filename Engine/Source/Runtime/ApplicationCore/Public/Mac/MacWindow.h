@@ -77,8 +77,6 @@ public:
 
 	bool IsRegularWindow() const;
 
-	TWeakPtr<FMacWindow> GetParentWindow() const { return ParentWindow; }
-
 	int32 PositionX;
 	int32 PositionY;
 
@@ -101,8 +99,6 @@ private:
 
 	/** Mac window handle */
 	FCocoaWindow* WindowHandle;
-
-	TWeakPtr<FMacWindow> ParentWindow;
 
 	CGDirectDisplayID DisplayID;
 

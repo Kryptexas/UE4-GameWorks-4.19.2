@@ -1099,7 +1099,7 @@ bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 	SCOPED_AUTORELEASE_POOL;
 
 	FCocoaWindow* WindowHandle = DestroyedWindow->GetWindowHandle();
-	const bool bDestroyingMainWindow = WindowHandle.mainWindow;
+	const bool bDestroyingMainWindow = DestroyedWindow == ActiveWindow;
 
 	if (bDestroyingMainWindow)
 	{
@@ -1113,44 +1113,29 @@ bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 		WindowsToClose.Add(WindowHandle);
 	}
 
+	TSharedPtr<FMacWindow> WindowToActivate;
+
 	if (bDestroyingMainWindow)
 	{
-		// Figure out which window will now become active and let Slate know without waiting for Cocoa events. Try destroyed window's parent first,
-		// but if there's no parent or it cannot be used, try to find the best window to activate.
-		TWeakPtr<FMacWindow> ParentWindow = DestroyedWindow->GetParentWindow();
-		if (ParentWindow.IsValid() && !WindowsToClose.Contains(ParentWindow.Pin()->GetWindowHandle()) && [ParentWindow.Pin()->GetWindowHandle() canBecomeMainWindow])
+		FScopeLock Lock(&WindowsMutex);
+		// Figure out which window will now become active and let Slate know without waiting for Cocoa events.
+		// Ignore notification windows as Slate keeps bringing them to front and while they technically can be main windows,
+		// trying to activate them would result in Slate dismissing menus.
+		for (int32 Index = 0; Index < Windows.Num(); ++Index)
 		{
-			OnWindowActivationChanged(ParentWindow.Pin().ToSharedRef(), EWindowActivation::Activate);
-			ParentWindow.Pin()->SetWindowFocus();
-		}
-		else
-		{
-			NSArray* AllWindows = [NSApp orderedWindows];
-			uint32 DestroyedWindowIndex = 0;
-			for (uint32 Index = 0; Index < AllWindows.count; Index++)
+			TSharedRef<FMacWindow> WindowRef = Windows[Index];
+			if (!WindowsToClose.Contains(WindowRef->GetWindowHandle()) && [WindowRef->GetWindowHandle() canBecomeMainWindow] && WindowRef->GetDefinition().Type != EWindowType::Notification)
 			{
-				if (WindowHandle == [AllWindows objectAtIndex:Index])
-				{
-					DestroyedWindowIndex = Index;
-					break;
-				}
+				WindowToActivate = WindowRef;
+				break;
 			}
+		}
+	}
 
-			for (uint32 Index = DestroyedWindowIndex + 1; Index < AllWindows.count; Index++)
-			{
-				NSWindow* Window = (NSWindow*)[AllWindows objectAtIndex:Index];
-				if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeMainWindow])
-				{
-					TSharedPtr<FMacWindow> WindowToActivate = FindWindowByNSWindow((FCocoaWindow*)Window);
-					if (WindowToActivate.IsValid())
-					{
-						OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
-						WindowToActivate->SetWindowFocus();
-						break;
-					}
-				}
-			}
-		}
+	if (WindowToActivate.IsValid())
+	{
+		OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
+		WindowToActivate->SetWindowFocus();
 	}
 
 	return true;
@@ -1163,6 +1148,24 @@ void FMacApplication::OnWindowActivated(TSharedRef<FMacWindow> Window)
 		OnWindowActivationChanged(ActiveWindow.ToSharedRef(), EWindowActivation::Deactivate);
 	}
 	OnWindowActivationChanged(Window, EWindowActivation::Activate);
+}
+
+void FMacApplication::OnWindowOrderedFront(TSharedRef<FMacWindow> Window)
+{
+	// Sort Windows array so that the order is the same as on screen
+	TArray<TSharedRef<FMacWindow>> NewWindowsArray;
+	NewWindowsArray.Add(Window);
+
+	FScopeLock Lock(&WindowsMutex);
+	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
+	{
+		TSharedRef<FMacWindow> WindowRef = Windows[WindowIndex];
+		if (WindowRef != Window)
+		{
+			NewWindowsArray.Add(WindowRef);
+		}
+	}
+	Windows = NewWindowsArray;
 }
 
 void FMacApplication::OnWindowActivationChanged(const TSharedRef<FMacWindow>& Window, const EWindowActivation ActivationType)
@@ -1179,6 +1182,7 @@ void FMacApplication::OnWindowActivationChanged(const TSharedRef<FMacWindow>& Wi
 	{
 		MessageHandler->OnWindowActivationChanged(Window, ActivationType);
 		ActiveWindow = Window;
+		OnWindowOrderedFront(Window);
 	}
 }
 
@@ -1301,12 +1305,13 @@ void FMacApplication::OnWindowsReordered()
 
 	SavedWindowsOrder.Empty();
 
-	NSArray* OrderedWindows = [NSApp orderedWindows];
+	FScopeLock Lock(&WindowsMutex);
 
 	int32 MinLevel = 0;
 	int32 MaxLevel = 0;
-	for (NSWindow* Window in OrderedWindows)
+	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
 	{
+		FCocoaWindow* Window = Windows[WindowIndex]->GetWindowHandle();
 		const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
 		MinLevel = FMath::Min(MinLevel, WindowLevel);
 		MaxLevel = FMath::Max(MaxLevel, WindowLevel);
@@ -1314,8 +1319,9 @@ void FMacApplication::OnWindowsReordered()
 
 	for (int32 Level = MaxLevel; Level >= MinLevel; Level--)
 	{
-		for (NSWindow* Window in OrderedWindows)
+		for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
 		{
+			FCocoaWindow* Window = Windows[WindowIndex]->GetWindowHandle();
 			const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
 			if (Level == WindowLevel && [Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
 			{
@@ -1328,6 +1334,8 @@ void FMacApplication::OnWindowsReordered()
 
 void FMacApplication::OnActiveSpaceDidChange()
 {
+	FScopeLock Lock(&WindowsMutex);
+
 	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
 	{
 		TSharedRef<FMacWindow> WindowRef = Windows[WindowIndex];

@@ -223,6 +223,8 @@ public:
 
 	void OnWindowChangedScreen(TSharedRef<FMacWindow> Window);
 
+	void OnWindowOrderedFront(TSharedRef<FMacWindow> Window);
+
 	static void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo);
 
 public:
