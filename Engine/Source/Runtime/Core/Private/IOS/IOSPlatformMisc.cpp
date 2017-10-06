@@ -122,6 +122,7 @@ bool FIOSPlatformMisc::IsRunningOnBattery()
 	return [[IOSAppDelegate GetDelegate] IsRunningOnBattery];
 }
 
+#if !PLATFORM_TVOS
 EDeviceScreenOrientation ConvertFromUIDeviceOrientation(UIDeviceOrientation Orientation)
 {
 	switch(Orientation)
@@ -136,6 +137,7 @@ EDeviceScreenOrientation ConvertFromUIDeviceOrientation(UIDeviceOrientation Orie
 		case UIDeviceOrientationFaceDown : return EDeviceScreenOrientation::FaceDown; break;
 	}
 }
+#endif
 
 EDeviceScreenOrientation FIOSPlatformMisc::GetDeviceOrientation()
 {
