@@ -324,7 +324,17 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 
 	if (TransitionState.RenderingMipChainInfo.bInsideRenderingMipChain)
 	{
-		check(Framebuffer);
+		if (!Framebuffer)
+		{
+			UE_LOG(LogVulkanRHI, Fatal, TEXT("Unable to find framebuffer during mipchain generation: W,H:%d,%d CurrMip:%d LastMip:%d #Mips:%d VkViewType:%d PF_:%d"),
+				RTLayout.GetExtent2D().width,
+				RTLayout.GetExtent2D().height,
+				TransitionState.RenderingMipChainInfo.CurrentMip,
+				TransitionState.RenderingMipChainInfo.LastRenderedMip,
+				TransitionState.RenderingMipChainInfo.Texture->Surface.GetNumMips(),
+				(int32)TransitionState.RenderingMipChainInfo.Texture->Surface.GetViewType(),
+				(int32)TransitionState.RenderingMipChainInfo.Texture->Surface.PixelFormat);
+		}
 		TransitionState.ProcessMipChainTransitions(CmdBuffer, Framebuffer, Framebuffer->RTInfo.ColorRenderTarget[0].MipIndex);
 	}
 
