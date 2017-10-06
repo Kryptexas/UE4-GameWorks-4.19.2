@@ -5,8 +5,8 @@
 #include "CoreMinimal.h"
 #include "Materials/MaterialInterface.h"
 #include "UObject/ConstructorHelpers.h"
-#include "AppleARKitVideoOverlay.generated.h"
 #include "Kismet/BlueprintPlatformLibrary.h"
+#include "AppleARKitVideoOverlay.generated.h"
 
 /** Helper class to ensure the ARKit camera material is cooked. */
 UCLASS()
