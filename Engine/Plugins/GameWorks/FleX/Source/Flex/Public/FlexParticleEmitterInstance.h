@@ -5,7 +5,7 @@
 
 #include "PhysXIncludes.h"
 
-#include "FlexParticleEmitter.h"
+#include "FlexParticleSpriteEmitter.h"
 
 /*-----------------------------------------------------------------------------
 FFlexParticleEmitterInstance
@@ -38,7 +38,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	{
 		Emitter = Instance;
 
-		auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter->SpriteTemplate);
+		auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter->SpriteTemplate);
 		if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 		{
 			FPhysScene* Scene = Emitter->Component->GetWorld()->GetPhysicsScene();

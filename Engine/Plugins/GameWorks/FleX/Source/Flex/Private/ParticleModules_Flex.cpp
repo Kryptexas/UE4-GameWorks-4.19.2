@@ -13,7 +13,7 @@
 
 #include "Distributions/DistributionFloatConstant.h"
 #include "Particles/ParticleEmitter.h"
-#include "FlexParticleEmitter.h"
+#include "FlexParticleSpriteEmitter.h"
 
 
 /*-----------------------------------------------------------------------------
@@ -183,7 +183,7 @@ bool UParticleModuleFlexFluidSpawn::GetSpawnAmount(FParticleEmitterInstance* Own
 bool UParticleModuleFlexFluidSpawn::GetBurstCount(FParticleEmitterInstance* Owner, int32 Offset, float OldLeftover, float DeltaTime, int32& ReturnNumber)
 {
 	// how many layers we need to emit
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(Owner->SpriteTemplate);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Owner->SpriteTemplate);
 	UFlexContainer* Template = FlexEmitter ? FlexEmitter->FlexContainerTemplate : nullptr;
 
 	if (Template)
@@ -243,7 +243,7 @@ void UParticleModuleFlexFluidSpawn::Spawn(FParticleEmitterInstance* Owner, int32
 {
 	SPAWN_INIT;
 
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(Owner->SpriteTemplate);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Owner->SpriteTemplate);
 	UFlexContainer* Template = FlexEmitter ? FlexEmitter->FlexContainerTemplate : nullptr;
 	if (Template)
 	{

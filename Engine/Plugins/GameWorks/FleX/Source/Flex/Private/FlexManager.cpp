@@ -20,7 +20,7 @@
 #include "Particles/ParticleEmitter.h"
 #include "FlexParticleEmitterInstance.h"
 #include "FlexCollisionComponent.h"
-#include "FlexParticleEmitter.h"
+#include "FlexParticleSpriteEmitter.h"
 
 void FlexErrorFunc(NvFlexErrorSeverity, const char* msg, const char* file, int line)
 {
@@ -431,7 +431,7 @@ void FFlexManager::AttachFlexToComponent(class USceneComponent* Component, float
 							FParticleEmitterInstance* EmitterInstance = ParticleSystemComponet->EmitterInstances[EmitterIndex];
 							if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->FlexEmitterInstance)
 							{
-								auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+								auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 								if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 								{
 									EmitterInstance->FlexEmitterInstance->AddPendingComponentToAttach(Component, Radius);
@@ -454,7 +454,7 @@ void FFlexManager::CreateFlexEmitterInstance(struct FParticleEmitterInstance* Em
 		EmitterInstance->FlexEmitterInstance = nullptr;
 	}
 
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 	if (FlexEmitter)
 	{
 		if (FlexEmitter->FlexContainerTemplate && (!GIsEditor || GIsPlayInEditorWorld))
@@ -517,7 +517,7 @@ void FFlexManager::DestroyFlexEmitterInstance(struct FParticleEmitterInstance* E
 
 void FFlexManager::TickFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance, float DeltaTime, bool bSuppressSpawning)
 {
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 	if (FlexEmitter == nullptr)
 		return;
 
@@ -654,7 +654,7 @@ void FFlexManager::TickFlexEmitterInstance(struct FParticleEmitterInstance* Emit
 
 uint32 FFlexManager::GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes)
 {
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 
 	if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 	{
@@ -677,7 +677,7 @@ uint32 FFlexManager::GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitter
 
 bool FFlexManager::FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex)
 {
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 	if (FlexEmitter == nullptr)
 		return true;
 
@@ -731,7 +731,7 @@ UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemCompon
 		FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
 		if (EmitterInstance && EmitterInstance->SpriteTemplate)
 		{
-			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+			auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 			if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 			{
 				FPhysScene* Scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
@@ -756,7 +756,7 @@ UMaterialInstanceDynamic* FFlexManager::CreateFlexDynamicMaterialInstance(class 
 		FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
 		if (EmitterInstance && 	EmitterInstance->SpriteTemplate)
 		{
-			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+			auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 			if (FlexEmitter && FlexEmitter->FlexFluidSurfaceTemplate && FlexEmitter->FlexFluidSurfaceTemplate->Material)
 			{
 				UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(SourceMaterial);
@@ -799,7 +799,7 @@ void FFlexManager::UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* 
 
 	if (Component->SceneProxy)
 	{
-		auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+		auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 		auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
 
 		UFlexFluidSurface* FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
@@ -824,7 +824,7 @@ void FFlexManager::ClearFlexSurfaceDynamicData(class UParticleSystemComponent* C
 			FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
 			if (EmitterInstance)
 			{
-				auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+				auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 				auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
 
 				UFlexFluidSurface* FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
@@ -864,7 +864,7 @@ void FFlexManager::RegisterNewFlexFluidSurfaceComponent(class UParticleSystemCom
 	{
 		if (EmitterInstance && EmitterInstance->SpriteTemplate)
 		{
-			auto FlexEmitter = Cast<UFlexParticleEmitter>(EmitterInstance->SpriteTemplate);
+			auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
 			auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
 
 			if (FlexFluidSurfaceTemplate && FlexFluidSurfaceTemplate->Material)
@@ -892,12 +892,12 @@ void FFlexManager::RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterI
 
 bool FFlexManager::IsValidFlexEmitter(class UParticleEmitter* Emitter)
 {
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter);
 	return (FlexEmitter && FlexEmitter->FlexContainerTemplate);
 }
 
 class UFlexFluidSurface* FFlexManager::GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter)
 {
-	auto FlexEmitter = Cast<UFlexParticleEmitter>(Emitter);
+	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter);
 	return FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
 }

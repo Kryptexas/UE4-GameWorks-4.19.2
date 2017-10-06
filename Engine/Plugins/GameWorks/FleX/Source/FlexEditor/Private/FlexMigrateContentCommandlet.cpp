@@ -14,7 +14,7 @@
 #include "Serialization/FindReferencersArchive.h"
 #include "Serialization/ArchiveReplaceObjectRef.h"
 
-#include "FlexParticleEmitter.h"
+#include "FlexParticleSpriteEmitter.h"
 //#include "FlexParticleSystemComponent.h"
 
 
@@ -226,16 +226,16 @@ class UObject* UFlexMigrateContentCommandlet::MigrateParticleEmitter(class UPart
 {
 	UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("MigrateParticleEmitter: %s"), *ParticleEmitter->GetFullName());
 
-	auto FPE = PreMigrateObject<UFlexParticleEmitter>(ParticleEmitter);
+	auto FPE = PreMigrateObject<UFlexParticleSpriteEmitter>(ParticleEmitter);
 	if (FPE == nullptr)
 		return nullptr;
 
-	MigratePropetry(FPE, &UFlexParticleEmitter::FlexContainerTemplate, static_cast<UParticleEmitter*>(ParticleEmitter), &UParticleEmitter::FlexContainerTemplate_DEPRECATED);
+	MigratePropetry(FPE, &UFlexParticleSpriteEmitter::FlexContainerTemplate, static_cast<UParticleEmitter*>(ParticleEmitter), &UParticleEmitter::FlexContainerTemplate_DEPRECATED);
 	FPE->Phase = ParticleEmitter->Phase_DEPRECATED;
 	FPE->bLocalSpace = ParticleEmitter->bLocalSpace_DEPRECATED;
 	FPE->Mass = ParticleEmitter->Mass_DEPRECATED;
 	FPE->InertialScale = ParticleEmitter->InertialScale_DEPRECATED;
-	MigratePropetry(FPE, &UFlexParticleEmitter::FlexFluidSurfaceTemplate, static_cast<UParticleEmitter*>(ParticleEmitter), &UParticleEmitter::FlexFluidSurfaceTemplate_DEPRECATED);
+	MigratePropetry(FPE, &UFlexParticleSpriteEmitter::FlexFluidSurfaceTemplate, static_cast<UParticleEmitter*>(ParticleEmitter), &UParticleEmitter::FlexFluidSurfaceTemplate_DEPRECATED);
 
 	return PostMigrateObject(FPE, DirtiedPackages);
 }

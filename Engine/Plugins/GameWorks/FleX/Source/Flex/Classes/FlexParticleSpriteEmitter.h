@@ -1,11 +1,11 @@
 #pragma once
 #include "Particles/ParticleSpriteEmitter.h"
 #include "FlexAsset.h"
-#include "FlexParticleEmitter.generated.h"
+#include "FlexParticleSpriteEmitter.generated.h"
 
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
-class UFlexParticleEmitter : public UParticleSpriteEmitter
+class UFlexParticleSpriteEmitter : public UParticleSpriteEmitter
 {
 	GENERATED_UCLASS_BODY()
 
@@ -34,7 +34,7 @@ class UFlexParticleEmitter : public UParticleSpriteEmitter
 	class UFlexFluidSurface* FlexFluidSurfaceTemplate;
 };
 
-FORCEINLINE UFlexParticleEmitter::UFlexParticleEmitter(const FObjectInitializer& ObjectInitializer)
+FORCEINLINE UFlexParticleSpriteEmitter::UFlexParticleSpriteEmitter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	Mass = 1.0f;
