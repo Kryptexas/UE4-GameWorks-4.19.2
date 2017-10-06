@@ -11,8 +11,8 @@
 
 #include "AdvancedPreviewScene.h"
 
-#include "Engine/StaticMesh.h"
 #include "FlexStaticMesh.h"
+#include "FlexParticleSpriteEmitter.h"
 
 class UFlexAsset* FFlexEditorPluginBridge::GetFlexAsset(class UStaticMesh* StaticMesh)
 {
@@ -147,5 +147,14 @@ bool FFlexEditorPluginBridge::IsFlexActor(class UClass* Class)
 
 void FFlexEditorPluginBridge::SetFlexActorCollisionProfileName(class AStaticMeshActor* SMActor, FName CollisionProfileName)
 {
+	AFlexActor* FlexActor = CastChecked<AFlexActor>(SMActor);
+	if (FlexActor)
+	{
+		FlexActor->GetStaticMeshComponent()->SetCollisionProfileName(CollisionProfileName);
+	}
+}
 
+class UClass* FFlexEditorPluginBridge::GetFlexParticleSpriteEmitterClass()
+{
+	return UFlexParticleSpriteEmitter::StaticClass();
 }

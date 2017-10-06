@@ -83,6 +83,9 @@ void FCascadeCommands::RegisterCommands()
 	UI_COMMAND(NewEmitterBefore, "Add New Emitter Before", "Add New Emitter Before Selected", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(NewEmitterAfter, "Add New Emitter After", "Add New Emitter After Selected", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(RemoveDuplicateModules, "Remove Duplicate Modules", "Remove Duplicate Modules", EUserInterfaceActionType::Button, FInputChord());
+	// NvFlex begin
+	UI_COMMAND(ConvertToFlexEmitter, "Convert to Flex Emitter", "Convert to Flex Emitter", EUserInterfaceActionType::Button, FInputChord());
+	// NvFlex end
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

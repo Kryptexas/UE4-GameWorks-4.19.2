@@ -37,6 +37,19 @@ class UFlexParticleSpriteEmitter : public UParticleSpriteEmitter
 FORCEINLINE UFlexParticleSpriteEmitter::UFlexParticleSpriteEmitter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FName NAME_Flex_Particle_Emitter;
+		FConstructorStatics()
+			: NAME_Flex_Particle_Emitter(TEXT("Flex Particle Emitter"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	EmitterName = ConstructorStatics.NAME_Flex_Particle_Emitter;
+
 	Mass = 1.0f;
 	bLocalSpace = false;
 }

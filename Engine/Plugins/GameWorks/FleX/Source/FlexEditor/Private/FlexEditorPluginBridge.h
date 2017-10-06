@@ -24,5 +24,7 @@ public:
 	virtual bool IsFlexActor(class UClass* Class);
 	virtual void SetFlexActorCollisionProfileName(class AStaticMeshActor* SMActor, FName CollisionProfileName);
 
+	virtual class UClass* GetFlexParticleSpriteEmitterClass();
+
 private:
 };

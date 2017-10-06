@@ -161,7 +161,11 @@ public:
 	/** Toolbar/menu command methods */
 	void OnCustomModuleOption(int32 Idx);
 	void OnNewModule(int32 Idx);
-	void OnNewEmitter();
+	void OnNewEmitter(
+		// NvFlex begin
+		class UClass* NewEmitClass = nullptr
+		// NvFlex end
+	);
 	void OnRestartInLevel();
 	void OnDeleteEmitter();
 	void OnDeleteModule(bool bConfirm);
@@ -275,7 +279,11 @@ private:
 	bool PromptForCancellingSoloingMode( const FText& InOperationDesc);
 
 	/** Duplicates an existing emitter */
-	bool DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare);
+	bool DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare
+		// NvFlex begin
+		, UClass* NewEmitClass = nullptr, const TCHAR* NewName = nullptr
+		// NvFlex end
+	);
 
 	/** Adds a new emitter */
 	void AddNewEmitter(int32 PositionOffset);
@@ -387,6 +395,9 @@ private:
 	void OnNewEmitterBefore();
 	void OnNewEmitterAfter();
 	void OnRemoveDuplicateModules();
+	// NvFlex begin
+	void OnConvertToFlexEmitter();
+	// NvFlex end
 
 	void CloseEntryPopup();
 
