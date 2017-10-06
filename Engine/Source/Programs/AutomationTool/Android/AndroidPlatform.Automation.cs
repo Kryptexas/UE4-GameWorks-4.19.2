@@ -420,7 +420,7 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
 						bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + OBBInstallCommand,
 						bPackageDataInsideApk ? "if [ 1 ]; then" : "\tif [ $? -eq 0 ]; then",
-						bDontMoveOBB ? "" : "\t\t$ADB $DEVICE shell 'mv $STORAGE/Download/obb/" + PackageName + " $STORAGE/Android/obb/" + PackageName + "'",
+						bDontMoveOBB ? "" : "\t\t$ADB $DEVICE shell mv $STORAGE/Download/obb/" + PackageName + " $STORAGE/Android/obb/" + PackageName,
 						"\t\techo",
 						"\t\techo Installation successful",
 						"\t\texit 0",
