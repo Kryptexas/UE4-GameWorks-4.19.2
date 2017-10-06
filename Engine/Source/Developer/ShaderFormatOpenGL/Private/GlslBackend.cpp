@@ -2998,7 +2998,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 		if (bUsesInstanceID && bIsES)
 		{
-			ralloc_asprintf_append(buffer, "#ifdef GL_EXT_draw_instanced\n");
+			ralloc_asprintf_append(buffer, "#ifdef UE_EXT_draw_instanced\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_draw_instanced : enable\n");
 			ralloc_asprintf_append(buffer, "#define gl_InstanceID gl_InstanceIDEXT\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
