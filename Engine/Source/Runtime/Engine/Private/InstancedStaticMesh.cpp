@@ -1626,7 +1626,7 @@ bool UInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex, 
 	}
 
 	// remove instance
-	if (!InstanceAlreadyRemoved)
+	if (!InstanceAlreadyRemoved && PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
 		PerInstanceSMData.RemoveAt(InstanceIndex);
 	}
