@@ -295,9 +295,11 @@ public:
 	/** Stores the number of valid scenes we are working with. This will be PST_MAX or PST_Async, 
 		depending on whether the async scene is enabled or not*/
 	uint32							NumPhysScenes;
-	
+
+#if WITH_PHYSX
 	/** Gets the array of collision notifications, pending execution at the end of the physics engine run. */
-	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType){ return PendingCollisionData[SceneType].PendingCollisionNotifies; }
+	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType) { return PendingCollisionData[SceneType].PendingCollisionNotifies; }
+#endif	// WITH_PHYSX
 
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPhysScenePreTick, FPhysScene*, uint32 /*SceneType*/, float /*DeltaSeconds*/);
@@ -443,7 +445,6 @@ private:
 	class PxCpuDispatcher*			CPUDispatcher[PST_MAX];
 	/** Simulation event callback object */
 	physx::PxSimulationEventCallback*			SimEventCallback[PST_MAX];
-#endif	//
 
 	struct FPendingCollisionData
 	{
@@ -460,7 +461,9 @@ private:
 	};
 
 	FPendingConstraintData PendingConstraintData[PST_MAX];
-	
+
+#endif	// WITH_PHYSX
+
 public:
 #if WITH_PHYSX
 	/** Static factory used to override the simulation event callback from other modules.
@@ -471,7 +474,7 @@ public:
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType) const;
 
-#endif
+#endif	// WITH_PHYSX
 
 #if WITH_APEX
 	/** Utility for looking up the ApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
@@ -571,11 +574,13 @@ public:
 	/** Adds to queue of skelmesh we want to remove from collision disable table */
 	ENGINE_API void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
 
+#if WITH_PHYSX
 	/** Marks actor as being deleted to ensure it is not updated as an actor actor. This should only be called by very advanced code that is using physx actors directly (not recommended!) */
 	void RemoveActiveRigidActor(uint32 SceneType, physx::PxRigidActor* ActiveRigidActor)
 	{
 		IgnoreActiveActors[SceneType].Add(ActiveRigidActor);
 	}
+#endif // WITH_PHYSX
 
 	/** Add this SkeletalMeshComponent to the list needing kinematic bodies updated before simulating physics */
 	void MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning);
@@ -808,8 +813,10 @@ void UnloadPhysXModules();
 ENGINE_API void	InitGamePhys();
 ENGINE_API void	TermGamePhys();
 
-
 bool	ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld);
+
+/** Perform any deferred cleanup of resources (GPhysXPendingKillConvex etc) */
+ENGINE_API void DeferredPhysResourceCleanup();
 
 /** Util to list to log all currently awake rigid bodies */
 void	ListAwakeRigidBodies(bool bIncludeKinematic, UWorld* world);
@@ -838,4 +845,6 @@ public:
 	static FOnPhysDispatchNotifications OnPhysDispatchNotifications;
 };
 
+#if WITH_PHYSX
 extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule(bool bForceLoad = true);
+#endif //WITH_PHYSX

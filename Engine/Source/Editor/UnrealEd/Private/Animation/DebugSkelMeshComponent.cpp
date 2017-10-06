@@ -16,7 +16,8 @@
 #include "Animation/BlendSpaceBase.h"
 #include "SkeletalMeshTypes.h"
 
-#include "ClothingSimulationNv.h"
+#include "Assets/ClothingAsset.h"
+#include "ClothingSimulation.h"
 #include "DynamicMeshBuilder.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
@@ -37,11 +38,9 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	TurnTableSpeedScaling = 1.f;
 	TurnTableMode = EPersonaTurnTableMode::Stopped;
 
-#if WITH_APEX_CLOTHING
 	SectionsDisplayMode = ESectionDisplayMode::None;
 	// always shows cloth morph target when previewing in editor
 	bClothMorphTarget = false;
-#endif //#if WITH_APEX_CLOTHING
 
 	bPauseClothingSimulationWithAnim = false;
 	bPerformSingleClothingTick = false;
@@ -191,13 +190,10 @@ FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 		Result = ::new FDebugSkelMeshSceneProxy(this, SkelMeshResource, WireframeMeshOverlayColor);
 	}
 
-#if WITH_APEX_CLOTHING
 	if (SectionsDisplayMode == ESectionDisplayMode::None)
 	{
 		SectionsDisplayMode = FindCurrentSectionDisplayMode();
 	}
-
-#endif //#if WITH_APEX_CLOTHING
 
 	return Result;
 }
@@ -518,9 +514,16 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 		{
 			UncompressedSpaceBases.AddUninitialized(BoneContainer.GetNumBones());
 
+			const bool bUseSource = BoneContainer.ShouldUseSourceData();
+			const bool bUseRaw = BoneContainer.ShouldUseRawData();
+
+			BoneContainer.SetUseSourceData(false);
 			BoneContainer.SetUseRAWData(true);
+
 			GenSpaceBases(UncompressedSpaceBases);
-			BoneContainer.SetUseRAWData(false);
+
+			BoneContainer.SetUseRAWData(bUseRaw);
+			BoneContainer.SetUseSourceData(bUseSource);
 		}
 
 		// Non retargeted pose.

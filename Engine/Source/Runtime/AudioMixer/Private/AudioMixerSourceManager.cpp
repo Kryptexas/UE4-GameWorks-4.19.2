@@ -1832,9 +1832,6 @@ namespace Audio
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
 		int32 CurrentRenderThreadIndex = RenderThreadCommandBufferIndex.GetValue();
-		int32 CurrentAudioThreadIndex = AudioThreadCommandBufferIndex.GetValue();
-
-		check(CurrentRenderThreadIndex != CurrentAudioThreadIndex);
 
 		FCommands& Commands = CommandBuffers[CurrentRenderThreadIndex];
 

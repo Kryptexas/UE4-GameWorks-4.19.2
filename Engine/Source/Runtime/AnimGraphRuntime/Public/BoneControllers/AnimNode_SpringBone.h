@@ -34,11 +34,11 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SpringBone : public FAnimNode_SkeletalCont
 	float MaxDisplacement;
 
 	/** Stiffness of spring */
-	UPROPERTY(EditAnywhere, Category=Spring)
+	UPROPERTY(EditAnywhere, Category=Spring, meta = (PinHiddenByDefault))
 	float SpringStiffness;
 
 	/** Damping of spring */
-	UPROPERTY(EditAnywhere, Category=Spring)
+	UPROPERTY(EditAnywhere, Category=Spring, meta = (PinHiddenByDefault))
 	float SpringDamping;
 
 	/** If spring stretches more than this, reset it. Useful for catching teleports etc */

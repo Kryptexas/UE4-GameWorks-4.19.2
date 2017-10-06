@@ -42,6 +42,8 @@
 
 #include "AdvancedPreviewSceneModule.h"
 
+#include "ConvexDecompositionNotification.h"
+
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStaticMeshEditor, Log, All);
@@ -110,6 +112,17 @@ void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager
 
 FStaticMeshEditor::~FStaticMeshEditor()
 {
+#if USE_ASYNC_DECOMP
+	/** If there is an active instance of the asynchronous convex decomposition interface, release it here. */
+	if (GConvexDecompositionNotificationState)
+	{
+		GConvexDecompositionNotificationState->IsActive = false;
+	}
+	if (DecomposeMeshToHullsAsync)
+	{
+		DecomposeMeshToHullsAsync->Release();
+	}
+#endif
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	GEditor->UnregisterForUndo( this );
@@ -1673,7 +1686,7 @@ void FStaticMeshEditor::OnSaveGeneratedLODs()
 	}
 }
 
-void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
+void FStaticMeshEditor::DoDecomp(uint32 InHullCount, int32 InMaxHullVerts, uint32 InHullPrecision)
 {
 	// Check we have a selected StaticMesh
 	if(StaticMesh && StaticMesh->RenderData)
@@ -1730,7 +1743,18 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 		// Run actual util to do the work (if we have some valid input)
 		if(Verts.Num() >= 3 && CollidingIndices.Num() >= 3)
 		{
-			DecomposeMeshToHulls(bs, Verts, CollidingIndices, InAccuracy, InMaxHullVerts);		
+#if USE_ASYNC_DECOMP
+			// If there is currently a decomposition already in progress we release it.
+			if (DecomposeMeshToHullsAsync)
+			{
+				DecomposeMeshToHullsAsync->Release();
+			}
+			// Begin the convex decomposition process asynchronously
+			DecomposeMeshToHullsAsync = CreateIDecomposeMeshToHullAsync();
+			DecomposeMeshToHullsAsync->DecomposeMeshToHullsAsyncBegin(bs, Verts, CollidingIndices, InHullCount, InMaxHullVerts, InHullPrecision);
+#else
+			DecomposeMeshToHulls(bs, Verts, CollidingIndices, InHullCount, InMaxHullVerts, InHullPrecision);
+#endif
 		}
 
 		// Enable collision, if not already
@@ -2058,5 +2082,32 @@ ECheckBoxState FStaticMeshEditor::GetUVChannelCheckState(int32 TestUVChannel) co
 {
 	return CurrentViewedUVChannel == TestUVChannel && GetViewportClient().IsDrawUVOverlayChecked() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
+
+void FStaticMeshEditor::Tick(float DeltaTime)
+{
+#if USE_ASYNC_DECOMP
+	/** If we have an active convex decomposition task running, we check to see if is completed and, if so, release the interface */
+	if (DecomposeMeshToHullsAsync)
+	{
+		if (DecomposeMeshToHullsAsync->IsComplete())
+		{
+			DecomposeMeshToHullsAsync->Release();
+			DecomposeMeshToHullsAsync = nullptr;
+			GConvexDecompositionNotificationState->IsActive = false;
+		}
+		else if (GConvexDecompositionNotificationState)
+		{
+			GConvexDecompositionNotificationState->IsActive = true;
+			GConvexDecompositionNotificationState->Status = DecomposeMeshToHullsAsync->GetCurrentStatus();
+		}
+	}
+#endif
+}
+
+TStatId FStaticMeshEditor::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FStaticMeshEditor, STATGROUP_TaskGraphTasks);
+}
+
 
 #undef LOCTEXT_NAMESPACE

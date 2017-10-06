@@ -40,12 +40,28 @@ struct FTrackedAddress
 	double			LastHeartbeatTime;
 };
 
-struct FLiveLinkProvider : public ILiveLinkProvider
+// Validate the supplied connection as still active
+struct FConnectionValidator
 {
+	FConnectionValidator()
+		: CutOffTime(FPlatformTime::Seconds() - CONNECTION_TIMEOUT)
+	{}
+
+	bool operator()(const FTrackedAddress& Connection) const { return Connection.LastHeartbeatTime >= CutOffTime; }
+
 private:
 	// How long we give connections before we decide they are dead
 	static const double CONNECTION_TIMEOUT;
 
+	// Oldest time that we still deem as active
+	const double CutOffTime;
+};
+
+const double FConnectionValidator::CONNECTION_TIMEOUT = 10.f;
+
+struct FLiveLinkProvider : public ILiveLinkProvider
+{
+private:
 	const FString ProviderName;
 	
 	const FString MachineName;
@@ -57,6 +73,9 @@ private:
 
 	// Cache of our current subject state
 	TMap<FName, FTrackedSubject> Subjects;
+
+	// Delegate to notify interested parties when the client sources have changed
+	FLiveLinkProviderConnectionStatusChanged OnConnectionStatusChanged;
 	
 	//Message bus message handlers
 	void HandlePingMessage(const FLiveLinkPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
@@ -67,9 +86,14 @@ private:
 	// Validate our current connections
 	void ValidateConnections()
 	{
-		double CutOffTime = FPlatformTime::Seconds() - CONNECTION_TIMEOUT;
+		FConnectionValidator Validator;
 
-		ConnectedAddresses.RemoveAll([=](const FTrackedAddress& Address) { return Address.LastHeartbeatTime < CutOffTime; });
+		const int32 RemovedConnections = ConnectedAddresses.RemoveAll([=](const FTrackedAddress& Address) { return !Validator(Address); });
+
+		if (RemovedConnections > 0)
+		{
+			OnConnectionStatusChanged.Broadcast();
+		}
 	}
 
 	// Get the cached data for the named subject
@@ -202,13 +226,34 @@ public:
 		SendSubjectFrameToConnections(SubjectName);
 	}
 
+	virtual bool HasConnection() const
+	{
+		FConnectionValidator Validator;
+
+		for (const FTrackedAddress& Connection : ConnectedAddresses)
+		{
+			if (Validator(Connection))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	virtual FDelegateHandle RegisterConnStatusChangedHandle(const FLiveLinkProviderConnectionStatusChanged::FDelegate& ConnStatusChanged)
+	{
+		return OnConnectionStatusChanged.Add(ConnStatusChanged);
+	}
+
+	virtual void UnregisterConnStatusChangedHandle(FDelegateHandle Handle)
+	{
+		OnConnectionStatusChanged.Remove(Handle);
+	}
+
 	virtual ~FLiveLinkProvider()
 	{
-		FPlatformMisc::LowLevelOutputDebugString(TEXT("Destroyed"));
 	}
 };
-
-const double FLiveLinkProvider::CONNECTION_TIMEOUT = 10.f;
 
 void FLiveLinkProvider::HandlePingMessage(const FLiveLinkPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
@@ -228,6 +273,7 @@ void FLiveLinkProvider::HandleConnectMessage(const FLiveLinkConnectMessage& Mess
 			FPlatformProcess::Sleep(0.1); //HACK: Try to help these go in order, editor needs extra buffering support to make sure this isn't needed in future.
 			SendSubjectFrameToAddress(Subject.Key, Subject.Value, ConnectionAddress);
 		}
+		OnConnectionStatusChanged.Broadcast();
 	}
 }
 

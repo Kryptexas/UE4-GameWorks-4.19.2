@@ -42,7 +42,7 @@
 #include "EngineUtils.h"
 #include "Engine/Engine.h"
 #include "Materials/MaterialInstanceConstant.h"
-#if WITH_EDITOR
+#if WITH_EDITOR && WITH_PHYSX
 	#include "IPhysXCooking.h"
 #endif
 

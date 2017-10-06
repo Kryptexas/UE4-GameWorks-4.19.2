@@ -12,6 +12,7 @@
 #include "Animation/AnimTypes.h"
 #include "Animation/AnimationAsset.h"
 #include "Animation/AnimCurveTypes.h"
+#include "Animation/AnimNotifyQueue.h"
 #include "AnimSequenceBase.generated.h"
 
 UENUM()
@@ -71,7 +72,16 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (DeltaTime<0).
 	 * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
 	 */
+	DEPRECATED(4.19, "Use the GetAnimNotifiesFromTrackPositions that takes FAnimNotifyEventReferences instead")
 	ENGINE_API void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
+
+	/**
+	* Retrieves AnimNotifies given a StartTime and a DeltaTime.
+	* Time will be advanced and support looping if bAllowLooping is true.
+	* Supports playing backwards (DeltaTime<0).
+	* Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
+	*/
+	ENGINE_API void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<FAnimNotifyEventReference>& OutActiveNotifies) const;
 
 	/** 
 	 * Retrieves AnimNotifies between two time positions. ]PreviousPosition, CurrentPosition]
@@ -79,7 +89,16 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (CurrentPosition<PreviousPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
-	ENGINE_API virtual void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
+	DEPRECATED(4.19, "Use the GetAnimNotifiesFromTrackPositions that takes FAnimNotifyEventReferences instead")
+	ENGINE_API void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
+
+	/**
+	* Retrieves AnimNotifies between two time positions. ]PreviousPosition, CurrentPosition]
+	* Between PreviousPosition (exclusive) and CurrentPosition (inclusive).
+	* Supports playing backwards (CurrentPosition<PreviousPosition).
+	* Only supports contiguous range, does NOT support looping and wrapping over.
+	*/
+	ENGINE_API virtual void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<FAnimNotifyEventReference>& OutActiveNotifies) const;
 
 	/** Evaluate curve data to Instance at the time of CurrentTime **/
 	ENGINE_API virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData=false) const;

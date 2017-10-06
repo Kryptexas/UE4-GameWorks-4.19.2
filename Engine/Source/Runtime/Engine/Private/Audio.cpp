@@ -539,7 +539,7 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 	}
 	Params.EmitterWorldPosition = WaveInstance->Location;
 
-	if (WaveInstance->ActiveSound != nullptr)
+	if (WaveInstance->ActiveSound != nullptr) 
 	{
 		Params.EmitterWorldRotation = WaveInstance->ActiveSound->Transform.GetRotation();
 	}
@@ -548,7 +548,7 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 		Params.EmitterWorldRotation = FQuat::Identity;
 	}
 
-	// We are currently always computing spatialization for XAudio2 relative to the listener!
+	// We are currently always computing spatialization for relative to the listener!
 	Params.ListenerOrientation = FVector::UpVector;
 	Params.ListenerPosition = FVector::ZeroVector;
 

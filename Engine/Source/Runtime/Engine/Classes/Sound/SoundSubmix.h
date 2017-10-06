@@ -40,13 +40,13 @@ public:
 };
 #endif
 
-UCLASS()
+UCLASS(config=Engine, hidecategories=Object, editinlinenew, BlueprintType)
 class ENGINE_API USoundSubmix : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 	// Child submixes to this sound mix
-	UPROPERTY(EditAnywhere, Category = SoundSubmix)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundSubmix)
 	TArray<USoundSubmix*> ChildSubmixes;
 
 	UPROPERTY()
@@ -57,7 +57,7 @@ class ENGINE_API USoundSubmix : public UObject
 	class UEdGraph* SoundSubmixGraph;
 #endif
 
-	UPROPERTY(EditAnywhere, Category = SoundSubmix)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundSubmix)
 	TArray<USoundEffectSubmixPreset*> SubmixEffectChain;
 
 protected:

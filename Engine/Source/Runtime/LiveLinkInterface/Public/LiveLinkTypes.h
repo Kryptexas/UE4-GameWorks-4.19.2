@@ -8,6 +8,21 @@
 #include "LiveLinkTypes.generated.h"
 
 USTRUCT()
+struct FLiveLinkSubjectName
+{
+public:
+	GENERATED_USTRUCT_BODY()
+
+	// Name of the subject
+	UPROPERTY(EditAnywhere, Category="Live Link")
+	FName Name;
+
+	// FName operators
+	operator FName&() { return Name; }
+	operator const FName&() const { return Name; }
+};
+
+USTRUCT()
 struct FLiveLinkCurveElement
 {
 public:

@@ -712,6 +712,7 @@ void FPhysScene::RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uin
 #endif
 void FPhysScene::TermBody_AssumesLocked(FBodyInstance* BodyInstance)
 {
+#if WITH_PHYSX
 	if (PxRigidBody* PRigidBody = BodyInstance->GetPxRigidBody_AssumesLocked())
 	{
 		FPhysSubstepTask* PhysSubStepper = PhysSubSteppers[SceneType_AssumesLocked(BodyInstance)];
@@ -729,10 +730,9 @@ void FPhysScene::TermBody_AssumesLocked(FBodyInstance* BodyInstance)
 		}
 	}
 
-#if WITH_PHYSX
 	RemoveActiveBody_AssumesLocked(BodyInstance, PST_Sync);
 	RemoveActiveBody_AssumesLocked(BodyInstance, PST_Async);
-#endif
+#endif // WITH_PHYSX
 }
 
 FAutoConsoleTaskPriority CPrio_PhysXStepSimulation(
@@ -769,6 +769,8 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 		);
 		return true;
 	}
+#else
+	return false;
 #endif
 
 }
@@ -817,6 +819,7 @@ void FPhysScene::FlushDeferredCollisionDisableTableQueue()
 	DeferredCollisionDisableTableQueue.Empty();
 }
 
+#if WITH_PHYSX
 void GatherPhysXStats_AssumesLocked(PxScene* PSyncScene, PxScene* PAsyncScene)
 {
 	/** Gather PhysX stats */
@@ -868,6 +871,7 @@ void GatherPhysXStats_AssumesLocked(PxScene* PSyncScene, PxScene* PAsyncScene)
 		SET_DWORD_STAT(STAT_NumShapesAsync, NumShapes);
 	}
 }
+#endif // WITH_PHYSX
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Sync Sim Time (ms)"), STAT_PhysSyncSim, STATGROUP_Physics);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Async Sim Time (ms)"), STAT_PhysAsyncSim, STATGROUP_Physics);
@@ -894,6 +898,7 @@ void FinishSceneStat(uint32 Scene)
 
 void GatherClothingStats(const UWorld* World)
 {
+#if WITH_PHYSX
 #if STATS
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_GatherApexStats);
 
@@ -913,6 +918,7 @@ void GatherClothingStats(const UWorld* World)
 		}
 	}
 #endif
+#endif // WITH_PHYSX
 }
 
 void FPhysScene::MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning)
@@ -1113,10 +1119,12 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 
 void FPhysScene::KillVisualDebugger()
 {
+#if WITH_PHYSX
 	if (GPhysXVisualDebugger)
 	{
 		GPhysXVisualDebugger->disconnect();
 	}
+#endif // WITH_PHYSX 
 }
 
 void FPhysScene::WaitPhysScenes()
@@ -1191,10 +1199,11 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	// Reset execution flag
 
 	bool bSuccess = false;
+
+#if WITH_PHYSX
 	IgnoreActiveActors[SceneType].Empty();
 
-//This fetches and gets active transforms. It's important that the function that calls this locks because getting the transforms and using the data must be an atomic operation
-#if WITH_PHYSX
+	//This fetches and gets active transforms. It's important that the function that calls this locks because getting the transforms and using the data must be an atomic operation
 	PxScene* PScene = GetPhysXScene(SceneType);
 	check(PScene);
 	PxU32 OutErrorCode = 0;
@@ -1305,11 +1314,13 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 	}
 
 	IgnoreActiveActors[SceneType].Empty();
-#endif
+
+#endif // WITH_PHYSX 
 }
 
 void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 {
+#if WITH_PHYSX
 	SCOPE_CYCLE_COUNTER(STAT_PhysicsEventTime);
 
 	for(int32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
@@ -1344,7 +1355,6 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 		PendingCollisionNotifies.Reset();
 	}
 
-#if WITH_PHYSX
 	for (int32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
 	{
 		for (auto MapItr = PendingSleepEvents[SceneType].CreateIterator(); MapItr; ++MapItr)
@@ -1361,7 +1371,6 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 
 		PendingSleepEvents[SceneType].Empty();
 	}
-#endif
 
 	for(int32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
 	{
@@ -1373,7 +1382,7 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 
 		ConstraintData.PendingConstraintBroken.Empty();
 	}
-
+#endif // WITH_PHYSX 
 
 	FPhysicsDelegates::OnPhysDispatchNotifications.Broadcast(this);
 }
@@ -1545,8 +1554,10 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 	* This means that anyone attempting to write on other threads will be blocked. This is OK because accessing any of these game objects from another thread is probably a bad idea!
 	*/
 
+#if WITH_PHYSX
 	SCOPED_SCENE_WRITE_LOCK(GetPhysXScene(PST_Sync));
 	SCOPED_SCENE_WRITE_LOCK(bAsyncSceneEnabled ? GetPhysXScene(PST_Async) : nullptr);
+#endif // WITH_PHYSX 
 
 #if ( WITH_PHYSX  && !(UE_BUILD_SHIPPING || WITH_PHYSX_RELEASE))
 	GatherPhysXStats_AssumesLocked(GetPhysXScene(PST_Sync), HasAsyncScene() ? GetPhysXScene(PST_Async) : nullptr);
@@ -1562,7 +1573,7 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 	// Perform any collision notification events
 	DispatchPhysNotifications_AssumesLocked();
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST || WITH_PHYSX_RELEASE)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Handle debug rendering
 	if (InLineBatcher)
 	{
@@ -1574,7 +1585,7 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 		}
 
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST || WITH_PHYSX_RELEASE)
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 #if WITH_PHYSX
@@ -2068,6 +2079,7 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 #endif
 }
 
+#if WITH_PHYSX
 void FPhysScene::AddPendingOnConstraintBreak(FConstraintInstance* ConstraintInstance, int32 SceneType)
 {
 	PendingConstraintData[SceneType].PendingConstraintBroken.Add( FConstraintBrokenDelegateData(ConstraintInstance) );
@@ -2079,8 +2091,6 @@ FConstraintBrokenDelegateData::FConstraintBrokenDelegateData(FConstraintInstance
 {
 
 }
-
-#if WITH_PHYSX
 
 void FPhysScene::AddPendingSleepingEvent(PxActor* Actor, SleepEvent::Type SleepEventType, int32 SceneType)
 {

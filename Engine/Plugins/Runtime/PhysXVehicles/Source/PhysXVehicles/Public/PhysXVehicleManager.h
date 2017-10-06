@@ -11,6 +11,8 @@ class UTireConfig;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogVehicles, Log, All);
 
+#if WITH_PHYSX
+
 /**
  * Manages vehicles and tire surface data for all scenes
  */
@@ -152,3 +154,5 @@ private:
 
 #endif //PX_DEBUG_VEHICLE_ON
 };
+
+#endif // WITH_PHYSX

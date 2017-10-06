@@ -62,12 +62,22 @@ namespace Audio
 
 	void FMixerSubmix::SetParentSubmix(TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> Submix)
 	{
-		ParentSubmix = Submix;
+		SubmixCommand([this, Submix]()
+		{
+			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+			ParentSubmix = Submix;
+		});
 	}
 
 	void FMixerSubmix::AddChildSubmix(TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> Submix)
 	{
-		ChildSubmixes.Add(Submix->GetId(), Submix);
+		SubmixCommand([this, Submix]()
+		{
+			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+			ChildSubmixes.Add(Submix->GetId(), Submix);
+		});
 	}
 
 	TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> FMixerSubmix::GetParentSubmix()
@@ -101,6 +111,8 @@ namespace Audio
 
 	void FMixerSubmix::AddSoundEffectSubmix(uint32 SubmixPresetId, FSoundEffectSubmixPtr InSoundEffectSubmix)
 	{
+		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
 		// Look to see if the submix preset ID is already present
 		for (int32 i = 0; i < EffectSubmixChain.Num(); ++i)
 		{
@@ -121,6 +133,8 @@ namespace Audio
 
 	void FMixerSubmix::RemoveSoundEffectSubmix(uint32 SubmixPresetId)
 	{
+		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
 		for (int32 i = 0; i < EffectSubmixChain.Num(); ++i)
 		{
 			// If the ID's match, delete and remove the effect instance but don't modify the effect submix chain array itself
@@ -171,9 +185,26 @@ namespace Audio
 		}
 	}
 
+	void FMixerSubmix::PumpCommandQueue()
+	{
+		TFunction<void()> Command;
+		while (CommandQueue.Dequeue(Command))
+		{
+			Command();
+		}
+	}
+
+	void FMixerSubmix::SubmixCommand(TFunction<void()> Command)
+	{
+		CommandQueue.Enqueue(MoveTemp(Command));
+	}
+
 	void FMixerSubmix::ProcessAudio(AlignedFloatBuffer& OutAudioBuffer)
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+		// Pump pending command queues
+		PumpCommandQueue();
 
 		// Create a zero'd scratch buffer to get the audio from this submix's children
 		const int32 NumSamples = OutAudioBuffer.Num();

@@ -155,11 +155,14 @@ struct ENGINE_API FSkelMeshComponentLODInfo
 
 	void ReleaseOverrideVertexColorsAndBlock();
 	void BeginReleaseOverrideVertexColors();
+private:
+	void CleanUpOverrideVertexColors();
 
+public:
 	void ReleaseOverrideSkinWeightsAndBlock();
 	void BeginReleaseOverrideSkinWeights();
-
-	void CleanUp();
+private:
+	void CleanUpOverrideSkinWeights();
 };
 
 /** Struct used to store per-component ref pose override */

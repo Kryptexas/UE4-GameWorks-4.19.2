@@ -9,6 +9,16 @@
 #include "EditorUndoClient.h"
 #include "IStaticMeshEditor.h"
 #include "ISocketManager.h"
+#include "TickableEditorObject.h"
+
+// Set USE_ASYNC_DECOMP to zero to go back to the fully synchronous; blocking version of V-HACD
+#ifndef USE_ASYNC_DECOMP
+#define USE_ASYNC_DECOMP 1
+#endif
+
+#if USE_ASYNC_DECOMP
+class IDecomposeMeshToHullsAsync;
+#endif
 
 class FStaticMeshDetails;
 class IDetailsView;
@@ -24,7 +34,7 @@ struct FPropertyChangedEvent;
 /**
  * StaticMesh Editor class
  */
-class FStaticMeshEditor : public IStaticMeshEditor, public FGCObject, public FEditorUndoClient, public FNotifyHook
+class FStaticMeshEditor : public IStaticMeshEditor, public FGCObject, public FEditorUndoClient, public FNotifyHook, public FTickableEditorObject
 {
 public:
 	FStaticMeshEditor()
@@ -106,7 +116,7 @@ public:
 
 	virtual void RefreshTool() override;
 	virtual void RefreshViewport() override;
-	virtual void DoDecomp(float InAccuracy, int32 InMaxHullVerts) override;
+	virtual void DoDecomp(uint32 InHullCount, int32 InMaxHullVerts, uint32 InHullPrecision) override;
 
 	virtual TSet< int32 >& GetSelectedEdges() override;
 	// End of IStaticMeshEditor
@@ -150,6 +160,29 @@ public:
 
 	class FStaticMeshEditorViewportClient& GetViewportClient();
 	const class FStaticMeshEditorViewportClient& GetViewportClient() const;
+
+	/** For asynchronous convex decomposition support, this class is tickable in the editor to be able to confirm
+	that the process is completed */
+	virtual bool IsTickableInEditor() const final
+	{
+		return true;
+	}
+
+	/** This is a tickable class */
+	virtual bool IsTickable() const final
+	{
+		return true;
+	}
+
+	/** Performs the main 'tick' operation on this class.  The 'tick' step checks to see if there is currently
+	an active asynchronous convex decomopsition task running and, if so, checks to see if it is completed and,
+	if so, gathers the results and releases the interface */
+	virtual void Tick(float DeltaTime) final;
+
+	/** Returns the stat ID for this tickable class */
+	virtual TStatId GetStatId() const final;
+
+
 private:
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
@@ -355,6 +388,11 @@ private:
 
 	FOnSelectedLODChangedMulticaster OnSelectedLODChanged;
 	FOnSelectedLODChangedMulticaster OnSelectedLODChangedResetOnRefresh;
+
+#if USE_ASYNC_DECOMP
+	/** Instance of the active asynchronous convex decomposition interface. */
+	IDecomposeMeshToHullsAsync        *DecomposeMeshToHullsAsync{ nullptr };
+#endif
 
 	/**	The tab ids for all the tabs used */
 	static const FName ViewportTabId;

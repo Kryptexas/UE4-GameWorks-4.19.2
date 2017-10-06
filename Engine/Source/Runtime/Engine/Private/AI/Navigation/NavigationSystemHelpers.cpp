@@ -230,8 +230,13 @@ namespace NavigationHelper
 
 	bool IsBodyNavigationRelevant(const UBodySetup& BodySetup)
 	{
+#if WITH_PHYSX
 		// has any colliding geometry
 		return (BodySetup.AggGeom.GetElementCount() > 0 || BodySetup.TriMeshes.Num() > 0)
+#else
+		// has any colliding geometry
+		return (BodySetup.AggGeom.GetElementCount() > 0)
+#endif
 			// AND blocks any of Navigation-relevant 
 			&& (BodySetup.DefaultInstance.GetResponseToChannel(ECC_Pawn) == ECR_Block || BodySetup.DefaultInstance.GetResponseToChannel(ECC_Vehicle) == ECR_Block)
 			// AND has full colliding capabilities 

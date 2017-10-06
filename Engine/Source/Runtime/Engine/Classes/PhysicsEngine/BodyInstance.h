@@ -11,8 +11,6 @@
 #include "PhysxUserData.h"
 #include "BodyInstance.generated.h"
 
-#define UE_WITH_PHYSICS (WITH_PHYSX)
-
 class FPhysScene;
 class UBodySetup;
 class UPhysicalMaterial;
@@ -520,8 +518,6 @@ public:
 	typedef physx::PxAggregate* PhysXAggregateType;
 #endif
 
-#if UE_WITH_PHYSICS
-
 	/** Helper struct to specify spawn behavior */
 	struct FInitBodySpawnParams
 	{
@@ -538,11 +534,16 @@ public:
 
 		/** Whether to override the physics scene used for simulation */
 		EDynamicActorScene DynamicActorScene;
+
+#if WITH_PHYSX
+		/** An aggregate to place the body into */
+		PhysXAggregateType Aggregate;
+#endif
 	};
 
-	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL)
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene)
 	{
-		InitBody(Setup, Transform, PrimComp, InRBScene, FInitBodySpawnParams(PrimComp), InAggregate);
+		InitBody(Setup, Transform, PrimComp, InRBScene, FInitBodySpawnParams(PrimComp));
 	}
 
 
@@ -554,7 +555,7 @@ public:
 	*	@param SpawnParams The parameters for determining certain spawn behavior
 	*	@param InAggregate An aggregate to place the body into
 	*/
-	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams, PhysXAggregateType InAggregate = NULL);
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams);
 
 	/** Validate a body transform, outputting debug info
 	 *	@param Transform Transform to debug
@@ -645,8 +646,6 @@ public:
 	 */
 	int32 GetAllShapes_AssumesLocked(TArray<physx::PxShape*>& OutShapes) const;
 #endif	//WITH_PHYSX
-
-#endif	//UE_WITH_PHYSICS
 
 	void TermBody();
 
@@ -1047,7 +1046,7 @@ public:
 	 * @param Radius		Size of radial impulse. Beyond this distance from Origin, there will be no affect.
 	 * @param Strength		Maximum strength of impulse applied to body.
 	 * @param Falloff		Allows you to control the strength of the impulse as a function of distance from Origin.
-	 * @param bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	 * @param bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no effect).
 	 */
 	void AddRadialImpulseToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange = false);
 
@@ -1058,7 +1057,7 @@ public:
 	 *	@param Radius		Radius within which to apply the force.
 	 *	@param Strength		Strength of force to apply.
 	 *  @param Falloff		Allows you to control the strength of the force as a function of distance from Origin.
-	 *  @param bAccelChange If true, Strength is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
+	 *  @param bAccelChange If true, Strength is taken as a change in acceleration instead of a physical force (i.e. mass will have no effect).
 	 *  @param bAllowSubstepping Whether we should sub-step this radial force. You should only turn this off if you're calling it from a sub-step callback, otherwise there will be energy loss
 	 */
 	void AddRadialForceToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange = false, bool bAllowSubstepping = true);

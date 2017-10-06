@@ -74,6 +74,9 @@ public:
 	/** Return the name used to attach to this item */
 	virtual FName GetAttachName() const = 0;
 
+	/** @return true if this item can be renamed */
+	virtual bool CanRenameItem() const = 0;
+
 	/** Requests a rename on the the tree row item */
 	virtual void RequestRename() = 0;
 

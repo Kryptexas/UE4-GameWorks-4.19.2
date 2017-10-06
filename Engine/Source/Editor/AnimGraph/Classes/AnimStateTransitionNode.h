@@ -105,6 +105,7 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface
@@ -156,4 +157,7 @@ protected:
 
 public:
 	UEdGraph* GetCustomTransitionGraph() const { return CustomTransitionGraph; }
+
+	/** Validates any currently set blend profile, ensuring it's valid for the current skeleton */
+	ANIMGRAPH_API bool ValidateBlendProfile();
 };

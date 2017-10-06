@@ -114,6 +114,12 @@ public:
 	/** Returns whether the sound base is set up in a playable manner */
 	virtual bool IsPlayable() const;
 
+	/** Returns whether a sound is allowed to be virtualized. */
+	virtual bool IsAllowedVirtual() const;
+
+	/** Returns whether or not this sound base has an attenuation node. */
+	virtual bool HasAttenuationNode() const;
+
 	/** Returns a pointer to the attenuation settings that are to be applied for this node */
 	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const;
 
@@ -134,7 +140,7 @@ public:
 	virtual float GetSubtitlePriority() const { return DEFAULT_SUBTITLE_PRIORITY; };
 	
 	/** Returns whether or not any part of this sound wants interior volumes applied to it */
-	virtual bool ShouldApplyInteriorVolumes() const;
+	virtual bool ShouldApplyInteriorVolumes();
 
 	/** Returns whether or not this sound is looping. */
 	bool IsLooping();

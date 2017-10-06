@@ -183,11 +183,14 @@ class PHYSXVEHICLES_API UWheeledVehicleMovementComponent4W : public UWheeledVehi
 protected:
 
 
+#if WITH_PHYSX
+
 	/** Allocate and setup the PhysX vehicle */
 	virtual void SetupVehicleDrive(physx::PxVehicleWheelsSimData* PWheelsSimData) override;
 
 	virtual void UpdateSimulation(float DeltaTime) override;
 
+#endif // WITH_PHYSX
 
 	/** update simulation data: engine */
 	void UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup);

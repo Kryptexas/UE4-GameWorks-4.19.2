@@ -13,10 +13,7 @@
 #include "WorldCollision.h"
 #include "Engine/World.h"
 #include "PhysicsEngine/BodyInstance.h"
-
-#if WITH_PHYSX
-	#include "Collision/PhysXCollision.h"
-#endif
+#include "Collision/PhysXCollision.h"
 
 /**
  * Async trace functions
@@ -93,7 +90,6 @@ namespace
 
 	void RunTraceTask(FTraceDatum* TraceDataBuffer, int32 TotalCount)
 	{
-#if UE_WITH_PHYSICS
 		check(TraceDataBuffer);
 
 		for (; TotalCount; --TotalCount)
@@ -175,12 +171,10 @@ namespace
 				}
 			}
 		}
-	#endif //UE_WITH_PHYSICS
 	}
 
 	void RunTraceTask(FOverlapDatum* OverlapDataBuffer, int32 TotalCount)
 	{
-	#if UE_WITH_PHYSICS
 		check(OverlapDataBuffer);
 
 		for (; TotalCount; --TotalCount)
@@ -204,7 +198,6 @@ namespace
 				OverlapData.CollisionParams.ResponseParam,
 				OverlapData.CollisionParams.ObjectQueryParam);
 		}
-	#endif //UE_WITH_PHYSICS
 	}
 
 	#if RUN_ASYNC_TRACE

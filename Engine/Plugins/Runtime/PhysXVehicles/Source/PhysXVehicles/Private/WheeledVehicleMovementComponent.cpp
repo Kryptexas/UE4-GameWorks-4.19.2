@@ -31,6 +31,8 @@
 #define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 
 
+#if WITH_PHYSX
+
 /**
  * PhysX shader for tire friction forces
  * tireFriction - friction value of the tire contact.
@@ -90,6 +92,8 @@ void PTireShader(const void* shaderData, const PxF32 tireFriction,
 	Wheel->DebugLatForce = tireLatForceMag;
 }
 
+#endif // WITH_PHYSX
+
 UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -135,12 +139,14 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	
 	bReverseAsBrake = true;	//Treats reverse button as break for a more arcade feel (also automatically goes into reverse)
 
+#if WITH_PHYSX
 	// tire load filtering
 	PxVehicleTireLoadFilterData PTireLoadFilterDef;
 	MinNormalizedTireLoad = PTireLoadFilterDef.mMinNormalisedLoad;
 	MinNormalizedTireLoadFiltered = PTireLoadFilterDef.mMinFilteredNormalisedLoad;
 	MaxNormalizedTireLoad = PTireLoadFilterDef.mMaxNormalisedLoad;
 	MaxNormalizedTireLoadFiltered = PTireLoadFilterDef.mMaxFilteredNormalisedLoad;
+#endif // WITH_PHYSX
 
 	SetIsReplicated(true);
 
@@ -176,6 +182,8 @@ void UWheeledVehicleMovementComponent::SetUpdatedComponent(USceneComponent* NewU
 		SKC->bLocalSpaceKinematics = true;
 	}
 }
+
+#if WITH_PHYSX
 
 bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 {
@@ -522,6 +530,8 @@ void UWheeledVehicleMovementComponent::SetupWheels(PxVehicleWheelsSimData* PWhee
 		PWheelsSimData->setTireLoadFilterData(PTireLoadFilter);
 	});
 }
+#endif // WITH_PHYSX
+
  ////////////////////////////////////////////////////////////////////////////
 //Default tire force shader function.
 //Taken from Michigan tire model.
@@ -533,6 +543,8 @@ void UWheeledVehicleMovementComponent::SetupWheels(PxVehicleWheelsSimData* PWhee
 
 #define ONE_TWENTYSEVENTH 0.037037f
 #define ONE_THIRD 0.33333f
+
+#if WITH_PHYSX
 PX_FORCE_INLINE PxF32 smoothingFunction1(const PxF32 K)
 {
 	//Equation 20 in CarSimEd manual Appendix F.
@@ -612,9 +624,11 @@ void PxVehicleComputeTireForceDefault
 	tireLatForceMag=fx;
 	tireAlignMoment=fMy;
 }
+#endif // WITH_PHYSX
 
 void UWheeledVehicleMovementComponent::GenerateTireForces( UVehicleWheel* Wheel, const FTireShaderInput& Input, FTireShaderOutput& Output )
 {
+#if WITH_PHYSX
 	const void* realShaderData = &PVehicle->mWheelsSimData.getTireData(Wheel->WheelIndex);
 
 	float Dummy;
@@ -635,7 +649,10 @@ void UWheeledVehicleMovementComponent::GenerateTireForces( UVehicleWheel* Wheel,
 	//UE_LOG( LogVehicles, Warning, TEXT("Friction = %f	LongSlip = %f	LatSlip = %f"), Input.TireFriction, Input.LongSlip, Input.LatSlip );	
 	//UE_LOG( LogVehicles, Warning, TEXT("WheelTorque= %f	LongForce = %f	LatForce = %f"), Output.WheelTorque, Output.LongForce, Output.LatForce );
 	//UE_LOG( LogVehicles, Warning, TEXT("RestLoad= %f	NormLoad = %f	TireLoad = %f"),Input.RestTireLoad, Input.NormalizedTireLoad, Input.TireLoad );
+#endif // WITH_PHYSX
 }
+
+#if WITH_PHYSX
 
 void UWheeledVehicleMovementComponent::PostSetupVehicle()
 {
@@ -971,6 +988,8 @@ void UWheeledVehicleMovementComponent::UpdateSimulation( float DeltaTime )
 {
 }
 
+#endif // WITH_PHYSX
+
 void UWheeledVehicleMovementComponent::UpdateAvoidance(float DeltaTime)
 {
 	UpdateDefaultAvoidance();
@@ -1185,11 +1204,13 @@ float UWheeledVehicleMovementComponent::CalcThrottleInput()
 	return FMath::Abs(RawThrottleInput);
 }
 
+#if WITH_PHYSX
 void UWheeledVehicleMovementComponent::StopMovementImmediately()
 {
 	Super::StopMovementImmediately();
 	ClearAllInput();
 }
+#endif // WITH_PHYSX
 
 void UWheeledVehicleMovementComponent::ClearInput()
 {
@@ -1245,6 +1266,7 @@ void UWheeledVehicleMovementComponent::SetGearDown(bool bNewGearDown)
 
 void UWheeledVehicleMovementComponent::SetTargetGear(int32 GearNum, bool bImmediate)
 {
+#if WITH_PHYSX
 	//UE_LOG( LogVehicles, Warning, TEXT(" UWheeledVehicleMovementComponent::SetTargetGear::GearNum = %d, bImmediate = %d"), GearNum, bImmediate);
 	const uint32 TargetGearNum = GearToPhysXGear(GearNum);
 	if (PVehicleDrive && PVehicleDrive->mDriveDynData.getTargetGear() != TargetGearNum)
@@ -1258,19 +1280,23 @@ void UWheeledVehicleMovementComponent::SetTargetGear(int32 GearNum, bool bImmedi
 			PVehicleDrive->mDriveDynData.startGearChange(TargetGearNum);
 		}
 	}
+#endif // WITH_PHYSX
 }
 
 void UWheeledVehicleMovementComponent::SetUseAutoGears(bool bUseAuto)
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		PVehicleDrive->mDriveDynData.setUseAutoGears(bUseAuto);
 	}
+#endif // WITH_PHYSX
 }
 
 float UWheeledVehicleMovementComponent::GetForwardSpeed() const
 {
 	float ForwardSpeed = 0.f;
+#if WITH_PHYSX
 	if ( PVehicle )
 	{
 		UpdatedPrimitive->GetBodyInstance()->ExecuteOnPhysicsReadOnly([&]
@@ -1278,12 +1304,14 @@ float UWheeledVehicleMovementComponent::GetForwardSpeed() const
 			ForwardSpeed = PVehicle->computeForwardSpeed();
 		});
 	}
+#endif // WITH_PHYSX
 
 	return ForwardSpeed;
 }
 
 float UWheeledVehicleMovementComponent::GetEngineRotationSpeed() const
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{		
 		return 9.5493 *  PVehicleDrive->mDriveDynData.getEngineRotationSpeed(); // 9.5493 = 60sec/min * (Motor Omega)/(2 * Pi); Motor Omega is in radians/sec, not RPM.
@@ -1301,6 +1329,7 @@ float UWheeledVehicleMovementComponent::GetEngineRotationSpeed() const
 		const float CurrentRPM = TotalWheelSpeed / WheelSetups.Num();
 		return CurrentRPM;
 	}
+#endif // WITH_PHYSX
 
 	return 0.0f;
 }
@@ -1310,6 +1339,7 @@ float UWheeledVehicleMovementComponent::GetEngineMaxRotationSpeed() const
 	return MaxEngineRPM;
 }
 
+#if WITH_PHYSX
 
 int32 UWheeledVehicleMovementComponent::GearToPhysXGear(const int32 Gear) const
 {
@@ -1340,35 +1370,42 @@ int32 UWheeledVehicleMovementComponent::PhysXGearToGear(const int32 PhysXGear) c
 
 }
 
+#endif // WITH_PHYSX
 
 int32 UWheeledVehicleMovementComponent::GetCurrentGear() const
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		const int32 PhysXGearNum = PVehicleDrive->mDriveDynData.getCurrentGear();
 		return PhysXGearToGear(PhysXGearNum);
 	}
+#endif // WITH_PHYSX
 
 	return 0;
 }
 
 int32 UWheeledVehicleMovementComponent::GetTargetGear() const
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		const int32 PhysXGearNum = PVehicleDrive->mDriveDynData.getTargetGear();
 		return PhysXGearToGear(PhysXGearNum);
 	}
+#endif // WITH_PHYSX
 
 	return 0;
 }
 
 bool UWheeledVehicleMovementComponent::GetUseAutoGears() const
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		return PVehicleDrive->mDriveDynData.getUseAutoGears();
 	}
+#endif // WITH_PHYSX
 
 	return false;
 }
@@ -1386,6 +1423,7 @@ void UWheeledVehicleMovementComponent::Serialize(FArchive& Ar)
 }
 
 
+#if WITH_PHYSX
 void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight, float& OutX )
 {
 
@@ -1454,9 +1492,11 @@ void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* 
 
 	OutX = FMath::Max(XL,GraphWidth);
 }
+#endif // WITH_PHYSX
 
 bool UWheeledVehicleMovementComponent::CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const
 {
+#if WITH_PHYSX
 	if (PVehicle == NULL)
 	{
 		return false;
@@ -1487,12 +1527,14 @@ bool UWheeledVehicleMovementComponent::CheckSlipThreshold(float AbsLongSlipThres
 			return true;
 		}
 	}
+#endif // WITH_PHYSX
 
 	return false;
 }
 
 float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 {
+#if WITH_PHYSX
 	if (PVehicle == NULL)
 	{
 		return false;
@@ -1513,8 +1555,12 @@ float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 	}
 
 	return MaxSpringCompression;
-
+#else
+	return 0.0f;
+#endif // WITH_PHYSX
 }
+
+#if WITH_PHYSX
 
 void UWheeledVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
 {
@@ -1787,7 +1833,9 @@ void UWheeledVehicleMovementComponent::DrawDebugLines()
 #endif // ENABLE_DRAW_DEBUG
 }
 
-#if WITH_EDITOR
+#endif // WITH_PHYSX
+
+#if WITH_EDITOR && WITH_PHYSX
 
 void UWheeledVehicleMovementComponent::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
 {
@@ -1797,7 +1845,7 @@ void UWheeledVehicleMovementComponent::PostEditChangeProperty( FPropertyChangedE
 	FPhysXVehicleManager::VehicleSetupTag++;
 }
 
-#endif // WITH_EDITOR
+#endif // WITH_EDITOR && WITH_PHYSX
 
 /// @cond DOXYGEN_WARNINGS
 

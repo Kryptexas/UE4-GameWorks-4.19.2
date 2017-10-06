@@ -1443,6 +1443,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 
 	// import animation
+	if (ImportOptions->bImportBoneTracks)
 	{
 		GWarn->BeginSlowTask( LOCTEXT("BeginImportAnimation", "Importing Animation"), true);
 
@@ -1615,6 +1616,10 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		DestSeq->MarkRawDataAsModified();
 
 		GWarn->EndSlowTask();
+	}
+	else
+	{
+		DestSeq->RecycleAnimSequence();
 	}
 
 	// compress animation

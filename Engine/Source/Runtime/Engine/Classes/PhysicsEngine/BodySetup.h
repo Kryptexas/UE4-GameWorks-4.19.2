@@ -38,8 +38,6 @@ namespace physx
 	class PxTriangleMeshGeometry;
 }
 
-enum class EPhysXMeshCookFlags : uint8;
-
 DECLARE_CYCLE_STAT_EXTERN(TEXT("PhysX Cooking"), STAT_PhysXCooking, STATGROUP_Physics, );
 
 
@@ -79,11 +77,13 @@ struct ENGINE_API FCookBodySetupInfo
 	/** Trimesh data for cooking */
 	FTriMeshCollisionData TriangleMeshDesc;
 
+#if WITH_PHYSX
 	/** Trimesh cook flags */
 	EPhysXMeshCookFlags TriMeshCookFlags;
 
 	/** Convex cook flags */
 	EPhysXMeshCookFlags ConvexCookFlags;
+#endif // WITH_PHYSX
 
 	/** Vertices of NonMirroredConvex hulls */
 	TArray<TArray<FVector>> NonMirroredConvexVertices;
@@ -287,9 +287,11 @@ public:
 	ENGINE_API void CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished);
 
 private:
+#if WITH_PHYSX
 	/** Finalize game thread data before calling back user's delegate */
 	void FinishCreatePhysicsMeshesAsync(FPhysXCookHelper* AsyncPhysicsCookHelper, FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished);
-	
+#endif // WITH_PHYSX
+
 	/**
 	* Given a format name returns its cooked data.
 	*
@@ -301,8 +303,10 @@ private:
 
 public:
 
+#if WITH_PHYSX
 	/** Finish creating the physics meshes and update the body setup data with cooked data */
 	ENGINE_API void FinishCreatingPhysicsMeshes(const TArray<physx::PxConvexMesh*>& ConvexMeshes, const TArray<physx::PxConvexMesh*>& ConvexMeshesNegX, const TArray<physx::PxTriangleMesh*>& TriMeshes);
+#endif // WITH_PHYSX
 
 	/** Returns the volume of this element */
 	ENGINE_API virtual float GetVolume(const FVector& Scale) const;
@@ -409,6 +413,7 @@ public:
 /** Helper struct for iterating over shapes in a body setup.*/
 struct ENGINE_API FBodySetupShapeIterator
 {
+#if WITH_PHYSX
 	FBodySetupShapeIterator(const UBodySetup& InBodySetup, FVector& InScale3D, const FTransform& InRelativeTM);
 
 	/** Iterates over the elements array and creates the needed geometry and local pose. Note that this memory is on the stack so it's illegal to use it by reference outside the lambda */
@@ -423,6 +428,7 @@ private:
 	template <typename ElemType, typename GeomType> bool PopulatePhysXGeometryAndTransform(const ElemType& Elem, GeomType& Geom, physx::PxTransform& OutTM) const;
 	template <typename GeomType> float ComputeContactOffset(const GeomType& Geom) const;
 	template <typename ElemType> FString GetDebugName() const;
+#endif //WITH_PHYSX
 
 private:
 	const UBodySetup& BodySetup;
@@ -439,6 +445,8 @@ private:
 	float MaxContactOffset;
 };
 
+#if WITH_PHYSX
+
 /// @cond DOXYGEN_WARNINGS
 
 //Explicit export of template instantiation 
@@ -450,23 +458,4 @@ extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArr
 
 /// @endcond
 
-
-struct ENGINE_API FAsyncPhysicsCookHelper
-{
-	FAsyncPhysicsCookHelper(class IPhysXCookingModule* InPhysXCookingModule, const FCookBodySetupInfo& InCookInfo);
-
-	void CreatePhysicsMeshesAsync_Concurrent(FSimpleDelegateGraphTask::FDelegate FinishDelegate);
-
-	void CreatePhysicsMeshes_Concurrent();
-
-	void CreateConvexElements(const TArray<TArray<FVector>>& Elements, TArray<physx::PxConvexMesh*>& OutConvexMeshes, bool bFlipped);
-
-	FCookBodySetupInfo CookInfo;
-	IPhysXCookingModule* PhysXCookingModule;
-
-	//output
-	TArray<physx::PxConvexMesh*> OutNonMirroredConvexMeshes;
-	TArray<physx::PxConvexMesh*> OutMirroredConvexMeshes;
-	TArray<physx::PxTriangleMesh*> OutTriangleMeshes;
-	FBodySetupUVInfo OutUVInfo;
-};
+#endif //WITH_PHYSX

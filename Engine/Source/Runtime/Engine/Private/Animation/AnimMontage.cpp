@@ -663,6 +663,18 @@ void UAnimMontage::FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*
 	}
 }
 
+void UAnimMontage::FilterOutNotifyBranchingPoints(TArray<FAnimNotifyEventReference>& InAnimNotifies)
+{
+	for (int32 Index = InAnimNotifies.Num() - 1; Index >= 0; Index--)
+	{
+		if(const FAnimNotifyEvent* Notify = InAnimNotifies[Index].GetNotify())
+		if (!Notify || Notify->IsBranchingPoint())
+		{
+			InAnimNotifies.RemoveAt(Index, 1);
+		}
+	}
+}
+
 #if WITH_EDITOR
 void UAnimMontage::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -2321,25 +2333,26 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 	// now get active Notifies based on how it advanced
 	if (AnimInstance.IsValid())
 	{
-		TArray<const FAnimNotifyEvent*> Notifies;
-		TMap<FName, TArray<const FAnimNotifyEvent*>> NotifyMap;
+		TArray<FAnimNotifyEventReference> NotitfyRefs;
+		TMap<FName, TArray<FAnimNotifyEventReference>> NotifyMap;
 
 		// We already break up AnimMontage update to handle looping, so we guarantee that PreviousPos and CurrentPos are contiguous.
-		Montage->GetAnimNotifiesFromDeltaPositions(PreviousTrackPos, CurrentTrackPos, Notifies);
+		Montage->GetAnimNotifiesFromDeltaPositions(PreviousTrackPos, CurrentTrackPos, NotitfyRefs);
 
 		// For Montage only, remove notifies marked as 'branching points'. They are not queued and are handled separately.
-		Montage->FilterOutNotifyBranchingPoints(Notifies);
+		Montage->FilterOutNotifyBranchingPoints(NotitfyRefs);
 
 		// now trigger notifies for all animations within montage
 		// we'll do this for all slots for now
 		for (auto SlotTrack = Montage->SlotAnimTracks.CreateIterator(); SlotTrack; ++SlotTrack)
 		{
-			TArray<const FAnimNotifyEvent*>& SlotTrackNotifies = NotifyMap.FindOrAdd(SlotTrack->SlotName);
-			SlotTrack->AnimTrack.GetAnimNotifiesFromTrackPositions(PreviousTrackPos, CurrentTrackPos, SlotTrackNotifies);
+			TArray<FAnimNotifyEventReference>& MapNotifies = NotifyMap.FindOrAdd(SlotTrack->SlotName);
+
+			SlotTrack->AnimTrack.GetAnimNotifiesFromTrackPositions(PreviousTrackPos, CurrentTrackPos, MapNotifies);
 		}
 
 		// Queue all these notifies.
-		AnimInstance->NotifyQueue.AddAnimNotifies(Notifies, NotifyWeight);
+		AnimInstance->NotifyQueue.AddAnimNotifies(NotitfyRefs, NotifyWeight);
 		AnimInstance->NotifyQueue.AddAnimNotifies(NotifyMap, NotifyWeight);
 	}
 

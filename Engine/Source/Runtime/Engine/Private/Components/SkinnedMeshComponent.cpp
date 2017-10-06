@@ -2491,7 +2491,8 @@ FSkelMeshComponentLODInfo::FSkelMeshComponentLODInfo()
 
 FSkelMeshComponentLODInfo::~FSkelMeshComponentLODInfo()
 {
-	CleanUp();
+	CleanUpOverrideVertexColors();
+	CleanUpOverrideSkinWeights();
 }
 
 void FSkelMeshComponentLODInfo::ReleaseOverrideVertexColorsAndBlock()
@@ -2503,7 +2504,7 @@ void FSkelMeshComponentLODInfo::ReleaseOverrideVertexColorsAndBlock()
 		// Ensure the RT no longer accessed the data, might slow down
 		FlushRenderingCommands();
 		// The RT thread has no access to it any more so it's safe to delete it.
-		CleanUp();
+		CleanUpOverrideVertexColors();
 	}
 }
 
@@ -2516,6 +2517,15 @@ void FSkelMeshComponentLODInfo::BeginReleaseOverrideVertexColors()
 	}
 }
 
+void FSkelMeshComponentLODInfo::CleanUpOverrideVertexColors()
+{
+	if (OverrideVertexColors)
+	{
+		delete OverrideVertexColors;
+		OverrideVertexColors = nullptr;
+	}
+}
+
 void FSkelMeshComponentLODInfo::ReleaseOverrideSkinWeightsAndBlock()
 {
 	if (OverrideSkinWeights)
@@ -2525,7 +2535,7 @@ void FSkelMeshComponentLODInfo::ReleaseOverrideSkinWeightsAndBlock()
 		// Ensure the RT no longer accessed the data, might slow down
 		FlushRenderingCommands();
 		// The RT thread has no access to it any more so it's safe to delete it.
-		CleanUp();
+		CleanUpOverrideSkinWeights();
 	}
 }
 
@@ -2538,14 +2548,8 @@ void FSkelMeshComponentLODInfo::BeginReleaseOverrideSkinWeights()
 	}
 }
 
-void FSkelMeshComponentLODInfo::CleanUp()
+void FSkelMeshComponentLODInfo::CleanUpOverrideSkinWeights()
 {
-	if (OverrideVertexColors)
-	{
-		delete OverrideVertexColors;
-		OverrideVertexColors = nullptr;
-	}
-
 	if (OverrideSkinWeights)
 	{
 		delete OverrideSkinWeights;

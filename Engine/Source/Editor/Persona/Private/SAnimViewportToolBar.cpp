@@ -255,7 +255,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::MakeViewportToolbar(TSharedPtr<class S
 
 	MenuBarBuilder.AddPullDownMenu(
 		LOCTEXT("ViewMenu", "View"),
-		LOCTEXT("ViewMenuToolTip", "Change the rendering mode"),
+		LOCTEXT("ViewMenuToolTip", "View options"),
 		TAttribute<FSlateIcon>::Create(TAttribute<FSlateIcon>::FGetter::CreateStatic(&SEditorViewportViewMenu::GetViewMenuLabelIcon, WeakViewport)),
 		FNewMenuDelegate::CreateStatic(&SEditorViewportViewMenu::GenerateViewMenu, WeakToolbar, InRealViewport->BuildFixedEV100Menu(), false),
 		"AnimViewportViewMenu");

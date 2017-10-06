@@ -29,7 +29,7 @@ bool UAnimComposite::IsNotifyAvailable() const
 	return (Super::IsNotifyAvailable() || AnimationTrack.IsNotifyAvailable());
 }
 
-void UAnimComposite::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const
+void UAnimComposite::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<FAnimNotifyEventReference>& OutActiveNotifies) const
 {
 	const bool bMovingForward = (RateScale >= 0.f);
 

@@ -17,6 +17,7 @@
 #include "SkeletalRenderPublic.h"
 #include "SkeletalMeshTypes.h"
 #include "Components/LineBatchComponent.h"
+#include "PhysicsPublic.h"
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
 #endif // WITH_PHYSX
@@ -553,7 +554,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 			const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene, UseAsyncScene);
 			// Lock the scenes we need (flags set in InitArticulated)
 			SCOPED_SCENE_WRITE_LOCK(PhysScene->GetPhysXScene(SceneType));
-#endif
 
 			// Iterate over each body
 			for (int32 i = 0; i < NumBodies; i++)
@@ -573,7 +573,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 					}
 					else
 					{
-#if WITH_PHYSX
 						// update bone transform to world
 						const FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
 						if(!BoneTransform.IsValid())
@@ -597,8 +596,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 							ensure(PNewPose.isValid());
 							RigidActor->setGlobalPose(PNewPose);
 						}
-#endif
-
 
 						// now update scale
 						// if uniform, we'll use BoneTranform
@@ -631,6 +628,9 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 					}
 				}
 			}
+
+#endif // WITH_PHYSX
+
 		}
 	}
 	else

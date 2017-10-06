@@ -198,15 +198,18 @@ UCLASS()
 class UClothPaintTool_FillSettings : public UObject
 {
 	GENERATED_BODY()
-
 public:
 
+	UClothPaintTool_FillSettings()
+		: Threshold(0.0f), FillValue(100.0f)
+	{}
+
 	/** Threshold for fill operation, will keep filling until sampled verts aren't within this range of the original vertex */
-	UPROPERTY(EditAnywhere, Category = ToolSettings)
+	UPROPERTY(EditAnywhere, Category = ToolSettings, meta = (UIMin = 0, UIMax = 100, ClampMin = 0, ClampMax = 100000))
 	float Threshold;
 
 	/** The value to fill all selected verts to */
-	UPROPERTY(EditAnywhere, Category = ToolSettings)
+	UPROPERTY(EditAnywhere, Category = ToolSettings, meta = (UIMin = 0, UIMax = 100, ClampMin = 0, ClampMax = 100000))
 	float FillValue;
 };
 

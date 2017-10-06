@@ -171,7 +171,7 @@ private:
 // Class which processes audio streams and uses parameters defined in the preset class.
 // ========================================================================
 
-UCLASS()
+UCLASS(ClassGroup = AudioSourceEffect, meta = (BlueprintSpawnableComponent))
 class SYNTHESIS_API USubmixEffectTapDelayPreset : public USoundEffectSubmixPreset
 {
 	GENERATED_BODY()
@@ -218,6 +218,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SubmixEffectPreset, Meta = (ShowOnlyInnerProperties))
 	FSubmixEffectTapDelaySettings Settings;
 
-	UPROPERTY(transient)
 	FSubmixEffectTapDelaySettings DynamicSettings;
 };

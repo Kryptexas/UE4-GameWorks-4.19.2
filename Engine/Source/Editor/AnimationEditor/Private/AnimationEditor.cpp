@@ -208,6 +208,10 @@ void FAnimationEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnAddLoopingInterpolation),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
 
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().RemoveBoneTracks,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnRemoveBoneTrack),
+		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
+
 	ToolkitCommands->MapAction(FPersonaCommonCommands::Get().TogglePlay,
 		FExecuteAction::CreateRaw(&GetPersonaToolkit()->GetPreviewScene().Get(), &IPersonaPreviewScene::TogglePlayback));
 }
@@ -310,6 +314,7 @@ void FAnimationEditor::ExtendMenu()
 				);
 
 				MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().AddLoopingInterpolation);
+				MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().RemoveBoneTracks);
 
 				MenuBuilder.AddSubMenu(
 					LOCTEXT("CopyCurvesToSoundWave", "Copy Curves To SoundWave"),
@@ -610,6 +615,21 @@ void FAnimationEditor::OnAddLoopingInterpolation()
 		AnimSequences.Add(AnimSequence);
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
 		PersonaModule.AddLoopingInterpolation(AnimSequences);
+	}
+}
+
+void FAnimationEditor::OnRemoveBoneTrack()
+{
+	if ( FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("WarningOnRemovingBoneTracks", "This will clear all bone transform of the animation, source data, and edited layer information. This doesn't remove notifies, and curves. Do you want to continue?")) == EAppReturnType::Yes)
+	{
+		FScopedTransaction ScopedTransaction(LOCTEXT("RemoveAnimation", "Remove Track"));
+
+		UAnimSequence* AnimSequence = Cast<UAnimSequence>(AnimationAsset);
+		if (AnimSequence)
+		{
+			AnimSequence->Modify();
+			AnimSequence->RemoveAllTracks();
+		}
 	}
 }
 

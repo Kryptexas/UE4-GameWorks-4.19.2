@@ -36,10 +36,16 @@
 #include "IMeshReductionManagerModule.h"
 #include "HAL/PlatformApplicationMisc.h"
 
-const float MaxHullAccuracy = 1.f;
-const float MinHullAccuracy = 0.f;
-const float DefaultHullAccuracy = 0.5f;
-const float HullAccuracyDelta = 0.01f;
+const uint32 MaxHullCount = 64;
+const uint32 MinHullCount = 2;
+const uint32 DefaultHullCount = 4;
+const uint32 HullCountDelta = 1;
+
+const uint32 MaxHullPrecision = 1000000;
+const uint32 MinHullPrecision = 10000;
+const uint32 DefaultHullPrecision = 100000;
+const uint32 HullPrecisionDelta = 10000;
+
 
 const int32 MaxVertsPerHullCount = 32;
 const int32 MinVertsPerHullCount = 6;
@@ -120,42 +126,45 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 void SConvexDecomposition::Construct(const FArguments& InArgs)
 {
 	StaticMeshEditorPtr = InArgs._StaticMeshEditorPtr;
-
-	CurrentHullAccuracy = DefaultHullAccuracy;
+	CurrentHullPrecision = DefaultHullPrecision;
+	CurrentHullCount = DefaultHullCount;
 	CurrentMaxVertsPerHullCount = DefaultVertsPerHull;
 
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
+
+		+ SVerticalBox::Slot()
 		.AutoHeight()
-		.Padding(4.0f, 16.0f, 0.0f, 8.0f)
+		.Padding(4.0f, 8.0f, 0.0f, 8.0f)
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
+			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("HullAccuracy_ConvexDecomp", "Accuracy") )
+				.Text(LOCTEXT("HullCount_ConvexDecomp", "Hull Count"))
 			]
 
-			+SHorizontalBox::Slot()
+			+ SHorizontalBox::Slot()
 			.FillWidth(3.0f)
-			[
-				SAssignNew(HullAccuracy, SSpinBox<float>)
-				.MinValue(MinHullAccuracy)
-				.MaxValue(MaxHullAccuracy)
-				.Delta(HullAccuracyDelta)
-				.Value( this, &SConvexDecomposition::GetHullAccuracy )
-				.OnValueCommitted( this, &SConvexDecomposition::OnHullAccuracyCommitted )
-				.OnValueChanged( this, &SConvexDecomposition::OnHullAccuracyChanged )
+			[	
+				SAssignNew(HullCount, SSpinBox<uint32>)
+				.ToolTipText(LOCTEXT("HullCount_ConvexDecomp_Tip", "Maximum number of convex pieces that will be created."))
+				.MinValue(MinHullCount)
+				.MaxValue(MaxHullCount)
+				.Delta(HullCountDelta)
+				.Value(this, &SConvexDecomposition::GetHullCount)
+				.OnValueCommitted(this, &SConvexDecomposition::OnHullCountCommitted)
+				.OnValueChanged(this, &SConvexDecomposition::OnHullCountChanged)
 			]
 		]
 
+
 		+SVerticalBox::Slot()
 		.AutoHeight()
-		.Padding(4.0f, 8.0f, 0.0f, 16.0f)
+		.Padding(4.0f, 8.0f, 0.0f, 8.0f)
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -167,15 +176,43 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			]
 
 			+SHorizontalBox::Slot()
-				.FillWidth(3.0f)
-				[
-					SAssignNew(MaxVertsPerHull, SSpinBox<int32>)
-					.MinValue(MinVertsPerHullCount)
-					.MaxValue(MaxVertsPerHullCount)
-					.Value( this, &SConvexDecomposition::GetVertsPerHullCount )
-					.OnValueCommitted( this, &SConvexDecomposition::OnVertsPerHullCountCommitted )
-					.OnValueChanged( this, &SConvexDecomposition::OnVertsPerHullCountChanged )
-				]
+			.FillWidth(3.0f)
+			[
+				SAssignNew(MaxVertsPerHull, SSpinBox<int32>)
+				.ToolTipText(LOCTEXT("MaxHullVerts_ConvexDecomp_Tip", "Maximum number of vertices allowed for any generated convex hull."))
+				.MinValue(MinVertsPerHullCount)
+				.MaxValue(MaxVertsPerHullCount)
+				.Value( this, &SConvexDecomposition::GetVertsPerHullCount )
+				.OnValueCommitted( this, &SConvexDecomposition::OnVertsPerHullCountCommitted )
+				.OnValueChanged( this, &SConvexDecomposition::OnVertsPerHullCountChanged )
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(4.0f, 8.0f, 0.0f, 8.0f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("HullPrecision_ConvexDecomp", "Hull Precision"))
+			]
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(3.0f)
+			[
+				SAssignNew(HullPrecision, SSpinBox<uint32>)
+				.ToolTipText(LOCTEXT("HullPrecision_ConvexDecomp_Tip", "Number of voxels to use when generating collision."))
+				.MinValue(MinHullPrecision)
+				.MaxValue(MaxHullPrecision)
+				.Delta(HullPrecisionDelta)
+				.Value(this, &SConvexDecomposition::GetHullPrecision)
+				.OnValueCommitted(this, &SConvexDecomposition::OnHullPrecisionCommitted)
+				.OnValueChanged(this, &SConvexDecomposition::OnHullPrecisionChanged)
+			]
 		]
 
 		+SVerticalBox::Slot()
@@ -224,33 +261,51 @@ SConvexDecomposition::~SConvexDecomposition()
 
 FReply SConvexDecomposition::OnApplyDecomp()
 {
-	StaticMeshEditorPtr.Pin()->DoDecomp(CurrentHullAccuracy, CurrentMaxVertsPerHullCount);
+	StaticMeshEditorPtr.Pin()->DoDecomp(CurrentHullCount, CurrentMaxVertsPerHullCount, CurrentHullPrecision);
 
 	return FReply::Handled();
 }
 
 FReply SConvexDecomposition::OnDefaults()
 {
-	CurrentHullAccuracy = DefaultHullAccuracy;
+	CurrentHullCount = DefaultHullCount;
+	CurrentHullPrecision = DefaultHullPrecision;
 	CurrentMaxVertsPerHullCount = DefaultVertsPerHull;
+
 
 	return FReply::Handled();
 }
 
-void SConvexDecomposition::OnHullAccuracyCommitted(float InNewValue, ETextCommit::Type CommitInfo)
+void SConvexDecomposition::OnHullCountCommitted(uint32 InNewValue, ETextCommit::Type CommitInfo)
 {
-	OnHullAccuracyChanged(InNewValue);
+	OnHullCountChanged(InNewValue);
 }
 
-void SConvexDecomposition::OnHullAccuracyChanged(float InNewValue)
+void SConvexDecomposition::OnHullCountChanged(uint32 InNewValue)
 {
-	CurrentHullAccuracy = InNewValue;
+	CurrentHullCount = InNewValue;
 }
 
-float SConvexDecomposition::GetHullAccuracy() const
+uint32 SConvexDecomposition::GetHullCount() const
 {
-	return CurrentHullAccuracy;
+	return CurrentHullCount;
 }
+
+void SConvexDecomposition::OnHullPrecisionCommitted(uint32 InNewValue, ETextCommit::Type CommitInfo)
+{
+	OnHullPrecisionChanged(InNewValue);
+}
+
+void SConvexDecomposition::OnHullPrecisionChanged(uint32 InNewValue)
+{
+	CurrentHullPrecision = InNewValue;
+}
+
+uint32 SConvexDecomposition::GetHullPrecision() const
+{
+	return CurrentHullPrecision;
+}
+
 void SConvexDecomposition::OnVertsPerHullCountCommitted(int32 InNewValue,  ETextCommit::Type CommitInfo)
 {
 	OnVertsPerHullCountChanged(InNewValue);

@@ -19,6 +19,7 @@
 #include "Editor/PhysicsAssetEditor/Private/PhysicsAssetEditorSharedData.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "ArrayView.h"
+#include "GraphEditor.h"
 
 struct FAssetData;
 class FPhysicsAssetEditorTreeInfo;
@@ -84,7 +85,7 @@ public:
 	void BuildMenuWidgetConstraint(FMenuBuilder& InMenuBuilder);
 	void BuildMenuWidgetSelection(FMenuBuilder& InMenuBuilder);
 	void BuildMenuWidgetNewConstraint(FMenuBuilder& InMenuBuilder);
-	void BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex);
+	TSharedRef<ISkeletonTree> BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex, SGraphEditor::FActionMenuClosed InOnActionMenuClosed = SGraphEditor::FActionMenuClosed());
 	void BuildMenuWidgetBone(FMenuBuilder& InMenuBuilder);
 	TSharedRef<SWidget> BuildStaticMeshAssetPicker();
 

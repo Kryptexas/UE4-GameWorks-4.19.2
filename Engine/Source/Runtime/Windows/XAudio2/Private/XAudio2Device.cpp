@@ -290,6 +290,9 @@ void FXAudio2Device::UpdateHardware()
 	// If the audio device changed, we need to tear down and restart the audio engine state
 	if (DeviceProperties->DidAudioDeviceChange())
 	{
+		//Cache the current audio clock.
+		CachedAudioClockStartTime = GetAudioClock();
+
 		// Flush stops all sources so sources can be safely deleted below.
 		Flush(nullptr);
 
@@ -329,7 +332,7 @@ void FXAudio2Device::UpdateAudioClock()
 	}
 	else
 	{
-		AudioClock = NewAudioClock;
+		AudioClock = NewAudioClock + CachedAudioClockStartTime;
 	}
 }
 

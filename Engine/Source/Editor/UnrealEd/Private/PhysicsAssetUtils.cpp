@@ -552,7 +552,7 @@ bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, in
 
 		if (Verts.Num())
 		{
-			DecomposeMeshToHulls(bs, Verts, Indices, Params.HullAccuracy, Params.MaxHullVerts);
+			DecomposeMeshToHulls(bs, Verts, Indices, Params.HullCount, Params.MaxHullVerts);
 		}
 		else
 		{

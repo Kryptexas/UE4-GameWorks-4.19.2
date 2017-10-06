@@ -21,7 +21,7 @@ void FAnimNode_PoseHandler::CacheBones_AnyThread(const FAnimationCacheBonesConte
 	// this has to update bone blending weight
 	if (CurrentPoseAsset.IsValid())
 	{
-		const TArray<FName> TrackNames = CurrentPoseAsset.Get()->GetTrackNames();
+		const TArray<FName>& TrackNames = CurrentPoseAsset.Get()->GetTrackNames();
 		const FBoneContainer& BoneContainer = Context.AnimInstanceProxy->GetRequiredBones();
 		const TArray<FBoneIndexType>& RequiredBoneIndices = BoneContainer.GetBoneIndicesArray();
 		BoneBlendWeights.AddZeroed(RequiredBoneIndices.Num());

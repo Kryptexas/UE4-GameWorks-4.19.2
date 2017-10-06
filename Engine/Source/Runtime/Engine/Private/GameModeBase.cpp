@@ -1300,17 +1300,6 @@ void AGameModeBase::InitStartSpot_Implementation(AActor* StartSpot, AController*
 void AGameModeBase::SetPlayerDefaults(APawn* PlayerPawn)
 {
 	PlayerPawn->SetPlayerDefaults();
-
-#if !UE_WITH_PHYSICS
-	// If there is no physics, set to flying by default
-	UCharacterMovementComponent* CharacterMovement = Cast<UCharacterMovementComponent>(NewPlayer->GetPawn()->GetMovementComponent());
-	if (CharacterMovement)
-	{
-		CharacterMovement->bCheatFlying = true;
-		CharacterMovement->SetMovementMode(MOVE_Flying);
-	}
-#endif	//!UE_WITH_PHYSICS
-
 }
 
 void AGameModeBase::ChangeName(AController* Other, const FString& S, bool bNameChange)

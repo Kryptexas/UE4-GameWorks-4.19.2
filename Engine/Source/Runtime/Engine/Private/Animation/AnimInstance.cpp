@@ -1232,22 +1232,23 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 
 	for (int32 Index=0; Index<NotifyQueue.AnimNotifies.Num(); Index++)
 	{
-		const FAnimNotifyEvent* AnimNotifyEvent = NotifyQueue.AnimNotifies[Index];
-
-		// AnimNotifyState
-		if( AnimNotifyEvent->NotifyStateClass )
+		if(const FAnimNotifyEvent* AnimNotifyEvent = NotifyQueue.AnimNotifies[Index].GetNotify())
 		{
-			if( !ActiveAnimNotifyState.RemoveSingleSwap(*AnimNotifyEvent) )
+			// AnimNotifyState
+			if (AnimNotifyEvent->NotifyStateClass)
 			{
-				// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
-				NotifyStateBeginEvent.Add(AnimNotifyEvent);
+				if (!ActiveAnimNotifyState.RemoveSingleSwap(*AnimNotifyEvent))
+				{
+					// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
+					NotifyStateBeginEvent.Add(AnimNotifyEvent);
+				}
+				NewActiveAnimNotifyState.Add(*AnimNotifyEvent);
+				continue;
 			}
-			NewActiveAnimNotifyState.Add(*AnimNotifyEvent);
-			continue;
-		}
 
-		// Trigger non 'state' AnimNotifies
-		TriggerSingleAnimNotify(AnimNotifyEvent);
+			// Trigger non 'state' AnimNotifies
+			TriggerSingleAnimNotify(AnimNotifyEvent);
+		}
 	}
 
 	// Send end notification to AnimNotifyState not active anymore.

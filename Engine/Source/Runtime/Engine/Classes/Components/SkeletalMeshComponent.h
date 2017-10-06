@@ -1280,7 +1280,7 @@ public:
 	*
 	*	@param	Force		 Force vector to apply. Magnitude indicates strength of force.
 	*	@param	BoneName	 If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
-	*   @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
+	*   @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no effect).
 	*   @param  bIncludeSelf If false, Force is only applied to bodies below but not given bone name.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")
@@ -1291,7 +1291,7 @@ public:
 	*
 	*	@param	Impulse		Magnitude and direction of impulse to apply.
 	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply impulse to. 'None' indicates root body.
-	*	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	*	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no effect).
 	*	@param bIncludeSelf If false, Force is only applied to bodies below but not given bone name.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")

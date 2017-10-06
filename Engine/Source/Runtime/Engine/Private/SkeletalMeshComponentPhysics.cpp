@@ -23,6 +23,7 @@
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
 #include "ModuleManager.h"
+#include "PhysicsPublic.h"
 
 #include "Logging/MessageLog.h"
 #include "CollisionDebugDrawingPublic.h"
@@ -566,9 +567,9 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	{
 		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Too many shapes to create aggregate, Max: %u, This: %d"), AggregateMaxSize, NumShapes);
 	}
-#endif //WITH_PHYSX
 
 	InstantiatePhysicsAsset(*PhysicsAsset, Scale3D, Bodies, Constraints, PhysScene, this, RootBodyIndex, Aggregate);
+#endif // WITH_PHYSX
 
 	// now update root body index because body has BodySetup now
 	SetRootBodyIndex(RootBodyIndex);
@@ -661,7 +662,8 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset(const UPhysicsAsset& PhysAs
 				SpawnParams.bPhysicsTypeDeterminesSimulation = true;
 			}
 
-			BodyInst->InitBody(PhysicsAssetBodySetup, BoneTransform, OwningComponent, PhysScene, SpawnParams, UseAggregate);
+			SpawnParams.Aggregate = UseAggregate;
+			BodyInst->InitBody(PhysicsAssetBodySetup, BoneTransform, OwningComponent, PhysScene, SpawnParams);
 
 			NameToBodyMap.Add(PhysicsAssetBodySetup->BoneName, BodyInst);
 #endif //WITH_PHYSX

@@ -6,7 +6,9 @@
 #include "PhysXPublic.h"
 #include "PhysicsPublic.h"
 #include "ClothingAsset.h"
+#if WITH_APEX_CLOTHING
 #include "ClothingAssetAuthoring.h"
+#endif // WITH_APEX_CLOTHING
 #include "ApexClothingUtils.h"
 #include "ContentBrowserModule.h"
 #include "Misc/FileHelper.h"
@@ -1120,6 +1122,9 @@ void UClothingAssetFactory::ExtractMaterialParameters(UClothingAsset* NewAsset, 
 	}
 }
 
+#endif // WITH_APEX_CLOTHING
+
+
 bool UClothingAssetFactory::ImportToLodInternal(USkeletalMesh* SourceMesh, int32 SourceLodIndex, int32 SourceSectionIndex, UClothingAsset* DestAsset, FClothLODData& DestLod, FClothLODData* InParameterRemapSource)
 {
 	if(!SourceMesh || !SourceMesh->GetImportedResource())
@@ -1308,6 +1313,8 @@ bool UClothingAssetFactory::ImportToLodInternal(USkeletalMesh* SourceMesh, int32
 
 	return true;
 }
+
+#if WITH_APEX_CLOTHING
 
 void UClothingAssetFactory::ExtractLodPhysicalData(UClothingAsset* NewAsset, ClothingAsset &InApexAsset, int32 InLodIdx, FClothLODData &InLodData, TArray<FApexVertData>& OutApexVertData)
 {
@@ -1518,6 +1525,6 @@ void UClothingAssetFactory::ExtractLodPhysicalData(UClothingAsset* NewAsset, Clo
 		UE_LOG(LogClothingAssetFactory, Log, TEXT("Finished physical mesh import"));
 	}
 }
-#endif
+#endif // WITH_APEX_CLOTHING
 
 #undef LOCTEXT_NAMESPACE

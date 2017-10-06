@@ -229,6 +229,8 @@ static void LoadOldCompressedTrack(FArchive& Ar, FCompressedTrack& Dst, int32 By
 void UAnimSequence::Serialize(FArchive& Ar)
 {
 	LLM_SCOPE(ELLMTag::Animation);
+	
+	AddAnimLoadingDebugEntry(TEXT("SerializeStart"));
 
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 
@@ -273,6 +275,8 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		}
 #endif // WITH_EDITORONLY_DATA
 	}
+
+	AddAnimLoadingDebugEntry(TEXT("PostSerializeRawData"));
 
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::MoveCompressedAnimDataToTheDDC)
 	{
@@ -337,6 +341,8 @@ void UAnimSequence::Serialize(FArchive& Ar)
 	}
 
 #endif // WITH_EDITORONLY_DATA
+
+	AddAnimLoadingDebugEntry(TEXT("PostSerialize"));
 }
 
 #if WITH_EDITOR
@@ -390,6 +396,8 @@ void UAnimSequence::PreSave(const class ITargetPlatform* TargetPlatform)
 
 void UAnimSequence::PostLoad()
 {
+	AddAnimLoadingDebugEntry(TEXT("PostLoadStart"));
+
 #if WITH_EDITOR
 	if (!RawDataGuid.IsValid())
 	{
@@ -564,6 +572,7 @@ void UAnimSequence::PostLoad()
 		}
 	}
 #endif // WITH_EDITOR
+	AddAnimLoadingDebugEntry(TEXT("PostLoadEnd"));
 }
 
 #if WITH_EDITOR
@@ -1119,6 +1128,162 @@ struct FGetBonePoseScratchArea : public TThreadSingleton<FGetBonePoseScratchArea
 	TArray<FVirtualBoneCompactPoseData> VirtualBoneCompactPoseData;
 };
 
+
+FTransform ExtractTransformForKey(int32 Key, const FRawAnimSequenceTrack &TrackToExtract)
+{
+	static const FVector DefaultScale3D = FVector(1.f);
+	const bool bHasScaleKey = TrackToExtract.ScaleKeys.Num() > 0;
+
+	const int32 PosKeyIndex = FMath::Min(Key, TrackToExtract.PosKeys.Num() - 1);
+	const int32 RotKeyIndex = FMath::Min(Key, TrackToExtract.RotKeys.Num() - 1);
+	if (bHasScaleKey)
+	{
+		const int32 ScaleKeyIndex = FMath::Min(Key, TrackToExtract.ScaleKeys.Num() - 1);
+		return FTransform(TrackToExtract.RotKeys[RotKeyIndex], TrackToExtract.PosKeys[PosKeyIndex], TrackToExtract.ScaleKeys[ScaleKeyIndex]);
+	}
+	else
+	{
+		return FTransform(TrackToExtract.RotKeys[RotKeyIndex], TrackToExtract.PosKeys[PosKeyIndex], DefaultScale3D);
+	}
+}
+
+template<bool bInterpolateT>
+void UAnimSequence::BuildPoseFromRawDataInternal(const TArray<FRawAnimSequenceTrack>& InAnimationData, FCompactPose& InOutPose, int32 KeyIndex1, int32 KeyIndex2, float Alpha) const
+{
+	const int32 NumTracks = InAnimationData.Num();
+	const FBoneContainer& RequiredBones = InOutPose.GetBoneContainer();
+
+	TArray<FRetargetTracking>& RetargetTracking = FGetBonePoseScratchArea::Get().RetargetTracking;
+	RetargetTracking.Reset(NumTracks);
+
+	TArray<FVirtualBoneCompactPoseData>& VBCompactPoseData = FGetBonePoseScratchArea::Get().VirtualBoneCompactPoseData;
+	VBCompactPoseData = RequiredBones.GetVirtualBoneCompactPoseData();
+
+	FCompactPose Key2Pose;
+	if (bInterpolateT)
+	{
+		Key2Pose.CopyBonesFrom(InOutPose);
+	}
+
+	for (int32 TrackIndex = 0; TrackIndex < NumTracks; TrackIndex++)
+	{
+		const int32 SkeletonBoneIndex = GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
+		// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
+		if ((SkeletonBoneIndex != INDEX_NONE) && (SkeletonBoneIndex < MAX_BONES))
+		{
+			const FCompactPoseBoneIndex PoseBoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
+			if (PoseBoneIndex != INDEX_NONE)
+			{
+				for (int32 Idx = 0; Idx < VBCompactPoseData.Num(); ++Idx)
+				{
+					FVirtualBoneCompactPoseData& VB = VBCompactPoseData[Idx];
+					if (PoseBoneIndex == VB.VBIndex)
+					{
+						// Remove this bone as we have written data for it (false so we dont resize allocation)
+						VBCompactPoseData.RemoveAtSwap(Idx, 1, false);
+						break; //Modified TArray so must break here
+					}
+				}
+				// extract animation
+
+				const FRawAnimSequenceTrack& TrackToExtract = InAnimationData[TrackIndex];
+
+				InOutPose[PoseBoneIndex] = ExtractTransformForKey(KeyIndex1, TrackToExtract);
+
+				if (bInterpolateT)
+				{
+					Key2Pose[PoseBoneIndex] = ExtractTransformForKey(KeyIndex2, TrackToExtract);
+				}
+
+				RetargetTracking.Add(FRetargetTracking(PoseBoneIndex, SkeletonBoneIndex));
+			}
+		}
+	}
+
+	//Build Virtual Bones
+	if (VBCompactPoseData.Num() > 0)
+	{
+		FCSPose<FCompactPose> CSPose1;
+		CSPose1.InitPose(InOutPose);
+
+		FCSPose<FCompactPose> CSPose2;
+		if (bInterpolateT)
+		{
+			CSPose2.InitPose(Key2Pose);
+		}
+
+		for (FVirtualBoneCompactPoseData& VB : VBCompactPoseData)
+		{
+			FTransform Source = CSPose1.GetComponentSpaceTransform(VB.SourceIndex);
+			FTransform Target = CSPose1.GetComponentSpaceTransform(VB.TargetIndex);
+			InOutPose[VB.VBIndex] = Target.GetRelativeTransform(Source);
+
+			if (bInterpolateT)
+			{
+				FTransform Source2 = CSPose2.GetComponentSpaceTransform(VB.SourceIndex);
+				FTransform Target2 = CSPose2.GetComponentSpaceTransform(VB.TargetIndex);
+				Key2Pose[VB.VBIndex] = Target2.GetRelativeTransform(Source2);
+			}
+		}
+	}
+
+	if (bInterpolateT)
+	{
+		for (FCompactPoseBoneIndex BoneIndex : InOutPose.ForEachBoneIndex())
+		{
+			InOutPose[BoneIndex].Blend(InOutPose[BoneIndex], Key2Pose[BoneIndex], Alpha);
+		}
+	}
+}
+
+void UAnimSequence::BuildPoseFromRawData(const TArray<FRawAnimSequenceTrack>& InAnimationData, FCompactPose& InOutPose, float InTime) const
+{
+	int32 KeyIndex1, KeyIndex2;
+	float Alpha;
+	FAnimationRuntime::GetKeyIndicesFromTime(KeyIndex1, KeyIndex2, Alpha, InTime, NumFrames, SequenceLength);
+
+	if (Interpolation == EAnimInterpolationType::Step)
+	{
+		Alpha = 0.f;
+	}
+
+	bool bInterpolate = true;
+
+	if (Alpha < KINDA_SMALL_NUMBER)
+	{
+		Alpha = 0.f;
+		bInterpolate = false;
+	}
+	else if (Alpha > 1.f - KINDA_SMALL_NUMBER)
+	{
+		bInterpolate = false;
+		KeyIndex1 = KeyIndex2;
+	}
+
+	if (bInterpolate)
+	{
+		BuildPoseFromRawDataInternal<true>(InAnimationData, InOutPose, KeyIndex1, KeyIndex2, Alpha);
+	}
+	else
+	{
+		BuildPoseFromRawDataInternal<false>(InAnimationData, InOutPose, KeyIndex1, KeyIndex2, Alpha);
+	}
+
+	const FBoneContainer& RequiredBones = InOutPose.GetBoneContainer();
+	const bool bDisableRetargeting = RequiredBones.GetDisableRetargeting();
+
+	if (!bDisableRetargeting)
+	{
+		const TArray<FRetargetTracking>& RetargetTracking = FGetBonePoseScratchArea::Get().RetargetTracking;
+
+		for (const FRetargetTracking& RT : RetargetTracking)
+		{
+			RetargetBoneTransform(InOutPose[RT.PoseBoneIndex], RT.SkeletonBoneIndex, RT.PoseBoneIndex, RequiredBones, false);
+		}
+	}
+
+}
+
 void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext, bool bForceUseRawData) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_GetBonePose);
@@ -1188,71 +1353,10 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	// Slower path for disable retargeting, that's only used in editor and for debugging.
 	if (bUseRawDataForPoseExtraction)
 	{
-		const TArray<FRawAnimSequenceTrack>* AnimationData = NULL;
+		const bool bShouldUseSourceData = (RequiredBones.ShouldUseSourceData() && SourceRawAnimationData.Num() > 0);
+		const TArray<FRawAnimSequenceTrack>& AnimationData = bShouldUseSourceData ? SourceRawAnimationData : RawAnimationData;
 
-		if (RequiredBones.ShouldUseSourceData() && SourceRawAnimationData.Num() > 0)
-		{
-			AnimationData = &SourceRawAnimationData;
-		}
-		else
-		{
-			AnimationData = &RawAnimationData;
-		}
-
-		TArray<FRetargetTracking>& RetargetTracking = FGetBonePoseScratchArea::Get().RetargetTracking;
-		RetargetTracking.Reset(NumTracks);
-
-		TArray<FVirtualBoneCompactPoseData>& VBCompactPoseData = FGetBonePoseScratchArea::Get().VirtualBoneCompactPoseData;
-		VBCompactPoseData = RequiredBones.GetVirtualBoneCompactPoseData();
-
-		for (int32 TrackIndex = 0; TrackIndex < NumTracks; TrackIndex++)
-		{
-			const int32 SkeletonBoneIndex = GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
-			// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
-			if ((SkeletonBoneIndex != INDEX_NONE) && (SkeletonBoneIndex < MAX_BONES))
-			{
-				const FCompactPoseBoneIndex PoseBoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
-				if (PoseBoneIndex != INDEX_NONE)
-				{
-					for (int32 Idx = 0; Idx < VBCompactPoseData.Num(); ++Idx)
-					{
-						FVirtualBoneCompactPoseData& VB = VBCompactPoseData[Idx];
-						if (PoseBoneIndex == VB.VBIndex)
-						{
-							// Remove this bone as we have written data for it (false so we dont resize allocation)
-							VBCompactPoseData.RemoveAtSwap(Idx, 1, false);
-							break; //Modified TArray so must break here
-						}
-					}
-					// extract animation
-					ExtractBoneTransform(*AnimationData, OutPose[PoseBoneIndex], TrackIndex, ExtractionContext.CurrentTime);
-
-					RetargetTracking.Add(FRetargetTracking(PoseBoneIndex, SkeletonBoneIndex));
-				}
-			}
-		}
-
-		//Build Virtual Bones
-		if(VBCompactPoseData.Num() > 0)
-		{
-			FCSPose<FCompactPose> CSPose;
-			CSPose.InitPose(OutPose);
-	
-			for (FVirtualBoneCompactPoseData& VB : VBCompactPoseData)
-			{
-				FTransform Source = CSPose.GetComponentSpaceTransform(VB.SourceIndex);
-				FTransform Target = CSPose.GetComponentSpaceTransform(VB.TargetIndex);
-				OutPose[VB.VBIndex] = Target.GetRelativeTransform(Source);
-			}
-		}
-
-		if(!bDisableRetargeting)
-		{
-			for (const FRetargetTracking& RT : RetargetTracking)
-			{
-				RetargetBoneTransform(OutPose[RT.PoseBoneIndex], RT.SkeletonBoneIndex, RT.PoseBoneIndex, RequiredBones, bIsBakedAdditive);
-			}
-		}
+		BuildPoseFromRawData(AnimationData, OutPose, ExtractionContext.CurrentTime);
 
 		if ((ExtractionContext.bExtractRootMotion && bEnableRootMotion) || bForceRootLock)
 		{
@@ -1481,7 +1585,13 @@ void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, FBlendedCurve& Ou
 		FString RefSkelName = RefPoseSeq->GetSkeleton() ? RefPoseSeq->GetSkeleton()->GetName() : TEXT("NoRefSeqSkeleton");
 		const TCHAR* NeedsLoad = RefPoseSeq->HasAnyFlags(RF_NeedLoad) ? TEXT("Yes") : TEXT("No");
 
-		checkf(false, TEXT("Cannot get valid base pose for Anim: ['%s' (Skel:%s)] RefSeq: ['%s' (Skel:%s)] RawAnimDataNum: %i NeedsLoad: %s"), *Name, *SkelName, *RefName, *RefSkelName, RefPoseSeq->RawAnimationData.Num(), NeedsLoad);
+#if WITH_EDITOR
+		FString LoadingDebugEntriesString = AnimLoadingDebugData.GetEntries();
+		const TCHAR* LoadingDebugEntries = *LoadingDebugEntriesString;
+#else
+		const TCHAR* LoadingDebugEntries = TEXT("No debug entries (non editor build)\n");
+#endif
+		checkf(false, TEXT("Cannot get valid base pose for Anim: ['%s' (Skel:%s)] RefSeq: ['%s' (Skel:%s)] RawAnimDataNum: %i NeedsLoad: %s\nDebug Entries:\n%s"), *Name, *SkelName, *RefName, *RefSkelName, RefPoseSeq->RawAnimationData.Num(), NeedsLoad, LoadingDebugEntries);
 	}
 
 	switch (RefPoseType)
@@ -2062,6 +2172,8 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, bool bAllowAl
 
 void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FAnimCompressContext> CompressContext)
 {
+	AddAnimLoadingDebugEntry(TEXT("RequestAnimCompression"));
+
 #if WITH_EDITOR
 	USkeleton* CurrentSkeleton = GetSkeleton();
 	if (CurrentSkeleton == nullptr)
@@ -2460,6 +2572,7 @@ bool IsRawTrackValidForRemoval(const FRawAnimSequenceTrack& Track)
 
 void UAnimSequence::BakeOutAdditiveIntoRawData()
 {
+	AddAnimLoadingDebugEntry(TEXT("BakeOutAdditiveIntoRawData"));
 	if (!CanBakeAdditive())
 	{
 		return; // Nothing to do
@@ -2929,6 +3042,7 @@ int32 FindValidTransformParentTrack(const URig* Rig, int32 NodeIndex, bool bTran
 
 void UAnimSequence::RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces )
 {
+	AddAnimLoadingDebugEntry(TEXT("RemapTracksToNewSkeletonStart"));
 	// this is not cheap, so make sure it only happens in editor
 
 	// @Todo : currently additive will work fine since we don't bake anything except when we extract
@@ -3408,11 +3522,14 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConv
 		VerifyTrackMap(NewSkeleton);
 	}
 
+	AddAnimLoadingDebugEntry(TEXT("RemapTracksToNewSkeletonPreSetSkeleton"));
 	SetSkeleton(NewSkeleton);
+	AddAnimLoadingDebugEntry(TEXT("RemapTracksToNewSkeletonEnd"));
 }
 
 void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid)
 {
+	AddAnimLoadingDebugEntry(TEXT("PostProcessSequenceStart"));
 	// pre process before compress raw animation data
 
 	// if scale is too small, zero it out. Cause it hard to retarget when compress
@@ -3460,6 +3577,7 @@ void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid)
 	ClampNotifiesAtEndOfSequence();
 	// mark package as dirty
 	MarkPackageDirty();
+	AddAnimLoadingDebugEntry(TEXT("PostProcessSequenceEnd"));
 }
 
 void UAnimSequence::RemoveNaNTracks()
@@ -3510,6 +3628,21 @@ void UAnimSequence::RemoveNaNTracks()
 	}
 }
 
+
+void UAnimSequence::RemoveAllTracks()
+{
+	RawAnimationData.Empty();
+	AnimationTrackNames.Empty();
+	TrackToSkeletonMapTable.Empty();
+	SourceRawAnimationData.Empty();
+	// clear all transform tracks
+	// not deleting curve names from skeleton 
+	// since we don't know if that name is used by other assets
+	RawCurveData.TransformCurves.Empty();
+
+	// recompress and clear
+	PostProcessSequence();
+}
 
 void UAnimSequence::RemoveTrack(int32 TrackIndex)
 {

@@ -10,6 +10,8 @@
 
 DEFINE_LOG_CATEGORY(LogVehicles);
 
+#if WITH_PHYSX
+
 DECLARE_STATS_GROUP(TEXT("PhysXVehicleManager"), STATGROUP_PhysXVehicleManager, STATGROUP_Advanced);
 DECLARE_CYCLE_STAT(TEXT("PxVehicleSuspensionRaycasts"), STAT_PhysXVehicleManager_PxVehicleSuspensionRaycasts, STATGROUP_PhysXVehicleManager);
 DECLARE_CYCLE_STAT(TEXT("PxUpdateVehicles"), STAT_PhysXVehicleManager_PxUpdateVehicles, STATGROUP_PhysXVehicleManager);
@@ -496,3 +498,5 @@ PxWheelQueryResult* FPhysXVehicleManager::GetWheelsStates_AssumesLocked(TWeakObj
 		return NULL;
 	}
 }
+
+#endif // WITH_PHYSX

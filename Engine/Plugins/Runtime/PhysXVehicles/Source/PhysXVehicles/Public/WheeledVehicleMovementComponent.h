@@ -13,6 +13,7 @@
 
 class UCanvas;
 
+#if WITH_PHYSX
 namespace physx
 {
 	class PxVehicleDrive;
@@ -20,6 +21,7 @@ namespace physx
 	class PxVehicleWheelsSimData;
 	class PxRigidBody;
 }
+#endif // WITH_PHYSX
 
 struct FBodyInstance;
 
@@ -279,15 +281,21 @@ class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UPawnMovementC
 	/** End UObject interface*/
 
 
+#if WITH_PHYSX
+
 	// The instanced PhysX vehicle
 	physx::PxVehicleWheels* PVehicle;
 	physx::PxVehicleDrive* PVehicleDrive;
+
+#endif // WITH_PHYSX
 
 	/** Overridden to allow registration with components NOT owned by a Pawn. */
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 	
 	/** Compute the forces generates from a spinning tire */
 	virtual void GenerateTireForces(class UVehicleWheel* Wheel, const FTireShaderInput& Input, FTireShaderOutput& Output);
+
+#if WITH_PHYSX
 
 	/** Return true if we are ready to create a vehicle */
 	virtual bool CanCreateVehicle() const;
@@ -332,6 +340,8 @@ class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UPawnMovementC
 #endif //WITH_EDITOR
 
 	virtual void StopMovementImmediately() override;
+
+#endif // WITH_PHYSX
 
 	/** Set the user input for the vehicle throttle */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
@@ -622,6 +632,7 @@ protected:
 	virtual int32 GetGroupsToIgnoreMask() override;
 	/** END IRVOAvoidanceInterface */
 
+#if WITH_PHYSX
 
 	int32 GearToPhysXGear(const int32 Gear) const;
 
@@ -666,6 +677,8 @@ protected:
 	class USkinnedMeshComponent* GetMesh();
 
 	void UpdateMassProperties(FBodyInstance* BI);
+
+#endif // WITH_PHYSX
 
 private:
 	UPROPERTY(transient, Replicated)

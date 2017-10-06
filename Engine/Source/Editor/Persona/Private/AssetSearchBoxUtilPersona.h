@@ -9,6 +9,7 @@
 #include "PropertyHandle.h"
 
 class USkeleton;
+class SAssetSearchBox;
 
 class SAssetSearchBoxForBones : public SCompoundWidget
 {
@@ -39,6 +40,13 @@ public:
 
 		/** Constructs this widget with InArgs */
 		void Construct( const FArguments& InArgs, const class UObject* Outer, TSharedPtr<class IPropertyHandle> ParentBoneProperty );
+
+		/** Refresh bone name */
+		void RefreshName();
+private:
+		TSharedPtr<IPropertyHandle>	BonePropertyHandle;
+		TSharedPtr<SAssetSearchBox>			SearchBox;
+		FText GetBoneName() const;
 };
 
 
@@ -73,7 +81,6 @@ public:
 	void Construct(const FArguments& InArgs, const class USkeleton* InSkeleton, TSharedPtr<class IPropertyHandle> ParentCurveProperty);
 
 private:
-
 	TWeakObjectPtr<USkeleton> Skeleton;
 
 	/** Get the search suggestions */

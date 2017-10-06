@@ -24,7 +24,7 @@ class AUDIOMIXER_API USynthSound : public USoundWaveProcedural
 {
 	GENERATED_UCLASS_BODY()
 
-	void Init(USynthComponent* INSynthComponent, const int32 InNumChannels);
+	void Init(USynthComponent* INSynthComponent, const int32 InNumChannels, const int32 SampleRate);
 
 	/** Begin USoundWave */
 	virtual bool OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
@@ -125,8 +125,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
 	uint8 bIsUISound : 1;
 
-	/** Call if creating this synth component not via an actor component in BP, but in code or some other location. */
-	void Initialize();
+	/** Call if creating this synth component not via an actor component in BP, but in code or some other location. Optionally override the sample rate of the sound wave, otherwise it uses the audio device's sample rate. */
+	void Initialize(int32 SampleRateOverride = INDEX_NONE);
 
 	/** Retrieves this synth component's audio component. */
 	UAudioComponent* GetAudioComponent();

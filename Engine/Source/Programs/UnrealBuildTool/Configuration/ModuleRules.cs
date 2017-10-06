@@ -533,7 +533,7 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=0");
 				Definitions.Add("WITH_APEX_CLOTHING=0");
 				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
-				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
+				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor && Target.bCompilePhysX ? 1 : 0));  // without APEX, we only need cooking in editor builds
 			}
 
 			if (Target.bCompileNvCloth == true)

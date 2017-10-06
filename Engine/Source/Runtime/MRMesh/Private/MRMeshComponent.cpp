@@ -455,6 +455,7 @@ UBodySetup* CreateBodySetupHelper(UMRMeshComponent* Outer)
 
 void UMRMeshComponent::SendBrickData_Internal(IMRMesh::FSendBrickDataArgs Args, FOnProcessingComplete OnProcessingComplete)
 {
+#if WITH_PHYSX
 	check(IsInGameThread());
 
 	if (!IsPendingKill() && this->GetCollisionEnabled())
@@ -522,6 +523,8 @@ void UMRMeshComponent::SendBrickData_Internal(IMRMesh::FSendBrickDataArgs Args, 
 		}
 
 	}
+#endif // WITH_PHYSX
+
 
 	if (SceneProxy != nullptr && GRenderingThread != nullptr)
 	{

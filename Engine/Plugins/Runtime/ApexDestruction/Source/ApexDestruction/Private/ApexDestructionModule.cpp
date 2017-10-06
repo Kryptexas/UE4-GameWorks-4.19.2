@@ -18,11 +18,12 @@ namespace nvidia
 	}
 }
 
+#if WITH_APEX
+
 FApexDestructionSyncActors* FApexDestructionCustomPayload::SingletonCustomSync = nullptr;
 nvidia::apex::ModuleDestructible* GApexModuleDestructible = nullptr;
 void* ApexDestructibleDLL = nullptr;
 
-#if WITH_APEX
 /**
 APEX Destructible chunk report interface
 This interface delivers summaries (which can be detailed to the single chunk level, depending on the settings)
@@ -244,7 +245,9 @@ public:
 
 	virtual void ShutdownModule() override
 	{
+#if WITH_APEX
 		delete FApexDestructionCustomPayload::SingletonCustomSync;	//TODO: this should probably make sure all destructibles are removed from the physx sim
+#endif
 
 		FPhysicsDelegates::OnPhysSceneInit.Remove(OnPhysSceneInitHandle);
 

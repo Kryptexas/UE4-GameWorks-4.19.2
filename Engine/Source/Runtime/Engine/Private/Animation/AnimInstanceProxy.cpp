@@ -554,9 +554,9 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 	}
 }
 
-void FAnimInstanceProxy::AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight)
+void FAnimInstanceProxy::AddAnimNotifies(const TArray<FAnimNotifyEventReference>& NewNotifies, const float InstanceWeight)
 {
-	NotifyQueue.AddAnimNotifies(NewNotifies, InstanceWeight);
+	NotifyQueue.AddAnimNotifies(true, NewNotifies, InstanceWeight);
 }
 
 int32 FAnimInstanceProxy::GetSyncGroupIndexFromName(FName SyncGroupName) const
@@ -606,7 +606,7 @@ void FAnimInstanceProxy::AddAnimNotifyFromGeneratedClass(int32 NotifyIndex)
 	{
 		check(AnimClassInterface->GetAnimNotifies().IsValidIndex(NotifyIndex));
 		const FAnimNotifyEvent* Notify = &AnimClassInterface->GetAnimNotifies()[NotifyIndex];
-		NotifyQueue.AnimNotifies.Add(Notify);
+		NotifyQueue.AddAnimNotify(Notify, IAnimClassInterface::GetActualAnimClass(AnimClassInterface));
 	}
 }
 

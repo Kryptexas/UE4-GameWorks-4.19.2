@@ -69,15 +69,6 @@ private:
 
 	// Utility methods for skeletal mesh extraction //////////////////////////
 
-	/** 
-	 * Using a physics asset, extract spheres and capsules and apply them to the provided collision container
-	 * @param InPhysicsAsset The asset to pull body information from
-	 * @param TargetMesh The mesh we are targetting
-	 * @param TargetClothingAsset The clothing asset we are targetting
-	 * @param OutCollisionData The collision container to fill
-	 */
-	void ExtractPhysicsAssetBodies(UPhysicsAsset* InPhysicsAsset, USkeletalMesh* TargetMesh, UClothingAsset* TargetClothingAsset, FClothCollisionData& OutCollisionData);
-
 	/** Handles internal import of LODs */
 	bool ImportToLodInternal(USkeletalMesh* SourceMesh, int32 SourceLodIndex, int32 SourceSectionIndex, UClothingAsset* DestAsset, FClothLODData& DestLod, FClothLODData* InParameterRemapSource = nullptr);
 

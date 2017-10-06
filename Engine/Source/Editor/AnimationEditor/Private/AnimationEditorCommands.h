@@ -33,4 +33,6 @@ public:
 	TSharedPtr<FUICommandInfo> SetKey;
 	// bake bone track curves to animation
 	TSharedPtr<FUICommandInfo> ApplyAnimation;
+	// Remove bone tracks
+	TSharedPtr<FUICommandInfo> RemoveBoneTracks;
 };

@@ -92,5 +92,7 @@ private:
 
 	TSharedPtr<IPropertyHandle> ConstraintProfilesHandle;
 
+	TSharedPtr<IPropertyHandle> AsyncScenePropertyHandle;
+
 	TSharedPtr<FUICommandList> CommandList;
 };

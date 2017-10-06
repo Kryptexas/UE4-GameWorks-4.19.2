@@ -104,6 +104,12 @@ public:
 		return( CurrentMaxDistance ); 
 	}
 
+	/** Returns if this node has been set to be allowed virtual. Only the sound node wave player implements this. */
+	virtual bool IsAllowedVirtual() const
+	{
+		return false;
+	}
+
 	/** 
 	 * Returns the maximum duration this sound node will play for. 
 	 *

@@ -1000,4 +1000,11 @@ class ENGINE_API UEdGraphSchema : public UObject
 
 	/** Forces cached visualization data to refresh */
 	virtual void ForceVisualizationCacheClear() const {};
+
+	/** 
+	 * Check whether new nodes can be user-created (by dragging off pins etc.) 
+	 * @param	InSourcePin	The pin we dragged off
+	 * @return the response to making a new connection
+	 */
+	virtual FPinConnectionResponse CanCreateNewNodes(UEdGraphPin* InSourcePin) const { return FPinConnectionResponse(); }
 };

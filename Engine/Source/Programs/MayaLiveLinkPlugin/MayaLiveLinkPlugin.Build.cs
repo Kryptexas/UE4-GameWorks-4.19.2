@@ -28,7 +28,7 @@ public class MayaLiveLinkPlugin : ModuleRules
 		//
 
 		{
-			string MayaVersionString = "2016";
+			string MayaVersionString = "2017";
 			string MayaInstallFolder = @"C:\Program Files\Autodesk\Maya" + MayaVersionString;
 
 			// Make sure this version of Maya is actually installed
@@ -51,7 +51,8 @@ public class MayaLiveLinkPlugin : ModuleRules
                         {
                             "Foundation.lib",
                             "OpenMaya.lib",
-                            "OpenMayaAnim.lib" }
+                            "OpenMayaAnim.lib",
+                            "OpenMayaUI.lib"}
                     );
                 }
             }

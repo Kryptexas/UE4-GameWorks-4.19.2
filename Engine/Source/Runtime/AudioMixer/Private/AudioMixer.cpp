@@ -264,6 +264,7 @@ namespace Audio
 			// If we're faded out, then just zero the data.
 			FPlatformMemory::Memzero((void*)BufferDataPtr, sizeof(BufferType)*NumFrames);
 		}
+
 		FadeParam.Reset();
 	}
 

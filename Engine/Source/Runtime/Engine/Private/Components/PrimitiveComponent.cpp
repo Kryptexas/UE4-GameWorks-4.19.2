@@ -613,13 +613,11 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 				BodyTransform.SetScale3D(FVector(KINDA_SMALL_NUMBER));
 			}
 
-#if UE_WITH_PHYSICS
 			// Create the body.
 			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());		
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			SendRenderDebugPhysics();
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
 			// Make sure we have a valid body instance here. As we do not keep BIs with no collision shapes at all,

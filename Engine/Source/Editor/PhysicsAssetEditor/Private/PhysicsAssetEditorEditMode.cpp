@@ -656,6 +656,12 @@ bool FPhysicsAssetEditorEditMode::HandleClick(FEditorViewportClient* InViewportC
 				FPhysicsAssetEditorSharedData::FSelection Selection(BoneProxy->BodyIndex, BoneProxy->PrimType, BoneProxy->PrimIndex);
 				if (!SharedData->IsBodySelected(Selection))
 				{
+					if(!InViewportClient->IsCtrlPressed())
+					{
+						SharedData->ClearSelectedBody();
+						SharedData->ClearSelectedConstraints();
+					}
+
 					SharedData->SetSelectedBody(Selection, true);
 				}
 
@@ -674,7 +680,13 @@ bool FPhysicsAssetEditorEditMode::HandleClick(FEditorViewportClient* InViewportC
 				// Select constraint under cursor if not already selected (if ctrl is held down we only add, not remove)
 				if (!SharedData->IsConstraintSelected(ConstraintProxy->ConstraintIndex))
 				{
-					SharedData->SetSelectedConstraint(ConstraintProxy->ConstraintIndex, InViewportClient->IsCtrlPressed());
+					if(!InViewportClient->IsCtrlPressed())
+					{
+						SharedData->ClearSelectedBody();
+						SharedData->ClearSelectedConstraints();
+					}
+
+					SharedData->SetSelectedConstraint(ConstraintProxy->ConstraintIndex, true);
 				}
 
 				// Pop up menu, if we have a constraint selected.

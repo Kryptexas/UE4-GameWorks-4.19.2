@@ -11,14 +11,10 @@ void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class U
 {
 	check(Outer);
 
-	// get the currently chosen bone/socket, if any
-	const FText PropertyName = BoneNameProperty->GetPropertyDisplayName();
-	FString CurValue;
-	BoneNameProperty->GetValue(CurValue);
-	if( CurValue == FString("None") )
-	{
-		CurValue.Empty();
-	}
+	BonePropertyHandle = BoneNameProperty;
+	// set delegate on property change
+	// this doesn't work for undo still
+	BonePropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &SAssetSearchBoxForBones::RefreshName));
 
 	const USkeleton* Skeleton = NULL;
 
@@ -56,14 +52,39 @@ void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class U
 	// create the asset search box
 	ChildSlot
 	[
-		SNew(SAssetSearchBox)
-		.InitialText(FText::FromString(CurValue))
+		SAssignNew(SearchBox, SAssetSearchBox)
+		.InitialText(this, &SAssetSearchBoxForBones::GetBoneName)
 		.HintText(InArgs._HintText)
 		.OnTextCommitted(InArgs._OnTextCommitted)
 		.PossibleSuggestions(PossibleSuggestions)
 		.DelayChangeNotificationsWhileTyping( true )
 		.MustMatchPossibleSuggestions(InArgs._MustMatchPossibleSuggestions)
 	];
+}
+
+void SAssetSearchBoxForBones::RefreshName()
+{
+	if (SearchBox.IsValid())
+	{
+		SearchBox->SetText(GetBoneName());
+	}
+}
+
+FText SAssetSearchBoxForBones::GetBoneName() const
+{
+	FString CurValue;
+	if (BonePropertyHandle.IsValid())
+	{
+		const FText PropertyName = BonePropertyHandle->GetPropertyDisplayName();
+		BonePropertyHandle->GetValue(CurValue);
+
+		if (CurValue == FString("None"))
+		{
+			CurValue.Empty();
+		}
+	}
+
+	return FText::FromString(CurValue);
 }
 
 void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class USkeleton* InSkeleton, TSharedPtr<class IPropertyHandle> CurveNameProperty)

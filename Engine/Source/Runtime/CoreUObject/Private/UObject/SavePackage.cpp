@@ -5276,7 +5276,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					Linker->Detach();
 				}
 				UNCLOCK_CYCLES(Time);
-				UE_LOG(LogSavePackage, Log,  TEXT("Save=%.2fms"), FPlatformTime::ToMilliseconds(Time) );
+				UE_LOG(LogSavePackage, Verbose,  TEXT("Save=%.2fms"), FPlatformTime::ToMilliseconds(Time) );
 		
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
 				{ 
@@ -5289,7 +5289,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					// Compress the temporarily file to destination.
 					if (bSaveAsync)
 					{
-						UE_LOG(LogSavePackage, Log, TEXT("Async saving from memory to '%s'"), *NewPath);
+						UE_LOG(LogSavePackage, Verbose, TEXT("Async saving from memory to '%s'"), *NewPath);
 
 						// Detach archive used for memory saving.
 						FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);

@@ -23,7 +23,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
 namespace ApexClothingUtils
 {
-#if WITH_APEX_CLOTHING
 
 //enforces a call of "OnRegister" to update vertex factories
 void ReregisterSkelMeshComponents(USkeletalMesh* SkelMesh)
@@ -200,16 +199,20 @@ void RemoveAssetFromSkeletalMesh(USkeletalMesh* SkelMesh, uint32 AssetIndex, boo
 		}
 	}
 
-
+#if WITH_APEX_CLOTHING
 	apex::ClothingAsset* ApexClothingAsset = SkelMesh->ClothingAssets_DEPRECATED[AssetIndex].ApexClothingAsset;	//Can't delete apex asset until after apex actors so we save this for now and reregister component (which will trigger the actor delete)
+#endif	// WITH_APEX_CLOTHING
+
 	SkelMesh->ClothingAssets_DEPRECATED.RemoveAt(AssetIndex);	//have to remove the asset from the array so that new actors are not created for asset pending deleting
 	ReregisterSkelMeshComponents(SkelMesh);
 
+#if WITH_APEX_CLOTHING
 	if(bReleaseAsset)
 	{
 	//Now we can actually delete the asset
 	GPhysCommandHandler->DeferredRelease(ApexClothingAsset);
 	}
+#endif	// WITH_APEX_CLOTHING
 
 	if(bRecreateSkelMeshComponent)
 	{
@@ -310,15 +313,6 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 	}
 }
 
-#else
-
-void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 SectionIndex, bool bRecreateSkelMeshComponent)
-{
-	// print error about not supporting APEX
-	UE_LOG(LogApexClothingUtils, Warning,TEXT("APEX Clothing is not supported") );	
-}
-
-#endif // WITH_APEX_CLOTHING
 
 } // namespace ApexClothingUtils
 

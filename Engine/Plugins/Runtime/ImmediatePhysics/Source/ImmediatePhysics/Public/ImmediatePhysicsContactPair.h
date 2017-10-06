@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 namespace ImmediatePhysics
 {
 
@@ -23,6 +25,5 @@ struct FContactPair
 	/** Identifies the pair index from the original contact generation test */
 	int32 PairIdx;
 };
-
 
 }

@@ -2186,7 +2186,7 @@ void FAudioDevice::UpdateSoundClassProperties(float DeltaTime)
 			// Work out the fade in portion
 			SoundMixState->InterpValue = (float)((AudioTime - SoundMixState->FadeInStartTime) / (SoundMixState->FadeInEndTime - SoundMixState->FadeInStartTime));
 			SoundMixState->CurrentState = ESoundMixState::FadingIn;
-		}
+		}	
 		else if (AudioTime >= SoundMixState->FadeInEndTime
 			&& (SoundMixState->IsBaseSoundMix
 			|| ((SoundMixState->PassiveRefCount > 0 || SoundMixState->ActiveRefCount > 0) && SoundMixState->FadeOutStartTime < 0.f)

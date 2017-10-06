@@ -792,9 +792,13 @@ public:
 
 	/** Find first branching point marker between track positions */
 	const FBranchingPointMarker* FindFirstBranchingPointMarker(float StartTrackPos, float EndTrackPos) const;
+	
+	/** Filter out notifies from array that are marked as 'BranchingPoints' */
+	DEPRECATED(4.19, "Use the GetAnimNotifiesFromTrackPositions that takes FAnimNotifyEventReferences instead")
+	void FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*>& InAnimNotifies);
 
 	/** Filter out notifies from array that are marked as 'BranchingPoints' */
-	void FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*>& InAnimNotifies);
+	void FilterOutNotifyBranchingPoints(TArray<FAnimNotifyEventReference>& InAnimNotifies);
 
 	bool CanUseMarkerSync() const { return MarkerData.AuthoredSyncMarkers.Num() > 0; }
 

@@ -72,7 +72,7 @@ bool AVolume::EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float*
 			return false;
 		}
 #else
-		FBoxSphereBounds Bounds = BrushComponent->CalcBounds(BrushComponent->GetComponentTransform());
+		FBoxSphereBounds Bounds = GetBrushComponent()->CalcBounds(GetBrushComponent()->GetComponentTransform());
 		const float DistanceSqr = Bounds.GetBox().ComputeSquaredDistanceToPoint(Point);
 #endif
 

@@ -85,6 +85,7 @@ void FConstraintDrive::UpdatePhysXDrive_AssumesLocked(PxD6Joint* Joint, int32 Dr
 		Joint->setDrive(PDriveType, PxD6JointDrive());
 	}
 }
+#endif // WITH_PHYSX
 
 void FLinearDriveConstraint::SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive)
 {
@@ -147,4 +148,3 @@ void FAngularDriveConstraint::SetDriveParams(float InStiffness, float InDamping,
 	TwistDrive.SetDriveParams(InStiffness, InDamping, InForceLimit);
 	SlerpDrive.SetDriveParams(InStiffness, InDamping, InForceLimit);
 }
-#endif

@@ -47,17 +47,17 @@ struct FPhysAssetCreateParams
 		bWalkPastSmall = true;
 		bBodyForAll = false;
 		AngularConstraintMode = ACM_Limited;
-		HullAccuracy = 0.5f;
+		HullCount = 4;
 		MaxHullVerts = 16;
 	}
 
 	/** Bones that are shorter than this value will be ignored for body creation */
 	UPROPERTY(EditAnywhere, Category = "Body Creation")
-	float MinBoneSize;
+	float								MinBoneSize;
 
 	/** Bones that are smaller than this value will be merged together for body creation */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
-	float MinWeldSize;
+	float								MinWeldSize;
 
 	/** The geometry type that should be used when creating bodies */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Primitive Type"))
@@ -69,31 +69,31 @@ struct FPhysAssetCreateParams
 
 	/** Whether to automatically orient the created bodies to their corresponding bones */
 	UPROPERTY(EditAnywhere, Category = "Body Creation")
-	bool bAutoOrientToBone;
+	bool								bAutoOrientToBone;
 
 	/** Whether to create constraints between adjacent created bodies */
 	UPROPERTY(EditAnywhere, Category = "Constraint Creation")
-	bool bCreateJoints;
+	bool								bCreateJoints;
 
 	/** Whether to skip small bones entirely (rather than merge them with adjacent bones) */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Walk Past Small Bones"))
-	bool bWalkPastSmall;
+	bool								bWalkPastSmall;
 
 	/** Forces creation of a body for each bone */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Create Body for All Bones"))
-	bool bBodyForAll;
+	bool								bBodyForAll;
 
 	/** The type of angular constraint to create between bodies */
 	UPROPERTY(EditAnywhere, Category = "Constraint Creation", meta=(EditCondition="bCreateJoints"))
 	TEnumAsByte<EAngularConstraintMotion> AngularConstraintMode;
 
-	/** When creating convex hulls, the target accuracy of the created hull */
+	/** When creating multiple convex hulls, the maximum number that will be created. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
-	float HullAccuracy;
+	int32								HullCount;
 
 	/** When creating convex hulls, the maximum verts that should be created */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
-	int32 MaxHullVerts;
+	int32								MaxHullVerts;
 };
 
 class UPhysicsAsset;

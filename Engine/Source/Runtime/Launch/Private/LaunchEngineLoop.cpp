@@ -370,9 +370,6 @@ static void RHIExitAndStopRHIThread()
 }
 #endif
 
-extern void DeferredPhysResourceCleanup();
-
-
 /**
  * Initializes std out device and adds it to GLog
  **/

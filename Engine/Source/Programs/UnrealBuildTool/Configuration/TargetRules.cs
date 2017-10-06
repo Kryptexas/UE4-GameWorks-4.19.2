@@ -353,14 +353,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to include NvCloth.
 		/// </summary>
-		public bool bCompileNvCloth = false;
+		public bool bCompileNvCloth = true;
         
-		/// <summary>
-		/// Whether to include Box2D support.
-		/// </summary>
-		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileBox2D")]
-		public bool bCompileBox2D = true;
-
 		/// <summary>
 		/// Whether to include ICU unicode/i18n support in Core.
 		/// </summary>
@@ -1523,11 +1517,6 @@ namespace UnrealBuildTool
 		public bool bCompileNvCloth
 		{
 			get { return Inner.bCompileNvCloth; }
-		}
-
-		public bool bCompileBox2D
-		{
-			get { return Inner.bCompileBox2D; }
 		}
 
 		public bool bCompileICU

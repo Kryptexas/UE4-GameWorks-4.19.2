@@ -499,7 +499,6 @@ private:
 	bool CustomLODEditMode;
 	bool DetailDisplayLODs[MAX_SKELETAL_MESH_LODS];
 
-#if WITH_APEX_CLOTHING
 private:
 
 	// info about clothing combo boxes for multiple LOD
@@ -571,7 +570,5 @@ private:
 
 	/* Removes a clothing asset */ 
 	FReply OnRemoveApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout);
-
-#endif // #if WITH_APEX_CLOTHING
 
 };
