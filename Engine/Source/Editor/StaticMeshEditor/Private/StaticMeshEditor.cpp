@@ -547,7 +547,10 @@ void FStaticMeshEditor::ExtendToolBar()
 					LOCTEXT("UVToolbarTooltip", "Toggles display of the static mesh's UVs for the specified channel."),
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "StaticMeshEditor.SetDrawUVs"));
 #if WITH_FLEX
-				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawFlexPreview);
+				if (GFlexEditorPluginBridge && GFlexEditorPluginBridge->IsFlexStaticMesh(ThisEditor->GetStaticMesh()))
+				{
+					ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawFlexPreview);
+				}
 #endif
 			}
 

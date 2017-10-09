@@ -158,3 +158,8 @@ class UClass* FFlexEditorPluginBridge::GetFlexParticleSpriteEmitterClass()
 {
 	return UFlexParticleSpriteEmitter::StaticClass();
 }
+
+bool FFlexEditorPluginBridge::IsFlexStaticMesh(class UStaticMesh* StaticMesh)
+{
+	return StaticMesh ? StaticMesh->GetClass()->IsChildOf<UFlexStaticMesh>() : false;
+}

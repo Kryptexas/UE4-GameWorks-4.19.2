@@ -3,6 +3,8 @@
 class IFlexEditorPluginBridge
 {
 public:
+	virtual bool IsFlexStaticMesh(class UStaticMesh* StaticMesh) = 0;
+
 	virtual class UFlexAsset* GetFlexAsset(class UStaticMesh* StaticMesh) = 0;
 	virtual void SetFlexAsset(class UStaticMesh* StaticMesh, class UFlexAsset* FlexAsset) = 0;
 

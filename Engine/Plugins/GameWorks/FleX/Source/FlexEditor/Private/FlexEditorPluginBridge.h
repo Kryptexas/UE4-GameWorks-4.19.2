@@ -26,5 +26,7 @@ public:
 
 	virtual class UClass* GetFlexParticleSpriteEmitterClass();
 
+	virtual bool IsFlexStaticMesh(class UStaticMesh* StaticMesh);
+
 private:
 };
