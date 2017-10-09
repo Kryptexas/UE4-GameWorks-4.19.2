@@ -1189,15 +1189,15 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 	
 			if (bSetExtent)
 			{
-				ensure(Extent.Extent3D.width == Texture->Surface.Width >> RTView.MipIndex);
-				ensure(Extent.Extent3D.height == Texture->Surface.Height >> RTView.MipIndex);
+				ensure(Extent.Extent3D.width == FMath::Max(1u, Texture->Surface.Width >> RTView.MipIndex));
+				ensure(Extent.Extent3D.height == FMath::Max(1u, Texture->Surface.Height >> RTView.MipIndex));
 				ensure(Extent.Extent3D.depth == Texture->Surface.Depth);
 			}
 			else
 			{
 				bSetExtent = true;
-				Extent.Extent3D.width = Texture->Surface.Width >> RTView.MipIndex;
-				Extent.Extent3D.height = Texture->Surface.Height >> RTView.MipIndex;
+				Extent.Extent3D.width = FMath::Max(1u, Texture->Surface.Width >> RTView.MipIndex);
+				Extent.Extent3D.height = FMath::Max(1u, Texture->Surface.Height >> RTView.MipIndex);
 				Extent.Extent3D.depth = Texture->Surface.Depth;
 			}
 
