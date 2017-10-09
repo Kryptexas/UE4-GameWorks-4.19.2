@@ -230,6 +230,11 @@ class UObject* UFlexMigrateContentCommandlet::MigrateParticleEmitter(class UPart
 	if (FPE == nullptr)
 		return nullptr;
 
+	if (FPE->EmitterName != UFlexParticleSpriteEmitter::DefaultEmitterName)
+	{
+		FPE->EmitterName = FName(*(FString(TEXT("Flex ")) + ParticleEmitter->EmitterName.ToString()));
+	}
+
 	MigratePropetry(FPE, &UFlexParticleSpriteEmitter::FlexContainerTemplate, static_cast<UParticleEmitter*>(ParticleEmitter), &UParticleEmitter::FlexContainerTemplate_DEPRECATED);
 	FPE->Phase = ParticleEmitter->Phase_DEPRECATED;
 	FPE->bLocalSpace = ParticleEmitter->bLocalSpace_DEPRECATED;
@@ -261,7 +266,7 @@ bool UFlexMigrateContentCommandlet::ForceReplaceReferences(const TMap<UObject*, 
 	ReplacementMap.GenerateKeyArray(ReplaceableObjects);
 
 	// Find all the properties (and their corresponding objects) that refer to any of the objects to be replaced
-	TMap< UObject*, TArray<UProperty*> > ReferencingPropertiesMap;
+	TMap< UObject*, TSet<UProperty*> > ReferencingPropertiesMap;
 	for (FObjectIterator ObjIter; ObjIter; ++ObjIter)
 	{
 		UObject* CurObject = *ObjIter;
@@ -279,42 +284,55 @@ bool UFlexMigrateContentCommandlet::ForceReplaceReferences(const TMap<UObject*, 
 			TMultiMap<UObject*, UProperty*> CurReferencingPropertiesMMap;
 			if (FindRefsArchive.GetReferenceCounts(CurNumReferencesMap, CurReferencingPropertiesMMap) > 0)
 			{
-				TArray<UProperty*> CurReferencedProperties;
-				CurReferencingPropertiesMMap.GenerateValueArray(CurReferencedProperties);
-				ReferencingPropertiesMap.Add(CurObject, CurReferencedProperties);
+				auto& CurReferencedProperties = ReferencingPropertiesMap.Add(CurObject);
+				for (auto MMapIter = CurReferencingPropertiesMMap.CreateConstIterator(); MMapIter; ++MMapIter)
+				{
+					CurReferencedProperties.Add(MMapIter->Value);
+				}
+
 				if (CurReferencedProperties.Num() > 0)
 				{
 					UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("Object %s has properties to replace:"), *CurObject->GetFullName());
 
-					for (TArray<UProperty*>::TConstIterator RefPropIter(CurReferencedProperties); RefPropIter; ++RefPropIter)
+					for (auto RefPropIter = CurReferencedProperties.CreateConstIterator(); RefPropIter; ++RefPropIter)
 					{
 						UProperty* Prop = *RefPropIter;
-						UObjectProperty* ObjProp = CastChecked<UObjectProperty>(Prop);
 
-						void* Address = nullptr;
-						if (ObjProp->GetOwnerProperty() != ObjProp)
+						auto LogProperty([&](UObject* ObjectToReplace)
 						{
-							UArrayProperty* ArrayProp = Cast<UArrayProperty>(ObjProp->GetOwnerProperty());
-							if (ArrayProp)
-							{
-								FScriptArray* ArrayPtr = (FScriptArray*)ArrayProp->ContainerPtrToValuePtr<void>(CurObject);
+							auto FindResult = ReplacementMap.Find(ObjectToReplace);
+							UObject* ReplaceObject = FindResult ? *FindResult : nullptr;
 
-								Address = ObjProp->ContainerPtrToValuePtr<void>(ArrayPtr->GetData());
+							UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("--- Prop %s = %s -> %s"), *Prop->GetName(), ObjectToReplace ? *ObjectToReplace->GetFullName() : TEXT("null"), ReplaceObject ? *ReplaceObject->GetFullName() : TEXT("null"));
+
+						});
+
+						if (UObjectProperty* ObjectProp = Cast<UObjectProperty>(Prop))
+						{
+							UProperty* OwnerProp = ObjectProp->GetOwnerProperty();
+							if (OwnerProp != ObjectProp)
+							{
+								if (UArrayProperty* ArrayProp = Cast<UArrayProperty>(OwnerProp))
+								{
+									check(ArrayProp->Inner == Prop);
+									FScriptArrayHelper_InContainer ArrayHelper(ArrayProp, CurObject);
+									for (int32 Index = 0; Index < ArrayHelper.Num(); ++Index)
+									{
+										UObject* Object = ObjectProp->GetObjectPropertyValue(ArrayHelper.GetRawPtr(Index));
+										LogProperty(Object);
+									}
+								}
+							}
+							else
+							{
+								for (int32 Index = 0; Index < ObjectProp->ArrayDim; ++Index)
+								{
+									UObject* Object = ObjectProp->GetPropertyValue_InContainer(CurObject, Index);
+									LogProperty(Object);
+								}
 							}
 						}
-						else
-						{
-							Address = ObjProp->ContainerPtrToValuePtr<void>(CurObject);
-						}
 
-						if (Address)
-						{
-							UObject* ObjPropValue = ObjProp->GetPropertyValue(Address);
-							auto FindResult = ReplacementMap.Find(ObjPropValue);
-							UObject* ReplaceObj = FindResult ? *FindResult : nullptr;
-
-							UE_LOG(LogFlexMigrateContentCommandlet, Log, TEXT("--- Prop %s = %s -> %s"), *Prop->GetName(), ObjPropValue ? *ObjPropValue->GetFullName() : TEXT("null"), ReplaceObj ? *ReplaceObj->GetFullName() : TEXT("null"));
-						}
 						CurObject->PreEditChange(Prop);
 					}
 				}
@@ -327,7 +345,7 @@ bool UFlexMigrateContentCommandlet::ForceReplaceReferences(const TMap<UObject*, 
 	}
 
 	// Iterate over the map of referencing objects/changed properties, forcefully replacing the references and
-	for (TMap< UObject*, TArray<UProperty*> >::TConstIterator MapIter(ReferencingPropertiesMap); MapIter; ++MapIter)
+	for (auto MapIter = ReferencingPropertiesMap.CreateConstIterator(); MapIter; ++MapIter)
 	{
 		UObject* CurReplaceObj = MapIter.Key();
 
@@ -336,14 +354,14 @@ bool UFlexMigrateContentCommandlet::ForceReplaceReferences(const TMap<UObject*, 
 
 	// Now alter the referencing objects the change has completed via PostEditChange, 
 	// this is done in a separate loop to prevent reading of data that we want to overwrite
-	for (TMap< UObject*, TArray<UProperty*> >::TConstIterator MapIter(ReferencingPropertiesMap); MapIter; ++MapIter)
+	for (auto MapIter = ReferencingPropertiesMap.CreateConstIterator(); MapIter; ++MapIter)
 	{
 		UObject* CurReplaceObj = MapIter.Key();
-		const TArray<UProperty*>& RefPropArray = MapIter.Value();
+		const auto& RefPropSet = MapIter.Value();
 
-		if (RefPropArray.Num() > 0)
+		if (RefPropSet.Num() > 0)
 		{
-			for (TArray<UProperty*>::TConstIterator RefPropIter(RefPropArray); RefPropIter; ++RefPropIter)
+			for (auto RefPropIter = RefPropSet.CreateConstIterator(); RefPropIter; ++RefPropIter)
 			{
 				FPropertyChangedEvent PropertyEvent(*RefPropIter, EPropertyChangeType::Redirected);
 				CurReplaceObj->PostEditChangeProperty(PropertyEvent);

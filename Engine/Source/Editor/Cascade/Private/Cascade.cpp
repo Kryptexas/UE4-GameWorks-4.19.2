@@ -2787,7 +2787,7 @@ bool FCascade::PromptForCancellingSoloingMode( const FText& InOperationDesc)
 
 bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare
 	// NvFlex begin
-	, UClass* NewEmitClass, const TCHAR* NewName
+	, UClass* NewEmitClass, FName NewName
 	// NvFlex end
 )
 {
@@ -2843,12 +2843,12 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 		check(NewEmitter);
 
 		// NvFlex begin
-		if (NewName == nullptr)
+		if (NewName == NAME_None)
 		{
-			NewName = *SourceEmitter->GetEmitterName().ToString();
+			NewName = SourceEmitter->GetEmitterName();
 		}
 		// NvFlex end
-		NewEmitter->SetEmitterName(FName(NewName));
+		NewEmitter->SetEmitterName(NewName);
 		NewEmitter->EmitterEditorColor = FColor::MakeRandomColor();
 		NewEmitter->EmitterEditorColor.A = 255;
 
@@ -5120,8 +5120,8 @@ void FCascade::OnConvertToFlexEmitter()
 	ParticleSystemComponent->PreEditChange(NULL);
 
 
-	FString NewName = FString(TEXT("Flex ")) + SelectedEmitter->GetEmitterName().ToString();
-	DuplicateEmitter(SelectedEmitter, ParticleSystem, false, GFlexEditorPluginBridge->GetFlexParticleSpriteEmitterClass(), *NewName);
+	FName NewName = FName(*(FString(TEXT("Flex ")) + SelectedEmitter->GetEmitterName().ToString()));
+	DuplicateEmitter(SelectedEmitter, ParticleSystem, false, GFlexEditorPluginBridge->GetFlexParticleSpriteEmitterClass(), NewName);
 
 	ParticleSystemComponent->PostEditChange();
 	ParticleSystem->PostEditChange();

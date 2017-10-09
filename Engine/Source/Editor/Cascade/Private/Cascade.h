@@ -281,7 +281,7 @@ private:
 	/** Duplicates an existing emitter */
 	bool DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare
 		// NvFlex begin
-		, UClass* NewEmitClass = nullptr, const TCHAR* NewName = nullptr
+		, UClass* NewEmitClass = nullptr, FName NewName = NAME_None
 		// NvFlex end
 	);
 
