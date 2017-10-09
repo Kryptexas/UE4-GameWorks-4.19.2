@@ -7,6 +7,8 @@
   <Justification>Will be used to create disc images on the build farm for shipping games using automation.</Justification>
   <Eula>http://discutils.codeplex.com/SourceControl/latest#LICENSE.txt</Eula>
   <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
   <LicenseFolder>None</LicenseFolder>
