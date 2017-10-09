@@ -26,10 +26,14 @@ void ANavMeshBoundsVolume::PostEditChangeProperty( struct FPropertyChangedEvent&
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (GIsEditor && NavSys)
 	{
-		if (PropertyChangedEvent.Property == NULL ||
-			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(ABrush, BrushBuilder) ||
-			(PropertyChangedEvent.MemberProperty && 
-			 PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ANavMeshBoundsVolume, SupportedAgents)))
+		const FName PropName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : FName();
+		const FName MemberName = (PropertyChangedEvent.MemberProperty != nullptr) ? PropertyChangedEvent.MemberProperty->GetFName() : FName();
+
+		if (PropName == GET_MEMBER_NAME_CHECKED(ABrush, BrushBuilder)
+			|| MemberName == GET_MEMBER_NAME_CHECKED(ANavMeshBoundsVolume, SupportedAgents)
+			|| MemberName == GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeLocation)
+			|| MemberName == GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeRotation)
+			|| MemberName == GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeScale3D))
 		{
 			NavSys->OnNavigationBoundsUpdated(this);
 		}
