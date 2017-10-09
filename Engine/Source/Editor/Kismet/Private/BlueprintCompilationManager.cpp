@@ -519,6 +519,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			{
 				UBlueprint* BP = CompilerData.BP;
 				BP->bBeingCompiled = true;
+				BP->CurrentMessageLog = CompilerData.ActiveResultsLog;
 				BP->bIsRegeneratingOnLoad = !BP->bHasBeenRegenerated && BP->GetLinker();
 				if(BP->bIsRegeneratingOnLoad)
 				{
@@ -656,6 +657,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 					}
 					
 					Data.BP->bBeingCompiled = false;
+					Data.BP->CurrentMessageLog = nullptr;
 					if(UPackage* Package = Data.BP->GetOutermost())
 					{
 						Package->SetDirtyFlag(Data.bPackageWasDirty);
@@ -963,6 +965,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			if(CompilerData.ShouldSetTemporaryBlueprintFlags())
 			{
 				BP->bBeingCompiled = false;
+				BP->CurrentMessageLog = nullptr;
 				BP->bIsRegeneratingOnLoad = false;
 			}
 
@@ -1521,7 +1524,7 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 			UFunction* SignatureOverride) -> UFunction*
 	{
 		if(!ensure(FunctionNameFName != FName())
-			|| FindObjectFast<UFunction>(Ret, FunctionNameFName, true ))
+			|| FindObjectFast<UField>(Ret, FunctionNameFName))
 		{
 			return nullptr;
 		}
