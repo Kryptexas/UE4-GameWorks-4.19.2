@@ -105,7 +105,7 @@ class ENGINE_API UInputSettings
 	virtual void PostInitProperties() override;
 	// End of UObject interface
 
-	/** Returns the game local machine settings (resolution, windowing mode, scalability settings, etc...) */
+	/** Returns the game local input settings (action mappings, axis mappings, etc...) */
 	UFUNCTION(BlueprintPure, Category = Settings)
 	static UInputSettings* GetInputSettings();
 
