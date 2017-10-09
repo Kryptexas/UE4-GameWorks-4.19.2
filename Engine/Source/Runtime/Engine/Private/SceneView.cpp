@@ -1820,11 +1820,13 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 			FinalPostProcessSettings.ScreenPercentage = 100.0f;
 		}
 		else
+#endif
 		{
 			static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
 			FinalPostProcessSettings.ScreenPercentage *= ScreenPercentageCVar->GetValueOnGameThread() / 100.0f;
 		}
 
+#if WITH_EDITOR
 		if (ViewInitOptions.EditorViewScreenPercentage.IsSet() && StereoPass == EStereoscopicPass::eSSP_FULL)
 		{
 			FinalPostProcessSettings.ScreenPercentage *= ViewInitOptions.EditorViewScreenPercentage.GetValue() / 100.0f;
