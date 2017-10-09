@@ -533,9 +533,7 @@ namespace UnrealBuildTool
                         "Default-IPhone6.png", "Portrait", "{375, 667}",  "8.0",
                         "Default-IPhone6Plus-Landscape.png", "Landscape", "{414, 736}",  "8.0",
                         "Default-IPhone6Plus-Portrait.png", "Portrait", "{414, 736}",  "8.0",
-                        "Default.png", "Landscape", "{320, 480}", "7.0",
                         "Default.png", "Portrait", "{320, 480}", "7.0",
-                        "Default-568h.png", "Landscape", "{320, 568}", "7.0",
                         "Default-568h.png", "Portrait", "{320, 568}", "7.0",
 					};
 
@@ -544,7 +542,7 @@ namespace UnrealBuildTool
 				for (int ConfigIndex = 0; ConfigIndex < IPhoneConfigs.Length; ConfigIndex += 4)
 				{
                     if ((bSupportsPortrait && IPhoneConfigs[ConfigIndex + 1] == "Portrait") ||
-                        (bSupportsLandscape && IPhoneConfigs[ConfigIndex + 1] == "Landscape"))
+                        (bSupportsLandscape && (IPhoneConfigs[ConfigIndex + 1] == "Landscape") || ConfigIndex > 12))
                     {
                         Text.AppendLine("\t\t<dict>");
                         Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
