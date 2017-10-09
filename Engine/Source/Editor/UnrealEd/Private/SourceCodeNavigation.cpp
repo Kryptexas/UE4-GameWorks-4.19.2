@@ -668,21 +668,23 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 								FPlatformProcess::ExecProcess( *AtoSPath, *AtoSCommand, &ReturnCode, &Results, NULL );
 								if(ReturnCode == 0)
 								{
+									bool bSourceFileOpened = false;
 									int32 FirstIndex = -1;
 									int32 LastIndex = -1;
 									if(Results.FindChar(TCHAR('('), FirstIndex) && Results.FindLastChar(TCHAR('('), LastIndex) && FirstIndex != LastIndex)
 									{
 										int32 CloseIndex = -1;
 										int32 ColonIndex = -1;
-										if(Results.FindLastChar(TCHAR(':'), ColonIndex) && Results.FindLastChar(TCHAR(')'), CloseIndex))
+										if(Results.FindLastChar(TCHAR(':'), ColonIndex) && Results.FindLastChar(TCHAR(')'), CloseIndex) && CloseIndex > ColonIndex && LastIndex < ColonIndex)
 										{
 											int32 FileNamePos = LastIndex+1;
 											int32 FileNameLen = ColonIndex-FileNamePos;
 											FString FileName = Results.Mid(FileNamePos, FileNameLen);
 											FString LineNumber = Results.Mid(ColonIndex + 1, CloseIndex-(ColonIndex + 1));
-											SourceCodeAccessor.OpenFileAtLine( FileName, FCString::Atoi(*LineNumber), 0 );
+											bSourceFileOpened = SourceCodeAccessor.OpenFileAtLine( FileName, FCString::Atoi(*LineNumber), 0 );
 										}
 									}
+									ensureMsgf(bSourceFileOpened, TEXT("Failed to open source file with the source code accessor based on result from UnrealAtoS: '%s'"), *Results);
 								}
 								break;
 							}
