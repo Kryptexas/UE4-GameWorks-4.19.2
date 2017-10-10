@@ -3,7 +3,7 @@
 	Copyright (c) 2012 NVIDIA Corporation. All rights reserved.
 =============================================================================*/
 
-#include "Common.ush"
+#include "/Engine/Private/Common.ush"
 
 float ParticleSizeScaleInv;
 

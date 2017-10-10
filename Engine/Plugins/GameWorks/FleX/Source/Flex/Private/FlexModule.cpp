@@ -4,15 +4,21 @@
 #include "Modules/ModuleManager.h"
 #include "IFlexModule.h"
 #include "Interfaces/IPluginManager.h"
+#include "ShaderCore.h"
 
 #include "FlexManager.h"
 #include "FlexFluidSurfaceRendering.h"
 
 class FFlexModule : public IFlexModule
 {
+public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+
+private:
+	void LoadDLLs();
+	void UnloadDlls();
 
 	void* CudaRtHandle = nullptr;
 	void* FlexCoreHandle = nullptr;
@@ -25,6 +31,23 @@ IMPLEMENT_MODULE( FFlexModule, Flex )
 
 
 void FFlexModule::StartupModule()
+{
+	LoadDLLs();
+
+	GFlexPluginBridge = &FFlexManager::get();
+	GFlexFluidSurfaceRenderer = &FFlexFluidSurfaceRenderer::get();
+}
+
+
+void FFlexModule::ShutdownModule()
+{
+	GFlexFluidSurfaceRenderer = nullptr;
+	GFlexPluginBridge = nullptr;
+
+	UnloadDlls();
+}
+
+void FFlexModule::LoadDLLs()
 {
 	auto FlexPlugin = IPluginManager::Get().FindPlugin(TEXT("FleX"));
 	check(FlexPlugin.IsValid());
@@ -79,22 +102,12 @@ void FFlexModule::StartupModule()
 
 #endif // PLATFORM_64BITS
 	}
-
-	GFlexPluginBridge = &FFlexManager::get();
-	GFlexFluidSurfaceRenderer = &FFlexFluidSurfaceRenderer::get();
 }
 
-
-void FFlexModule::ShutdownModule()
+void FFlexModule::UnloadDlls()
 {
-	GFlexFluidSurfaceRenderer = nullptr;
-	GFlexPluginBridge = nullptr;
-
-	//free FlexLibrary DLLs
-	{
-		FPlatformProcess::FreeDllHandle(CudaRtHandle);
-		FPlatformProcess::FreeDllHandle(FlexCoreHandle);
-		FPlatformProcess::FreeDllHandle(FlexExtHandle);
-		FPlatformProcess::FreeDllHandle(FlexDeviceHandle);
-	}
+	FPlatformProcess::FreeDllHandle(CudaRtHandle);
+	FPlatformProcess::FreeDllHandle(FlexCoreHandle);
+	FPlatformProcess::FreeDllHandle(FlexExtHandle);
+	FPlatformProcess::FreeDllHandle(FlexDeviceHandle);
 }

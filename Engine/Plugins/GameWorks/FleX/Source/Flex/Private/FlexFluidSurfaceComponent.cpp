@@ -109,7 +109,7 @@ protected:
 
 };
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FFlexFluidSurfaceVertexFactory, "/Engine/Private/FlexFluidSurfaceVertexFactory.ush", true, false, true, false, false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FFlexFluidSurfaceVertexFactory, "/Plugin/FleX/FlexFluidSurfaceVertexFactory.ush", true, false, true, false, false);
 
 /*=============================================================================
 FVertexFactoryShaderParameters

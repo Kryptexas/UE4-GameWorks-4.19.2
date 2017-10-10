@@ -183,7 +183,7 @@ public:
 	FFlexFluidSurfaceSpriteSphereVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FFlexFluidSurfaceSpriteBaseVS(Initializer) {}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteSphereVS, TEXT("/Engine/Private/FlexFluidSurfaceSpriteVertexShader.usf"), TEXT("SphereMainVS"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteSphereVS, TEXT("/Plugin/FleX/FlexFluidSurfaceSpriteVertexShader.usf"), TEXT("SphereMainVS"), SF_Vertex);
 
 /*=============================================================================
 FFlexFluidSurfaceSpriteEllipsoidVS
@@ -198,7 +198,7 @@ public:
 	FFlexFluidSurfaceSpriteEllipsoidVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FFlexFluidSurfaceSpriteBaseVS(Initializer) {}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteEllipsoidVS, TEXT("/Engine/Private/FlexFluidSurfaceSpriteVertexShader.usf"), TEXT("EllipsoidMainVS"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteEllipsoidVS, TEXT("/Plugin/FleX/FlexFluidSurfaceSpriteVertexShader.usf"), TEXT("EllipsoidMainVS"), SF_Vertex);
 
 /*=============================================================================
 FFlexFluidSurfaceSpriteBasePS
@@ -271,7 +271,7 @@ public:
 	FFlexFluidSurfaceSpriteSphereDepthPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FFlexFluidSurfaceSpriteBasePS(Initializer) {}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteSphereDepthPS, TEXT("/Engine/Private/FlexFluidSurfaceSpritePixelShader.usf"), TEXT("SphereDepthMainPS"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteSphereDepthPS, TEXT("/Plugin/FleX/FlexFluidSurfaceSpritePixelShader.usf"), TEXT("SphereDepthMainPS"), SF_Pixel);
 
 /*=============================================================================
 FFlexFluidSurfaceSpriteEllipsoidDepthPS
@@ -286,7 +286,7 @@ public:
 	FFlexFluidSurfaceSpriteEllipsoidDepthPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FFlexFluidSurfaceSpriteBasePS(Initializer) {}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteEllipsoidDepthPS, TEXT("/Engine/Private/FlexFluidSurfaceSpritePixelShader.usf"), TEXT("EllipsoidDepthMainPS"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteEllipsoidDepthPS, TEXT("/Plugin/FleX/FlexFluidSurfaceSpritePixelShader.usf"), TEXT("EllipsoidDepthMainPS"), SF_Pixel);
 
 /*=============================================================================
 FFlexFluidSurfaceSpriteSphereThicknessPS
@@ -301,7 +301,7 @@ public:
 	FFlexFluidSurfaceSpriteSphereThicknessPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FFlexFluidSurfaceSpriteBasePS(Initializer) {}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteSphereThicknessPS, TEXT("/Engine/Private/FlexFluidSurfaceSpritePixelShader.usf"), TEXT("SphereThicknessMainPS"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceSpriteSphereThicknessPS, TEXT("/Plugin/FleX/FlexFluidSurfaceSpritePixelShader.usf"), TEXT("SphereThicknessMainPS"), SF_Pixel);
 
 /*=============================================================================
 FFlexFluidSurfaceScreenVS
@@ -323,7 +323,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceScreenVS, TEXT("/Engine/Private/FlexFluidSurfaceScreenShader.usf"), TEXT("ScreenMainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceScreenVS, TEXT("/Plugin/FleX/FlexFluidSurfaceScreenShader.usf"), TEXT("ScreenMainVS"), SF_Vertex);
 
 /*=============================================================================
 FFlexFluidSurfaceDepthSmoothPS
@@ -429,7 +429,7 @@ public:
 	FShaderParameter TexelSize;
 };
 
-IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceDepthSmoothPS, TEXT("/Engine/Private/FlexFluidSurfaceScreenShader.usf"), TEXT("DepthSmoothMainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceDepthSmoothPS, TEXT("/Plugin/FleX/FlexFluidSurfaceScreenShader.usf"), TEXT("DepthSmoothMainPS"), SF_Pixel);
 
 /** A simple pixel shader used on PC to read scene depth from scene color alpha and write it to a downsized depth buffer. */
 class FFlexDownsampleSceneDepthPS : public FGlobalShader
@@ -547,7 +547,7 @@ public:
 	FShaderResourceParameter DepthTextureSamplerBilinear;
 };
 
-IMPLEMENT_SHADER_TYPE(, FFlexUpsampleSurfaceDepthPS, TEXT("/Engine/Private/FlexFluidSurfaceUpSampleShader.usf"), TEXT("UpSampleMainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FFlexUpsampleSurfaceDepthPS, TEXT("/Plugin/FleX/FlexFluidSurfaceUpSampleShader.usf"), TEXT("UpSampleMainPS"), SF_Pixel);
 
 /*=============================================================================
 FFlexFluidSurfaceDrawingPolicy, draws the surface with a screen space mesh

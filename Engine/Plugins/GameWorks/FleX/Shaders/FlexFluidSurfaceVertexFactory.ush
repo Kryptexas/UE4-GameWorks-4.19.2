@@ -5,8 +5,8 @@
 	FlexFluidSurfaceRendering.cpp: Flex fluid surface screen vertex factory shader code.
 =============================================================================*/
 
-#include "VertexFactoryCommon.ush"
-#include "ParticleVertexFactoryCommon.ush"
+#include "/Engine/Private/VertexFactoryCommon.ush"
+#include "/Engine/Private/ParticleVertexFactoryCommon.ush"
 
 Texture2D FlexFluidSurfaceDepthTexture;
 SamplerState FlexFluidSurfaceDepthTextureSampler;
