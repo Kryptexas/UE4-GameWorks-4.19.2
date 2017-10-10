@@ -313,6 +313,11 @@ struct FPlatformRect
 
 	FPlatformRect() {}
 	FPlatformRect(int32 InLeft, int32 InTop, int32 InRight, int32 InBottom) : Left(InLeft), Top(InTop), Right(InRight), Bottom(InBottom) {}
+
+	bool operator==(const FPlatformRect& Other) const
+	{
+		return Left == Other.Left && Top == Other.Top && Right == Other.Right && Bottom == Other.Bottom;
+	}
 };
 
 

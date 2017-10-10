@@ -270,7 +270,13 @@ void SWindow::Construct(const FArguments& InArgs)
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplicationBase::Get().GetDisplayMetrics( DisplayMetrics );
 	const FPlatformRect& VirtualDisplayRect = DisplayMetrics.VirtualDisplayRect;
-	const FPlatformRect PrimaryDisplayRect = DisplayMetrics.GetMonitorWorkAreaFromPoint(WindowPosition);
+	FPlatformRect PrimaryDisplayRect = DisplayMetrics.GetMonitorWorkAreaFromPoint(WindowPosition);
+
+	if (PrimaryDisplayRect == FPlatformRect(0, 0, 0, 0))
+	{
+		// If the primary display rect is empty we couldnt enumerate physical monitors (possibly remote desktop).  so assume virtual display rect is primary rect
+		PrimaryDisplayRect = VirtualDisplayRect;
+	}
 
 	// If we're showing a pop-up window, to avoid creation of driver crashing sized 
 	// tooltips we limit the size a pop-up window can be if max size limit is unspecified.
