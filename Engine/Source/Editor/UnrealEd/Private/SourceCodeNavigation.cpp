@@ -684,7 +684,12 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 											bSourceFileOpened = SourceCodeAccessor.OpenFileAtLine( FileName, FCString::Atoi(*LineNumber), 0 );
 										}
 									}
-									ensureMsgf(bSourceFileOpened, TEXT("Failed to open source file with the source code accessor based on result from UnrealAtoS: '%s'"), *Results);
+#if !NO_LOGGING
+									if (!bSourceFileOpened)
+									{
+										UE_LOG(LogSelectionDetails, Warning, TEXT("NavigateToFunctionSource:  Unable to find source file and line number for '%s'"), *FunctionSymbolName);
+									}
+#endif
 								}
 								break;
 							}
