@@ -4453,7 +4453,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		if (EditorMode == EComponentEditorMode::BlueprintSCS)
 		{
 			// Get the class default object
-			AActor* CDO = NULL;
+			AActor* CDO = nullptr;
 			TArray<UBlueprint*> ParentBPStack;
 
 			if(AActor* Actor = GetActorContext())
@@ -4468,7 +4468,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				}
 			}
 
-			if(CDO != NULL)
+			if(CDO != nullptr)
 			{
 				
 				TInlineComponentArray<UActorComponent*> Components;
@@ -4476,7 +4476,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 
 				// Add the native root component
 				USceneComponent* RootComponent = CDO->GetRootComponent();
-				if(RootComponent != NULL)
+				if(RootComponent != nullptr)
 				{
 					Components.Remove(RootComponent);
 					AddTreeNodeFromComponent(RootComponent);
@@ -4505,29 +4505,45 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 			// Add the full SCS tree node hierarchy (including SCS nodes inherited from parent blueprints)
 			for(int32 StackIndex = ParentBPStack.Num() - 1; StackIndex >= 0; --StackIndex)
 			{
-				if(ParentBPStack[StackIndex]->SimpleConstructionScript != NULL)
+				if(ParentBPStack[StackIndex]->SimpleConstructionScript != nullptr)
 				{
 					const TArray<USCS_Node*>& SCS_RootNodes = ParentBPStack[StackIndex]->SimpleConstructionScript->GetRootNodes();
 					for(int32 NodeIndex = 0; NodeIndex < SCS_RootNodes.Num(); ++NodeIndex)
 					{
 						USCS_Node* SCS_Node = SCS_RootNodes[NodeIndex];
-						check(SCS_Node != NULL);
+						check(SCS_Node != nullptr);
 
+						FSCSEditorTreeNodePtrType NewNodePtr;
 						if(SCS_Node->ParentComponentOrVariableName != NAME_None)
 						{
 							USceneComponent* ParentComponent = SCS_Node->GetParentComponentTemplate(ParentBPStack[0]);
-							if(ParentComponent != NULL)
+							if(ParentComponent != nullptr)
 							{
 								FSCSEditorTreeNodePtrType ParentNodePtr = FindTreeNode(ParentComponent);
 								if(ParentNodePtr.IsValid())
 								{
-									AddTreeNode(SCS_Node, ParentNodePtr, StackIndex > 0);
+									NewNodePtr = AddTreeNode(SCS_Node, ParentNodePtr, StackIndex > 0);
 								}
 							}
 						}
 						else
 						{
-							AddTreeNode(SCS_Node, SceneRootNodePtr, StackIndex > 0);
+							NewNodePtr = AddTreeNode(SCS_Node, SceneRootNodePtr, StackIndex > 0);
+						}
+
+						// Only necessary to do the following for inherited nodes (StackIndex > 0).
+						if (NewNodePtr.IsValid() && StackIndex > 0)
+						{
+							// This call creates ICH override templates for the current Blueprint. Without this, the parent node
+							// search above can fail when attempting to match an inherited node in the tree via component template.
+							NewNodePtr->GetEditableComponentTemplate(ParentBPStack[0]);
+							for (FSCSEditorTreeNodePtrType ChildNodePtr : NewNodePtr->GetChildren())
+							{
+								if (ensure(ChildNodePtr.IsValid()))
+								{
+									ChildNodePtr->GetEditableComponentTemplate(ParentBPStack[0]);
+								}
+							}
 						}
 					}
 				}
