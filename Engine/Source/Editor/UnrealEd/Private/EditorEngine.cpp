@@ -83,7 +83,9 @@
 #include "Animation/SkeletalMeshActor.h"
 
 // NvFlex begin
+#if WITH_FLEX
 #include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
 // NvFlex end
 
 #include "Engine/WorldComposition.h"
@@ -3613,7 +3615,9 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 	const bool bToStaticMesh = ToClass->IsChildOf( AStaticMeshActor::StaticClass() );
 	const bool bToSkeletalMesh = ToClass->IsChildOf(ASkeletalMeshActor::StaticClass());
 	// NvFlex begin
+#if WITH_FLEX
 	const bool bToFlex = GFlexEditorPluginBridge && GFlexEditorPluginBridge->IsFlexActor(ToClass);
+#endif
 	// NvFlex end
 
 	const bool bFoundTarget = bToInteractiveFoliage || bToStaticMesh || bToSkeletalMesh;
@@ -3711,11 +3715,13 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					Actor = SMActor;
 
 					// NvFlex begin
+#if WITH_FLEX
 					if (bToFlex)
 					{
 						// always reset collision to default for Flex actors
 						GFlexEditorPluginBridge->SetFlexActorCollisionProfileName(SMActor, UCollisionProfile::NoCollision_ProfileName);
 					}
+#endif
 					// NvFlex end
 				}
 				else if(bToInteractiveFoliage)

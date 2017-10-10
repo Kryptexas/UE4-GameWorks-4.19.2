@@ -546,12 +546,15 @@ void FStaticMeshEditor::ExtendToolBar()
 					LOCTEXT("UVToolbarText", "UV"), 
 					LOCTEXT("UVToolbarTooltip", "Toggles display of the static mesh's UVs for the specified channel."),
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "StaticMeshEditor.SetDrawUVs"));
+
+				// NvFlex begin
 #if WITH_FLEX
 				if (GFlexEditorPluginBridge && GFlexEditorPluginBridge->IsFlexStaticMesh(ThisEditor->GetStaticMesh()))
 				{
 					ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawFlexPreview);
 				}
 #endif
+				// NvFlex end
 			}
 
 			ToolbarBuilder.EndSection();
@@ -2073,9 +2076,11 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 		RefreshTool();
 	}
 
+	// NvFlex begin
 #if WITH_FLEX
 	Viewport->UpdateFlexPreviewComponent();
 #endif
+	// NvFlex end
 }
 
 void FStaticMeshEditor::SetCurrentViewedUVChannel(int32 InNewUVChannel)

@@ -835,6 +835,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	}
 
 	// NvFlex begin
+#if WITH_FLEX
 	IFlexEditorPluginBridge::FlexAssetStats FlexAssetStats;
 	if (GFlexEditorPluginBridge && GFlexEditorPluginBridge->GetFlexAssetStats(StaticMesh, FlexAssetStats))
 	{
@@ -847,6 +848,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
 			FText::Format(FText::FromString(TEXT("Flex Num Springs: {0}")), FText::AsNumber(FlexAssetStats.NumSprings))));
 	}
+#endif
 	// NvFlex end
 
 	StaticMeshEditorViewport->PopulateOverlayText(TextItems);

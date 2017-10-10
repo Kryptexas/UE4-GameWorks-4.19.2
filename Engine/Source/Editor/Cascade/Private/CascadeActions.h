@@ -95,7 +95,9 @@ public:
 	TSharedPtr<FUICommandInfo> NewEmitterAfter;
 	TSharedPtr<FUICommandInfo> RemoveDuplicateModules;
 	// NvFlex begin
+#if WITH_FLEX
 	TSharedPtr<FUICommandInfo> ConvertToFlexEmitter;
+#endif
 	// NvFlex end
 
 	/** Initialize commands */

@@ -40,10 +40,12 @@ public:
 	/** Constructs, destroys, and updates preview mesh components based on the preview static mesh's sockets. */
 	void UpdatePreviewSocketMeshes();
 
+	// NvFlex begin
 #if WITH_FLEX
 	/** Constructs, destroys, and updates the flex asset preview component. */
 	void UpdateFlexPreviewComponent();
 #endif
+	// NvFlex end
 
 	void RefreshViewport();
 	
@@ -142,6 +144,7 @@ private:
 	/** Callback for checking the vertex color show flag. */
 	bool IsInViewModeVertexColorChecked() const;
 
+	// NvFlex begin
 #if WITH_FLEX
 	/** Callback for toggling flex preview flag. */
 	void SetDrawFlexPreview();
@@ -149,6 +152,7 @@ private:
 	/** Callback for checking the flex preview flag. */
 	bool IsSetDrawFlexPreviewChecked() const;
 #endif
+	// NvFlex end
 
 	/** Callback for toggling the realtime preview flag. */
 	void SetRealtimePreview();

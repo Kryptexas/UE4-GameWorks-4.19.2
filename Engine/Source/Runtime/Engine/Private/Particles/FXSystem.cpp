@@ -51,11 +51,13 @@ namespace FXConsoleVariables
 	float ParticleSlackGPU = 0.02f;
 	int32 MaxParticleTilePreAllocation = 100;
 
+	// NvFlex begin
 #if WITH_FLEX	
 	int32 MaxCPUParticlesPerEmitter = 16*1024;
 #else
 	int32 MaxCPUParticlesPerEmitter = 1000;
 #endif
+	// NvFlex end
 
 	int32 MaxGPUParticlesSpawnedPerFrame = 1024 * 1024;
 	int32 GPUSpawnWarningThreshold = 20000;

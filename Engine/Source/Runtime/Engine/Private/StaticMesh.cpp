@@ -1413,7 +1413,9 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	bSupportUniformlyDistributedSampling = false;
 
 	// NvFlex begin
+#if WITH_FLEX
 	FlexAsset_DEPRECATED = nullptr;
+#endif
 	// NvFlex end
 }
 

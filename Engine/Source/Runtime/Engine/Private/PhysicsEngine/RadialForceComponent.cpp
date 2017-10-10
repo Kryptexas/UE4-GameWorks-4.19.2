@@ -11,10 +11,11 @@
 #include "PhysicsEngine/RadialForceActor.h"
 #include "Components/DestructibleComponent.h"
 
+// NvFlex begin
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
-#include "Particles/ParticleSystemComponent.h"
 #endif
+// NvFlex end
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
@@ -96,7 +97,8 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			}
 		}
 	
-	#if WITH_FLEX
+		// NvFlex begin
+#if WITH_FLEX
 		if (ForceStrength != 0.0f)
 		{
 			FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
@@ -106,7 +108,8 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 				GFlexPluginBridge->AddRadialForceToFlex(PhysScene, Origin, Radius, ForceStrength, Falloff);
 			}
 		}
-	#endif
+#endif
+		// NvFlex end
 
 	}
 }
@@ -117,6 +120,7 @@ void URadialForceComponent::BeginPlay()
 
 	UpdateCollisionObjectQueryParams();
 
+	// NvFlex begin
 #if WITH_FLEX
 	// create rigid attachments to overlapping Flex actors
 	if (FlexAttach && GFlexPluginBridge)
@@ -124,6 +128,7 @@ void URadialForceComponent::BeginPlay()
 		GFlexPluginBridge->AttachFlexToComponent(this, Radius);
 	}
 #endif
+	// NvFlex end
 }
 
 void URadialForceComponent::PostLoad()
@@ -193,17 +198,19 @@ void URadialForceComponent::FireImpulse()
 			}
 		}
 
+		// NvFlex begin
 #if WITH_FLEX
-	if (ImpulseStrength != 0.0f)
-	{
-		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
-		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
-		if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+		if (ImpulseStrength != 0.0f)
 		{
-			GFlexPluginBridge->AddRadialImpulseToFlex(PhysScene, Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange);
+			FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+			const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
+			if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+			{
+				GFlexPluginBridge->AddRadialImpulseToFlex(PhysScene, Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange);
+			}
 		}
-	}
 #endif
+		// NvFlex end
 	}
 }
 

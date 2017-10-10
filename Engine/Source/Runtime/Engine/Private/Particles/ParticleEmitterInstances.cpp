@@ -31,9 +31,11 @@
 
 #include "Components/PointLightComponent.h"
 
+// NvFlex begin
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
+// NvFlex end
 
 /*-----------------------------------------------------------------------------
 FParticlesStatGroup
@@ -293,12 +295,14 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , LoopCount(0)
 	, IsRenderDataDirty(0)
     , EmitterDuration(0.0f)
+	// NvFlex begin
 #if WITH_FLEX
 	, FlexDataOffset(0)
 	, bFlexAnisotropyData(0)
 	, FlexEmitterInstance(NULL)
 	, FlexFluidSurfaceComponent(NULL)
 #endif
+	// NvFlex end
 	, TrianglesToRender(0)
 	, MaxVertexIndex(0)
 	, CurrentMaterial(NULL)
@@ -314,12 +318,14 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
 /** Destructor	*/
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
+	// NvFlex begin
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		GFlexPluginBridge->DestroyFlexEmitterInstance(this);
 	}
 #endif
+	// NvFlex end
 
 	for (int32 i = 0; i < HighQualityLights.Num(); ++i)
 	{
@@ -539,12 +545,14 @@ void FParticleEmitterInstance::Init()
 
 	bEmitterIsDone = false;
 
+	// NvFlex begin
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		GFlexPluginBridge->CreateFlexEmitterInstance(this);
 	}
 #endif
+	// NvFlex end
 }
 
 UWorld* FParticleEmitterInstance::GetWorld() const
@@ -566,12 +574,14 @@ void FParticleEmitterInstance::UpdateTransforms()
 		LODLevel->RequiredModule->EmitterOrigin
 		);
 
+	// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 		(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+	// NvFlex end
 
 	if (bUseLocalSpace)
 	{
@@ -720,12 +730,14 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 		CurrentMaterial = LODLevel->RequiredModule->Material;
 		Tick_ModuleUpdate(DeltaTime, LODLevel);
 
+		// NvFlex begin
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
 			GFlexPluginBridge->TickFlexEmitterInstance(this, DeltaTime, bSuppressSpawning);
 		}
 #endif
+		// NvFlex end
 
 		// Spawn new particles.
 		SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
@@ -1208,12 +1220,14 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		FVector MinVal(HALF_WORLD_MAX);
 		FVector MaxVal(-HALF_WORLD_MAX);
 		
+		// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 			(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+		// NvFlex end
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 
@@ -1323,12 +1337,14 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 		// Store off the orbit offset, if there is one
 		int32 OrbitOffsetValue = GetOrbitPayloadOffset();
 
+		// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 			(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+		// NvFlex end
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 
@@ -1432,12 +1448,14 @@ uint32 FParticleEmitterInstance::RequiredBytes()
 		uiBytes	= sizeof(FFullSubUVPayload);
 	}
 
+	// NvFlex begin
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		uiBytes = GFlexPluginBridge->GetFlexEmitterInstanceRequiredBytes(this, uiBytes);
 	}
 #endif	
+	// NvFlex end
 
 	return uiBytes;
 }
@@ -2058,6 +2076,7 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 			continue;
 		}
 
+		// NvFlex begin
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
@@ -2067,6 +2086,7 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 			}
 		}
 #endif
+		// NvFlex end
 
 		if (EventPayload)
 		{
@@ -2145,12 +2165,15 @@ void FParticleEmitterInstance::ForceSpawn(float DeltaTime, int32 InSpawnCount, i
 			// interface for ForceSpawn should treat these values as being in
 			// world space and transform them to emitter local space if necessary.
 
+			// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 			const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 				(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 			const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+			// NvFlex end
+
 			FVector SpawnLocation = bUseLocalSpace ? FVector::ZeroVector : InLocation;
 			FVector SpawnVelocity = bUseLocalSpace ? FVector::ZeroVector : InVelocity;
 
@@ -2231,12 +2254,14 @@ void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float Interpol
 	// Interpolate position if using world space.
 	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 
+	// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 		(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+	// NvFlex end
 
 	if (bUseLocalSpace == false)
 	{
@@ -2290,12 +2315,14 @@ void FParticleEmitterInstance::KillParticles()
 				ParticleIndices[ActiveParticles-1]	= CurrentIndex;
 				ActiveParticles--;
 
+				// NvFlex begin
 #if WITH_FLEX
 				if (GFlexPluginBridge)
 				{
 					GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
 				}
 #endif
+				// NvFlex end
 
 				INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 			}
@@ -2341,12 +2368,14 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 		ParticleIndices[ActiveParticles-1] = KillIndex;
 		ActiveParticles--;
 
+		// NvFlex begin
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
 			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, KillIndex);
 		}
 #endif
+		// NvFlex end
 
 		INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 	}
@@ -2414,12 +2443,14 @@ void FParticleEmitterInstance::KillParticlesForced(bool bFireEvents)
 		ParticleIndices[ActiveParticles - 1] = CurrentIndex;
 		ActiveParticles--;
 
+		// NvFlex begin
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
 			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
 		}
 #endif
+		// NvFlex end
 
 		INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 	}
@@ -2657,12 +2688,14 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 	FMemory::BigBlockMemcpy(OutData.DataContainer.ParticleData, ParticleData, ParticleMemSize);
 	FMemory::Memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, OutData.DataContainer.ParticleIndicesNumShorts * sizeof(uint16));
 
+	// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 		(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+	// NvFlex end
 
 	// All particle emitter types derived from sprite emitters, so we can fill that data in here too!
 	{
@@ -2768,12 +2801,14 @@ void FParticleEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShi
 
 	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 
+	// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 		(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 	const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+	// NvFlex end
 
 	if (!bUseLocalSpace)
 	{
@@ -3285,12 +3320,14 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 
 		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 
+		// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace &&
 			(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 #endif
+		// NvFlex end
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 
@@ -3744,12 +3781,14 @@ bool FParticleMeshEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase
 		check(LODLevel2);
 		check(LODLevel2->RequiredModule);
 
+		// NvFlex begin
 #if WITH_FLEX // Suppress use local space when simulating with flex
 		const bool bUseLocalSpace = LODLevel2->RequiredModule->bUseLocalSpace &&
 			(FlexEmitterInstance == NULL || (GIsEditor && !GIsPlayInEditorWorld));
 #else
 		const bool bUseLocalSpace = LODLevel2->RequiredModule->bUseLocalSpace;
 #endif
+		// NvFlex end
 
 		// Take scale into account
 		if (bUseLocalSpace == false)

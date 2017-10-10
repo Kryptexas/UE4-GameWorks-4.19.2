@@ -64,12 +64,12 @@
 #include "Framework/Commands/GenericCommands.h"
 #include "UnrealEngine.h"
 
-#if WITH_FLEX
 // NvFlex begin
+#if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #include "GameWorks/IFlexEditorPluginBridge.h"
-// NvFlex end
 #endif
+// NvFlex end
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");
@@ -1037,9 +1037,11 @@ void FCascade::OnNewModule(int32 Idx)
 }
 
 void FCascade::OnNewEmitter(
-// NvFlex begin
+	// NvFlex begin
+#if WITH_FLEX
 	UClass* NewEmitClass
-// NvFlex end
+#endif
+	// NvFlex end
 )
 {
 	FText Transaction = NSLOCTEXT("UnrealEd", "NewEmitter", "Create New Emitter");
@@ -1057,7 +1059,14 @@ void FCascade::OnNewEmitter(
 	ParticleSystemComponent->PreEditChange(NULL);
 
 	// NvFlex begin
-	if (NewEmitClass == nullptr) NewEmitClass = UParticleSpriteEmitter::StaticClass();
+#if WITH_FLEX
+	if (NewEmitClass == nullptr)
+	{
+		NewEmitClass = UParticleSpriteEmitter::StaticClass();
+	}
+#else
+	UClass* NewEmitClass = UParticleSpriteEmitter::StaticClass();
+#endif
 	// NvFlex end
 
 	// Construct it
@@ -2549,12 +2558,14 @@ void FCascade::BindCommands()
 		FExecuteAction::CreateSP(this, &FCascade::OnRemoveDuplicateModules));
 
 	// NvFlex begin
+#if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		ToolkitCommands->MapAction(
 			Commands.ConvertToFlexEmitter,
 			FExecuteAction::CreateSP(this, &FCascade::OnConvertToFlexEmitter));
 	}
+#endif
 	// NvFlex end
 }
 
@@ -2787,7 +2798,9 @@ bool FCascade::PromptForCancellingSoloingMode( const FText& InOperationDesc)
 
 bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare
 	// NvFlex begin
+#if WITH_FLEX
 	, UClass* NewEmitClass, FName NewName
+#endif
 	// NvFlex end
 )
 {
@@ -2829,11 +2842,14 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 
 	// Find desired class of new module.
 	// NvFlex begin
+#if WITH_FLEX
 	if (NewEmitClass == nullptr)
 	{
 		NewEmitClass = SourceEmitter->GetClass();
 	}
-
+#else
+	UClass* NewEmitClass = SourceEmitter->GetClass();
+#endif
 	if (NewEmitClass->IsChildOf<UParticleSpriteEmitter>())
 	// NvFlex end
 	{
@@ -2843,10 +2859,14 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 		check(NewEmitter);
 
 		// NvFlex begin
+#if WITH_FLEX
 		if (NewName == NAME_None)
 		{
 			NewName = SourceEmitter->GetEmitterName();
 		}
+#else
+		FName NewName = SourceEmitter->GetEmitterName();
+#endif
 		// NvFlex end
 		NewEmitter->SetEmitterName(NewName);
 		NewEmitter->EmitterEditorColor = FColor::MakeRandomColor();

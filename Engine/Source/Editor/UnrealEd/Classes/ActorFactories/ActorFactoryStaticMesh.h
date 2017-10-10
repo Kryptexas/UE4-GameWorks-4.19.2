@@ -23,9 +23,11 @@ class UActorFactoryStaticMesh : public UActorFactory
 	virtual UObject* GetAssetFromActorInstance(AActor* ActorInstance) override;
 	virtual FQuat AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const override;
 
+	// NvFlex begin
 #if WITH_FLEX
 	virtual AActor* SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name) override;
-#endif // WITH_FLEX
+#endif
+	// NvFlex end
 
 	//~ End UActorFactory Interface
 };

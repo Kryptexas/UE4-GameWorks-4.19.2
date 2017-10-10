@@ -493,14 +493,14 @@ public:
 	/** Pushes properties of the selected actor back to its EditorWorld counterpart */
 	TSharedPtr< FUICommandInfo > KeepSimulationChanges;
 
+	// NvFlex begin
 #if WITH_FLEX
-
 	/** Saves Flex actor particle state from the selected simulated actors */
 	TSharedPtr< FUICommandInfo > KeepFlexSimulationChanges;
 	/** Discards Flex actor simulation state from the selected simulation actors */
 	TSharedPtr< FUICommandInfo > ClearFlexSimulationChanges;
-
 #endif
+	// NvFlex end
 
 	/**
 	 * Level commands

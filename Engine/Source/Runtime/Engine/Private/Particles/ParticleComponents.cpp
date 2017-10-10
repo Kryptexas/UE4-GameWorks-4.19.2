@@ -82,9 +82,11 @@
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "GameFramework/GameState.h"
 #include "FrameworkObjectVersion.h"
+// NvFlex begin
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
+// NvFlex end
 #include "PhysicsPublic.h"
 
 
@@ -777,10 +779,12 @@ UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 
 	// NvFlex begin
+#if WITH_FLEX
 	FlexContainerTemplate_DEPRECATED = nullptr;
 	Mass_DEPRECATED = 1.0f;
 	bLocalSpace_DEPRECATED = false;
 	FlexFluidSurfaceTemplate_DEPRECATED = nullptr;
+#endif
 	// NvFlex end
 }
 
@@ -3188,26 +3192,32 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 	bWasManagingSignificance = 0;
 
 	// NvFlex begin
+#if WITH_FLEX
 	FlexFluidSurfaceOverride = NULL;
+#endif
 	// NvFlex end
 }
 
 // NvFlex begin
 class UMaterialInstanceDynamic* UParticleSystemComponent::CreateFlexDynamicMaterialInstance(class UMaterialInterface* SourceMaterial)
 {
+#if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		return GFlexPluginBridge->CreateFlexDynamicMaterialInstance(this, SourceMaterial);
 	}
+#endif
 	return nullptr;
 }
 
 class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
 {
+#if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		return GFlexPluginBridge->GetFirstFlexContainerTemplate(this);
 	}
+#endif
 	return nullptr;
 }
 // NvFlex end
@@ -4540,6 +4550,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	
 	bool bHasFlexEmitter = false;
 
+	// NvFlex begin
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
@@ -4558,7 +4569,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	}
 #endif
-	
+	// NvFlex end
+
 	if (bRequiresReset)
 	{
 #if WITH_EDITOR
@@ -5278,6 +5290,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		}
 		if (bIsTemplate == false)
 		{
+			// NvFlex begin
 #if WITH_FLEX
 			// Maintain the FlexFluidSurface (and Material Instance) override
 			if (GFlexPluginBridge)
@@ -5285,6 +5298,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 				GFlexPluginBridge->SetEnabledReferenceCounting(this, false);
 			}
 #endif
+			// NvFlex end
 
 			ResetParticles(bResetInstances);
 		}
@@ -5335,6 +5349,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			Instance->CurrentLODLevelIndex = 0;
 		}
 
+		// NvFlex begin
 #if WITH_FLEX
 		// Maintain the FlexFluidSurface (and Material Instance) override
 		if (GFlexPluginBridge)
@@ -5342,8 +5357,10 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			GFlexPluginBridge->RegisterNewFlexFluidSurfaceComponent(this, Instance);
 		}
 #endif
+		// NvFlex end
 	}
 
+	// NvFlex begin
 #if WITH_FLEX
 	// Maintain the FlexFluidSurface (and Material Instance) override
 	if (GFlexPluginBridge)
@@ -5351,6 +5368,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		GFlexPluginBridge->SetEnabledReferenceCounting(this, true);
 	}
 #endif
+	// NvFlex end
 
 	if (SceneProxy)
 	{

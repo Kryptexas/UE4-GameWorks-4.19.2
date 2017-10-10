@@ -163,7 +163,9 @@ public:
 	void OnNewModule(int32 Idx);
 	void OnNewEmitter(
 		// NvFlex begin
+#if WITH_FLEX
 		class UClass* NewEmitClass = nullptr
+#endif
 		// NvFlex end
 	);
 	void OnRestartInLevel();
@@ -281,7 +283,9 @@ private:
 	/** Duplicates an existing emitter */
 	bool DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare
 		// NvFlex begin
+#if WITH_FLEX
 		, UClass* NewEmitClass = nullptr, FName NewName = NAME_None
+#endif
 		// NvFlex end
 	);
 
@@ -396,7 +400,9 @@ private:
 	void OnNewEmitterAfter();
 	void OnRemoveDuplicateModules();
 	// NvFlex begin
+#if WITH_FLEX
 	void OnConvertToFlexEmitter();
+#endif
 	// NvFlex end
 
 	void CloseEntryPopup();

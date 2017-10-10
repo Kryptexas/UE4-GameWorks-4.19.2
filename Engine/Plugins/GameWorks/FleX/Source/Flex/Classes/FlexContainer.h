@@ -9,6 +9,14 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogFlex, Log, All);
 
+// users, e.g.: emitters, mesh components, should implement this interface to 
+// specify their collision bounds, and receive synchronization updates
+struct IFlexContainerClient
+{
+	virtual bool IsEnabled() = 0;
+	virtual FBoxSphereBounds GetBounds() = 0;
+	virtual void Synchronize() {}
+};
 
 /** The Flex asset type */
 UENUM()

@@ -751,9 +751,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 	};
 
+	// NvFlex begin
 #if WITH_FLEX
 	GFlexFluidSurfaceRenderer->UpdateProxiesAndResources(RHICmdList, Views[0].DynamicMeshElements, SceneContext);
 #endif
+	// NvFlex end
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
@@ -937,6 +939,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 	}
 
+	// NvFlex begin
 #if WITH_FLEX
 	GFlexFluidSurfaceRenderer->RenderParticles(RHICmdList, Views);
 	
@@ -945,6 +948,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	GFlexFluidSurfaceRenderer->RenderBasePass(RHICmdList, Views);
 #endif
+	// NvFlex end
 
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
@@ -1291,9 +1295,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
+	// NvFlex begin
 #if WITH_FLEX
 	GFlexFluidSurfaceRenderer->Cleanup();
 #endif
+	// NvFlex end
 
 	// Resolve the scene color for post processing.
 	ResolveSceneColor(RHICmdList);

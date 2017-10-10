@@ -406,8 +406,8 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 			}
 		}
 
+		// NvFlex begin
 #if WITH_FLEX
-
 		if (SelectionInfo.NumSelected > 0)
 		{
 			MenuBuilder.BeginSection("Flex", NSLOCTEXT("LevelViewportContextMenu", "FlexHeading", "Flex"));
@@ -419,8 +419,8 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 			}
 			MenuBuilder.EndSection();
 		}
-
 #endif
+		// NvFlex end
 
 		MenuBuilder.BeginSection("LevelViewportAttach");
 		{

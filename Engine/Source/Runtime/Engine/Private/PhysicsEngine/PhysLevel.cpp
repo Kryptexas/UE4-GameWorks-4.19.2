@@ -29,9 +29,11 @@
 	#define APEX_STATICALLY_LINKED	0
 #endif
 
+// NvFlex begin
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
+// NvFlex end
 
 FPhysCommandHandler * GPhysCommandHandler = NULL;
 FDelegateHandle GPreGarbageCollectDelegateHandle;
@@ -445,22 +447,26 @@ void InitGamePhys()
 
 void InitGamePhysPostRHI()
 {
+	// NvFlex begin
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		GFlexPluginBridge->InitGamePhysPostRHI();
 	}
-#endif // WITH_FLEX
+#endif
+	// NvFlex end
 }
 
 void TermGamePhys()
 {
+	// NvFlex begin
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		GFlexPluginBridge->TermGamePhys();
 	}
-#endif // WITH_FLEX
+#endif
+	// NvFlex end
 
 #if WITH_BOX2D
 	FPhysicsIntegration2D::ShutdownPhysics();

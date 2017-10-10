@@ -3214,10 +3214,12 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actor's level the current level", EUserInterfaceActionType::Button, FInputChord( EKeys::M ) );
 
+	// NvFlex begin
 #if WITH_FLEX
 	UI_COMMAND(KeepFlexSimulationChanges, "Keep Flex Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(ClearFlexSimulationChanges, "Clear Flex Simulation Changes", "Dicards any saved changes made to this actor in Simulate mode.", EUserInterfaceActionType::Button, FInputGesture());
 #endif
+	// NvFlex end
 
 #if PLATFORM_MAC
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Command, EKeys::M ) );

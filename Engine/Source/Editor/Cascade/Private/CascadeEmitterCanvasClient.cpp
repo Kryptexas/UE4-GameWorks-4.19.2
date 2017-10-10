@@ -33,7 +33,9 @@
 #include "Engine/Font.h"
 #include "Engine/StaticMesh.h"
 // NvFlex begin
+#if WITH_FLEX
 #include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
 // NvFlex end
 
 FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
@@ -1902,10 +1904,12 @@ TSharedRef<SWidget> FCascadeEmitterCanvasClient::BuildMenuWidgetEmitter()
 					MenuBuilder.AddMenuEntry(FCascadeCommands::Get().ExportEmitter);
 					MenuBuilder.AddMenuEntry(FCascadeCommands::Get().ExportAllEmitters);
 					// NvFlex begin
+#if WITH_FLEX
 					if (GFlexEditorPluginBridge)
 					{
 						MenuBuilder.AddMenuEntry(FCascadeCommands::Get().ConvertToFlexEmitter);
 					}
+#endif
 					// NvFlex end
 				}
 				MenuBuilder.EndSection();
@@ -1927,10 +1931,12 @@ TSharedRef<SWidget> FCascadeEmitterCanvasClient::BuildMenuWidgetEmitter()
 							Menu.AddMenuEntry(FCascadeCommands::Get().ExportEmitter);
 							Menu.AddMenuEntry(FCascadeCommands::Get().ExportAllEmitters);
 							// NvFlex begin
+#if WITH_FLEX
 							if (GFlexEditorPluginBridge)
 							{
 								Menu.AddMenuEntry(FCascadeCommands::Get().ConvertToFlexEmitter);
 							}
+#endif
 							// NvFlex end
 						}
 						Menu.EndSection();
@@ -2073,10 +2079,12 @@ TSharedRef<SWidget> FCascadeEmitterCanvasClient::BuildMenuWidgetBackround()
 		});
 
 		AddMenuEntry(TEXT("NewParticleSpriteEmitter"), UParticleSpriteEmitter::StaticClass());
+#if WITH_FLEX
 		if (GFlexEditorPluginBridge)
 		{
 			AddMenuEntry(TEXT("NewFlexParticleSpriteEmitter"), GFlexEditorPluginBridge->GetFlexParticleSpriteEmitterClass());
 		}
+#endif
 		// NvFlex end
 	}
 

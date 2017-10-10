@@ -327,6 +327,7 @@ public:
 	/** true if the emitter has no active particles and will no longer spawn any in the future */
 	bool bEmitterIsDone;
 
+	// NvFlex begin
 #if WITH_FLEX
 	/** The offset to the index of the associated flex particle			*/
 	int32 FlexDataOffset;
@@ -336,7 +337,8 @@ public:
 	struct FFlexParticleEmitterInstance* FlexEmitterInstance;
 	/** Registered fluid surface component								*/
 	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
-#endif // WITH_FLEX
+#endif
+	// NvFlex end
 
 	/** The number of triangles to render								*/
 	int32	TrianglesToRender;

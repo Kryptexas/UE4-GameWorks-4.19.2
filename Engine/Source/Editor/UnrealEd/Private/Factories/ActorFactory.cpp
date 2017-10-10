@@ -406,7 +406,7 @@ AActor* UActorFactoryStaticMesh::SpawnActor(UObject* Asset, ULevel* InLevel, con
 	}
 	return Super::SpawnActor(Asset, InLevel, Transform, ObjectFlagsIn, Name);
 }
-#endif // WITH_FLEX
+#endif
 // NvFlex end
 
 /*-----------------------------------------------------------------------------

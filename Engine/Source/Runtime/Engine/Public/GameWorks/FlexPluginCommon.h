@@ -4,15 +4,6 @@
 #include "UObject/ObjectMacros.h"
 #include "FlexPluginCommon.generated.h"
 
-// users, e.g.: emitters, mesh components, should implement this interface to 
-// specify their collision bounds, and receive synchronization updates
-struct IFlexContainerClient
-{
-	virtual bool IsEnabled() = 0;
-	virtual FBoxSphereBounds GetBounds() = 0;
-	virtual void Synchronize() {}
-};
-
 /** Defines values that control how the localized inertia is applied */
 USTRUCT()
 struct ENGINE_API FFlexInertialScale

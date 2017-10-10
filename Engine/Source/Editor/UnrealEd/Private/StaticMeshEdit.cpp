@@ -26,9 +26,10 @@
 #include "Materials/Material.h"
 
 // NvFlex begin
+#if WITH_FLEX
 #include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
 // NvFlex end
-
 
 bool GBuildStaticMeshCollision = 1;
 
