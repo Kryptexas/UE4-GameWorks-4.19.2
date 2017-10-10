@@ -5,7 +5,7 @@
   <Date>2016-06-17T12:00:28.2084259-04:00</Date>
   <Function>Efficient and good quality motion blur effect for real-time rendering based on postprocessing an existing color image with given per pixel motion vectors.   </Function>
   <Justification>Our in house solution could be improve by using parts of their solution. It allows higher quality by taking depth occlusion into account.</Justification>
-  <Eula>http://graphics.cs.williams.edu/papers/MotionBlurI3D12</Eula>
+  <Eula>None available, see https://dl.acm.org/citation.cfm?id=2159639</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
