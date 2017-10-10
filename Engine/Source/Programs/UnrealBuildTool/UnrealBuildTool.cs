@@ -737,7 +737,7 @@ namespace UnrealBuildTool
 						else if (LowercaseArg == "-vscode")
 						{
 							bGenerateProjectFiles = true;
-							ProjectFileFormats.Add(ProjectFileFormat.VSCode);
+							ProjectFileFormats.Add(ProjectFileFormat.VisualStudioCode);
 						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
@@ -857,7 +857,7 @@ namespace UnrealBuildTool
 							}
 
 							// Read from the editor config
-							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorPerProjectUserSettings, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Win64);
+							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved"));
 
 							string PreferredAccessor;
 							if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
@@ -919,7 +919,7 @@ namespace UnrealBuildTool
 								case ProjectFileFormat.Eddie:
 									Generator = new EddieProjectFileGenerator(ProjectFile);
 									break;
-								case ProjectFileFormat.VSCode:
+								case ProjectFileFormat.VisualStudioCode:
 									Generator = new VSCodeProjectFileGenerator(ProjectFile);
 									break;
 								default:
