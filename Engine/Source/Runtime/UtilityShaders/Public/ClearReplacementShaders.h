@@ -273,18 +273,18 @@ public:
 	FClearBufferReplacementCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 	: FGlobalShader( Initializer )
 	{
-		ClearDword.Bind(Initializer.ParameterMap, TEXT("ClearDword"), SPF_Mandatory);
+		ClearBufferCSParams.Bind(Initializer.ParameterMap, TEXT("ClearBufferCSParams"), SPF_Mandatory);
 		ClearBufferRW.Bind(Initializer.ParameterMap, TEXT("ClearBufferRW"), SPF_Mandatory);
 	}
 	
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 NumDWordsToClear, uint32 ClearValue);
 	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW);
 	
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << ClearDword << ClearBufferRW;
+		Ar << ClearBufferCSParams << ClearBufferRW;
 		return bShaderHasOutdatedParameters;
 	}
 	
@@ -294,6 +294,6 @@ public:
 	}
 	
 	//protected:
-	FShaderParameter ClearDword;
+	FShaderParameter ClearBufferCSParams;
 	FShaderResourceParameter ClearBufferRW;
 };
