@@ -512,10 +512,13 @@ void FMacPlatformApplicationMisc::PumpMessages(bool bFromMainLoop)
 		{
 			if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate)
 			{
-                UpdateApplicationMenu();
-                UpdateWindowMenu();
-                UpdateCachedMacMenuState();
-                UpdateCocoaButtons();
+				MainThreadCall(^{
+					UpdateApplicationMenu();
+					UpdateWindowMenu();
+					UpdateCocoaButtons();
+				}, NSDefaultRunLoopMode, false);
+
+				UpdateCachedMacMenuState();
                 bChachedMacMenuStateNeedsUpdate = false;
 			}
 		}
@@ -642,6 +645,8 @@ void FMacPlatformApplicationMisc::UpdateWindowMenu()
 
 void FMacPlatformApplicationMisc::UpdateCocoaButtons()
 {
+	MacApplication->GetWindowsArrayMutex().Lock();
+
     const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
     for (auto Window : AllWindows)
     {
@@ -664,4 +669,6 @@ void FMacPlatformApplicationMisc::UpdateCocoaButtons()
             }
         }
     }
+
+	MacApplication->GetWindowsArrayMutex().Unlock();
 }

@@ -213,6 +213,8 @@ public:
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
 
+	FCriticalSection& GetWindowsArrayMutex() { return WindowsMutex; }
+
 	void OnCursorLock();
 
 	void IgnoreMouseMoveDelta() { FPlatformAtomics::InterlockedExchange(&bIgnoreMouseMoveDelta, 1); }
