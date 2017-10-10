@@ -15,6 +15,7 @@
 
 class IDetailKeyframeHandler;
 struct FDetailLayoutCustomization;
+class SDetailSingleItemRow;
 
 class SConstrainedBox : public SCompoundWidget
 {
@@ -41,7 +42,7 @@ public:
 	SLATE_BEGIN_ARGS(SArrayRowHandle)
 	{}
 	SLATE_DEFAULT_SLOT(FArguments, Content)
-	SLATE_ARGUMENT(class SDetailSingleItemRow*, ParentRow)
+	SLATE_ARGUMENT(TSharedPtr<SDetailSingleItemRow>, ParentRow)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -53,10 +54,10 @@ public:
 
 
 	FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	TSharedPtr<class FArrayRowDragDropOp> CreateDragDropOperation(class SDetailSingleItemRow* InRow);
+	TSharedPtr<class FArrayRowDragDropOp> CreateDragDropOperation(TSharedPtr<SDetailSingleItemRow> InRow);
 
 private:
-	class SDetailSingleItemRow* ParentRow;
+	TWeakPtr<SDetailSingleItemRow> ParentRow;
 };
 
 
@@ -114,7 +115,7 @@ private:
 class FArrayRowDragDropOp : public FDecoratedDragDropOp
 {
 public:
-	FArrayRowDragDropOp(class SDetailSingleItemRow* InRow)
+	FArrayRowDragDropOp(TSharedPtr<SDetailSingleItemRow> InRow)
 	{
 		Row = InRow;
 		DecoratorWidget = SNew(SBorder)
@@ -141,5 +142,5 @@ public:
 		return DecoratorWidget;
 	}
 
-	class SDetailSingleItemRow* Row;
+	TWeakPtr<class SDetailSingleItemRow> Row;
 };
