@@ -1151,15 +1151,21 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 		else
 		{
-			// Start the check activity here
-			Log.debug("==============> Starting activity to check files and download if required");
-			Intent intent = new Intent(this, DownloadShim.GetDownloaderType());
-			intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-			startActivityForResult(intent, DOWNLOAD_ACTIVITY_ID);
-			if (noActionAnimID != -1)
-			{
-				overridePendingTransition(noActionAnimID, noActionAnimID);
-			}
+			// Post the check activity handler here to run after onResume completes
+			Log.debug("==============> Posting request for downloader activity");
+			final Handler downloadHandler = new Handler();
+			downloadHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					Log.debug("==============> Starting activity to check files and download if required");
+					Intent intent = new Intent(_activity, DownloadShim.GetDownloaderType());
+					intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+					startActivityForResult(intent, DOWNLOAD_ACTIVITY_ID);
+					if (noActionAnimID != -1) {
+						overridePendingTransition(noActionAnimID, noActionAnimID);
+					}
+				}
+			});
 		}
 
 		LocalNotificationCheckAppOpen();
