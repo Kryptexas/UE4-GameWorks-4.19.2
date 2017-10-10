@@ -40,6 +40,16 @@ void ANavMeshBoundsVolume::PostEditChangeProperty( struct FPropertyChangedEvent&
 	}
 }
 
+void ANavMeshBoundsVolume::PostEditUndo()
+{
+	Super::PostEditUndo();
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (GIsEditor && NavSys)
+	{
+		NavSys->OnNavigationBoundsUpdated(this);
+	}
+}
+
 #endif // WITH_EDITOR
 
 void ANavMeshBoundsVolume::PostRegisterAllComponents() 
