@@ -758,37 +758,34 @@ namespace UnrealBuildTool
 			ShimFileContent.AppendFormat("import {0}.OBBDownloaderService;\n", replacements["$$PackageName$$"]);
 			ShimFileContent.AppendFormat("import {0}.DownloaderActivity;\n", replacements["$$PackageName$$"]);
 
-			// Workaround to do OBB file checking without using DownloadActivity to avoid transit to another activity in Daydream
-			bool bPackageForDaydream = IsPackagingForDaydream();
-			if (bPackageForDaydream)
-			{
-				ShimFileContent.Append("import android.app.Activity;\n");
-				ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
-				ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
-			}
+			// Do OBB file checking without using DownloadActivity to avoid transit to another activity
+			ShimFileContent.Append("import android.app.Activity;\n");
+			ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
+			ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
 
 			ShimFileContent.Append("\n\npublic class DownloadShim\n{\n");
 			ShimFileContent.Append("\tpublic static OBBDownloaderService DownloaderService;\n");
 			ShimFileContent.Append("\tpublic static DownloaderActivity DownloadActivity;\n");
 			ShimFileContent.Append("\tpublic static Class<DownloaderActivity> GetDownloaderType() { return DownloaderActivity.class; }\n");
 
-			// Workaround to do OBB file checking without using DownloadActivity to avoid a SPM bug
-			if (bPackageForDaydream)
-			{
-				ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
-				ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
-				ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
-				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
-				ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
-				ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
-				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
-				ShimFileContent.Append("\t\t\tif (!Helpers.doesFileExist(activity, fileName, xf.mFileSize, false) &&\n");
-				ShimFileContent.Append("\t\t\t\t!Helpers.doesFileExistDev(activity, fileName, xf.mFileSize, false))\n");
-				ShimFileContent.Append("\t\t\t\treturn false;\n");
-				ShimFileContent.Append("\t\t\t}\n");
-				ShimFileContent.Append("\t\treturn true;\n");
-				ShimFileContent.Append("\t}\n");
-			}
+			// Do OBB file checking without using DownloadActivity to avoid transit to another activity
+			ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
+			ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
+			ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
+			ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
+			ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
+			ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
+			ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
+			ShimFileContent.Append("\t\t\tif (Helpers.doesFileExist(activity, fileName, xf.mFileSize, false)) {\n");
+			ShimFileContent.Append("\t\t\t\tGameActivity.Log.debug(\"Found OBB here: \" + fileForNewFile);\n");
+			ShimFileContent.Append("\t\t\t}\n");
+			ShimFileContent.Append("\t\t\telse if (Helpers.doesFileExistDev(activity, fileName, xf.mFileSize, false)) {\n");
+			ShimFileContent.Append("\t\t\t\tGameActivity.Log.debug(\"Found OBB here: \" + fileForDevFile);\n");
+			ShimFileContent.Append("\t\t\t}\n");
+			ShimFileContent.Append("\t\t\telse return false;\n");
+			ShimFileContent.Append("\t\t}\n");
+			ShimFileContent.Append("\t\treturn true;\n");
+			ShimFileContent.Append("\t}\n");
 
 			ShimFileContent.Append("}\n");
 			Log.TraceInformation("\n==== Writing to shim file {0} ====", ShimFileName);

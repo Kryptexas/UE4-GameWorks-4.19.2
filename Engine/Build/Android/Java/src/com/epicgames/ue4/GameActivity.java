@@ -955,6 +955,12 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			HasAllFiles = true;
 		}
 
+		// check for OBB file present if we don't have all the files and don't need to verify
+		if (!HasAllFiles && !VerifyOBBOnStartUp)
+		{
+			HasAllFiles = DownloadShim.expansionFilesDelivered(this);
+		}
+
 		containerFrameLayout = new FrameLayout(_activity);
 		virtualKeyboardLayout = new LinearLayout(_activity);
 
