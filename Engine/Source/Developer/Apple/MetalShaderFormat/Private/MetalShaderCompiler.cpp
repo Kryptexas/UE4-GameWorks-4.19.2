@@ -202,7 +202,7 @@ bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutRetu
 #if PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING
 	return FPlatformProcess::ExecProcess(Command, Params, OutReturnCode, OutStdOut, OutStdErr);
 #else
-	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" ") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT(" ") + Command + TEXT(" ") + Params;
+	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" ") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT(" ") + Command + TEXT(" ") + (Params != nullptr ? Params : TEXT(""));
 	return FPlatformProcess::ExecProcess(*GSSHPath, *CmdLine, OutReturnCode, OutStdOut, OutStdErr);
 #endif
 }
@@ -327,7 +327,7 @@ bool CopyLocalFileToRemote(FString const& LocalPath, FString const& RemotePath)
 
 	FString	params = 
 		FString::Printf(
-			TEXT("-zae \"%s -i '%s'\" --rsync-path=\"mkdir -p %s && rsync\" --chmod=ug=rwX,o=rxX '%s' %s@%s:'%s'"), 
+			TEXT("-zae \"'%s' -i '%s'\" --rsync-path=\"mkdir -p %s && rsync\" --chmod=ug=rwX,o=rxX '%s' %s@%s:'%s'"), 
 			*GSSHPath,
 			*GRemoteBuildServerSSHKey, 
 			*remoteBasePath, 
@@ -357,7 +357,7 @@ bool CopyRemoteFileToLocal(FString const& RemotePath, FString const& LocalPath)
 
 	FString	params = 
 		FString::Printf(
-			TEXT("-zae \"%s -i '%s'\" %s@%s:'%s' '%s'"), 
+			TEXT("-zae \"'%s' -i '%s'\" %s@%s:'%s' '%s'"), 
 			*GSSHPath,
 			*GRemoteBuildServerSSHKey, 
 			*GRemoteBuildServerUser,
