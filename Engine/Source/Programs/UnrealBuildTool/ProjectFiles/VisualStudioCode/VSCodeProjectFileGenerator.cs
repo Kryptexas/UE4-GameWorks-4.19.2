@@ -268,6 +268,7 @@ namespace UnrealBuildTool
 			public List<Project> NativeProjects = new List<Project>();
 			public List<Project> CSharpProjects = new List<Project>();
 			public List<Project> AllProjects = new List<Project>();
+			public List<string> CombinedIncludePaths = new List<string>();
 		}
 
 		private ProjectData GatherProjectData(List<ProjectFile> InProjects)
@@ -339,13 +340,28 @@ namespace UnrealBuildTool
 					{
 						RawIncludes.AddRange(VCToolChain.GetVCIncludePaths(CppPlatform.Win64, WindowsPlatform.GetDefaultCompiler()).Trim(';').Split(';'));
 					}
+					else
+					{
+						RawIncludes.Add("/usr/include");
+						RawIncludes.Add("/usr/local/include");
+					}
 
 					foreach (string IncludePath in RawIncludes)
 					{
 						DirectoryReference AbsPath = DirectoryReference.Combine(Project.ProjectFilePath.Directory, IncludePath);
 						if (DirectoryReference.Exists(AbsPath))
 						{
-							NewProject.IncludePaths.Add(AbsPath.ToString().Replace('\\', '/'));
+							string Processed = AbsPath.ToString().Replace('\\', '/');
+							if (!NewProject.IncludePaths.Contains(Processed))
+							{
+								NewProject.IncludePaths.Add(Processed);
+							}
+
+							if (!ProjectData.CombinedIncludePaths.Contains(Processed))
+							{
+								ProjectData.CombinedIncludePaths.Add(Processed);
+							}
+							
 						}
 					}
 
@@ -490,31 +506,6 @@ namespace UnrealBuildTool
 		{
 			JsonFile OutFile = new JsonFile();
 
-			HashSet<string> IncludePaths = new HashSet<string>();
-
-			foreach (ProjectData.Project ProjectData in Projects.NativeProjects)
-			{
-				foreach (string IncludePath in ProjectData.SourceProject.IntelliSenseIncludeSearchPaths)
-				{
-					DirectoryReference AbsPath = DirectoryReference.Combine(ProjectData.SourceProject.ProjectFilePath.Directory, IncludePath);
-					IncludePaths.Add(AbsPath.ToString());
-				}
-			}
-
-			// NOTE: This needs to be expanded and improved so we can get system include paths in for other platforms
-			if (HostPlatform == UnrealTargetPlatform.Win64)
-			{
-				string[] VCIncludePaths = VCToolChain.GetVCIncludePaths(CppPlatform.Win64, WindowsPlatform.GetDefaultCompiler()).Trim(';').Split(';');
-
-				foreach (string VCIncludePath in VCIncludePaths)
-				{
-					if (!string.IsNullOrEmpty(VCIncludePath))
-					{
-						IncludePaths.Add(VCIncludePath);
-					}
-				}
-			}
-
 			OutFile.BeginRootObject();
 			{
 				OutFile.BeginArray("configurations");
@@ -525,12 +516,31 @@ namespace UnrealBuildTool
 
 						OutFile.BeginArray("includePath");
 						{
-							foreach (var Path in IncludePaths)
+							foreach (var Path in Projects.CombinedIncludePaths)
 							{
-								OutFile.AddUnnamedField(Path.Replace('\\', '/'));
+								OutFile.AddUnnamedField(Path);
 							}
 						}
 						OutFile.EndArray();
+
+						if (HostPlatform == UnrealTargetPlatform.Win64)
+						{
+							OutFile.AddField("intelliSenseMode", "msvc-x64");
+						}
+						else
+						{
+							OutFile.AddField("intelliSenseMode", "clang-x64");
+						}
+
+						if (HostPlatform == UnrealTargetPlatform.Mac)
+						{
+							OutFile.BeginArray("macFrameworkPath");
+							{
+								OutFile.AddUnnamedField("/System/Library/Frameworks");
+								OutFile.AddUnnamedField("/Library/Frameworks");
+							}
+							OutFile.EndArray();
+						}
 
 						OutFile.BeginArray("defines");
 						{
