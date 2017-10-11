@@ -29,6 +29,16 @@ bool FDefaultSourceCodeAccessor::OpenSolution()
 	return false;
 }
 
+bool FDefaultSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	return false;
+}
+
+bool FDefaultSourceCodeAccessor::DoesSolutionExist() const
+{
+	return false;
+}
+
 bool FDefaultSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber)
 {
 	return false;

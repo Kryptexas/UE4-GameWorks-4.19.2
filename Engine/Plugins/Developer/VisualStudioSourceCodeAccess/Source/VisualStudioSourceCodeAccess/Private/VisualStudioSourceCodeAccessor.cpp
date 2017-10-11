@@ -9,6 +9,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
+#include "Misc/UProjectInfo.h"
 #include "HAL/PlatformTime.h"
 
 #if WITH_EDITOR
@@ -754,6 +755,30 @@ bool FVisualStudioSourceCodeAccessor::OpenSolution()
 	return OpenVisualStudioSolutionViaProcess();
 }
 
+bool FVisualStudioSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	bool bSuccess = false;
+	CachedSolutionPathOverride = InSolutionPath;
+#if VSACCESSOR_HAS_DTE
+	if (OpenVisualStudioSolutionViaDTE())
+	{
+		bSuccess = true;
+	}
+	else
+#endif
+	{
+		bSuccess = OpenVisualStudioSolutionViaProcess();
+	}
+	CachedSolutionPathOverride = TEXT("");
+	return bSuccess;
+}
+
+bool FVisualStudioSourceCodeAccessor::DoesSolutionExist() const
+{
+	const FString SolutionPath = GetSolutionPath();
+	return FPaths::FileExists(SolutionPath);
+}
+
 bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternal(const TArray<FileOpenRequest>& Requests)
 {
 #if VSACCESSOR_HAS_DTE
@@ -1233,13 +1258,17 @@ FText FVisualStudioSourceCodeAccessor::GetDescriptionText() const
 
 FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 {
-	FScopeLock Lock(&CachedSolutionPathCriticalSection);
 	if(IsInGameThread())
 	{
-		FString SolutionPath;
-		if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+		CachedSolutionPath = CachedSolutionPathOverride.Len() > 0 ? CachedSolutionPathOverride : FPaths::ProjectDir();
+		
+		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
 		{
-			CachedSolutionPath = FPaths::ConvertRelativePathToFull(SolutionPath);
+			CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.sln"));
+		}
+		else
+		{
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FPaths::GetBaseFilename(CachedSolutionPath) + TEXT(".sln"));
 		}
 	}
 	return CachedSolutionPath;

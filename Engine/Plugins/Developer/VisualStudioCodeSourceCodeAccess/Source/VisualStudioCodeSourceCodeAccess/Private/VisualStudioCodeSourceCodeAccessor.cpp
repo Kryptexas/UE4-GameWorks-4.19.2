@@ -7,6 +7,7 @@
 #include "DesktopPlatformModule.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
+#include "Misc/UProjectInfo.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -20,12 +21,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogVSCodeAccessor, Log, All);
 FString FVisualStudioCodeSourceCodeAccessor::GetSolutionPath() const
 {
 	FScopeLock Lock(&CachedSolutionPathCriticalSection);
+
 	if (IsInGameThread())
 	{
-		FString SolutionPath;
-		if (FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+		CachedSolutionPath = FPaths::ProjectDir();
+
+		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
 		{
-			CachedSolutionPath = FPaths::ConvertRelativePathToFull(SolutionPath);
+			CachedSolutionPath = FPaths::RootDir();
 		}
 	}
 	return CachedSolutionPath;
@@ -82,7 +85,7 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSourceFiles(const TArray<FString>&
 {
 	if (Location.Len() > 0)
 	{
-		FString SolutionDir = FPaths::GetPath(GetSolutionPath());
+		FString SolutionDir = GetSolutionPath();
 		FString Args = TEXT("\"") + SolutionDir + TEXT("\" ");
 
 		for (const FString& SourcePath : AbsoluteSourcePaths)
@@ -111,7 +114,7 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath
 		LineNumber = LineNumber > 0 ? LineNumber : 1;
 		ColumnNumber = ColumnNumber > 0 ? ColumnNumber : 1;
 
-		FString SolutionDir = FPaths::GetPath(GetSolutionPath());
+		FString SolutionDir = GetSolutionPath();
 		FString Args = FString::Printf(TEXT("\"%s\" -g \"%s\":%d:%d"), *SolutionDir, *FullPath, LineNumber, ColumnNumber);
 
 		uint32 ProcessID;
@@ -130,7 +133,7 @@ bool FVisualStudioCodeSourceCodeAccessor::CanAccessSourceCode() const
 
 FName FVisualStudioCodeSourceCodeAccessor::GetFName() const
 {
-	return FName("VisualStudioCodeSourceCodeAccessor");
+	return FName("VisualStudioCode");
 }
 
 FText FVisualStudioCodeSourceCodeAccessor::GetNameText() const
@@ -151,8 +154,18 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolution()
 {
 	if (Location.Len() > 0)
 	{
-		FString SolutionDir = FPaths::GetPath(GetSolutionPath()); 
-		FString Args = TEXT("\"") + SolutionDir + TEXT("\"");
+		FString SolutionDir = GetSolutionPath();
+		return OpenSolutionAtPath(SolutionDir);
+	}
+
+	return false;
+}
+
+bool FVisualStudioCodeSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	if (Location.Len() > 0)
+	{
+		FString Args = TEXT("\"") + InSolutionPath + TEXT("\"");
 
 		uint32 ProcessID;
 		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *Args, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
@@ -161,6 +174,13 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolution()
 
 	return false;
 }
+
+bool FVisualStudioCodeSourceCodeAccessor::DoesSolutionExist() const
+{
+	FString VSCodeDir = FPaths::Combine(GetSolutionPath(), TEXT(".vscode"));
+	return FPaths::DirectoryExists(VSCodeDir);
+}
+
 
 bool FVisualStudioCodeSourceCodeAccessor::SaveAllOpenDocuments() const
 {

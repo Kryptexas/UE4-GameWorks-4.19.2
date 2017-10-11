@@ -418,7 +418,7 @@ TSharedRef< SWidget > FMainMenu::MakeMainTabMenu( const TSharedPtr<FTabManager>&
 				*/
 
 				FString SolutionPath;
-				if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+				if (FSourceCodeNavigation::DoesModuleSolutionExist())
 				{
 					MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().RefreshCodeProject,
 						NAME_None,

@@ -1660,6 +1660,8 @@ FText FSourceCodeNavigation::GetSuggestedSourceCodeIDE(bool bShortIDEName)
 	}
 #elif PLATFORM_MAC
 	return LOCTEXT("SuggestedCodeIDE_Mac", "Xcode");
+#elif PLATFORM_LINUX
+	return LOCTEXT("SuggestedCodeIDE_Linux", "NullSourceCodeAccessor");
 #else
 	return LOCTEXT("SuggestedCodeIDE_Generic", "an IDE to edit source code");
 #endif
@@ -1768,6 +1770,19 @@ bool FSourceCodeNavigation::OpenModuleSolution()
 {
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
 	return SourceCodeAccessModule.GetAccessor().OpenSolution();
+}
+
+bool FSourceCodeNavigation::OpenProjectSolution(const FString& InProjectFilename)
+{
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	return SourceCodeAccessModule.GetAccessor().OpenSolutionAtPath(InProjectFilename);
+}
+
+/** Query if the current source code solution exists */
+bool FSourceCodeNavigation::DoesModuleSolutionExist()
+{
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	return SourceCodeAccessModule.GetAccessor().DoesSolutionExist();
 }
 
 /** Call this to access the multi-cast delegate that you can register a callback with */

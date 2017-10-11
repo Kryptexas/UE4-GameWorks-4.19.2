@@ -34,39 +34,30 @@ namespace UnrealBuildTool
 	{
 		private DirectoryReference VSCodeDir;
 		private UnrealTargetPlatform HostPlatform;
-		private bool BuildingForDotNetCore;
+		private bool bForeignProject;
+		private DirectoryReference UE4ProjectRoot;
+		private bool bBuildingForDotNetCore;
 		private string FrameworkExecutableExtension;
 		private string FrameworkLibraryExtension = ".dll";
 
-		private string MakeWorkspaceRelativePath(FileReference InRef)
+		private string MakePathString<T>(T InRef, bool bQuote = false) 
 		{
-			if (InRef.IsUnderDirectory(UnrealBuildTool.RootDirectory))
-			{
-				return "${workspaceRoot}/" + InRef.MakeRelativeTo(UnrealBuildTool.RootDirectory).Replace('\\', '/');
-			}
-			else
-			{
-				return InRef.ToString().Replace('\\', '/');
-			}
-		}
+			string Processed = InRef.ToString();
+			Processed = Processed.Replace('\\', '/');
 
-		private string MakeWorkspaceRelativePath(DirectoryReference InRef)
-		{
-			if (InRef.IsUnderDirectory(UnrealBuildTool.RootDirectory))
+			if (bQuote && Processed.Contains(" "))
 			{
-				return "${workspaceRoot}/" + InRef.MakeRelativeTo(UnrealBuildTool.RootDirectory).Replace('\\', '/');
-			}
-			else
-			{
-				return InRef.ToString().Replace('\\', '/');
-			}
+				Processed = "'" + Processed + "'";
+ 			}
+
+			return Processed;
 		}
 
 		public VSCodeProjectFileGenerator(FileReference InOnlyGameProject)
 			: base(InOnlyGameProject)
 		{
-			BuildingForDotNetCore = Environment.CommandLine.Contains("-dotnetcore");
-			FrameworkExecutableExtension = BuildingForDotNetCore ? ".dll" : ".exe";
+			bBuildingForDotNetCore = Environment.CommandLine.Contains("-dotnetcore");
+			FrameworkExecutableExtension = bBuildingForDotNetCore ? ".dll" : ".exe";
 		}
 
 		class JsonFile
@@ -177,11 +168,30 @@ namespace UnrealBuildTool
 		protected override bool WriteMasterProjectFile(ProjectFile UBTProject)
 		{
 			VSCodeDir = DirectoryReference.Combine(MasterProjectPath, ".vscode");
+			bForeignProject = !VSCodeDir.IsUnderDirectory(UnrealBuildTool.RootDirectory);
+			UE4ProjectRoot = UnrealBuildTool.RootDirectory;
+			
 			DirectoryReference.CreateDirectory(VSCodeDir);
 
 			HostPlatform = BuildHostPlatform.Current.Platform;
 
-			List<ProjectFile> Projects = new List<ProjectFile>(AllProjectFiles);
+			List<ProjectFile> Projects;
+
+			if (bForeignProject)
+			{
+				Projects = new List<ProjectFile>();
+				foreach (var Project in AllProjectFiles)
+				{
+					if (Project == DefaultProject)
+					{
+						Projects.Add(Project);
+					}
+				}
+			}
+			else
+			{
+				Projects = new List<ProjectFile>(AllProjectFiles);
+			}
 			Projects.Sort((A, B) => { return A.ProjectFilePath.GetFileName().CompareTo(B.ProjectFilePath.GetFileName()); });
 
 			ProjectData ProjectData = GatherProjectData(Projects);
@@ -208,10 +218,11 @@ namespace UnrealBuildTool
 			public class BuildProduct
 			{
 				public FileReference OutputFile { get; set; }
+				public FileReference UProjectFile { get; set; }
 				public UnrealTargetConfiguration Config { get; set; }
 				public UnrealTargetPlatform Platform { get; set; }
 				public EOutputType OutputType { get; set; }
-
+		
 				public CsProjectInfo CSharpInfo { get; set; }
 
 				public override string ToString()
@@ -306,6 +317,7 @@ namespace UnrealBuildTool
 										{
 											Platform = Platform,
 											Config = Config,
+											UProjectFile = Target.UnrealProjectFilePath,
 											OutputType = ProjectData.EOutputType.Exe,
 											OutputFile = GetExecutableFilename(Project, Target, Platform, Config, LinkEnvironment),
 											CSharpInfo = null
@@ -343,7 +355,7 @@ namespace UnrealBuildTool
 				{
 					VCSharpProjectFile VCSharpProject = Project as VCSharpProjectFile;
 
-					if (VCSharpProject.IsDotNETCoreProject() == BuildingForDotNetCore)
+					if (VCSharpProject.IsDotNETCoreProject() == bBuildingForDotNetCore)
 					{
 						string ProjectName = Project.ProjectFilePath.GetFileNameWithoutExtension();
 
@@ -426,7 +438,7 @@ namespace UnrealBuildTool
 
 						if (Project.SourceProject is VCSharpProjectFile)
 						{
-							OutFile.AddField("ProjectFile", MakeWorkspaceRelativePath(Project.SourceProject.ProjectFilePath));
+							OutFile.AddField("ProjectFile", MakePathString(Project.SourceProject.ProjectFilePath));
 						}
 						else
 						{
@@ -457,7 +469,7 @@ namespace UnrealBuildTool
 								{
 									OutFile.AddField("Platform", BuildProduct.Platform.ToString());
 									OutFile.AddField("Config", BuildProduct.Config.ToString());
-									OutFile.AddField("OutputFile", MakeWorkspaceRelativePath(BuildProduct.OutputFile));
+									OutFile.AddField("OutputFile", MakePathString(BuildProduct.OutputFile));
 									OutFile.AddField("OutputType", BuildProduct.OutputType.ToString());
 								}
 								OutFile.EndObject();
@@ -485,10 +497,7 @@ namespace UnrealBuildTool
 				foreach (string IncludePath in ProjectData.SourceProject.IntelliSenseIncludeSearchPaths)
 				{
 					DirectoryReference AbsPath = DirectoryReference.Combine(ProjectData.SourceProject.ProjectFilePath.Directory, IncludePath);
-					if (DirectoryReference.Exists(AbsPath))
-					{
-						IncludePaths.Add(AbsPath.ToString());
-					}
+					IncludePaths.Add(AbsPath.ToString());
 				}
 			}
 
@@ -559,7 +568,7 @@ namespace UnrealBuildTool
 
 							string CleanParam = Command == "Clean" ? "-clean" : null;
 
-							if (BuildingForDotNetCore)
+							if (bBuildingForDotNetCore)
 							{
 								OutFile.AddField("command", "dotnet");
 							}
@@ -567,12 +576,12 @@ namespace UnrealBuildTool
 							{
 								if (HostPlatform == UnrealTargetPlatform.Win64)
 								{
-									OutFile.AddField("command", "${workspaceRoot}/Engine/Build/BatchFiles/" + Command + ".bat");
+									OutFile.AddField("command", MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Build", "BatchFiles", Command + ".bat")));
 									CleanParam = null;
 								}
 								else
 								{
-									OutFile.AddField("command", "${workspaceRoot}/Engine/Build/BatchFiles/" + HostPlatform.ToString() + "/Build.sh");
+									OutFile.AddField("command", MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Build", "BatchFiles", HostPlatform.ToString(), "Build.sh")));
 
 									if (Command == "Clean")
 									{
@@ -583,14 +592,18 @@ namespace UnrealBuildTool
 
 							OutFile.BeginArray("args");
 							{
-								if (BuildingForDotNetCore)
+								if (bBuildingForDotNetCore)
 								{
-									OutFile.AddUnnamedField("${workspaceRoot}/Engine/Binaries/DotNET/UnrealBuildTool_NETCore.dll");
+									OutFile.AddUnnamedField(MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Binaries", "DotNET", "UnrealBuildTool_NETCore.dll")));
 								}
 
 								OutFile.AddUnnamedField(Target.Name);
 								OutFile.AddUnnamedField(BuildProduct.Platform.ToString());
 								OutFile.AddUnnamedField(BuildProduct.Config.ToString());
+								if (bForeignProject)
+								{
+									OutFile.AddUnnamedField(MakePathString(BuildProduct.UProjectFile, true));
+								}
 								OutFile.AddUnnamedField("-waitmutex");
 
 								if (!string.IsNullOrEmpty(CleanParam))
@@ -600,17 +613,20 @@ namespace UnrealBuildTool
 							}
 							OutFile.EndArray();
 							OutFile.AddField("problemMatcher", "$msCompile");
-							OutFile.BeginArray("dependsOn");
+							if (!bForeignProject)
 							{
-								OutFile.AddUnnamedField("UnrealBuildTool " + HostPlatform.ToString() + " Development Build");
-								if (Command == "Build" && Target.Type == TargetType.Editor)
+								OutFile.BeginArray("dependsOn");
 								{
-									OutFile.AddUnnamedField("ShaderCompileWorker " + HostPlatform.ToString() + " Development Build");
+									OutFile.AddUnnamedField("UnrealBuildTool " + HostPlatform.ToString() + " Development Build");
+									if (Command == "Build" && Target.Type == TargetType.Editor)
+									{
+										OutFile.AddUnnamedField("ShaderCompileWorker " + HostPlatform.ToString() + " Development Build");
+									}
 								}
+								OutFile.EndArray();
 							}
-							OutFile.EndArray();
 
-							if (!BuildingForDotNetCore)
+							if (!bBuildingForDotNetCore)
 							{
 								OutFile.AddField("type", "shell");
 							}
@@ -647,18 +663,11 @@ namespace UnrealBuildTool
 							{
 								if (Utils.IsRunningOnMono)
 								{
-									if (HostPlatform == UnrealTargetPlatform.Mac)
-									{
-										OutFile.AddField("command", "${workspaceRoot}/Engine/Build/BatchFiles/Mac/RunXBuild.sh");
-									}
-									else
-									{
-										OutFile.AddField("command", "xbuild");
-									}
+									OutFile.AddField("command", MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Build", "BatchFiles", HostPlatform.ToString(), "RunXBuild.sh")));
 								}
 								else
 								{
-									OutFile.AddField("command", "${workspaceRoot}/Engine/Build/BatchFiles/MSBuild.bat");
+									OutFile.AddField("command", MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Build", "BatchFiles", "MSBuild.bat")));
 								}
 							}
 							OutFile.BeginArray("args");
@@ -671,7 +680,7 @@ namespace UnrealBuildTool
 								{
 									OutFile.AddUnnamedField("/t:" + Command.ToLower());
 								}
-								OutFile.AddUnnamedField(MakeWorkspaceRelativePath(InProject.SourceProject.ProjectFilePath));
+								OutFile.AddUnnamedField(MakePathString(InProject.SourceProject.ProjectFilePath));
 								OutFile.AddUnnamedField("/p:GenerateFullPaths=true");
 								if (HostPlatform == UnrealTargetPlatform.Win64)
 								{
@@ -684,7 +693,7 @@ namespace UnrealBuildTool
 									OutFile.AddUnnamedField("--configuration");
 									OutFile.AddUnnamedField(BuildProduct.Config.ToString());
 									OutFile.AddUnnamedField("--output");
-									OutFile.AddUnnamedField(MakeWorkspaceRelativePath(BuildProduct.OutputFile.Directory));
+									OutFile.AddUnnamedField(MakePathString(BuildProduct.OutputFile.Directory));
 								}
 								else
 								{
@@ -695,7 +704,7 @@ namespace UnrealBuildTool
 						}
 						OutFile.AddField("problemMatcher", "$msCompile");
 
-						if (!BuildingForDotNetCore)
+						if (!bBuildingForDotNetCore)
 						{
 							OutFile.AddField("type", "shell");
 						}
@@ -833,14 +842,21 @@ namespace UnrealBuildTool
 							OutFile.AddField("name", Target.Name + " (" + BuildProduct.Config.ToString() + ")");
 							OutFile.AddField("request", "launch");
 							OutFile.AddField("preLaunchTask", LaunchTaskName);
-							OutFile.AddField("program", MakeWorkspaceRelativePath(BuildProduct.OutputFile));
+							OutFile.AddField("program", MakePathString(BuildProduct.OutputFile));
 							OutFile.BeginArray("args");
 							{
 								if (Target.Type == TargetRules.TargetType.Editor)
 								{
 									if (InProject.Name != "UE4")
 									{
-										OutFile.AddUnnamedField(InProject.Name);
+										if (bForeignProject)
+										{
+											OutFile.AddUnnamedField(MakePathString(BuildProduct.UProjectFile));
+										}
+										else
+										{
+											OutFile.AddUnnamedField(InProject.Name);
+										}
 									}
 
 									if (BuildProduct.Config == UnrealTargetConfiguration.Debug || BuildProduct.Config == UnrealTargetConfiguration.DebugGame)
@@ -851,7 +867,7 @@ namespace UnrealBuildTool
 
 							}
 							OutFile.EndArray();
-							OutFile.AddField("cwd", MakeWorkspaceRelativePath(BuildProduct.OutputFile.Directory));
+							OutFile.AddField("cwd", MakePathString(BuildProduct.OutputFile.Directory));
 							
 							if (HostPlatform == UnrealTargetPlatform.Win64)
 							{
@@ -864,7 +880,7 @@ namespace UnrealBuildTool
 								case UnrealTargetPlatform.Win64:
 									{
 										OutFile.AddField("type", "cppvsdbg");
-										OutFile.AddField("visualizerFile", "${workspaceRoot}/Engine/Extras/VisualStudioDebugging/UE4.natvis");
+										OutFile.AddField("visualizerFile", MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Extras", "VisualStudioDebugging", "UE4.natvis")));
 										break;
 									}
 
@@ -923,7 +939,7 @@ namespace UnrealBuildTool
 								OutFile.AddField("program", "dotnet");
 								OutFile.BeginArray("args");
 								{
-									OutFile.AddUnnamedField(MakeWorkspaceRelativePath(BuildProduct.OutputFile));
+									OutFile.AddUnnamedField(MakePathString(BuildProduct.OutputFile));
 								}
 								OutFile.EndArray();
 								OutFile.AddField("externalConsole", true);
@@ -931,7 +947,7 @@ namespace UnrealBuildTool
 							}
 							else
 							{
-								OutFile.AddField("program", MakeWorkspaceRelativePath(BuildProduct.OutputFile));
+								OutFile.AddField("program", MakePathString(BuildProduct.OutputFile));
 								OutFile.BeginArray("args");
 								{
 								}
@@ -949,7 +965,7 @@ namespace UnrealBuildTool
 								OutFile.AddField("internalConsoleOptions", "openOnSessionStart");
 							}
 
-							OutFile.AddField("cwd", "${workspaceRoot}");
+							OutFile.AddField("cwd", MakePathString(UE4ProjectRoot));
 						}
 						OutFile.EndObject();
 					}
@@ -993,21 +1009,6 @@ namespace UnrealBuildTool
 			JsonFile OutFile = new JsonFile();
 
 			List<string> PathsToExclude = new List<string>();
-
-			PathsToExclude.Add(".vs");
-			PathsToExclude.Add("*.p4*");
-			PathsToExclude.Add("**/*.png");
-			PathsToExclude.Add("**/*.bat");
-			PathsToExclude.Add("**/*.sh");
-			PathsToExclude.Add("**/*.command");
-			PathsToExclude.Add("**/*.sln");
-			PathsToExclude.Add("**/*.db");
-			PathsToExclude.Add("**/*.csproj.user");
-			PathsToExclude.Add("**/*.relinked_action_ran");
-			PathsToExclude.Add("**/*.vsscc");
-			PathsToExclude.Add("**/*.link");
-			PathsToExclude.Add("**/*.uprojectdirs");
-			PathsToExclude.Add("packages");
 
 			foreach (ProjectFile Project in Projects)
 			{

@@ -7,6 +7,7 @@
 #include "XCodeSourceCodeAccessModule.h"
 #include "ISourceCodeAccessModule.h"
 #include "Misc/Paths.h"
+#include "Misc/UProjectInfo.h"
 
 #define LOCTEXT_NAMESPACE "XCodeSourceCodeAccessor"
 
@@ -73,6 +74,33 @@ static const char* SaveAllXcodeDocuments =
 	"	end SaveAllXcodeDocuments\n"
 ;
 
+void FXCodeSourceCodeAccessor::Startup()
+{
+	GetSolutionPath();
+}
+
+void FXCodeSourceCodeAccessor::Shutdown()
+{
+}
+
+FString FXCodeSourceCodeAccessor::GetSolutionPath()
+{
+	if(IsInGameThread())
+	{
+		CachedSolutionPath = FPaths::ProjectDir();
+		
+		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
+		{
+			CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), + TEXT("UE4.xcworkspace/contents.xcworkspacedata"));
+		}
+		else
+		{
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FPaths::GetBaseFilename(CachedSolutionPath) + + TEXT(".xcworkspace/contents.xcworkspacedata"));
+		}
+	}
+	return CachedSolutionPath;
+}
+
 bool FXCodeSourceCodeAccessor::CanAccessSourceCode() const
 {
 	return IFileManager::Get().DirectoryExists(*FPlatformMisc::GetXcodePath());
@@ -95,8 +123,19 @@ FText FXCodeSourceCodeAccessor::GetDescriptionText() const
 
 bool FXCodeSourceCodeAccessor::OpenSolution()
 {
-	FString SolutionPath;
-	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+	return OpenSolutionAtPath(GetSolutionPath());
+}
+
+bool FXCodeSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	FString SolutionPath = InSolutionPath;
+	if (FPaths::GetExtension(SolutionPath) != TEXT(".xcworkspacedata"))
+	{
+		FString WorkspaceFilename = FPaths::GetBaseFilename(SolutionPath) + TEXT(".xcworkspace/contents.xcworkspacedata");
+		SolutionPath = FPaths::Combine(SolutionPath, WorkspaceFilename);
+	}
+
+	if(SolutionPath.Len() > 0 || FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 	{
 		const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
 		if ( FPaths::FileExists( FullPath ) )
@@ -104,6 +143,17 @@ bool FXCodeSourceCodeAccessor::OpenSolution()
 			FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
 			return true;
 		}
+	}
+	return false;
+}
+
+bool FXCodeSourceCodeAccessor::DoesSolutionExist() const
+{
+	FString SolutionPath;
+	if (FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+	{
+		const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
+		return FPaths::FileExists( FullPath );
 	}
 	return false;
 }
