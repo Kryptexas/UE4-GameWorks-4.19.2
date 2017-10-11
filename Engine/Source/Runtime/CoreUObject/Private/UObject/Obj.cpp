@@ -765,6 +765,11 @@ bool bGetWorldOverridden = false;
 
 class UWorld* UObject::GetWorld() const
 {
+	if (UObject* Outer = GetOuter())
+	{
+		return Outer->GetWorld();
+	}
+
 #if DO_CHECK
 	if (IsInGameThread())
 	{

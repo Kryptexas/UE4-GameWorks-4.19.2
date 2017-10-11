@@ -8970,6 +8970,10 @@ UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, EGetWorldError
 
 	bool bSupported = true;
 	UWorld* World = (ErrorMode == EGetWorldErrorMode::Assert) ? Object->GetWorldChecked(/*out*/ bSupported) : Object->GetWorld();
+	if (bSupported && (World == nullptr) && (ErrorMode == EGetWorldErrorMode::LogAndReturnNull))
+	{
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("No world was found for object (%s) passed in to UEngine::GetWorldFromContextObject()."), *GetPathNameSafe(Object)), ELogVerbosity::Error);
+	}
 	return (bSupported ? World : GWorld);
 }
 
