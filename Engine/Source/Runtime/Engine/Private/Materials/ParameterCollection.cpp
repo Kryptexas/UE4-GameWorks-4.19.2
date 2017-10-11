@@ -24,11 +24,9 @@ void UMaterialParameterCollection::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	DefaultResource = new FMaterialParameterCollectionInstanceResource();
-
-	if (HasAnyFlags(RF_ClassDefaultObject))
+	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		UpdateDefaultResource();
+		DefaultResource = new FMaterialParameterCollectionInstanceResource();
 	}
 }
 
@@ -58,13 +56,10 @@ void UMaterialParameterCollection::BeginDestroy()
 	if (DefaultResource)
 	{
 		FGuid Id = StateId;
-		FName Name = DefaultResource->GetOwnerName();
 		ENQUEUE_RENDER_COMMAND(RemoveDefaultResourceCommand)(
-			[Id, Name](FRHICommandListImmediate& RHICmdList)
+			[Id](FRHICommandListImmediate& RHICmdList)
 			{	
 				GDefaultMaterialParameterCollectionInstances.Remove(Id);			
-				UE_LOG(LogMaterial, Log, TEXT("Removed default parameter collection resource, %s, ID:%s"),
-					*Name.ToString(), *Id.ToString());
 			}
 		);
 
@@ -436,14 +431,6 @@ void UMaterialParameterCollection::CreateBufferStruct()
 
 void UMaterialParameterCollection::GetDefaultParameterData(TArray<FVector4>& ParameterData) const
 {
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		// Dummy data for our fallback parameter collection, 256 empty vectors
-		ParameterData.Empty(256);
-		ParameterData.AddZeroed(256);
-		return;
-	}
-
 	// The memory layout created here must match the index assignment in UMaterialParameterCollection::GetParameterIndex
 
 	ParameterData.Empty(FMath::DivideAndRoundUp(ScalarParameters.Num(), 4) + VectorParameters.Num());
@@ -483,8 +470,6 @@ void UMaterialParameterCollection::UpdateDefaultResource()
 		[Id, Resource](FRHICommandListImmediate& RHICmdList)
 		{	
 			GDefaultMaterialParameterCollectionInstances.Add(Id, Resource);
-			UE_LOG(LogMaterial, Log, TEXT("Added default parameter collection resource, %s, ID:%s"),
-				Resource ? *Resource->GetOwnerName().ToString() : TEXT("None"), *Id.ToString());
 		}
 	);
 }
@@ -704,7 +689,7 @@ void FMaterialParameterCollectionInstanceResource::UpdateContents(const FGuid& I
 	Id = InId;
 	OwnerName = InOwnerName;
 
-	if (Data.Num() > 0)
+	if (InId != FGuid() && Data.Num() > 0)
 	{
 		UniformBufferLayout.ConstantBufferSize = Data.GetTypeSize() * Data.Num();
 		UniformBufferLayout.ResourceOffset = 0;

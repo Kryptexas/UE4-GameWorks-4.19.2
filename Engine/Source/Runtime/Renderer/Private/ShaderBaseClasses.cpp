@@ -10,10 +10,6 @@
 #include "ScenePrivate.h"
 #include "ParameterCollection.h"
 
-#if !WITH_EDITOR
-TQueue<FString> GFailedToFindParamCollectionBufferQueue;
-#endif
-
 /** If true, cached uniform expressions are allowed. */
 int32 FMaterialShader::bAllowCachedUniformExpressions = true;
 
@@ -285,36 +281,20 @@ void FMaterialShader::SetParameters(
 				// Dump the currently registered parameter collections and the ID we failed to find.
 				// In a cooked project these numbers are persistent so we can track back to the original
 				// parameter collection that was being referenced and no longer exists
-				static TArray<FGuid> LoggedErrorGuids;
-				FGuid ParameterCollectionGuid = ParameterCollections[CollectionIndex];
-
-				if (!LoggedErrorGuids.Find(ParameterCollectionGuid))
+				FString InstancesString;
+				TMap<FGuid, FMaterialParameterCollectionInstanceResource*>::TIterator Iter = GDefaultMaterialParameterCollectionInstances.CreateIterator();
+				while (Iter)
 				{
-					LoggedErrorGuids.Push(ParameterCollectionGuid);
-				
-					FString InstancesString;
-					TMap<FGuid, FMaterialParameterCollectionInstanceResource*>::TIterator Iter = GDefaultMaterialParameterCollectionInstances.CreateIterator();
-					while (Iter)
-					{
-						FMaterialParameterCollectionInstanceResource* Instance = Iter.Value();
-						InstancesString += FString::Printf(TEXT("\n0x%p: %s: %s"),
-							Instance, Instance ? *Instance->GetOwnerName().ToString() : TEXT("None"), *Iter.Key().ToString());
-						++Iter;
-					}
-
-					UE_LOG(LogRenderer, Error, TEXT("Failed to find parameter collection buffer with GUID '%s'.\n")
-						TEXT("Currently %i listed default instances: %s"),
-						*ParameterCollectionGuid.ToString(),
-						GDefaultMaterialParameterCollectionInstances.Num(), *InstancesString);
-
-#if !WITH_EDITOR
-					FString IdAndNum = ParameterCollectionGuid.ToString() + TEXT(" ") + FString::FromInt(GDefaultMaterialParameterCollectionInstances.Num());
-					GFailedToFindParamCollectionBufferQueue.Enqueue(IdAndNum);
-#endif
+					FMaterialParameterCollectionInstanceResource* Instance = Iter.Value();
+					InstancesString += FString::Printf(TEXT("\n0x%p: %s: %s"),
+						Instance, Instance ? *Instance->GetOwnerName().ToString() : TEXT("None"), *Iter.Key().ToString());
+					++Iter;
 				}
 
-				// Apply the fallback collection buffer. This will cause some frame corruption, hopefully only a flicker
-				UniformBuffer = GDefaultMaterialParameterCollectionInstances.FindChecked(FGuid())->GetUniformBuffer();
+				UE_LOG(LogRenderer, Fatal, TEXT("Failed to find parameter collection buffer with GUID '%s'.\n")
+					TEXT("Currently %i listed default instances: %s"),
+					*ParameterCollections[CollectionIndex].ToString(),
+					GDefaultMaterialParameterCollectionInstances.Num(), *InstancesString);
 			}
 
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, ParameterCollectionUniformBuffers[CollectionIndex], UniformBuffer);			
