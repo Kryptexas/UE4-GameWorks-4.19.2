@@ -1307,19 +1307,19 @@ FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerMakePublicCl
 
 FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerDeleteClicked(const TSharedRef<FLandscapeTargetListInfo> Target)
 {
-	check(Target->LayerInfoObj.IsValid());
 	check(Target->LandscapeInfo.IsValid());
 
 	if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("Prompt_DeleteLayer", "Are you sure you want to delete this layer?")) == EAppReturnType::Yes)
 	{
 		FScopedTransaction Transaction(LOCTEXT("Undo_Delete", "Delete Layer"));
 
-		Target->LandscapeInfo->DeleteLayer(Target->LayerInfoObj.Get());
+		Target->LandscapeInfo->DeleteLayer(Target->LayerInfoObj.Get(), Target->LayerName);
 
 		FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 		if (LandscapeEdMode)
 		{
 			LandscapeEdMode->UpdateTargetList();
+			LandscapeEdMode->UpdateShownLayerList();
 		}
 	}
 
