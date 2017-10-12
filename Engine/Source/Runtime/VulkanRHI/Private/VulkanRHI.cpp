@@ -695,7 +695,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = true;
-		GSupportsTimestampRenderQueries = true;
+		GSupportsTimestampRenderQueries = !PLATFORM_ANDROID;
 		GRHIRequiresEarlyBackBufferRenderTarget = false;
 		GSupportsGenerateMips = true;
 #if VULKAN_ENABLE_DUMP_LAYER
