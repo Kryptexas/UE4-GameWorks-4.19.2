@@ -118,13 +118,11 @@ FReply SGraphNodeResizable::OnMouseButtonUp( const FGeometry& MyGeometry, const 
 
 FReply SGraphNodeResizable::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-	
 	if (bUserIsDragging)
 	{
 		FVector2D GraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetScreenSpacePosition() );
 		FVector2D OldGraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetLastScreenSpacePosition() );
-		FVector2D Delta = GraphSpaceCoordinates - OldGraphSpaceCoordinates;
+		FVector2D Delta = (GraphSpaceCoordinates - OldGraphSpaceCoordinates) / MyGeometry.Scale;
 		
 
 		//Clamp delta value based on resizing direction
@@ -208,6 +206,7 @@ FReply SGraphNodeResizable::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 	}
 	else
 	{
+		const FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
 		MouseZone = FindMouseZone(LocalMouseCoordinates);
 	}
 	return SGraphNode::OnMouseMove( MyGeometry, MouseEvent );
