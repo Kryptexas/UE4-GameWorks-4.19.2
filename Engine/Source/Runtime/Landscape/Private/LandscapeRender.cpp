@@ -2717,6 +2717,8 @@ public:
 			FName(TEXT("TBasePassPSTLightMapPolicyLQSkylight")),
 			FName(TEXT("TBasePassVSTLightMapPolicyLQ")),
 
+			FName(TEXT("TMobileBasePassPSFMobileMovableDirectionalLightCSMWithLightmapPolicyINT32_MAXHDRLinear64Skylight")),
+
 			FName(TEXT("TBasePassPSFNoLightMapPolicySkylight")),
 			FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicySkylight")),
 			FName(TEXT("TBasePassVSFCachedVolumeIndirectLightingPolicy")),
