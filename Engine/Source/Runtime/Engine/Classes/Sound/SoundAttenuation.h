@@ -229,20 +229,20 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend)
 	UReverbPluginSourceSettingsBase* ReverbPluginSettings;
 
-	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb send min distance. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Min Distance"))
+	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb min send distance. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Min Send Level"))
 	float ReverbWetLevelMin;
 
-	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb send max distance. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Min Distance"))
+	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb max send distance. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Max Send Level"))
 	float ReverbWetLevelMax;
 
 	/** The min distance to send to the master reverb. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Min Distance"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Min Send Distance"))
 	float ReverbDistanceMin;
 
 	/** The max distance to send to the master reverb. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Max Distance"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Max Send Distance"))
 	float ReverbDistanceMax;
 
 	/* The custom reverb send curve to use for distance-based send level. */
