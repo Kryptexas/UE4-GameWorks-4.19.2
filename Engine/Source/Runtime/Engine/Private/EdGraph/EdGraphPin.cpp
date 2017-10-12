@@ -1018,11 +1018,19 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			FString Right;
 			if (ensure(PropertyToken.Split(".", &Left, &Right, ESearchCase::CaseSensitive)))
 			{
-				UProperty* FoundProp = FEdGraphPinType::StaticStruct()->FindPropertyByName(FName(*Right));
+				const FName PropertyName(*Right);
+				UProperty* FoundProp = FEdGraphPinType::StaticStruct()->FindPropertyByName(PropertyName);
 				if (FoundProp)
 				{
 					uint8* PropertyAddr = FoundProp->ContainerPtrToValuePtr<uint8>(&PinType);
 					Buffer = FoundProp->ImportText(Buffer, PropertyAddr, PortFlags, Parent, ErrorText);
+					bParseSuccess = (Buffer != nullptr);
+				}
+				// DEPRECATED(4.17) - For some time bIsMap and bIsSet would have been in exported text and will cause issues if we don't handle them
+				else if (PropertyName == TEXT("bIsMap") || PropertyName == TEXT("bIsSet"))
+				{
+					bool bDummyBool = false;
+					Buffer = BoolPropCDO->ImportText(Buffer, &bDummyBool, PortFlags, Parent, ErrorText);
 					bParseSuccess = (Buffer != nullptr);
 				}
 				else

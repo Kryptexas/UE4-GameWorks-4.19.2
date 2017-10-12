@@ -1696,8 +1696,6 @@ void UK2Node_CallFunction::FixupSelfMemberContext()
 	};
 
 	UClass* MemberClass = FunctionReference.GetMemberParentClass();
-	const bool bIsLocalMacro = Blueprint && Blueprint->MacroGraphs.Contains(GetGraph());
-	ensureMsgf(FunctionReference.IsSelfContext() || (MemberClass != nullptr) || bIsLocalMacro, TEXT("Unknown member class in %s"), *GetPathName());
 	if (FunctionReference.IsSelfContext())
 	{
 		if (MemberClass == nullptr)
