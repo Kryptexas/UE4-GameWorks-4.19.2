@@ -612,7 +612,7 @@ namespace UnrealBuildTool
 								OutFile.AddUnnamedField(BuildProduct.Config.ToString());
 								if (bForeignProject)
 								{
-									OutFile.AddUnnamedField(MakePathString(BuildProduct.UProjectFile, true));
+									OutFile.AddUnnamedField(MakePathString(BuildProduct.UProjectFile));
 								}
 								OutFile.AddUnnamedField("-waitmutex");
 
@@ -638,8 +638,14 @@ namespace UnrealBuildTool
 
 							if (!bBuildingForDotNetCore)
 							{
-								OutFile.AddField("type", "shell");
+								OutFile.AddField("type", "process");
 							}
+
+							OutFile.BeginObject("options");
+							{
+								OutFile.AddField("cwd", MakePathString(UE4ProjectRoot));
+							}
+							OutFile.EndObject();
 						}
 						OutFile.EndObject();
 					}
