@@ -10,6 +10,7 @@
 #include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
 #include "FbxImporter.h"
+#include "UObject/GCObject.h"
 
 class ABrush;
 class ACameraActor;
@@ -47,7 +48,7 @@ namespace UnFbx
 /**
  * Main FBX Exporter class.
  */
-class UNREALED_API FFbxExporter  : public MatineeExporter
+class UNREALED_API FFbxExporter  : public MatineeExporter, public FGCObject
 {
 public:
 	/**
@@ -57,6 +58,16 @@ public:
 	static void DeleteInstance();
 	~FFbxExporter();
 	
+	//~ FGCObject
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		if (ExportOptions != nullptr)
+		{
+			Collector.AddReferencedObject(ExportOptions);
+		}
+	}
+
+
 	/**
 	* Load the export option from the last save state and show the dialog if bShowOptionDialog is true.
 	* FullPath is the export file path we display it in the dialog

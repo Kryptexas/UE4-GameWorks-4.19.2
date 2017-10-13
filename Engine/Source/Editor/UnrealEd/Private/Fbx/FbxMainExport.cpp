@@ -102,9 +102,8 @@ TSharedPtr<FFbxExporter> FFbxExporter::StaticInstance;
 
 FFbxExporter::FFbxExporter()
 {
-	//We will not clear the flag later in the code since all Transient package UObject are unload when the
-	//application is terminating.
-	ExportOptions = NewObject<UFbxExportOption>(GetTransientPackage(), NAME_None, RF_Standalone);
+	//We use the FGCObject pattern to keep the fbx export option alive during the editor session
+	ExportOptions = NewObject<UFbxExportOption>();
 	//Load the option from the user save ini file
 	ExportOptions->LoadOptions();
 
