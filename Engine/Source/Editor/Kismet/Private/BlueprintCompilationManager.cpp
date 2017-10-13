@@ -15,6 +15,7 @@
 #include "Engine/TimelineTemplate.h"
 #include "FileHelpers.h"
 #include "FindInBlueprintManager.h"
+#include "IMessageLogListing.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
@@ -308,6 +309,7 @@ struct FCompilerData
 	bool ShouldSkipReinstancerCreation() const { return (IsSkeletonOnly() && BP->ParentClass->IsNative()); }
 	bool ShouldCompileClassLayout() const { return JobType == ECompilationManagerJobType::Normal; }
 	bool ShouldCompileClassFunctions() const { return JobType == ECompilationManagerJobType::Normal; }
+	bool ShouldRegisterCompilerResults() const { return JobType == ECompilationManagerJobType::Normal; }
 	bool ShouldRelinkAfterSkippingCompile() const { return JobType == ECompilationManagerJobType::RelinkOnly; }
 
 	UBlueprint* BP;
@@ -960,6 +962,14 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				}
 				
 				UBlueprint::ValidateGeneratedClass(BP->GeneratedClass);
+			}
+
+			if(CompilerData.ShouldRegisterCompilerResults())
+			{
+				// This helper structure registers the results log messages with the UI control that displays them:
+				FScopedBlueprintMessageLog MessageLog(BP);
+				MessageLog.Log->ClearMessages();
+				MessageLog.Log->AddMessages(CompilerData.ActiveResultsLog->Messages, false);
 			}
 
 			if(CompilerData.ShouldSetTemporaryBlueprintFlags())
