@@ -7,6 +7,7 @@
 #include "Engine/SkeletalMesh.h"
 
 FSkeletalMeshModel::FSkeletalMeshModel()
+	: bGuidIsHash(false)	
 {
 }
 
