@@ -33,8 +33,28 @@ public:
 
 private:
 
-	/** The versions of VS we support, in preference order */
-	FString Location;
+	/** Wrapper for vscode executable launch information */
+	struct FLocation
+	{
+#if PLATFORM_MAC
+		NSURL* URL = nullptr;
+
+		bool IsValid() const 
+		{
+			return URL != nullptr;
+		}
+#else
+		bool IsValid() const 
+		{
+			return URL.Len() > 0;
+		}
+
+		FString URL;
+#endif		
+	};
+
+	/** Location instance */
+	FLocation Location;
 
 	/** String storing the solution path obtained from the module manager to avoid having to use it on a thread */
 	mutable FString CachedSolutionPath;
@@ -44,4 +64,7 @@ private:
 
 	/** Accessor for SolutionPath. Will try to update it when called from the game thread, otherwise will use the cached value */
 	FString GetSolutionPath() const;
+
+	/** Helper function for launching the VSCode instance with the given list of arguments */
+	bool Launch(const TArray<FString>& InArgs);
 };

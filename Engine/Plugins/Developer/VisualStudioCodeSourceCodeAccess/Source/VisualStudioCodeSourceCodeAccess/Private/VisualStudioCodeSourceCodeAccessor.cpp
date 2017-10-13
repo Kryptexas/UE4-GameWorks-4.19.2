@@ -18,6 +18,15 @@ DEFINE_LOG_CATEGORY_STATIC(LogVSCodeAccessor, Log, All);
 
 #define LOCTEXT_NAMESPACE "VisualStudioCodeSourceCodeAccessor"
 
+static FString MakePath(const FString& InPath)
+{
+#if PLATFORM_MAC
+	return InPath;
+#else
+	return TEXT("\"") + InPath + TEXT("\""); 
+#endif	
+}
+
 FString FVisualStudioCodeSourceCodeAccessor::GetSolutionPath() const
 {
 	FScopeLock Lock(&CachedSolutionPathCriticalSection);
@@ -49,8 +58,9 @@ void FVisualStudioCodeSourceCodeAccessor::Startup()
 
 void FVisualStudioCodeSourceCodeAccessor::RefreshAvailability()
 {
-	FString IDEPath;
 #if PLATFORM_WINDOWS
+	FString IDEPath;
+
 	if (!FWindowsPlatformMisc::QueryRegKey(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Classes\\Applications\\Code.exe\\shell\\open\\command\\"), TEXT(""), IDEPath))
 	{
 		FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\Applications\\Code.exe\\shell\\open\\command\\"), TEXT(""), IDEPath);
@@ -61,20 +71,25 @@ void FVisualStudioCodeSourceCodeAccessor::RefreshAvailability()
 	FRegexMatcher Matcher(Pattern, IDEPath);
 	if (Matcher.FindNext())
 	{
-		IDEPath = Matcher.GetCaptureGroup(1);
+		FString URL = Matcher.GetCaptureGroup(1);
+		if (FPaths::FileExists(URL))
+		{
+			Location.URL = URL;
+		}
 	}
 #elif PLATFORM_LINUX
-	IDEPath = TEXT("/usr/bin/code");
+	FString URL = TEXT("/usr/bin/code");
+	if (FPaths::FileExists(URL))
+	{
+		Location.URL = URL;
+	}
+#elif PLATFORM_MAC
+	NSURL* AppURL = [[NSWorkspace sharedWorkspace] URLForApplicationWithBundleIdentifier:@"com.microsoft.VSCode"];
+	if (AppURL != nullptr)
+	{
+		Location.URL = AppURL;
+	}
 #endif
-
-	if (IDEPath.Len() > 0 && FPaths::FileExists(IDEPath))
-	{
-		Location = IDEPath;
-	}
-	else
-	{
-		Location = TEXT("");
-	}
 }
 
 void FVisualStudioCodeSourceCodeAccessor::Shutdown()
@@ -83,19 +98,18 @@ void FVisualStudioCodeSourceCodeAccessor::Shutdown()
 
 bool FVisualStudioCodeSourceCodeAccessor::OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths)
 {
-	if (Location.Len() > 0)
+	if (Location.IsValid())
 	{
 		FString SolutionDir = GetSolutionPath();
-		FString Args = TEXT("\"") + SolutionDir + TEXT("\" ");
+		TArray<FString> Args;
+		Args.Add(MakePath(SolutionDir));
 
 		for (const FString& SourcePath : AbsoluteSourcePaths)
 		{
-			Args += TEXT("\"") + SourcePath + TEXT("\" ");
+			Args.Add(MakePath(SourcePath));
 		}
 
-		uint32 ProcessID;
-		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *Args, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
-		return hProcess.IsValid();
+		return Launch(Args);
 	}
 
 	return false;
@@ -108,18 +122,17 @@ bool FVisualStudioCodeSourceCodeAccessor::AddSourceFiles(const TArray<FString>& 
 
 bool FVisualStudioCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber)
 {
-	if (Location.Len() > 0)
+	if (Location.IsValid())
 	{
 		// Column & line numbers are 1-based, so dont allow zero
 		LineNumber = LineNumber > 0 ? LineNumber : 1;
 		ColumnNumber = ColumnNumber > 0 ? ColumnNumber : 1;
 
 		FString SolutionDir = GetSolutionPath();
-		FString Args = FString::Printf(TEXT("\"%s\" -g \"%s\":%d:%d"), *SolutionDir, *FullPath, LineNumber, ColumnNumber);
-
-		uint32 ProcessID;
-		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *Args, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
-		return hProcess.IsValid();
+		TArray<FString> Args;
+		Args.Add(MakePath(SolutionDir));
+		Args.Add(TEXT("-g ") + MakePath(FullPath) + FString::Printf(TEXT(":%d:%d"), LineNumber, ColumnNumber));
+		return Launch(Args);
 	}
 
 	return false;
@@ -128,7 +141,7 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath
 bool FVisualStudioCodeSourceCodeAccessor::CanAccessSourceCode() const
 {
 	// True if we have any versions of VS installed
-	return Location.Len() > 0;
+	return Location.IsValid();
 }
 
 FName FVisualStudioCodeSourceCodeAccessor::GetFName() const
@@ -152,7 +165,7 @@ void FVisualStudioCodeSourceCodeAccessor::Tick(const float DeltaTime)
 
 bool FVisualStudioCodeSourceCodeAccessor::OpenSolution()
 {
-	if (Location.Len() > 0)
+	if (Location.IsValid())
 	{
 		FString SolutionDir = GetSolutionPath();
 		return OpenSolutionAtPath(SolutionDir);
@@ -163,13 +176,11 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolution()
 
 bool FVisualStudioCodeSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
 {
-	if (Location.Len() > 0)
+	if (Location.IsValid())
 	{
-		FString Args = TEXT("\"") + InSolutionPath + TEXT("\"");
-
-		uint32 ProcessID;
-		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location, *Args, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
-		return hProcess.IsValid();
+		TArray<FString> Args;
+		Args.Add(MakePath(InSolutionPath));
+		return Launch(Args);
 	}
 
 	return false;
@@ -187,5 +198,36 @@ bool FVisualStudioCodeSourceCodeAccessor::SaveAllOpenDocuments() const
 	return false;
 }
 
+bool FVisualStudioCodeSourceCodeAccessor::Launch(const TArray<FString>& InArgs)
+{
+	if (Location.IsValid())
+	{
+#if PLATFORM_MAC
+		NSMutableArray* ParamArray = [[NSMutableArray alloc] init];
+		
+		for (const FString& Arg : InArgs)
+		{
+			[ParamArray addObject:Arg.GetNSString()];
+		}
+
+		NSDictionary* Configuration = [NSDictionary dictionaryWithObject:ParamArray forKey:NSWorkspaceLaunchConfigurationArguments];
+		[[NSWorkspace sharedWorkspace] launchApplicationAtURL:Location.URL options:NSWorkspaceLaunchAsync configuration:Configuration error:nil];
+		return true;
+#else
+		FString ArgsString;
+		for (const FString& Arg : InArgs)
+		{
+			ArgsString.Append(Arg);
+			ArgsString.Append(TEXT(" "));
+		}
+
+		uint32 ProcessID;
+		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location.URL, *ArgsString, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
+		return hProcess.IsValid();
+#endif
+	}
+	
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE

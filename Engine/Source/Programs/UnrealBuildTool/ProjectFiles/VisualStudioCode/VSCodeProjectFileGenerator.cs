@@ -40,17 +40,58 @@ namespace UnrealBuildTool
 		private string FrameworkExecutableExtension;
 		private string FrameworkLibraryExtension = ".dll";
 
-		private string MakePathString<T>(T InRef, bool bQuote = false) 
+		private enum EPathType
 		{
-			string Processed = InRef.ToString();
-			Processed = Processed.Replace('\\', '/');
+			Absolute,
+			Relative,
+		}
 
-			if (bQuote && Processed.Contains(" "))
+		private string CommonMakePathString(FileSystemReference InRef, EPathType InPathType)
+		{
+			string Processed;
+			if (InPathType == EPathType.Absolute)
+			{
+				Processed = InRef.ToString();
+			}
+			else if (InRef.IsUnderDirectory(UE4ProjectRoot))
+			{
+				Processed = InRef.MakeRelativeTo(UE4ProjectRoot).ToString();
+			}
+			else
+			{
+				Processed = InRef.ToString();	
+			}
+			
+			return Processed.Replace('\\', '/');
+		}
+
+		private string MakeQuotedPathString(FileSystemReference InRef, EPathType InPathType)
+		{
+			string Processed = CommonMakePathString(InRef, InPathType);
+
+			if (Processed.Contains(" "))
 			{
 				Processed = "'" + Processed + "'";
  			}
 
 			return Processed;
+		}
+
+		private string MakeUnquotedPathString(FileSystemReference InRef, EPathType InPathType)
+		{
+			return CommonMakePathString(InRef, InPathType);
+		}
+
+		private string MakePathString(FileSystemReference InRef, bool bInAbsolute = false, bool bForceSkipQuotes = false)
+		{
+			if (bForceSkipQuotes)
+			{
+				return MakeUnquotedPathString(InRef, bInAbsolute ? EPathType.Absolute : EPathType.Relative);
+			}
+			else
+			{
+				return MakeQuotedPathString(InRef, bInAbsolute ? EPathType.Absolute : EPathType.Relative);
+			}
 		}
 
 		public VSCodeProjectFileGenerator(FileReference InOnlyGameProject)
@@ -604,7 +645,7 @@ namespace UnrealBuildTool
 							{
 								if (bBuildingForDotNetCore)
 								{
-									OutFile.AddUnnamedField(MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Binaries", "DotNET", "UnrealBuildTool_NETCore.dll")));
+									OutFile.AddUnnamedField(MakeUnquotedPathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Binaries", "DotNET", "UnrealBuildTool_NETCore.dll"), EPathType.Relative));
 								}
 
 								OutFile.AddUnnamedField(Target.Name);
@@ -612,7 +653,7 @@ namespace UnrealBuildTool
 								OutFile.AddUnnamedField(BuildProduct.Config.ToString());
 								if (bForeignProject)
 								{
-									OutFile.AddUnnamedField(MakePathString(BuildProduct.UProjectFile));
+									OutFile.AddUnnamedField(MakeQuotedPathString(BuildProduct.UProjectFile, EPathType.Relative));
 								}
 								OutFile.AddUnnamedField("-waitmutex");
 
@@ -627,23 +668,23 @@ namespace UnrealBuildTool
 							{
 								OutFile.BeginArray("dependsOn");
 								{
-									OutFile.AddUnnamedField("UnrealBuildTool " + HostPlatform.ToString() + " Development Build");
 									if (Command == "Build" && Target.Type == TargetType.Editor)
 									{
 										OutFile.AddUnnamedField("ShaderCompileWorker " + HostPlatform.ToString() + " Development Build");
+									}
+									else
+									{
+										OutFile.AddUnnamedField("UnrealBuildTool " + HostPlatform.ToString() + " Development Build");
 									}
 								}
 								OutFile.EndArray();
 							}
 
-							if (!bBuildingForDotNetCore)
-							{
-								OutFile.AddField("type", "process");
-							}
+							OutFile.AddField("type", "shell");
 
 							OutFile.BeginObject("options");
 							{
-								OutFile.AddField("cwd", MakePathString(UE4ProjectRoot));
+								OutFile.AddField("cwd", MakePathString(UE4ProjectRoot, true));
 							}
 							OutFile.EndObject();
 						}
@@ -696,7 +737,7 @@ namespace UnrealBuildTool
 								{
 									OutFile.AddUnnamedField("/t:" + Command.ToLower());
 								}
-								OutFile.AddUnnamedField(MakePathString(InProject.SourceProject.ProjectFilePath));
+								OutFile.AddUnnamedField(MakePathString(InProject.SourceProject.ProjectFilePath, true));
 								OutFile.AddUnnamedField("/p:GenerateFullPaths=true");
 								if (HostPlatform == UnrealTargetPlatform.Win64)
 								{
@@ -724,6 +765,13 @@ namespace UnrealBuildTool
 						{
 							OutFile.AddField("type", "shell");
 						}
+
+						OutFile.BeginObject("options");
+						{
+							OutFile.AddField("cwd", MakePathString(UE4ProjectRoot, true));
+						}
+
+						OutFile.EndObject();
 						OutFile.EndObject();
 					}
 				}
@@ -843,7 +891,7 @@ namespace UnrealBuildTool
 			return FileReference.MakeFromNormalizedFullPath(ExecutableFilename);
 		}
 
-		private void WriteNativeLaunchFile(ProjectData.Project InProject, JsonFile OutFile)
+		private void WriteNativeLaunchConfig(ProjectData.Project InProject, JsonFile OutFile)
 		{
 			foreach (ProjectData.Target Target in InProject.Targets)
 			{
@@ -858,7 +906,8 @@ namespace UnrealBuildTool
 							OutFile.AddField("name", Target.Name + " (" + BuildProduct.Config.ToString() + ")");
 							OutFile.AddField("request", "launch");
 							OutFile.AddField("preLaunchTask", LaunchTaskName);
-							OutFile.AddField("program", MakePathString(BuildProduct.OutputFile));
+							OutFile.AddField("program", MakeUnquotedPathString(BuildProduct.OutputFile, EPathType.Absolute));								
+							
 							OutFile.BeginArray("args");
 							{
 								if (Target.Type == TargetRules.TargetType.Editor)
@@ -867,7 +916,7 @@ namespace UnrealBuildTool
 									{
 										if (bForeignProject)
 										{
-											OutFile.AddUnnamedField(MakePathString(BuildProduct.UProjectFile));
+											OutFile.AddUnnamedField(MakePathString(BuildProduct.UProjectFile, false, true));
 										}
 										else
 										{
@@ -883,8 +932,18 @@ namespace UnrealBuildTool
 
 							}
 							OutFile.EndArray();
-							OutFile.AddField("cwd", MakePathString(BuildProduct.OutputFile.Directory));
-							
+
+							DirectoryReference CWD = BuildProduct.OutputFile.Directory;
+							while (HostPlatform == UnrealTargetPlatform.Mac && CWD != null && CWD.ToString().Contains(".app"))
+							{
+								CWD = CWD.ParentDirectory;
+							}
+
+							if (CWD != null)
+							{
+								OutFile.AddField("cwd", MakePathString(CWD, true, true));
+							}
+
 							if (HostPlatform == UnrealTargetPlatform.Win64)
 							{
 								OutFile.AddField("stopAtEntry", false);
@@ -981,7 +1040,7 @@ namespace UnrealBuildTool
 								OutFile.AddField("internalConsoleOptions", "openOnSessionStart");
 							}
 
-							OutFile.AddField("cwd", MakePathString(UE4ProjectRoot));
+							OutFile.AddField("cwd", MakePathString(UE4ProjectRoot, true));
 						}
 						OutFile.EndObject();
 					}
@@ -1000,7 +1059,7 @@ namespace UnrealBuildTool
 				{
 					foreach (ProjectData.Project Project in ProjectData.NativeProjects)
 					{
-						WriteNativeLaunchFile(Project, OutFile);
+						WriteNativeLaunchConfig(Project, OutFile);
 					}
 
 					foreach (ProjectData.Project Project in ProjectData.CSharpProjects)
