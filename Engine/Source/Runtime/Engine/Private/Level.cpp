@@ -1318,12 +1318,6 @@ void ULevel::UpdateModelComponents()
 		BeginInitResource(IndexBufferIt->Value.Get());
 	}
 
-	// Can now release the model's vertex buffer, will have been used for collision
-	if(!IsRunningCommandlet())
-	{
-		Model->ReleaseVertices();
-	}
-
 	Model->bInvalidForStaticLighting = true;
 }
 

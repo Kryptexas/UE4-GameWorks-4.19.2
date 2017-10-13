@@ -1377,6 +1377,7 @@ void FSortedShadowMaps::Release()
 FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
 :	Scene(InViewFamily->Scene ? InViewFamily->Scene->GetRenderScene() : NULL)
 ,	ViewFamily(*InViewFamily)
+,	MeshCollector(InViewFamily->GetFeatureLevel())
 ,	bUsedPrecomputedVisibility(false)
 {
 	check(Scene != NULL);

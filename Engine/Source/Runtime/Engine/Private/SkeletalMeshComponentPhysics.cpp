@@ -15,7 +15,6 @@
 #include "WorldCollision.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/PrimitiveComponent.h"
-#include "SkeletalMeshTypes.h"
 #include "ClothSimData.h"
 #include "Engine/SkeletalMesh.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -24,6 +23,7 @@
 #include "SkeletalRenderPublic.h"
 #include "ModuleManager.h"
 #include "PhysicsPublic.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "Logging/MessageLog.h"
 #include "CollisionDebugDrawingPublic.h"
@@ -1819,48 +1819,24 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 		ClothBlendWeight > 0.0f // if cloth blend weight is 0.0, only showing skinned vertices regardless of simulation positions
 		)
 	{
-		FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+		FSkeletalMeshLODRenderData& LODData = MeshObject->GetSkeletalMeshRenderData().LODRenderData[0];
 
 		// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
 		int32 SectionIndex;
 		int32 VertIndexInChunk;
-		bool bHasExtraBoneInfluences;
-		Model.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndexInChunk, bHasExtraBoneInfluences);
+		LODData.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndexInChunk);
 
 		bool bClothVertex = false;
-		int32 ClothAssetIndex = -1;
 		FGuid ClothAssetGuid;
 
 		// if this section corresponds to a cloth section, returns corresponding cloth section's info instead
-		const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+		const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
 
 		// if this chunk has cloth data
 		if (Section.HasClothingData())
 		{
 			bClothVertex = true;
-			ClothAssetIndex = Section.CorrespondClothAssetIndex;
 			ClothAssetGuid = Section.ClothingData.AssetGuid;
-		}
-		else
-		{
-			// if current section is disabled and the corresponding cloth section is visible
-			if (Section.bDisabled && Section.CorrespondClothSectionIndex >= 0)
-			{
-				bClothVertex = true;
-
-				const FSkelMeshSection& ClothSection = Model.Sections[Section.CorrespondClothSectionIndex];
-				ClothAssetIndex = ClothSection.CorrespondClothAssetIndex;
-				ClothAssetGuid = ClothSection.ClothingData.AssetGuid;
-
-				// the index can exceed the range because this vertex index is based on the corresponding original section
-				// the number of cloth chunk's vertices is not always same as the corresponding one 
-				// cloth chunk has only soft vertices
-				if (VertIndexInChunk >= ClothSection.GetNumVertices())
-				{
-					// if the index exceeds, re-assign a random vertex index for this chunk
-					VertIndexInChunk = FMath::TruncToInt(FMath::SRand() * (ClothSection.GetNumVertices() - 1));
-				}
-			}
 		}
 
 		if (bClothVertex)

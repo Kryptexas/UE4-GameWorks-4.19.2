@@ -74,6 +74,8 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 	SceneColorCopyTextureSampler.Bind(Initializer.ParameterMap, TEXT("SceneColorCopyTextureSampler"));
 	EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 
+	InstanceCount.Bind(Initializer.ParameterMap, TEXT("InstanceCount"));
+	InstanceOffset.Bind(Initializer.ParameterMap, TEXT("InstanceOffset"));
 }
 
 FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const
@@ -474,6 +476,9 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << PerFrameVectorExpressions;
 	Ar << PerFramePrevScalarExpressions;
 	Ar << PerFramePrevVectorExpressions;
+
+	Ar << InstanceCount;
+	Ar << InstanceOffset;
 
 	return bShaderHasOutdatedParameters;
 }

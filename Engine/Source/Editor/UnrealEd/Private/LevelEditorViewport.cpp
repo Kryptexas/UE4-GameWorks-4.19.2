@@ -4134,7 +4134,7 @@ void FLevelEditorViewportClient::DrawBrushDetails(const FSceneView* View, FPrimi
 			if (Brush->Brush && (FActorEditorUtils::IsABuilderBrush(Brush) || Brush->IsVolumeBrush()) && ModeTools->GetSelectedActors()->IsSelected(Brush))
 			{
 				// Build a mesh by basically drawing the triangles of each 
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 				int32 VertexOffset = 0;
 
 				for (int32 PolyIdx = 0; PolyIdx < Brush->Brush->Polys->Element.Num(); ++PolyIdx)

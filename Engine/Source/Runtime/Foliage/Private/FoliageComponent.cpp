@@ -64,7 +64,7 @@ FPrimitiveSceneProxy* UInteractiveFoliageComponent::CreateSceneProxy()
 	if(GetStaticMesh() == NULL
 		|| GetStaticMesh()->RenderData == NULL
 		|| GetStaticMesh()->RenderData->LODResources.Num() == 0
-		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() == 0)
 	{
 		return NULL;
 	}

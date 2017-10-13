@@ -42,6 +42,7 @@ struct FOpenGLVertexDeclarationKey
 			GLElement.Offset = Element.Offset;
 			GLElement.Divisor = Element.bUseInstanceIndex ? 1 : 0;
 			GLElement.AttributeIndex = Element.AttributeIndex;
+			GLElement.HashStride = Element.Stride;
 			GLElement.Padding = 0;
 			switch(Element.Type)
 			{
@@ -135,7 +136,7 @@ bool operator==(const FOpenGLVertexElement& A, const FOpenGLVertexElement& B)
 {
 	return A.Type == B.Type && A.StreamIndex == B.StreamIndex && A.Offset == B.Offset && A.Size == B.Size
 		&& A.Divisor == B.Divisor && A.bNormalized == B.bNormalized && A.AttributeIndex == B.AttributeIndex
-		&& A.bShouldConvertToFloat == B.bShouldConvertToFloat;
+		&& A.bShouldConvertToFloat == B.bShouldConvertToFloat && A.HashStride == B.HashStride;
 }
 
 /** Compare two vertex declaration keys. */

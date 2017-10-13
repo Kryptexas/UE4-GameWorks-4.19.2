@@ -706,6 +706,7 @@ struct FOpenGLVertexElement
 	GLuint Offset;
 	GLuint Size;
 	GLuint Divisor;
+	GLuint HashStride;
 	uint8 bNormalized;
 	uint8 AttributeIndex;
 	uint8 bShouldConvertToFloat;

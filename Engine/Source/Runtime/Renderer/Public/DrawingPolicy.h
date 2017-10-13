@@ -14,6 +14,7 @@
 class FPrimitiveSceneProxy;
 class FStaticMesh;
 class FViewInfo;
+class FMaterialShader;
 
 /**
  * A macro to compare members of two drawing policies(A and B), and return based on the result.
@@ -312,6 +313,8 @@ public:
 		bIsDitheredLODTransitionMaterial = Other.bIsDitheredLODTransitionMaterial;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
 		DebugViewShaderMode = Other.DebugViewShaderMode;
+		InstanceFactor = Other.InstanceFactor;
+		BaseVertexShader = Other.BaseVertexShader;
 		return *this; 
 	}
 
@@ -428,6 +431,11 @@ public:
 		return MeshPrimitiveType;
 	}
 
+	bool GetUsePositionOnlyVS() const
+	{
+		return bUsePositionOnlyVS;
+	}
+
 	const FVertexFactory* GetVertexFactory() const { return VertexFactory; }
 	const FMaterialRenderProxy* GetMaterialRenderProxy() const { return MaterialRenderProxy; }
 
@@ -440,6 +448,7 @@ public:
 #endif
 
 protected:
+	const FMaterialShader* BaseVertexShader = nullptr;
 	const FVertexFactory* VertexFactory;
 	const FMaterialRenderProxy* MaterialRenderProxy;
 	const FMaterial* MaterialResource;
@@ -448,7 +457,16 @@ protected:
 	ERasterizerCullMode MeshCullMode;
 	EPrimitiveType		MeshPrimitiveType;
 
+	uint32 InstanceFactor = 1;
 	uint32 bIsDitheredLODTransitionMaterial : 1;
 	uint32 bUsePositionOnlyVS : 1;
 	uint32 DebugViewShaderMode : 6; // EDebugViewShaderMode
+
+private:
+	uint32 GetInstanceFactor() const
+	{
+		return InstanceFactor;
+	}
+
+	void SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InInstanceOffset, uint32 InInstanceCount) const;
 };

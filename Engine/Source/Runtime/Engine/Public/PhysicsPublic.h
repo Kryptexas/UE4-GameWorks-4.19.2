@@ -16,6 +16,7 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "LocalVertexFactory.h"
 #include "DynamicMeshBuilder.h"
+#include "StaticMeshResources.h"
 
 class AActor;
 class ULineBatchComponent;
@@ -732,60 +733,25 @@ struct FKCachedPerTriData
 	}
 };
 
-
-
-class FConvexCollisionVertexBuffer : public FVertexBuffer 
-{
-public:
-	TArray<FDynamicMeshVertex> Vertices;
-
-	virtual void InitRHI() override;
-};
-
-class FConvexCollisionIndexBuffer : public FIndexBuffer 
-{
-public:
-	TArray<int32> Indices;
-
-	virtual void InitRHI() override;
-};
-
-class FConvexCollisionVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FConvexCollisionVertexFactory()
-	{}
-
-	/** Initialization constructor. */
-	FConvexCollisionVertexFactory(const FConvexCollisionVertexBuffer* VertexBuffer)
-	{
-		InitConvexVertexFactory(VertexBuffer);
-	}
-
-
-	void InitConvexVertexFactory(const FConvexCollisionVertexBuffer* VertexBuffer);
-};
-
 class FKConvexGeomRenderInfo
 {
 public:
-	FConvexCollisionVertexBuffer* VertexBuffer;
-	FConvexCollisionIndexBuffer* IndexBuffer;
-	FConvexCollisionVertexFactory* CollisionVertexFactory;
+	FStaticMeshVertexBuffers* VertexBuffers;
+	FDynamicMeshIndexBuffer32* IndexBuffer;
+	FLocalVertexFactory* CollisionVertexFactory;
 
 	FKConvexGeomRenderInfo()
-	: VertexBuffer(NULL)
-	, IndexBuffer(NULL)
-	, CollisionVertexFactory(NULL)
+	: VertexBuffers(nullptr)
+	, IndexBuffer(nullptr)
+	, CollisionVertexFactory(nullptr)
 	{}
 
 	/** Util to see if this render info has some valid geometry to render. */
 	bool HasValidGeometry()
 	{
 		return 
-			(VertexBuffer != NULL) && 
-			(VertexBuffer->Vertices.Num() > 0) && 
+			(VertexBuffers != NULL) && 
+			(VertexBuffers->PositionVertexBuffer.GetNumVertices() > 0) && 
 			(IndexBuffer != NULL) &&
 			(IndexBuffer->Indices.Num() > 0);
 	}

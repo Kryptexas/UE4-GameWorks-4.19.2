@@ -1094,7 +1094,7 @@ void FLightmassExporter::WriteStaticMeshes()
 			&& StaticMesh->RenderData->LODResources.Num() > 0 )
 		{
 			const FStaticMeshLODResources& RenderData = StaticMesh->RenderData->LODResources[0];
-			if( StaticMesh->LightMapCoordinateIndex >= (int32)RenderData.VertexBuffer.GetNumTexCoords() )
+			if( StaticMesh->LightMapCoordinateIndex >= (int32)RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords() )
 			{
 				FMessageLog("LightingResults").Warning()
 					->AddToken(FUObjectToken::Create(const_cast<UStaticMesh*>(StaticMesh)))
@@ -1128,7 +1128,7 @@ void FLightmassExporter::WriteStaticMeshes()
 					SMLODData.NumTriangles = RenderData.GetNumTriangles();
 					SMLODData.NumIndices = Indices.Num();
 					// the vertex buffer could have double vertices for shadow buffer data, so we use what the render data thinks it has, not what is actually there
-					SMLODData.NumVertices = RenderData.VertexBuffer.GetNumVertices();
+					SMLODData.NumVertices = RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 					Swarm.WriteChannel( Channel, &SMLODData, sizeof(SMLODData) );
 
 					int32 NumSections = RenderData.Sections.Num();
@@ -1159,15 +1159,15 @@ void FLightmassExporter::WriteStaticMeshes()
 						for (int32 VertexIndex = 0; VertexIndex < VertexCount; VertexIndex++)
 						{
 							Lightmass::FStaticMeshVertex& Vertex = LMVertices[VertexIndex];
-							Vertex.Position = FVector4(RenderData.PositionVertexBuffer.VertexPosition(VertexIndex), 1.0f);
-							Vertex.TangentX = FVector(RenderData.VertexBuffer.VertexTangentX(VertexIndex));
-							Vertex.TangentY = RenderData.VertexBuffer.VertexTangentY(VertexIndex);
-							Vertex.TangentZ = RenderData.VertexBuffer.VertexTangentZ(VertexIndex);
-							int32 UVCount = FMath::Clamp<int32>(RenderData.VertexBuffer.GetNumTexCoords(), 0, MAX_TEXCOORDS);
+							Vertex.Position = FVector4(RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex), 1.0f);
+							Vertex.TangentX = FVector(RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertexIndex));
+							Vertex.TangentY = RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(VertexIndex);
+							Vertex.TangentZ = RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+							int32 UVCount = FMath::Clamp<int32>(RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords(), 0, MAX_TEXCOORDS);
 							int32 UVIndex;
 							for (UVIndex = 0; UVIndex < UVCount; UVIndex++)
 							{
-								Vertex.UVs[UVIndex] = RenderData.VertexBuffer.GetVertexUV(VertexIndex, UVIndex);
+								Vertex.UVs[UVIndex] = RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, UVIndex);
 							}
 							FVector2D ZeroUV(0.0f, 0.0f);
 							for (; UVIndex < MAX_TEXCOORDS; UVIndex++)

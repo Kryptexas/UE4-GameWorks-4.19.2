@@ -23,6 +23,7 @@
 #include "DynamicMeshBuilder.h"
 #include "Engine/TextRenderActor.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "StaticMeshResources.h"
 
 #define LOCTEXT_NAMESPACE "TextRenderComponent"
 
@@ -118,70 +119,6 @@ struct FTextIterator
 			Ch = CurrentPosition[0];
 			return true;
 		}
-	}
-};
-
-// ---------------------------------------------------------------
-
-/** Vertex Buffer */
-class FTextRenderVertexBuffer : public FVertexBuffer 
-{
-public:
-	TArray<FDynamicMeshVertex> Vertices;
-
-	virtual void InitRHI() override
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		void* VertexBufferData = nullptr;
-		VertexBufferRHI = RHICreateAndLockVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static,CreateInfo, VertexBufferData);
-
-		// Copy the vertex data into the vertex buffer.		
-		FMemory::Memcpy(VertexBufferData,Vertices.GetData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
-		RHIUnlockVertexBuffer(VertexBufferRHI);
-	}
-};
-
-/** Index Buffer */
-class FTextRenderIndexBuffer : public FIndexBuffer 
-{
-public:
-	TArray<uint16> Indices;
-
-	void InitRHI()
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(uint16), Indices.Num() * sizeof(uint16), BUF_Static, CreateInfo, Buffer);
-
-		// Copy the index data into the index buffer.		
-		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint16));
-		RHIUnlockIndexBuffer(IndexBufferRHI);
-	}
-};
-
-/** Vertex Factory */
-class FTextRenderVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FTextRenderVertexFactory()
-	{}
-
-	/** Initialization */
-	void Init(const FTextRenderVertexBuffer* VertexBuffer)
-	{
-		check(IsInRenderingThread())
-
-		// Initialize the vertex factory's stream components.
-		FDataType NewData;
-		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
-		NewData.TextureCoordinates.Add(
-			FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
-			);
-		NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
-		NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
-		NewData.ColorComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Color, VET_Color);
-		SetData(NewData);
 	}
 };
 
@@ -659,9 +596,9 @@ private:
 	};
 
 	FMaterialRelevance MaterialRelevance;
-	FTextRenderVertexBuffer VertexBuffer;
-	FTextRenderIndexBuffer IndexBuffer;
-	FTextRenderVertexFactory VertexFactory;
+	FStaticMeshVertexBuffers VertexBuffers;
+	FDynamicMeshIndexBuffer16 IndexBuffer;
+	FLocalVertexFactory VertexFactory;
 	TArray<FTextBatch> TextBatches;
 	const FColor TextRenderColor;
 	UMaterialInterface* TextMaterial;
@@ -679,6 +616,7 @@ private:
 
 FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	FPrimitiveSceneProxy(Component),
+	VertexFactory(GetScene().GetFeatureLevel(), "FTextRenderSceneProxy"),
 	TextRenderColor(Component->TextRenderColor),
 	Font(Component->Font),
 	Text(Component->Text),
@@ -734,21 +672,20 @@ void FTextRenderSceneProxy::CreateRenderThreadResources()
 		return;
 	}
 
-	if(BuildStringMesh(VertexBuffer.Vertices, IndexBuffer.Indices))
+	TArray<FDynamicMeshVertex> OutVertices;
+	if(BuildStringMesh(OutVertices, IndexBuffer.Indices))
 	{
-		// Init vertex factory
-		VertexFactory.Init(&VertexBuffer);
-
+		VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVertices);
 		// Enqueue initialization of render resources
-		VertexBuffer.InitResource();
 		IndexBuffer.InitResource();
-		VertexFactory.InitResource();
 	}
 }
 
 void FTextRenderSceneProxy::ReleaseRenderThreadResources()
 {
-	VertexBuffer.ReleaseResource();
+	VertexBuffers.PositionVertexBuffer.ReleaseResource();
+	VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+	VertexBuffers.ColorVertexBuffer.ReleaseResource();
 	IndexBuffer.ReleaseResource();
 	VertexFactory.ReleaseResource();
 }

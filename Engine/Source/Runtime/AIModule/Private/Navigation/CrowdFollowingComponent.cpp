@@ -12,6 +12,7 @@
 #include "AIConfig.h"
 #include "Navigation/MetaNavMeshPath.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Engine/World.h"
 
 
 DEFINE_LOG_CATEGORY(LogCrowdFollowing);

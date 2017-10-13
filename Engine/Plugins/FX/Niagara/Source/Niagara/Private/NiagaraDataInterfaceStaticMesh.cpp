@@ -617,7 +617,7 @@ struct TTypedMeshVertexAccessor
 	FORCEINLINE FVector GetTangentX(int32 Idx)const { return Verts.VertexTangentX_Typed<TangentT>(Idx); }
 	FORCEINLINE FVector GetTangentY(int32 Idx)const { return Verts.VertexTangentY_Typed<TangentT>(Idx); }
 	FORCEINLINE FVector GetTangentZ(int32 Idx)const { return Verts.VertexTangentZ_Typed<TangentT>(Idx); }
-	FORCEINLINE FVector2D GetUV(int32 Idx, int32 UVSet)const { return Verts.GetVertexUV_Typed<TangentT, UVTypeT>(Idx, UVSet); }
+	FORCEINLINE FVector2D GetUV(int32 Idx, int32 UVSet)const { return Verts.GetVertexUV_Typed<UVTypeT>(Idx, UVSet); }
 };
 
 //External function binder choosing between template specializations based on the mesh's vertex type.
@@ -631,9 +631,9 @@ struct TTypedMeshAccessorBinder
 		UNiagaraDataInterfaceStaticMesh* MeshInterface = CastChecked<UNiagaraDataInterfaceStaticMesh>(Interface);
 		check(InstData->Mesh);
 		FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
-		if (Res.VertexBuffer.GetUseHighPrecisionTangentBasis())			
+		if (Res.VertexBuffers.StaticMeshVertexBuffer.GetUseHighPrecisionTangentBasis())			
 		{
-			if (Res.VertexBuffer.GetUseFullPrecisionUVs())
+			if (Res.VertexBuffers.StaticMeshVertexBuffer.GetUseFullPrecisionUVs())
 			{
 				return NextBinder::template Bind<ParamTypes..., TTypedMeshVertexAccessor<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision>>(Interface, BindingInfo, InstanceData);
 			}
@@ -644,7 +644,7 @@ struct TTypedMeshAccessorBinder
 		}
 		else
 		{
-			if (Res.VertexBuffer.GetUseFullPrecisionUVs())
+			if (Res.VertexBuffers.StaticMeshVertexBuffer.GetUseFullPrecisionUVs())
 			{
 				return NextBinder::template Bind<ParamTypes..., TTypedMeshVertexAccessor<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision>>(Interface, BindingInfo, InstanceData);
 			}
@@ -1093,7 +1093,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordPosition(FVectorVMContext& Cont
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FPositionVertexBuffer& Positions = Res.PositionVertexBuffer;
+	const FPositionVertexBuffer& Positions = Res.VertexBuffers.PositionVertexBuffer;
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
@@ -1136,7 +1136,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordNormal(FVectorVMContext& Contex
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FStaticMeshVertexBuffer& Verts = Res.VertexBuffer;
+	const FStaticMeshVertexBuffer& Verts = Res.VertexBuffers.StaticMeshVertexBuffer;
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
@@ -1174,7 +1174,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordTangents(FVectorVMContext& Cont
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const VertexAccessorType Verts(Res.VertexBuffer);
+	const VertexAccessorType Verts(Res.VertexBuffers.StaticMeshVertexBuffer);
 
 	FRegisterHandler<float> OutTangentX(Context);
 	FRegisterHandler<float> OutTangentY(Context);
@@ -1240,7 +1240,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordColor(FVectorVMContext& Context
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FColorVertexBuffer& Colors = Res.ColorVertexBuffer;
+	const FColorVertexBuffer& Colors = Res.VertexBuffers.ColorVertexBuffer;
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
@@ -1282,7 +1282,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordUV(FVectorVMContext& Context)
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const VertexAccessorType Verts(Res.VertexBuffer);
+	const VertexAccessorType Verts(Res.VertexBuffers.StaticMeshVertexBuffer);
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
 		int32 Tri = TriParam.Get();
@@ -1324,7 +1324,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordPositionAndVelocity(FVectorVMCo
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FPositionVertexBuffer& Positions = Res.PositionVertexBuffer;
+	const FPositionVertexBuffer& Positions = Res.VertexBuffers.PositionVertexBuffer;
 
 	float InvDt = 1.0f / InstData->DeltaSeconds;
 	for (int32 i = 0; i < Context.NumInstances; ++i)
@@ -1448,7 +1448,7 @@ bool FDynamicVertexColorFilterData::Init(FNDIStaticMesh_InstanceData* Owner)
 
 	FStaticMeshLODResources& Res = Owner->Mesh->RenderData->LODResources[0];
 
-	if (Res.ColorVertexBuffer.GetNumVertices() == 0)
+	if (Res.VertexBuffers.ColorVertexBuffer.GetNumVertices() == 0)
 	{
 		UE_LOG(LogNiagara, Log, TEXT("Cannot initialize vertex color filter data for a mesh with no color data - %s"), *Owner->Mesh->GetFullName());
 		return false;
@@ -1472,9 +1472,9 @@ bool FDynamicVertexColorFilterData::Init(FNDIStaticMesh_InstanceData* Owner)
 				uint32 V1Idx = IndexView[TriStartIdx + TriIdx * 3 + 1];
 				uint32 V2Idx = IndexView[TriStartIdx + TriIdx * 3 + 2];
 
-				uint8 MaxR = FMath::Max<uint8>(Res.ColorVertexBuffer.VertexColor(V0Idx).R,
-					FMath::Max<uint8>(Res.ColorVertexBuffer.VertexColor(V1Idx).R,
-						Res.ColorVertexBuffer.VertexColor(V2Idx).R));
+				uint8 MaxR = FMath::Max<uint8>(Res.VertexBuffers.ColorVertexBuffer.VertexColor(V0Idx).R,
+					FMath::Max<uint8>(Res.VertexBuffers.ColorVertexBuffer.VertexColor(V1Idx).R,
+						Res.VertexBuffers.ColorVertexBuffer.VertexColor(V2Idx).R));
 				if (MaxR >= MinVertexColorRed && MaxR < MaxVertexColorRed)
 				{
 					TrianglesSortedByVertexColor.Add(TriStartIdx + TriIdx * 3);

@@ -384,6 +384,7 @@ public:
 			VertexShader = InMaterialResource.GetShader<TTranslucencyShadowDepthVS<TranslucencyShadowDepth_Standard> >(InVertexFactory->GetType());
 			PixelShader = InMaterialResource.GetShader<TTranslucencyShadowDepthPS<TranslucencyShadowDepth_Standard> >(InVertexFactory->GetType());
 		}
+		BaseVertexShader = VertexShader;
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const

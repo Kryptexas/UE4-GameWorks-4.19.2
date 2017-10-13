@@ -4193,7 +4193,7 @@ ir_rvalue* ast_function_definition::hir(exec_list *instructions, struct _mesa_gl
 		{
 			glsl_domain result = GLSL_DOMAIN_NONE;
 
-			convert_enum_attribute_args(attrib, result, domain_strings, domain_values, Elements(domain_values), state);
+			convert_enum_attribute_args(attrib, result, domain_strings, domain_values, GetNumArrayElements(domain_values), state);
 
 			signature->tessellation.domain = result;
 
@@ -4202,7 +4202,7 @@ ir_rvalue* ast_function_definition::hir(exec_list *instructions, struct _mesa_gl
 		{
 			glsl_partitioning result = GLSL_PARTITIONING_NONE;
 
-			convert_enum_attribute_args(attrib, result, partitioning_strings, partitioning_values, Elements(partitioning_values), state);
+			convert_enum_attribute_args(attrib, result, partitioning_strings, partitioning_values, GetNumArrayElements(partitioning_values), state);
 
 			signature->tessellation.partitioning = result;
 
@@ -4211,7 +4211,7 @@ ir_rvalue* ast_function_definition::hir(exec_list *instructions, struct _mesa_gl
 		{
 			glsl_outputtopology result = GLSL_OUTPUTTOPOLOGY_NONE;
 
-			convert_enum_attribute_args(attrib, result, outputtopology_strings, outputtopology_values, Elements(outputtopology_values), state);
+			convert_enum_attribute_args(attrib, result, outputtopology_strings, outputtopology_values, GetNumArrayElements(outputtopology_values), state);
 
 			signature->tessellation.outputtopology = result;
 

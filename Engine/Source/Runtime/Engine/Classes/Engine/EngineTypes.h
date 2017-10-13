@@ -492,31 +492,6 @@ enum ELightingBuildQuality
 	Quality_MAX,
 };
 
-
-UENUM()
-enum ETriangleSortOption
-{
-	TRISORT_None,
-	TRISORT_CenterRadialDistance,
-	TRISORT_Random,
-	TRISORT_MergeContiguous,
-	TRISORT_Custom,
-	TRISORT_CustomLeftRight,
-	TRISORT_MAX,
-};
-
-
-/** Enum to specify which axis to use for the forward vector when using TRISORT_CustomLeftRight sort mode. */
-UENUM()
-enum ETriangleSortAxis
-{
-	TSA_X_Axis,
-	TSA_Y_Axis,
-	TSA_Z_Axis,
-	TSA_MAX,
-};
-
-
 /** Movement modes for Characters. */
 UENUM(BlueprintType)
 enum EMovementMode

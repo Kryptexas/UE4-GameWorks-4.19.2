@@ -589,7 +589,7 @@ void FCanvas::AddTileRenderItem(float X, float Y, float SizeX, float SizeY, floa
 	{
 		INC_DWORD_STAT(STAT_Canvas_NumBatchesCreated);
 
-		RenderBatch = new FCanvasTileRendererItem( MaterialRenderProxy,TopTransformEntry,bFreezeTime );
+		RenderBatch = new FCanvasTileRendererItem(FeatureLevel, MaterialRenderProxy,TopTransformEntry,bFreezeTime );
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 	// add the quad to the tile render batch
@@ -619,7 +619,7 @@ void FCanvas::AddTriangleRenderItem(const FCanvasUVTri& Tri, const FMaterialRend
 	{
 		INC_DWORD_STAT(STAT_Canvas_NumBatchesCreated);
 	
-		RenderBatch = new FCanvasTriangleRendererItem(MaterialRenderProxy, TopTransformEntry, bFreezeTime);
+		RenderBatch = new FCanvasTriangleRendererItem(FeatureLevel, MaterialRenderProxy, TopTransformEntry, bFreezeTime);
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 	// add the triangle to the triangle render batch
@@ -1214,15 +1214,16 @@ UCanvas::UCanvas(const FObjectInitializer& ObjectInitializer)
 	FCoreDelegates::OnSafeFrameChangedEvent.AddUObject(this, &UCanvas::UpdateSafeZoneData);
 }
 
-void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
+void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView, FCanvas* InCanvas)
 {
 	HmdOrientation = FQuat::Identity;
 	SizeX = InSizeX;
 	SizeY = InSizeY;
 	UnsafeSizeX = SizeX;
 	UnsafeSizeY = SizeY;
-	SceneView = InSceneView;		
-	
+	SceneView = InSceneView;
+	Canvas = InCanvas;
+
 	Update();
 }
 

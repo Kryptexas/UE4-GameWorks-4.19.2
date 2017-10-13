@@ -18,6 +18,7 @@
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
 #include "Animation/PoseSnapshot.h"
+#include "SkeletalMeshTypes.h"
 
 #include "ClothingSystemRuntimeTypes.h"
 #include "ClothingSimulationInterface.h"
@@ -155,8 +156,6 @@ enum class EAllowKinematicDeferral
 	AllowDeferral,
 	DisallowDeferral
 };
-
-class USkeletalMeshComponent;
 
 /**
 * Tick function that does post physics work on skeletal mesh component. This executes in EndPhysics (after physics is done)

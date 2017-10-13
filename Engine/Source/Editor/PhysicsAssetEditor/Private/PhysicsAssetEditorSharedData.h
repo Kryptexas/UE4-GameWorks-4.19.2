@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SkeletalMeshTypes.h"
 #include "PreviewScene.h"
 #include "PhysicsAssetUtils.h"
 #include "PhysicsEngine/ShapeElem.h"
@@ -16,6 +15,7 @@ class UPhysicsConstraintTemplate;
 class UPhysicsHandleComponent;
 class USkeletalMesh;
 class UStaticMeshComponent;
+struct FBoneVertInfo;
 class IPersonaPreviewScene;
 
 #define DEBUG_CLICK_VIEWPORT 0

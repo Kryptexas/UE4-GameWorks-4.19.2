@@ -8,47 +8,8 @@
 #include "PackedNormal.h"
 #include "MorphTarget.generated.h"
 
-class FStaticLODModel;
 class USkeletalMesh;
 class UStaticMesh;
-
-/**
-* Morph mesh vertex data used for comparisons and importing
-*/
-struct FMorphMeshVertexRaw
-{
-	FVector Position;
-	FVector TanX, TanY, TanZ;
-};
-
-
-/**
-* Converts a mesh to raw vertex data used to generate a morph target mesh
-*/
-class FMorphMeshRawSource
-{
-public:
-	/** vertex data used for comparisons */
-	TArray<FMorphMeshVertexRaw> Vertices;
-
-	/** index buffer used for comparison */
-	TArray<uint32> Indices;
-
-	/** indices to original imported wedge points */
-	TArray<uint32> WedgePointIndices;
-
-	/** Constructor (default) */
-	ENGINE_API FMorphMeshRawSource() { }
-	ENGINE_API FMorphMeshRawSource( USkeletalMesh* SrcMesh, int32 LODIndex = 0 );
-	ENGINE_API FMorphMeshRawSource( UStaticMesh* SrcMesh, int32 LODIndex = 0 );
-	ENGINE_API FMorphMeshRawSource( FStaticLODModel& LODModel );
-
-	ENGINE_API bool IsValidTarget( const FMorphMeshRawSource& Target ) const;
-
-private:
-	void Initialize(FStaticLODModel& LODModel);
-};
-
 
 /** Morph mesh vertex data used for rendering */
 struct FMorphTargetDelta
@@ -137,8 +98,6 @@ public:
 	TArray<FMorphTargetLODModel>	MorphLODModels;
 
 public:
-	/** Remap vertex indices with base mesh. */
-	void RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices );
 
 	/** Get Morphtarget Delta array for the given input Index */
 	FMorphTargetDelta* GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas);
@@ -146,8 +105,10 @@ public:
 	/** return true if this morphtarget contains valid vertices */
 	ENGINE_API bool HasValidData() const;
 
+#if WITH_EDITOR
 	/** Populates the given morph target LOD model with the provided deltas */
 	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal = false);
+#endif // WITH_EDITOR
 
 public:
 
@@ -156,16 +117,5 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
-private:
 
-	/**
-	* Generate the streams for this morph target mesh using
-	* a base mesh and a target mesh to find the positon differences
-	* and other vertex attributes.
-	*
-	* @param BaseSource Source mesh for comparing position differences
-	* @param TargetSource Final target vertex positions/attributes 
-	* @param LODIndex Level of detail to use for the geometry
-	*/
-	void CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal );
 };

@@ -331,6 +331,7 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 			}
 		}
 	}
+	BaseVertexShader = VertexShader;
 }
 
 void ApplyDitheredLODTransitionStateInternal(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
@@ -488,6 +489,7 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 		? ShaderPipeline->GetShader<TDepthOnlyVS<true> >()
 		: InMaterialResource.GetShader<TDepthOnlyVS<true> >(InVertexFactory->GetType());
 	bUsePositionOnlyVS = true;
+	BaseVertexShader = VertexShader;
 }
 
 void FPositionOnlyDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, FPositionOnlyDepthDrawingPolicy::ContextDataType PolicyContext) const

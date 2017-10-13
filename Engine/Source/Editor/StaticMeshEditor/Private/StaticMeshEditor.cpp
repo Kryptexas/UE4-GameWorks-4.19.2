@@ -1226,7 +1226,7 @@ void FStaticMeshEditor::UpdateLODStats(int32 CurrentLOD)
 			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[CurrentLOD];
 			NumTriangles[CurrentLOD] = LODModel.GetNumTriangles();
 			NumVertices[CurrentLOD] = LODModel.GetNumVertices();
-			NumUVChannels[CurrentLOD] = LODModel.VertexBuffer.GetNumTexCoords();
+			NumUVChannels[CurrentLOD] = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords();
 		}
 	}
 }
@@ -1697,11 +1697,11 @@ void FStaticMeshEditor::DoDecomp(uint32 InHullCount, int32 InMaxHullVerts, uint3
 		const FScopedBusyCursor BusyCursor;
 
 		// Make vertex buffer
-		int32 NumVerts = LODModel.VertexBuffer.GetNumVertices();
+		int32 NumVerts = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 		TArray<FVector> Verts;
 		for(int32 i=0; i<NumVerts; i++)
 		{
-			FVector Vert = LODModel.PositionVertexBuffer.VertexPosition(i);
+			FVector Vert = LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(i);
 			Verts.Add(Vert);
 		}
 

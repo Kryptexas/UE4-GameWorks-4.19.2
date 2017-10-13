@@ -11,6 +11,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogClothingAssetFactory, Log, All);
 
+class FSkeletalMeshLODModel;
+
 namespace nvidia
 {
 	namespace apex

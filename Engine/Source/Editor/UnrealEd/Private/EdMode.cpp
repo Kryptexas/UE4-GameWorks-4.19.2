@@ -740,7 +740,7 @@ void FEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,
 			{
 				FTransform ActorToWorld = Actor->ActorToWorld();
 				Vertices.Empty();
-				const FPositionVertexBuffer& VertexBuffer = Actor->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0].PositionVertexBuffer;
+				const FPositionVertexBuffer& VertexBuffer = Actor->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
 				for( uint32 i = 0 ; i < VertexBuffer.GetNumVertices() ; i++ )
 				{
 					Vertices.AddUnique( ActorToWorld.TransformPosition( VertexBuffer.VertexPosition(i) ) );

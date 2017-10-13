@@ -331,7 +331,7 @@ public:
 
 					for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 					{
-						FDynamicMeshBuilder MeshBuilder;
+						FDynamicMeshBuilder MeshBuilder(Views[ViewIndex]->GetFeatureLevel());
 
 						if ( VisibilityMap & ( 1 << ViewIndex ) )
 						{
@@ -366,7 +366,7 @@ public:
 
 					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 					{
-						FDynamicMeshBuilder MeshBuilder;
+						FDynamicMeshBuilder MeshBuilder(Views[ViewIndex]->GetFeatureLevel());
 
 						if (VisibilityMap & (1 << ViewIndex))
 						{

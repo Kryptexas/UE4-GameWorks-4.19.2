@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "RenderResource.h"
+#include "VertexFactory.h"
 #include "Components.generated.h"
 
 /*=============================================================================
@@ -27,7 +28,37 @@ struct FStaticMeshBuildVertex
 	FColor Color;
 };
 
+struct FStaticMeshDataType
+{
+	/** The stream to read the vertex position from. */
+	FVertexStreamComponent PositionComponent;
 
+	/** The streams to read the tangent basis from. */
+	FVertexStreamComponent TangentBasisComponents[2];
+
+	/** The streams to read the texture coordinates from. */
+	TArray<FVertexStreamComponent, TFixedAllocator<MAX_STATIC_TEXCOORDS / 2> > TextureCoordinates;
+
+	/** The stream to read the shadow map texture coordinates from. */
+	FVertexStreamComponent LightMapCoordinateComponent;
+
+	/** The stream to read the vertex color from. */
+	FVertexStreamComponent ColorComponent;
+
+	FShaderResourceViewRHIRef PositionComponentSRV;
+
+	FShaderResourceViewRHIRef TangentsSRV;
+
+	/** A SRV to manually bind and load TextureCoordinates in the Vertexshader. */
+	FShaderResourceViewRHIRef TextureCoordinatesSRV;
+
+	/** A SRV to manually bind and load Colors in the Vertexshader. */
+	FShaderResourceViewRHIRef ColorComponentsSRV;
+
+	int LightMapCoordinateIndex = -1;
+	int NumTexCoords = -1;
+	uint32 ColorIndexMask = ~0u;
+};
 
 /** The world size for each texcoord mapping. Used by the texture streaming. */
 USTRUCT(BlueprintType)

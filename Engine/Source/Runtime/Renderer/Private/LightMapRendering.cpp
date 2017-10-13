@@ -49,7 +49,7 @@ void FUniformLightMapPolicy::Set(
 {
 	check(VertexFactory);
 
-	VertexFactory->Set(RHICmdList);
+	VertexFactory->Set(View->GetFeatureLevel(), RHICmdList);
 }
 
 void FUniformLightMapPolicy::SetMesh(

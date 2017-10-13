@@ -274,6 +274,7 @@ public:
 	{
 		PixelShader = InMaterialResource.GetShader<FLandscapeGrassWeightPS>(InVertexFactory->GetType());
 		VertexShader = InMaterialResource.GetShader<FLandscapeGrassWeightVS>(VertexFactory->GetType());
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.
@@ -1727,9 +1728,6 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 			UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, OutOcclusionLayerNum, DesiredInstancesPerLeaf);
 
 			// in-place sort the instances
-			const uint32 InstanceStreamSize = InstanceBuffer.GetStride();
-			FInstanceStream32 SwapBuffer;
-			check(sizeof(SwapBuffer) >= InstanceStreamSize);
 			
 			for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumInstances; FirstUnfixedIndex++)
 			{
@@ -1737,9 +1735,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				if (LoadFrom != FirstUnfixedIndex)
 				{
 					check(LoadFrom > FirstUnfixedIndex);
-					FMemory::Memcpy(&SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceStreamSize);
-					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), InstanceStreamSize);
-					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), &SwapBuffer, InstanceStreamSize);
+					InstanceBuffer.SwapInstance(FirstUnfixedIndex, LoadFrom);
 
 					int32 SwapGoesTo = InstanceReorderTable[FirstUnfixedIndex];
 					check(SwapGoesTo > FirstUnfixedIndex);
@@ -2388,7 +2384,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 				UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent = Inner.Foliage.Get();
 				if (HierarchicalInstancedStaticMeshComponent && StillUsed.Contains(HierarchicalInstancedStaticMeshComponent))
 				{
-					if (Inner.Builder->InstanceBuffer.NumInstances())
+					if (Inner.Builder->InstanceBuffer.GetNumInstances())
 					{
 						QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageGrassEndComp_AcceptPrebuiltTree);
 

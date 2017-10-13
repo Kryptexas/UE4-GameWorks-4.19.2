@@ -1394,7 +1394,7 @@ struct FDynamicEmitterDataBase
 	void* operator new(size_t Size);
 	void operator delete(void *RawMemory, size_t Size);
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory()
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		return nullptr;
 	}
@@ -1681,7 +1681,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	{
 	}
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
@@ -1831,7 +1831,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 
 	virtual ~FDynamicMeshEmitterData();
 
-	FParticleVertexFactoryBase *CreateVertexFactory() override;
+	FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh, ERHIFeatureLevel::Type InFeatureLevel );
@@ -2125,7 +2125,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 
 	~FDynamicBeam2EmitterData();
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
@@ -2274,7 +2274,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 
 	~FDynamicTrailsEmitterData();
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
@@ -2593,7 +2593,7 @@ public:
 
 		if (EmitterVertexFactoryArray[InDynamicData->EmitterIndex] == nullptr)
 		{
-			EmitterVertexFactoryArray[InDynamicData->EmitterIndex] = InDynamicData->CreateVertexFactory();
+			EmitterVertexFactoryArray[InDynamicData->EmitterIndex] = InDynamicData->CreateVertexFactory(FeatureLevel);
 		}
 	}
 
@@ -2658,6 +2658,8 @@ protected:
 	mutable TArray<FParticleVertexFactoryBase*> EmitterVertexFactoryArray;
 	mutable TArray<FDynamicEmitterDataBase*> DynamicDataForThisFrame; 
 	mutable bool bVertexFactoriesDirty : 1;
+
+	ERHIFeatureLevel::Type FeatureLevel;
 
 	friend struct FDynamicSpriteEmitterDataBase;
 };

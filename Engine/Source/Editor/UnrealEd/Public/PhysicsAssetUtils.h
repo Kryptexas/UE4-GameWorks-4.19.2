@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/EngineTypes.h"
 #include "PhysicsAssetUtils.generated.h"
 

@@ -38,7 +38,8 @@
 #include "Particles/ParticleModuleRequired.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Engine/SkeletalMeshSocket.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+
 
 UParticleModuleLocationBase::UParticleModuleLocationBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -2279,20 +2280,20 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 		return;
 	}
 	USkeletalMeshComponent* SourceComponent = InstancePayload->SourceComponent.Get();
-	FSkeletalMeshResource* SkelMeshResource = SourceComponent ? SourceComponent->GetSkeletalMeshResource() : NULL;
-	if (SkelMeshResource == NULL)
+	FSkeletalMeshRenderData* SkelMeshRenderData = SourceComponent ? SourceComponent->GetSkeletalMeshRenderData() : NULL;
+	if (SkelMeshRenderData == NULL)
 	{
 		return;
 	}
 
-	FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
+	FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[0];
 
 	// Determine the bone/socket to spawn at
 	int32 SourceIndex = -1;
 	int32 ActiveBoneIndex = -1;
 	if (SourceType == VERTSURFACESOURCE_Vert)
 	{
-		int32 SourceLocationsCount(SkelMeshResource->LODModels[0].VertexBufferGPUSkin.GetNumVertices());
+		int32 SourceLocationsCount(SkelMeshRenderData->LODRenderData[0].GetNumVertices());
 
 		SourceIndex = FMath::TruncToInt(FMath::SRand() * ((float)SourceLocationsCount) - 1);
 		InstancePayload->VertIndex = SourceIndex;
@@ -2312,11 +2313,11 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 	}
 	else if(SourceType == VERTSURFACESOURCE_Surface)
 	{
-		int32 SectionCount = LODModel.Sections.Num();
+		int32 SectionCount = LODData.RenderSections.Num();
 		int32 RandomSection = FMath::RoundToInt(FMath::SRand() * ((float)SectionCount-1));
 
-		SourceIndex = LODModel.Sections[RandomSection].BaseIndex +
-			(FMath::TruncToInt(FMath::SRand() * ((float)LODModel.Sections[RandomSection].NumTriangles))*3);
+		SourceIndex = LODData.RenderSections[RandomSection].BaseIndex +
+			(FMath::TruncToInt(FMath::SRand() * ((float)LODData.RenderSections[RandomSection].NumTriangles))*3);
 
 		InstancePayload->VertIndex = SourceIndex;
 
@@ -2324,9 +2325,9 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 		{
 			int32 VertIndex[3];
 
-			VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( SourceIndex );
-			VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( SourceIndex+1 );
-			VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( SourceIndex+2 );
+			VertIndex[0] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( SourceIndex );
+			VertIndex[1] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( SourceIndex+1 );
+			VertIndex[2] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( SourceIndex+2 );
 
 			int32 BoneIndex1, BoneIndex2, BoneIndex3;
 			BoneIndex1 = BoneIndex2 = BoneIndex3 = INDEX_NONE;
@@ -2389,9 +2390,9 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 					int32 VertIndex[3];
 					FColor VertColors[3];
 
-					VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex);
-					VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 1);
-					VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 2);
+					VertIndex[0] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex);
+					VertIndex[1] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 1);
+					VertIndex[2] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 2);
 					VertColors[0] = SourceComponent->GetVertexColor(VertIndex[0]);
 					VertColors[1] = SourceComponent->GetVertexColor(VertIndex[1]);
 					VertColors[2] = SourceComponent->GetVertexColor(VertIndex[2]);
@@ -2416,9 +2417,9 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 					int32 VertIndex[3];
 					FVector2D VertUVs[3];
 
-					VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex);
-					VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 1);
-					VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 2);
+					VertIndex[0] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex);
+					VertIndex[1] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 1);
+					VertIndex[2] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 2);
 					VertUVs[0] = SourceComponent->GetVertexUV(VertIndex[0], InheritUVChannel);
 					VertUVs[1] = SourceComponent->GetVertexUV(VertIndex[1], InheritUVChannel);
 					VertUVs[2] = SourceComponent->GetVertexUV(VertIndex[2], InheritUVChannel);
@@ -2813,7 +2814,7 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 	FVector& OutPosition, FQuat& OutRotation, bool bSpawning /* = false*/)
 {
 	check(InSkelMeshComponent);
-	FSkeletalMeshResource* SkelMeshResource = InSkelMeshComponent->GetSkeletalMeshResource();
+	FSkeletalMeshRenderData* SkelMeshResource = InSkelMeshComponent->GetSkeletalMeshRenderData();
 
 	if (SkelMeshResource)
 	{
@@ -2827,11 +2828,11 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 		{
 			FVector Verts[3];
 			int32 VertIndex[3];
-			FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
+			FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[0];
 
-			VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex );
-			VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+1 );
-			VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+2 );
+			VertIndex[0] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex );
+			VertIndex[1] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+1 );
+			VertIndex[2] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+2 );
 			Verts[0] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[0]));
 			Verts[1] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[1]));
 			Verts[2] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[2]));
@@ -2891,10 +2892,10 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 
 bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticleEmitterInstance* Owner, USkeletalMeshComponent* InSkelMeshComponent, int32 InVertexIndex, int32* OutBoneIndex)
 {
-	FSkeletalMeshResource* SkelMeshResource = InSkelMeshComponent->GetSkeletalMeshResource();
+	FSkeletalMeshRenderData* SkelMeshResource = InSkelMeshComponent->GetSkeletalMeshRenderData();
 	if (SkelMeshResource)
 	{
-		FStaticLODModel& Model = SkelMeshResource->LODModels[0];
+		FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[0];
 
 		FModuleLocationVertSurfaceInstancePayload* InstancePayload = 
 			(FModuleLocationVertSurfaceInstancePayload*)(Owner->GetModuleInstanceData(this));
@@ -2902,12 +2903,11 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 		// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
 		int32 SectionIndex;
 		int32 VertIndex;
-		bool bHasExtraBoneInfluences;
-		Model.GetSectionFromVertexIndex(InVertexIndex, SectionIndex, VertIndex, bHasExtraBoneInfluences);
+		LODData.GetSectionFromVertexIndex(InVertexIndex, SectionIndex, VertIndex);
 
-		check(SectionIndex < Model.Sections.Num());
+		check(SectionIndex < LODData.RenderSections.Num());
 
-		FSkelMeshSection& Section = Model.Sections[SectionIndex];
+		FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
 
 		if (ValidMaterialIndices.Num() > 0)
 		{
@@ -2929,18 +2929,18 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 			}
 		}
 
-		return Model.SkinWeightVertexBuffer.HasExtraBoneInfluences()
-			? VertInfluencedByActiveBoneTyped<true>(Model, 0, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
-			: VertInfluencedByActiveBoneTyped<false>(Model, 0, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
+		return LODData.SkinWeightVertexBuffer.HasExtraBoneInfluences()
+			? VertInfluencedByActiveBoneTyped<true>(LODData, 0, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
+			: VertInfluencedByActiveBoneTyped<false>(LODData, 0, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
 	}
 	return false;
 }
 
 template<bool bExtraBoneInfluencesT>
 bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(
-	FStaticLODModel& Model, 
+	FSkeletalMeshLODRenderData& LODData,
 	int32 LODIndex,
-	const FSkelMeshSection& Section, 
+	const FSkelMeshRenderSection& Section, 
 	int32 VertIndex, 
 	USkeletalMeshComponent* InSkelMeshComponent, 
 	FModuleLocationVertSurfaceInstancePayload* InstancePayload, 

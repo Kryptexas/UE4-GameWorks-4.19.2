@@ -994,8 +994,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	FIntPoint DebugCanvasSize = InViewport->GetSizeXY();
 	static FName DebugCanvasObjectName(TEXT("DebugCanvasObject"));
 	UCanvas* DebugCanvasObject = GetCanvasByName(DebugCanvasObjectName);
-	DebugCanvasObject->Canvas = DebugCanvas;	
-	DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL);
+	DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL, DebugCanvas);
 
 	static const auto DebugCanvasInLayerCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.DebugCanvasInLayer"));
 	const bool bDebugInLayer = bStereoRendering && (DebugCanvasInLayerCVar && DebugCanvasInLayerCVar->GetValueOnAnyThread() != 0);
@@ -1349,7 +1348,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						// rendering to directly to viewport target
 						FVector CanvasOrigin(FMath::TruncToFloat(View->UnscaledViewRect.Min.X), FMath::TruncToInt(View->UnscaledViewRect.Min.Y), 0.f);
 												
-						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
+						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View, SceneCanvas);
 
 						// Set the canvas transform for the player's view rectangle.
 						check(SceneCanvas);
@@ -1419,7 +1418,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		{
 			// Reset the debug canvas to be full-screen before drawing the console
 			// (the debug draw service above has messed with the viewport size to fit it to a single player's subregion)
-			DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL);
+			DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL, DebugCanvas);
 
 			ViewportConsole->PostRender_Console(DebugCanvasObject);
 		}

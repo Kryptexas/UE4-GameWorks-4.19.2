@@ -229,6 +229,7 @@ FConvertToUniformMeshDrawingPolicy::FConvertToUniformMeshDrawingPolicy(
 {
 	VertexShader = InMaterialResource.GetShader<FConvertToUniformMeshVS>(InVertexFactory->GetType());
 	GeometryShader = InMaterialResource.GetShader<FConvertToUniformMeshGS>(InVertexFactory->GetType());
+	BaseVertexShader = VertexShader;
 }
 
 FDrawingPolicyMatchResult FConvertToUniformMeshDrawingPolicy::Matches(

@@ -261,7 +261,7 @@ void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 
 			for (const auto& Mesh : Meshes)
 			{
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 				MeshBuilder.AddVertices(Mesh.Vertices);
 				MeshBuilder.AddTriangles(Mesh.Indices);
 

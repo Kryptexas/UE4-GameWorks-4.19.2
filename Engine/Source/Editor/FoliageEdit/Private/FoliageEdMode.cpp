@@ -2464,16 +2464,16 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 			if (StaticMeshComponent->LODData.Num() > 0)
 			{
 				InstanceMeshLODInfo = StaticMeshComponent->LODData.GetData();
-				bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
+				bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 			}
 
-			const bool bHasColorData = bHasInstancedColorData || LODModel.ColorVertexBuffer.GetNumVertices();
+			const bool bHasColorData = bHasInstancedColorData || LODModel.VertexBuffers.ColorVertexBuffer.GetNumVertices();
 
 			// Get the raw triangle data for this static mesh
 			FTransform LocalToWorld = StaticMeshComponent->GetComponentTransform();
 			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
-			const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
-			const FColorVertexBuffer& ColorVertexBuffer = LODModel.ColorVertexBuffer;
+			const FPositionVertexBuffer& PositionVertexBuffer = LODModel.VertexBuffers.PositionVertexBuffer;
+			const FColorVertexBuffer& ColorVertexBuffer = LODModel.VertexBuffers.ColorVertexBuffer;
 
 			if (USplineMeshComponent* SplineMesh = Cast<USplineMeshComponent>(StaticMeshComponent))
 			{
@@ -2607,10 +2607,10 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* 
 	if (InStaticMeshComponent->LODData.Num() > 0)
 	{
 		InstanceMeshLODInfo = InStaticMeshComponent->LODData.GetData();
-		bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
+		bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 	}
 
-	const FColorVertexBuffer& ColorVertexBuffer = LODModel.ColorVertexBuffer;
+	const FColorVertexBuffer& ColorVertexBuffer = LODModel.VertexBuffers.ColorVertexBuffer;
 
 	// no vertex color data
 	if (!bHasInstancedColorData && ColorVertexBuffer.GetNumVertices() == 0)
@@ -2620,7 +2620,7 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* 
 
 	// Get the raw triangle data for this static mesh
 	FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
-	const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
+	const FPositionVertexBuffer& PositionVertexBuffer = LODModel.VertexBuffers.PositionVertexBuffer;
 
 	int32 SectionFirstTriIndex = 0;
 	for (TArray<FStaticMeshSection>::TConstIterator SectionIt(LODModel.Sections); SectionIt; ++SectionIt)

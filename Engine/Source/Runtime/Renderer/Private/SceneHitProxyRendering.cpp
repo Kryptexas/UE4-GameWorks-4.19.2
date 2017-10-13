@@ -179,6 +179,7 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	}
 	VertexShader = MaterialResource->GetShader<FHitProxyVS>(InVertexFactory->GetType());
 	PixelShader = MaterialResource->GetShader<FHitProxyPS>(InVertexFactory->GetType());
+	BaseVertexShader = VertexShader;
 }
 
 void FHitProxyDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const

@@ -18,14 +18,14 @@ bool FMeshPaintGeometryAdapterForSplineMeshes::InitializeVertexData()
 	if (LODModel)
 	{
 		// Retrieve vertex and index data 
-		const int32 NumVertices = LODModel->PositionVertexBuffer.GetNumVertices();
+		const int32 NumVertices = LODModel->VertexBuffers.PositionVertexBuffer.GetNumVertices();
 		MeshVertices.Reset();
 		MeshVertices.AddDefaulted(NumVertices);
 		
 		// Apply spline vertex deformation to each vertex
 		for (int32 Index = 0; Index < NumVertices; Index++)
 		{
-			FVector Position = LODModel->PositionVertexBuffer.VertexPosition(Index);
+			FVector Position = LODModel->VertexBuffers.PositionVertexBuffer.VertexPosition(Index);
 			const FTransform SliceTransform = SplineMeshComponent->CalcSliceTransform(USplineMeshComponent::GetAxisValue(Position, SplineMeshComponent->ForwardAxis));
 			USplineMeshComponent::GetAxisValue(Position, SplineMeshComponent->ForwardAxis) = 0;
 			MeshVertices[Index] = SliceTransform.TransformPosition(Position);

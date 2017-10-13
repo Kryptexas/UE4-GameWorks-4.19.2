@@ -268,6 +268,7 @@ FMeshDecalsDrawingPolicy::FMeshDecalsDrawingPolicy(
 	VertexShader = InMaterialResource.GetShader<FMeshDecalVS>(InVertexFactory->GetType());
 
 	PixelShader = InMaterialResource.GetShader<FMeshDecalsPS>(InVertexFactory->GetType());
+	BaseVertexShader = VertexShader;
 }
 
 FDrawingPolicyMatchResult FMeshDecalsDrawingPolicy::Matches(

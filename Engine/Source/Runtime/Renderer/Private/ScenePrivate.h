@@ -2302,8 +2302,6 @@ public:
 
 	virtual bool IsEditorScene() const override { return bIsEditorScene; }
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
-
 	bool ShouldRenderSkylightInBasePass(EBlendMode BlendMode) const
 	{
 		return ShouldRenderSkylightInBasePass_Internal(BlendMode) && (ReadOnlyCVARCache.bEnableStationarySkylight || IsSimpleForwardShadingEnabled(GetShaderPlatform()));
@@ -2454,9 +2452,6 @@ private:
 	 * Note: This is tracked on the game thread!
 	 */
 	int32 NumEnabledSkylights_GameThread;
-
-	/** This scene's feature level */
-	ERHIFeatureLevel::Type FeatureLevel;
 
 	/** Frame number incremented per-family viewing this scene. */
 	uint32 SceneFrameNumber;

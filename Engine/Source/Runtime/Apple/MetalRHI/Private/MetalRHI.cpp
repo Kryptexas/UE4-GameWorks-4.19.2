@@ -584,6 +584,9 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GPixelFormats[PF_R16_UINT			].PlatformFormat	= MTLPixelFormatR16Uint;
 	GPixelFormats[PF_R8_UINT			].PlatformFormat	= MTLPixelFormatR8Uint;
 
+	GPixelFormats[PF_R16G16B16A16_UNORM ].PlatformFormat	= MTLPixelFormatRGBA16Unorm;
+	GPixelFormats[PF_R16G16B16A16_SNORM ].PlatformFormat	= MTLPixelFormatRGBA16Snorm;
+
 	// get driver version (todo: share with other RHIs)
 	{
 		FGPUDriverInfo GPUDriverInfo = FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName);

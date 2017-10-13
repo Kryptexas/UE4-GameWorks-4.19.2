@@ -1752,6 +1752,13 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 						{
 							AvailElementCount = MaxElements - FirstInstance;
 						}
+
+						// In D3D, when stride is 0 in a per-instance VB, it means the same instance data
+						// is applied to all instances
+						if (VertexDeclaration->StreamStrides[i] == 0)
+						{
+							AvailElementCount = MaxElements >= 1 ? NumInstances : 0;
+						}
 					}
 
 					MaxNumInstances = FMath::Min(MaxNumInstances, AvailElementCount);

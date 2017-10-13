@@ -3,7 +3,9 @@
 #include "SkeletalMeshTools.h"
 #include "Engine/SkeletalMesh.h"
 #include "MeshBuild.h"
+#include "MeshUtilities.h"
 #include "RawIndexBuffer.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 namespace SkeletalMeshTools
 {
@@ -182,16 +184,8 @@ namespace SkeletalMeshTools
 				}
 
 				// set the index entry for the newly added vertex
-#if DISALLOW_32BIT_INDICES
-				if(FinalVertIndex > MAX_uint16)
-				{
-					bOutTooManyVerts = true;
-				}
-				TriangleIndices[VertexIndex] = (uint16)FinalVertIndex;
-#else
 				// TArray internally has int32 for capacity, so no need to test for uint32 as it's larger than int32
 				TriangleIndices[VertexIndex] = (uint32)FinalVertIndex;
-#endif
 			}
 
 			if(TriangleIndices[0] != TriangleIndices[1] && TriangleIndices[0] != TriangleIndices[2] && TriangleIndices[1] != TriangleIndices[2])
@@ -335,11 +329,11 @@ namespace SkeletalMeshTools
 	/**
 	 * Copies data out of Model so that the data can be processed in the background.
 	 */
-	void CopySkinnedModelData(FSkinnedModelData& OutData, FStaticLODModel& Model)
+	void CopySkinnedModelData(FSkinnedModelData& OutData, FSkeletalMeshLODModel& Model)
 	{
 	#if WITH_EDITORONLY_DATA
 		Model.GetVertices(OutData.Vertices);
-		Model.MultiSizeIndexContainer.GetIndexBuffer(OutData.Indices);
+		OutData.Indices = Model.IndexBuffer;
 		if (Model.RawPointIndices.GetElementCount() == OutData.Vertices.Num())
 		{
 			OutData.RawPointIndices.Empty(Model.RawPointIndices.GetElementCount());
@@ -448,7 +442,7 @@ namespace SkeletalMeshTools
 	
 	void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant)
 	{
-		FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = SkeletalMesh->GetImportedModel();
 		if (ImportedResource->LODModels.Num() == 0)
 			return;
 
@@ -458,7 +452,7 @@ namespace SkeletalMeshTools
 		Infos.Empty();
 		Infos.AddZeroed( SkeletalMesh->RefSkeleton.GetRawBoneNum() );
 
-		FStaticLODModel* LODModel = &ImportedResource->LODModels[0];
+		FSkeletalMeshLODModel* LODModel = &ImportedResource->LODModels[0];
 		for(int32 SectionIndex = 0; SectionIndex < LODModel->Sections.Num(); SectionIndex++)
 		{
 			FSkelMeshSection& Section = LODModel->Sections[SectionIndex];

@@ -87,6 +87,7 @@ static TAutoConsoleVariable<int32> CVarDistFieldAtlasResZ(
 	ECVF_ReadOnly);
 
 int32 GDistanceFieldForceAtlasRealloc = 0;
+ 
 FAutoConsoleVariableRef CVarDistFieldForceAtlasRealloc(
 	TEXT("r.DistanceFields.ForceAtlasRealloc"),
 	GDistanceFieldForceAtlasRealloc,

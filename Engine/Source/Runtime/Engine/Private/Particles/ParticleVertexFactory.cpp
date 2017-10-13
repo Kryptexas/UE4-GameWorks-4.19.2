@@ -260,7 +260,7 @@ void FParticleSpriteVertexFactory::InitStreams()
 	}
 	FVertexStream* InstanceStream = new(Streams) FVertexStream;
 	FVertexStream* DynamicParameterStream = new(Streams) FVertexStream;
-	DynamicParameterStream->Stride = DynamicParameterStride;
+	DynamicParameterStream->Stride = bUsesDynamicParameter ? DynamicParameterStride : 0;
 }
 
 void FParticleSpriteVertexFactory::SetInstanceBuffer(const FVertexBuffer* InInstanceBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced)

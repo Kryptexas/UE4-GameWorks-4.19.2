@@ -1509,7 +1509,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				for (int32 LODIndex = 0; LODIndex < InstanceParams.LODs; LODIndex++)
 				{
 					InstanceParams.MinInstancesToSplit[LODIndex] = 2;
-					int32 NumVerts = RenderData->LODResources[LODIndex].VertexBuffer.GetNumVertices();
+					int32 NumVerts = RenderData->LODResources[LODIndex].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 					if (NumVerts)
 					{
 						InstanceParams.MinInstancesToSplit[LODIndex] = MinVertsToSplitNode / NumVerts;

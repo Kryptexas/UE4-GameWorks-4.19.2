@@ -59,9 +59,6 @@ FArchive& operator<<(FArchive& Ar,FRawIndexBuffer& I)
 	FRawIndexBuffer16or32
 -----------------------------------------------------------------------------*/
 
-// on platforms that only support 16-bit indices, the FRawIndexBuffer16or32 class is just typedef'd to the 16-bit version
-#if !DISALLOW_32BIT_INDICES
-
 /**
 * Orders a triangle list for better vertex cache coherency.
 */
@@ -136,8 +133,6 @@ FArchive& operator<<(FArchive& Ar,FRawIndexBuffer16or32& I)
 	I.Indices.BulkSerialize( Ar );
 	return Ar;
 }
-
-#endif
 
 /*-----------------------------------------------------------------------------
 	FRawStaticIndexBuffer

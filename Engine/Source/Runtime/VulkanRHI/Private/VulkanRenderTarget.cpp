@@ -324,7 +324,17 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 
 	if (TransitionState.RenderingMipChainInfo.bInsideRenderingMipChain)
 	{
-		check(Framebuffer);
+		if (!Framebuffer)
+		{
+			UE_LOG(LogVulkanRHI, Fatal, TEXT("Unable to find framebuffer during mipchain generation: W,H:%d,%d CurrMip:%d LastMip:%d #Mips:%d VkViewType:%d PF_:%d"),
+				RTLayout.GetExtent2D().width,
+				RTLayout.GetExtent2D().height,
+				TransitionState.RenderingMipChainInfo.CurrentMip,
+				TransitionState.RenderingMipChainInfo.LastRenderedMip,
+				TransitionState.RenderingMipChainInfo.Texture->Surface.GetNumMips(),
+				(int32)TransitionState.RenderingMipChainInfo.Texture->Surface.GetViewType(),
+				(int32)TransitionState.RenderingMipChainInfo.Texture->Surface.PixelFormat);
+		}
 		TransitionState.ProcessMipChainTransitions(CmdBuffer, Framebuffer, Framebuffer->RTInfo.ColorRenderTarget[0].MipIndex);
 	}
 
@@ -1179,15 +1189,15 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 	
 			if (bSetExtent)
 			{
-				ensure(Extent.Extent3D.width == Texture->Surface.Width >> RTView.MipIndex);
-				ensure(Extent.Extent3D.height == Texture->Surface.Height >> RTView.MipIndex);
+				ensure(Extent.Extent3D.width == FMath::Max(1u, Texture->Surface.Width >> RTView.MipIndex));
+				ensure(Extent.Extent3D.height == FMath::Max(1u, Texture->Surface.Height >> RTView.MipIndex));
 				ensure(Extent.Extent3D.depth == Texture->Surface.Depth);
 			}
 			else
 			{
 				bSetExtent = true;
-				Extent.Extent3D.width = Texture->Surface.Width >> RTView.MipIndex;
-				Extent.Extent3D.height = Texture->Surface.Height >> RTView.MipIndex;
+				Extent.Extent3D.width = FMath::Max(1u, Texture->Surface.Width >> RTView.MipIndex);
+				Extent.Extent3D.height = FMath::Max(1u, Texture->Surface.Height >> RTView.MipIndex);
 				Extent.Extent3D.depth = Texture->Surface.Depth;
 			}
 

@@ -3,11 +3,14 @@
 #include "SkinnedBoneTriangleCache.h"
 #include "Editor.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "SkeletalMeshModel.h"
+#include "SkeletalMeshRenderData.h"
 
 FSkinnedBoneTriangleCache::FSkinnedBoneTriangleCache(USkeletalMesh& InSkeletalMesh, const FPhysAssetCreateParams& Params)
 	: SkeletalMesh(InSkeletalMesh),
-	StaticLODModel(SkeletalMesh.GetSourceModel()),
-	VertexBuffer(StaticLODModel.VertexBufferGPUSkin),
+	StaticLODModel(*SkeletalMesh.GetImportedModel()),
+	RenderData(*SkeletalMesh.GetResourceForRendering()),
+	VertexBuffer(RenderData.LODRenderData[0].StaticVertexBuffers.PositionVertexBuffer),
 	InfluenceHeuristic(Params.VertWeight),
 	BoneIndexToInfluencedVertices(),
 	BoneIndexToTriangles(),
@@ -77,10 +80,9 @@ void FSkinnedBoneTriangleCache::AddIndexToInfluencerBoneSets(const FSkinnedVerte
 {
 	int32 SectionIndex;
 	int32 SoftVertIndex;
-	bool bHasExtraInfluences;
-	StaticLODModel.GetSectionFromVertexIndex(VertIndex, SectionIndex, SoftVertIndex, bHasExtraInfluences);
+	RenderData.LODRenderData[0].GetSectionFromVertexIndex(VertIndex, SectionIndex, SoftVertIndex);
 
-	const FSkelMeshSection& Section = StaticLODModel.Sections[SectionIndex];
+	const FSkelMeshSection& Section = StaticLODModel.LODModels[0].Sections[SectionIndex];
 	const FSoftSkinVertex& SoftVert = Section.SoftVertices[SoftVertIndex];
 	const uint8 MaxWeight = InfluenceHeuristic == EVW_DominantWeight ? SoftVert.GetMaximumWeight() : 0;
 
@@ -114,7 +116,7 @@ void FSkinnedBoneTriangleCache::AddIndexToInfluencerBoneSets(const FSkinnedVerte
 void FSkinnedBoneTriangleCache::BuildOwnedTrianglesSetForEachBone()
 {
 	LODModelIndexBufferInOrder.Empty();
-	StaticLODModel.MultiSizeIndexContainer.GetIndexBuffer(LODModelIndexBufferInOrder);
+	RenderData.LODRenderData[0].MultiSizeIndexContainer.GetIndexBuffer(LODModelIndexBufferInOrder);
 
 	// We assume that each triplet of indices in the index buffer forms a triangle.
 	check(LODModelIndexBufferInOrder.Num() % 3 == 0);
@@ -158,7 +160,7 @@ void FSkinnedBoneTriangleCache::AddTriangleIndexToOwnerBoneSets(const FTriangleI
 
 FVector FSkinnedBoneTriangleCache::VertexPosition(const FSkinnedVertexIndex VertIndex, const FMatrix& ComponentToBoneMatrix) const
 {
-	const FVector Position = VertexBuffer.GetVertexPositionFast(VertIndex);
+	const FVector Position = VertexBuffer.VertexPosition(VertIndex);
 	return ComponentToBoneMatrix.TransformPosition(Position);
 }
 

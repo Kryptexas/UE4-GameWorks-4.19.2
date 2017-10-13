@@ -525,6 +525,7 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 		DistortPixelShader = InMaterialResource.GetShader<TDistortionMeshPS<DistortMeshPolicy> >(InVertexFactory->GetType());
 //later		InitializePixelShader = NULL;
 	}
+	BaseVertexShader = VertexShader;
 }
 
 /**

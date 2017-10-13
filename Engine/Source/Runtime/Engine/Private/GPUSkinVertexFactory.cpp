@@ -356,6 +356,12 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::CopyDataTypeForPassthroughFac
 	DestDataType.TangentBasisComponents[1] = Data.TangentBasisComponents[1];
 	DestDataType.TextureCoordinates = Data.TextureCoordinates;
 	DestDataType.ColorComponent = Data.ColorComponent;
+	DestDataType.PositionComponentSRV = Data.PositionComponentSRV;
+	DestDataType.TangentsSRV = Data.TangentsSRV;
+	DestDataType.ColorComponentsSRV = Data.ColorComponentsSRV;
+	DestDataType.TextureCoordinatesSRV = Data.TextureCoordinatesSRV;
+	DestDataType.LightMapCoordinateIndex = Data.LightMapCoordinateIndex;
+	DestDataType.NumTexCoords = Data.NumTexCoords;
 	PassthroughVertexFactory->SetData(DestDataType);
 }
 
@@ -395,6 +401,12 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& 
 		}
 	}
 
+	if (Data.ColorComponentsSRV == nullptr)
+	{
+		Data.ColorComponentsSRV = GNullColorVertexBuffer.VertexBufferSRV;
+		Data.ColorIndexMask = 0;
+	}
+
 	// Account for the possibility that the mesh has no vertex colors
 	if( InData.ColorComponent.VertexBuffer )
 	{
@@ -404,8 +416,8 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& 
 	{
 		//If the mesh has no color component, set the null color buffer on a new stream with a stride of 0.
 		//This wastes 4 bytes of bandwidth per vertex, but prevents having to compile out twice the number of vertex factories.
-		FVertexStreamComponent NullColorComponent(&GNullColorVertexBuffer, 0, 0, VET_Color);
-		OutElements.Add(AccessStreamComponent(NullColorComponent,13));
+		FVertexStreamComponent NullColorComponent(&GNullColorVertexBuffer, 0, 0, VET_Color, EVertexStreamUsage::ManualFetch);
+		OutElements.Add(AccessStreamComponent(NullColorComponent, 13));
 	}
 
 	// bone indices decls
@@ -476,8 +488,6 @@ public:
 	*/
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
-		MeshOriginParameter.Bind(ParameterMap,TEXT("MeshOrigin"));
-		MeshExtensionParameter.Bind(ParameterMap,TEXT("MeshExtension"));
 		PerBoneMotionBlur.Bind(ParameterMap,TEXT("PerBoneMotionBlur"));
 		BoneMatrices.Bind(ParameterMap,TEXT("BoneMatrices"));
 		PreviousBoneMatrices.Bind(ParameterMap,TEXT("PreviousBoneMatrices"));
@@ -488,8 +498,6 @@ public:
 	*/
 	virtual void Serialize(FArchive& Ar) override
 	{
-		Ar << MeshOriginParameter;
-		Ar << MeshExtensionParameter;
 		Ar << PerBoneMotionBlur;
 		Ar << BoneMatrices;
 		Ar << PreviousBoneMatrices;
@@ -505,9 +513,6 @@ public:
 		if(ShaderRHI)
 		{
 			const FGPUBaseSkinVertexFactory::FShaderDataType& ShaderData = ((const FGPUBaseSkinVertexFactory*)VertexFactory)->GetShaderData();
-
-			SetShaderValue(RHICmdList, ShaderRHI, MeshOriginParameter, ShaderData.MeshOrigin);
-			SetShaderValue(RHICmdList, ShaderRHI, MeshExtensionParameter, ShaderData.MeshExtension);
 	
 			const auto FeatureLevel = View.GetFeatureLevel();
 
@@ -544,8 +549,6 @@ public:
 	virtual uint32 GetSize() const override { return sizeof(*this); }
 
 private:
-	FShaderParameter MeshOriginParameter;
-	FShaderParameter MeshExtensionParameter;
 	FShaderParameter PerBoneMotionBlur;
 	FShaderResourceParameter BoneMatrices;
 	FShaderResourceParameter PreviousBoneMatrices;
@@ -574,8 +577,7 @@ public:
 	*/
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
-		GPUSkinCachePreviousFloatOffset.Bind(ParameterMap,TEXT("GPUSkinCachePreviousFloatOffset"));
-		GPUSkinCachePreviousBuffer.Bind(ParameterMap,TEXT("GPUSkinCachePreviousBuffer"));
+		GPUSkinCachePreviousPositionBuffer.Bind(ParameterMap,TEXT("GPUSkinCachePreviousPositionBuffer"));
 	}
 	/**
 	* Serialize shader params to an archive
@@ -583,8 +585,7 @@ public:
 	*/
 	virtual void Serialize(FArchive& Ar) override
 	{
-		Ar << GPUSkinCachePreviousFloatOffset;
-		Ar << GPUSkinCachePreviousBuffer;
+		Ar << GPUSkinCachePreviousPositionBuffer;
 	}
 	/**
 	* Set any shader data specific to this vertex factory
@@ -594,14 +595,13 @@ public:
 		check(VertexFactory->GetType() == &FGPUSkinPassthroughVertexFactory::StaticType);
 		FGPUSkinBatchElementUserData* BatchUserData = (FGPUSkinBatchElementUserData*)BatchElement.VertexFactoryUserData;
 		check(BatchUserData);
-		FGPUSkinCache::SetVertexStreams(BatchUserData->Entry, BatchUserData->Section, RHICmdList, View.Family->FrameNumber, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousFloatOffset, GPUSkinCachePreviousBuffer);
+		FGPUSkinCache::SetVertexStreams(BatchUserData->Entry, BatchUserData->Section, RHICmdList, View.Family->FrameNumber, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousPositionBuffer);
 	}
 
 	virtual uint32 GetSize() const override { return sizeof(*this); }
 
 private:
-	FShaderParameter GPUSkinCachePreviousFloatOffset;
-	FShaderResourceParameter GPUSkinCachePreviousBuffer;
+	FShaderResourceParameter GPUSkinCachePreviousPositionBuffer;
 };
 
 /*-----------------------------------------------------------------------------
@@ -609,10 +609,14 @@ FGPUSkinPassthroughVertexFactory
 -----------------------------------------------------------------------------*/
 void FGPUSkinPassthroughVertexFactory::ModifyCompilationEnvironment( EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment )
 {
+	const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
+	if (!ContainsManualVertexFetch)
+	{
+		OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("0"));
+	}
+
 	Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	OutEnvironment.SetDefine(TEXT("GPUSKIN_PASS_THROUGH"),TEXT("1"));
-	OutEnvironment.SetDefine(TEXT("GPUSKIN_RWBUFFER_NUM_FLOATS"), FGPUSkinCache::RWStrideInFloats);
-	OutEnvironment.SetDefine(TEXT("GPUSKIN_RWBUFFER_OFFSET_POSITION"), FGPUSkinCache::RWPositionOffsetInFloats);
 }
 
 bool FGPUSkinPassthroughVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
@@ -621,42 +625,64 @@ bool FGPUSkinPassthroughVertexFactory::ShouldCache(EShaderPlatform Platform, con
 	return IsGPUSkinCacheAvailable() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Super::ShouldCache(Platform, Material, ShaderType) && (Material->IsUsedWithSkeletalMesh() || Material->IsSpecialEngineMaterial());
 }
 
-void FGPUSkinPassthroughVertexFactory::InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, FRWBuffer* RWBuffer)
+void FGPUSkinPassthroughVertexFactory::InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* PositionRWBuffer, struct FRWBuffer* TangentRWBuffer)
 {
 	// Point this vertex buffer to the RWBuffer
-	VBAlias.VertexBufferRHI = RWBuffer->Buffer;
+	PositionVBAlias.VertexBufferRHI = PositionRWBuffer->Buffer;
+
+	TangentVBAlias.VertexBufferRHI = TangentRWBuffer ? TangentRWBuffer->Buffer : nullptr;
 
 	// Modify the vertex declaration using the RWBuffer for the position & tangent information
-	Data.PositionComponent.VertexBuffer =  &VBAlias;
-	Data.PositionComponent.Offset = FGPUSkinCache::RWPositionOffsetInFloats * sizeof(float);
-	Data.PositionComponent.bSetByVertexFactoryInSetMesh = true;
-	Data.PositionComponent.Stride = FGPUSkinCache::RWStrideInFloats * sizeof(float);
+	Data.PositionComponent.VertexBuffer = &PositionVBAlias;
+	Data.PositionComponent.Offset = 0;
+	Data.PositionComponent.VertexStreamUsage = EVertexStreamUsage::Overridden;
+	Data.PositionComponent.Stride = 3 * sizeof(float);
 
-	// Copy the position component info, then override the specific tangent information
-	Data.TangentBasisComponents[0] = Data.PositionComponent;
-	Data.TangentBasisComponents[0].Offset = FGPUSkinCache::RWTangentXOffsetInFloats * sizeof(float);
-	Data.TangentBasisComponents[0].Type = VET_PackedNormal;
+	
+	{
+		Data.TangentsSRV = TangentRWBuffer ? TangentRWBuffer->SRV : SourceVertexFactory->GetTangentsSRV();
+		Data.PositionComponentSRV = PositionRWBuffer->SRV;
+	}
 
-	Data.TangentBasisComponents[1] = Data.PositionComponent;
-	Data.TangentBasisComponents[1].Offset = FGPUSkinCache::RWTangentZOffsetInFloats * sizeof(float);
-	Data.TangentBasisComponents[1].Type = VET_PackedNormal;
+	if (TangentRWBuffer)
+	{
+		Data.TangentBasisComponents[0].VertexBuffer = &TangentVBAlias;
+		Data.TangentBasisComponents[0].Offset = 0;
+		Data.TangentBasisComponents[0].Type = VET_PackedNormal;
+		Data.TangentBasisComponents[0].Stride = 8;
+		Data.TangentBasisComponents[0].VertexStreamUsage = EVertexStreamUsage::Overridden | EVertexStreamUsage::ManualFetch;
+
+		Data.TangentBasisComponents[1].VertexBuffer = &TangentVBAlias;
+		Data.TangentBasisComponents[1].Offset = 4;
+		Data.TangentBasisComponents[1].Type = VET_PackedNormal;
+		Data.TangentBasisComponents[1].Stride = 8;
+		Data.TangentBasisComponents[1].VertexStreamUsage = EVertexStreamUsage::Overridden | EVertexStreamUsage::ManualFetch;
+	}
 
 	int32 PrevNumStreams = Streams.Num();
 	UpdateRHI();
 
-	// Verify an additional stream was created
-	check(Streams.Num() - 1 == PrevNumStreams);
+	// Verify no additional stream was created
+	check(Streams.Num() == PrevNumStreams);
 	// Find the added stream (usually at 0)
-	StreamIndex = -1;
+	PositionStreamIndex = -1;
+	TangentStreamIndex = -1;
 	for (int32 Index = 0; Index < Streams.Num(); ++Index)
 	{
-		if (Streams[Index].VertexBuffer->VertexBufferRHI.GetReference() == RWBuffer->Buffer.GetReference())
+		if (Streams[Index].VertexBuffer->VertexBufferRHI.GetReference() == PositionRWBuffer->Buffer.GetReference())
 		{
-			StreamIndex = Index;
-			break;
+			PositionStreamIndex = Index;
+		}
+
+		if (TangentRWBuffer)
+		{
+			if (Streams[Index].VertexBuffer->VertexBufferRHI.GetReference() == TangentRWBuffer->Buffer.GetReference())
+			{
+				TangentStreamIndex = Index;
+			}
 		}
 	}
-	checkf(StreamIndex != -1, TEXT("Unable to find stream for RWBuffer Vertex buffer!"));
+	checkf(PositionStreamIndex != -1, TEXT("Unable to find stream for RWBuffer Vertex buffer!"));
 }
 
 FVertexFactoryShaderParameters* FGPUSkinPassthroughVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)

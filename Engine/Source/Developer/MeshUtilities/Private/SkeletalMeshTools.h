@@ -6,9 +6,14 @@
 #include "Containers/IndirectArray.h"
 #include "PackedNormal.h"
 #include "GPUSkinPublicDefs.h"
-#include "SkeletalMeshTypes.h"
+#include "Components.h"
+#include "BoneIndices.h"
+#include "SkelImport.h"
 
 class USkeletalMesh;
+struct FSoftSkinVertex;
+struct FSkelMeshSection;
+struct FBoneVertInfo;
 
 // this is used for a sub-quadratic routine to find "equal" verts
 struct FSkeletalMeshVertIndexAndZ
@@ -114,7 +119,7 @@ namespace SkeletalMeshTools
 	/**
 	 * Copies data out of Model so that the data can be processed in the background.
 	 */
-	void CopySkinnedModelData(FSkinnedModelData& OutData, FStaticLODModel& Model);
+	void CopySkinnedModelData(FSkinnedModelData& OutData, FSkeletalMeshLODModel& Model);
 	
 	void UnchunkSkeletalModel(TArray<FSkinnedMeshChunk*>& Chunks, TArray<int32>& PointToOriginalMap, const FSkinnedModelData& SrcModel);
 

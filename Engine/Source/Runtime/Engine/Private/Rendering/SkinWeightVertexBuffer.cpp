@@ -1,8 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Rendering/SkinWeightVertexBuffer.h"
-#include "SkeletalMeshTypes.h"
 #include "EngineUtils.h"
+#include "Rendering/SkeletalMeshLODModel.h"
 
 ///
 
@@ -54,6 +54,8 @@ bool FSkinWeightVertexBuffer::IsWeightDataValid() const
 	return WeightData != NULL;
 }
 
+#if WITH_EDITOR
+
 void FSkinWeightVertexBuffer::Init(const TArray<FSoftSkinVertex>& InVertices)
 {
 	// Make sure if this is console, use compressed otherwise, use not compressed
@@ -85,6 +87,9 @@ void FSkinWeightVertexBuffer::Init(const TArray<FSoftSkinVertex>& InVertices)
 		}
 	}
 }
+
+#endif // WITH_EDITOR
+
 
 FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer)
 {
@@ -158,6 +163,8 @@ void FSkinWeightVertexBuffer::AllocateData()
 	}
 }
 
+#if WITH_EDITOR
+
 template <bool bExtraBoneInfluencesT>
 void FSkinWeightVertexBuffer::SetWeightsForVertex(uint32 VertexIndex, const FSoftSkinVertex& SrcVertex)
 {
@@ -166,3 +173,5 @@ void FSkinWeightVertexBuffer::SetWeightsForVertex(uint32 VertexIndex, const FSof
 	FMemory::Memcpy(VertBase->InfluenceBones, SrcVertex.InfluenceBones, TSkinWeightInfo<bExtraBoneInfluencesT>::NumInfluences);
 	FMemory::Memcpy(VertBase->InfluenceWeights, SrcVertex.InfluenceWeights, TSkinWeightInfo<bExtraBoneInfluencesT>::NumInfluences);
 }
+
+#endif //WITH_EDITOR

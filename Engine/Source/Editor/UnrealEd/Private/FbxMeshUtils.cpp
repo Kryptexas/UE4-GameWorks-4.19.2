@@ -19,6 +19,7 @@
 #include "StaticMeshResources.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "SkelImport.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -246,10 +247,10 @@ namespace FbxMeshUtils
 			TArray<int32> ClothingAssetSectionIndices;
 			TArray<int32> ClothingAssetInternalLodIndices;
 
-			FSkeletalMeshResource* ImportedResource = SelectedSkelMesh->GetImportedResource();
+			FSkeletalMeshModel* ImportedResource = SelectedSkelMesh->GetImportedModel();
 			if(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODLevel))
 			{
-				FStaticLODModel& LodModel = ImportedResource->LODModels[LODLevel];
+				FSkeletalMeshLODModel& LodModel = ImportedResource->LODModels[LODLevel];
 
 				const int32 NumSections = LodModel.Sections.Num();
 
@@ -257,16 +258,12 @@ namespace FbxMeshUtils
 				{
 					FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
 
-					if(Section.CorrespondClothSectionIndex != INDEX_NONE)
+					if(Section.HasClothingData())
 					{
-						// See if this is the original section
-						if(Section.bDisabled)
-						{
-							UClothingAssetBase* AssetInUse = SelectedSkelMesh->GetSectionClothingAsset(LODLevel, SectionIndex);
-							ClothingAssetsInUse.Add(AssetInUse);
-							ClothingAssetSectionIndices.Add(SectionIndex);
-							ClothingAssetInternalLodIndices.Add(Section.ClothingData.AssetLodIndex);
-						}
+						UClothingAssetBase* AssetInUse = SelectedSkelMesh->GetSectionClothingAsset(LODLevel, SectionIndex);
+						ClothingAssetsInUse.Add(AssetInUse);
+						ClothingAssetSectionIndices.Add(SectionIndex);
+						ClothingAssetInternalLodIndices.Add(Section.ClothingData.AssetLodIndex);
 					}
 				}
 			}
@@ -516,7 +513,7 @@ namespace FbxMeshUtils
 			int32 NumClothingAssetsToApply = ClothingAssetsInUse.Num();
 			if(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODLevel))
 			{
-				FStaticLODModel& LodModel = ImportedResource->LODModels[LODLevel];
+				FSkeletalMeshLODModel& LodModel = ImportedResource->LODModels[LODLevel];
 				for(int32 AssetIndex = 0; AssetIndex < NumClothingAssetsToApply; ++AssetIndex)
 				{
 					// Only if the same section exists

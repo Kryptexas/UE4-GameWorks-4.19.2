@@ -551,7 +551,6 @@
 #include "Animation/AnimLinkableElement.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
-#include "SkeletalMeshTypes.h"
 #include "GPUSkinPublicDefs.h"
 #include "Engine/SkeletalMesh.h"
 #include "EngineGlobals.h"

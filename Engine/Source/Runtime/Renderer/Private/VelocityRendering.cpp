@@ -93,7 +93,7 @@ public:
 	bool SupportsVelocity() const
 	{
 		return PreviousLocalToWorld.IsBound() || 
-			GPUSkinCachePreviousBuffer.IsBound() || 
+			GPUSkinCachePreviousPositionBuffer.IsBound() ||
 			PrevTransformBuffer.IsBound() || 
 			(PrevTransform0.IsBound() && PrevTransform1.IsBound() && PrevTransform2.IsBound());
 	}
@@ -115,7 +115,7 @@ protected:
 		FMeshMaterialShader(Initializer)
 	{
 		PreviousLocalToWorld.Bind(Initializer.ParameterMap,TEXT("PreviousLocalToWorld"));
-		GPUSkinCachePreviousBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousBuffer"));
+		GPUSkinCachePreviousPositionBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousPositionBuffer"));
 		PrevTransform0.Bind(Initializer.ParameterMap, TEXT("PrevTransform0"));
 		PrevTransform1.Bind(Initializer.ParameterMap, TEXT("PrevTransform1"));
 		PrevTransform2.Bind(Initializer.ParameterMap, TEXT("PrevTransform2"));
@@ -131,7 +131,7 @@ protected:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 
 		Ar << PreviousLocalToWorld;
-		Ar << GPUSkinCachePreviousBuffer;
+		Ar << GPUSkinCachePreviousPositionBuffer;
 		Ar << PrevTransform0;
 		Ar << PrevTransform1;
 		Ar << PrevTransform2;
@@ -144,7 +144,7 @@ protected:
 
 private:
 	FShaderParameter PreviousLocalToWorld;
-	FShaderResourceParameter GPUSkinCachePreviousBuffer;
+	FShaderResourceParameter GPUSkinCachePreviousPositionBuffer;
 	FShaderParameter PrevTransform0;
 	FShaderParameter PrevTransform1;
 	FShaderParameter PrevTransform2;
@@ -313,6 +313,7 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 		VertexShader = bHasVertexShader ? MeshShaderIndex->GetShader<FVelocityVS>() : nullptr;
 		PixelShader = bHasPixelShader ? MeshShaderIndex->GetShader<FVelocityPS>() : nullptr;
 	}
+	BaseVertexShader = VertexShader;
 }
 
 bool FVelocityDrawingPolicy::SupportsVelocity() const

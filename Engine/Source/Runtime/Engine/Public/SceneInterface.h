@@ -47,6 +47,9 @@ enum class EShadingPath
 class FSceneInterface
 {
 public:
+	FSceneInterface(ERHIFeatureLevel::Type InFeatureLevel)
+		: FeatureLevel(InFeatureLevel)
+	{}
 
 	// FSceneInterface interface
 
@@ -367,7 +370,8 @@ public:
 
 	virtual bool IsEditorScene() const { return false; }
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GMaxRHIFeatureLevel; }
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 
 	static EShadingPath GetShadingPath(ERHIFeatureLevel::Type InFeatureLevel)
@@ -417,4 +421,7 @@ public:
 
 protected:
 	virtual ~FSceneInterface() {}
+
+	/** This scene's feature level */
+	ERHIFeatureLevel::Type FeatureLevel;
 };

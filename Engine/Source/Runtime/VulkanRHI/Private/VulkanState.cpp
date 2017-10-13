@@ -82,16 +82,6 @@ inline VkSamplerAddressMode TranslateWrapMode(ESamplerAddressMode InAddressMode,
 	return OutAddressMode;
 }
 
-static int32 GetMaxAnisotropy(ESamplerFilter Filter, int32 MaxAniso)
-{
-	switch (Filter)
-	{
-		case SF_AnisotropicPoint:
-		case SF_AnisotropicLinear:	return FMath::Clamp((MaxAniso > 0 ? MaxAniso : (int32)ComputeAnisotropyRT(MaxAniso)), 1, GMaxVulkanTextureFilterAnisotropic);
-		default:					return 1;
-	}
-}
-
 inline VkCompareOp TranslateSamplerCompareFunction(ESamplerCompareFunction InSamplerComparisonFunction)
 {
 	VkCompareOp OutSamplerComparisonFunction = VK_COMPARE_OP_MAX_ENUM;
@@ -256,7 +246,7 @@ FVulkanSamplerState::FVulkanSamplerState(const FSamplerStateInitializerRHI& Init
 	
 
 	SamplerInfo.mipLodBias = Initializer.MipBias;
-	SamplerInfo.maxAnisotropy = GetMaxAnisotropy(Initializer.Filter, Initializer.MaxAnisotropy);
+	SamplerInfo.maxAnisotropy = FMath::Clamp((float)ComputeAnisotropyRT(Initializer.MaxAnisotropy), 1.0f, InDevice.GetLimits().maxSamplerAnisotropy);
 	SamplerInfo.anisotropyEnable = SamplerInfo.maxAnisotropy > 1;
 
 	// FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Using LOD Group %d / %d, MaxAniso = %f \n"), (int32)Initializer.Filter, Initializer.MaxAnisotropy, SamplerInfo.maxAnisotropy);

@@ -29,7 +29,7 @@ public:
 
 		PaperAxisZ = FVector::CrossProduct(PaperAxisX, PaperAxisY);
 
-		FPaperSpriteVertex::SetTangentsFromPaperAxes();
+		FPaperSpriteTangents::SetTangentsFromPaperAxes();
 	}
 
 	virtual void ShutdownModule() override

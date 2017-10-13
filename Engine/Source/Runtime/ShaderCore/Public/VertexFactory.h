@@ -13,55 +13,73 @@
 #include "RenderResource.h"
 #include "ShaderCore.h"
 #include "Shader.h"
+#include "EnumClassFlags.h"
 
 class FMaterial;
 
+enum class EVertexStreamUsage : uint8
+{
+	Default			= 0 << 0,
+	Instanceing		= 1 << 0,
+	Overridden		= 1 << 1,
+	ManualFetch		= 1 << 2
+};
+
+ENUM_CLASS_FLAGS(EVertexStreamUsage);
 /**
  * A typed data source for a vertex factory which streams data from a vertex buffer.
  */
 struct FVertexStreamComponent
 {
 	/** The vertex buffer to stream data from.  If null, no data can be read from this stream. */
-	const FVertexBuffer* VertexBuffer;
+	const FVertexBuffer* VertexBuffer = nullptr;
+
+	/** The offset to the start of the vertex buffer fetch. */
+	uint32 StreamOffset = 0;
 
 	/** The offset of the data, relative to the beginning of each element in the vertex buffer. */
-	uint8 Offset;
+	uint8 Offset = 0;
 
 	/** The stride of the data. */
-	uint8 Stride;
+	uint8 Stride = 0;
 
 	/** The type of the data read from this stream. */
-	TEnumAsByte<EVertexElementType> Type;
+	TEnumAsByte<EVertexElementType> Type = VET_None;
 
-	/** true if the stream should be indexed by instance index instead of vertex index. */
-	bool bUseInstanceIndex;
-
-	/** true if the stream is set by the vertex factory and skipped by FVertexFactory::Set */
-	bool bSetByVertexFactoryInSetMesh;
+	EVertexStreamUsage VertexStreamUsage = EVertexStreamUsage::Default;
 
 	/**
 	 * Initializes the data stream to null.
 	 */
-	FVertexStreamComponent():
-		VertexBuffer(NULL),
-		Offset(0),
-		Stride(0),
-		Type(VET_None),
-		bUseInstanceIndex(false),
-		bSetByVertexFactoryInSetMesh(false)
+	FVertexStreamComponent()
 	{}
 
 	/**
 	 * Minimal initialization constructor.
 	 */
-	FVertexStreamComponent(const FVertexBuffer* InVertexBuffer, uint32 InOffset, uint32 InStride, EVertexElementType InType, bool bInUseInstanceIndex = false, bool bInSetByVertexFactoryInSetMesh = false) :
+	FVertexStreamComponent(const FVertexBuffer* InVertexBuffer, uint32 InOffset, uint32 InStride, EVertexElementType InType, EVertexStreamUsage Usage = EVertexStreamUsage::Default) :
 		VertexBuffer(InVertexBuffer),
+		StreamOffset(0),
 		Offset(InOffset),
 		Stride(InStride),
 		Type(InType),
-		bUseInstanceIndex(bInUseInstanceIndex),
-		bSetByVertexFactoryInSetMesh(bInSetByVertexFactoryInSetMesh)
-	{}
+		VertexStreamUsage(Usage)
+	{
+		check(InStride <= 0xFF);
+		check(InOffset <= 0xFF);
+	}
+
+	FVertexStreamComponent(const FVertexBuffer* InVertexBuffer, uint32 InStreamOffset, uint32 InOffset, uint32 InStride, EVertexElementType InType, EVertexStreamUsage Usage = EVertexStreamUsage::Default) :
+		VertexBuffer(InVertexBuffer),
+		StreamOffset(InStreamOffset),
+		Offset(InOffset),
+		Stride(InStride),
+		Type(InType),
+		VertexStreamUsage(Usage)
+	{
+		check(InStride <= 0xFF);
+		check(InOffset <= 0xFF);
+	}
 };
 
 /**
@@ -337,14 +355,8 @@ public:
 class SHADERCORE_API FVertexFactory : public FRenderResource
 {
 public:
-	FVertexFactory() 
-		: bNeedsDeclaration(true)
-	{
-	}
-
 	FVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) 
 		: FRenderResource(InFeatureLevel)
-		, bNeedsDeclaration(true)
 	{
 	}
 
@@ -353,7 +365,7 @@ public:
 	/**
 	 * Activates the vertex factory.
 	 */
-	void Set(FRHICommandList& RHICmdList) const;
+	void Set(ERHIFeatureLevel::Type InFeatureLevel, FRHICommandList& RHICmdList) const;
 
 	/**
 	 * Call SetStreamSource on instance streams to offset the read pointer
@@ -393,7 +405,7 @@ public:
 	virtual bool IsGPUSkinned() const { return false; }
 
 	/** Indicates whether the vertex factory supports a position-only stream. */
-	bool SupportsPositionOnlyStream() const { return !!PositionStream.Num(); }
+	virtual bool SupportsPositionOnlyStream() const { return !!PositionStream.Num(); }
 
 	/** Indicates whether the vertex factory supports a null pixel shader. */
 	virtual bool SupportsNullPixelShader() const { return true; }
@@ -418,6 +430,12 @@ public:
 	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const { return 1; }
 
 	bool NeedsDeclaration() const { return bNeedsDeclaration; }
+	bool SupportsManualVertexFetch(ERHIFeatureLevel::Type InFeatureLevel) const 
+	{ 
+		check(InFeatureLevel != ERHIFeatureLevel::Num);
+		return bSupportsManualVertexFetch && !(InFeatureLevel == ERHIFeatureLevel::ES2) && !IsES2Platform(GMaxRHIShaderPlatform) && !IsMetalPlatform(GMaxRHIShaderPlatform); 
+	}
+
 protected:
 
 	/**
@@ -454,23 +472,17 @@ protected:
 	 */
 	struct FVertexStream
 	{
-		const FVertexBuffer* VertexBuffer;
-		uint32 Stride;
-		uint32 Offset;
-		bool bUseInstanceIndex;
-		bool bSetByVertexFactoryInSetMesh; // Do not call SetStreamSource FVertexFactory::Set
+		const FVertexBuffer* VertexBuffer = nullptr;
+		uint32 Stride = 0;
+		uint32 Offset = 0;
+		EVertexStreamUsage VertexStreamUsage = EVertexStreamUsage::Default;
 
 		friend bool operator==(const FVertexStream& A,const FVertexStream& B)
 		{
-			return A.VertexBuffer == B.VertexBuffer && A.Stride == B.Stride && A.Offset == B.Offset && A.bUseInstanceIndex == B.bUseInstanceIndex;
+			return A.VertexBuffer == B.VertexBuffer && A.Stride == B.Stride && A.Offset == B.Offset && A.VertexStreamUsage == B.VertexStreamUsage;
 		}
 
 		FVertexStream()
-			: VertexBuffer(nullptr)
-			, Stride(0)
-			, Offset(0)
-			, bUseInstanceIndex(false)
-			, bSetByVertexFactoryInSetMesh(false)
 		{
 		}
 	};
@@ -479,7 +491,9 @@ protected:
 	TArray<FVertexStream,TFixedAllocator<MaxVertexElementCount> > Streams;
 
 	/* VF can explicitly set this to false to avoid errors without decls; this is for VFs that fetch from buffers directly (e.g. Niagara) */
-	bool bNeedsDeclaration;
+	bool bNeedsDeclaration = true;
+	
+	bool bSupportsManualVertexFetch = false;
 
 private:
 

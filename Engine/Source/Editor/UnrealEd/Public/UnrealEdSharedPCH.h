@@ -544,7 +544,6 @@
 #include "Engine/LevelStreaming.h"
 #include "Engine/TextureLightProfile.h"
 #include "GPUSkinPublicDefs.h"
-#include "SkeletalMeshTypes.h"
 #include "SceneManagement.h"
 #include "SceneUtils.h"
 #include "Curves/CurveOwnerInterface.h"

@@ -29,8 +29,7 @@ public:
 		FIntVector BrickCoords;
 		TArray<FVector>& PositionData;
 		//TArray<FVector2D>& UVData;
-		//TArray<FPackedNormal>& TangentXData;
-		//TArray<FPackedNormal>& TangentZData;
+		//TArray<FPackedNormal>& TangentXZData;
 		TArray<FColor>& ColorData;
 		TArray<uint32>& Indices;
 	};

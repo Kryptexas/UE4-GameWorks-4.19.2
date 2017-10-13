@@ -299,6 +299,7 @@ public:
 
 		VertexShader = MaterialResource->GetShader<TLightMapDensityVS<LightMapPolicyType> >(InVertexFactory->GetType());
 		PixelShader = MaterialResource->GetShader<TLightMapDensityPS<LightMapPolicyType> >(InVertexFactory->GetType());
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.

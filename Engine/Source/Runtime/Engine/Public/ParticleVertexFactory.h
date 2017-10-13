@@ -31,6 +31,10 @@ enum EParticleVertexFactoryType
 class FParticleVertexFactoryBase : public FVertexFactory
 {
 public:
+	explicit FParticleVertexFactoryBase(ERHIFeatureLevel::Type InFeatureLevel)
+		: FVertexFactory(InFeatureLevel)
+	{
+	}
 
 	/** Default constructor. */
 	explicit FParticleVertexFactoryBase( EParticleVertexFactoryType Type, ERHIFeatureLevel::Type InFeatureLevel )
@@ -145,8 +149,8 @@ public:
 		DynamicParameterStride(0)
 	{}
 
-	FParticleSpriteVertexFactory() 
-		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num),
+	FParticleSpriteVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FParticleVertexFactoryBase(PVFT_MAX, InFeatureLevel),
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
 		CutoutGeometrySRV(nullptr),

@@ -97,9 +97,9 @@ void FStaticMeshStaticLightingMesh::GetTriangle(int32 TriangleIndex,FStaticLight
 	const uint32 I2 = LODIndexBuffer[TriangleIndex * 3 + (bReverseWinding ? 1 : 2)];
 
 	// Translate the triangle's static mesh vertices to static lighting vertices.
-	GetStaticLightingVertex(LODRenderData.PositionVertexBuffer,LODRenderData.VertexBuffer,I0,LocalToWorld,LocalToWorldInverseTranspose,OutV0);
-	GetStaticLightingVertex(LODRenderData.PositionVertexBuffer,LODRenderData.VertexBuffer,I1,LocalToWorld,LocalToWorldInverseTranspose,OutV1);
-	GetStaticLightingVertex(LODRenderData.PositionVertexBuffer,LODRenderData.VertexBuffer,I2,LocalToWorld,LocalToWorldInverseTranspose,OutV2);
+	GetStaticLightingVertex(LODRenderData.VertexBuffers.PositionVertexBuffer,LODRenderData.VertexBuffers.StaticMeshVertexBuffer,I0,LocalToWorld,LocalToWorldInverseTranspose,OutV0);
+	GetStaticLightingVertex(LODRenderData.VertexBuffers.PositionVertexBuffer,LODRenderData.VertexBuffers.StaticMeshVertexBuffer,I1,LocalToWorld,LocalToWorldInverseTranspose,OutV1);
+	GetStaticLightingVertex(LODRenderData.VertexBuffers.PositionVertexBuffer,LODRenderData.VertexBuffers.StaticMeshVertexBuffer,I2,LocalToWorld,LocalToWorldInverseTranspose,OutV2);
 }
 
 void FStaticMeshStaticLightingMesh::GetTriangleIndices(int32 TriangleIndex,int32& OutI0,int32& OutI1,int32& OutI2) const
@@ -313,7 +313,7 @@ void UStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& O
 			bool bUseTextureMap;
 			if( (BaseLightMapWidth > 0) && (BaseLightMapHeight > 0) 
 				&& GetStaticMesh()->LightMapCoordinateIndex >= 0
-				&& (uint32)GetStaticMesh()->LightMapCoordinateIndex < LODRenderData.VertexBuffer.GetNumTexCoords())
+				&& (uint32)GetStaticMesh()->LightMapCoordinateIndex < LODRenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords())
 			{
 				bUseTextureMap = true;
 			}
@@ -371,7 +371,7 @@ ELightMapInteractionType UStaticMeshComponent::GetStaticLightingType() const
 
 			if ((LightMapWidth > 0) && (LightMapHeight > 0) &&	
 				(GetStaticMesh()->LightMapCoordinateIndex >= 0) &&
-				((uint32)GetStaticMesh()->LightMapCoordinateIndex < LODRenderData.VertexBuffer.GetNumTexCoords())
+				((uint32)GetStaticMesh()->LightMapCoordinateIndex < LODRenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords())
 				)
 			{
 				bUseTextureMap = true;

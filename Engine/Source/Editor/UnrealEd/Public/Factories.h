@@ -99,8 +99,6 @@ class FMorphTargetBinaryImport
 public:
 	/** for outputing warnings */
 	FFeedbackContext* Warn;
-	/** raw mesh data used for calculating differences */
-	FMorphMeshRawSource BaseMeshRawData;
 	/** base mesh lod entry to use */
 	int32 BaseLODIndex;
 	/** the base mesh */

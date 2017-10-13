@@ -461,7 +461,6 @@
 #include "Sound/AudioVolume.h"
 #include "SceneUtils.h"
 #include "GPUSkinPublicDefs.h"
-#include "SkeletalMeshTypes.h"
 #include "Animation/AnimTypes.h"
 #include "Animation/AnimLinkableElement.h"
 #include "MeshBatch.h"

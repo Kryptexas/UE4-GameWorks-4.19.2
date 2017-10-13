@@ -13,16 +13,9 @@
 #include "SkinnedMeshComponent.generated.h"
 
 class FPrimitiveSceneProxy;
-class FSkeletalMeshResource;
-class FSkeletalMeshVertexBuffer;
-struct FSkelMeshSection;
 class FColorVertexBuffer;
 class FSkinWeightVertexBuffer;
-
-//
-// Forward declarations
-//
-class FSkeletalMeshResource;
+class FSkeletalMeshRenderData;
 
 DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParameters*)
 
@@ -239,9 +232,6 @@ public:
 
 	const TArray<int32>& GetMasterBoneMap() const { return MasterBoneMap; }
 
-	/** update Recalculate Normal flag in matching section */
-	void UpdateRecomputeTangent(int32 MaterialIndex, int32 LodIndex, bool bRecomputeTangentValue);
-
 	/** 
 	 * Get CPU skinned vertices for the specified LOD level. Includes morph targets if they are enabled.
 	 * Note: This function is very SLOW as it needs to flush the render thread.
@@ -399,20 +389,6 @@ public:
 	UPROPERTY(transient)
 	uint32 bRecentlyRendered:1;
 
-#if WITH_EDITORONLY_DATA
-	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
-	  * only the specified fraction of triangles will be rendered
-	  */
-	UPROPERTY(transient)
-	float ProgressiveDrawingFraction;
-#endif
-
-	/** Editor only. Used for manually selecting the alternate indices for
-	  * TRISORT_CustomLeftRight sections.
-	  */
-	UPROPERTY(transient)
-	uint8 CustomSortAlternateIndexMode;
-
 	/** 
 	 * Whether to use the capsule representation (when present) from a skeletal mesh's ShadowPhysicsAsset for direct shadowing from lights.
 	 * This type of shadowing is approximate but handles extremely wide area shadowing well.  The softness of the shadow depends on the light's LightSourceAngle / SourceRadius.
@@ -445,6 +421,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset, bool bForceReInit = false);
+
+	/** Get the number of LODs on this component */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+	int32 GetNumLODs() const;
 
 	/**
 	 * Set MinLodModel of the mesh component
@@ -542,7 +522,7 @@ public:
 	class FSkeletalMeshObject*	MeshObject;
 
 	/** Gets the skeletal mesh resource used for rendering the component. */
-	FSkeletalMeshResource* GetSkeletalMeshResource() const;
+	FSkeletalMeshRenderData* GetSkeletalMeshRenderData() const;
 
 	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;

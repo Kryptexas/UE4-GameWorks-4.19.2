@@ -919,7 +919,10 @@ bool FLightmassMaterialRenderer::GenerateMaterialData(
 	// Set the two-sided flag
 	OutMaterialData.bTwoSided = (uint32)InMaterial.IsTwoSided();
 	OutMaterialData.OpacityMaskClipValue = InMaterial.GetOpacityMaskClipValue();
-	OutMaterialData.bCastShadowAsMasked = InMaterial.GetCastShadowAsMasked();
+	// Cast shadow as masked feature need to access transmission texture. Only allow
+	// if transmission/opacity data exists
+	OutMaterialData.bCastShadowAsMasked = MaterialExportEntry.OpacityMaterialProxy
+		&& InMaterial.GetCastShadowAsMasked();
 	OutMaterialData.bSurfaceDomain = BaseMaterial->MaterialDomain == MD_Surface;
 
 	const bool bIsLandscapeMaterial = InMaterial.IsA<ULandscapeMaterialInstanceConstant>();

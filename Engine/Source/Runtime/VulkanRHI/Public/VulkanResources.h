@@ -1032,7 +1032,7 @@ protected:
 class FVulkanShaderResourceView : public FRHIShaderResourceView, public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanShaderResourceView(FVulkanDevice* Device, FVulkanResourceMultiBuffer* InSourceBuffer, uint32 InSize, EPixelFormat InFormat);
+	FVulkanShaderResourceView(FVulkanDevice* Device, FRHIResource* InRHIBuffer, FVulkanResourceMultiBuffer* InSourceBuffer, uint32 InSize, EPixelFormat InFormat);
 
 	FVulkanShaderResourceView(FVulkanDevice* Device, FRHITexture* InSourceTexture, uint32 InMipLevel, int32 InNumMips, EPixelFormat InFormat)
 		: VulkanRHI::FDeviceChild(Device)
@@ -1084,6 +1084,8 @@ public:
 	uint32 Size;
 	// The buffer this SRV comes from (can be null)
 	FVulkanResourceMultiBuffer* SourceBuffer;
+	// To keep a reference
+	TRefCountPtr<FRHIResource> SourceRHIBuffer;
 
 protected:
 	// Used to check on volatile buffers if a new BufferView is required

@@ -342,7 +342,7 @@ private:
 	FbxNode* CreateSkeleton(const USkeletalMesh* SkelMesh, TArray<FbxNode*>& BoneNodes);
 
 	/**
-	 * Adds an Fbx Mesh to the FBX scene based on the data in the given FStaticLODModel
+	 * Adds an Fbx Mesh to the FBX scene based on the data in the given FSkeletalMeshLODModel
 	 */
 	FbxNode* CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* MeshName);
 

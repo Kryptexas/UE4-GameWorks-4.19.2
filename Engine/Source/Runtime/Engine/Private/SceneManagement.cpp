@@ -193,9 +193,9 @@ static TAutoConsoleVariable<int32> CVarUseParallelGetDynamicMeshElementsTasks(
 	0,
 	TEXT("If > 0, and if FApp::ShouldUseThreadingForPerformance(), then parts of GetDynamicMeshElements will be done in parallel."));
 
-FMeshElementCollector::FMeshElementCollector() :
+FMeshElementCollector::FMeshElementCollector(ERHIFeatureLevel::Type InFeatureLevel) :
 	PrimitiveSceneProxy(NULL),
-	FeatureLevel(ERHIFeatureLevel::Num),
+	FeatureLevel(InFeatureLevel),
 	bUseAsyncTasks(FApp::ShouldUseThreadingForPerformance() && CVarUseParallelGetDynamicMeshElementsTasks.GetValueOnAnyThread() > 0)
 {	
 }

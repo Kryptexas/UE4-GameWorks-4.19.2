@@ -3562,7 +3562,8 @@ void FParticleMeshEmitterInstance::GetMeshMaterials(
 			}
 
 			// Check that adjacency data is not required since the implementation does not support it.
-			if (RequiresAdjacencyInformation(Material, LODModel.VertexFactory.GetType(), InFeatureLevel))
+			// we know that we will use FLocalVertexFactory Type therefore passing nullptr is valid
+			if (RequiresAdjacencyInformation(Material, nullptr, InFeatureLevel))
 			{
 				if (bLogWarnings)
 				{

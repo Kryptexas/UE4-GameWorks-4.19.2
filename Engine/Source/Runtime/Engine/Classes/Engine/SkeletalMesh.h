@@ -16,7 +16,6 @@
 #include "Components.h"
 #include "ReferenceSkeleton.h"
 #include "GPUSkinPublicDefs.h"
-#include "SkeletalMeshTypes.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
@@ -36,6 +35,10 @@ class USkeleton;
 class UClothingAssetBase;
 class UBlueprint;
 class UNodeMappingContainer;
+class UPhysicsAsset;
+class FSkeletalMeshRenderData;
+class FSkeletalMeshModel;
+class FSkeletalMeshLODModel;
 
 #if WITH_APEX_CLOTHING
 
@@ -109,30 +112,6 @@ struct FBoneMirrorExport
 
 	FBoneMirrorExport()
 		: BoneFlipAxis(0)
-	{
-	}
-
-};
-
-/** Struct containing triangle sort settings for a particular section */
-USTRUCT()
-struct FTriangleSortSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category=TriangleSortSettings)
-	TEnumAsByte<enum ETriangleSortOption> TriangleSorting;
-
-	UPROPERTY(EditAnywhere, Category=TriangleSortSettings)
-	TEnumAsByte<enum ETriangleSortAxis> CustomLeftRightAxis;
-
-	UPROPERTY(EditAnywhere, Category=TriangleSortSettings)
-	FName CustomLeftRightBoneName;
-
-
-	FTriangleSortSettings()
-		: TriangleSorting(0)
-		, CustomLeftRightAxis(0)
 	{
 	}
 
@@ -316,9 +295,6 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY()
 	TArray<bool> bEnableShadowCasting_DEPRECATED;
 
-	UPROPERTY()
-	TArray<struct FTriangleSortSettings> TriangleSortSettings;
-
 	/** Whether to disable morph targets for this LOD. */
 	UPROPERTY()
 	uint32 bHasBeenSimplified:1;
@@ -500,7 +476,10 @@ struct FSkeletalMaterial
 	FMeshUVChannelInfo			UVChannelData;
 };
 
-class FSkeletalMeshResource;
+#if WITH_EDITOR
+/** delegate type for pre skeletal mesh build events */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostMeshCache, class USkeletalMesh*);
+#endif
 
 /**
  * SkeletalMesh is geometry bound to a hierarchical skeleton of bones which can be animated for the purpose of deforming the mesh.
@@ -514,16 +493,27 @@ class ENGINE_API USkeletalMesh : public UObject, public IInterface_CollisionData
 {
 	GENERATED_UCLASS_BODY()
 
+	// This is declared so we can use TUniquePtr<FSkeletalMeshRenderData> with just a forward declare of that class
+	USkeletalMesh(FVTableHelper& Helper);
+	~USkeletalMesh();
+
 private:
-	/** Rendering resources created at import time. */
-	TSharedPtr<FSkeletalMeshResource> ImportedResource;
+#if WITH_EDITORONLY_DATA
+	/** Imported skeletal mesh geometry information (not used at runtime). */
+	TSharedPtr<FSkeletalMeshModel> ImportedModel;
+#endif
+
+	/** Rendering resources used at runtime */
+	TUniquePtr<FSkeletalMeshRenderData> SkeletalMeshRenderData;
 
 public:
-	/** Get the default resource for this skeletal mesh. */
-	FORCEINLINE FSkeletalMeshResource* GetImportedResource() const { return ImportedResource.Get(); }
+#if WITH_EDITORONLY_DATA
+	/** Get the imported data for this skeletal mesh. */
+	FORCEINLINE FSkeletalMeshModel* GetImportedModel() const { return ImportedModel.Get(); }
+#endif
 
-	/** Get the resource to use for rendering. */
-	FORCEINLINE FSkeletalMeshResource* GetResourceForRendering() const { return GetImportedResource(); }
+	/** Get the data to use for rendering. */
+	FORCEINLINE FSkeletalMeshRenderData* GetResourceForRendering() const { return SkeletalMeshRenderData.Get(); }
 
 	/** Skeleton of this skeletal mesh **/
 	UPROPERTY(Category=Mesh, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
@@ -759,8 +749,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
 	TSubclassOf<UAnimInstance> PostProcessAnimBlueprint;
 
+#if WITH_EDITOR && WITH_APEX_CLOTHING
+	/** 
+	 * Take clothing assets that were imported using APEX files before we moved away from the APEX simulation
+	 * framework and upgrade them to UE4 UClothingAssets. This will bind the new assets to the mesh so the
+	 * clothing remains working as before.
+	 */
+	void UpgradeOldClothingAssets();
+#endif //WITH_EDITOR && WITH_APEX_CLOTHING
+
+#if WITH_EDITOR
 	/** If the given section of the specified LOD has a clothing asset, unbind it's data and remove it from the asset array */
 	void RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex);
+
+	/**
+	* Clothing used to require the original section to be hidden and duplicated to a new rendered
+	* section. This was mainly due to an older requirement that we use new render data so the
+	* duplicated section allowed us not to destroy the original data. This method will undo this
+	* process and restore the mesh now that this is no longer necessary.
+	*/
+	void RemoveLegacyClothingSections();
+
+#endif // WITH_EDITOR
 
 	/**
 	 * Given an LOD and section index, retrieve a clothing asset bound to that section.
@@ -802,9 +812,6 @@ protected:
 	TArray<UAssetUserData*> AssetUserData;
 
 private:
-	/** Skeletal mesh source data */
-	class FSkeletalMeshSourceData* SourceData;
-
 	/** 
 	 *	Array of named socket locations, set up in editor and used as a shortcut instead of specifying 
 	 *	everything explicitly to AttachComponent in the SkeletalMeshComponent. 
@@ -830,6 +837,9 @@ public:
 	/** Release CPU access version of buffer */
 	void ReleaseCPUResources();
 
+	/** Allocate a new FSkeletalMeshRenderData and assign to SkeletalMeshRenderData member.  */
+	void AllocateResourceForRendering();
+
 	/** 
 	 * Update the material UV channel data used by the texture streamer. 
 	 *
@@ -845,11 +855,6 @@ public:
 	 * @return the data, or null if none exists.
 	 */
 	const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
-
-	/**
-	 * Gets the center point from which triangles should be sorted, if any.
-	 */
-	bool GetSortCenterPoint(FVector& OutSortCenter) const;
 
 	/**
 	 * Computes flags for building vertex buffers.
@@ -881,8 +886,10 @@ public:
 
 	void CalculateInvRefMatrices();
 
+#if WITH_EDITOR
 	/** Calculate the required bones for a Skeletal Mesh LOD, including possible extra influences */
-	static void CalculateRequiredBones(class FStaticLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const TMap<FBoneIndexType, FBoneIndexType> * BonesToRemove);
+	static void CalculateRequiredBones(FSkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const TMap<FBoneIndexType, FBoneIndexType> * BonesToRemove);
+#endif // WITH_EDITOR
 
 	/** 
 	 *	Find a socket object in this SkeletalMesh by name. 
@@ -951,15 +958,6 @@ public:
 	TArray<USkeletalMeshSocket*> GetActiveSocketList() const;
 
 #if WITH_EDITOR
-	/** Retrieves the source model for this skeletal mesh. */
-	FStaticLODModel& GetSourceModel();
-
-	/**
-	 * Copies off the source model for this skeletal mesh if necessary and returns it. This function should always be called before
-	 * making destructive changes to the mesh's geometry, e.g. simplification.
-	 */
-	FStaticLODModel& PreModifyMesh();
-
 	/**
 	* Makes sure all attached objects are valid and removes any that aren't.
 	*
@@ -1044,7 +1042,21 @@ public:
 	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
 	//~ End IInterface_AssetUserData Interface
 
+#if WITH_EDITOR
+private:	
+	/** Called after derived mesh data is cached */
+	FOnPostMeshCache PostMeshCached;
+public:
+	/** Get multicast delegate broadcast post to mesh data caching */
+	FOnPostMeshCache& OnPostMeshCached() { return PostMeshCached; }
+#endif 
+
 private:
+
+#if WITH_EDITOR
+	/** Generate SkeletalMeshRenderData from ImportedModel */
+	void CacheDerivedData();
+#endif
 
 	/** Utility function to help with building the combined socket list */
 	bool IsSocketOnMesh( const FName& InSocketName ) const;
@@ -1053,21 +1065,18 @@ private:
 	* Flush current render state
 	*/
 	void FlushRenderState();
-	/**
-	* Restart render state. 
-	*/
-	void RestartRenderState();
 
+	/**
+	* Create a new GUID for the source Model data, regenerate derived data and re-create any render state based on that.
+	*/
+	void InvalidateRenderData();
+
+#if WITH_EDITORONLY_DATA
 	/**
 	* In older data, the bEnableShadowCasting flag was stored in LODInfo
 	* so it needs moving over to materials
 	*/
 	void MoveDeprecatedShadowFlagToMaterials();
-
-	/**
-	* Test whether all the flags in an array are identical (could be moved to Array.h?)
-	*/
-	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
 
 	/*
 	* Ask the reference skeleton to rebuild the NameToIndexMap array. This is use to load old package before this array was created.
@@ -1082,12 +1091,19 @@ private:
 	*/
 	void MoveMaterialFlagsToSections();
 
+#endif // WITH_EDITORONLY_DATA
+
+	/**
+	* Test whether all the flags in an array are identical (could be moved to Array.h?)
+	*/
+	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
+
 #if WITH_EDITOR
 	public:
-		/** Delegates for asset editor events */
+	/** Delegates for asset editor events */
 
-		FDelegateHandle RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate);
-		void UnregisterOnClothingChange(const FDelegateHandle& InHandle);
+	FDelegateHandle RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate);
+	void UnregisterOnClothingChange(const FDelegateHandle& InHandle);
 
 	private:
 

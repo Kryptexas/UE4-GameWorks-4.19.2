@@ -18,7 +18,7 @@
 #include "LightMap.h"
 #include "LandscapeComponent.h"
 #include "Engine/LevelStreaming.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.PrimitiveStats"
 
@@ -98,7 +98,7 @@ struct PrimitiveStatsGenerator
 				// Accumulate memory for each LOD
 				for( int32 LODIndex = 0; LODIndex < Mesh->RenderData->LODResources.Num(); ++LODIndex )
 				{
-					VertexColorMem += Mesh->RenderData->LODResources[LODIndex].ColorVertexBuffer.GetAllocatedSize();
+					VertexColorMem += Mesh->RenderData->LODResources[LODIndex].VertexBuffers.ColorVertexBuffer.GetAllocatedSize();
 				}
 			}
 
@@ -158,11 +158,11 @@ struct PrimitiveStatsGenerator
 			// Calculate vertex color usage for skeletal meshes
 			if( Mesh )
 			{
-				FSkeletalMeshResource* SkelMeshResource = Mesh->GetResourceForRendering();
-				for( int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); ++LODIndex )
+				FSkeletalMeshRenderData* SkelMeshRenderData = Mesh->GetResourceForRendering();
+				for( int32 LODIndex = 0; LODIndex < SkelMeshRenderData->LODRenderData.Num(); ++LODIndex )
 				{
-					const FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
-					VertexColorMem += LODModel.ColorVertexBuffer.GetAllocatedSize();
+					const FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[ LODIndex ];
+					VertexColorMem += LODData.StaticVertexBuffers.ColorVertexBuffer.GetAllocatedSize();
 				}
 			}
 		}
@@ -322,13 +322,13 @@ struct PrimitiveStatsGenerator
 					USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 					if( SkeletalMesh )
 					{
-						FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
-						if (SkelMeshResource->LODModels.Num())
+						FSkeletalMeshRenderData* SkelMeshRenderData = SkeletalMesh->GetResourceForRendering();
+						if (SkelMeshRenderData->LODRenderData.Num())
 						{
-							const FStaticLODModel& BaseLOD = SkelMeshResource->LODModels[0];
-							for( int32 SectionIndex=0; SectionIndex<BaseLOD.Sections.Num(); SectionIndex++ )
+							const FSkeletalMeshLODRenderData& BaseLOD = SkelMeshRenderData->LODRenderData[0];
+							for( int32 SectionIndex=0; SectionIndex<BaseLOD.RenderSections.Num(); SectionIndex++ )
 							{
-								const FSkelMeshSection& Section = BaseLOD.Sections[SectionIndex];
+								const FSkelMeshRenderSection& Section = BaseLOD.RenderSections[SectionIndex];
 								NewStatsEntry->Triangles += Section.NumTriangles;
 								NewStatsEntry->Sections++;
 							}

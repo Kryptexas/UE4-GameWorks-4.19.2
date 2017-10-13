@@ -508,7 +508,7 @@ void FCanvasTileItem::RenderMaterialTile( class FCanvas* InCanvas, const FVector
 	{
 		INC_DWORD_STAT(STAT_Canvas_NumBatchesCreated);
 
-		RenderBatch = new FCanvasTileRendererItem( MaterialRenderProxy,TopTransformEntry,bFreezeTime );
+		RenderBatch = new FCanvasTileRendererItem(InCanvas->GetFeatureLevel(), MaterialRenderProxy,TopTransformEntry,bFreezeTime );
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 	FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
@@ -1517,7 +1517,7 @@ void FCanvasTriangleItem::Draw( class FCanvas* InCanvas )
 		{
 			INC_DWORD_STAT(STAT_Canvas_NumBatchesCreated);
 
-			RenderBatch = new FCanvasTriangleRendererItem(MaterialRenderProxy, TopTransformEntry, bFreezeTime);
+			RenderBatch = new FCanvasTriangleRendererItem(InCanvas->GetFeatureLevel(), MaterialRenderProxy, TopTransformEntry, bFreezeTime);
 			SortElement.RenderBatchArray.Add(RenderBatch);
 		}
 

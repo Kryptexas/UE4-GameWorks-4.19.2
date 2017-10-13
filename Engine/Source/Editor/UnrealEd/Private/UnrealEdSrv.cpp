@@ -1804,7 +1804,7 @@ TArray<FPoly*> GetSelectedPolygons()
 						int32 NumTriangles = MeshLodZero.GetNumTriangles();
 						int32 NumVertices = MeshLodZero.GetNumVertices();
 			
-						const FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.PositionVertexBuffer;
+						const FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.VertexBuffers.PositionVertexBuffer;
 						FIndexArrayView Indices = MeshLodZero.DepthOnlyIndexBuffer.GetArrayView();
 
 						for ( int32 TriangleIndex = 0; TriangleIndex < NumTriangles; TriangleIndex++ )

@@ -23,6 +23,7 @@
 #include "Animation/AnimBlueprint.h"
 #include "SkeletalRender.h"
 #include "HAL/LowLevelMemTracker.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "Logging/MessageLog.h"
 #include "Animation/AnimNode_SubInput.h"
@@ -34,7 +35,6 @@
 #include "Features/IModularFeatures.h"
 #include "Misc/RuntimeErrors.h"
 #include "AnimPhysObjectVersion.h"
-
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponent"
 
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
@@ -1383,23 +1383,23 @@ void USkeletalMeshComponent::ComputeRequiredBones(TArray<FBoneIndexType>& OutReq
 		return;
 	}
 
-	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
-	check(SkelMeshResource);
+	FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
+	check(SkelMeshRenderData);
 
 	// Make sure we access a valid LOD
 	// @fixme jira UE-30028 Avoid crash when called with partially loaded asset
-	if (SkelMeshResource->LODModels.Num() == 0)
+	if (SkelMeshRenderData->LODRenderData.Num() == 0)
 	{
 		//No LODS?
 		UE_LOG(LogAnimation, Warning, TEXT("Skeletal Mesh asset '%s' has no LODs"), *SkeletalMesh->GetName());
 		return;
 	}
 
-	LODIndex = FMath::Clamp(LODIndex, 0, SkelMeshResource->LODModels.Num() - 1);
+	LODIndex = FMath::Clamp(LODIndex, 0, SkelMeshRenderData->LODRenderData.Num() - 1);
 
 	// The list of bones we want is taken from the predicted LOD level.
-	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
-	OutRequiredBones = LODModel.RequiredBones;
+	FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
+	OutRequiredBones = LODData.RequiredBones;
 
 	// Add virtual bones
 	MergeInBoneIndexArrays(OutRequiredBones, SkeletalMesh->RefSkeleton.GetRequiredVirtualBones());
@@ -2725,32 +2725,30 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBB
 {
 	if (!bConsiderOnlyBSP && ShowFlags.SkeletalMeshes && MeshObject != nullptr)
 	{
-		FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
-		check(SkelMeshResource);
-		check(SkelMeshResource->LODModels.Num() > 0);
+		FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
+		check(SkelMeshRenderData);
+		check(SkelMeshRenderData->LODRenderData.Num() > 0);
 
 		// Transform verts into world space. Note that this assumes skeletal mesh is in reference pose...
-		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
-		for (const auto& Section : LODModel.Sections)
+		const FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[0];
+		for (uint32 VertIdx=0; VertIdx<LODData.StaticVertexBuffers.PositionVertexBuffer.GetNumVertices(); VertIdx++)
 		{
-			for (const auto& Vertex : Section.SoftVertices)
+			const FVector& VertexPos = LODData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertIdx);
+			const FVector Location = GetComponentTransform().TransformPosition(VertexPos);
+			const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
+
+			// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
+			// the selection box, this component is being touched by the selection box
+			if (!bMustEncompassEntireComponent && bLocationIntersected)
 			{
-				const FVector Location = GetComponentTransform().TransformPosition(Vertex.Position);
-				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
+				return true;
+			}
 
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if (!bMustEncompassEntireComponent && bLocationIntersected)
-				{
-					return true;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if (bMustEncompassEntireComponent && !bLocationIntersected)
-				{
-					return false;
-				}
+			// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
+			// box, this component does not qualify
+			else if (bMustEncompassEntireComponent && !bLocationIntersected)
+			{
+				return false;
 			}
 		}
 
@@ -2769,32 +2767,30 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVo
 {
 	if (!bConsiderOnlyBSP && ShowFlags.SkeletalMeshes && MeshObject != nullptr)
 	{
-		FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
-		check(SkelMeshResource);
-		check(SkelMeshResource->LODModels.Num() > 0);
+		FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
+		check(SkelMeshRenderData);
+		check(SkelMeshRenderData->LODRenderData.Num() > 0);
 
 		// Transform verts into world space. Note that this assumes skeletal mesh is in reference pose...
-		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
-		for (const auto& Section : LODModel.Sections)
+		const FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[0];
+		for (uint32 VertIdx = 0; VertIdx < LODData.StaticVertexBuffers.PositionVertexBuffer.GetNumVertices(); VertIdx++)
 		{
-			for (const auto& Vertex : Section.SoftVertices)
+			const FVector& VertexPos = LODData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertIdx);
+			const FVector Location = GetComponentTransform().TransformPosition(VertexPos);
+			const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
+
+			// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
+			// the selection box, this component is being touched by the selection box
+			if (!bMustEncompassEntireComponent && bLocationIntersected)
 			{
-				const FVector Location = GetComponentTransform().TransformPosition(Vertex.Position);
-				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
+				return true;
+			}
 
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if (!bMustEncompassEntireComponent && bLocationIntersected)
-				{
-					return true;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if (bMustEncompassEntireComponent && !bLocationIntersected)
-				{
-					return false;
-				}
+			// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
+			// box, this component does not qualify
+			else if (bMustEncompassEntireComponent && !bLocationIntersected)
+			{
+				return false;
 			}
 		}
 
@@ -3120,7 +3116,7 @@ void USkeletalMeshComponent::FinalizeBoneTransform()
 
 void USkeletalMeshComponent::GetCurrentRefToLocalMatrices(TArray<FMatrix>& OutRefToLocals, int32 InLodIdx)
 {
-	UpdateRefToLocalMatrices(OutRefToLocals, this, SkeletalMesh->GetImportedResource(), InLodIdx, nullptr);
+	UpdateRefToLocalMatrices(OutRefToLocals, this, SkeletalMesh->GetResourceForRendering(), InLodIdx, nullptr);
 }
 
 void USkeletalMeshComponent::SetRefPoseOverride(const TArray<FTransform>& NewRefPoseTransforms)

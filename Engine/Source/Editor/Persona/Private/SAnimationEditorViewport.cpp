@@ -10,6 +10,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Animation/AnimMontage.h"
 #include "Preferences/PersonaOptions.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "SAnimationScrubPanel.h"
 #include "SAnimMontageScrubPanel.h"
@@ -23,7 +24,6 @@
 #include "IEditableSkeleton.h"
 #include "EditorViewportCommands.h"
 #include "TabSpawners.h"
-#include "SkeletalMeshTypes.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -742,7 +742,7 @@ int32 SAnimationEditorViewportTabBody::GetLODModelCount() const
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
 	if( PreviewComponent && PreviewComponent->SkeletalMesh )
 	{
-		return PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num();
+		return PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num();
 	}
 	return 0;
 }
@@ -1122,13 +1122,13 @@ void SAnimationEditorViewportTabBody::PopulateNumUVChannels()
 
 	if (UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
 	{
-		if (FSkeletalMeshResource* MeshResource = PreviewComponent->GetSkeletalMeshResource())
+		if (FSkeletalMeshRenderData* MeshResource = PreviewComponent->GetSkeletalMeshRenderData())
 		{
-			int32 NumLods = MeshResource->LODModels.Num();
+			int32 NumLods = MeshResource->LODRenderData.Num();
 			NumUVChannels.AddZeroed(NumLods);
 			for(int32 LOD = 0; LOD < NumLods; ++LOD)
 			{
-				NumUVChannels[LOD] = MeshResource->LODModels[LOD].VertexBufferGPUSkin.GetNumTexCoords();
+				NumUVChannels[LOD] = MeshResource->LODRenderData[LOD].StaticVertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords();
 			}
 		}
 	}

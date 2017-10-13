@@ -31,7 +31,7 @@ FSpriteRenderSection& FGroupedSpriteSceneProxy::FindOrAddSection(FSpriteDrawCall
 	NewSection.Material = InMaterial;
 	NewSection.BaseTexture = InBatch.BaseTexture;
 	NewSection.AdditionalTextures = InBatch.AdditionalTextures;
-	NewSection.VertexOffset = VertexBuffer.Vertices.Num();
+	NewSection.VertexOffset = Vertices.Num();
 
 	return NewSection;
 }
@@ -80,7 +80,7 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 				const FVector ComponentSpacePos = InstanceData.Transform.TransformPosition(LocalPos);
 				const FVector2D UV(SourceVert.Z, SourceVert.W);
 
-				new (VertexBuffer.Vertices) FPaperSpriteVertex(ComponentSpacePos, UV, VertColor, TangentX, TangentZ);
+				new (Vertices) FDynamicMeshVertex(ComponentSpacePos, TangentX, TangentZ, UV, VertColor);
 			}
 
 			BodySetup = SourceSprite->BodySetup;
@@ -91,16 +91,6 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 			BodySetupTransforms.Add(InstanceData.Transform);
 			BodySetups.Add(BodySetup);
 		}
-	}
-	
-	if (VertexBuffer.Vertices.Num() > 0)
-	{
-		// Init the vertex factory
-		MyVertexFactory.Init(&VertexBuffer);
-
-		// Enqueue initialization of render resources
-		BeginInitResource(&VertexBuffer);
-		BeginInitResource(&MyVertexFactory);
 	}
 }
 

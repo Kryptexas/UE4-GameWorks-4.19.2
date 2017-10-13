@@ -81,12 +81,12 @@ bool FMeshPaintGeometryAdapterForStaticMeshes::Initialize()
 bool FMeshPaintGeometryAdapterForStaticMeshes::InitializeVertexData()
 {
 	// Retrieve mesh vertex and index data 
-	const int32 NumVertices = LODModel->PositionVertexBuffer.GetNumVertices();
+	const int32 NumVertices = LODModel->VertexBuffers.PositionVertexBuffer.GetNumVertices();
 	MeshVertices.Reset();
 	MeshVertices.AddDefaulted(NumVertices);
 	for (int32 Index = 0; Index < NumVertices; Index++)
 	{
-		const FVector& Position = LODModel->PositionVertexBuffer.VertexPosition(Index);
+		const FVector& Position = LODModel->VertexBuffers.PositionVertexBuffer.VertexPosition(Index);
 		MeshVertices[Index] = Position;
 	}
 
@@ -271,13 +271,13 @@ void FMeshPaintGeometryAdapterForStaticMeshes::GetVertexColor(int32 VertexIndex,
 	if (bInstance)
 	{
 		FStaticMeshComponentLODInfo* InstanceMeshLODInfo = &StaticMeshComponent->LODData[MeshLODIndex];
-		if (!bInstance && LODModel->ColorVertexBuffer.GetNumVertices() == 0)
+		if (!bInstance && LODModel->VertexBuffers.ColorVertexBuffer.GetNumVertices() == 0)
 		{
 			// Mesh doesn't have a color vertex buffer yet!  We'll create one now.
-			LODModel->ColorVertexBuffer.InitFromSingleColor(FColor(255, 255, 255, 255), LODModel->GetNumVertices());
+			LODModel->VertexBuffers.ColorVertexBuffer.InitFromSingleColor(FColor(255, 255, 255, 255), LODModel->GetNumVertices());
 
 			// @todo MeshPaint: Make sure this is the best place to do this
-			BeginInitResource(&LODModel->ColorVertexBuffer);
+			BeginInitResource(&LODModel->VertexBuffers.ColorVertexBuffer);
 		}
 
 		// Actor mesh component LOD
@@ -292,10 +292,10 @@ void FMeshPaintGeometryAdapterForStaticMeshes::GetVertexColor(int32 VertexIndex,
 	else
 	{
 		// Static mesh LOD
-		const bool bValidMeshData = LODModel->ColorVertexBuffer.GetNumVertices() > (uint32)VertexIndex;
+		const bool bValidMeshData = LODModel->VertexBuffers.ColorVertexBuffer.GetNumVertices() > (uint32)VertexIndex;
 		if (bValidMeshData)
 		{
-			OutColor = LODModel->ColorVertexBuffer.VertexColor(VertexIndex);
+			OutColor = LODModel->VertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex);
 		}
 	}
 }
@@ -328,10 +328,10 @@ void FMeshPaintGeometryAdapterForStaticMeshes::SetVertexColor(int32 VertexIndex,
 	}	
 	else
 	{
-		const bool bValidMeshData = LODModel->ColorVertexBuffer.GetNumVertices() >(uint32)VertexIndex;
+		const bool bValidMeshData = LODModel->VertexBuffers.ColorVertexBuffer.GetNumVertices() >(uint32)VertexIndex;
 		if (bValidMeshData)
 		{
-			LODModel->ColorVertexBuffer.VertexColor(VertexIndex) = Color;
+			LODModel->VertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex) = Color;
 		}
 	}
 }
@@ -343,7 +343,7 @@ FMatrix FMeshPaintGeometryAdapterForStaticMeshes::GetComponentToWorldMatrix() co
 
 void FMeshPaintGeometryAdapterForStaticMeshes::GetTextureCoordinate(int32 VertexIndex, int32 ChannelIndex, FVector2D& OutTextureCoordinate) const
 {
-	OutTextureCoordinate = LODModel->VertexBuffer.GetVertexUV(VertexIndex, ChannelIndex);
+	OutTextureCoordinate = LODModel->VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, ChannelIndex);
 }
 
 void FMeshPaintGeometryAdapterForStaticMeshes::PreEdit()
@@ -392,10 +392,10 @@ void FMeshPaintGeometryAdapterForStaticMeshes::PreEdit()
 			// Setup the instance vertex color array if we don't have one yet
 			InstanceMeshLODInfo->OverrideVertexColors = new FColorVertexBuffer;
 
-			if ((int32)LODModel->ColorVertexBuffer.GetNumVertices() >= LODModel->GetNumVertices())
+			if ((int32)LODModel->VertexBuffers.ColorVertexBuffer.GetNumVertices() >= LODModel->GetNumVertices())
 			{
 				// copy mesh vertex colors to the instance ones
-				InstanceMeshLODInfo->OverrideVertexColors->InitFromColorArray(&LODModel->ColorVertexBuffer.VertexColor(0), LODModel->GetNumVertices());
+				InstanceMeshLODInfo->OverrideVertexColors->InitFromColorArray(&LODModel->VertexBuffers.ColorVertexBuffer.VertexColor(0), LODModel->GetNumVertices());
 			}
 			else
 			{

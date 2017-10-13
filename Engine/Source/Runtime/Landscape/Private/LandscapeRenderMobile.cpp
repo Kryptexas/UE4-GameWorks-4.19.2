@@ -276,6 +276,7 @@ FLandscapeComponentSceneProxyMobile::~FLandscapeComponentSceneProxyMobile()
 
 void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 {
+	auto FeatureLevel = GetScene().GetFeatureLevel();
 	// Use only Index buffers
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
 	if (SharedBuffers == nullptr)
@@ -293,7 +294,7 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 	check(MobileRenderData->VertexBuffer);
 	MobileRenderData->VertexBuffer->InitResource();
 
-	FLandscapeVertexFactoryMobile* LandscapeVertexFactory = new FLandscapeVertexFactoryMobile();
+	FLandscapeVertexFactoryMobile* LandscapeVertexFactory = new FLandscapeVertexFactoryMobile(FeatureLevel);
 	LandscapeVertexFactory->MobileData.PositionComponent = FVertexStreamComponent(MobileRenderData->VertexBuffer, STRUCT_OFFSET(FLandscapeMobileVertex,Position), sizeof(FLandscapeMobileVertex), VET_UByte4N);
 	for( uint32 Index = 0; Index < LANDSCAPE_MAX_ES_LOD_COMP; ++Index )
 	{

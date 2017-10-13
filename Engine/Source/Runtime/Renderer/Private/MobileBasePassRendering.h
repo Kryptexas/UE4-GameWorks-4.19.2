@@ -662,6 +662,7 @@ public:
 			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
 		}
 #endif
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.

@@ -4,14 +4,13 @@
 #include "Modules/ModuleManager.h"
 #include "GPUSkinPublicDefs.h"
 #include "ReferenceSkeleton.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/SkeletalMesh.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "UObject/UObjectHash.h"
 #include "Templates/ScopedPointer.h"
 #include "ComponentReregisterContext.h"
 #include "UniquePtr.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshModel.h"
 #include "AnimationBlueprintLibrary.h"
 #include "Async/ParallelFor.h"
 
@@ -365,22 +364,22 @@ public:
 
 		bool bNeedsRemoval = GetBoneReductionData(SkeletalMesh, DesiredLOD, BonesToRemove, BoneNamesToRemove);
 		// Always restore all previously removed bones if not contained by BonesToRemove
-		SkeletalMesh->CalculateRequiredBones(SkeletalMesh->GetImportedResource()->LODModels[DesiredLOD], SkeletalMesh->RefSkeleton, &BonesToRemove);
+		SkeletalMesh->CalculateRequiredBones(SkeletalMesh->GetImportedModel()->LODModels[DesiredLOD], SkeletalMesh->RefSkeleton, &BonesToRemove);
 		
 		TComponentReregisterContext<USkinnedMeshComponent> ReregisterContext;
 		SkeletalMesh->ReleaseResources();
 		SkeletalMesh->ReleaseResourcesFence.Wait();
 
-		FSkeletalMeshResource* SkeletalMeshResource = SkeletalMesh->GetImportedResource();
+		FSkeletalMeshModel* SkeletalMeshResource = SkeletalMesh->GetImportedModel();
 		check(SkeletalMeshResource);
 
-		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
-		FStaticLODModel* SrcModel = LODModels[DesiredLOD];
-		FStaticLODModel* NewModel = nullptr;
+		FSkeletalMeshLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
+		FSkeletalMeshLODModel* SrcModel = LODModels[DesiredLOD];
+		FSkeletalMeshLODModel* NewModel = nullptr;
 				
 		if (bNeedsRemoval)
 		{
-			NewModel = new FStaticLODModel();
+			NewModel = new FSkeletalMeshLODModel();
 			LODModels[DesiredLOD] = NewModel;
 
 			// Bulk data arrays need to be locked before a copy can be made.
@@ -389,12 +388,6 @@ public:
 			*NewModel = *SrcModel;
 			SrcModel->RawPointIndices.Unlock();
 			SrcModel->LegacyRawPointIndices.Unlock();
-
-			// The index buffer needs to be rebuilt on copy.
-			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
-			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
-			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
-			NewModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
 
 			TArray<FBoneIndexType> BoneIndices;
 			TArray<FTransform> RemovedBoneTransforms;

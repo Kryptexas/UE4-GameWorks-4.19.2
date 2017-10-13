@@ -18,6 +18,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 #include "AbcImportData.h"
+#include "Rendering/SkeletalMeshLODModel.h"
 
 #define LOCTEXT_NAMESPACE "AbcImporterUtilities"
 

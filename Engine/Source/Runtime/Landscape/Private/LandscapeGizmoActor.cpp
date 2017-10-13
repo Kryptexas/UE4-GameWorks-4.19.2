@@ -257,7 +257,7 @@ public:
 					PDI->DrawLine( Origin, YAxis, FLinearColor(0, 1, 0), SDPG_World );
 
 					{
-						FDynamicMeshBuilder MeshBuilder;
+						FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 
 						const FColor GizmoColor = FColor::White;
 						MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
@@ -302,7 +302,7 @@ public:
 
 					if (bHeightmapRendering)
 					{
-						FDynamicMeshBuilder MeshBuilder;
+						FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 
 						for (int32 Y = 0; Y < SampleSizeY; ++Y)
 						{

@@ -593,7 +593,8 @@ FReadOnlyCVARCache::FReadOnlyCVARCache()
 }
 
 FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel)
-:	World(InWorld)
+:	FSceneInterface(InFeatureLevel)
+,	World(InWorld)
 ,	FXSystem(NULL)
 ,	bStaticDrawListsMobileHDR(false)
 ,	bStaticDrawListsMobileHDR32bpp(false)
@@ -2257,13 +2258,6 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 					// reload the wind since it may have changed or been scaled differently during reimport
 					StaticMesh->SpeedTreeWind->SetNeedsReload(false);
 					WindComputation->Wind = *(StaticMesh->SpeedTreeWind.Get( ));
-
-					// make sure the vertex factories are registered (sometimes goes wrong during a reimport)
-					for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
-					{
-						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
-						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, StaticMesh);
-					}
 				}
 
 				// advance the wind object
@@ -2955,7 +2949,8 @@ class FNULLSceneInterface : public FSceneInterface
 {
 public:
 	FNULLSceneInterface(UWorld* InWorld, bool bCreateFXSystem )
-		:	World( InWorld )
+		:	FSceneInterface(GMaxRHIFeatureLevel)
+		,	World( InWorld )
 		,	FXSystem( NULL )
 	{
 		World->Scene = this;

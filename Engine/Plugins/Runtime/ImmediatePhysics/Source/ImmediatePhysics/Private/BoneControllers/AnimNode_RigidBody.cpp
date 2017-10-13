@@ -171,10 +171,10 @@ void ComputeBodyInsertionOrder(TArray<FBoneIndexType>& InsertionOrder, const USk
 	//For this to work we must first insert all simulated bodies in the right order. We then insert all the kinematic bodies in the right order
 
 	InsertionOrder.Reset();
-	if(FSkeletalMeshResource* SkelMeshResource = SKC.GetSkeletalMeshResource())
-	{
-		const int32 NumLODs = SkelMeshResource->LODModels.Num();
 
+	const int32 NumLODs = SKC.GetNumLODs();
+	if(NumLODs > 0)
+	{
 		TArray<bool> InSortedOrder;
 
 		TArray<FBoneIndexType> RequiredBones0;

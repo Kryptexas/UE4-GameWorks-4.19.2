@@ -32,16 +32,13 @@ struct FMeshBatchElement
 		class FSplineMeshSceneProxy* SplineMeshSceneProxy;
 	};
 	const void* UserData;
-	/**
-	 *	DynamicIndexData - pointer to user memory containing the index data.
-	 *	Used for rendering dynamic data directly.
-	 */
-	const void* DynamicIndexData;
+
 	uint32 FirstIndex;
 	uint32 NumPrimitives;
 
 	/** Number of instances to draw.  If InstanceRuns is valid, this is actually the number of runs in InstanceRuns. */
 	uint32 NumInstances;
+	uint32 BaseVertexIndex;
 	uint32 MinVertexIndex;
 	uint32 MaxVertexIndex;
 	// Meaning depends on the vertex factory, e.g. FGPUSkinPassthroughVertexFactory: element index in FGPUSkinCache::CachedElements
@@ -53,7 +50,6 @@ struct FMeshBatchElement
 	float MinScreenSize;
 	float MaxScreenSize;
 
-	uint16 DynamicIndexStride;
 	uint8 InstancedLODIndex : 4;
 	uint8 InstancedLODRange : 4;
 	uint8 bUserDataIsColorVertexBuffer : 1;
@@ -71,8 +67,8 @@ struct FMeshBatchElement
 	,	IndexBuffer(nullptr)
 	,	InstanceRuns(nullptr)
 	,	UserData(nullptr)
-	,	DynamicIndexData(nullptr)
 	,	NumInstances(1)
+	,	BaseVertexIndex(0)
 	,	UserIndex(-1)
 	,	MinScreenSize(0.0f)
 	,	MaxScreenSize(1.0f)
@@ -97,9 +93,6 @@ struct FMeshBatch
 {
 	TArray<FMeshBatchElement,TInlineAllocator<1> > Elements;
 
-	// used with DynamicVertexData
-	uint16 DynamicVertexStride;
-
 	/** LOD index of the mesh, used for fading LOD transitions. */
 	int8 LODIndex;
 
@@ -111,7 +104,6 @@ struct FMeshBatch
 	/** Conceptual HLOD index used for the HLOD Coloration visualization. */
 	int8 VisualizeHLODIndex;
 
-	uint32 UseDynamicData : 1;
 	uint32 ReverseCulling : 1;
 	uint32 bDisableBackfaceCulling : 1;
 	uint32 CastShadow : 1;				// Wheter it can be used in shadow renderpasses.
@@ -154,13 +146,6 @@ struct FMeshBatch
 	// can be NULL
 	const FLightCacheInterface* LCI;
 
-	/** 
-	 *	DynamicVertexData - pointer to user memory containing the vertex data.
-	 *	Used for rendering dynamic data directly.
-	 *  used with DynamicVertexStride
-	 */
-	const void* DynamicVertexData;
-
 	/** Vertex factory for rendering, required. */
 	const FVertexFactory* VertexFactory;
 
@@ -198,21 +183,6 @@ struct FMeshBatch
 		return (int8)NewLODIndex;
 	}
 
-	/** 
-	* @return vertex stride specified for the mesh. 0 if not dynamic
-	*/
-	FORCEINLINE uint32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const
-	{
-		if (UseDynamicData && DynamicVertexData)
-		{
-			return DynamicVertexStride;
-		}
-		else
-		{
-			return 0;
-		}
-	}
-
 	FORCEINLINE int32 GetNumPrimitives() const
 	{
 		int32 Count=0;
@@ -245,13 +215,11 @@ struct FMeshBatch
 
 	/** Default constructor. */
 	FMeshBatch()
-	:	DynamicVertexStride(0)
-	,	LODIndex(INDEX_NONE)
+	:	LODIndex(INDEX_NONE)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	,	VisualizeLODIndex(INDEX_NONE)
 #endif
 	,	VisualizeHLODIndex(INDEX_NONE)
-	,	UseDynamicData(false)
 	,	ReverseCulling(false)
 	,	bDisableBackfaceCulling(false)
 	,	CastShadow(true)
@@ -268,7 +236,6 @@ struct FMeshBatch
 	,	bDitheredLODTransition(false)
 	,   DitheredLODTransitionAlpha(0.0f)
 	,	LCI(NULL)
-	,	DynamicVertexData(NULL)
 	,	VertexFactory(NULL)
 	,	MaterialRenderProxy(NULL)
 	{

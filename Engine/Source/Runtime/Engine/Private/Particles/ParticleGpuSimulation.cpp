@@ -638,6 +638,10 @@ class FGPUSpriteVertexFactory : public FParticleVertexFactoryBase
 	DECLARE_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory);
 
 public:
+	FGPUSpriteVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FParticleVertexFactoryBase(InFeatureLevel)
+	{
+	}
 
 	/** Emitter uniform buffer. */
 	FUniformBufferRHIParamRef EmitterUniformBuffer;
@@ -2530,12 +2534,12 @@ public:
 	/**
 	 * Create and initializes a visualization vertex factory if needed.
 	 */
-	void CreateVectorFieldVisualizationVertexFactory()
+	void CreateVectorFieldVisualizationVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		if (VectorFieldVisualizationVertexFactory == NULL)
 		{
 			check(IsInRenderingThread());
-			VectorFieldVisualizationVertexFactory = new FVectorFieldVisualizationVertexFactory();
+			VectorFieldVisualizationVertexFactory = new FVectorFieldVisualizationVertexFactory(InFeatureLevel);
 			VectorFieldVisualizationVertexFactory->InitResource();
 		}
 	}
@@ -2876,9 +2880,9 @@ public:
 	{		
 	}
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory() override
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override
 	{
-		FGPUSpriteVertexFactory *VertexFactory = new FGPUSpriteVertexFactory();
+		FGPUSpriteVertexFactory *VertexFactory = new FGPUSpriteVertexFactory(InFeatureLevel);
 		VertexFactory->InitResource();
 		return VertexFactory;
 	}
@@ -2927,7 +2931,6 @@ public:
 				FGPUSpriteCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FGPUSpriteCollectorResources>();
 				//CollectorResources.VertexFactory.InitResource();
 				CollectorResources.VertexFactory = static_cast<FGPUSpriteVertexFactory*>(InVertexFactory);
-				CollectorResources.VertexFactory->SetFeatureLevel(FeatureLevel);
 				FGPUSpriteVertexFactory& VertexFactory = *CollectorResources.VertexFactory;
 
 				if (bAllowSorting && SortMode == PSORTMODE_DistanceToView)
@@ -2994,7 +2997,7 @@ public:
 				if (bHaveLocalVectorField && ViewFamily.EngineShowFlags.VectorFields)
 				{
 					// Create a vertex factory for visualization if needed.
-					Simulation->CreateVectorFieldVisualizationVertexFactory();
+					Simulation->CreateVectorFieldVisualizationVertexFactory(FeatureLevel);
 					check(Simulation->VectorFieldVisualizationVertexFactory);
 					DrawVectorFieldBounds(Collector.GetPDI(ViewIndex), View, &Simulation->LocalVectorField);
 					GetVectorFieldMesh(Simulation->VectorFieldVisualizationVertexFactory, &Simulation->LocalVectorField, ViewIndex, Collector);

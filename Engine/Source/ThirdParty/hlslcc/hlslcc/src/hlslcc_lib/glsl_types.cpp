@@ -233,10 +233,10 @@ bool glsl_type::contains_sampler() const
 void glsl_type::generate_100ES_types(glsl_symbol_table *symtab)
 {
 	add_types_to_symbol_table(symtab, builtin_core_types,
-		Elements(builtin_core_types),
+		GetNumArrayElements(builtin_core_types),
 		false);
 	add_types_to_symbol_table(symtab, builtin_structure_types,
-		Elements(builtin_structure_types),
+		GetNumArrayElements(builtin_structure_types),
 		false);
 	add_types_to_symbol_table(symtab, void_type, 1, false);
 }
@@ -246,13 +246,13 @@ void glsl_type::generate_110_types(glsl_symbol_table *symtab, bool add_deprecate
 	generate_100ES_types(symtab);
 
 	//   add_types_to_symbol_table(symtab, builtin_110_types,
-	//			     Elements(builtin_110_types),
+	//			     GetNumArrayElements(builtin_110_types),
 	//			     false);
 	//   add_types_to_symbol_table(symtab, &_sampler3D_type, 1, false);
 	if (add_deprecated)
 	{
 		add_types_to_symbol_table(symtab, builtin_110_deprecated_structure_types,
-			Elements(builtin_110_deprecated_structure_types),
+			GetNumArrayElements(builtin_110_deprecated_structure_types),
 			false);
 	}
 }
@@ -263,7 +263,7 @@ void glsl_type::generate_120_types(glsl_symbol_table *symtab, bool add_deprecate
 	generate_110_types(symtab, add_deprecated);
 
 	add_types_to_symbol_table(symtab, builtin_120_types,
-		Elements(builtin_120_types), false);
+		GetNumArrayElements(builtin_120_types), false);
 }
 
 
@@ -272,7 +272,7 @@ void glsl_type::generate_130_types(glsl_symbol_table *symtab, bool add_deprecate
 	generate_120_types(symtab, add_deprecated);
 
 	add_types_to_symbol_table(symtab, builtin_130_types,
-		Elements(builtin_130_types), false);
+		GetNumArrayElements(builtin_130_types), false);
 }
 
 

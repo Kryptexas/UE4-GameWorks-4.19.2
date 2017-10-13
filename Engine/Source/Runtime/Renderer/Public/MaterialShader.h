@@ -16,6 +16,7 @@
 #include "GlobalShader.h"
 #include "MaterialShaderType.h"
 #include "SceneRenderTargetParameters.h"
+#include "ShaderParameterUtils.h"
 
 FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 
@@ -161,6 +162,12 @@ public:
 	virtual bool Serialize(FArchive& Ar) override;
 	virtual uint32 GetAllocatedSize() const override;
 
+	void SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InInstanceOffset, uint32 InInstanceCount) const
+	{
+		SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, InInstanceCount);
+		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, InInstanceOffset);
+	}
+
 private:
 
 	FShaderUniformBufferParameter MaterialUniformBuffer;
@@ -175,6 +182,9 @@ private:
 
 	//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 	FShaderResourceParameter EyeAdaptation;
+
+	FShaderParameter InstanceCount;
+	FShaderParameter InstanceOffset;
 
 	FDebugUniformExpressionSet	DebugUniformExpressionSet;
 	FRHIUniformBufferLayout		DebugUniformExpressionUBLayout;

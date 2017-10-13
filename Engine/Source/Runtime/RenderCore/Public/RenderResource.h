@@ -93,12 +93,6 @@ public:
 	// Accessors.
 	FORCEINLINE bool IsInitialized() const { return bInitialized; }
 
-	// For those situations when the default ctor had to be used
-	inline void SetFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		FeatureLevel = InFeatureLevel;
-	}
-
 protected:
 	// This is used during mobile editor preview refactor, this will eventually be replaced with a parameter to InitRHI() etc..
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel == ERHIFeatureLevel::Num ? GMaxRHIFeatureLevel : FeatureLevel; }
@@ -468,9 +462,12 @@ public:
 		FRHIResourceCreateInfo CreateInfo;
 		
 		void* LockedData = nullptr;
-		VertexBufferRHI = RHICreateAndLockVertexBuffer(sizeof(uint32), BUF_Static | BUF_ZeroStride | BUF_ShaderResource, CreateInfo, LockedData);
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(sizeof(uint32) * 4, BUF_Static | BUF_ZeroStride | BUF_ShaderResource, CreateInfo, LockedData);
 		uint32* Vertices = (uint32*)LockedData;
 		Vertices[0] = FColor(255, 255, 255, 255).DWColor();
+		Vertices[1] = FColor(255, 255, 255, 255).DWColor();
+		Vertices[2] = FColor(255, 255, 255, 255).DWColor();
+		Vertices[3] = FColor(255, 255, 255, 255).DWColor();
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FColor), PF_R8G8B8A8);
 	}

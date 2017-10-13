@@ -131,9 +131,8 @@ FRenderResource::~FRenderResource()
 
 void BeginInitResource(FRenderResource* Resource)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		InitCommand,
-		FRenderResource*,Resource,Resource,
+	ENQUEUE_RENDER_COMMAND(InitCommand)(
+		[Resource](FRHICommandListImmediate& RHICmdList)
 		{
 			Resource->InitResource();
 		});
@@ -141,9 +140,8 @@ void BeginInitResource(FRenderResource* Resource)
 
 void BeginUpdateResourceRHI(FRenderResource* Resource)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		UpdateCommand,
-		FRenderResource*,Resource,Resource,
+	ENQUEUE_RENDER_COMMAND(UpdateCommand)(
+		[Resource](FRHICommandListImmediate& RHICmdList)
 		{
 			Resource->UpdateRHI();
 		});

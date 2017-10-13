@@ -357,6 +357,16 @@ void UMapBuildDataRegistry::Serialize(FArchive& Ar)
 
 		Ar << LightBuildData;
 		
+		if (Ar.IsSaving())
+		{
+			for (TMap<FGuid, FReflectionCaptureMapBuildData>::TIterator It(ReflectionCaptureBuildData); It; ++It)
+			{
+				const FReflectionCaptureMapBuildData& CaptureBuildData = It.Value();
+				// Sanity check that every reflection capture entry has valid data for at least one format
+				check(CaptureBuildData.FullHDRCapturedData.Num() > 0 || CaptureBuildData.EncodedHDRCapturedData.Num() > 0);
+			}
+		}
+
 		if (Ar.CustomVer(FReflectionCaptureObjectVersion::GUID) >= FReflectionCaptureObjectVersion::MoveReflectionCaptureDataToMapBuildData)
 		{
 			Ar << ReflectionCaptureBuildData;
@@ -368,7 +378,9 @@ void UMapBuildDataRegistry::PostLoad()
 {
 	Super::PostLoad();
 
-	if (ReflectionCaptureBuildData.Num() > 0)
+	if (ReflectionCaptureBuildData.Num() > 0 
+		// Only strip in PostLoad for cooked platforms.  Uncooked may need to generate encoded HDR data in UReflectionCaptureComponent::OnRegister().
+		&& FPlatformProperties::RequiresCookedData())
 	{
 		// We already stripped unneeded formats during cooking, but some cooking targets require multiple formats to be stored
 		// Strip unneeded formats for the current max feature level
@@ -389,6 +401,8 @@ void UMapBuildDataRegistry::PostLoad()
 			{
 				CaptureBuildData.EncodedHDRCapturedData.Empty();
 			}
+
+			check(CaptureBuildData.FullHDRCapturedData.Num() > 0 || CaptureBuildData.EncodedHDRCapturedData.Num() > 0);
 		}
 	}
 }

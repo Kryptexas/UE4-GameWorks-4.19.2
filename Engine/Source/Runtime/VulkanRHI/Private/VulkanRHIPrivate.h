@@ -82,9 +82,6 @@
 
 using namespace VulkanRHI;
 
-// Default is 1 (which is aniso off), the number is adjusted after the limits are queried.
-static int32 GMaxVulkanTextureFilterAnisotropic = 1;
-
 class FVulkanQueue;
 class FVulkanCmdBuffer;
 class FVulkanShader;

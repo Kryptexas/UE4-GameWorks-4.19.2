@@ -92,7 +92,7 @@ struct FProcMeshSection
 
 	/** Index buffer for this section */
 	UPROPERTY()
-	TArray<int32> ProcIndexBuffer;
+	TArray<uint32> ProcIndexBuffer;
 	/** Local bounding box of section */
 	UPROPERTY()
 	FBox SectionLocalBox;

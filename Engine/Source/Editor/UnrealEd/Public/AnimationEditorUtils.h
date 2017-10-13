@@ -23,6 +23,7 @@ class UAnimCompress;
 class UAnimSequence;
 class UEdGraph;
 class UPoseWatch;
+class UEdGraphNode;
 
 /** dialog to prompt users to decide an animation asset name */
 class SCreateAnimationAssetDlg : public SWindow

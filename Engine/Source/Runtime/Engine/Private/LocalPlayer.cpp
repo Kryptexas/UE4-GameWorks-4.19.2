@@ -26,7 +26,7 @@
 #include "Net/OnlineEngineInterface.h"
 #include "SceneManagement.h"
 #include "PhysicsPublic.h"
-#include "SkeletalMeshTypes.h"
+#include "SkeletalMeshRenderData.h"
 #include "HAL/PlatformApplicationMisc.h"
 
 #include "IHeadMountedDisplay.h"
@@ -1181,9 +1181,9 @@ bool ULocalPlayer::HandleListSkelMeshesCommand( const TCHAR* Cmd, FOutputDevice&
 		if( SkeletalMesh && SkeletalMeshComponents.Num() )
 		{
 			// Dump information about skeletal mesh.
-			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
-			check(SkelMeshResource->LODModels.Num());
-			UE_LOG(LogPlayerManagement, Log, TEXT("%5i Vertices for LOD 0 of %s"),SkelMeshResource->LODModels[0].NumVertices,*SkeletalMesh->GetFullName());
+			FSkeletalMeshRenderData* SkelMeshRenderData = SkeletalMesh->GetResourceForRendering();
+			check(SkelMeshRenderData->LODRenderData.Num());
+			UE_LOG(LogPlayerManagement, Log, TEXT("%5i Vertices for LOD 0 of %s"), SkelMeshRenderData->LODRenderData[0].GetNumVertices(),*SkeletalMesh->GetFullName());
 
 			// Dump all instances.
 			for( int32 InstanceIndex=0; InstanceIndex<SkeletalMeshComponents.Num(); InstanceIndex++ )

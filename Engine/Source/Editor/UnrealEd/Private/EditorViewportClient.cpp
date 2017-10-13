@@ -3510,9 +3510,9 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	// NOTE: DebugCanvasObject will be created by UDebugDrawService::Draw() if it doesn't already exist.
 	UDebugDrawService::Draw(ViewFamily.EngineShowFlags, Viewport, View, DebugCanvas);
 	UCanvas* DebugCanvasObject = FindObjectChecked<UCanvas>(GetTransientPackage(),TEXT("DebugCanvasObject"));
-	DebugCanvasObject->Canvas = DebugCanvas;
-	DebugCanvasObject->Init( Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, View );
-    
+	
+	DebugCanvasObject->Init( Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, View , DebugCanvas);
+
 	// Stats display
 	if( IsRealtime() && ShouldShowStats() && DebugCanvas)
 	{

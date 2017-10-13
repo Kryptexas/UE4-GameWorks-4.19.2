@@ -116,7 +116,7 @@ protected:
 	TArray<FDynamicMeshVertex> Vertices;
 
 	/** 'Index buffer' we use to render with */
-	TArray<int32> Indices;
+	TArray<uint32> Indices;
 
 	/** Currently selected indices */
 	TArray<int32> NodeIndices;

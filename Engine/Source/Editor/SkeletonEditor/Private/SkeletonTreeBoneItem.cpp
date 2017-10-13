@@ -17,7 +17,7 @@
 #include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 #include "UObject/Package.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeBoneItem"
@@ -411,18 +411,18 @@ bool FSkeletonTreeBoneItem::IsBoneWeighted(int32 MeshBoneIndex, UDebugSkelMeshCo
 {
 	// MeshBoneIndex must be an index into the mesh's skeleton, *not* the source skeleton!!!
 
-	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num())
+	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num())
 	{
 		// If there's no mesh, then this bone can't possibly be weighted!
 		return false;
 	}
 
 	//Get current LOD
-	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
-	FStaticLODModel& LODModel = PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num() - 1);
+	FSkeletalMeshLODRenderData& LODData = PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData[LODIndex];
 
 	//Check whether the bone is vertex weighted
-	int32 Index = LODModel.ActiveBoneIndices.Find(MeshBoneIndex);
+	int32 Index = LODData.ActiveBoneIndices.Find(MeshBoneIndex);
 
 	return Index != INDEX_NONE;
 }
@@ -431,18 +431,18 @@ bool FSkeletonTreeBoneItem::IsBoneRequired(int32 MeshBoneIndex, UDebugSkelMeshCo
 {
 	// MeshBoneIndex must be an index into the mesh's skeleton, *not* the source skeleton!!!
 
-	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num())
+	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num())
 	{
 		// If there's no mesh, then this bone can't possibly be weighted!
 		return false;
 	}
 
 	//Get current LOD
-	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
-	FStaticLODModel& LODModel = PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num() - 1);
+	FSkeletalMeshLODRenderData& LODData = PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData[LODIndex];
 
 	//Check whether the bone is vertex weighted
-	int32 Index = LODModel.RequiredBones.Find(MeshBoneIndex);
+	int32 Index = LODData.RequiredBones.Find(MeshBoneIndex);
 
 	return Index != INDEX_NONE;
 }

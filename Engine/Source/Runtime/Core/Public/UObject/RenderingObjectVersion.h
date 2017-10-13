@@ -64,6 +64,9 @@ struct CORE_API FRenderingObjectVersion
 
 		StoreReflectionCaptureBrightnessForCooking,
 
+		// FModelVertexBuffer does serialize a regular TArray instead of a TResourceArray
+		ModelVertexBufferSerialization,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

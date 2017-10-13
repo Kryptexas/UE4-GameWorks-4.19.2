@@ -32,6 +32,8 @@ public:
 	/** Delete existing resources */
 	ENGINE_API void CleanUp();
 
+	void ENGINE_API Init(uint32 NumVertices, bool bNeedsCPUAccess = true);
+
 	/**
 	* Initializes the buffer with the given vertices, used to convert legacy layouts.
 	* @param InVertices - The vertices to initialize the buffer with.
@@ -87,10 +89,19 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() override;
+	ENGINE_API virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const override { return TEXT("PositionOnly Static-mesh vertices"); }
 
+	ENGINE_API void BindPositionVertexBuffer(const class FVertexFactory* VertexFactory, struct FStaticMeshDataType& Data) const;
+
+	void* GetVertexData()
+	{
+		return Data;
+	}
+
 private:
+
+	FShaderResourceViewRHIRef PositionComponentSRV;
 
 	/** The vertex data storage type */
 	class FPositionVertexData* VertexData;

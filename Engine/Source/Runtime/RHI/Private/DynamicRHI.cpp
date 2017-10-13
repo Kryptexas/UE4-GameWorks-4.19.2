@@ -280,7 +280,7 @@ void FDynamicRHI::EnableIdealGPUCaptureOptions(bool bEnabled)
 	if (bShouldEnableMaterialDrawEvents != bMaterialDrawEvents && ShowMaterialDrawEventVar)
 	{
 		UE_LOG(LogRHI, Display, TEXT("Toggling showmaterialdrawevents: %i"), bShouldEnableDrawEvents ? 1 : 0);
-		ShowMaterialDrawEventVar->Set(bShouldEnableDrawEvents ? 1 : 0);		
+		ShowMaterialDrawEventVar->Set(bShouldEnableDrawEvents ? -1 : 0);		
 	}
 	if (bRHIThread != bShouldEnableRHIThread && RHIThreadEnableCommand)
 	{

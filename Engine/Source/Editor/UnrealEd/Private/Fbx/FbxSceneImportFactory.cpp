@@ -39,6 +39,7 @@
 #include "FileHelpers.h"
 #include "CineCameraComponent.h"
 #include "SkelImport.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "AssetSelection.h"
 
@@ -2003,8 +2004,8 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			if ((GlobalImportSettings->bImportSkeletalMeshLODs || LODIndex == 0) &&
 				GlobalImportSettings->bImportMorph &&
 				NewSkelMesh &&
-				NewSkelMesh->GetImportedResource() &&
-				NewSkelMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
+				NewSkelMesh->GetImportedModel() &&
+				NewSkelMesh->GetImportedModel()->LODModels.IsValidIndex(LODIndex))
 			{
 				// TODO: Disable material importing when importing morph targets
 				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex, OutData);

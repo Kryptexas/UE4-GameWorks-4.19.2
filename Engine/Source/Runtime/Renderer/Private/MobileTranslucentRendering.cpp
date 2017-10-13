@@ -499,6 +499,7 @@ public:
 			VertexShader = InMaterialResource.GetShader<FOpacityOnlyVS >(VertexFactory->GetType());
 			PixelShader = InMaterialResource.GetShader<FOpacityOnlyPS>(InVertexFactory->GetType());
 		}
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.

@@ -694,14 +694,14 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 
 		if (!XYOffsetmapTexture)
 		{
-			FLandscapeVertexFactory* LandscapeVertexFactory = new FLandscapeVertexFactory();
+			FLandscapeVertexFactory* LandscapeVertexFactory = new FLandscapeVertexFactory(FeatureLevel);
 			LandscapeVertexFactory->Data.PositionComponent = FVertexStreamComponent(SharedBuffers->VertexBuffer, 0, sizeof(FLandscapeVertex), VET_Float4);
 			LandscapeVertexFactory->InitResource();
 			SharedBuffers->VertexFactory = LandscapeVertexFactory;
 		}
 		else
 		{
-			FLandscapeXYOffsetVertexFactory* LandscapeXYOffsetVertexFactory = new FLandscapeXYOffsetVertexFactory();
+			FLandscapeXYOffsetVertexFactory* LandscapeXYOffsetVertexFactory = new FLandscapeXYOffsetVertexFactory(FeatureLevel);
 			LandscapeXYOffsetVertexFactory->Data.PositionComponent = FVertexStreamComponent(SharedBuffers->VertexBuffer, 0, sizeof(FLandscapeVertex), VET_Float4);
 			LandscapeXYOffsetVertexFactory->InitResource();
 			SharedBuffers->VertexFactory = LandscapeXYOffsetVertexFactory;
@@ -2500,6 +2500,11 @@ void FLandscapeVertexFactory::InitRHI()
 	InitDeclaration(Elements);
 }
 
+FLandscapeVertexFactory::FLandscapeVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+: FVertexFactory(InFeatureLevel)
+{
+}
+
 FVertexFactoryShaderParameters* FLandscapeVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
 	switch (ShaderFrequency)
@@ -3166,7 +3171,7 @@ FPrimitiveSceneProxy* ULandscapeMeshProxyComponent::CreateSceneProxy()
 	if (GetStaticMesh() == NULL
 		|| GetStaticMesh()->RenderData == NULL
 		|| GetStaticMesh()->RenderData->LODResources.Num() == 0
-		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() == 0)
 	{
 		return NULL;
 	}

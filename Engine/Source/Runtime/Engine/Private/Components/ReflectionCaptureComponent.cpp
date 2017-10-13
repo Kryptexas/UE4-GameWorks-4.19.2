@@ -457,6 +457,7 @@ static void EdgeWalkSetup( bool ReverseDirection, int32 Edge, int32 MipSize, int
 
 void GenerateEncodedHDRData(const TArray<uint8>& FullHDRData, int32 CubemapSize, float Brightness, TArray<uint8>& OutEncodedHDRData)
 {
+	check(FullHDRData.Num() > 0);
 	const int32 NumMips = FMath::CeilLogTwo(CubemapSize) + 1;
 
 	int32 SourceMipBaseIndex = 0;
