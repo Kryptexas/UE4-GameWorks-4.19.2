@@ -62,7 +62,17 @@ namespace UnrealBuildTool
 				Processed = InRef.ToString();	
 			}
 			
-			return Processed.Replace('\\', '/');
+			if (HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				Processed = Processed.Replace("\\", "\\\\");
+				Processed = Processed.Replace("/", "\\\\");
+			}
+			else
+			{
+				Processed = Processed.Replace('\\', '/');
+			}
+
+			return Processed;
 		}
 
 		private string MakeQuotedPathString(FileSystemReference InRef, EPathType InPathType)
