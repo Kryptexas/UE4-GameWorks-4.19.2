@@ -1169,14 +1169,6 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FSkeletalMeshLODModel& LODMode
 	}
 	Chunks.Empty();
 
-	// Build the adjacency index buffer used for tessellation.
-	{
-		TArray<FSoftSkinVertex> Vertices;
-		LODModel.GetVertices(Vertices);
-
-		BuildSkeletalAdjacencyIndexBuffer(Vertices, LODModel.NumTexCoords, LODModel.IndexBuffer, LODModel.AdjacencyBuffer);
-	}
-
 	// Compute the required bones for this model.
 	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
 #endif // #if WITH_EDITORONLY_DATA

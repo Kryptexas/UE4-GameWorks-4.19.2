@@ -1029,30 +1029,6 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		}
 	}
 
-	// Build adjacency information for meshes that have not yet had it built.
-#if WITH_EDITOR
-	for ( int32 LODIndex = 0; LODIndex < ImportedModel->LODModels.Num(); ++LODIndex )
-	{
-		FSkeletalMeshLODModel& LODModel = ImportedModel->LODModels[LODIndex];
-
-		// If we have no adjacency info, but we do have valid mesh, build it now
-		if ((LODModel.AdjacencyBuffer.Num() == 0 && LODModel.IndexBuffer.Num() > 0)
-#if WITH_APEX_CLOTHING
-		|| (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_APEX_CLOTH_TESSELLATION && LODModel.HasClothData())
-#endif // WITH_APEX_CLOTHING
-			)
-		{
-			TArray<FSoftSkinVertex> Vertices;
-			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-			UE_LOG(LogSkeletalMesh, Warning, TEXT("Building adjacency information for skeletal mesh '%s'. Please resave the asset."), *GetPathName() );
-			LODModel.GetVertices( Vertices );
-			MeshUtilities.BuildSkeletalAdjacencyIndexBuffer( Vertices, LODModel.NumTexCoords, LODModel.IndexBuffer, LODModel.AdjacencyBuffer );
-
-			// @skeltodo - Bump SkelMesh DDC GUID here
-		}
-	}
-#endif // #if WITH_EDITOR
-
 	// make sure we're counting properly
 	if (!Ar.IsLoading() && !Ar.IsSaving())
 	{
@@ -1485,12 +1461,6 @@ void USkeletalMesh::RemoveLegacyClothingSections()
 							Index -= VertexCount;
 						}
 					}
-
-					// Fix adjacency buffer
-					TArray<FSoftSkinVertex> Vertices;
-					IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-					LodModel.GetVertices(Vertices);
-					MeshUtilities.BuildSkeletalAdjacencyIndexBuffer(Vertices, LodModel.NumTexCoords, LodModel.IndexBuffer, LodModel.AdjacencyBuffer);
 
 					PostEditChange();
 				}

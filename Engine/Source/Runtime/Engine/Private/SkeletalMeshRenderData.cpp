@@ -29,7 +29,7 @@ namespace SkeletalMeshCookStats
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.                                       
-#define SKELETALMESH_DERIVEDDATA_VER TEXT("62BD032753D246BCA16F277150000DAC")
+#define SKELETALMESH_DERIVEDDATA_VER TEXT("AC033446D70841C0A314C0C4C56E39F6")
 
 static const FString& GetSkeletalMeshDerivedDataVersion()
 {

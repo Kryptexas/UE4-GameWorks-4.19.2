@@ -11,6 +11,7 @@
 
 #if WITH_EDITOR
 #include "SkeletalMeshModel.h"
+#include "MeshUtilities.h"
 #endif // WITH_EDITOR
 
 
@@ -234,7 +235,11 @@ void FSkeletalMeshLODRenderData::BuildFromLODModel(const FSkeletalMeshLODModel* 
 	const uint8 DataTypeSize = (ImportedModel->NumVertices < MAX_uint16) ? sizeof(uint16) : sizeof(uint32);
 
 	MultiSizeIndexContainer.RebuildIndexBuffer(DataTypeSize, ImportedModel->IndexBuffer);
-	AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(DataTypeSize, ImportedModel->AdjacencyBuffer);
+	
+	TArray<uint32> BuiltAdjacencyIndices;
+	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+	MeshUtilities.BuildSkeletalAdjacencyIndexBuffer(Vertices, ImportedModel->NumTexCoords, ImportedModel->IndexBuffer, BuiltAdjacencyIndices);
+	AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(DataTypeSize, BuiltAdjacencyIndices);
 
 	// MorphTargetVertexInfoBuffers are created in InitResources
 

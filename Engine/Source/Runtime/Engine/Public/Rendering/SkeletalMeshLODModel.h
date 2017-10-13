@@ -191,9 +191,6 @@ public:
 	*/
 	TArray<FBoneIndexType> ActiveBoneIndices;
 
-	/** Adjacency buffer information */
-	TArray<uint32> AdjacencyBuffer;
-
 	/**
 	* Bones that should be updated when rendering this LOD. This may include bones that are not required for rendering.
 	* All parents for bones in this array should be present as well - that is, a complete path from the root to each bone.

@@ -634,15 +634,10 @@ void FSkeletalMeshLODModel::Serialize(FArchive& Ar, UObject* Owner, int32 Idx)
 			if (!StripFlags.IsClassDataStripped(LodAdjacencyStripFlag))
 			{
 				// For old content, load as a multi-size container, but convert into regular array
-				if (Ar.IsLoading() && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::SplitModelAndRenderData)
 				{
-					FMultiSizeIndexContainer TempMultiSizeIndexContainer;
-					TempMultiSizeIndexContainer.Serialize(Ar, false);
-					TempMultiSizeIndexContainer.GetIndexBuffer(AdjacencyBuffer);
-				}
-				else
-				{
-					Ar << AdjacencyBuffer;
+					// Serialize and discard the adjacency data, it's now build for the DDC
+					FMultiSizeIndexContainer TempMultiSizeAdjacencyIndexContainer;
+					TempMultiSizeAdjacencyIndexContainer.Serialize(Ar, false);
 				}
 			}
 
@@ -729,7 +724,6 @@ void FSkeletalMeshLODModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourc
 	CumulativeResourceSize.AddUnknownMemoryBytes(ActiveBoneIndices.GetAllocatedSize());
 	CumulativeResourceSize.AddUnknownMemoryBytes(RequiredBones.GetAllocatedSize());
 	CumulativeResourceSize.AddUnknownMemoryBytes(IndexBuffer.GetAllocatedSize());
-	CumulativeResourceSize.AddUnknownMemoryBytes(AdjacencyBuffer.GetAllocatedSize());
 
 	CumulativeResourceSize.AddUnknownMemoryBytes(RawPointIndices.GetBulkDataSize());
 	CumulativeResourceSize.AddUnknownMemoryBytes(LegacyRawPointIndices.GetBulkDataSize());

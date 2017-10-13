@@ -1886,12 +1886,6 @@ bool FAbcImporter::BuildSkeletalMesh(
 		}
 	}
 
-	// Build the adjacency index buffer used for tessellation.
-	TArray<FSoftSkinVertex> SoftSkinVertices;
-	LODModel.GetVertices(SoftSkinVertices);
-
-	MeshUtilities.BuildSkeletalAdjacencyIndexBuffer(SoftSkinVertices, LODModel.NumTexCoords, LODModel.IndexBuffer, LODModel.AdjacencyBuffer);
-
 	// Compute the required bones for this model.
 	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
 
