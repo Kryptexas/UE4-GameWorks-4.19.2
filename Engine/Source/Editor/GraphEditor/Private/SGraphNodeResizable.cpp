@@ -3,6 +3,7 @@
 
 #include "SGraphNodeResizable.h"
 #include "ScopedTransaction.h"
+#include "Framework/Application/SlateApplication.h"
 
 namespace GraphNodeResizableDefs
 {
@@ -122,7 +123,8 @@ FReply SGraphNodeResizable::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 	{
 		FVector2D GraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetScreenSpacePosition() );
 		FVector2D OldGraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetLastScreenSpacePosition() );
-		FVector2D Delta = (GraphSpaceCoordinates - OldGraphSpaceCoordinates) / MyGeometry.Scale;
+		TSharedPtr<SWindow> OwnerWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+		FVector2D Delta = (GraphSpaceCoordinates - OldGraphSpaceCoordinates) / (OwnerWindow.IsValid() ? OwnerWindow->GetDPIScaleFactor() : 1.0f);
 		
 
 		//Clamp delta value based on resizing direction
