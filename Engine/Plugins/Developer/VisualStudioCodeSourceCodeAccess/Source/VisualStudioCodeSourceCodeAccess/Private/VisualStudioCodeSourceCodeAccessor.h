@@ -36,21 +36,12 @@ private:
 	/** Wrapper for vscode executable launch information */
 	struct FLocation
 	{
-#if PLATFORM_MAC
-		NSURL* URL = nullptr;
-
-		bool IsValid() const 
-		{
-			return URL != nullptr;
-		}
-#else
-		bool IsValid() const 
+		bool IsValid() const
 		{
 			return URL.Len() > 0;
 		}
 
 		FString URL;
-#endif		
 	};
 
 	/** Location instance */

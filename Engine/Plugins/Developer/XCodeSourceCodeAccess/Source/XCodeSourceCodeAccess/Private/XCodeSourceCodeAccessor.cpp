@@ -8,6 +8,7 @@
 #include "ISourceCodeAccessModule.h"
 #include "Misc/Paths.h"
 #include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 
 #define LOCTEXT_NAMESPACE "XCodeSourceCodeAccessor"
 
@@ -83,7 +84,7 @@ void FXCodeSourceCodeAccessor::Shutdown()
 {
 }
 
-FString FXCodeSourceCodeAccessor::GetSolutionPath()
+FString FXCodeSourceCodeAccessor::GetSolutionPath() const
 {
 	if(IsInGameThread())
 	{
@@ -95,7 +96,8 @@ FString FXCodeSourceCodeAccessor::GetSolutionPath()
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FString(FApp::GetProjectName()) + TEXT(".xcworkspace/contents.xcworkspacedata"));
+            FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".xcworkspace/contents.xcworkspacedata"));
 		}
 	}
 	return CachedSolutionPath;
@@ -129,33 +131,28 @@ bool FXCodeSourceCodeAccessor::OpenSolution()
 bool FXCodeSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
 {
 	FString SolutionPath = InSolutionPath;
-	if (FPaths::GetExtension(SolutionPath) != TEXT(".xcworkspacedata"))
+    FString Extension = FPaths::GetExtension(SolutionPath);
+    if (!SolutionPath.EndsWith(TEXT("xcworkspacedata")))
 	{
-		FString WorkspaceFilename = FPaths::GetBaseFilename(SolutionPath) + TEXT(".xcworkspace/contents.xcworkspacedata");
-		SolutionPath = FPaths::Combine(SolutionPath, WorkspaceFilename);
+		SolutionPath = SolutionPath + TEXT(".xcworkspace/contents.xcworkspacedata");
 	}
 
-	if(SolutionPath.Len() > 0 || FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
-	{
-		const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
-		if ( FPaths::FileExists( FullPath ) )
-		{
-			FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
-			return true;
-		}
+    const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
+    UE_LOG(LogXcodeAccessor, Display, TEXT("%s"), *FullPath);
+    if ( FPaths::FileExists( FullPath ) )
+    {
+        FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
+        return true;
 	}
+    
 	return false;
 }
 
 bool FXCodeSourceCodeAccessor::DoesSolutionExist() const
 {
-	FString SolutionPath;
-	if (FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
-	{
-		const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
-		return FPaths::FileExists( FullPath );
-	}
-	return false;
+	FString SolutionPath = GetSolutionPath();
+    const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
+    return FPaths::FileExists( FullPath );
 }
 
 bool FXCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber)
@@ -174,8 +171,7 @@ bool FXCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 Lin
 		 
 	bool ExecutionSucceeded = false;
 	
-	FString SolutionPath;
-	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+    FString SolutionPath = GetSolutionPath();
 	{
 		const FString ProjPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
 		if ( FPaths::FileExists( ProjPath ) )

@@ -20,11 +20,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogVSCodeAccessor, Log, All);
 
 static FString MakePath(const FString& InPath)
 {
-#if PLATFORM_MAC
-	return InPath;
-#else
 	return TEXT("\"") + InPath + TEXT("\""); 
-#endif	
 }
 
 FString FVisualStudioCodeSourceCodeAccessor::GetSolutionPath() const
@@ -88,7 +84,7 @@ void FVisualStudioCodeSourceCodeAccessor::RefreshAvailability()
 	NSURL* AppURL = [[NSWorkspace sharedWorkspace] URLForApplicationWithBundleIdentifier:@"com.microsoft.VSCode"];
 	if (AppURL != nullptr)
 	{
-		Location.URL = AppURL;
+		Location.URL = FString([AppURL path]);
 	}
 #endif
 }
@@ -168,7 +164,7 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolution()
 {
 	if (Location.IsValid())
 	{
-		FString SolutionDir = GetSolutionPath();
+		FString SolutionDir = FPaths::Combine(GetSolutionPath(), TEXT("UE4"));
 		return OpenSolutionAtPath(SolutionDir);
 	}
 
@@ -179,8 +175,11 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolutionAtPath(const FString& InSo
 {
 	if (Location.IsValid())
 	{
+		// Strip top element from the path. When creating new projects, this will be the base name of the solution which we don't need,
+		// or if being called from OpenSolution() it will be a dummy "UE4" element that we added just so it can be stripped here
+		FString SolutionPath = FPaths::GetPath(InSolutionPath);
 		TArray<FString> Args;
-		Args.Add(MakePath(InSolutionPath));
+		Args.Add(MakePath(SolutionPath));
 		return Launch(Args);
 	}
 
@@ -203,18 +202,6 @@ bool FVisualStudioCodeSourceCodeAccessor::Launch(const TArray<FString>& InArgs)
 {
 	if (Location.IsValid())
 	{
-#if PLATFORM_MAC
-		NSMutableArray* ParamArray = [[NSMutableArray alloc] init];
-		
-		for (const FString& Arg : InArgs)
-		{
-			[ParamArray addObject:Arg.GetNSString()];
-		}
-
-		NSDictionary* Configuration = [NSDictionary dictionaryWithObject:ParamArray forKey:NSWorkspaceLaunchConfigurationArguments];
-		[[NSWorkspace sharedWorkspace] launchApplicationAtURL:Location.URL options:NSWorkspaceLaunchAsync configuration:Configuration error:nil];
-		return true;
-#else
 		FString ArgsString;
 		for (const FString& Arg : InArgs)
 		{
@@ -225,7 +212,6 @@ bool FVisualStudioCodeSourceCodeAccessor::Launch(const TArray<FString>& InArgs)
 		uint32 ProcessID;
 		FProcHandle hProcess = FPlatformProcess::CreateProc(*Location.URL, *ArgsString, true, false, false, &ProcessID, 0, nullptr, nullptr, nullptr);
 		return hProcess.IsValid();
-#endif
 	}
 	
 	return false;

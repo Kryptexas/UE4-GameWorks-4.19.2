@@ -657,7 +657,7 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 		SolutionFilenameWithoutExtension = TEXT("UE4");
 	}
 
-	if (!FSourceCodeNavigation::OpenProjectSolution(SolutionFolder))
+	if (!FSourceCodeNavigation::OpenProjectSolution(FPaths::Combine(SolutionFolder, SolutionFilenameWithoutExtension)))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("AccessorName"), FSourceCodeNavigation::GetSelectedSourceCodeIDE());

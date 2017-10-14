@@ -42,14 +42,7 @@ bool FKDevelopSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPa
 	FString SolutionPath = InSolutionPath;
 	if (!SolutionPath.EndsWith(TEXT(".kdev4")))
 	{
-		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(SolutionPath))
-		{
-			SolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.kdev4"));
-		}
-		else
-		{
-			SolutionPath = FPaths::Combine(SolutionPath, FPaths::GetBaseFilename(SolutionPath) + TEXT(".kdev4"));
-		}
+		SolutionPath += TEXT(".kdev4");
 	}
 
 	FString IDEPath;

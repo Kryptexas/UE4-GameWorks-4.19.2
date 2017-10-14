@@ -1271,16 +1271,23 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 
 	if(IsInGameThread())
 	{
-		CachedSolutionPath = CachedSolutionPathOverride.Len() > 0 ? CachedSolutionPathOverride : FPaths::ProjectDir();
-		
-		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
+		if (CachedSolutionPathOverride.Len() > 0)
 		{
-			CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.sln"));
+			CachedSolutionPath = CachedSolutionPathOverride + TEXT(".sln");
 		}
 		else
 		{
-			FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
+			CachedSolutionPath = FPaths::ProjectDir();
+
+			if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
+			{
+				CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.sln"));
+			}
+			else
+			{
+				FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+				CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
+			}
 		}
 	}
 	return CachedSolutionPath;

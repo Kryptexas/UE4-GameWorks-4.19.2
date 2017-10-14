@@ -54,14 +54,7 @@ bool FCodeLiteSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPa
 	FString SolutionPath = InSolutionPath;
 	if (!SolutionPath.EndsWith(TEXT(".workspace")))
 	{
-		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(SolutionPath))
-		{
-			SolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.workspace"));
-		}
-		else
-		{
-			SolutionPath = FPaths::Combine(SolutionPath, FPaths::GetBaseFilename(SolutionPath) + TEXT(".workspace"));
-		}
+		SolutionPath += TEXT(".workspace");
 	}
 
 	FString CodeLitePath;
