@@ -5,6 +5,7 @@
 #include "Misc/Paths.h"
 #include "DesktopPlatformModule.h"
 #include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCodeLiteAccessor, Log, All);
 
@@ -186,7 +187,8 @@ FString FCodeLiteSourceCodeAccessor::GetSolutionPath() const
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FString(FApp::GetProjectName()) + TEXT(".workspace"));
+			FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".workspace"));
 		}
 	}
 	return CachedSolutionPath;

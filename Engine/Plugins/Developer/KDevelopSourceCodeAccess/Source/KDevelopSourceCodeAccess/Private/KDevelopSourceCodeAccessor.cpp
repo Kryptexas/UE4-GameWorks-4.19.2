@@ -5,6 +5,7 @@
 #include "Misc/Paths.h"
 #include "DesktopPlatformModule.h"
 #include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogKDevelopAccessor, Log, All);
 
@@ -173,7 +174,8 @@ FString FKDevelopSourceCodeAccessor::GetSolutionPath() const
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FString(FApp::GetProjectName()) + TEXT(".kdev4"));
+			FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".kdev4"));
 		}
 	}
 	return CachedSolutionPath;
