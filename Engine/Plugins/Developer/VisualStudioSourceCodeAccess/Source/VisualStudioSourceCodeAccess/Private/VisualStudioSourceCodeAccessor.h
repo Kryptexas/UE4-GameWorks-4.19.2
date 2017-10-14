@@ -142,6 +142,9 @@ private:
 	/** Critical section for updating DeferredRequests */
 	FCriticalSection DeferredRequestsCriticalSection;
 
+	/** Critical section for updating SolutionPath */
+	mutable FCriticalSection CachedSolutionPathCriticalSection;
+
 	/** Array of file open requests that have been deferred because Visual Studio was not available when the request was made */
 	TArray<FileOpenRequest> DeferredRequests;
 

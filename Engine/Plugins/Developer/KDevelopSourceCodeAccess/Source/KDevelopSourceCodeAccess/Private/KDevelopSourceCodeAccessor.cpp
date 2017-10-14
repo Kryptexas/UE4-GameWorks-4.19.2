@@ -173,7 +173,7 @@ FString FKDevelopSourceCodeAccessor::GetSolutionPath() const
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FPaths::GetBaseFilename(CachedSolutionPath) + TEXT(".kdev4"));
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FString(FApp::GetProjectName()) + TEXT(".kdev4"));
 		}
 	}
 	return CachedSolutionPath;

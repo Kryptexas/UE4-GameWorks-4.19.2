@@ -186,7 +186,7 @@ FString FCodeLiteSourceCodeAccessor::GetSolutionPath() const
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FPaths::GetBaseFilename(CachedSolutionPath) + TEXT(".workspace"));
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FString(FApp::GetProjectName()) + TEXT(".workspace"));
 		}
 	}
 	return CachedSolutionPath;

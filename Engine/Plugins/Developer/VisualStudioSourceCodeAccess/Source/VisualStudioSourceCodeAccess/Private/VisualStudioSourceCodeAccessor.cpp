@@ -10,6 +10,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 #include "HAL/PlatformTime.h"
 
 #if WITH_EDITOR
@@ -758,7 +759,11 @@ bool FVisualStudioSourceCodeAccessor::OpenSolution()
 bool FVisualStudioSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
 {
 	bool bSuccess = false;
-	CachedSolutionPathOverride = InSolutionPath;
+
+	{
+		FScopeLock Lock(&CachedSolutionPathCriticalSection);
+		CachedSolutionPathOverride = InSolutionPath;
+	}
 #if VSACCESSOR_HAS_DTE
 	if (OpenVisualStudioSolutionViaDTE())
 	{
@@ -769,7 +774,11 @@ bool FVisualStudioSourceCodeAccessor::OpenSolutionAtPath(const FString& InSoluti
 	{
 		bSuccess = OpenVisualStudioSolutionViaProcess();
 	}
-	CachedSolutionPathOverride = TEXT("");
+
+	{
+		FScopeLock Lock(&CachedSolutionPathCriticalSection);
+		CachedSolutionPathOverride = TEXT("");
+	}
 	return bSuccess;
 }
 
@@ -1258,6 +1267,8 @@ FText FVisualStudioSourceCodeAccessor::GetDescriptionText() const
 
 FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 {
+	FScopeLock Lock(&CachedSolutionPathCriticalSection);
+
 	if(IsInGameThread())
 	{
 		CachedSolutionPath = CachedSolutionPathOverride.Len() > 0 ? CachedSolutionPathOverride : FPaths::ProjectDir();
@@ -1268,7 +1279,7 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FPaths::GetBaseFilename(CachedSolutionPath) + TEXT(".sln"));
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FString(FApp::GetProjectName()) + TEXT(".sln"));
 		}
 	}
 	return CachedSolutionPath;

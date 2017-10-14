@@ -40,6 +40,7 @@ FString FVisualStudioCodeSourceCodeAccessor::GetSolutionPath() const
 			CachedSolutionPath = FPaths::RootDir();
 		}
 	}
+
 	return CachedSolutionPath;
 }
 

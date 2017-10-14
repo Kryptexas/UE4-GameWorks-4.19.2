@@ -95,7 +95,7 @@ FString FXCodeSourceCodeAccessor::GetSolutionPath()
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FPaths::GetBaseFilename(CachedSolutionPath) + + TEXT(".xcworkspace/contents.xcworkspacedata"));
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, FString(FApp::GetProjectName()) + TEXT(".xcworkspace/contents.xcworkspacedata"));
 		}
 	}
 	return CachedSolutionPath;
