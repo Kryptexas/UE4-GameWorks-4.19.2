@@ -31,6 +31,6 @@ public:
 
 private:
 
-	FString GetSolutionPath();
-	FString CachedSolutionPath;
+	FString GetSolutionPath() const;
+	mutable FString CachedSolutionPath;
 };
