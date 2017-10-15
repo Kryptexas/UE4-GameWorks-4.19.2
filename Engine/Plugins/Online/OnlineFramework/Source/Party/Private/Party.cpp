@@ -1234,7 +1234,7 @@ void UParty::OnJoinPersistentPartyComplete(const FUniqueNetId& LocalUserId, EJoi
 	}
 
 	const FString PartyIdDebugString = PersistentPartyId.IsValid() ? PersistentPartyId->ToDebugString() : TEXT("Invalid");
-	UE_LOG(LogParty, Display, TEXT("OnJoinPersistentPartyComplete() %s %s %d"), *PartyIdDebugString, ToString(Result), DeniedResultCode);
+	UE_LOG(LogParty, Display, TEXT("OnJoinPersistentPartyComplete() PartyId=[%s] Result=[%s] DeniedResultCode=[%d]"), *PartyIdDebugString, ToString(Result), DeniedResultCode);
 
 	const int32 OutDeniedResultCode = (Result == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
 	CompletionDelegate.ExecuteIfBound(LocalUserId, Result, OutDeniedResultCode);

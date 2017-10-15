@@ -255,6 +255,11 @@ bool FOnlineSubsystemImpl::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 	return bWasHandled;
 }
 
+bool FOnlineSubsystemImpl::IsEnabled() const
+{
+	return IOnlineSubsystem::IsEnabled(SubsystemName);
+}
+
 void FOnlineSubsystemImpl::DumpReceipts(const FUniqueNetId& UserId)
 {
 	IOnlinePurchasePtr PurchaseInt = GetPurchaseInterface();

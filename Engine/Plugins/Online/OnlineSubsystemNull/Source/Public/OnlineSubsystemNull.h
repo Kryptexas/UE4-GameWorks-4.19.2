@@ -76,12 +76,6 @@ public:
 
 	// FOnlineSubsystemNull
 
-	/**
-	 * Is the Null API available for use
-	 * @return true if Null functionality is available, false otherwise
-	 */
-	bool IsEnabled();
-
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */

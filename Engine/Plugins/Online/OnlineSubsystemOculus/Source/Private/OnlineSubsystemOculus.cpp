@@ -331,13 +331,6 @@ FText FOnlineSubsystemOculus::GetOnlineServiceName() const
 	return NSLOCTEXT("OnlineSubsystemOculus", "OnlineServiceName", "Oculus Platform");
 }
 
-bool FOnlineSubsystemOculus::IsEnabled() const
-{
-	bool bEnableOculus = true;
-	GConfig->GetBool(TEXT("OnlineSubsystemOculus"), TEXT("bEnabled"), bEnableOculus, GEngineIni);
-	return bEnableOculus;
-}
-
 bool FOnlineSubsystemOculus::IsInitialized() const
 {
 	return bOculusInit;

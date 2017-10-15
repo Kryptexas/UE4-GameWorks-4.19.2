@@ -135,12 +135,6 @@ PACKAGE_SCOPE:
 	FCriticalSection UserCloudDataLock;
 
 	/**
-	 * Is Steam available for use
-	 * @return true if Steam is available, false otherwise
-	 */
-	bool IsEnabled();
-
-	/**
 	 *	Initialize the client side APIs for Steam 
 	 * @return true if the API was initialized successfully, false otherwise
 	 */
@@ -242,6 +236,7 @@ public:
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	virtual bool IsEnabled() const override;
 	virtual FString GetAppId() const override;
 	virtual FText GetOnlineServiceName() const override;
 

@@ -780,7 +780,16 @@ public:
 	 */
 	bool IsValid() const
 	{
-		return (Session.OwningUserId.IsValid() && Session.SessionInfo.IsValid() && Session.SessionInfo->IsValid());
+		return (Session.OwningUserId.IsValid() && IsSessionInfoValid());
+	}
+
+	/** 
+	 * Check if the session info is valid, for cases where we don't need the OwningUserId
+	 * @return true if the session info is valid, false otherwise
+	 */
+	bool IsSessionInfoValid() const
+	{
+		return (Session.SessionInfo.IsValid() && Session.SessionInfo->IsValid());
 	}
 
 	/** @return the session id for a given session search result */

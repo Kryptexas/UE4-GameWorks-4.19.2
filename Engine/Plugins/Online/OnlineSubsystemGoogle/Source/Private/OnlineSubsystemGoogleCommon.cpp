@@ -90,18 +90,6 @@ bool FOnlineSubsystemGoogleCommon::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutp
 	return false;
 }
 
-bool FOnlineSubsystemGoogleCommon::IsEnabled() const
-{
-	// Check the ini for disabling Google
-	bool bEnableGoogle = false;
-	if (!GConfig->GetBool(TEXT("OnlineSubsystemGoogle"), TEXT("bEnabled"), bEnableGoogle, GEngineIni))
-	{
-		UE_LOG(LogOnline, Warning, TEXT("The [OnlineSubsystemGoogle]:bEnabled flag has not been set."));
-	}
-
-	return bEnableGoogle;
-}
-
 IOnlineSessionPtr FOnlineSubsystemGoogleCommon::GetSessionInterface() const
 {
 	return nullptr;

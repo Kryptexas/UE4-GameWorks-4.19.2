@@ -95,6 +95,7 @@ public:
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual FName GetSubsystemName() const override { return SubsystemName; }
 	virtual FName GetInstanceName() const override { return InstanceName; }
+	virtual bool IsEnabled() const override;
 
 	/**
 	 * Tick function

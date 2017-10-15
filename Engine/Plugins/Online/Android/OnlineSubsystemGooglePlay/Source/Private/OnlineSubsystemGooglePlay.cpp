@@ -250,13 +250,19 @@ FText FOnlineSubsystemGooglePlay::GetOnlineServiceName() const
 	return NSLOCTEXT("OnlineSubsystemGooglePlay", "OnlineServiceName", "Google Play");
 }
 
-bool FOnlineSubsystemGooglePlay::IsEnabled(void)
+bool FOnlineSubsystemGooglePlay::IsEnabled() const
 {
-	bool bEnableGooglePlaySupport = true;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnableGooglePlaySupport, GEngineIni);
+	bool bEnabled = false;
 
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemGooglePlay::IsEnabled %d"), bEnableGooglePlaySupport);
-	return bEnableGooglePlaySupport;
+	// GameCircleRuntimeSettings holds a value for editor ease of use
+	if (!GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni))
+	{
+		UE_LOG(LogOnline, Warning, TEXT("The [/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableGooglePlaySupport flag has not been set"));
+
+		// Fallback to regular OSS location
+		bEnabled = FOnlineSubsystemImpl::IsEnabled();
+	}
+	return bEnabled;
 }
 
 bool FOnlineSubsystemGooglePlay::IsV2StoreEnabled()

@@ -49,6 +49,11 @@ public:
 	const TArray<FQosRegionInfo>& GetRegionOptions() const;
 
 	/**
+	 * @return true if this is a usable region, false otherwise
+	 */
+	bool IsUsableRegion(const FString& InRegionId) const;
+
+	/**
 	 * Try to set the selected region ID (must be present in GetRegionOptions)
 	 */
 	bool SetSelectedRegion(const FString& RegionId);

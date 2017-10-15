@@ -64,12 +64,6 @@ public:
 	 */
 	virtual ~FOnlineSubsystemFacebookCommon();
 
-	/**
-	 * Is Facebook available for use
-	 * @return true if Facebook functionality is available, false otherwise
-	 */
-	virtual bool IsEnabled() const;
-
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */

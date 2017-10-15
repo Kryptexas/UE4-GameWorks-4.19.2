@@ -61,12 +61,6 @@ public:
 	 */
 	virtual ~FOnlineSubsystemGoogleCommon();
 
-	/**
-	 * Is Google available for use
-	 * @return true if Google functionality is available, false otherwise
-	 */
-	virtual bool IsEnabled() const;
-
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */

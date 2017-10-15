@@ -63,13 +63,6 @@ public:
 	virtual ~FOnlineSubsystemTwitch() = default;
 
 	/**
-	 * Is Twitch available for use
-	 *
-	 * @return true if Twitch functionality is available, false otherwise
-	 */
-	static bool IsEnabled();
-
-	/**
 	 * Get the twitch login service configuration
 	 *
 	 * @return login service instance associated with the subsystem

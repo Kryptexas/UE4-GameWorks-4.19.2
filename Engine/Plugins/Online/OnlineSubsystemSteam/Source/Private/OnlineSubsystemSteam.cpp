@@ -434,7 +434,7 @@ bool FOnlineSubsystemSteam::Shutdown()
 	return true;
 }
 
-bool FOnlineSubsystemSteam::IsEnabled()
+bool FOnlineSubsystemSteam::IsEnabled() const
 {
 	if (bSteamworksClientInitialized || bSteamworksGameServerInitialized)
 	{
@@ -442,8 +442,7 @@ bool FOnlineSubsystemSteam::IsEnabled()
 	}
 
 	// Check the ini for disabling Steam
-	bool bEnableSteam = true;
-	GConfig->GetBool(TEXT("OnlineSubsystemSteam"), TEXT("bEnabled"), bEnableSteam, GEngineIni);
+	bool bEnableSteam = FOnlineSubsystemImpl::IsEnabled();
 	if (bEnableSteam)
 	{
 		// Steam doesn't support running both the server and client on the same machine

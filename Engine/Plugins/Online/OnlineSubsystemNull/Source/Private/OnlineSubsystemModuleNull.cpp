@@ -22,7 +22,7 @@ public:
 
 	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName)
 	{
-		FOnlineSubsystemNullPtr OnlineSub = MakeShareable(new FOnlineSubsystemNull(InstanceName));
+		FOnlineSubsystemNullPtr OnlineSub = MakeShared<FOnlineSubsystemNull, ESPMode::ThreadSafe>(InstanceName);
 		if (OnlineSub->IsEnabled())
 		{
 			if(!OnlineSub->Init())

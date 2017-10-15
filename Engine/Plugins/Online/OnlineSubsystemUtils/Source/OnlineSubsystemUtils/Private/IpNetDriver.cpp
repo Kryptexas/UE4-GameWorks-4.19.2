@@ -18,6 +18,7 @@ Notes:
 #include "Engine/ChildConnection.h"
 #include "SocketSubsystem.h"
 #include "IpConnection.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #include "PacketAudit.h"
 
@@ -209,6 +210,8 @@ bool UIpNetDriver::InitListen( FNetworkNotify* InNotify, FURL& LocalURL, bool bR
 
 void UIpNetDriver::TickDispatch( float DeltaTime )
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	Super::TickDispatch( DeltaTime );
 
 	// Set the context on the world for this driver's level collection.
@@ -513,7 +516,6 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 
 
 		int32 BytesSent = 0;
-		uint32 CountBytes = FMath::DivideAndRoundUp(CountBits, 8);
 
 		if (CountBits > 0)
 		{

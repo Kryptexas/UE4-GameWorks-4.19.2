@@ -42,5 +42,6 @@ bool FOnlineSubsystemFacebook::Shutdown()
 
 bool FOnlineSubsystemFacebook::IsEnabled() const
 {
+	// Overridden due to different platform implementations of IsEnabled
 	return FOnlineSubsystemFacebookCommon::IsEnabled();
 }

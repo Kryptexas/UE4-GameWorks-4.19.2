@@ -94,18 +94,6 @@ bool FOnlineSubsystemFacebookCommon::Exec(UWorld* InWorld, const TCHAR* Cmd, FOu
 	return false;
 }
 
-bool FOnlineSubsystemFacebookCommon::IsEnabled() const
-{
-	// Check the ini for disabling Facebook
-	bool bEnableFacebook = false;
-	if (!GConfig->GetBool(TEXT("OnlineSubsystemFacebook"), TEXT("bEnabled"), bEnableFacebook, GEngineIni))
-	{
-		UE_LOG(LogOnline, Warning, TEXT("The [OnlineSubsystemFacebook]:bEnabled flag has not been set."));
-	}
-
-	return bEnableFacebook;
-}
-
 IOnlineSessionPtr FOnlineSubsystemFacebookCommon::GetSessionInterface() const
 {
 	return nullptr;

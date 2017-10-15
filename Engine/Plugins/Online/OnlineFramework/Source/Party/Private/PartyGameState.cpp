@@ -910,9 +910,16 @@ void UPartyGameState::SetPartyMaxSize(int32 NewSize)
 	{
 		if (CurrentConfig.MaxMembers != NewSize)
 		{
-			UParty* Party = GetPartyOuter();
-			CurrentConfig.MaxMembers = FMath::Clamp(NewSize, 1, Party->GetDefaultPartyMaxSize());
-			UpdatePartyConfig();
+			if (IsLocalPartyLeader())
+			{
+				UParty* Party = GetPartyOuter();
+				CurrentConfig.MaxMembers = FMath::Clamp(NewSize, 1, Party->GetDefaultPartyMaxSize());
+				UpdatePartyConfig();
+			}
+			else
+			{
+				UE_LOG(LogParty, Warning, TEXT("Non party leader trying to change max size!"));
+			}
 		}
 	}
 	else

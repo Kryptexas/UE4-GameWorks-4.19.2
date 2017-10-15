@@ -62,7 +62,7 @@ struct FPartyDetails : public TSharedFromThis<FPartyDetails>
 	virtual FString ToString() const
 	{
 		return FString::Printf(
-			TEXT("PartyId: %s LeaderId: %s ResKey: %s Client: %s"), 
+			TEXT("PartyId: %s LeaderId: %s App: %s"), 
 			*GetPartyId()->ToDebugString(), 
 			*GetLeaderId()->ToDebugString(),
 			*GetAppId());

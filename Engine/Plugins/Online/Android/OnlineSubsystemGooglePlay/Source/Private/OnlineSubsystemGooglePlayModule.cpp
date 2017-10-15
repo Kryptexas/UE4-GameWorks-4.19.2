@@ -37,7 +37,7 @@ public:
 	{
 		if (!GooglePlaySingleton.IsValid())
 		{
-			GooglePlaySingleton = MakeShareable(new FOnlineSubsystemGooglePlay(InstanceName));
+			GooglePlaySingleton = MakeShared<FOnlineSubsystemGooglePlay, ESPMode::ThreadSafe>(InstanceName);
 			if (GooglePlaySingleton->IsEnabled())
 			{
 				if(!GooglePlaySingleton->Init())
