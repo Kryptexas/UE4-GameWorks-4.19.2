@@ -440,7 +440,8 @@
 			CFRelease(CFString);
 			if(actualRange)
 			{
-				*actualRange = aRange;
+				actualRange->location = aRange.location;
+				actualRange->length = String.Len();
 			}
 		}
 	}
