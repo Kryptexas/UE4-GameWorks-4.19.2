@@ -316,14 +316,7 @@ namespace UnrealBuildTool
 			string ProjectArg = null;
 			if (LowercaseArg.StartsWith("-project="))
 			{
-				if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
-				{
-					ProjectArg = InArg.Substring(9).Trim(new Char[] { ' ', '"', '\'' });
-				}
-				else
-				{
-					ProjectArg = InArg.Substring(9);
-				}
+				ProjectArg = InArg.Substring(9).Trim(new Char[] { ' ', '"', '\'' });
 			}
 			else if (LowercaseArg.EndsWith(".uproject"))
 			{

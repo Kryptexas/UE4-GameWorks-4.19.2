@@ -46,22 +46,33 @@ namespace UnrealBuildTool
 			Relative,
 		}
 
-		private string CommonMakePathString(FileSystemReference InRef, EPathType InPathType)
+		private string CommonMakePathString(FileSystemReference InRef, EPathType InPathType, DirectoryReference InRelativeRoot)
 		{
-			string Processed;
-			if (InPathType == EPathType.Absolute)
+			if (InRelativeRoot == null)
 			{
-				Processed = InRef.ToString();
+				InRelativeRoot = UE4ProjectRoot;
 			}
-			else if (InRef.IsUnderDirectory(UE4ProjectRoot))
-			{
-				Processed = InRef.MakeRelativeTo(UE4ProjectRoot).ToString();
-			}
-			else
-			{
-				Processed = InRef.ToString();	
-			}
+
+			string Processed = InRef.ToString();
 			
+			switch (InPathType)
+			{
+				case EPathType.Relative:
+				{
+					if (InRef.IsUnderDirectory(InRelativeRoot))
+					{
+						Processed = InRef.MakeRelativeTo(InRelativeRoot).ToString();
+					}
+
+					break;
+				}
+
+				default:
+				{
+					break;
+				}
+			}
+
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
 				Processed = Processed.Replace("\\", "\\\\");
@@ -75,32 +86,39 @@ namespace UnrealBuildTool
 			return Processed;
 		}
 
-		private string MakeQuotedPathString(FileSystemReference InRef, EPathType InPathType)
+		private string MakeQuotedPathString(FileSystemReference InRef, EPathType InPathType, DirectoryReference InRelativeRoot = null)
 		{
-			string Processed = CommonMakePathString(InRef, InPathType);
+			string Processed = CommonMakePathString(InRef, InPathType, InRelativeRoot);
 
 			if (Processed.Contains(" "))
 			{
-				Processed = "'" + Processed + "'";
+				if (HostPlatform == UnrealTargetPlatform.Win64)
+				{
+					Processed = "\\\"" + Processed + "\\\"";
+				}
+				else
+				{
+					Processed = "'" + Processed + "'";
+				}
  			}
 
 			return Processed;
 		}
 
-		private string MakeUnquotedPathString(FileSystemReference InRef, EPathType InPathType)
+		private string MakeUnquotedPathString(FileSystemReference InRef, EPathType InPathType, DirectoryReference InRelativeRoot = null)
 		{
-			return CommonMakePathString(InRef, InPathType);
+			return CommonMakePathString(InRef, InPathType, InRelativeRoot);
 		}
 
 		private string MakePathString(FileSystemReference InRef, bool bInAbsolute = false, bool bForceSkipQuotes = false)
 		{
 			if (bForceSkipQuotes)
 			{
-				return MakeUnquotedPathString(InRef, bInAbsolute ? EPathType.Absolute : EPathType.Relative);
+				return MakeUnquotedPathString(InRef, bInAbsolute ? EPathType.Absolute : EPathType.Relative, UE4ProjectRoot);
 			}
 			else
 			{
-				return MakeQuotedPathString(InRef, bInAbsolute ? EPathType.Absolute : EPathType.Relative);
+				return MakeQuotedPathString(InRef, bInAbsolute ? EPathType.Absolute : EPathType.Relative, UE4ProjectRoot);
 			}
 		}
 
@@ -694,7 +712,7 @@ namespace UnrealBuildTool
 
 							OutFile.BeginObject("options");
 							{
-								OutFile.AddField("cwd", MakePathString(UE4ProjectRoot, true));
+								OutFile.AddField("cwd", MakeUnquotedPathString(UE4ProjectRoot, EPathType.Absolute));
 							}
 							OutFile.EndObject();
 						}
@@ -747,7 +765,10 @@ namespace UnrealBuildTool
 								{
 									OutFile.AddUnnamedField("/t:" + Command.ToLower());
 								}
-								OutFile.AddUnnamedField(MakePathString(InProject.SourceProject.ProjectFilePath, true));
+								
+								DirectoryReference BuildRoot = HostPlatform == UnrealTargetPlatform.Win64 ? UE4ProjectRoot : DirectoryReference.Combine(UE4ProjectRoot, "Engine");
+								OutFile.AddUnnamedField(MakeUnquotedPathString(InProject.SourceProject.ProjectFilePath, EPathType.Relative, BuildRoot));
+
 								OutFile.AddUnnamedField("/p:GenerateFullPaths=true");
 								if (HostPlatform == UnrealTargetPlatform.Win64)
 								{
@@ -778,7 +799,7 @@ namespace UnrealBuildTool
 
 						OutFile.BeginObject("options");
 						{
-							OutFile.AddField("cwd", MakePathString(UE4ProjectRoot, true));
+							OutFile.AddField("cwd", MakeUnquotedPathString(UE4ProjectRoot, EPathType.Absolute));
 						}
 
 						OutFile.EndObject();
@@ -943,16 +964,18 @@ namespace UnrealBuildTool
 							}
 							OutFile.EndArray();
 
+/*
 							DirectoryReference CWD = BuildProduct.OutputFile.Directory;
 							while (HostPlatform == UnrealTargetPlatform.Mac && CWD != null && CWD.ToString().Contains(".app"))
 							{
 								CWD = CWD.ParentDirectory;
 							}
-
 							if (CWD != null)
 							{
 								OutFile.AddField("cwd", MakePathString(CWD, true, true));
 							}
+ */
+							OutFile.AddField("cwd", MakeUnquotedPathString(UE4ProjectRoot, EPathType.Absolute));
 
 							if (HostPlatform == UnrealTargetPlatform.Win64)
 							{
@@ -965,7 +988,7 @@ namespace UnrealBuildTool
 								case UnrealTargetPlatform.Win64:
 									{
 										OutFile.AddField("type", "cppvsdbg");
-										OutFile.AddField("visualizerFile", MakePathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Extras", "VisualStudioDebugging", "UE4.natvis")));
+										OutFile.AddField("visualizerFile", MakeUnquotedPathString(FileReference.Combine(UE4ProjectRoot, "Engine", "Extras", "VisualStudioDebugging", "UE4.natvis"), EPathType.Absolute));
 										break;
 									}
 
@@ -1019,6 +1042,8 @@ namespace UnrealBuildTool
 							OutFile.AddField("request", "launch");
 							OutFile.AddField("preLaunchTask", BuildTaskName);
 
+							DirectoryReference CWD = UE4ProjectRoot;
+
 							if (bIsDotNetCore)
 							{
 								OutFile.AddField("program", "dotnet");
@@ -1032,11 +1057,7 @@ namespace UnrealBuildTool
 							}
 							else
 							{
-								OutFile.AddField("program", MakePathString(BuildProduct.OutputFile));
-								OutFile.BeginArray("args");
-								{
-								}
-								OutFile.EndArray();
+								OutFile.AddField("program", MakeUnquotedPathString(BuildProduct.OutputFile, EPathType.Absolute));
 
 								if (HostPlatform == UnrealTargetPlatform.Win64)
 								{
@@ -1047,10 +1068,15 @@ namespace UnrealBuildTool
 									OutFile.AddField("console", "internalConsole");
 								}
 
+								OutFile.BeginArray("args");
+								{
+								}
+								OutFile.EndArray();
+
 								OutFile.AddField("internalConsoleOptions", "openOnSessionStart");
 							}
 
-							OutFile.AddField("cwd", MakePathString(UE4ProjectRoot, true));
+							OutFile.AddField("cwd", MakeUnquotedPathString(CWD, EPathType.Absolute));
 						}
 						OutFile.EndObject();
 					}
