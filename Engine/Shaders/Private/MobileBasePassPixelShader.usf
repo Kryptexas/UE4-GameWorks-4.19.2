@@ -535,9 +535,12 @@ void Main(
 			UNROLL
 			for (int i = 0; i < MAX_DYNAMIC_POINT_LIGHTS; i++)
 			{
-				if(i >= NumDynamicPointLights)
+				if (NumDynamicPointLights < MAX_DYNAMIC_POINT_LIGHTS)
 				{
-					break;
+					if (i >= NumDynamicPointLights)
+					{
+						break;
+					}
 				}
 			#else
 			for (int i = 0; i < NumDynamicPointLights; i++)
