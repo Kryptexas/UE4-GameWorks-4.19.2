@@ -81,7 +81,10 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 				{
 					if (!GMetalLoggedRemoteCompileNotConfigured)
 					{
-						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RemoteServerName is not set."));
+						if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+						{
+							UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RemoteServerName is not set."));
+						}
 						GMetalLoggedRemoteCompileNotConfigured = true;
 					}
 					return false;
@@ -105,7 +108,10 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 				{
 					if (!GMetalLoggedRemoteCompileNotConfigured)
 					{
-						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RSyncUsername is not set."));
+						if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+						{
+							UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RSyncUsername is not set."));
+						}
 						GMetalLoggedRemoteCompileNotConfigured = true;
 					}
 					return false;
@@ -138,7 +144,10 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 		{
 			if (!GMetalLoggedRemoteCompileNotConfigured)
 			{
-				UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: SSH private key was not found."));
+				if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+				{
+					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: SSH private key was not found."));
+				}
 				GMetalLoggedRemoteCompileNotConfigured = true;
 			}
 			return false;
@@ -173,7 +182,10 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 		{
 			if (!GMetalLoggedRemoteCompileNotConfigured)
 			{
-				UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: DeltaCopy was not found."));
+				if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+				{
+					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: DeltaCopy was not found."));
+				}
 				GMetalLoggedRemoteCompileNotConfigured = true;
 			}
 			return false;
