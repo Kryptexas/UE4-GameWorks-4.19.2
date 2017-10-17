@@ -850,7 +850,16 @@ namespace UnrealBuildTool
 							}
 
 							// Read from the editor config
-							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved"));
+							DirectoryReference EngineSavedDir = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved");
+							if(IsEngineInstalled())
+							{
+								BuildVersion Version;
+								if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+								{
+									EngineSavedDir = DirectoryReference.Combine(Utils.GetUserSettingDirectory(), "UnrealEngine", String.Format("{0}.{1}", Version.MajorVersion, Version.MinorVersion), "Saved");
+								}
+							}
+							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, EngineSavedDir);
 
 							string PreferredAccessor;
 							if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
