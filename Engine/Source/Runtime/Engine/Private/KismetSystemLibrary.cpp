@@ -269,6 +269,41 @@ void UKismetSystemLibrary::ExecuteConsoleCommand(UObject* WorldContextObject, co
 	}
 }
 
+float UKismetSystemLibrary::GetConsoleVariableFloatValue(UObject* WorldContextObject, const FString& VariableName)
+{
+	float Value = 0.0f;
+
+	TConsoleVariableData<float>* Variable = IConsoleManager::Get().FindTConsoleVariableDataFloat(*VariableName);
+	if (Variable)
+	{
+		Value = Variable->GetValueOnGameThread();
+	}
+	else
+	{
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Failed to find console variable '%s'."), *VariableName);
+	}
+
+	return Value;
+}
+
+int32 UKismetSystemLibrary::GetConsoleVariableIntValue(UObject* WorldContextObject, const FString& VariableName)
+{
+	int32 Value = 0;
+
+	TConsoleVariableData<int32>* Variable = IConsoleManager::Get().FindTConsoleVariableDataInt(*VariableName);
+	if (Variable)
+	{
+		Value = Variable->GetValueOnGameThread();
+	}
+	else
+	{
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Failed to find console variable '%s'."), *VariableName);
+	}
+
+	return Value;
+}
+
+
 void UKismetSystemLibrary::QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer, TEnumAsByte<EQuitPreference::Type> QuitPreference)
 {
 	APlayerController* TargetPC = SpecificPlayer ? SpecificPlayer : UGameplayStatics::GetPlayerController(WorldContextObject, 0);

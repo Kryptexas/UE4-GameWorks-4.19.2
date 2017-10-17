@@ -342,6 +342,24 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Development",meta=(WorldContext="WorldContextObject"))
 	static void ExecuteConsoleCommand(UObject* WorldContextObject, const FString& Command, class APlayerController* SpecificPlayer = NULL );
 
+	/**
+	 * Attempts to retrieve the value of the specified float console variable, if it exists.
+	 * 
+	 * @param	VariableName	Name of the console variable to find.
+	 * @return	The value if found, 0 otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Development",meta=(WorldContext="WorldContextObject"))
+	static float GetConsoleVariableFloatValue(UObject* WorldContextObject, const FString& VariableName);
+
+	/**
+	 * Attempts to retrieve the value of the specified integer console variable, if it exists.
+	 * 
+	 * @param	VariableName	Name of the console variable to find.
+	 * @return	The value if found, 0 otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Development",meta=(WorldContext="WorldContextObject"))
+	static int32 GetConsoleVariableIntValue(UObject* WorldContextObject, const FString& VariableName);
+
 	/** 
 	 *	Exit the current game 
 	 * @param	SpecificPlayer	The specific player to quit the game. If not specified, player 0 will quit.
