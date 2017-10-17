@@ -251,7 +251,7 @@ namespace UnrealBuildTool
 				Projects = new List<ProjectFile>();
 				foreach (var Project in AllProjectFiles)
 				{
-					if (Project == DefaultProject)
+					if (GameProjectName == Project.ProjectFilePath.GetFileNameWithoutAnyExtensions())
 					{
 						Projects.Add(Project);
 					}
