@@ -81,15 +81,16 @@ FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 		uint32 Size = InSize;
 		if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesLinearTextures) && (InUsage & (BUF_UnorderedAccess|BUF_ShaderResource)))
 		{
-			InSize = Align(InSize, 1024);
-		}
-		else if ((InUsage & BUF_UnorderedAccess) && ((InSize - Size) < 512))
-		{
-			// Padding for write flushing when not using linear texture bindings for buffers
-			InSize = Align(Size + 512, 1024);
+			Size = Align(InSize, 1024);
 		}
 		
-		Alloc(InSize);
+        if ((InUsage & BUF_UnorderedAccess) && ((InSize - Size) < 512))
+		{
+			// Padding for write flushing when not using linear texture bindings for buffers
+			Size = Align(Size + 512, 1024);
+		}
+		
+		Alloc(Size);
 	}
 }
 
@@ -295,7 +296,7 @@ FVertexBufferRHIRef FMetalDynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 
 
 	if (CreateInfo.ResourceArray)
 	{
-		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+		check(Size >= CreateInfo.ResourceArray->GetResourceDataSize());
 
 		// make a buffer usable by CPU
 		void* Buffer = RHILockVertexBuffer(VertexBuffer, 0, Size, RLM_WriteOnly);
