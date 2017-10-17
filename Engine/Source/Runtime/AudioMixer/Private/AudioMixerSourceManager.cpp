@@ -470,8 +470,7 @@ namespace Audio
 			SourceInfo.NumInputFrames = InitParams.NumInputFrames;
 
 			// Initialize the number of per-source LPF filters based on input channels
-			SourceInfo.LowPassFilter.Init(MixerDevice->SampleRate, InitParams.NumInputChannels, 0, nullptr);
-			SourceInfo.LowPassFilter.SetFilterType(EFilter::Type::LowPass);
+			SourceInfo.LowPassFilter.Init(MixerDevice->SampleRate, InitParams.NumInputChannels);
 
 			SourceInfo.HighPassFilter.Init(MixerDevice->SampleRate, InitParams.NumInputChannels, 0, nullptr);
 			SourceInfo.HighPassFilter.SetFilterType(EFilter::Type::HighPass);
@@ -1375,7 +1374,6 @@ namespace Audio
 #endif
 
 				SourceInfo.LowPassFilter.SetFrequency(LPFFreq);
-				SourceInfo.LowPassFilter.Update();
 
 				SourceInfo.HighPassFilter.SetFrequency(HPFFreq);
 				SourceInfo.HighPassFilter.Update();

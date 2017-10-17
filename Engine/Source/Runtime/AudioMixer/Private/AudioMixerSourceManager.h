@@ -360,7 +360,7 @@ namespace Audio
 			FParam HPFCutoffFrequencyParam;
 
 			// One-Pole LPFs and HPFs per source
-			Audio::FOnePoleFilter LowPassFilter;
+			Audio::FOnePoleLPFBank LowPassFilter;
 			Audio::FOnePoleFilter HighPassFilter;
 
 			// Source effect instances
