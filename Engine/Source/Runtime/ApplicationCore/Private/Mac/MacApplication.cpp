@@ -982,7 +982,7 @@ void FMacApplication::ProcessGestureEvent(const FDeferredMacEvent& Event)
 void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow)
 {
 	bool bHandled = false;
-	if (!bSystemModalMode && EventWindow.IsValid())
+	if (!bSystemModalMode && EventWindow.IsValid() && [Event.CharactersIgnoringModifiers length] > 0)
 	{
 		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
 		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
