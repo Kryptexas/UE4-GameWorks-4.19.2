@@ -30,22 +30,30 @@ public:
 
 	virtual void ReImportFlexAsset(class UStaticMesh* StaticMesh);
 
-	virtual class UFlexFluidSurfaceComponent* GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurfaceTemplate);
+	/**
+	* Retrieve the UFlexFluidSurfaceComponent corresponding to the UFlexFluidSurface template.
+	*/
+	class UFlexFluidSurfaceComponent* GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurfaceTemplate);
 
-	virtual class UFlexFluidSurfaceComponent* AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurfaceTemplate);
+	/** Create a new UFlexFluidSurfaceComponent, corresponding 1:1 with a UFlexFluidSurface template */
+	class UFlexFluidSurfaceComponent* AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurfaceTemplate);
 
-	virtual void RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent);
+	/** Remove a FlexFluidSurfaceComponent and it's corresponding UFlexFluidSurface */
+	void RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent);
 
-	virtual void TickFlexFluidSurfaceComponent(class UFlexFluidSurfaceComponent* SurfaceComponent, float DeltaTime, enum ELevelTick TickType, struct FActorComponentTickFunction *ThisTickFunction);
+	virtual void TickFlexFluidSurfaceComponents(class UWorld* World, const TArray<struct FParticleEmitterInstance*>& EmitterInstances, float DeltaTime, enum ELevelTick TickType);
 
-	virtual struct FFlexContainerInstance* GetFlexSoftJointContainer(class FPhysScene* PhysScene, class UFlexContainer* Template);
+	/** Retrive the container instance for a soft joint, will return a nullptr if it doesn't already exist */
+	struct FFlexContainerInstance* FindFlexContainerInstance(class FPhysScene* PhysScene, class UFlexContainer* Template);
+
+	/** Retrive the container instance for a template, will create the instance if it doesn't already exist */
+	struct FFlexContainerInstance* FindOrCreateFlexContainerInstance(class FPhysScene* PhysScene, class UFlexContainer* Template);
 
 	virtual void WaitFlexScenes(class FPhysScene* PhysScene);
 	virtual void TickFlexScenes(class FPhysScene* PhysScene, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt);
 
 	virtual void CleanupFlexScenes(class FPhysScene* PhysScene);
 
-	virtual struct FFlexContainerInstance* GetFlexContainer(class FPhysScene* PhysScene, class UFlexContainer* Template);
 
 	virtual void StartFlexRecord(class FPhysScene* PhysScene);
 	virtual void StopFlexRecord(class FPhysScene* PhysScene);
@@ -71,20 +79,20 @@ public:
 	virtual void ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component);
 	virtual void SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable);
 
-	virtual void RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface);
 	virtual void RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance);
 
 	virtual bool IsValidFlexEmitter(class UParticleEmitter* Emitter);
-	virtual class UFlexFluidSurface* GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter);
-
 
 private:
-	void TickFlexScenesTask(class FPhysScene* PhysScene, float dt);
+	struct FPhysSceneContext;
+
+	void TickFlexScenesTask(FFlexManager::FPhysSceneContext* PhysSceneContext, float dt, bool bIsLocked);
 
 	static class UFlexAsset* GetFlexAsset(class UStaticMesh* StaticMesh);
 
-private:
+	void RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface);
 
+private:
 	bool bFlexInitialized;
 	NvFlexLibrary* FlexLib;
 
@@ -99,4 +107,7 @@ private:
 		FGraphEventRef FlexSimulateTaskRef;
 	};
 	TMap<class FPhysScene*, FPhysSceneContext> PhysSceneMap;
+
+	mutable FRWLock PhysSceneMapLock;
+
 };

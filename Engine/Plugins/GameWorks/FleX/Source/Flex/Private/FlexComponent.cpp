@@ -95,7 +95,7 @@ void UFlexComponent::OnRegister()
 
 			if (PhysScene)
 			{
-				FFlexContainerInstance* Container = FFlexManager::get().GetFlexContainer(PhysScene, ContainerTemplate);
+				FFlexContainerInstance* Container = FFlexManager::get().FindOrCreateFlexContainerInstance(PhysScene, ContainerTemplate);
 				if (Container)
 				{
 					ContainerInstance = Container;

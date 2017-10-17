@@ -22,6 +22,8 @@
 #include "FlexCollisionComponent.h"
 #include "FlexParticleSpriteEmitter.h"
 
+#include "Misc/ScopeRWLock.h"
+
 void FlexErrorFunc(NvFlexErrorSeverity, const char* msg, const char* file, int line)
 {
 	UE_LOG(LogFlex, Warning, TEXT("Flex Error: %s, %s:%d"), ANSI_TO_TCHAR(msg), ANSI_TO_TCHAR(file), line);
@@ -105,11 +107,14 @@ void FFlexManager::ReImportFlexAsset(class UStaticMesh* StaticMesh)
 class UFlexFluidSurfaceComponent* FFlexManager::GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
-
-	check(FlexFluidSurface);
-	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
-	return (Component != nullptr) ? *Component : nullptr;
+	FFlexFuildSurfaceMap* FlexFluidSurfaceMap = WorldMap.Find(TWeakObjectPtr<UWorld>(World));
+	if (FlexFluidSurfaceMap)
+	{
+		check(FlexFluidSurface);
+		UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap->Find(FlexFluidSurface);
+		if (Component) return *Component;
+	}
+	return nullptr;
 }
 
 class UFlexFluidSurfaceComponent* FFlexManager::AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
@@ -142,162 +147,72 @@ class UFlexFluidSurfaceComponent* FFlexManager::AddFlexFluidSurface(class UWorld
 void FFlexManager::RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* Component)
 {
 	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
-
-	check(Component && Component->FlexFluidSurface);
-	FlexFluidSurfaceMap.Remove(Component->FlexFluidSurface);
-	AFlexFluidSurfaceActor* Actor = (AFlexFluidSurfaceActor*)Component->GetOwner();
-	Actor->Destroy();
+	FFlexFuildSurfaceMap* FlexFluidSurfaceMap = WorldMap.Find(TWeakObjectPtr<UWorld>(World));
+	if (FlexFluidSurfaceMap)
+	{
+		check(Component && Component->FlexFluidSurface);
+		FlexFluidSurfaceMap->Remove(Component->FlexFluidSurface);
+		AFlexFluidSurfaceActor* Actor = (AFlexFluidSurfaceActor*)Component->GetOwner();
+		Actor->Destroy();
+	}
 }
 
-void FFlexManager::TickFlexFluidSurfaceComponent(class UFlexFluidSurfaceComponent* SurfaceComponent, float DeltaTime, enum ELevelTick TickType, struct FActorComponentTickFunction *ThisTickFunction)
+void FFlexManager::TickFlexFluidSurfaceComponents(class UWorld* World, const TArray<struct FParticleEmitterInstance*>& EmitterInstances, float DeltaTime, enum ELevelTick TickType)
 {
-	SurfaceComponent->TickComponent(DeltaTime, TickType, NULL);
+	int32 NumEmitters = EmitterInstances.Num();
+	TSet<class UFlexFluidSurfaceComponent*> FlexFluidSurfaces;
+	for (int32 EmitterIndex = 0; EmitterIndex < NumEmitters; EmitterIndex++)
+	{
+		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
+		if (EmitterInstance && EmitterInstance->SpriteTemplate)
+		{
+			auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
+			auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
+			if (FlexFluidSurfaceTemplate)
+			{
+				class UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(World, FlexFluidSurfaceTemplate);
+				check(SurfaceComponent);
+				if (!FlexFluidSurfaces.Contains(SurfaceComponent))
+				{
+					SurfaceComponent->TickComponent(DeltaTime, TickType, NULL);
+
+					FlexFluidSurfaces.Add(SurfaceComponent);
+				}
+			}
+		}
+	}
 }
 
-struct FFlexContainerInstance* FFlexManager::GetFlexSoftJointContainer(class FPhysScene* PhysScene, class UFlexContainer* Template)
+struct FFlexContainerInstance* FFlexManager::FindFlexContainerInstance(class FPhysScene* PhysScene, class UFlexContainer* Template)
 {
 	if (!bFlexInitialized)
 	{
 		return nullptr;
 	}
 
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
+	FRWScopeLock Lock(PhysSceneMapLock, SLT_ReadOnly);
 
-	FFlexContainerInstance** Instance = PhysSceneContext.FlexContainerMap.Find(Template);
-	if (Instance)
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext)
 	{
-		return *Instance;
+		FFlexContainerInstance** Instance = PhysSceneContext->FlexContainerMap.Find(Template);
+		if (Instance)
+		{
+			return *Instance;
+		}
 	}
-	else
-	{
-		return nullptr;
-	}
+	return nullptr;
 }
 
-void FFlexManager::WaitFlexScenes(class FPhysScene* PhysScene)
-{
-	if (!bFlexInitialized)
-	{
-		return;
-	}
-
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
-
-	if (PhysSceneContext.FlexContainerMap.Num())
-	{
-		if (PhysSceneContext.FlexSimulateTaskRef.IsValid())
-			FTaskGraphInterface::Get().WaitUntilTaskCompletes(PhysSceneContext.FlexSimulateTaskRef);
-
-		// if debug draw enabled on any containers then ensure any persistent lines are flushed
-		bool NeedsFlushDebugLines = false;
-
-		for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
-		{
-			// The container instances can be removed, so we need to check and handle that case
-			if (!It->Value->TemplateRef.IsValid())
-			{
-				delete It->Value;
-				It.RemoveCurrent();
-			}
-			else if (It->Value->Template->DebugDraw)
-			{
-				NeedsFlushDebugLines = true;
-				break;
-			}
-		}
-
-		if (FFlexContainerInstance::sGlobalDebugDraw || NeedsFlushDebugLines)
-			FlushPersistentDebugLines(PhysScene->GetOwningWorld());
-
-		// synchronize flex components with results
-		for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
-			It->Value->Synchronize();
-	}
-}
-
-void FFlexManager::TickFlexScenes(class FPhysScene* PhysScene, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt)
-{
-	if (GPhysXSDK && bFlexInitialized)
-	{
-		FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
-
-		// when true the Flex CPU update will be run as a task async to the game thread
-		// note that this is different from the async tick in LevelTick.cpp
-		const bool bFlexAsync = true;
-
-		if (bFlexAsync)
-		{
-			PhysSceneContext.FlexSimulateTaskRef = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FFlexManager::TickFlexScenesTask, PhysScene, dt),
-				GET_STATID(STAT_TotalPhysicsTime));
-		}
-		else
-		{
-			TickFlexScenesTask(PhysScene, dt);
-		}
-	}
-}
-
-void FFlexManager::TickFlexScenesTask(class FPhysScene* PhysScene, float dt)
-{
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
-
-	// ensure we have the correct CUDA context set for Flex
-	// this would be done automatically when making a Flex API call
-	// but by acquiring explicitly in advance we save some unnecessary
-	// CUDA calls to repeatedly set/unset the context
-	NvFlexAcquireContext(FlexLib);
-
-	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		// if template has been garbage collected then remove container (need to use the thread safe IsValid() flag)
-		if (!It->Value->TemplateRef.IsValid(false, true))
-		{
-			delete It->Value;
-			It.RemoveCurrent();
-		}
-		else
-		{
-			It->Value->Simulate(dt);
-		}
-	}
-
-	NvFlexRestoreContext(FlexLib);
-}
-
-void FFlexManager::CleanupFlexScenes(class FPhysScene* PhysScene)
-{
-	if (!bFlexInitialized)
-	{
-		return;
-	}
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
-
-	if (PhysSceneContext.FlexContainerMap.Num())
-	{
-		for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
-		{
-			UFlexContainer* FlexContainerCopy = It->Value->Template;
-
-			delete It->Value;
-			It.RemoveCurrent();
-
-			// Destroy the UFlexContainer copy that was created by GetFlexContainer()
-			if (FlexContainerCopy != nullptr && FlexContainerCopy->IsValidLowLevel())
-			{
-				FlexContainerCopy->ConditionalBeginDestroy();
-			}
-		}
-	}
-}
-
-struct FFlexContainerInstance* FFlexManager::GetFlexContainer(class FPhysScene* PhysScene, class UFlexContainer* Template)
+struct FFlexContainerInstance* FFlexManager::FindOrCreateFlexContainerInstance(class FPhysScene* PhysScene, class UFlexContainer* Template)
 {
 	if (!bFlexInitialized)
 	{
 		return nullptr;
 	}
+
+	FRWScopeLock Lock(PhysSceneMapLock, SLT_Write);
+
 	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
 
 	FFlexContainerInstance** Instance = PhysSceneContext.FlexContainerMap.Find(Template);
@@ -320,17 +235,205 @@ struct FFlexContainerInstance* FFlexManager::GetFlexContainer(class FPhysScene* 
 	}
 }
 
+void FFlexManager::WaitFlexScenes(class FPhysScene* PhysScene)
+{
+	if (!bFlexInitialized)
+	{
+		return;
+	}
+
+	PhysSceneMapLock.ReadLock();
+
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext == nullptr)
+	{
+		PhysSceneMapLock.ReadUnlock();
+		return;
+	}
+
+	// wait for async task to finish
+	auto FlexSimulateTaskRef = PhysSceneContext->FlexSimulateTaskRef; //make a copy
+
+	PhysSceneMapLock.ReadUnlock();
+
+	if (FlexSimulateTaskRef.IsValid())
+	{
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FlexSimulateTaskRef);
+	}
+
+	PhysSceneMapLock.WriteLock();
+
+	PhysSceneContext->FlexSimulateTaskRef.SafeRelease();
+
+	if (PhysSceneContext->FlexContainerMap.Num() > 0)
+	{
+		// if debug draw enabled on any containers then ensure any persistent lines are flushed
+		bool NeedsFlushDebugLines = false;
+
+		for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			// The container instances can be removed, so we need to check and handle that case
+			if (!It->Value->TemplateRef.IsValid())
+			{
+				delete It->Value;
+				It.RemoveCurrent();
+			}
+			else if (It->Value->Template->DebugDraw)
+			{
+				NeedsFlushDebugLines = true;
+				break;
+			}
+		}
+
+		if (FFlexContainerInstance::sGlobalDebugDraw || NeedsFlushDebugLines)
+		{
+			FlushPersistentDebugLines(PhysScene->GetOwningWorld());
+		}
+
+		// synchronize flex components with results
+		for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			It->Value->Synchronize();
+		}
+	}
+
+	PhysSceneMapLock.WriteUnlock();
+}
+
+void FFlexManager::TickFlexScenes(class FPhysScene* PhysScene, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt)
+{
+	if (!bFlexInitialized)
+	{
+		return;
+	}
+
+	FRWScopeLock Lock(PhysSceneMapLock, SLT_ReadOnly);
+
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext && PhysSceneContext->FlexContainerMap.Num() > 0)
+	{
+		// when true the Flex CPU update will be run as a task async to the game thread
+		// note that this is different from the async tick in LevelTick.cpp
+		const bool bFlexAsync = true;
+
+		if (bFlexAsync)
+		{
+			PhysSceneContext->FlexSimulateTaskRef = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FFlexManager::TickFlexScenesTask, PhysSceneContext, dt, false),
+				GET_STATID(STAT_TotalPhysicsTime));
+		}
+		else
+		{
+			Lock.RaiseLockToWrite();
+
+			TickFlexScenesTask(PhysSceneContext, dt, true);
+		}
+	}
+}
+
+void FFlexManager::TickFlexScenesTask(FFlexManager::FPhysSceneContext* PhysSceneContext, float dt, bool bIsLocked)
+{
+	check(PhysSceneContext);
+
+	if (!bIsLocked)
+	{
+		PhysSceneMapLock.WriteLock();
+	}
+
+	if (PhysSceneContext->FlexContainerMap.Num() > 0)
+	{
+		// ensure we have the correct CUDA context set for Flex
+		// this would be done automatically when making a Flex API call
+		// but by acquiring explicitly in advance we save some unnecessary
+		// CUDA calls to repeatedly set/unset the context
+		NvFlexAcquireContext(FlexLib);
+
+		for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			// if template has been garbage collected then remove container (need to use the thread safe IsValid() flag)
+			if (!It->Value->TemplateRef.IsValid(false, true))
+			{
+				delete It->Value;
+				It.RemoveCurrent();
+			}
+			else
+			{
+				It->Value->Simulate(dt);
+			}
+		}
+
+		NvFlexRestoreContext(FlexLib);
+	}
+
+	if (!bIsLocked)
+	{
+		PhysSceneMapLock.WriteUnlock();
+	}
+}
+
+void FFlexManager::CleanupFlexScenes(class FPhysScene* PhysScene)
+{
+	if (!bFlexInitialized)
+	{
+		return;
+	}
+
+	PhysSceneMapLock.ReadLock();
+
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext == nullptr)
+	{
+		PhysSceneMapLock.ReadUnlock();
+		return;
+	}
+
+	// wait for async task to finish
+	auto FlexSimulateTaskRef = PhysSceneContext->FlexSimulateTaskRef; //make a copy
+
+	PhysSceneMapLock.ReadUnlock();
+
+	if (FlexSimulateTaskRef.IsValid())
+	{
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FlexSimulateTaskRef);
+	}
+
+	PhysSceneMapLock.WriteLock();
+
+	PhysSceneContext->FlexSimulateTaskRef.SafeRelease();
+
+	for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		UFlexContainer* FlexContainerCopy = It->Value->Template;
+
+		delete It->Value;
+
+		// Destroy the UFlexContainer copy that was created by FindOrCreateFlexContainerInstance()
+		if (FlexContainerCopy != nullptr && FlexContainerCopy->IsValidLowLevel())
+		{
+			FlexContainerCopy->ConditionalBeginDestroy();
+		}
+	}
+
+	PhysSceneMap.Remove(PhysScene);
+
+	PhysSceneMapLock.WriteUnlock();
+}
+
 void FFlexManager::StartFlexRecord(class FPhysScene* PhysScene)
 {
 #if 0
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
+	FRWScopeLock Lock(PhysSceneMapLock, SLT_ReadOnly);
 
-	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext)
 	{
-		FFlexContainerInstance* Container = It->Value;
-		FString Name = Container->Template->GetName();
+		for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			FFlexContainerInstance* Container = It->Value;
+			FString Name = Container->Template->GetName();
 
-		flexStartRecord(Container->Solver, StringCast<ANSICHAR>(*(FString("flexCapture_") + Name + FString(".flx"))).Get());
+			flexStartRecord(Container->Solver, StringCast<ANSICHAR>(*(FString("flexCapture_") + Name + FString(".flx"))).Get());
+		}
 	}
 #endif
 }
@@ -338,38 +441,49 @@ void FFlexManager::StartFlexRecord(class FPhysScene* PhysScene)
 void FFlexManager::StopFlexRecord(class FPhysScene* PhysScene)
 {
 #if 0
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
+	FRWScopeLock Lock(PhysSceneMapLock, SLT_ReadOnly);
 
-	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext)
 	{
-		FFlexContainerInstance* Container = It->Value;
+		for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			FFlexContainerInstance* Container = It->Value;
 
-		flexStopRecord(Container->Solver);
+			flexStopRecord(Container->Solver);
+		}
 	}
 #endif
 }
 
 void FFlexManager::AddRadialForceToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
 {
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
+	FRWScopeLock Lock(PhysSceneMapLock, SLT_ReadOnly);
 
-	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext)
 	{
-		FFlexContainerInstance* Container = It->Value;
-		Container->AddRadialForce(Origin, Radius, Strength, Falloff);
+		for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			FFlexContainerInstance* Container = It->Value;
+			Container->AddRadialForce(Origin, Radius, Strength, Falloff);
+		}
 	}
 }
 
 void FFlexManager::AddRadialImpulseToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
 {
-	FPhysSceneContext& PhysSceneContext = PhysSceneMap.FindOrAdd(PhysScene);
+	FRWScopeLock Lock(PhysSceneMapLock, SLT_ReadOnly);
 
-	for (auto It = PhysSceneContext.FlexContainerMap.CreateIterator(); It; ++It)
+	FPhysSceneContext* PhysSceneContext = PhysSceneMap.Find(PhysScene);
+	if (PhysSceneContext)
 	{
-		FFlexContainerInstance* Container = It->Value;
-		Container->AddRadialImpulse(Origin, Radius, Strength, Falloff, bVelChange);
+		for (auto It = PhysSceneContext->FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			FFlexContainerInstance* Container = It->Value;
+			Container->AddRadialImpulse(Origin, Radius, Strength, Falloff, bVelChange);
+		}
 	}
-
 }
 
 void FFlexManager::ToggleFlexContainerDebugDraw(class UWorld* InWorld)
@@ -736,7 +850,7 @@ UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemCompon
 			{
 				FPhysScene* Scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
 
-				FFlexContainerInstance* ContainerInstance = FFlexManager::GetFlexContainer(Scene, FlexEmitter->FlexContainerTemplate);
+				FFlexContainerInstance* ContainerInstance = FFlexManager::FindOrCreateFlexContainerInstance(Scene, FlexEmitter->FlexContainerTemplate);
 				return ContainerInstance ? ContainerInstance->Template : nullptr;
 			}
 		}
@@ -894,10 +1008,4 @@ bool FFlexManager::IsValidFlexEmitter(class UParticleEmitter* Emitter)
 {
 	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter);
 	return (FlexEmitter && FlexEmitter->FlexContainerTemplate);
-}
-
-class UFlexFluidSurface* FFlexManager::GetFlexFluidSurfaceTemplate(class UParticleEmitter* Emitter)
-{
-	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter);
-	return FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
 }

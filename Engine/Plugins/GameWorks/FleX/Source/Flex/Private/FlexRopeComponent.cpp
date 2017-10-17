@@ -496,7 +496,7 @@ void UFlexRopeComponent::OnRegister()
 
 	if (ContainerTemplate && PhysScene && (!GIsEditor || GIsPlayInEditorWorld) && !AssetInstance)
 	{
-		FFlexContainerInstance* Container = FFlexManager::get().GetFlexContainer(PhysScene, ContainerTemplate);
+		FFlexContainerInstance* Container = FFlexManager::get().FindOrCreateFlexContainerInstance(PhysScene, ContainerTemplate);
 		if (Container)
 		{
 			ContainerInstance = Container;

@@ -5372,26 +5372,7 @@ void UCascadeParticleSystemComponent::CascadeTickComponent(float DeltaTime, enum
 	// Tick flex fluid surface components
 	if (GFlexPluginBridge)
 	{
-		int32 NumEmitters = EmitterInstances.Num();
-		TSet<class UFlexFluidSurfaceComponent*> FlexFluidSurfaces;
-		for (int32 EmitterIndex = 0; EmitterIndex < NumEmitters; EmitterIndex++)
-		{
-			FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
-			if (EmitterInstance && EmitterInstance->SpriteTemplate)
-			{
-				auto FlexFluidSurfaceTemplate = GFlexPluginBridge->GetFlexFluidSurfaceTemplate(EmitterInstance->SpriteTemplate);
-				if (FlexFluidSurfaceTemplate)
-				{
-					class UFlexFluidSurfaceComponent* SurfaceComponent = GFlexPluginBridge->GetFlexFluidSurface(GetWorld(), FlexFluidSurfaceTemplate);
-					check(SurfaceComponent);
-					if (!FlexFluidSurfaces.Contains(SurfaceComponent))
-					{
-						GFlexPluginBridge->TickFlexFluidSurfaceComponent(SurfaceComponent, DeltaTime, TickType, NULL);
-						FlexFluidSurfaces.Add(SurfaceComponent);
-					}
-				}
-			}
-		}
+		GFlexPluginBridge->TickFlexFluidSurfaceComponents(GetWorld(), EmitterInstances, DeltaTime, TickType);
 	}
 #endif
 	// NvFlex end

@@ -4548,9 +4548,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	}
 	
-	bool bHasFlexEmitter = false;
-
 	// NvFlex begin
+	bool bHasFlexEmitter = false;
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
@@ -4755,7 +4754,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	}
 
-
+	// NvFlex begin
 	// do not change the tick group if there is a Flex emitter
 	// present, as the component must be ticked in the EndPhysics phase
 	if (bHasFlexEmitter == false)
@@ -4770,6 +4769,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 		}
 	}
+	// NvFlex end
 }
 
 int32 UParticleSystemComponent::GetCurrentDetailMode() const

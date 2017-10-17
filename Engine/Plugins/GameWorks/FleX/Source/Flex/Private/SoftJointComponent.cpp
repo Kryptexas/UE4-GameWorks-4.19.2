@@ -129,7 +129,7 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
 		if (PhysScene)
 		{
-			FFlexContainerInstance* Container = FFlexManager::get().GetFlexSoftJointContainer(PhysScene, ContainerTemplate);
+			FFlexContainerInstance* Container = FFlexManager::get().FindFlexContainerInstance(PhysScene, ContainerTemplate);
 			if (Container)
 			{
 				ContainerInstance = Container;
