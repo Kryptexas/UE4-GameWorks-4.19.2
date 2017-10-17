@@ -144,6 +144,11 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 
 			auto ShouldRemovePredicate = [&](UActorComponent* PossiblyRemovedComponent)
 				{
+					if (PossiblyRemovedComponent == nullptr)
+					{
+						return true;
+					}
+
 					// try to find a component with this name in the CDO
 					for (UActorComponent* SearchComponent : CDO->GetComponents())
 					{
