@@ -1171,7 +1171,7 @@ namespace UnrealBuildTool
 						// it is important to add this exactly to the same place where the missing libraries would have been, it will be replaced later
 						if (!ExternalLibraries.Contains("--allow-shlib-undefined"))
 						{
-							ExternalLibraries += string.Format(" --allow-shlib-undefined");
+							ExternalLibraries += string.Format(" -Wl,--allow-shlib-undefined");
 						}
 					}
 					else
@@ -1183,12 +1183,12 @@ namespace UnrealBuildTool
 			}
 			ResponseLines.Add(" --end-group");
 
-			ResponseLines.Add(" --start-group");
-			ResponseLines.Add(ExternalLibraries);
-			ResponseLines.Add(" --end-group");
-
 			FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
 			LinkAction.CommandArguments += string.Format(" -Wl,@\"{0}\"", ResponseFile.Create(ResponseFileName, ResponseLines));
+
+			LinkAction.CommandArguments += " -Wl,--start-group";
+			LinkAction.CommandArguments += ExternalLibraries;
+			LinkAction.CommandArguments += " -Wl,--end-group";
 
 			LinkAction.CommandArguments += " -lrt"; // needed for clock_gettime()
 			LinkAction.CommandArguments += " -lm"; // math
