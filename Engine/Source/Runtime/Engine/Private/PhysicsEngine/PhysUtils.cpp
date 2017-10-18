@@ -615,35 +615,6 @@ return bResult;
 
 		return 1;
 	}
-
-	// NvFlex begin
-#if WITH_FLEX
-	if (FParse::Command(&Cmd, TEXT("FLEXVIS")))
-	{
-		if (GFlexPluginBridge)
-		{
-			GFlexPluginBridge->ToggleFlexContainerDebugDraw(InWorld);
-		}
-	}
-	else if (FParse::Command(&Cmd, TEXT("FLEXSTARTRECORD")))
-	{
-		FPhysScene* Scene = InWorld->GetPhysicsScene();
-		if (Scene && GFlexPluginBridge)
-		{
-			GFlexPluginBridge->StartFlexRecord(Scene);
-		}
-	}
-	else if (FParse::Command(&Cmd, TEXT("FLEXSTOPRECORD")))
-	{
-		FPhysScene* Scene = InWorld->GetPhysicsScene();
-		if (Scene && GFlexPluginBridge)
-		{
-			GFlexPluginBridge->StopFlexRecord(Scene);
-		}
-	}
-#endif
-	// NvFlex end
-
 #endif // WITH_PHYSX
 
 	return 0;

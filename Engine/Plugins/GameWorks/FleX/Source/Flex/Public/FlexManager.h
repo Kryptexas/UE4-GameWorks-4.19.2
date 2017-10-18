@@ -51,17 +51,14 @@ public:
 
 	virtual void WaitFlexScenes(class FPhysScene* PhysScene);
 	virtual void TickFlexScenes(class FPhysScene* PhysScene, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt);
-
 	virtual void CleanupFlexScenes(class FPhysScene* PhysScene);
-
-
-	virtual void StartFlexRecord(class FPhysScene* PhysScene);
-	virtual void StopFlexRecord(class FPhysScene* PhysScene);
 
 	virtual void AddRadialForceToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff);
 	virtual void AddRadialImpulseToFlex(class FPhysScene* PhysScene, FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
-	virtual void ToggleFlexContainerDebugDraw(class UWorld* World);
+	void StartFlexRecord(class FPhysScene* PhysScene);
+	void StopFlexRecord(class FPhysScene* PhysScene);
+	void ToggleFlexContainerDebugDraw(class UWorld* World);
 
 	virtual void AttachFlexToComponent(class USceneComponent* Component, float Radius);
 

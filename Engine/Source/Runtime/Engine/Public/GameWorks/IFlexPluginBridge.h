@@ -30,11 +30,6 @@ public:
 	// RadialForceComponent
 	virtual void AttachFlexToComponent(class USceneComponent* Component, float Radius) = 0;
 
-	// PhysUtils commands
-	virtual void ToggleFlexContainerDebugDraw(class UWorld* World) = 0;
-	virtual void StartFlexRecord(class FPhysScene* PhysScene) = 0;
-	virtual void StopFlexRecord(class FPhysScene* PhysScene) = 0;
-
 	// ParticleEmitterInstance
 	virtual void CreateFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance) = 0;
 	virtual void DestroyFlexEmitterInstance(struct FParticleEmitterInstance* EmitterInstance) = 0;

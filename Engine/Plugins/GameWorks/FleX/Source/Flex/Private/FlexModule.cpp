@@ -9,12 +9,17 @@
 #include "FlexManager.h"
 #include "FlexFluidSurfaceRendering.h"
 
-class FFlexModule : public IFlexModule
+#include "Misc/CoreMisc.h"
+
+class FFlexModule : public FSelfRegisteringExec, public IFlexModule
 {
 public:
-	/** IModuleInterface implementation */
+	/* IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+
+	/* FExec implementation */
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 private:
 	void LoadDLLs();
@@ -110,4 +115,36 @@ void FFlexModule::UnloadDlls()
 	FPlatformProcess::FreeDllHandle(FlexCoreHandle);
 	FPlatformProcess::FreeDllHandle(FlexExtHandle);
 	FPlatformProcess::FreeDllHandle(FlexDeviceHandle);
+}
+
+bool FFlexModule::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	auto FlexManager = FFlexManager::get();
+
+	bool bResult = false;
+	if (FParse::Command(&Cmd, TEXT("FLEXVIS")))
+	{
+		FlexManager.ToggleFlexContainerDebugDraw(InWorld);
+		bResult = true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("FLEXSTARTRECORD")))
+	{
+		FPhysScene* Scene = InWorld->GetPhysicsScene();
+		if (Scene)
+		{
+			FlexManager.StartFlexRecord(Scene);
+		}
+		bResult = true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("FLEXSTOPRECORD")))
+	{
+		FPhysScene* Scene = InWorld->GetPhysicsScene();
+		if (Scene)
+		{
+			FlexManager.StopFlexRecord(Scene);
+		}
+		bResult = true;
+	}
+
+	return bResult;
 }
