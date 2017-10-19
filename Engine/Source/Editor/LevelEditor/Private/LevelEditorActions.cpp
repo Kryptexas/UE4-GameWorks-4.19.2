@@ -50,13 +50,6 @@
 #include "Interfaces/IMainFrameModule.h"
 #include "DlgDeltaTransform.h"
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
-
-// NvFlex begin
-#if WITH_FLEX
-#include "GameWorks/IFlexEditorPluginBridge.h"
-#endif
-// NvFlex end
-
 #include "Editor/NewLevelDialog/Public/NewLevelDialogModule.h"
 #include "MRUFavoritesList.h"
 #include "Private/SSocketChooser.h"
@@ -2061,91 +2054,10 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 	}
 }
 
-// NvFlex begin
-#if WITH_FLEX
-void FLevelEditorActionCallbacks::OnKeepFlexSimulationChanges()
-{
-	if (GFlexEditorPluginBridge == nullptr)
-	{
-		return;
-	}
-
-	// @todo simulate: There are lots of types of changes that can't be "kept", like attachment or newly-spawned actors.  This
-	//    feature currently only supports propagating changes to regularly-editable properties on an instance of a PIE actor
-	//    that still exists in the editor world.
-
-	// Make sure we have some actors selected, and PIE is running
-	if (GEditor->GetSelectedActorCount() > 0 && GEditor->PlayWorld != NULL)
-	{
-		int32 UpdatedActorCount = 0;
-		int32 TotalCopiedPropertyCount = 0;
-		FString FirstUpdatedActorLabel;
-		{
-			for (auto ActorIt(GEditor->GetSelectedActorIterator()); ActorIt; ++ActorIt)
-			{
-				auto* SimWorldActor = CastChecked<AActor>(*ActorIt);
-
-				// Find our counterpart actor
-				AActor* EditorWorldActor = EditorUtilities::GetEditorWorldCounterpartActor(SimWorldActor);
-				if (EditorWorldActor != NULL)
-				{
-					if (GFlexEditorPluginBridge->KeepFlexSimulationChanges(EditorWorldActor, SimWorldActor))
-					{
-						// not currently used
-						++UpdatedActorCount;
-						++TotalCopiedPropertyCount;
-
-						if (FirstUpdatedActorLabel.IsEmpty())
-						{
-							FirstUpdatedActorLabel = EditorWorldActor->GetActorLabel();
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-void FLevelEditorActionCallbacks::OnClearFlexSimulationChanges()
-{
-	if (GFlexEditorPluginBridge == nullptr)
-	{
-		return;
-	}
-
-	if (GEditor->GetSelectedActorCount() > 0)
-	{
-		for (auto ActorIt(GEditor->GetSelectedActorIterator()); ActorIt; ++ActorIt)
-		{
-			// Find our counterpart actor
-			AActor* EditorWorldActor = NULL;
-			
-			if (GEditor->PlayWorld != NULL)
-			{
-				// if PIE session active then find editor actor
-				auto* SimWorldActor = CastChecked<AActor>(*ActorIt);
-				EditorWorldActor = EditorUtilities::GetEditorWorldCounterpartActor(SimWorldActor);
-			}
-			else
-			{
-				EditorWorldActor = Cast<AActor>(*ActorIt);
-			}				
-
-			if (EditorWorldActor != NULL)
-			{
-				GFlexEditorPluginBridge->ClearFlexSimulationChanges(EditorWorldActor);
-			}
-		}
-	}
-}
-#endif
-// NvFlex end
-
 bool FLevelEditorActionCallbacks::CanExecuteKeepSimulationChanges()
 {
 	return AssetSelectionUtils::GetSelectedActorInfo().NumSimulationChanges > 0;
 }
-
 
 void FLevelEditorActionCallbacks::OnMakeSelectedActorLevelCurrent()
 {
@@ -3213,13 +3125,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputChord( EKeys::K ) );
 
 	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actor's level the current level", EUserInterfaceActionType::Button, FInputChord( EKeys::M ) );
-
-	// NvFlex begin
-#if WITH_FLEX
-	UI_COMMAND(KeepFlexSimulationChanges, "Keep Flex Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ClearFlexSimulationChanges, "Clear Flex Simulation Changes", "Dicards any saved changes made to this actor in Simulate mode.", EUserInterfaceActionType::Button, FInputGesture());
-#endif
-	// NvFlex end
 
 #if PLATFORM_MAC
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Command, EKeys::M ) );

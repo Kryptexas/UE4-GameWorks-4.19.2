@@ -1346,20 +1346,6 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanExecuteKeepSimulationChanges )
 		);
 
-	// NvFlex begin
-#if WITH_FLEX
-	ActionList.MapAction(
-		Commands.KeepFlexSimulationChanges,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OnKeepFlexSimulationChanges)
-		);
-
-	ActionList.MapAction(
-		Commands.ClearFlexSimulationChanges,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OnClearFlexSimulationChanges)
-		);
-#endif
-	// NvFlex end
-
 	ActionList.MapAction( 
 		Commands.MakeActorLevelCurrent,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnMakeSelectedActorLevelCurrent )

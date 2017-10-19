@@ -10,6 +10,8 @@
 #include "AssetTypeActions_FlexFluidSurface.h"
 
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
+#include "LevelEditorMenuExtensions/LevelEditorMenuExtensions.h"
+
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 
@@ -60,6 +62,7 @@ void FFlexEditorModule::StartupModule()
 	if (!IsRunningCommandlet())
 	{
 		FFlexContentBrowserExtensions::InstallHooks();
+		FFlexLevelEditorMenuExtensions::InstallHooks();
 
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 		AssetRegistryModule.Get().OnFilesLoaded().AddRaw(this, &FFlexEditorModule::OnFilesLoaded);
@@ -75,6 +78,7 @@ void FFlexEditorModule::ShutdownModule()
 		AssetRegistryModule.Get().OnFilesLoaded().RemoveAll(this);
 
 		FFlexContentBrowserExtensions::RemoveHooks();
+		FFlexLevelEditorMenuExtensions::RemoveHooks();
 	}
 
 	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))

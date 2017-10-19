@@ -21,9 +21,6 @@ public:
 	};
 	virtual bool GetFlexAssetStats(class UStaticMesh* StaticMesh, FlexAssetStats& FlexAssetStats) = 0;
 
-	virtual bool KeepFlexSimulationChanges(class AActor* EditorWorldActor, class AActor* SimWorldActor) = 0;
-	virtual bool ClearFlexSimulationChanges(class AActor* EditorWorldActor) = 0;
-
 	virtual class AActor* SpawnFlexActor(class UWorld* World, struct FTransform const* UserTransformPtr, const struct FActorSpawnParameters& SpawnParameters) = 0;
 
 	virtual bool IsFlexActor(class UClass* Class) = 0;

@@ -406,22 +406,6 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 			}
 		}
 
-		// NvFlex begin
-#if WITH_FLEX
-		if (SelectionInfo.NumSelected > 0)
-		{
-			MenuBuilder.BeginSection("Flex", NSLOCTEXT("LevelViewportContextMenu", "FlexHeading", "Flex"));
-			{
-				if (GEditor->PlayWorld != NULL)
-					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().KeepFlexSimulationChanges);
-
-				MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ClearFlexSimulationChanges);
-			}
-			MenuBuilder.EndSection();
-		}
-#endif
-		// NvFlex end
-
 		MenuBuilder.BeginSection("LevelViewportAttach");
 		{
 			// Only display the attach menu if we have actors selected

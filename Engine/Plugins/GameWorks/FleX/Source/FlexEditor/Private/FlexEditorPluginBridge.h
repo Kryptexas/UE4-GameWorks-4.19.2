@@ -16,9 +16,6 @@ public:
 
 	virtual bool GetFlexAssetStats(class UStaticMesh* StaticMesh, FlexAssetStats& FlexAssetStats);
 
-	virtual bool KeepFlexSimulationChanges(class AActor* EditorWorldActor, class AActor* SimWorldActor);
-	virtual bool ClearFlexSimulationChanges(class AActor* EditorWorldActor);
-
 	virtual class AActor* SpawnFlexActor(class UWorld* World, struct FTransform const* UserTransformPtr, const struct FActorSpawnParameters& SpawnParameters);
 
 	virtual bool IsFlexActor(class UClass* Class);
