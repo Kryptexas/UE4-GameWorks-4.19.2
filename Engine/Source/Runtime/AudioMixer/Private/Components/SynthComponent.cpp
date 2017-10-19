@@ -78,12 +78,12 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	// Create the audio component which will be used to play the procedural sound wave
 	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
 
-	AudioComponent->bAutoActivate = true;
+	AudioComponent->bAutoActivate = false;
 	AudioComponent->bStopWhenOwnerDestroyed = true;
 	AudioComponent->bShouldRemainActiveIfDropped = true;
 	AudioComponent->Mobility = EComponentMobility::Movable;
 
-	bAutoActivate = true;
+	bAutoActivate = false;
 	bStopWhenOwnerDestroyed = true;
 
 	bNeverNeedsRenderUpdate = true;
@@ -192,6 +192,12 @@ void USynthComponent::OnUnregister()
 	if (!Owner || bStopWhenOwnerDestroyed)
 	{
 		Stop();
+	}
+
+	// Make sure the audio component is destroyed during unregister
+	if (AudioComponent)
+	{
+		AudioComponent->DestroyComponent();
 	}
 }
 

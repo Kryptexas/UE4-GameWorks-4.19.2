@@ -270,7 +270,7 @@ namespace Audio
 		// to release any resources it owns on the audio render thread
 		if (SourceInfo.BufferQueueListener)
 		{
-			SourceInfo.BufferQueueListener->OnRelease();
+			SourceInfo.BufferQueueListener->OnRelease(PendingReleaseData);
 			SourceInfo.BufferQueueListener = nullptr;
 		}
 
@@ -1345,7 +1345,7 @@ namespace Audio
 		{
 			FSourceInfo& SourceInfo = SourceInfos[SourceId];
 
-			if (!SourceInfo.bIsBusy || !SourceInfo.bIsPlaying || SourceInfo.bIsPaused || SourceInfo.bIsDone)
+			if (!SourceInfo.bIsBusy || !SourceInfo.bIsPlaying || SourceInfo.bIsPaused || (SourceInfo.bIsDone && SourceInfo.bEffectTailsDone)) 
 			{
 				continue;
 			}
@@ -1492,16 +1492,10 @@ namespace Audio
 		{
 			FSourceInfo& SourceInfo = SourceInfos[SourceId];
 
-			// Update any pending decodes
-			if (SourceInfo.BufferQueueListener)
-			{
-				SourceInfo.BufferQueueListener->OnUpdatePendingDecodes();
-			}
-
 			// Don't need to compute anything if the source is not playing or paused (it will remain at 0.0 volume)
 			// Note that effect chains will still be able to continue to compute audio output. The source output 
 			// will simply stop being read from.
-			if (!SourceInfo.bIsBusy || !SourceInfo.bIsPlaying || SourceInfo.bIsDone)
+			if (!SourceInfo.bIsBusy || !SourceInfo.bIsPlaying || (SourceInfo.bIsDone && SourceInfo.bEffectTailsDone))
 			{
 				continue;
 			}
@@ -1780,6 +1774,9 @@ namespace Audio
 			PumpCommandQueue();
 		}
 
+		// Update pending tasks and release them if they're finished
+		UpdatePendingReleaseData();
+
 		// First generate non-bus audio (bGenerateBuses = false)
 		GenerateSourceAudio(false);
 
@@ -1842,4 +1839,50 @@ namespace Audio
 
 		RenderThreadCommandBufferIndex.Set(!CurrentRenderThreadIndex);
 	}
+
+	void FMixerSourceManager::UpdatePendingReleaseData(bool bForceWait)
+	{
+		// Don't block, but let tasks finish naturally
+		for (int32 i = PendingReleaseData.Num() - 1; i >= 0; --i)
+		{
+			FPendingReleaseData* DataEntry = PendingReleaseData[i];
+			if (DataEntry->Task)
+			{
+				bool bDeleteData = false;
+				if (bForceWait)
+				{
+					DataEntry->Task->EnsureCompletion();
+					bDeleteData = true;
+				}
+				else if (DataEntry->Task->IsDone())
+				{
+					bDeleteData = true;
+				}
+
+				if (bDeleteData)
+				{
+					delete DataEntry->Task;
+					DataEntry->Task = nullptr;
+
+					if (DataEntry->Buffer)
+					{
+						delete DataEntry->Buffer;
+					}
+
+					delete DataEntry;
+					PendingReleaseData[i] = nullptr;
+
+					PendingReleaseData.RemoveAtSwap(i, 1, false);
+				}
+			}
+			else if (DataEntry->Buffer)
+			{
+				delete DataEntry->Buffer;
+				DataEntry->Buffer = nullptr;
+
+				PendingReleaseData.RemoveAtSwap(i, 1, false);
+			}
+		}
+	}
+
 }

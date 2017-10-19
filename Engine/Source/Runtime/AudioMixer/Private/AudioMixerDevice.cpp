@@ -381,6 +381,9 @@ namespace Audio
 		// Because we double buffer our command queues, we call this function twice to ensure all commands are successfully pumped.
 		SourceManager.PumpCommandQueue();
 		SourceManager.PumpCommandQueue();
+
+		// Make sure we force any pending release data to happen on shutdown
+		SourceManager.UpdatePendingReleaseData(true);
 	}
 
 	void FMixerDevice::InitSoundSubmixes()
