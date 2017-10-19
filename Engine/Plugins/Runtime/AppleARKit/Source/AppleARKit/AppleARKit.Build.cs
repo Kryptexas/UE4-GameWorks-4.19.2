@@ -42,6 +42,7 @@ public class AppleARKit : ModuleRules
                 "RenderCore",
                 "ShaderCore",
                 "HeadMountedDisplay",
+                "IOSRuntimeSettings",
                 "AugmentedReality"
 				// ... add private dependencies that you statically link with here ...	
 			}

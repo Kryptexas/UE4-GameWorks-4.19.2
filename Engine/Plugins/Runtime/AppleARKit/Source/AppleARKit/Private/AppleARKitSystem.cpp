@@ -15,6 +15,7 @@
 #include "AppleARKitAnchor.h"
 #include "AppleARKitPlaneAnchor.h"
 #include "GeneralProjectSettings.h"
+#include "IOSRuntimeSettings.h"
 
 // For orientation changed
 #include "Misc/CoreDelegates.h"
@@ -39,18 +40,16 @@ private:
 		ensure(IsInGameThread());
 		if (ARKitSystem.GameThreadFrame.IsValid())
 		{
-			InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen(EAppleARKitBackgroundFitMode::Fill);
-			
-			// @todo arkit : account for different aspect ratio when in portrait mode
-//			if (ARKitSystem.DeviceOrientation == EScreenOrientation::Portrait || ARKitSystem.DeviceOrientation == EScreenOrientation::PortraitUpsideDown)
-//			{
-//				InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen_Portrait(EAppleARKitBackgroundFitMode::Fill);
-//			}
-//			else
-//			{
-//				// Assume landscape
-//				InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen(EAppleARKitBackgroundFitMode::Fill);
-//			}
+			if (ARKitSystem.DeviceOrientation == EScreenOrientation::Portrait || ARKitSystem.DeviceOrientation == EScreenOrientation::PortraitUpsideDown)
+			{
+				// Portrait
+				InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetVerticalFieldOfViewForScreen(EAppleARKitBackgroundFitMode::Fill);
+			}
+			else
+			{
+				// Landscape
+				InOutFOV = ARKitSystem.GameThreadFrame->Camera.GetHorizontalFieldOfViewForScreen(EAppleARKitBackgroundFitMode::Fill);
+			}
 		}
 	}
 	
@@ -458,10 +457,74 @@ bool FAppleARKitSystem::HitTestAtScreenPosition(const FVector2D ScreenPosition, 
 	return (OutResults.Num() > 0);
 }
 
+static TOptional<EScreenOrientation::Type> PickAllowedDeviceOrientation( EScreenOrientation::Type InOrientation )
+{
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+	const UIOSRuntimeSettings* IOSSettings = GetDefault<UIOSRuntimeSettings>();
+	
+	const bool bOrientationSupported[] =
+	{
+		true, // Unknown
+		IOSSettings->bSupportsPortraitOrientation != 0, // Portait
+		IOSSettings->bSupportsUpsideDownOrientation != 0, // PortraitUpsideDown
+		IOSSettings->bSupportsLandscapeRightOrientation != 0, // LandscapeLeft; These are flipped vs the enum name?
+		IOSSettings->bSupportsLandscapeLeftOrientation != 0, // LandscapeRight; These are flipped vs the enum name?
+		false, // FaceUp
+		false // FaceDown
+	};
+	
+	if (bOrientationSupported[static_cast<int32>(InOrientation)])
+	{
+		return InOrientation;
+	}
+	else
+	{
+		return TOptional<EScreenOrientation::Type>();
+	}
+#else
+	return TOptional<EScreenOrientation::Type>();
+#endif
+}
+
 void FAppleARKitSystem::SetDeviceOrientation( EScreenOrientation::Type InOrientation )
 {
-	DeviceOrientation = InOrientation;
-	DerivedTrackingToUnrealRotation = DeriveTrackingToWorldRotation( InOrientation );
+	TOptional<EScreenOrientation::Type> NewOrientation = PickAllowedDeviceOrientation(InOrientation);
+
+	if (!NewOrientation.IsSet() && DeviceOrientation == EScreenOrientation::Unknown)
+	{
+		// We do not currently have a valid orientation, nor did the device provide one.
+		// So pick ANY ALLOWED default.
+		// This only realy happens if the device is face down on something or
+		// in another "useless" state for AR.
+		
+		if (!NewOrientation.IsSet())
+		{
+			NewOrientation = PickAllowedDeviceOrientation(EScreenOrientation::Portrait);
+		}
+		
+		if (!NewOrientation.IsSet())
+		{
+			NewOrientation = PickAllowedDeviceOrientation(EScreenOrientation::LandscapeLeft);
+		}
+		
+		if (!NewOrientation.IsSet())
+		{
+			NewOrientation = PickAllowedDeviceOrientation(EScreenOrientation::PortraitUpsideDown);
+		}
+		
+		if (!NewOrientation.IsSet())
+		{
+			NewOrientation = PickAllowedDeviceOrientation(EScreenOrientation::LandscapeRight);
+		}
+		
+		check(NewOrientation.IsSet());
+	}
+	
+	if (NewOrientation.IsSet() && DeviceOrientation != NewOrientation.GetValue())
+	{
+		DeviceOrientation = NewOrientation.GetValue();
+		DerivedTrackingToUnrealRotation = DeriveTrackingToWorldRotation( DeviceOrientation );
+	}
 }
 
 

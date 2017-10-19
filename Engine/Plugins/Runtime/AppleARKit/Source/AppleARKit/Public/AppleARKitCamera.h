@@ -102,10 +102,13 @@ struct APPLEARKIT_API FAppleARKitCamera
 	float GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode ) const;
 	
 	/** Returns the effective horizontal field of view for the screen when a device is in portrait mode */
-	float GetHorizontalFieldOfViewForScreen_Portrait( EAppleARKitBackgroundFitMode BackgroundFitMode ) const;
+	float GetVerticalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode ) const;
 
 	/** Returns the effective horizontal field of view for the screen dimensions and fit mode in those dimensions */
 	float GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const;
+	
+	/** Returns the effective vertical field of view for the screen dimensions and fit mode in those dimensions */
+	float GetVerticalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const;
 
 	/** For the given screen position, returns the normalised capture image coordinates accounting for the fit mode of the image on screen */
 	FVector2D GetImageCoordinateForScreenPosition( FVector2D ScreenPosition, EAppleARKitBackgroundFitMode BackgroundFitMode ) const

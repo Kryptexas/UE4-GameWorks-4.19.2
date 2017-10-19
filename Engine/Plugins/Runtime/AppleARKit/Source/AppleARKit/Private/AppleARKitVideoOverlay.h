@@ -40,6 +40,9 @@ private:
 	FTextureRHIRef VideoTextureCbCr;
 	UMaterialInterface* RenderingOverlayMaterial;
 	FIndexBufferRHIRef OverlayIndexBufferRHI;
-	FVertexBufferRHIRef OverlayVertexBufferRHI;
+	
+	// Separate vertex buffer for each supported device orientation
+	FVertexBufferRHIRef OverlayVertexBufferRHI[4];
+
 	double LastUpdateTimestamp;
 };
