@@ -69,7 +69,8 @@ public:
 			return false; // pending flush
 		}
 
-		check(Samples.Pop());
+		// Use verify here so it doesn't get compiled out in shipping
+		verify(Samples.Pop());
 		check(Sample.IsValid());
 
 		FPlatformAtomics::InterlockedDecrement(&NumSamples);
@@ -115,7 +116,8 @@ public:
 			return false; // pending flush
 		}
 
-		check(Samples.Pop());
+		// Use verify here so it doesn't get compiled out in shipping
+		verify(Samples.Pop());
 		check(Sample.IsValid());
 
 		FPlatformAtomics::InterlockedDecrement(&NumSamples);
