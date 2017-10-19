@@ -40,7 +40,8 @@
 #include <netinet/in.h>
 
 //#include <libproc.h>
-#include <mach-o/dyld.h>
+// @pjs commented out to resolve issue with PLATFORM_TVOS being defined by mach-o loader
+//#include <mach-o/dyld.h>
 
 /** Amount of free memory in MB reported by the system at startup */
 CORE_API int32 GStartupFreeMemoryMB;
@@ -1083,7 +1084,8 @@ void FIOSPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 
 void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsEnsure) const
 {
-    int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
+	// @pjs commented out to resolve issue with PLATFORM_TVOS being defined by mach-o loader
+/*    int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
     if (ReportFile != -1)
     {
         TCHAR Line[PATH_MAX] = {};
@@ -1274,7 +1276,7 @@ void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
         WriteLine(ReportFile, TEXT("</WERReportMetadata>"));
         
         close(ReportFile);
-    }
+    }*/
 }
 
 void FIOSCrashContext::CopyMinidump(char const* OutputPath, char const* InputPath) const
