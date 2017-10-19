@@ -75,13 +75,6 @@ Audio::EAudioMixerStreamDataFormat::Type USynthSound::GetGeneratedPCMDataFormat(
 USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// Create the audio component which will be used to play the procedural sound wave
-	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
-
-	AudioComponent->bAutoActivate = false;
-	AudioComponent->bStopWhenOwnerDestroyed = true;
-	AudioComponent->bShouldRemainActiveIfDropped = true;
-	AudioComponent->Mobility = EComponentMobility::Movable;
 
 	bAutoActivate = false;
 	bStopWhenOwnerDestroyed = true;
@@ -97,7 +90,6 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	SoundClass = USoundBase::DefaultSoundClassObject;
 
 #if WITH_EDITORONLY_DATA
-	AudioComponent->bVisualizeComponent = false;
 	bVisualizeComponent = false;
 #endif
 }
@@ -168,14 +160,37 @@ UAudioComponent* USynthComponent::GetAudioComponent()
 	return AudioComponent;
 }
 
+void USynthComponent::CreateAudioComponent()
+{
+	if (!AudioComponent)
+	{
+		// Create the audio component which will be used to play the procedural sound wave
+		AudioComponent = NewObject<UAudioComponent>(this);
+
+		if (AudioComponent)
+		{
+			AudioComponent->bAutoActivate = false;
+			AudioComponent->bStopWhenOwnerDestroyed = true;
+			AudioComponent->bShouldRemainActiveIfDropped = true;
+			AudioComponent->Mobility = EComponentMobility::Movable;
+
+#if WITH_EDITORONLY_DATA
+			AudioComponent->bVisualizeComponent = false;
+#endif
+			if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
+			{
+				AudioComponent->SetupAttachment(this);
+			}
+
+			Initialize();
+		}
+	}
+}
+
+
 void USynthComponent::OnRegister()
 {
-	Initialize();
-
-	if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
-	{
-		AudioComponent->SetupAttachment(this);
-	}
+	CreateAudioComponent();
 
 	Super::OnRegister();
 }
@@ -198,6 +213,7 @@ void USynthComponent::OnUnregister()
 	if (AudioComponent)
 	{
 		AudioComponent->DestroyComponent();
+		AudioComponent = nullptr;
 	}
 }
 
@@ -267,6 +283,9 @@ void USynthComponent::OnGeneratePCMAudio(float* GeneratedPCMData, int32 NumSampl
 
 void USynthComponent::Start()
 {
+	// This will try to create the audio component if it hasn't yet been created
+	CreateAudioComponent();
+
 	if (AudioComponent)
 	{
 		// Copy the attenuation and concurrency data from the synth component to the audio component
