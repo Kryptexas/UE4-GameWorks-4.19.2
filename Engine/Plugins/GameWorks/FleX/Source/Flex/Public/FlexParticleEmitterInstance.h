@@ -35,9 +35,11 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	};
 
 	FFlexParticleEmitterInstance(FParticleEmitterInstance* Instance)
+		: Emitter(Instance)
+		, FlexDataOffset(0)
+		, bFlexAnisotropyData(0)
+		, FlexFluidSurfaceComponent(NULL)
 	{
-		Emitter = Instance;
-
 		auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter->SpriteTemplate);
 		if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 		{
@@ -101,7 +103,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 		{
 			DECLARE_PARTICLE(Particle, Emitter->ParticleData + Emitter->ParticleStride * Emitter->ParticleIndices[i]);
 
-			int32 CurrentOffset = Emitter->FlexDataOffset;
+			int32 CurrentOffset = FlexDataOffset;
 
 			const uint8* ParticleBase = (const uint8*)&Particle;
 			PARTICLE_ELEMENT(int32, FlexParticleIndex);
@@ -211,4 +213,11 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 
 	/* Pending "attachment to component" calls to process */
 	TArray<FlexComponentAttachment> PendingAttachments;
+
+	/** The offset to the index of the associated flex particle			*/
+	int32 FlexDataOffset;
+	/** Set if anisotropy data is available for rendering				*/
+	uint32 bFlexAnisotropyData : 1;
+	/** Registered fluid surface component								*/
+	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
 };

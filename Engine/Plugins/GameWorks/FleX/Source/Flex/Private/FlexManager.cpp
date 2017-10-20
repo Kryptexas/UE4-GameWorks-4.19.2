@@ -612,8 +612,8 @@ void FFlexManager::DestroyFlexEmitterInstance(struct FParticleEmitterInstance* E
 				for (int32 i = 0; i < EmitterInstance->ActiveParticles; i++)
 				{
 					DECLARE_PARTICLE(Particle, EmitterInstance->ParticleData + EmitterInstance->ParticleStride * EmitterInstance->ParticleIndices[i]);
-					verify(EmitterInstance->FlexDataOffset > 0);
-					int32 CurrentOffset = EmitterInstance->FlexDataOffset;
+					verify(EmitterInstance->FlexEmitterInstance->FlexDataOffset > 0);
+					int32 CurrentOffset = EmitterInstance->FlexEmitterInstance->FlexDataOffset;
 					const uint8* ParticleBase = (const uint8*)&Particle;
 					PARTICLE_ELEMENT(int32, FlexParticleIndex);
 					Container->DestroyParticle(FlexParticleIndex);
@@ -623,9 +623,9 @@ void FFlexManager::DestroyFlexEmitterInstance(struct FParticleEmitterInstance* E
 		delete EmitterInstance->FlexEmitterInstance;
 	}
 
-	if (EmitterInstance->FlexFluidSurfaceComponent)
+	if (EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent)
 	{
-		EmitterInstance->FlexFluidSurfaceComponent->UnregisterEmitterInstance(EmitterInstance);
+		EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent->UnregisterEmitterInstance(EmitterInstance);
 	}
 }
 
@@ -646,8 +646,8 @@ void FFlexManager::TickFlexEmitterInstance(struct FParticleEmitterInstance* Emit
 
 		FFlexContainerInstance* Container = EmitterInstance->FlexEmitterInstance->Container;
 
-		EmitterInstance->bFlexAnisotropyData = (Container->Template->AnisotropyScale > 0.0f);
-		verify(!EmitterInstance->bFlexAnisotropyData || Container->Anisotropy1.size() > 0);
+		EmitterInstance->FlexEmitterInstance->bFlexAnisotropyData = (Container->Template->AnisotropyScale > 0.0f);
+		verify(!EmitterInstance->FlexEmitterInstance->bFlexAnisotropyData || Container->Anisotropy1.size() > 0);
 
 		// process report shapes
 		if (Container->CollisionReportComponents.Num() > 0)
@@ -656,9 +656,9 @@ void FFlexManager::TickFlexEmitterInstance(struct FParticleEmitterInstance* Emit
 			{
 				DECLARE_PARTICLE(Particle, EmitterInstance->ParticleData + EmitterInstance->ParticleStride * EmitterInstance->ParticleIndices[i]);
 
-				verify(EmitterInstance->FlexDataOffset > 0);
+				verify(EmitterInstance->FlexEmitterInstance->FlexDataOffset > 0);
 
-				int32 CurrentOffset = EmitterInstance->FlexDataOffset;
+				int32 CurrentOffset = EmitterInstance->FlexEmitterInstance->FlexDataOffset;
 				const uint8* ParticleBase = (const uint8*)&Particle;
 				PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
@@ -720,9 +720,9 @@ void FFlexManager::TickFlexEmitterInstance(struct FParticleEmitterInstance* Emit
 		{
 			DECLARE_PARTICLE(Particle, EmitterInstance->ParticleData + EmitterInstance->ParticleStride * EmitterInstance->ParticleIndices[i]);
 
-			verify(EmitterInstance->FlexDataOffset > 0);
+			verify(EmitterInstance->FlexEmitterInstance->FlexDataOffset > 0);
 
-			int32 CurrentOffset = EmitterInstance->FlexDataOffset;
+			int32 CurrentOffset = EmitterInstance->FlexEmitterInstance->FlexDataOffset;
 			const uint8* ParticleBase = (const uint8*)&Particle;
 			PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
@@ -750,7 +750,7 @@ void FFlexManager::TickFlexEmitterInstance(struct FParticleEmitterInstance* Emit
 
 			Particle.Velocity = Container->Velocities[FlexParticleIndex];
 
-			if (EmitterInstance->bFlexAnisotropyData)
+			if (EmitterInstance->FlexEmitterInstance->bFlexAnisotropyData)
 			{
 				PARTICLE_ELEMENT(FVector, Alignment16);
 
@@ -772,7 +772,7 @@ uint32 FFlexManager::GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitter
 
 	if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
 	{
-		EmitterInstance->FlexDataOffset = EmitterInstance->PayloadOffset + uiBytes;
+		EmitterInstance->FlexEmitterInstance->FlexDataOffset = EmitterInstance->PayloadOffset + uiBytes;
 
 		// flex particle index
 		uiBytes += sizeof(int32);
@@ -799,9 +799,9 @@ bool FFlexManager::FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInsta
 
 	if (EmitterInstance->FlexEmitterInstance && EmitterInstance->FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{
-		verify(EmitterInstance->FlexDataOffset > 0);
+		verify(EmitterInstance->FlexEmitterInstance->FlexDataOffset > 0);
 
-		int32 CurrentOffset = EmitterInstance->FlexDataOffset;
+		int32 CurrentOffset = EmitterInstance->FlexEmitterInstance->FlexDataOffset;
 		const uint8* ParticleBase = (const uint8*)Particle;
 		PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
@@ -825,10 +825,10 @@ void FFlexManager::FlexEmitterInstanceKillParticle(struct FParticleEmitterInstan
 {
 	if (EmitterInstance->FlexEmitterInstance && EmitterInstance->FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{
-		verify(EmitterInstance->FlexDataOffset > 0);
+		verify(EmitterInstance->FlexEmitterInstance->FlexDataOffset > 0);
 
 		const uint8* ParticleBase = EmitterInstance->ParticleData + KillIndex * EmitterInstance->ParticleStride;
-		int32 CurrentOffset = EmitterInstance->FlexDataOffset;
+		int32 CurrentOffset = EmitterInstance->FlexEmitterInstance->FlexDataOffset;
 		PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
 		if (FlexParticleIndex >= 0)
@@ -837,6 +837,17 @@ void FFlexManager::FlexEmitterInstanceKillParticle(struct FParticleEmitterInstan
 		}
 	}
 }
+
+void FFlexManager::FlexEmitterInstanceFillReplayData(struct FParticleEmitterInstance* EmitterInstance, struct FDynamicSpriteEmitterReplayDataBase* ReplayData)
+{
+	if (EmitterInstance->FlexEmitterInstance)
+	{
+		ReplayData->FlexDataOffset = EmitterInstance->FlexEmitterInstance->FlexDataOffset;
+		ReplayData->bFlexAnisotropyData = EmitterInstance->FlexEmitterInstance->bFlexAnisotropyData;
+		ReplayData->bFlexSurface = (EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent != nullptr);
+	}
+}
+
 
 UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component)
 {
@@ -991,16 +1002,16 @@ void FFlexManager::RegisterNewFlexFluidSurfaceComponent(class UParticleSystemCom
 
 void FFlexManager::RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface)
 {
-	if (EmitterInstance->FlexFluidSurfaceComponent)
+	if (EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent)
 	{
-		EmitterInstance->FlexFluidSurfaceComponent->UnregisterEmitterInstance(EmitterInstance);
-		EmitterInstance->FlexFluidSurfaceComponent = nullptr;
+		EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent->UnregisterEmitterInstance(EmitterInstance);
+		EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent = nullptr;
 	}
 
 	if (NewFlexFluidSurface)
 	{
-		EmitterInstance->FlexFluidSurfaceComponent = AddFlexFluidSurface(EmitterInstance->GetWorld(), NewFlexFluidSurface);
-		EmitterInstance->FlexFluidSurfaceComponent->RegisterEmitterInstance(EmitterInstance);
+		EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent = AddFlexFluidSurface(EmitterInstance->GetWorld(), NewFlexFluidSurface);
+		EmitterInstance->FlexEmitterInstance->FlexFluidSurfaceComponent->RegisterEmitterInstance(EmitterInstance);
 	}
 }
 

@@ -16,13 +16,6 @@
 #include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
-// NvFlex begin
-#if WITH_FLEX
-#include "GameWorks/IFlexPluginBridge.h"
-#include "DrawDebugHelpers.h" // FlushPersistentDebugLines
-#endif
-// NvFlex end
-
 /* *********************************************************************** */
 /* *********************************************************************** */
 /* *********************** MODELTOHULLS  ********************************* */

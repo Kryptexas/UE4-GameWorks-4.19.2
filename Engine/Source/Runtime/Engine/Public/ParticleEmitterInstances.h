@@ -329,14 +329,8 @@ public:
 
 	// NvFlex begin
 #if WITH_FLEX
-	/** The offset to the index of the associated flex particle			*/
-	int32 FlexDataOffset;
-	/** Set if anisotropy data is available for rendering				*/
-	uint32 bFlexAnisotropyData : 1;
 	/** The container instance to emit into								*/
 	struct FFlexParticleEmitterInstance* FlexEmitterInstance;
-	/** Registered fluid surface component								*/
-	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
 #endif
 	// NvFlex end
 

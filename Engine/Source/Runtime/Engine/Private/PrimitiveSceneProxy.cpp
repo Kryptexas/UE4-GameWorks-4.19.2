@@ -88,7 +88,9 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bNeedsLevelAddedToWorldNotification(false)
 ,	bWantsSelectionOutline(true)
 ,	bVerifyUsedMaterials(true)
+// NvFlex begin
 ,	bFlexFluidSurface(false)
+// NvFlex end
 ,	bUseAsOccluder(InComponent->bUseAsOccluder)
 ,	bAllowApproximateOcclusion(InComponent->Mobility != EComponentMobility::Movable)
 ,	bSelectable(InComponent->bSelectable)

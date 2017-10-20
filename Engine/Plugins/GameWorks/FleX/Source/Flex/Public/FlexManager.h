@@ -69,6 +69,7 @@ public:
 	virtual uint32 GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes);
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex);
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex);
+	virtual void FlexEmitterInstanceFillReplayData(struct FParticleEmitterInstance* EmitterInstance, struct FDynamicSpriteEmitterReplayDataBase* ReplayData);
 
 	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial);
 	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component);

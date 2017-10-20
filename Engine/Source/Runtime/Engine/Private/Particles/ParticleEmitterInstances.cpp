@@ -297,10 +297,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , EmitterDuration(0.0f)
 	// NvFlex begin
 #if WITH_FLEX
-	, FlexDataOffset(0)
-	, bFlexAnisotropyData(0)
 	, FlexEmitterInstance(NULL)
-	, FlexFluidSurfaceComponent(NULL)
 #endif
 	// NvFlex end
 	, TrianglesToRender(0)
@@ -2755,10 +2752,14 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->MinFacingCameraBlendDistance = LODLevel->RequiredModule->MinFacingCameraBlendDistance;
 		NewReplayData->MaxFacingCameraBlendDistance = LODLevel->RequiredModule->MaxFacingCameraBlendDistance;
 
-		NewReplayData->FlexDataOffset = FlexDataOffset;
-		NewReplayData->bFlexAnisotropyData = bFlexAnisotropyData;
-		NewReplayData->bFlexSurface = (FlexFluidSurfaceComponent != NULL);
-
+		// NvFlex begin
+#if WITH_FLEX
+		if (GFlexPluginBridge && FlexEmitterInstance)
+		{
+			GFlexPluginBridge->FlexEmitterInstanceFillReplayData(this, NewReplayData);
+		}
+#endif
+		// NvFlex end
 	}
 
 
