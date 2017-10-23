@@ -22,7 +22,6 @@
 */
 FMorphTargetBinaryImport::FMorphTargetBinaryImport( USkeletalMesh* InSrcMesh, int32 LODIndex, FFeedbackContext* InWarn )
 :	Warn(InWarn)
-,	BaseMeshRawData( InSrcMesh, LODIndex )
 ,	BaseLODIndex(LODIndex)
 ,   BaseMesh(InSrcMesh)
 {	
@@ -37,7 +36,6 @@ FMorphTargetBinaryImport::FMorphTargetBinaryImport( USkeletalMesh* InSrcMesh, in
 */
 FMorphTargetBinaryImport::FMorphTargetBinaryImport( UStaticMesh* InSrcMesh, int32 LODIndex, FFeedbackContext* InWarn )
 :	Warn(InWarn)
-,	BaseMeshRawData( InSrcMesh, LODIndex )
 ,	BaseLODIndex(LODIndex)
 ,   BaseMesh(InSrcMesh)
 {	

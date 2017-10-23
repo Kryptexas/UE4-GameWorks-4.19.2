@@ -136,6 +136,7 @@ private:
 	void ExportToFBX(const TArray<UObject*> NewAssets, bool bRecordAnimation);
 
 	void OnAddLoopingInterpolation();
+	void OnRemoveBoneTrack();
 
 	TSharedRef< SWidget > GenerateCreateAssetMenu() const;
 	TSharedRef< SWidget > GenerateExportAssetMenu() const;

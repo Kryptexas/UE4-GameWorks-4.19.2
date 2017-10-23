@@ -766,7 +766,16 @@ void FMaterialResource::LegacySerialize(FArchive& Ar)
 
 const TArray<UTexture*>& FMaterialResource::GetReferencedTextures() const
 {
-	return Material ? Material->ExpressionTextureReferences : UMaterial::GetDefaultMaterial(MD_Surface)->ExpressionTextureReferences;
+	if (MaterialInstance && MaterialInstance->PermutationTextureReferences.Num())
+	{
+		return MaterialInstance->PermutationTextureReferences;
+	}
+	else if (Material)
+	{
+		return Material->ExpressionTextureReferences;
+	}
+
+	return UMaterial::GetDefaultMaterial(MD_Surface)->ExpressionTextureReferences;
 }
 
 void FMaterialResource::AddReferencedObjects(FReferenceCollector& Collector)
@@ -1071,6 +1080,13 @@ bool FMaterialResource::IsDefaultMaterial() const
 	return Material->IsDefaultMaterial();
 }
 
+#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
+bool FMaterialResource::IsEditorOnlyDefaultMaterial() const
+{
+	return Material->IsEditorOnlyDefaultMaterial();
+}
+#endif
+
 int32 FMaterialResource::GetNumCustomizedUVs() const
 {
 	return Material->NumCustomizedUVs;
@@ -1185,6 +1201,21 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TMap<FName, 
 			//also show a dynamically lit shader
 			static FName TBasePassPSFNoLightMapPolicyName = TEXT("TBasePassPSFNoLightMapPolicy");
 			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader"));
+
+			static auto* CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+			const bool bAllowStaticLighting = CVarAllowStaticLighting->GetValueOnAnyThread() != 0;
+
+			if (bAllowStaticLighting)
+			{
+				if (IsUsedWithStaticLighting())
+				{
+					static FName TBasePassPSTLightMapPolicyName = TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ");
+					ShaderTypeNamesAndDescriptions.Add(TBasePassPSTLightMapPolicyName, TEXT("Base pass shader with Surface Lightmap"));
+				}
+
+				static FName TBasePassPSFPrecomputedVolumetricLightmapLightingPolicyName = TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicy");
+				ShaderTypeNamesAndDescriptions.Add(TBasePassPSFPrecomputedVolumetricLightmapLightingPolicyName, TEXT("Base pass shader with Volumetric Lightmap"));
+			}
 		}
 
 		static FName TBasePassVSFNoLightMapPolicyName = TEXT("TBasePassVSFNoLightMapPolicy");
@@ -1731,6 +1762,9 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 	else
 	{
 		bSucceeded = true;
+
+		// Clear outdated compile errors as we're not calling Translate on this path
+		CompileErrors.Empty();
 	}
 
 	// Note: this is safe to set from the game thread because we should be between the RenderFences of an FMaterialUpdateContext
@@ -2140,27 +2174,27 @@ TSet<FMaterialRenderProxy*> FMaterialRenderProxy::DeferredUniformExpressionCache
 	FColoredMaterialRenderProxy
 -----------------------------------------------------------------------------*/
 
-bool FColoredMaterialRenderProxy::GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+bool FColoredMaterialRenderProxy::GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 {
-	if(ParameterName == ColorParamName)
+	if(ParameterInfo.Name == ColorParamName)
 	{
 		*OutValue = Color;
 		return true;
 	}
 	else
 	{
-		return Parent->GetVectorValue(ParameterName, OutValue, Context);
+		return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
 }
 
-bool FColoredMaterialRenderProxy::GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+bool FColoredMaterialRenderProxy::GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 {
-	return Parent->GetScalarValue(ParameterName, OutValue, Context);
+	return Parent->GetScalarValue(ParameterInfo, OutValue, Context);
 }
 
-bool FColoredMaterialRenderProxy::GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+bool FColoredMaterialRenderProxy::GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const
 {
-	return Parent->GetTextureValue(ParameterName,OutValue,Context);
+	return Parent->GetTextureValue(ParameterInfo,OutValue,Context);
 }
 
 /*-----------------------------------------------------------------------------
@@ -2168,14 +2202,14 @@ bool FColoredMaterialRenderProxy::GetTextureValue(const FName ParameterName,cons
 -----------------------------------------------------------------------------*/
 static FName NAME_LightmapRes = FName(TEXT("LightmapRes"));
 
-bool FLightingDensityMaterialRenderProxy::GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+bool FLightingDensityMaterialRenderProxy::GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 {
-	if (ParameterName == NAME_LightmapRes)
+	if (ParameterInfo.Name == NAME_LightmapRes)
 	{
 		*OutValue = FLinearColor(LightmapResolution.X, LightmapResolution.Y, 0.0f, 0.0f);
 		return true;
 	}
-	return FColoredMaterialRenderProxy::GetVectorValue(ParameterName, OutValue, Context);
+	return FColoredMaterialRenderProxy::GetVectorValue(ParameterInfo, OutValue, Context);
 }
 
 /*-----------------------------------------------------------------------------
@@ -2187,27 +2221,27 @@ const FMaterial* FOverrideSelectionColorMaterialRenderProxy::GetMaterial(ERHIFea
 	return Parent->GetMaterial(InFeatureLevel);
 }
 
-bool FOverrideSelectionColorMaterialRenderProxy::GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+bool FOverrideSelectionColorMaterialRenderProxy::GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 {
-	if( ParameterName == NAME_SelectionColor )
+	if( ParameterInfo.Name == NAME_SelectionColor )
 	{
 		*OutValue = SelectionColor;
 		return true;
 	}
 	else
 	{
-		return Parent->GetVectorValue(ParameterName, OutValue, Context);
+		return Parent->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
 }
 
-bool FOverrideSelectionColorMaterialRenderProxy::GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+bool FOverrideSelectionColorMaterialRenderProxy::GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 {
-	return Parent->GetScalarValue(ParameterName,OutValue,Context);
+	return Parent->GetScalarValue(ParameterInfo,OutValue,Context);
 }
 
-bool FOverrideSelectionColorMaterialRenderProxy::GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+bool FOverrideSelectionColorMaterialRenderProxy::GetTextureValue(const FMaterialParameterInfo& ParameterInfo, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 {
-	return Parent->GetTextureValue(ParameterName,OutValue,Context);
+	return Parent->GetTextureValue(ParameterInfo,OutValue,Context);
 }
 
 /** Returns the number of samplers used in this material, or -1 if the material does not have a valid shader map (compile error or still compiling). */

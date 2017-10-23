@@ -11,13 +11,15 @@
 #include "ns.hpp"
 #include "argument.hpp"
 
+MTLPP_CLASS(MTLFunctionConstantValues);
+
 namespace mtlpp
 {
-    class FunctionConstantValues : public ns::Object
+    class FunctionConstantValues : public ns::Object<MTLFunctionConstantValues*>
     {
     public:
         FunctionConstantValues();
-        FunctionConstantValues(const ns::Handle& handle) : ns::Object(handle) { }
+        FunctionConstantValues(MTLFunctionConstantValues* handle) : ns::Object<MTLFunctionConstantValues*>(handle) { }
 
         void SetConstantValue(const void* value, DataType type, uint32_t index);
         void SetConstantValue(const void* value, DataType type, const ns::String& name);

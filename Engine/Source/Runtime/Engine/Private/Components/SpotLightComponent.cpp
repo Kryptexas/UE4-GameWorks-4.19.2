@@ -219,6 +219,31 @@ void USpotLightComponent::SetOuterConeAngle(float NewOuterConeAngle)
 	}
 }
 
+float USpotLightComponent::ComputeLightBrightness() const
+{
+	float LightBrightness = ULightComponent::ComputeLightBrightness();
+
+	if (bUseInverseSquaredFalloff)
+	{
+		if (IntensityUnits == ELightUnits::Candelas)
+		{
+			LightBrightness *= (100.f * 100.f); // Conversion from cm2 to m2
+		}
+		else if (IntensityUnits == ELightUnits::Lumens)
+		{
+			const float ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f;
+			const float ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f, ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
+			const float CosOuterCone = FMath::Cos(ClampedOuterConeAngle);
+			LightBrightness *= (100.f * 100.f / 2.f / PI / (1.f - CosOuterCone)); // Conversion from cm2 to m2 and cone remapping.
+		}
+		else
+		{
+			LightBrightness *= 16; // Legacy scale of 16
+		}
+	}
+	return LightBrightness;
+}
+
 // Disable for now
 //void USpotLightComponent::SetLightShaftConeAngle(float NewLightShaftConeAngle)
 //{

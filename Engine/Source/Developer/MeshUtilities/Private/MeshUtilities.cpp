@@ -56,6 +56,8 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Containers/Algo/Transform.h"
+#include "Rendering/SkeletalMeshModel.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "LandscapeProxy.h"
 #include "Landscape.h"
@@ -488,60 +490,6 @@ void FMeshUtilities::BuildSkeletalAdjacencyIndexBuffer(
 	}
 }
 
-void FMeshUtilities::RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk)
-{
-#if WITH_EDITORONLY_DATA
-	TIndirectArray<FStaticLODModel> DestModels;
-	TIndirectArray<FSkinnedModelData> ModelData;
-	FReferenceSkeleton RefSkeleton = SrcMesh->RefSkeleton;
-	uint32 VertexBufferBuildFlags = SrcMesh->GetVertexBufferFlags();
-	FSkeletalMeshResource* SrcMeshResource = SrcMesh->GetImportedResource();
-	FVector TriangleSortCenter;
-	bool bHaveTriangleSortCenter = SrcMesh->GetSortCenterPoint(TriangleSortCenter);
-
-	for (int32 ModelIndex = 0; ModelIndex < SrcMeshResource->LODModels.Num(); ++ModelIndex)
-	{
-		FSkinnedModelData& TmpModelData = *new(ModelData)FSkinnedModelData();
-		SkeletalMeshTools::CopySkinnedModelData(TmpModelData, SrcMeshResource->LODModels[ModelIndex]);
-	}
-
-	for (int32 ModelIndex = 0; ModelIndex < ModelData.Num(); ++ModelIndex)
-	{
-		TArray<FSkinnedMeshChunk*> Chunks;
-		TArray<int32> PointToOriginalMap;
-		TArray<ETriangleSortOption> SectionSortOptions;
-
-		const FSkinnedModelData& SrcModel = ModelData[ModelIndex];
-		FStaticLODModel& DestModel = *new(DestModels)FStaticLODModel();
-
-		SkeletalMeshTools::UnchunkSkeletalModel(Chunks, PointToOriginalMap, SrcModel);
-		SkeletalMeshTools::ChunkSkinnedVertices(Chunks, MaxBonesPerChunk);
-
-		for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ++ChunkIndex)
-		{
-			int32 SectionIndex = Chunks[ChunkIndex]->OriginalSectionIndex;
-			SectionSortOptions.Add(SrcModel.Sections[SectionIndex].TriangleSorting);
-		}
-		check(SectionSortOptions.Num() == Chunks.Num());
-
-		BuildSkeletalModelFromChunks(DestModel, RefSkeleton, Chunks, PointToOriginalMap);
-		check(DestModel.Sections.Num() == SectionSortOptions.Num());
-
-		DestModel.NumTexCoords = SrcModel.NumTexCoords;
-		DestModel.BuildVertexBuffers(VertexBufferBuildFlags);
-		for (int32 SectionIndex = 0; SectionIndex < DestModel.Sections.Num(); ++SectionIndex)
-		{
-			DestModel.SortTriangles(TriangleSortCenter, bHaveTriangleSortCenter, SectionIndex, SectionSortOptions[SectionIndex]);
-		}
-	}
-
-	//@todo-rco: Swap() doesn't seem to work
-	Exchange(SrcMeshResource->LODModels, DestModels);
-
-	// TODO: Also need to patch bEnableShadowCasting in the LODInfo struct.
-#endif // #if WITH_EDITORONLY_DATA
-}
-
 void FMeshUtilities::CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant)
 {
 	SkeletalMeshTools::CalcBoneVertInfos(SkeletalMesh, Infos, bOnlyDominant);
@@ -618,7 +566,7 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 	const int32 BaseMaterialIndex = OutMaterials.Num();
 
 	// Export all LODs to raw meshes
-	const int32 NumLODs = InSkinnedMeshComponent->MeshObject->GetSkeletalMeshResource().LODModels.Num();
+	const int32 NumLODs = InSkinnedMeshComponent->GetNumLODs();
 
 	for (int32 OverallLODIndex = 0; OverallLODIndex < InOverallMaxLODs; OverallLODIndex++)
 	{
@@ -634,8 +582,8 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 		TArray<FFinalSkinVertex> FinalVertices;
 		InSkinnedMeshComponent->GetCPUSkinnedVertices(FinalVertices, LODIndexRead);
 
-		FSkeletalMeshResource& SkeletalMeshResource = InSkinnedMeshComponent->MeshObject->GetSkeletalMeshResource();
-		FStaticLODModel& StaticLODModel = SkeletalMeshResource.LODModels[LODIndexRead];
+		FSkeletalMeshRenderData& SkeletalMeshRenderData = InSkinnedMeshComponent->MeshObject->GetSkeletalMeshRenderData();
+		FSkeletalMeshLODRenderData& LODData = SkeletalMeshRenderData.LODRenderData[LODIndexRead];
 
 		// Copy skinned vertex positions
 		for (int32 VertIndex = 0; VertIndex < FinalVertices.Num(); ++VertIndex)
@@ -643,13 +591,13 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 			RawMesh.VertexPositions.Add(InComponentToWorld.TransformPosition(FinalVertices[VertIndex].Position));
 		}
 
-		const uint32 NumTexCoords = FMath::Min(StaticLODModel.VertexBufferGPUSkin.GetNumTexCoords(), (uint32)MAX_MESH_TEXTURE_COORDS);
-		const int32 NumSections = StaticLODModel.Sections.Num();
-		FRawStaticIndexBuffer16or32Interface& IndexBuffer = *StaticLODModel.MultiSizeIndexContainer.GetIndexBuffer();
+		const uint32 NumTexCoords = FMath::Min(LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords(), (uint32)MAX_MESH_TEXTURE_COORDS);
+		const int32 NumSections = LODData.RenderSections.Num();
+		FRawStaticIndexBuffer16or32Interface& IndexBuffer = *LODData.MultiSizeIndexContainer.GetIndexBuffer();
 
 		for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 		{
-			const FSkelMeshSection& SkelMeshSection = StaticLODModel.Sections[SectionIndex];
+			const FSkelMeshRenderSection& SkelMeshSection = LODData.RenderSections[SectionIndex];
 			if (!SkelMeshSection.bDisabled)
 			{
 				// Build 'wedge' info
@@ -678,14 +626,14 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 						}
 						else
 						{
-							RawMesh.WedgeTexCoords[TexCoordIndex].Add(StaticLODModel.VertexBufferGPUSkin.GetVertexUV(VertexIndexForWedge, TexCoordIndex));
+							RawMesh.WedgeTexCoords[TexCoordIndex].Add(LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndexForWedge, TexCoordIndex));
 							RawMeshTracker.bValidTexCoords[TexCoordIndex] = true;
 						}
 					}
 
-					if (StaticLODModel.ColorVertexBuffer.IsInitialized())
+					if (LODData.StaticVertexBuffers.ColorVertexBuffer.IsInitialized())
 					{
-						RawMesh.WedgeColors.Add(StaticLODModel.ColorVertexBuffer.VertexColor(VertexIndexForWedge));
+						RawMesh.WedgeColors.Add(LODData.StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndexForWedge));
 						RawMeshTracker.bValidColors = true;
 					}
 					else
@@ -738,11 +686,11 @@ static void StaticMeshToRawMeshes(UStaticMeshComponent* InStaticMeshComponent, i
 
 		for (int32 VertIndex = 0; VertIndex < LODResource.GetNumVertices(); ++VertIndex)
 		{
-			RawMesh.VertexPositions.Add(InComponentToWorld.TransformPosition(LODResource.PositionVertexBuffer.VertexPosition((uint32)VertIndex)));
+			RawMesh.VertexPositions.Add(InComponentToWorld.TransformPosition(LODResource.VertexBuffers.PositionVertexBuffer.VertexPosition((uint32)VertIndex)));
 		}
 
 		const FIndexArrayView IndexArrayView = LODResource.IndexBuffer.GetArrayView();
-		const FStaticMeshVertexBuffer& StaticMeshVertexBuffer = LODResource.VertexBuffer;
+		const FStaticMeshVertexBuffer& StaticMeshVertexBuffer = LODResource.VertexBuffers.StaticMeshVertexBuffer;
 		const int32 NumTexCoords = FMath::Min(StaticMeshVertexBuffer.GetNumTexCoords(), (uint32)MAX_MESH_TEXTURE_COORDS);
 		const int32 NumSections = LODResource.Sections.Num();
 
@@ -773,9 +721,9 @@ static void StaticMeshToRawMeshes(UStaticMeshComponent* InStaticMeshComponent, i
 					}
 				}
 
-				if (LODResource.ColorVertexBuffer.IsInitialized())
+				if (LODResource.VertexBuffers.ColorVertexBuffer.IsInitialized())
 				{
-					RawMesh.WedgeColors.Add(LODResource.ColorVertexBuffer.VertexColor(Index));
+					RawMesh.WedgeColors.Add(LODResource.VertexBuffers.ColorVertexBuffer.VertexColor(Index));
 					RawMeshTracker.bValidColors = true;
 				}
 				else
@@ -853,7 +801,7 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 
 			if (IsValidSkinnedMeshComponent(SkinnedMeshComponent))
 			{
-				OverallMaxLODs = FMath::Max(SkinnedMeshComponent->MeshObject->GetSkeletalMeshResource().LODModels.Num(), OverallMaxLODs);
+				OverallMaxLODs = FMath::Max(SkinnedMeshComponent->MeshObject->GetSkeletalMeshRenderData().LODRenderData.Num(), OverallMaxLODs);
 			}
 			else if(IsValidStaticMeshComponent(StaticMeshComponent))
 			{
@@ -1020,16 +968,13 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 * @param Chunks				Skinned mesh chunks from which to build the renderable model.
 * @param PointToOriginalMap	Maps a vertex's RawPointIdx to its index at import time.
 */
-void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, TArray<FSkinnedMeshChunk*>& Chunks, const TArray<int32>& PointToOriginalMap)
+void FMeshUtilities::BuildSkeletalModelFromChunks(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, TArray<FSkinnedMeshChunk*>& Chunks, const TArray<int32>& PointToOriginalMap)
 {
 #if WITH_EDITORONLY_DATA
 	// Clear out any data currently held in the LOD model.
 	LODModel.Sections.Empty();
 	LODModel.NumVertices = 0;
-	if (LODModel.MultiSizeIndexContainer.IsIndexBufferValid())
-	{
-		LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Empty();
-	}
+	LODModel.IndexBuffer.Empty();
 
 	// Setup the section and chunk arrays on the model.
 	for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ++ChunkIndex)
@@ -1199,26 +1144,20 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		LODModel.RawPointIndices.Unlock();
 	}
 
-#if DISALLOW_32BIT_INDICES
-	LODModel.MultiSizeIndexContainer.CreateIndexBuffer(sizeof(uint16));
-#else
-	LODModel.MultiSizeIndexContainer.CreateIndexBuffer((LODModel.NumVertices < MAX_uint16) ? sizeof(uint16) : sizeof(uint32));
-#endif
-
 	// Finish building the sections.
 	for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 	{
 		FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
 		const TArray<uint32>& SectionIndices = Chunks[SectionIndex]->Indices;
-		FRawStaticIndexBuffer16or32Interface* IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
-		Section.BaseIndex = IndexBuffer->Num();
+
+		Section.BaseIndex = LODModel.IndexBuffer.Num();
 		const int32 NumIndices = SectionIndices.Num();
 		const TArray<uint32>& SectionVertexIndexRemap = VertexIndexRemap[SectionIndex];
 		for (int32 Index = 0; Index < NumIndices; Index++)
 		{
 			uint32 VertexIndex = SectionVertexIndexRemap[SectionIndices[Index]];
-			IndexBuffer->AddItem(VertexIndex);
+			LODModel.IndexBuffer.Add(VertexIndex);
 		}
 	}
 
@@ -1229,21 +1168,6 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		Chunks[i] = NULL;
 	}
 	Chunks.Empty();
-
-	// Build the adjacency index buffer used for tessellation.
-	{
-		TArray<FSoftSkinVertex> Vertices;
-		LODModel.GetVertices(Vertices);
-
-		FMultiSizeIndexContainerData IndexData;
-		LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
-
-		FMultiSizeIndexContainerData AdjacencyIndexData;
-		AdjacencyIndexData.DataTypeSize = IndexData.DataTypeSize;
-
-		BuildSkeletalAdjacencyIndexBuffer(Vertices, LODModel.NumTexCoords, IndexData.Indices, AdjacencyIndexData.Indices);
-		LODModel.AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(AdjacencyIndexData);
-	}
 
 	// Compute the required bones for this model.
 	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
@@ -2873,7 +2797,7 @@ public:
 
 				float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
 				int32 NumWedges = RawMesh.WedgeIndices.Num();
-								
+
 				// Find overlapping corners to accelerate adjacency.
 				MeshUtilities.FindOverlappingCorners(OverlappingCorners, RawMesh, ComparisonThreshold);
 
@@ -3150,11 +3074,11 @@ public:
 
 			// Initialize the vertex buffer.
 			int32 NumTexCoords = ComputeNumTexCoords(RawMesh, MAX_STATIC_TEXCOORDS);
-			LODModel.VertexBuffer.SetUseHighPrecisionTangentBasis(LODBuildSettings[LODIndex].bUseHighPrecisionTangentBasis);
-			LODModel.VertexBuffer.SetUseFullPrecisionUVs(LODBuildSettings[LODIndex].bUseFullPrecisionUVs);
-			LODModel.VertexBuffer.Init(Vertices, NumTexCoords);
-			LODModel.PositionVertexBuffer.Init(Vertices);
-			LODModel.ColorVertexBuffer.Init(Vertices);
+			LODModel.VertexBuffers.StaticMeshVertexBuffer.SetUseHighPrecisionTangentBasis(LODBuildSettings[LODIndex].bUseHighPrecisionTangentBasis);
+			LODModel.VertexBuffers.StaticMeshVertexBuffer.SetUseFullPrecisionUVs(LODBuildSettings[LODIndex].bUseFullPrecisionUVs);
+			LODModel.VertexBuffers.StaticMeshVertexBuffer.Init(Vertices, NumTexCoords);
+			LODModel.VertexBuffers.PositionVertexBuffer.Init(Vertices);
+			LODModel.VertexBuffers.ColorVertexBuffer.Init(Vertices);
 
 			// Concatenate the per-section index buffers.
 			TArray<uint32> CombinedIndices;
@@ -3267,8 +3191,8 @@ public:
 				TArray<uint32> AdjacencyIndices;
 
 				BuildStaticAdjacencyIndexBuffer(
-					LODModel.PositionVertexBuffer,
-					LODModel.VertexBuffer,
+					LODModel.VertexBuffers.PositionVertexBuffer,
+					LODModel.VertexBuffers.StaticMeshVertexBuffer,
 					CombinedIndices,
 					AdjacencyIndices
 					);
@@ -3284,7 +3208,7 @@ public:
 
 		// Calculate the bounding box.
 		FBox BoundingBox(ForceInit);
-		FPositionVertexBuffer& BasePositionVertexBuffer = OutRenderData.LODResources[0].PositionVertexBuffer;
+		FPositionVertexBuffer& BasePositionVertexBuffer = OutRenderData.LODResources[0].VertexBuffers.PositionVertexBuffer;
 		for (uint32 VertexIndex = 0; VertexIndex < BasePositionVertexBuffer.GetNumVertices(); VertexIndex++)
 		{
 			BoundingBox += BasePositionVertexBuffer.VertexPosition(VertexIndex);
@@ -3444,7 +3368,7 @@ class SkeletalMeshBuildData final : public IMeshBuildData
 {
 public:
 	SkeletalMeshBuildData(
-		FStaticLODModel& InLODModel,
+		FSkeletalMeshLODModel& InLODModel,
 		const FReferenceSkeleton& InRefSkeleton,
 		const TArray<FVertInfluence>& InInfluences,
 		const TArray<FMeshWedge>& InWedges,
@@ -3557,7 +3481,7 @@ public:
 	SMikkTSpaceInterface MikkTInterface;
 	MikkTSpace_Skeletal_Mesh MikkTUserData;
 
-	FStaticLODModel& LODModel;
+	FSkeletalMeshLODModel& LODModel;
 	const FReferenceSkeleton& RefSkeleton;
 	const TArray<FVertInfluence>& Influences;
 	const TArray<FMeshWedge>& Wedges;
@@ -4560,7 +4484,7 @@ private:
 	EStage Stage;
 };
 
-bool FMeshUtilities::BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
+bool FMeshUtilities::BuildSkeletalMesh(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
 {
 #if WITH_EDITORONLY_DATA
 	// Temporarily supporting both import paths
@@ -4664,7 +4588,7 @@ bool FMeshUtilities::BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferen
 }
 
 //@TODO: The OutMessages has to be a struct that contains FText/FName, or make it Token and add that as error. Needs re-work. Temporary workaround for now. 
-bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
+bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
 {
 	bool bTooManyVerts = false;
 
@@ -5252,12 +5176,10 @@ void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FM
 Mesh merging
 ------------------------------------------------------------------------------*/
 
-void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FStaticLODModel& LODModel, TArray<FBox2D>& OutBounds) const
+void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, TArray<FBox2D>& OutBounds) const
 {
 	TArray<FSoftSkinVertex> Vertices;
-	FMultiSizeIndexContainerData IndexData;
 	LODModel.GetVertices(Vertices);
-	LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
 
 	const uint32 SectionCount = (uint32)LODModel.NumNonClothingSections();
 
@@ -5277,7 +5199,7 @@ void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FStat
 
 		for (uint32 Index = FirstIndex; Index < LastIndex; ++Index)
 		{
-			uint32 VertexIndex = IndexData.Indices[Index];
+			uint32 VertexIndex = LODModel.IndexBuffer[Index];
 			FSoftSkinVertex& Vertex = Vertices[VertexIndex];
 
 			FVector2D TexCoord = Vertex.UVs[0];
@@ -5430,7 +5352,7 @@ void FMeshUtilities::StartupModule()
 
 	IMeshReductionManagerModule& Module = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
 	IMeshReduction* StaticMeshReduction = Module.GetStaticMeshReductionInterface();
-	
+
 
 	// Construct and cache the version string for the mesh utilities module.
 	VersionString = FString::Printf(
@@ -5491,17 +5413,15 @@ void FMeshUtilities::ShutdownModule()
 }
 
 
-bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const
+bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const
 {
 	// Get easy to use SkeletalMesh data
 	TArray<FSoftSkinVertex> Vertices;
-	FMultiSizeIndexContainerData IndexData;
 	LODModel.GetVertices(Vertices);
-	LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
 
-	int32 NumCorners = IndexData.Indices.Num();
+	int32 NumCorners = LODModel.IndexBuffer.Num();
 
-	// Generate FRawMesh from FStaticLODModel
+	// Generate FRawMesh from FSkeletalMeshLODModel
 	FRawMesh TempMesh;
 	TempMesh.WedgeIndices.AddUninitialized(NumCorners);
 	TempMesh.WedgeTexCoords[0].AddUninitialized(NumCorners);
@@ -5521,7 +5441,7 @@ bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LOD
 	for (int32 Index = 0; Index < NumCorners; Index++)
 	{
 		// Copy static vertex data
-		int32 VertexIndex = IndexData.Indices[Index];
+		int32 VertexIndex = LODModel.IndexBuffer[Index];
 		FSoftSkinVertex& Vertex = Vertices[VertexIndex];
 		TempMesh.WedgeIndices[Index] = Index; // rudimental data, not really used by FLayoutUV - but array size matters
 		TempMesh.WedgeTexCoords[0][Index] = Vertex.UVs[0];
@@ -5536,7 +5456,7 @@ bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LOD
 	TMultiMap<int32, int32> OverlappingCorners;
 	for (int32 Index = 0; Index < NumCorners; Index++)
 	{
-		int VertexIndex = IndexData.Indices[Index];
+		int VertexIndex = LODModel.IndexBuffer[Index];
 		for (int32 CornerIndex = LastWedgeCorner[VertexIndex]; CornerIndex >= 0; CornerIndex = PrevCorner[CornerIndex])
 		{
 			if (CornerIndex != Index)

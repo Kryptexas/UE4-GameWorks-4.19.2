@@ -164,8 +164,6 @@ FMetalVertexDeclaration::~FMetalVertexDeclaration()
 {
 }
 
-static TMap<uint32, FVertexDeclarationRHIRef> GVertexDeclarationCache;
-
 FVertexDeclarationRHIRef FMetalDynamicRHI::CreateVertexDeclaration_RenderThread(class FRHICommandListImmediate& RHICmdList, const FVertexDeclarationElementList& Elements)
 {
 	return GDynamicRHI->RHICreateVertexDeclaration(Elements);
@@ -176,13 +174,13 @@ FVertexDeclarationRHIRef FMetalDynamicRHI::RHICreateVertexDeclaration(const FVer
 	@autoreleasepool {
 	uint32 Key = FCrc::MemCrc32(Elements.GetData(), Elements.Num() * sizeof(FVertexElement));
 	// look up an existing declaration
-	FVertexDeclarationRHIRef* VertexDeclarationRefPtr = GVertexDeclarationCache.Find(Key);
+	FVertexDeclarationRHIRef* VertexDeclarationRefPtr = VertexDeclarationCache.Find(Key);
 	if (VertexDeclarationRefPtr == NULL)
 	{
 //		NSLog(@"VertDecl Key: %x", Key);
 
 		// create and add to the cache if it doesn't exist.
-		VertexDeclarationRefPtr = &GVertexDeclarationCache.Add(Key, new FMetalVertexDeclaration(Elements));
+		VertexDeclarationRefPtr = &VertexDeclarationCache.Add(Key, new FMetalVertexDeclaration(Elements));
 		FShaderCache::LogVertexDeclaration(ImmediateContext.Context->GetCurrentState().GetShaderCacheStateObject(), Elements, *VertexDeclarationRefPtr);
 	}
 

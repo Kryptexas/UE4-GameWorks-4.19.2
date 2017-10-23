@@ -375,8 +375,35 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// Cache the closest listener ptr 
 	ClosestListenerPtr = &Listeners[ClosestListenerIndex];
 
+	bool bPerformDistanceCheckOptimization = true;
+
+	// If we have an attenuation node, we can't know until we evaluate the sound cue if it's audio output going to be audible via a distance check
+	if (Sound->HasAttenuationNode() || 
+		(AudioDevice->VirtualSoundsEnabled() && (Sound->IsAllowedVirtual() || (bHandleSubtitles && bHasExternalSubtitles))) ||
+		(bHasAttenuationSettings && (AttenuationSettings.FocusDistanceScale != 1.0f || AttenuationSettings.NonFocusDistanceScale != 1.0f)))
+	{
+		bPerformDistanceCheckOptimization = false;
+	}
+	else
+	{
+		// Check the global focus settings... if it's doing a distance scale, we can't optimize due to distance
+		const FGlobalFocusSettings& FocusSettings = AudioDevice->GetGlobalFocusSettings();
+		if (FocusSettings.FocusDistanceScale != 1.0f || FocusSettings.NonFocusDistanceScale != 1.0f)
+		{
+			bPerformDistanceCheckOptimization = false;
+		}
+	}
+
+	// Early out if the sound is further away than we could possibly hear it, but only do this for non-virtualizable sounds.
+	if (bPerformDistanceCheckOptimization)
+	{
 	// The apparent max distance factors the actual max distance of the sound scaled with the distance scale due to focus effects
 	float ApparentMaxDistance = MaxDistance * FocusDistanceScale;
+		if (!FAudioDevice::LocationIsAudible(Transform.GetLocation(), ClosestListenerPtr->Transform, ApparentMaxDistance))
+		{
+			return;
+		}
+	}
 
 	FSoundParseParameters ParseParams;
 	ParseParams.Transform = Transform;
@@ -526,15 +553,34 @@ FWaveInstance* FActiveSound::FindWaveInstance( const UPTRINT WaveInstanceHash )
 
 void FActiveSound::UpdateAdjustVolumeMultiplier(const float DeltaTime)
 {
+	// Choose min/max bound and clamp dt to prevent unwanted spikes in volume
+	float MinValue = 0.0f;
+	float MaxValue = 0.0f;
+	if (CurrentAdjustVolumeMultiplier < TargetAdjustVolumeMultiplier)
+	{
+		MinValue = CurrentAdjustVolumeMultiplier;
+		MaxValue = TargetAdjustVolumeMultiplier;
+	}
+	else
+	{
+		MinValue = TargetAdjustVolumeMultiplier;
+		MaxValue = CurrentAdjustVolumeMultiplier;
+	}
+
+	float DeltaTimeValue = FMath::Min(DeltaTime, 0.5f);
+
 	// keep stepping towards our target until we hit our stop time
 	if (PlaybackTime < TargetAdjustVolumeStopTime)
 	{
-		CurrentAdjustVolumeMultiplier += (TargetAdjustVolumeMultiplier - CurrentAdjustVolumeMultiplier) * DeltaTime / (TargetAdjustVolumeStopTime - PlaybackTime);
+		CurrentAdjustVolumeMultiplier += (TargetAdjustVolumeMultiplier - CurrentAdjustVolumeMultiplier) * DeltaTimeValue / (TargetAdjustVolumeStopTime - PlaybackTime);
 	}
 	else
 	{
 		CurrentAdjustVolumeMultiplier = TargetAdjustVolumeMultiplier;
 	}
+
+	// Apply final clamp
+	CurrentAdjustVolumeMultiplier = FMath::Clamp(CurrentAdjustVolumeMultiplier, MinValue, MaxValue);
 } 
 
 void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum)

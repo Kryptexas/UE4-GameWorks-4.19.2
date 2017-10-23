@@ -6,8 +6,8 @@
 #include "Misc/Guid.h"
 #include "Modules/ModuleInterface.h"
 #include "Components.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/MeshMerging.h"
+#include "SkelImport.h"
 
 #include "IMeshMergeUtilities.h"
 
@@ -45,6 +45,16 @@ enum class ELightmapUVVersion : int32
 	Latest = SmallChartPacking
 };
 
+/**
+*	Contains the vertices that are most dominated by that bone. Vertices are in Bone space.
+*	Not used at runtime, but useful for fitting physics assets etc.
+*/
+struct FBoneVertInfo
+{
+	// Invariant: Arrays should be same length!
+	TArray<FVector>	Positions;
+	TArray<FVector>	Normals;
+};
 
 class IMeshUtilities : public IModuleInterface
 {
@@ -216,7 +226,7 @@ public:
 	 * @returns true if the mesh was built successfully.
 	 */
 	virtual bool BuildSkeletalMesh( 
-		FStaticLODModel& LODModel,
+		FSkeletalMeshLODModel& LODModel,
 		const FReferenceSkeleton& RefSkeleton,
 		const TArray<FVertInfluence>& Influences, 
 		const TArray<FMeshWedge>& Wedges, 
@@ -241,8 +251,6 @@ public:
 		const TArray<uint32>& Indices,
 		TArray<uint32>& OutPnAenIndices
 		) = 0;
-
-	virtual void RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk) = 0;
 
 	/**
 	 *	Calculate the verts associated weighted to each bone of the skeleton.
@@ -269,7 +277,7 @@ public:
 	* @param InRawMesh - Skeletal Mesh to calculate the bounds for
 	* @param OutBounds - Out texture bounds (min-max)
 	*/
-	virtual void CalculateTextureCoordinateBoundsForSkeletalMesh(const FStaticLODModel& LODModel, TArray<FBox2D>& OutBounds) const = 0;
+	virtual void CalculateTextureCoordinateBoundsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, TArray<FBox2D>& OutBounds) const = 0;
 	
 	/** Calculates (new) non-overlapping UV coordinates for the given Skeletal Mesh
 	*
@@ -278,7 +286,7 @@ public:
 	* @param OutTexCoords - New set of UV coordinates
 	* @return bool - whether or not generating the UVs succeeded
 	*/
-	virtual bool GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const = 0;	
+	virtual bool GenerateUniqueUVsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const = 0;
 	
 	/**
 	 * Remove Bones based on LODInfo setting

@@ -390,6 +390,12 @@ public:
 	 */
 	void SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler);
 
+
+	/**
+	 * 
+	 */
+	void ForceScroll(int32 UserIndex, float ScrollAxisMagnitude);
+
 protected:
 
 	/** Editable text widget */

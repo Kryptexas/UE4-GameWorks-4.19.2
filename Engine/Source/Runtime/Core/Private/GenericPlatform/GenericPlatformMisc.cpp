@@ -28,6 +28,7 @@
 #include "GenericPlatform/GenericPlatformDriver.h"
 
 #include "Misc/UProjectInfo.h"
+#include "Culture.h"
 
 #if UE_ENABLE_ICU
 	THIRD_PARTY_INCLUDES_START
@@ -990,8 +991,11 @@ const TCHAR* FGenericPlatformMisc::GetEngineMode()
 
 TArray<FString> FGenericPlatformMisc::GetPreferredLanguages()
 {
-	// not implemented by default
-	return TArray<FString>();
+	// Determine what out current culture is, and grab the most appropriate set of subtitles for it
+	FInternationalization& Internationalization = FInternationalization::Get();
+
+	TArray<FString> PrioritizedCultureNames = Internationalization.GetPrioritizedCultureNames(Internationalization.GetCurrentCulture()->GetName());
+	return PrioritizedCultureNames;
 }
 
 FString FGenericPlatformMisc::GetLocalCurrencyCode()

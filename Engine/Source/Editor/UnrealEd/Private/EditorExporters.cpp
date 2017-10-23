@@ -676,7 +676,7 @@ bool ULevelExporterSTL::ExportText( const FExportObjectInnerContext* Context, UO
 					for( int32 v = 2 ; v > -1 ; v-- )
 					{
 						int32 i = Indices[BaseIndex + v];
-						FVector vtx = Actor->ActorToWorld().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(i));
+						FVector vtx = Actor->ActorToWorld().TransformPosition(LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(i));
 						Triangles.Add(vtx);
 					}
 				}
@@ -928,21 +928,21 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 				uint32 TriangleCount = NumIndices / 3;
 				OBJGeom->Faces.AddUninitialized(TriangleCount);
 
-				uint32 VertexCount = RenderData->PositionVertexBuffer.GetNumVertices();
+				uint32 VertexCount = RenderData->VertexBuffers.PositionVertexBuffer.GetNumVertices();
 				OBJGeom->VertexData.AddUninitialized(VertexCount);
 				FOBJVertex* VerticesOut = OBJGeom->VertexData.GetData();
 
-				check(VertexCount == RenderData->VertexBuffer.GetNumVertices());
+				check(VertexCount == RenderData->VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 
 				FMatrix LocalToWorldInverseTranspose = LocalToWorld.InverseFast().GetTransposed();
 				for (uint32 i = 0; i < VertexCount; i++)
 				{
 					// Vertices
-					VerticesOut[i].Vert = LocalToWorld.TransformPosition(RenderData->PositionVertexBuffer.VertexPosition(i));
+					VerticesOut[i].Vert = LocalToWorld.TransformPosition(RenderData->VertexBuffers.PositionVertexBuffer.VertexPosition(i));
 					// UVs from channel 0
-					VerticesOut[i].UV = RenderData->VertexBuffer.GetVertexUV(i, 0);
+					VerticesOut[i].UV = RenderData->VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 0);
 					// Normal
-					VerticesOut[i].Normal = LocalToWorldInverseTranspose.TransformVector(RenderData->VertexBuffer.VertexTangentZ(i));
+					VerticesOut[i].Normal = LocalToWorldInverseTranspose.TransformVector(RenderData->VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(i));
 				}
 
 				bool bFlipCullMode = LocalToWorld.RotDeterminant() < 0.0f;
@@ -1628,9 +1628,9 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 			uint32 Index2 = Indices[(tri * 3) + 1];
 			uint32 Index3 = Indices[(tri * 3) + 2];
 
-			FVector Vertex1 = RenderData.PositionVertexBuffer.VertexPosition(Index1);		//(FStaticMeshFullVertex*)(RawVertexData + Index1 * VertexStride);
-			FVector Vertex2 = RenderData.PositionVertexBuffer.VertexPosition(Index2);
-			FVector Vertex3 = RenderData.PositionVertexBuffer.VertexPosition(Index3);
+			FVector Vertex1 = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(Index1);		//(FStaticMeshFullVertex*)(RawVertexData + Index1 * VertexStride);
+			FVector Vertex2 = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(Index2);
+			FVector Vertex3 = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(Index3);
 			
 			// Vertices
 			Verts.Add( Vertex1 );
@@ -1638,19 +1638,19 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 			Verts.Add( Vertex3 );
 
 			// UVs from channel 0
-			UVs.Add( RenderData.VertexBuffer.GetVertexUV(Index1, 0) );
-			UVs.Add( RenderData.VertexBuffer.GetVertexUV(Index2, 0) );
-			UVs.Add( RenderData.VertexBuffer.GetVertexUV(Index3, 0) );
+			UVs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index1, 0) );
+			UVs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index2, 0) );
+			UVs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index3, 0) );
 
 			// UVs from channel 1 (lightmap coords)
-			UVLMs.Add( RenderData.VertexBuffer.GetVertexUV(Index1, 1) );
-			UVLMs.Add( RenderData.VertexBuffer.GetVertexUV(Index2, 1) );
-			UVLMs.Add( RenderData.VertexBuffer.GetVertexUV(Index3, 1) );
+			UVLMs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index1, 1) );
+			UVLMs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index2, 1) );
+			UVLMs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index3, 1) );
 
 			// Normals
-			Normals.Add( RenderData.VertexBuffer.VertexTangentZ(Index1) );
-			Normals.Add( RenderData.VertexBuffer.VertexTangentZ(Index2) );
-			Normals.Add( RenderData.VertexBuffer.VertexTangentZ(Index3) );
+			Normals.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Index1) );
+			Normals.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Index2) );
+			Normals.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Index3) );
 
 			// Smoothing groups
 			SmoothingMasks.Add( RawMesh.FaceSmoothingMasks[tri] );
@@ -1739,12 +1739,12 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 		const FStaticMeshLODResources& RenderData = StaticMesh->GetLODForExport(0);
 		uint32 VertexCount = RenderData.GetNumVertices();
 
-		check(VertexCount == RenderData.VertexBuffer.GetNumVertices());
+		check(VertexCount == RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 
 		File->Logf( TEXT("\r\n") );
 		for(uint32 i = 0; i < VertexCount; i++)
 		{
-			const FVector& OSPos = RenderData.PositionVertexBuffer.VertexPosition( i );
+			const FVector& OSPos = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition( i );
 //			const FVector WSPos = StaticMeshComponent->LocalToWorld.TransformPosition( OSPos );
 			const FVector WSPos = OSPos;
 
@@ -1756,7 +1756,7 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 		for(uint32 i = 0 ; i < VertexCount; ++i)
 		{
 			// takes the first UV
-			const FVector2D UV = RenderData.VertexBuffer.GetVertexUV(i, 0);
+			const FVector2D UV = RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 0);
 
 			// Invert the y-coordinate (Lightwave has their bitmaps upside-down from us).
 			File->Logf( TEXT("vt %f %f\r\n"), UV.X, 1.0f - UV.Y );
@@ -1766,7 +1766,7 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 
 		for(uint32 i = 0 ; i < VertexCount; ++i)
 		{
-			const FVector& OSNormal = RenderData.VertexBuffer.VertexTangentZ( i ); 
+			const FVector& OSNormal = RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ( i ); 
 			const FVector WSNormal = OSNormal; 
 
 			// Transform to Lightwave's coordinate system

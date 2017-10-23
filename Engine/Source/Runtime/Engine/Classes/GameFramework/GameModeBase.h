@@ -9,6 +9,7 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/Info.h"
+#include "Engine/ServerStatReplicator.h"
 #include "UObject/CoreOnline.h"
 #include "GameFramework/PlayerController.h"
 #include "GameModeBase.generated.h"
@@ -113,6 +114,8 @@ public:
 	UPROPERTY(EditAnywhere, NoClear, BlueprintReadOnly, Category=Classes)
 	TSubclassOf<APlayerController> ReplaySpectatorPlayerControllerClass;
 
+	UPROPERTY(EditAnywhere, NoClear, BlueprintReadOnly, Category = Classes)
+	TSubclassOf<AServerStatReplicator> ServerStatReplicatorClass;
 
 	//~=============================================================================
 	// Accessors for current state
@@ -131,6 +134,9 @@ public:
 	{
 		return Cast<T>(GameState);
 	}
+
+	UPROPERTY(Transient)
+	AServerStatReplicator* ServerStatReplicator;
 
 	/** Returns number of active human players, excluding spectators */
 	UFUNCTION(BlueprintCallable, Category=Game)

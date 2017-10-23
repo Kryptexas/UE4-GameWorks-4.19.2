@@ -32,28 +32,28 @@ void UMaterialInstanceConstant::SetParentEditorOnly(UMaterialInterface* NewParen
 	SetParentInternal(NewParent, true);
 }
 
-void UMaterialInstanceConstant::SetVectorParameterValueEditorOnly(FName ParameterName, FLinearColor Value)
+void UMaterialInstanceConstant::SetVectorParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, FLinearColor Value)
 {
 	check(GIsEditor);
-	SetVectorParameterValueInternal(ParameterName,Value);
+	SetVectorParameterValueInternal(ParameterInfo,Value);
 }
 
-void UMaterialInstanceConstant::SetScalarParameterValueEditorOnly(FName ParameterName, float Value)
+void UMaterialInstanceConstant::SetScalarParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, float Value)
 {
 	check(GIsEditor);
-	SetScalarParameterValueInternal(ParameterName,Value);
+	SetScalarParameterValueInternal(ParameterInfo,Value);
 }
 
-void UMaterialInstanceConstant::SetTextureParameterValueEditorOnly(FName ParameterName, UTexture* Value)
+void UMaterialInstanceConstant::SetTextureParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, UTexture* Value)
 {
 	check(GIsEditor);
-	SetTextureParameterValueInternal(ParameterName,Value);
+	SetTextureParameterValueInternal(ParameterInfo,Value);
 }
 
-void UMaterialInstanceConstant::SetFontParameterValueEditorOnly(FName ParameterName,class UFont* FontValue,int32 FontPage)
+void UMaterialInstanceConstant::SetFontParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo,class UFont* FontValue,int32 FontPage)
 {
 	check(GIsEditor);
-	SetFontParameterValueInternal(ParameterName,FontValue,FontPage);
+	SetFontParameterValueInternal(ParameterInfo,FontValue,FontPage);
 }
 
 void UMaterialInstanceConstant::ClearParameterValuesEditorOnly()

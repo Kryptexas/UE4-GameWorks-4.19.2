@@ -39,12 +39,12 @@ static bool HasBadNTB(UStaticMesh* Mesh, bool &bZeroNormals, bool &bZeroTangents
 		for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 		{
 			FStaticMeshLODResources& LOD = Mesh->RenderData->LODResources[LODIndex];
-			int32 NumVerts = LOD.VertexBuffer.GetNumVertices();
+			int32 NumVerts = LOD.VertexBuffers.PositionVertexBuffer.GetNumVertices();
 			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 			{
-				const FVector TangentX = LOD.VertexBuffer.VertexTangentX(VertIndex);
-				const FVector TangentY = LOD.VertexBuffer.VertexTangentY(VertIndex);
-				const FVector TangentZ = LOD.VertexBuffer.VertexTangentZ(VertIndex);
+				const FVector TangentX = LOD.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertIndex);
+				const FVector TangentY = LOD.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(VertIndex);
+				const FVector TangentZ = LOD.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertIndex);
 				
 				if (TangentX.IsNearlyZero(KINDA_SMALL_NUMBER))
 				{

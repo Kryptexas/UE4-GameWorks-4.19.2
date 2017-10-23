@@ -128,6 +128,7 @@ FSlateRHIRenderer::FSlateRHIRenderer( TSharedRef<FSlateFontServices> InSlateFont
 	, EnqueuedWindowDrawBuffer(NULL)
 	, FreeBufferIndex(0)
 	, CurrentSceneIndex(-1)
+	, ResourceVersion(0)
 {
 	ResourceManager = InResourceManager;
 
@@ -240,6 +241,7 @@ FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 	DynamicBrushesToRemove[FreeBufferIndex].Empty();
 
 	Buffer->ClearBuffer();
+	Buffer->UpdateResourceVersion(ResourceVersion);
 	return *Buffer;
 }
 
@@ -650,6 +652,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				// Update the vertex and index buffer
 				BatchData.CreateRenderBatches(RootBatchMap);
 			}
+
+			RootBatchMap.UpdateResourceVersion(ResourceVersion);
 
 			{
 				SCOPE_CYCLE_COUNTER(STAT_SlateRTFillVertexIndexBuffers);
@@ -1348,6 +1352,9 @@ void FSlateRHIRenderer::ReleaseAccessedResources(bool bImmediatelyFlush)
 
 	if ( bImmediatelyFlush )
 	{
+		// Increment resource version to allow buffers to shrink or cached structures to clean up.
+		ResourceVersion++;
+
 		// Release resources generated specifically by the rendering policy if we are flushing.  This should NOT be done unless flushing
 		RenderingPolicy->FlushGeneratedResources();
 
@@ -1394,12 +1401,14 @@ TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::Cache
 		FSlateRHIRenderingPolicy* RenderPolicy;
 		FSlateWindowElementList* SlateElementList;
 		TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle;
+		uint32 ResourceVersion;
 	};
 	FCacheElementBatchesContext CacheElementBatchesContext =
 	{
 		RenderingPolicy.Get(),
 		&ElementList,
 		RenderDataHandle,
+		ResourceVersion
 	};
 	ENQUEUE_RENDER_COMMAND(CacheElementBatches)(
 		[CacheElementBatchesContext](FRHICommandListImmediate& RHICmdList)
@@ -1410,6 +1419,8 @@ TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::Cache
 			BatchData.SetRenderDataHandle(CacheElementBatchesContext.RenderDataHandle);
 			BatchData.CreateRenderBatches(RootBatchMap);
 			CacheElementBatchesContext.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData, CacheElementBatchesContext.RenderDataHandle);
+			
+			RootBatchMap.UpdateResourceVersion(CacheElementBatchesContext.ResourceVersion);
 		}
 	);
 

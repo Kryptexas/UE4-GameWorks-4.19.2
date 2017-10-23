@@ -127,7 +127,6 @@ void NiagaraRendererRibbons::GetDynamicMeshElements(const TArray<const FSceneVie
 				PerViewUniformParameters.ScreenAlignment = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 
 				// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory
-				CollectorResources.VertexFactory.SetFeatureLevel(ViewFamily.GetFeatureLevel());
 				CollectorResources.VertexFactory.SetParticleFactoryType(NVFT_Ribbon);
 
 				CollectorResources.UniformBuffer = FNiagaraRibbonUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);

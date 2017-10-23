@@ -496,8 +496,7 @@ FBodyInstance::FBodyInstance()
 	, VelocitySolverIterationCount(1)
 #if WITH_PHYSX
 	, InitialLinearVelocity(0.0f)
-	, PhysxUserData(this)
-#endif // WITH_PHYSX
+#endif
 {
 	MaxAngularVelocity = UPhysicsSettings::Get()->MaxAngularVelocity;
 }
@@ -1191,8 +1190,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 
 TAutoConsoleVariable<int32> CDisableQueryOnlyActors(TEXT("p.DisableQueryOnlyActors"), 0, TEXT("If QueryOnly is used, actors are marked as simulation disabled. This is NOT compatible with origin shifting at the moment."));
 
-#if UE_WITH_PHYSICS
-
+#if WITH_PHYSX
 
 template <bool bCompileStatic>
 struct FInitBodiesHelper
@@ -1228,7 +1226,6 @@ struct FInitBodiesHelper
 		const AActor* OwningActor = PrimitiveComp ? PrimitiveComp->GetOwner() : nullptr;
 		InitialLinVel = GetInitialLinearVelocity(OwningActor, bComponentAwake);
 
-#if WITH_PHYSX
 		if(PhysScene)
 		{
 			PSyncScene = PhysScene->GetPhysXScene(PST_Sync);
@@ -1239,16 +1236,11 @@ struct FInitBodiesHelper
 			PSyncScene = nullptr;
 			PAsyncScene = nullptr;
 		}
-		
-#endif
-
 	}
 
 	void InitBodies() 
 	{
-#if WITH_PHYSX
 		InitBodies_PhysX();
-#endif
 	}
 
 	FORCEINLINE bool IsStatic() const { return bCompileStatic || bStatic; }
@@ -1275,8 +1267,6 @@ struct FInitBodiesHelper
 	FVector InitialLinVel;
 
 	const FBodyInstance::FInitBodySpawnParams& SpawnParams;
-
-#if WITH_PHYSX
 
 	PxScene* PSyncScene;
 	PxScene* PAsyncScene;
@@ -1707,14 +1697,18 @@ struct FInitBodiesHelper
 		PAsyncActors.Reset();
 		PDynamicActors.Reset();
 	}
-#endif
-
 };
+#endif // WITH_PHYSX
+
 
 FBodyInstance::FInitBodySpawnParams::FInitBodySpawnParams(const UPrimitiveComponent* PrimComp)
 {
 	bStaticPhysics = PrimComp == nullptr || PrimComp->Mobility != EComponentMobility::Movable;
 	DynamicActorScene = EDynamicActorScene::Default;
+
+#if WITH_PHYSX
+	Aggregate = nullptr;
+#endif // WITH_PHYSX
 
 	if(const USkeletalMeshComponent* SKOwner = Cast<USkeletalMeshComponent>(PrimComp))
 	{
@@ -1728,7 +1722,7 @@ FBodyInstance::FInitBodySpawnParams::FInitBodySpawnParams(const UPrimitiveCompon
 	}
 }
 
-void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams, PhysXAggregateType InAggregate /*= NULL*/)
+void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams)
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitBody);
 	check(Setup);
@@ -1742,17 +1736,19 @@ void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transfor
 	Bodies.Add(this);
 	Transforms.Add(Transform);
 
+#if WITH_PHYSX
 	bool bIsStatic = SpawnParams.bStaticPhysics;
 	if(bIsStatic)
 	{
-		FInitBodiesHelper<true> InitBodiesHelper(Bodies, Transforms, Setup, PrimComp, InRBScene, SpawnParams, InAggregate);
+		FInitBodiesHelper<true> InitBodiesHelper(Bodies, Transforms, Setup, PrimComp, InRBScene, SpawnParams, SpawnParams.Aggregate);
 		InitBodiesHelper.InitBodies();
 	}
 	else
 	{
-		FInitBodiesHelper<false> InitBodiesHelper(Bodies, Transforms, Setup, PrimComp, InRBScene, SpawnParams, InAggregate);
+		FInitBodiesHelper<false> InitBodiesHelper(Bodies, Transforms, Setup, PrimComp, InRBScene, SpawnParams, SpawnParams.Aggregate);
 		InitBodiesHelper.InitBodies();
 	}
+#endif // WITH_PHYSX
 
 	Bodies.Reset();
 	Transforms.Reset();
@@ -1837,9 +1833,6 @@ FVector GetInitialLinearVelocity(const AActor* OwningActor, bool& bComponentAwak
 
 	return InitialLinVel;
 }
-
-
-#endif // UE_WITH_PHYSICS
 
 #if WITH_PHYSX
 
@@ -2239,6 +2232,7 @@ void ComputeScalingVectors(EScaleMode::Type ScaleMode, const FVector& InScale3D,
 	OutScale3DAbs = OutScale3D.GetAbs();
 }
 
+#if WITH_PHYSX
 EScaleMode::Type ComputeScaleMode(const TArray<PxShape*>& PShapes)
 {
 	EScaleMode::Type ScaleMode = EScaleMode::Free;
@@ -2261,6 +2255,7 @@ EScaleMode::Type ComputeScaleMode(const TArray<PxShape*>& PShapes)
 
 	return ScaleMode;
 }
+#endif // WITH_PHYSX
 
 void FBodyInstance::SetMassOverride(float MassInKG, bool bNewOverrideMass)
 {
@@ -2299,13 +2294,13 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 		TArray<PxShape *> PShapes;
 		GetAllShapes_AssumesLocked(PShapes);
 		ScaleMode = ComputeScaleMode(PShapes);
-#endif
+
 		FVector AdjustedScale3D;
 		FVector AdjustedScale3DAbs;
-		ComputeScalingVectors(ScaleMode, InScale3D, AdjustedScale3D, AdjustedScale3DAbs);
 
 		// Apply scaling
-#if WITH_PHYSX
+		ComputeScalingVectors(ScaleMode, InScale3D, AdjustedScale3D, AdjustedScale3DAbs);
+
 		//we need to allocate all of these here because PhysX insists on using the stack. This is wasteful, but reduces a lot of code duplication
 		PxSphereGeometry PSphereGeom;
 		PxBoxGeometry PBoxGeom;
@@ -2989,7 +2984,7 @@ void FBodyInstance::CopyBodyInstancePropertiesFrom(const FBodyInstance* FromInst
 	check(!FromInst->RigidActorSync);
 	check(!FromInst->RigidActorAsync);
 	check(!FromInst->BodyAggregate);
-#endif //WITH_PHYSX
+#endif // WITH_PHYSX
 	check(FromInst->SceneIndexSync == 0);
 	check(FromInst->SceneIndexAsync == 0);
 
@@ -2998,7 +2993,7 @@ void FBodyInstance::CopyBodyInstancePropertiesFrom(const FBodyInstance* FromInst
 	check(!RigidActorSync);
 	check(!RigidActorAsync);
 	check(!BodyAggregate);
-#endif //WITH_PHYSX
+#endif // WITH_PHYSX
 	//check(SceneIndex == 0);
 
 	*this = *FromInst;
@@ -3047,7 +3042,6 @@ void FBodyInstance::ExecuteOnPhysicsReadWrite(TFunctionRef<void()> Func) const
 	}
 #endif
 }
-
 
 #if WITH_PHYSX
 int32 FBodyInstance::GetSceneIndex(int32 SceneType /* = -1 */) const
@@ -3919,7 +3913,7 @@ bool FBodyInstance::Sweep(struct FHitResult& OutHit, const FVector& Start, const
             }
 		});
 		
-#endif //WITH_PHYSX
+#endif // WITH_PHYSX
 
 		return bSweepHit;
 	}
@@ -3981,7 +3975,7 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 	}
 	return false;
 }
-#endif //WITH_PHYSX
+#endif // WITH_PHYSX
 
 bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDistanceSquared, FVector& OutPointOnBody) const
 {
@@ -4048,11 +4042,11 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 			}
 		}	
 	});
-#endif //WITH_PHYSX
+#endif // WITH_PHYSX
 
 	if (!bFoundValidBody && !bEarlyOut)
 	{
-		UE_LOG(LogPhysics, Warning, TEXT("GetDistanceToBody: Component (%s) has no simple collision and cannot be queried for closest point."), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
+		UE_LOG(LogPhysics, Verbose, TEXT("GetDistanceToBody: Component (%s) has no simple collision and cannot be queried for closest point."), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
 	}
 
 	if (bFoundValidBody)
@@ -4106,7 +4100,7 @@ bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Ro
 			}
 		}
 	});
-#endif //WITH_PHYSX
+#endif // WITH_PHYSX
 	return bHaveOverlap;
 }
 
@@ -4235,6 +4229,7 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 
 extern bool GHillClimbError;
 
+#if WITH_PHYSX
 void LogHillClimbError(const FBodyInstance* BI, const PxGeometry& PGeom, const PxTransform& ShapePose)
 {
 	FString DebugName = BI->OwnerComponent.Get() ? BI->OwnerComponent->GetReadableName() : FString("None");
@@ -4255,7 +4250,6 @@ void LogHillClimbError(const FBodyInstance* BI, const PxGeometry& PGeom, const P
 	GHillClimbError = false;
 }
 
-#if WITH_PHYSX
 bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const PxTransform& ShapePose, FMTDResult* OutMTD) const
 {
 	const PxRigidActor* RigidBody = WeldParent ? WeldParent->GetPxRigidActor_AssumesLocked() : GetPxRigidActor_AssumesLocked();
@@ -4323,7 +4317,7 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 	}
 	return false;
 }
-#endif //WITH_PHYSX
+#endif // WITH_PHYSX
 
 
 bool FBodyInstance::IsValidCollisionProfileName(FName InCollisionProfileName)
@@ -4470,6 +4464,7 @@ void FBodyInstance::SetUseAsyncScene(bool bNewUseAsyncScene)
 	bUseAsyncScene = bNewUseAsyncScene;
 }
 
+#if WITH_PHYSX
 void FBodyInstance::ApplyMaterialToShape_AssumesLocked(PxShape* PShape, PxMaterial* PSimpleMat, const TArray<UPhysicalMaterial*>& ComplexPhysMats, const bool bSharedShape)
 {
 	if(!bSharedShape && !PShape->isExclusive())	//user says the shape is exclusive, but physx says it's shared
@@ -4538,6 +4533,7 @@ void FBodyInstance::ApplyMaterialToInstanceShapes_AssumesLocked(PxMaterial* PSim
 	}
 }
 }
+#endif // WITH_PHYSX
 
 bool FBodyInstance::ValidateTransform(const FTransform &Transform, const FString& DebugName, const UBodySetup* Setup)
 {
@@ -4762,6 +4758,7 @@ void FBodyInstance::GetFilterData_AssumesLocked(FShapeData& ShapeData, bool bFor
 		}
 	}
 }
+#endif // WITH_PHYSX
 
 void FBodyInstance::InitStaticBodies(const TArray<FBodyInstance*>& Bodies, const TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, UPhysicsSerializer* PhysicsSerializer)
 {
@@ -4780,13 +4777,16 @@ void FBodyInstance::InitStaticBodies(const TArray<FBodyInstance*>& Bodies, const
 	BodiesStatic = Bodies;
 	TransformsStatic = Transforms;
 
+#if WITH_PHYSX
 	FInitBodiesHelper<true> InitBodiesHelper(BodiesStatic, TransformsStatic, BodySetup, PrimitiveComp, InRBScene, FInitBodySpawnParams(PrimitiveComp), nullptr, PhysicsSerializer);
 	InitBodiesHelper.InitBodies();
+#endif // WITH_PHYSX
 
 	BodiesStatic.Reset();
 	TransformsStatic.Reset();
 }
 
+#if WITH_PHYSX
 void FBodyInstance::SetShapeFlagsInternal_AssumesShapeLocked(FSetShapeParams& Params, bool& bUpdateMassProperties)
 {
 	PxShapeFlags ShapeFlags = Params.PShape->getFlags();

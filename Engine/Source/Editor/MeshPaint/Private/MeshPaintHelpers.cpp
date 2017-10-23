@@ -15,6 +15,7 @@
 #include "Engine/Texture2D.h"
 #include "StaticMeshResources.h"
 #include "RawMesh.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "GenericOctree.h"
 #include "Utils.h"
@@ -45,6 +46,7 @@
 #include "EditorWorldExtension.h"
 
 #include "ParallelFor.h"
+#include "SkeletalMeshModel.h"
 
 void MeshPaintHelpers::RemoveInstanceVertexColors(UObject* Obj)
 {
@@ -147,8 +149,8 @@ bool MeshPaintHelpers::PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 L
 		RemapPaintedVertexColors(
 			ComponentLODInfo.PaintedVertices,
 			*ComponentLODInfo.OverrideVertexColors,
-			RenderModel.PositionVertexBuffer,
-			RenderModel.VertexBuffer,
+			RenderModel.VertexBuffers.PositionVertexBuffer,
+			RenderModel.VertexBuffers.StaticMeshVertexBuffer,
 			TempPositionVertexBuffer,
 			/*OptionalVertexBuffer=*/ nullptr,
 			NewVertexColors
@@ -659,7 +661,7 @@ uint32 MeshPaintHelpers::GetVertexColorBufferSize(UStaticMeshComponent* MeshComp
 		{
 			// count the base mesh color data
 			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[LODIndex];
-			SizeInBytes = LODModel.ColorVertexBuffer.GetAllocatedSize();
+			SizeInBytes = LODModel.VertexBuffers.ColorVertexBuffer.GetAllocatedSize();
 		}
 	}
 	
@@ -675,7 +677,7 @@ TArray<FVector> MeshPaintHelpers::GetVerticesForLOD( const UStaticMesh* StaticMe
 	if (StaticMesh->RenderData->LODResources.IsValidIndex(LODIndex))
 	{
 		FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[LODIndex];
-		FPositionVertexBuffer* VertexBuffer = &LODModel.PositionVertexBuffer;
+		FPositionVertexBuffer* VertexBuffer = &LODModel.VertexBuffers.PositionVertexBuffer;
 		const uint32 NumVertices = VertexBuffer->GetNumVertices();
 		for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 		{
@@ -693,7 +695,7 @@ TArray<FColor> MeshPaintHelpers::GetColorDataForLOD( const UStaticMesh* StaticMe
 	if (StaticMesh->RenderData->LODResources.IsValidIndex(LODIndex))
 	{
 		const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[LODIndex];
-		const FColorVertexBuffer& ColorBuffer = LODModel.ColorVertexBuffer;
+		const FColorVertexBuffer& ColorBuffer = LODModel.VertexBuffers.ColorVertexBuffer;
 		const uint32 NumColors = ColorBuffer.GetNumVertices();
 		for (uint32 ColorIndex = 0; ColorIndex < NumColors; ++ColorIndex)
 		{
@@ -837,13 +839,29 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 void MeshPaintHelpers::SetColorDataForLOD(USkeletalMesh* SkeletalMesh, int32 LODIndex, const FColor FillColor)
 {
 	checkf(SkeletalMesh != nullptr, TEXT("Invalid Skeletal Mesh Ptr"));
-	FSkeletalMeshResource* Resource = SkeletalMesh->GetImportedResource();
-	if (Resource && Resource->LODModels.IsValidIndex(LODIndex))
+	FSkeletalMeshRenderData* Resource = SkeletalMesh->GetResourceForRendering();
+	if (Resource && Resource->LODRenderData.IsValidIndex(LODIndex))
 	{
-		FStaticLODModel& LOD = Resource->LODModels[LODIndex];
-		LOD.ColorVertexBuffer.InitFromSingleColor(FillColor, LOD.NumVertices);
-		BeginInitResource(&LOD.ColorVertexBuffer);
+		FSkeletalMeshLODRenderData& LODData = Resource->LODRenderData[LODIndex];
+		LODData.StaticVertexBuffers.ColorVertexBuffer.InitFromSingleColor(FillColor, LODData.GetNumVertices());
+		BeginInitResource(&LODData.StaticVertexBuffers.ColorVertexBuffer);
 	}	
+
+	checkf(SkeletalMesh->GetImportedModel()->LODModels.IsValidIndex(LODIndex), TEXT("Invalid Imported Model index for vertex painting"));
+	FSkeletalMeshLODModel& LODModel = SkeletalMesh->GetImportedModel()->LODModels[LODIndex];
+	const uint32 NumVertices = LODModel.NumVertices;
+	for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+	{
+		int32 SectionIndex = INDEX_NONE;
+		int32 SectionVertexIndex = INDEX_NONE;
+		LODModel.GetSectionFromVertexIndex(VertexIndex, SectionIndex, SectionVertexIndex);
+		LODModel.Sections[SectionIndex].SoftVertices[SectionVertexIndex].Color = FillColor;
+	}
+
+	if (!SkeletalMesh->LODInfo[LODIndex].bHasPerLODVertexColors)
+	{
+		SkeletalMesh->LODInfo[LODIndex].bHasPerLODVertexColors = true;
+	}
 }
 
 void MeshPaintHelpers::ImportVertexColorsFromTexture(UMeshComponent* MeshComponent)
@@ -1167,10 +1185,10 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& Geo
 		RemapPaintedVertexColors(
 			SourceCompLODInfo.PaintedVertices,
 			*SourceCompLODInfo.OverrideVertexColors,
-			SourceRenderData.PositionVertexBuffer,
-			SourceRenderData.VertexBuffer,
-			CurRenderData.PositionVertexBuffer,
-			&CurRenderData.VertexBuffer,
+			SourceRenderData.VertexBuffers.PositionVertexBuffer,
+			SourceRenderData.VertexBuffers.StaticMeshVertexBuffer,
+			CurRenderData.VertexBuffers.PositionVertexBuffer,
+			&CurRenderData.VertexBuffers.StaticMeshVertexBuffer,
 			NewOverrideColors
 		);
 		
@@ -1223,9 +1241,9 @@ int32 MeshPaintHelpers::GetNumberOfUVs(const UMeshComponent* MeshComponent, int3
 	else if (const USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(MeshComponent))
 	{
 		const USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
-		if (SkeletalMesh != nullptr && SkeletalMesh->GetImportedResource() && SkeletalMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
+		if (SkeletalMesh != nullptr && SkeletalMesh->GetResourceForRendering() && SkeletalMesh->GetResourceForRendering()->LODRenderData.IsValidIndex(LODIndex))
 		{
-			NumUVs = SkeletalMesh->GetImportedResource()->LODModels[LODIndex].NumTexCoords;
+			NumUVs = SkeletalMesh->GetResourceForRendering()->LODRenderData[LODIndex].GetNumTexCoords();
 		}
 	}
 
@@ -1312,21 +1330,21 @@ void MeshPaintHelpers::ImportVertexColorsToStaticMesh(UStaticMesh* StaticMesh, c
 	// allocated, and potentially accessing the UStaticMesh.
 	StaticMesh->ReleaseResourcesFence.Wait();
 
-	if (LODModel.ColorVertexBuffer.GetNumVertices() == 0)
+	if (LODModel.VertexBuffers.ColorVertexBuffer.GetNumVertices() == 0)
 	{
 		// Mesh doesn't have a color vertex buffer yet!  We'll create one now.
-		LODModel.ColorVertexBuffer.InitFromSingleColor(FColor::White, LODModel.GetNumVertices());
+		LODModel.VertexBuffers.ColorVertexBuffer.InitFromSingleColor(FColor::White, LODModel.GetNumVertices());
 
 		// @todo MeshPaint: Make sure this is the best place to do this
-		BeginInitResource(&LODModel.ColorVertexBuffer);
+		BeginInitResource(&LODModel.VertexBuffers.ColorVertexBuffer);
 	}
 
 	const int32 UVIndex = Options->UVIndex;
 	const FColor ColorMask = Options->CreateColorMask();
-	for (uint32 VertexIndex = 0; VertexIndex < LODModel.VertexBuffer.GetNumVertices(); ++VertexIndex)
+	for (uint32 VertexIndex = 0; VertexIndex < LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices(); ++VertexIndex)
 	{
-		const FVector2D UV = LODModel.VertexBuffer.GetVertexUV(VertexIndex, UVIndex);
-		LODModel.ColorVertexBuffer.VertexColor(VertexIndex) = PickVertexColorFromTextureData(MipData, UV, Texture, ColorMask);
+		const FVector2D UV = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, UVIndex);
+		LODModel.VertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex) = PickVertexColorFromTextureData(MipData, UV, Texture, ColorMask);
 	}
 
 	// Make sure colors are saved into raw mesh
@@ -1368,10 +1386,10 @@ void MeshPaintHelpers::ImportVertexColorsToStaticMeshComponent(UStaticMeshCompon
 		// Setup the instance vertex color array
 		InstanceMeshLODInfo.OverrideVertexColors = new FColorVertexBuffer;
 
-		if ((int32)LODModel.ColorVertexBuffer.GetNumVertices() == LODModel.GetNumVertices())
+		if ((int32)LODModel.VertexBuffers.ColorVertexBuffer.GetNumVertices() == LODModel.GetNumVertices())
 		{
 			// copy mesh vertex colors to the instance ones
-			InstanceMeshLODInfo.OverrideVertexColors->InitFromColorArray(&LODModel.ColorVertexBuffer.VertexColor(0), LODModel.GetNumVertices());
+			InstanceMeshLODInfo.OverrideVertexColors->InitFromColorArray(&LODModel.VertexBuffers.ColorVertexBuffer.VertexColor(0), LODModel.GetNumVertices());
 		}
 		else
 		{
@@ -1381,9 +1399,9 @@ void MeshPaintHelpers::ImportVertexColorsToStaticMeshComponent(UStaticMeshCompon
 
 		const int32 UVIndex = Options->UVIndex;
 		const FColor ColorMask = Options->CreateColorMask();
-		for (uint32 VertexIndex = 0; VertexIndex < LODModel.VertexBuffer.GetNumVertices(); ++VertexIndex)
+		for (uint32 VertexIndex = 0; VertexIndex < LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices(); ++VertexIndex)
 		{
-			const FVector2D UV = LODModel.VertexBuffer.GetVertexUV(VertexIndex, UVIndex);			
+			const FVector2D UV = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, UVIndex);
 			InstanceMeshLODInfo.OverrideVertexColors->VertexColor(VertexIndex) = PickVertexColorFromTextureData(MipData, UV, Texture, ColorMask);
 		}
 
@@ -1405,36 +1423,46 @@ void MeshPaintHelpers::ImportVertexColorsToSkeletalMesh(USkeletalMesh* SkeletalM
 	const uint8* MipData = SrcMipData.GetData();
 
 	TUniquePtr< FSkeletalMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
-	FSkeletalMeshResource* Resource = SkeletalMesh->GetImportedResource();
+	FSkeletalMeshRenderData* Resource = SkeletalMesh->GetResourceForRendering();
 	const int32 ImportLOD = Options->LODIndex;
-	if (Resource && Resource->LODModels.IsValidIndex(ImportLOD))
+	const int32 UVIndex = Options->UVIndex;
+	const FColor ColorMask = Options->CreateColorMask();
+	if (Resource && Resource->LODRenderData.IsValidIndex(ImportLOD))
 	{
 		RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(SkeletalMesh);
 		SkeletalMesh->Modify();
 		SkeletalMesh->ReleaseResources();
 		SkeletalMesh->ReleaseResourcesFence.Wait();
 
-		FStaticLODModel& LODModel = Resource->LODModels[ImportLOD];
+		FSkeletalMeshLODRenderData& LODData = Resource->LODRenderData[ImportLOD];
 
-		if (LODModel.ColorVertexBuffer.GetNumVertices() == 0)
+		if (LODData.StaticVertexBuffers.ColorVertexBuffer.GetNumVertices() == 0)
 		{
-			LODModel.ColorVertexBuffer.InitFromSingleColor(FColor::White, LODModel.NumVertices);
-			BeginInitResource(&LODModel.ColorVertexBuffer);
+			LODData.StaticVertexBuffers.ColorVertexBuffer.InitFromSingleColor(FColor::White, LODData.GetNumVertices());
+			BeginInitResource(&LODData.StaticVertexBuffers.ColorVertexBuffer);
 		}
-
-		const int32 UVIndex = Options->UVIndex;
-		const FColor ColorMask = Options->CreateColorMask();
-		for (uint32 VertexIndex = 0; VertexIndex < LODModel.NumVertices; ++VertexIndex)
+	
+		for (uint32 VertexIndex = 0; VertexIndex < LODData.GetNumVertices(); ++VertexIndex)
 		{
-			const FVector2D UV = LODModel.VertexBufferGPUSkin.GetVertexUV(VertexIndex, UVIndex);
-			LODModel.ColorVertexBuffer.VertexColor(VertexIndex) = PickVertexColorFromTextureData(MipData, UV, Texture, ColorMask);
+			const FVector2D UV = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, UVIndex);
+			LODData.StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex) = PickVertexColorFromTextureData(MipData, UV, Texture, ColorMask);
 		}
 		
 		SkeletalMesh->InitResources();
 	}
-	else
+
+
+	checkf(SkeletalMesh->GetImportedModel()->LODModels.IsValidIndex(ImportLOD), TEXT("Invalid Imported Model index for vertex painting"));
+	FSkeletalMeshLODModel& LODModel = SkeletalMesh->GetImportedModel()->LODModels[ImportLOD];
+	const uint32 NumVertices = LODModel.NumVertices;
+	for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 	{
-		// ERROR
+		int32 SectionIndex = INDEX_NONE;
+		int32 SectionVertexIndex = INDEX_NONE;
+		LODModel.GetSectionFromVertexIndex(VertexIndex, SectionIndex, SectionVertexIndex);
+
+		const FVector2D UV = LODModel.Sections[SectionIndex].SoftVertices[SectionVertexIndex].UVs[UVIndex];
+		LODModel.Sections[SectionIndex].SoftVertices[SectionVertexIndex].Color = PickVertexColorFromTextureData(MipData, UV, Texture, ColorMask);
 	}
 }
 
@@ -1600,50 +1628,52 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& Geo
 	USkeletalMesh* Mesh = SkeletalMeshComponent->SkeletalMesh;
 	if (Mesh)
 	{
-		FSkeletalMeshResource* Resource = Mesh->GetImportedResource();
+		FSkeletalMeshRenderData* Resource = Mesh->GetResourceForRendering();
 		if (Resource)
 		{
-			const int32 NumLODs = Resource->LODModels.Num();
+			const int32 NumLODs = Resource->LODRenderData.Num();
 			if (NumLODs > 1)
 			{
-				const FStaticLODModel& BaseLOD = Resource->LODModels[0];
+				const FSkeletalMeshLODRenderData& BaseLOD = Resource->LODRenderData[0];
 				GeometryInfo.PreEdit();				
 
 				FBox BaseBounds(EForceInit::ForceInitToZero);
-				TArray<FSoftSkinVertex> BaseVertices;
-				BaseLOD.GetVertices(BaseVertices);
 
 				TArray<FPaintedMeshVertex> PaintedVertices;
-				PaintedVertices.Empty(BaseVertices.Num());
+				PaintedVertices.Empty(BaseLOD.GetNumVertices());
 
 				FPaintedMeshVertex PaintedVertex;
-				for (int32 VertexIndex = 0; VertexIndex < BaseVertices.Num(); ++VertexIndex )
+				for (uint32 VertexIndex = 0; VertexIndex < BaseLOD.GetNumVertices(); ++VertexIndex )
 				{
-					const FSoftSkinVertex& Vertex = BaseVertices[VertexIndex];
-					BaseBounds += Vertex.Position;
-					PaintedVertex.Position = Vertex.Position;
-					PaintedVertex.Normal = Vertex.TangentZ;
-					PaintedVertex.Color = BaseLOD.ColorVertexBuffer.VertexColor(VertexIndex);
+					const FVector VertexPos = BaseLOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
+
+					FPackedNormal VertexTangentX, VertexTangentZ;
+					VertexTangentX = BaseLOD.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertexIndex);
+					VertexTangentZ = BaseLOD.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+
+					BaseBounds += VertexPos;
+					PaintedVertex.Position = VertexPos;
+					PaintedVertex.Normal = VertexTangentZ;
+					PaintedVertex.Color = BaseLOD.StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex);
 					PaintedVertices.Add(PaintedVertex);
 				}
 
 				for (int32 LODIndex = 1; LODIndex < NumLODs; ++LODIndex)
 				{
 					// Do something
-					FStaticLODModel& ApplyLOD = Resource->LODModels[LODIndex];
+					FSkeletalMeshLODRenderData& ApplyLOD = Resource->LODRenderData[LODIndex];
 					FBox CombinedBounds = BaseBounds;
 					Mesh->LODInfo[LODIndex].bHasPerLODVertexColors = false;
 
-					if (!ApplyLOD.ColorVertexBuffer.IsInitialized())
+					if (!ApplyLOD.StaticVertexBuffers.ColorVertexBuffer.IsInitialized())
 					{
-						ApplyLOD.ColorVertexBuffer.InitFromSingleColor(FColor::White, ApplyLOD.NumVertices);
+						ApplyLOD.StaticVertexBuffers.ColorVertexBuffer.InitFromSingleColor(FColor::White, ApplyLOD.GetNumVertices());
 					}
 
-					TArray<FSoftSkinVertex> ApplyVertices;
-					ApplyLOD.GetVertices(ApplyVertices);
-					for (const FSoftSkinVertex& Vertex : ApplyVertices)
+					for (uint32 VertIndex=0; VertIndex<ApplyLOD.GetNumVertices(); VertIndex++)
 					{
-						CombinedBounds += Vertex.Position;
+						const FVector VertexPos = ApplyLOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertIndex);
+						CombinedBounds += VertexPos;
 					}
 					
 					TVertexColorPropogationPosOctree VertPosOctree(CombinedBounds.GetCenter(), CombinedBounds.GetExtent().GetMax());
@@ -1657,13 +1687,17 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& Geo
 					// Iterate over each new vertex position, attempting to find the old vertex it is closest to, applying
 					// the color of the old vertex to the new position if possible.
 					const float DistanceOverNormalThreshold = KINDA_SMALL_NUMBER;
-					for (int32 VertexIndex = 0; VertexIndex < ApplyVertices.Num(); ++VertexIndex)
+					for (uint32 VertexIndex = 0; VertexIndex < ApplyLOD.GetNumVertices(); ++VertexIndex)
 					{
-						const FSoftSkinVertex& Vertex = ApplyVertices[VertexIndex];
 						TArray<FPaintedMeshVertex> PointsToConsider;
 						TVertexColorPropogationPosOctree::TConstIterator<> OctreeIter(VertPosOctree);
-						const FVector& CurPosition = Vertex.Position;
-						FVector CurNormal = Vertex.TangentZ;
+						const FVector CurPosition = ApplyLOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
+
+						FPackedNormal VertexTangentX, VertexTangentZ;
+						VertexTangentX = BaseLOD.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentY(VertexIndex);
+						VertexTangentZ = BaseLOD.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+						
+						FVector CurNormal = VertexTangentZ;
 
 						// Iterate through the octree attempting to find the vertices closest to the current new point
 						while (OctreeIter.HasPendingNodes())
@@ -1734,7 +1768,7 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& Geo
 								}
 							}
 
-							ApplyLOD.ColorVertexBuffer.VertexColor(VertexIndex) = PointsToConsider[BestVertexIndex].Color;
+							ApplyLOD.StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex) = PointsToConsider[BestVertexIndex].Color;
 						}
 					}
 				}

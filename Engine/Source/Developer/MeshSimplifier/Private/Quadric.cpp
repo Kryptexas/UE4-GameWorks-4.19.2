@@ -2,6 +2,8 @@
 
 #include "Quadric.h"
 
+DEFINE_LOG_CATEGORY(LogQuadric);
+
 bool CalcGradient( double grad[4], const FVector& p0, const FVector& p1, const FVector& p2, const FVector& n, float a0, float a1, float a2 )
 {
 	// solve for gd

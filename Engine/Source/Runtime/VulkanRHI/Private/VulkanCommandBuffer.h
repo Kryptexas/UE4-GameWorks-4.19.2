@@ -75,18 +75,18 @@ public:
 		State = EState::IsInsideBegin;
 	}
 
-	void End()
-	{
-		check(IsOutsideRenderPass());
-		VERIFYVULKANRESULT(VulkanRHI::vkEndCommandBuffer(GetHandle()));
-		State = EState::HasEnded;
-	}
+	void End();
 
 	inline volatile uint64 GetFenceSignaledCounter() const
 	{
 		return FenceSignaledCounter;
 	}
 
+	inline bool HasValidTiming() const
+	{
+		return (Timing != nullptr) && (FMath::Abs((int64)FenceSignaledCounter - (int64)LastValidTiming) < 3);
+	}
+	
 	void Begin();
 
 	enum class EState
@@ -119,8 +119,12 @@ private:
 	volatile uint64 FenceSignaledCounter;
 
 	void RefreshFenceStatus();
+	void InitializeTimings(FVulkanCommandListContext* InContext);
 
 	FVulkanCommandBufferPool* CommandBufferPool;
+
+	FVulkanGPUTiming* Timing;
+	uint64 LastValidTiming;
 
 	friend class FVulkanDynamicRHI;
 };
@@ -228,6 +232,8 @@ public:
 	{
 		return Pool.GetHandle();
 	}
+
+	uint32 CalculateGPUTime();
 
 private:
 	FVulkanDevice* Device;

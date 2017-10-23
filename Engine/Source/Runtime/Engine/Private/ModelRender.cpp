@@ -29,6 +29,8 @@
 #include "HModel.h"
 #include "Components/ModelComponent.h"
 #include "Engine/Brush.h"
+#include "RenderingObjectVersion.h"
+#include "Components/ModelComponent.h"
 
 namespace
 {
@@ -52,22 +54,8 @@ FModelVertexBuffer
 -----------------------------------------------------------------------------*/
 
 FModelVertexBuffer::FModelVertexBuffer(UModel* InModel)
-:	Vertices(true)
-,	Model(InModel)
+:	Model(InModel)
 {}
-
-void FModelVertexBuffer::InitRHI()
-{
-	// Calculate the buffer size.
-	NumVerticesRHI = Vertices.Num();
-	uint32 Size = Vertices.GetResourceDataSize();
-	if( Size > 0 )
-	{
-		// Create the buffer.
-		FRHIResourceCreateInfo CreateInfo(&Vertices);
-		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
-	}
-}
 
 /**
 * Serializer for this class
@@ -76,7 +64,20 @@ void FModelVertexBuffer::InitRHI()
 */
 FArchive& operator<<(FArchive& Ar,FModelVertexBuffer& B)
 {
-	B.Vertices.BulkSerialize(Ar);
+	if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::ModelVertexBufferSerialization)
+	{
+		TResourceArray<FModelVertex, VERTEXBUFFER_ALIGNMENT> DepricatedVertices;
+		DepricatedVertices.BulkSerialize(Ar);
+		B.Vertices.Reset(DepricatedVertices.Num());
+		for (const FModelVertex& ModelVertex : DepricatedVertices)
+		{
+			B.Vertices.Add(ModelVertex);
+		}
+	}
+	else
+	{
+		B.Vertices.BulkSerialize(Ar);
+	}
 	return Ar;
 }
 
@@ -158,9 +159,7 @@ void UModelComponent::BuildRenderData()
 		}
 
 		IndexBuffer->Indices.Shrink();
-#if !DISALLOW_32BIT_INDICES
 		IndexBuffer->ComputeIndexWidth();
-#endif
 	}
 }
 
@@ -169,10 +168,14 @@ void UModelComponent::BuildRenderData()
  */
 class FModelSceneProxy : public FPrimitiveSceneProxy
 {
+	/** The vertex factory which is used to access VertexBuffer. */
+	FLocalVertexFactory VertexFactory;
+
 public:
 
 	FModelSceneProxy(UModelComponent* InComponent):
 		FPrimitiveSceneProxy(InComponent),
+		VertexFactory(GetScene().GetFeatureLevel(), "FModelSceneProxy"),
 		Component(InComponent),
 		CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITOR
@@ -182,6 +185,9 @@ public:
 			FColor(157,149,223,255))
 #endif
 	{
+		FModelVertexBuffer& VertexBuffer = InComponent->GetModel()->VertexBuffer;
+		VertexBuffer.Buffers.InitModelVF(&VertexFactory);
+
 		OverrideOwnerName(NAME_BSP);
 		const TIndirectArray<FModelElement>& SourceElements = Component->GetElements();
 
@@ -189,7 +195,7 @@ public:
 		for(int32 ElementIndex = 0;ElementIndex < SourceElements.Num();ElementIndex++)
 		{
 			const FModelElement& SourceElement = SourceElements[ElementIndex];
-			FElementInfo* Element = new(Elements) FElementInfo(SourceElement);
+			FElementInfo* Element = new(Elements) FElementInfo(SourceElement, VertexFactory.GetType());
 			MaterialRelevance |= Element->GetMaterial()->GetRelevance(GetScene().GetFeatureLevel());
 		}
 
@@ -211,6 +217,11 @@ public:
 		FColor NewPropertyColor;
 		GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor );
 		PropertyColor = NewPropertyColor;
+	}
+
+	~FModelSceneProxy()
+	{
+		VertexFactory.ReleaseResource();
 	}
 
 	bool IsCollisionView(const FSceneView* View, bool & bDrawCollision) const
@@ -379,7 +390,7 @@ public:
 												FMeshBatch& MeshElement = Collector.AllocateMesh();
 												FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 												BatchElement.IndexBuffer = IndexAllocation.IndexBuffer;
-												MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+												MeshElement.VertexFactory = &VertexFactory;
 												MeshElement.MaterialRenderProxy = (MatProxyOverride != nullptr) ? MatProxyOverride : ProxyElementInfo.GetMaterial()->GetRenderProxy(bOnlySelectedSurfaces, bOnlyHoveredSurfaces);
 												MeshElement.LCI = &ProxyElementInfo;
 												BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
@@ -415,7 +426,7 @@ public:
 								FMeshBatch& MeshElement = Collector.AllocateMesh();
 								FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 								BatchElement.IndexBuffer = ModelElement.IndexBuffer;
-								MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+								MeshElement.VertexFactory = &VertexFactory;
 								MeshElement.MaterialRenderProxy = (MatProxyOverride != nullptr) ? MatProxyOverride : Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
 								MeshElement.LCI = &Elements[ElementIndex];
 								BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
@@ -456,7 +467,7 @@ public:
 					FMeshBatch MeshElement;
 					FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 					BatchElement.IndexBuffer = ModelElement.IndexBuffer;
-					MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+					MeshElement.VertexFactory = &VertexFactory;
 					MeshElement.MaterialRenderProxy = Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
 					MeshElement.LCI = &Elements[ElementIndex];
 					BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
@@ -598,7 +609,7 @@ private:
 	public:
 
 		/** Initialization constructor. */
-		FElementInfo(const FModelElement& InModelElement)
+		FElementInfo(const FModelElement& InModelElement, const FVertexFactoryType* VertexFactoryType)
 			: FLightCacheInterface(NULL, NULL)
 			, Bounds(InModelElement.BoundingBox)
 		{
@@ -616,7 +627,7 @@ private:
 			// Determine the material applied to the model element.
 			Material = InModelElement.Material;
 
-			if (RequiresAdjacencyInformation(Material, InModelElement.Component->GetModel()->VertexFactory.GetType(), InModelElement.Component->GetScene()->GetFeatureLevel()))
+			if (RequiresAdjacencyInformation(Material, VertexFactoryType, InModelElement.Component->GetScene()->GetFeatureLevel()))
 			{
 				UE_LOG(LogModelComponent, Warning, TEXT("Material %s requires adjacency information because of Crack Free Displacement or PN Triangle Tesselation, which is not supported with model components. Falling back to DefaultMaterial."), *Material->GetName());
 				Material = nullptr;
@@ -724,8 +735,6 @@ public:
 			LCIs.Push(LCI);
 		}
 	}
-
-
 	friend class UModelComponent;
 };
 

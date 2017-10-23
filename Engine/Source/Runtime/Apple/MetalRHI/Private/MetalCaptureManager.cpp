@@ -4,11 +4,18 @@
 #include "MetalCaptureManager.h"
 #include "MetalCommandQueue.h"
 
+bool GMetalSupportsCaptureManager = false;
+
 FMetalCaptureManager::FMetalCaptureManager(id<MTLDevice> InDevice, FMetalCommandQueue& InQueue)
 : Device(InDevice)
 , Queue(InQueue)
 {
 #if METAL_SUPPORTS_CAPTURE_MANAGER
+	if (FApplePlatformMisc::IsOSAtLeastVersion((uint32[]){10, 13, 0}, (uint32[]){11, 0, 0}, (uint32[]){11, 0, 0}))
+	{
+		GMetalSupportsCaptureManager = true;
+	}
+	
 	if (GMetalSupportsCaptureManager)
 	{
 		MTLCaptureManager* Manager = [MTLCaptureManager sharedCaptureManager];

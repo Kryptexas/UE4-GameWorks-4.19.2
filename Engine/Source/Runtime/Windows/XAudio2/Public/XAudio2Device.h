@@ -90,6 +90,7 @@ class FXAudio2Device : public FAudioDevice
 public:
 	FXAudio2Device() : FAudioDevice()
 	{
+		CachedAudioClockStartTime = 0.0;
 #if WITH_XMA2 
 		bDisableAudioCaching = true;	// Do not allow DTYPE_Native buffers, only DTYPE_RealTime or DTYPE_Streaming since on the fly decompression is so cheap, it saves memory, and requires fewer code paths
 #endif
@@ -206,6 +207,9 @@ private:
 
 	/** Whether or not audio hardware changed. */
 	bool bHardwareChanged;
+
+	/** Cached audio clock time for when devices are removed/swapped. */
+	double CachedAudioClockStartTime;
 
 #if PLATFORM_WINDOWS
 	// We need to keep track whether com was successfully initialized so we can clean 

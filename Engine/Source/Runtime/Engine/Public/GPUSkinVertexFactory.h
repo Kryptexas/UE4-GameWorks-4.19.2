@@ -16,9 +16,6 @@
 #include "VertexFactory.h"
 #include "LocalVertexFactory.h"
 #include "ResourcePool.h"
-#include "SkeletalMeshTypes.h"
-
-class FSkeletalMeshVertexBuffer;
 
 template <class T> class TConsoleVariableData;
 
@@ -231,11 +228,6 @@ public:
 			check(MaxGPUSkinBones <= GHardwareMaxGPUSkinBones);
 		}
 
-		/** Mesh origin and Mesh Extension for Mesh compressions **/
-		/** This value will be (0, 0, 0), (1, 1, 1) relatively for non compressed meshes **/
-		FVector MeshOrigin;
-		FVector MeshExtension;
-
 		// @param FrameTime from GFrameTime
 		bool UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
 			const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache);
@@ -332,10 +324,13 @@ public:
 		}
 	};
 
-	FGPUBaseSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+	FGPUBaseSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
 		: FVertexFactory(InFeatureLevel)
+		, NumVertices(InNumVertices)
 	{
 	}
+
+	virtual ~FGPUBaseSkinVertexFactory() {}
 
 	/** accessor */
 	FORCEINLINE FShaderDataType& GetShaderData()
@@ -352,23 +347,29 @@ public:
 
 	static bool SupportsTessellationShaders() { return true; }
 
-	const FSkeletalMeshVertexBuffer* GetSkinVertexBuffer() const
+	uint32 GetNumVertices() const
 	{
-		return (FSkeletalMeshVertexBuffer*)(Streams[0].VertexBuffer);
+		return NumVertices;
 	}
 
 	ENGINE_API static int32 GetMaxGPUSkinBones();
 
 	static const uint32 GHardwareMaxGPUSkinBones = 256;	
 	
+	virtual const FShaderResourceViewRHIRef GetPositionsSRV() const = 0;
+	virtual const FShaderResourceViewRHIRef GetTangentsSRV() const = 0;
+	virtual const FShaderResourceViewRHIRef GetTextureCoordinatesSRV() const = 0;
+	virtual const FShaderResourceViewRHIRef GetColorComponentsSRV() const = 0;
+	virtual const uint32 GetColorIndexMask() const = 0;
+
 protected:
-
-	
-
 	/** dynamic data need for setting the shader */ 
 	FShaderDataType ShaderData;
 	/** Pool of buffers for bone matrices. */
 	static TGlobalResource<FBoneBufferPool> BoneBufferPool;
+
+private:
+	uint32 NumVertices;
 };
 
 /** Vertex factory with vertex stream components for GPU skinned vertices */
@@ -384,20 +385,8 @@ public:
 		HasExtraBoneInfluences = bExtraBoneInfluencesT,
 	};
 
-	struct FDataType
+	struct FDataType : public FStaticMeshDataType
 	{
-		/** The stream to read the vertex position from. */
-		FVertexStreamComponent PositionComponent;
-
-		/** The streams to read the tangent basis from. */
-		FVertexStreamComponent TangentBasisComponents[2];
-
-		/** The streams to read the texture coordinates from. */
-		TArray<FVertexStreamComponent,TFixedAllocator<MAX_TEXCOORDS> > TextureCoordinates;
-
-		/** The stream to read the vertex color from. */
-		FVertexStreamComponent ColorComponent;
-
 		/** The stream to read the bone indices from */
 		FVertexStreamComponent BoneIndices;
 
@@ -416,8 +405,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-		: FGPUBaseSkinVertexFactory(InFeatureLevel)
+	TGPUSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
+		: FGPUBaseSkinVertexFactory(InFeatureLevel, InNumVertices)
 	{}
 
 	virtual bool UsesExtraBoneInfluences() const override
@@ -448,6 +437,31 @@ public:
 
 	void CopyDataTypeForPassthroughFactory(class FGPUSkinPassthroughVertexFactory* PassthroughVertexFactory);
 
+	const FShaderResourceViewRHIRef GetPositionsSRV() const override
+	{
+		return Data.PositionComponentSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTangentsSRV() const override
+	{
+		return Data.TangentsSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTextureCoordinatesSRV() const override
+	{
+		return Data.TextureCoordinatesSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetColorComponentsSRV() const override
+	{
+		return Data.ColorComponentsSRV;
+	}
+
+	const uint32 GetColorIndexMask() const override
+	{
+		return Data.ColorIndexMask;
+	}
+
 protected:
 	/**
 	* Add the decl elements for the streams
@@ -473,36 +487,48 @@ class FGPUSkinPassthroughVertexFactory : public FLocalVertexFactory
 	typedef FLocalVertexFactory Super;
 
 public:
-	FGPUSkinPassthroughVertexFactory()
-		: StreamIndex(-1)
-	{}
+	FGPUSkinPassthroughVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLocalVertexFactory(InFeatureLevel, "FGPUSkinPassthroughVertexFactory"), PositionStreamIndex(-1), TangentStreamIndex(-1)
+	{
+		bSupportsManualVertexFetch = false;
+	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
 
-	inline void UpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* RWBuffer)
+	inline void UpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* PositionRWBuffer, struct FRWBuffer* TangentRWBuffer)
 	{
-		if (StreamIndex == -1)
+		if (PositionStreamIndex == -1)
 		{
-			InternalUpdateVertexDeclaration(SourceVertexFactory, RWBuffer);
+			InternalUpdateVertexDeclaration(SourceVertexFactory, PositionRWBuffer, TangentRWBuffer);
 		}
 	}
 
-	inline int32 GetStreamIndex() const
+	inline int32 GetPositionStreamIndex() const
 	{
-		check(StreamIndex != -1);
-		return (uint32)StreamIndex;
+		check(PositionStreamIndex > -1);
+		return PositionStreamIndex;
+	}
+
+	inline int32 GetTangentStreamIndex() const
+	{
+		return TangentStreamIndex;
 	}
 
 	// FRenderResource interface.
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
+	//TODO should be supported
+	bool SupportsPositionOnlyStream() const override { return false; }
+
 protected:
 	// Vertex buffer required for creating the Vertex Declaration
-	FVertexBuffer VBAlias;
-	int32 StreamIndex;
+	FVertexBuffer PositionVBAlias;
+	FVertexBuffer TangentVBAlias;
+	int32 PositionStreamIndex;
+	int32 TangentStreamIndex;
 
-	void InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* RWBuffer);
+	void InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* PositionRWBuffer, struct FRWBuffer* TangentRWBuffer);
 };
 
 /** Vertex factory with vertex stream components for GPU-skinned and morph target streams */
@@ -527,8 +553,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinMorphVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel)
+	TGPUSkinMorphVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
+	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel, InNumVertices)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
@@ -554,6 +580,31 @@ public:
 	virtual void InitRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
+
+	const FShaderResourceViewRHIRef GetPositionsSRV() const override
+	{
+		return MorphData.PositionComponentSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTangentsSRV() const override
+	{
+		return MorphData.TangentsSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTextureCoordinatesSRV() const override
+	{
+		return MorphData.TextureCoordinatesSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetColorComponentsSRV() const override
+	{
+		return MorphData.ColorComponentsSRV;
+	}
+
+	const uint32 GetColorIndexMask() const override
+	{
+		return MorphData.ColorIndexMask;
+	}
 
 protected:
 	/**
@@ -796,8 +847,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinAPEXClothVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-		: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel)
+	TGPUSkinAPEXClothVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
+		: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel, InNumVertices)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);

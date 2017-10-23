@@ -108,29 +108,29 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
-			return Expression->Material->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
+			return Expression->Material->GetRenderProxy(0)->GetVectorValue(ParameterInfo, OutValue, Context);
 		}
 		return false;
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
-			return Expression->Material->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
+			return Expression->Material->GetRenderProxy(0)->GetScalarValue(ParameterInfo, OutValue, Context);
 		}
 		return false;
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
-			return Expression->Material->GetRenderProxy(0)->GetTextureValue(ParameterName, OutValue, Context);
+			return Expression->Material->GetRenderProxy(0)->GetTextureValue(ParameterInfo, OutValue, Context);
 		}
 		return false;
 	}
@@ -522,7 +522,12 @@ private:
 	/** Copies all the HLSL Code View code to the clipboard */
 	FReply CopyCodeViewTextToClipboard();
 
-
+	/**
+	* Rebuilds dependant Material Instance Editors
+	* @param		MatInst	Material Instance to search dependent editors and force refresh of them.
+	*/
+	//void RebuildMaterialInstanceEditors();
+	
 	/**
 	 * Binds our UI commands to delegates
 	 */

@@ -46,6 +46,8 @@ void UPendingNetGame::InitNetDriver()
 		{
 			UNetConnection* ServerConn = NetDriver->ServerConnection;
 
+			FNetDelegates::OnPendingNetGameConnectionCreated.Broadcast(this);
+
 			// Kick off the connection handshake
 			if (ServerConn->Handler.IsValid())
 			{
@@ -164,7 +166,7 @@ bool UPendingNetGame::NotifyAcceptingChannel( class UChannel* Channel )
 
 void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch)
 {
-	check(Connection==NetDriver->ServerConnection);
+	check(Connection == NetDriver->ServerConnection);
 
 #if !UE_BUILD_SHIPPING
 	UE_LOG(LogNet, Verbose, TEXT("PendingLevel received: %s"), FNetControlMessageInfo::GetName(MessageType));
@@ -223,8 +225,6 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 				}
 			}
 
-			FUniqueNetIdRepl UniqueIdRepl;
-
 			ULocalPlayer* LocalPlayer = GEngine->GetFirstGamePlayer(this);
 			if (LocalPlayer)
 			{
@@ -243,7 +243,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 				}
 
 				// Send the player unique Id at login
-				UniqueIdRepl = LocalPlayer->GetPreferredUniqueNetId();
+				Connection->PlayerId = LocalPlayer->GetPreferredUniqueNetId();
 			}
 
 			// Send the player's online platform name
@@ -266,7 +266,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			RequestUrlBytes.AddZeroed(UTF8String.Length() + 1);
 			FMemory::Memcpy(RequestUrlBytes.GetData(), UTF8String.Get(), UTF8String.Length());
 
-			FNetControlMessage<NMT_Login>::Send(Connection, Connection->ClientResponse, RequestUrlBytes, UniqueIdRepl, OnlinePlatformNameString);
+			FNetControlMessage<NMT_Login>::Send(Connection, Connection->ClientResponse, RequestUrlBytes, Connection->PlayerId, OnlinePlatformNameString);
 			NetDriver->ServerConnection->FlushNet();
 			break;
 		}
@@ -299,7 +299,8 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			// Send out netspeed now that we're connected
 			FNetControlMessage<NMT_Netspeed>::Send(Connection, Connection->CurrentNetSpeed);
 
-			// We have successfully connected.
+			// We have successfully connected
+			// TickWorldTravel will load the map and call LoadMapCompleted which eventually calls SendJoin
 			bSuccessfullyConnected = true;
 			break;
 		}
@@ -368,6 +369,57 @@ void UPendingNetGame::FinalizeEncryptedConnection(const FEncryptionKeyResponse& 
 		// This error will be resolved in TickWorldTravel()
 		UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::FinalizeEncryptedConnection: Connection is null."));
 		ConnectionError = TEXT("Connection missing during encryption ack");
+	}
+}
+
+void UPendingNetGame::SetEncryptionKey(const FEncryptionKeyResponse& Response)
+{
+	if (CVarNetAllowEncryption.GetValueOnGameThread() == 0)
+	{
+		UE_LOG(LogNet, Log, TEXT("UPendingNetGame::SetEncryptionKey: net.AllowEncryption is false."));
+		return;
+	}
+
+	if (NetDriver)
+	{
+		UNetConnection* const Connection = NetDriver->ServerConnection;
+		if (Connection)
+		{
+			if (Connection->State != USOCK_Invalid && Connection->State != USOCK_Closed && Connection->Driver)
+			{
+				if (Response.Response == EEncryptionResponse::Success)
+				{
+					Connection->SetEncryptionKey(Response.EncryptionKey);
+				}
+				else
+				{
+					// This error will be resolved in TickWorldTravel()
+					FString ResponseStr(Lex::ToString(Response.Response));
+					UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: encryption failure [%s] %s"), *ResponseStr, *Response.ErrorMsg);
+					ConnectionError = TEXT("Encryption failure");
+					Connection->Close();
+				}
+			}
+			else
+			{
+				// This error will be resolved in TickWorldTravel()
+				UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: connection in invalid state. %s"), *Connection->Describe());
+				ConnectionError = TEXT("Connection encryption state failure");
+				Connection->Close();
+			}
+		}
+		else
+		{
+			// This error will be resolved in TickWorldTravel()
+			UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: Connection is null."));
+			ConnectionError = TEXT("Connection missing during encryption ack");
+		}
+	}
+	else
+	{
+		// This error will be resolved in TickWorldTravel()
+		UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: NetDriver is null."));
+		ConnectionError = TEXT("NetDriver missing during encryption ack");
 	}
 }
 

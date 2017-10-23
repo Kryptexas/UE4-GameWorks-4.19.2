@@ -243,16 +243,24 @@ FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(LAMBDA&& Lambda)
 #if 0 // UE_SERVER && UE_BUILD_DEBUG
 	UE_LOG(LogRHI, Warning, TEXT("Render command '%s' is being executed on a dedicated server."), TSTR::TStr())
 #endif
-	if (ShouldExecuteOnRenderThread())
+	if (IsInRenderingThread())
 	{
-		CheckNotBlockedOnRenderThread();
-		TGraphTask<EURCType>::CreateTask().ConstructAndDispatchWhenReady(Forward<LAMBDA>(Lambda));
+		FRHICommandListImmediate& RHICmdList = GetImmediateCommandList_ForRenderCommand();
+		Lambda(RHICmdList);
 	}
 	else
 	{
-		EURCType TempCommand(Forward<LAMBDA>(Lambda));
-		FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId());
-		TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef());
+		if (ShouldExecuteOnRenderThread())
+		{
+			CheckNotBlockedOnRenderThread();
+			TGraphTask<EURCType>::CreateTask().ConstructAndDispatchWhenReady(Forward<LAMBDA>(Lambda));
+		}
+		else
+		{
+			EURCType TempCommand(Forward<LAMBDA>(Lambda));
+			FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId());
+			TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef());
+		}
 	}
 }
 

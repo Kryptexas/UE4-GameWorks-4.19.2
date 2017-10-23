@@ -154,6 +154,10 @@ FSceneViewState::FSceneViewState()
 	SmoothedHalfResTranslucencyGPUDuration = 0;
 	SmoothedFullResTranslucencyGPUDuration = 0;
 	bShouldAutoDownsampleTranslucency = false;
+
+	PreExposure = 1.f;
+	LastPreExposure = 1.f;
+	bUpdateLastExposure = false;
 }
 
 void DestroyRenderResource(FRenderResource* RenderResource)
@@ -589,7 +593,8 @@ FReadOnlyCVARCache::FReadOnlyCVARCache()
 }
 
 FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel)
-:	World(InWorld)
+:	FSceneInterface(InFeatureLevel)
+,	World(InWorld)
 ,	FXSystem(NULL)
 ,	bStaticDrawListsMobileHDR(false)
 ,	bStaticDrawListsMobileHDR32bpp(false)
@@ -610,6 +615,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	bRequiresHitProxies(bInRequiresHitProxies)
 ,	bIsEditorScene(bInIsEditorScene)
 ,	NumUncachedStaticLightingInteractions(0)
+,	NumUnbuiltReflectionCaptures(0)
 ,	NumMobileStaticAndCSMLights_RenderThread(0)
 ,	NumMobileMovableDirectionalLights_RenderThread(0)
 ,	GPUSkinCache(nullptr)
@@ -681,7 +687,6 @@ FScene::~FScene()
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
 	DistanceFieldSceneData.Release();
-	VolumetricLightmapSceneData.Release();
 
 	if (AtmosphericFog)
 	{
@@ -810,7 +815,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	// Update the primitive transform.
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
-	if (!UseGPUInterpolatedVolumetricLightmaps(GetShadingPath())
+	if (!RHISupportsVolumeTextures(GetFeatureLevel())
 		&& (PrimitiveSceneProxy->IsMovable() || PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
 	{
 		PrimitiveSceneProxy->GetPrimitiveSceneInfo()->MarkPrecomputedLightingBufferDirty();
@@ -1399,11 +1404,17 @@ void FScene::AddReflectionCapture(UReflectionCaptureComponent* Component)
 	{
 		Component->SceneProxy = Component->CreateSceneProxy();
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FAddCaptureCommand,
-			FScene*,Scene,this,
-			FReflectionCaptureProxy*,Proxy,Component->SceneProxy,
+		FScene* Scene = this;
+		FReflectionCaptureProxy* Proxy = Component->SceneProxy;
+
+		ENQUEUE_RENDER_COMMAND(FAddCaptureCommand)
+			([Scene, Proxy](FRHICommandListImmediate& RHICmdList)
 		{
+			if (Proxy->bUsingPreviewCaptureData)
+			{
+				FPlatformAtomics::InterlockedIncrement(&Scene->NumUnbuiltReflectionCaptures);
+			}
+
 			Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
 			const int32 PackedIndex = Scene->ReflectionSceneData.RegisteredReflectionCaptures.Add(Proxy);
 
@@ -1419,11 +1430,17 @@ void FScene::RemoveReflectionCapture(UReflectionCaptureComponent* Component)
 {
 	if (Component->SceneProxy)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FRemoveCaptureCommand,
-			FScene*,Scene,this,
-			FReflectionCaptureProxy*,Proxy,Component->SceneProxy,
+		FScene* Scene = this;
+		FReflectionCaptureProxy* Proxy = Component->SceneProxy;
+
+		ENQUEUE_RENDER_COMMAND(FRemoveCaptureCommand)
+			([Scene, Proxy](FRHICommandListImmediate& RHICmdList)
 		{
+			if (Proxy->bUsingPreviewCaptureData)
+			{
+				FPlatformAtomics::InterlockedDecrement(&Scene->NumUnbuiltReflectionCaptures);
+			}
+
 			Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
 
 			int32 CaptureIndex = Proxy->PackedIndex;
@@ -1450,16 +1467,30 @@ void FScene::UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Compo
 {
 	if (Component->SceneProxy)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-			UpdateTransformCommand,
-			FReflectionCaptureProxy*,Proxy,Component->SceneProxy,
-			FMatrix,Transform,Component->GetComponentTransform().ToMatrixWithScale(),
-			const float*,AverageBrightness,Component->GetAverageBrightnessPtr(),
-			FScene*,Scene,this,
+		const FReflectionCaptureMapBuildData* MapBuildData = Component->GetMapBuildData();
+		bool bUsingPreviewCaptureData = MapBuildData == NULL;
+
+		FScene* Scene = this;
+		FReflectionCaptureProxy* Proxy = Component->SceneProxy;
+		FMatrix Transform = Component->GetComponentTransform().ToMatrixWithScale();
+
+		ENQUEUE_RENDER_COMMAND(FUpdateTransformCommand)
+			([Scene, Proxy, Transform, bUsingPreviewCaptureData](FRHICommandListImmediate& RHICmdList)
 		{
+			if (Proxy->bUsingPreviewCaptureData)
+			{
+				FPlatformAtomics::InterlockedDecrement(&Scene->NumUnbuiltReflectionCaptures);
+			}
+
+			Proxy->bUsingPreviewCaptureData = bUsingPreviewCaptureData;
+
+			if (Proxy->bUsingPreviewCaptureData)
+			{
+				FPlatformAtomics::InterlockedIncrement(&Scene->NumUnbuiltReflectionCaptures);
+			}
+
 			Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
 			Proxy->SetTransform(Transform);
-			Proxy->InitializeAverageBrightness(*AverageBrightness);
 		});
 	}
 }
@@ -1610,7 +1641,7 @@ void FScene::FindClosestReflectionCaptures(FVector Position, const FReflectionCa
 	}
 }
 
-void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex) const
+void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex, float& AverageBrightness) const
 {
 	ERHIFeatureLevel::Type LocalFeatureLevel = GetFeatureLevel();
 
@@ -1622,12 +1653,8 @@ void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy
 		{
 			ReflectionCubemapArray = ReflectionSceneData.CubemapArray.GetRenderTarget().ShaderResourceTexture;
 			ArrayIndex = FoundState->CaptureIndex;
+			AverageBrightness = FoundState->AverageBrightness;
 		}
-	}
-	else if (ReflectionProxy->SM4FullHDRCubemap)
-	{
-		ReflectionCubemapArray = ReflectionProxy->SM4FullHDRCubemap->TextureRHI;
-		ArrayIndex = 0;
 	}
 }
 
@@ -1672,72 +1699,14 @@ void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 		});
 }
 
-void CreateVolumetricLightmapTexture(FIntVector Dimensions, FVolumetricLightmapDataLayer* DataLayer, FTexture3DRHIRef& OutTexture)
-{
-	FRHIResourceCreateInfo CreateInfo;
-	CreateInfo.BulkData = DataLayer;
-
-	OutTexture = RHICreateTexture3D(
-		Dimensions.X, 
-		Dimensions.Y, 
-		Dimensions.Z, 
-		DataLayer->Format,
-		1,
-		TexCreate_ShaderResource,
-		CreateInfo);
-}
-
 void FVolumetricLightmapSceneData::AddLevelVolume(const FPrecomputedVolumetricLightmap* InVolume, EShadingPath ShadingPath)
 {
 	LevelVolumetricLightmaps.Add(InVolume);
-
-	if (UseGPUInterpolatedVolumetricLightmaps(ShadingPath))
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		CreateInfo.BulkData = &InVolume->Data->IndirectionTexture;
-
-		IndirectionTexture = RHICreateTexture3D(
-			InVolume->Data->IndirectionTextureDimensions.X,
-			InVolume->Data->IndirectionTextureDimensions.Y,
-			InVolume->Data->IndirectionTextureDimensions.Z,
-			InVolume->Data->IndirectionTexture.Format,
-			1,
-			TexCreate_ShaderResource,
-			CreateInfo);
-
-		CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.AmbientVector, AmbientVectorTextureRHI);
-
-		static_assert(ARRAY_COUNT(InVolume->Data->BrickData.SHCoefficients) == ARRAY_COUNT(SHCoefficientsTextureRHI), "Mismatched coefficient count");
-
-		for (int32 i = 0; i < ARRAY_COUNT(SHCoefficientsTextureRHI); i++)
-		{
-			CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.SHCoefficients[i], SHCoefficientsTextureRHI[i]);
-		}
-
-		if (InVolume->Data->BrickData.SkyBentNormal.Data.Num() > 0)
-		{
-			CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.SkyBentNormal, SkyBentNormalTextureRHI);
-		}
-
-		CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.DirectionalLightShadowing, DirectionalLightShadowingTextureRHI);
-	}
-
-	const FBox& VolumeBounds = InVolume->Data->GetBounds();
-	const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
-	VolumeWorldToUVScale = InvVolumeSize;
-	VolumeWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
-
-	IndirectionTextureSize = FVector(InVolume->Data->IndirectionTextureDimensions);
-	BrickSize = InVolume->Data->BrickSize;
-	BrickDataTexelSize = FVector(1.0f, 1.0f, 1.0f) / FVector(InVolume->Data->BrickDataDimensions);
 }
 
 void FVolumetricLightmapSceneData::RemoveLevelVolume(const FPrecomputedVolumetricLightmap* InVolume)
 {
-	if (LevelVolumetricLightmaps.Remove(InVolume) > 0)
-	{
-		Release();
-	}
+	LevelVolumetricLightmaps.Remove(InVolume);
 }
 
 bool FScene::HasPrecomputedVolumetricLightmap_RenderThread() const
@@ -2289,13 +2258,6 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 					// reload the wind since it may have changed or been scaled differently during reimport
 					StaticMesh->SpeedTreeWind->SetNeedsReload(false);
 					WindComputation->Wind = *(StaticMesh->SpeedTreeWind.Get( ));
-
-					// make sure the vertex factories are registered (sometimes goes wrong during a reimport)
-					for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
-					{
-						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
-						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, StaticMesh);
-					}
 				}
 
 				// advance the wind object
@@ -2911,7 +2873,7 @@ void FScene::OnLevelAddedToWorld(FName LevelAddedName, UWorld* InWorld, bool bIs
 {
 	if (bIsLightingScenario)
 	{
-		InWorld->PropagateLightingScenarioChange(true);
+		InWorld->PropagateLightingScenarioChange();
 	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -2944,7 +2906,7 @@ void FScene::OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario)
 {
 	if (bIsLightingScenario)
 	{
-		InWorld->PropagateLightingScenarioChange(false);
+		InWorld->PropagateLightingScenarioChange();
 	}
 }
 
@@ -2987,7 +2949,8 @@ class FNULLSceneInterface : public FSceneInterface
 {
 public:
 	FNULLSceneInterface(UWorld* InWorld, bool bCreateFXSystem )
-		:	World( InWorld )
+		:	FSceneInterface(GMaxRHIFeatureLevel)
+		,	World( InWorld )
 		,	FXSystem( NULL )
 	{
 		World->Scene = this;

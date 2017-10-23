@@ -568,6 +568,11 @@ public:
 		return CommandList == 0;
 	}
 
+	bool IsValid() const
+	{
+		return CommandList != nullptr;
+	}
+
 	bool IsOpen() const
 	{
 		return Generation == CommandList.CurrentGeneration();

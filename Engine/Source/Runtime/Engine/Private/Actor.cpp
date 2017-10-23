@@ -1857,7 +1857,7 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 /** Removes the actor from the NetDriver's dormancy list: forcing at least one more update. */
 void AActor::FlushNetDormancy()
 {
-	if (IsNetMode(NM_Client) || NetDormancy <= DORM_Awake)
+	if (IsNetMode(NM_Client) || NetDormancy <= DORM_Awake || IsPendingKillPending())
 	{
 		return;
 	}
@@ -4600,26 +4600,33 @@ float AActor::GetGameTimeSinceCreation()
 
 void AActor::SetNetUpdateTime( float NewUpdateTime )
 {
-	FNetworkObjectInfo* NetActor = GetNetworkObjectInfo();
-
-	if ( NetActor != nullptr )
+	if ( FNetworkObjectInfo* NetActor = FindNetworkObjectInfo() )
 	{
 		// Only allow the next update to be sooner than the current one
 		NetActor->NextUpdateTime = FMath::Min( NetActor->NextUpdateTime, (double)NewUpdateTime );
 	}			
 }
 
-FNetworkObjectInfo* AActor::GetNetworkObjectInfo() const
+FNetworkObjectInfo* AActor::FindOrAddNetworkObjectInfo()
 {
-	UWorld* World = GetWorld();
-
-	if ( World != nullptr )
+	if ( UWorld* World = GetWorld() )
 	{
-		UNetDriver* NetDriver = World->GetNetDriver();
-
-		if ( NetDriver != nullptr )
+		if ( UNetDriver* NetDriver = World->GetNetDriver() )
 		{
-			return NetDriver->GetNetworkObjectInfo( this );
+			return NetDriver->FindOrAddNetworkObjectInfo( this );
+		}
+	}
+
+	return nullptr;
+}
+
+FNetworkObjectInfo* AActor::FindNetworkObjectInfo()
+{
+	if ( UWorld* World = GetWorld() )
+	{
+		if ( UNetDriver* NetDriver = World->GetNetDriver() )
+		{
+			return NetDriver->FindNetworkObjectInfo(this);
 		}
 	}
 

@@ -55,7 +55,7 @@ FPrimitiveSceneProxy* UPaperTileMapComponent::CreateSceneProxy()
 	SCOPE_CYCLE_COUNTER(STAT_PaperRender_TileMapRebuild);
 
 	TArray<FSpriteRenderSection>* Sections;
-	TArray<FPaperSpriteVertex>* Vertices;
+	TArray<FDynamicMeshVertex>* Vertices;
 	FPaperTileMapRenderSceneProxy* Proxy = FPaperTileMapRenderSceneProxy::CreateTileMapProxy(this, /*out*/ Sections, /*out*/ Vertices);
 
 	RebuildRenderData(*Sections, *Vertices);
@@ -236,7 +236,7 @@ const UObject* UPaperTileMapComponent::AdditionalStatObject() const
 	return nullptr;
 }
 
-void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sections, TArray<FPaperSpriteVertex>& Vertices)
+void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sections, TArray<FDynamicMeshVertex>& Vertices)
 {
 	if (TileMap == nullptr)
 	{

@@ -28,6 +28,8 @@ ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);
  */
 ONLINESUBSYSTEMUTILS_API int32 GetPortFromNetDriver(FName InstanceName);
 
+ONLINESUBSYSTEMUTILS_API int32 GetClientPeerIp(FName InstanceName, const FUniqueNetId& UserId);
+
 #endif
 
 /**

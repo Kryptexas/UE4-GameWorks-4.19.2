@@ -2006,7 +2006,7 @@ void UpdateSettingsBounds(const UStaticMesh* InMesh, UFoliageType_InstancedStati
 
 	if (InMesh->RenderData)
 	{
-		FPositionVertexBuffer& PositionVertexBuffer = InMesh->RenderData->LODResources[0].PositionVertexBuffer;
+		FPositionVertexBuffer& PositionVertexBuffer = InMesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
 		for (uint32 Index = 0; Index < PositionVertexBuffer.GetNumVertices(); ++Index)
 		{
 			const FVector& Pos = PositionVertexBuffer.VertexPosition(Index);

@@ -116,7 +116,7 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 	check( IsInParallelRenderingThread() );
 }
 
-struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertexAndIndexBuffers>
+struct FSlateUpdateVertexAndIndexBuffers final : public FRHICommand<FSlateUpdateVertexAndIndexBuffers>
 {
 	FVertexBufferRHIRef VertexBufferRHI;
 	FIndexBufferRHIRef IndexBufferRHI;
@@ -295,7 +295,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 
 	float TimeSeconds = FApp::GetCurrentTime() - GStartTime;
 	float DeltaTimeSeconds = FApp::GetDeltaTime();
-	float RealTimeSeconds =  FPlatformTime::Seconds() - GStartTime;
+	float RealTimeSeconds = FPlatformTime::Seconds() - GStartTime;
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
 
@@ -328,6 +328,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				)
 				.SetWorldTimes(TimeSeconds, DeltaTimeSeconds, RealTimeSeconds)
 				.SetGammaCorrection(DisplayGamma)
+				.SetRealtimeUpdate(true)
 			);
 		SceneViews[i] = CreateSceneView(SceneViewFamilyContexts[i], BackBuffer, Options.ViewProjectionMatrix);
 	}
@@ -339,10 +340,11 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				&BackBuffer,
 				nullptr,
 				DefaultShowFlags
-				)
+			)
 			.SetWorldTimes(TimeSeconds, DeltaTimeSeconds, RealTimeSeconds)
 			.SetGammaCorrection(DisplayGamma)
-			);
+			.SetRealtimeUpdate(true)
+		);
 	SceneViews[NumScenes-1] = CreateSceneView(SceneViewFamilyContexts[NumScenes-1], BackBuffer, Options.ViewProjectionMatrix);
 
 	TShaderMapRef<FSlateElementVS> GlobalVertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
@@ -690,8 +692,6 @@ void FSlateRHIRenderingPolicy::DrawElements(
 			ESlateShaderResource::Type ResourceType = ShaderResource ? ShaderResource->GetType() : ESlateShaderResource::Invalid;
 			if( ResourceType != ESlateShaderResource::Material && ShaderType != ESlateShader::PostProcess ) 
 			{
-				SLATE_DRAW_EVENT(RHICmdList, TextureBatch);
-
 				check(RenderBatch.NumIndices > 0);
 				FSlateElementPS* PixelShader = nullptr;
 
@@ -1114,6 +1114,9 @@ void FSlateRHIRenderingPolicy::DrawElements(
 
 				// This element is custom and has no Slate geometry.  Tell it to render itself now
 				CustomDrawer->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());
+				
+				//We reset the maskingID here because otherwise the RT might not get re-set in the lines above see: if (bClearStencil || bForceStateChange)
+				MaskingID = 0;
 
 				// Something may have messed with the viewport size so set it back to the full target.
 				RHICmdList.SetViewport( 0,0,0,BackBuffer.GetSizeXY().X, BackBuffer.GetSizeXY().Y, 0.0f ); 

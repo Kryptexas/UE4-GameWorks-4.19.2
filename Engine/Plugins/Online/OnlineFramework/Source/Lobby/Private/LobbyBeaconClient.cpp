@@ -16,7 +16,7 @@ ALobbyBeaconClient::ALobbyBeaconClient(const FObjectInitializer& ObjectInitializ
 	LobbyState(nullptr),
 	PlayerState(nullptr),
 	bLoggedIn(false),
-	bLobbyJoinAcked(false)
+	LobbyJoinServerState(ELobbyBeaconJoinState::None)
 {
 	bOnlyRelevantToOwner = true;
 }
@@ -125,9 +125,16 @@ void ALobbyBeaconClient::JoiningServer()
 {
 	if (bLoggedIn)
 	{
-		UE_LOG(LogBeacon, Log, TEXT("JoiningServer %s Id: %s"), *GetName(), PlayerState ? *PlayerState->UniqueId->ToString() : TEXT("Unknown"));
-		bLobbyJoinAcked = false;
-		ServerNotifyJoiningServer();
+		if (LobbyJoinServerState == ELobbyBeaconJoinState::None)
+		{
+			UE_LOG(LogBeacon, Log, TEXT("JoiningServer %s Id: %s"), *GetName(), PlayerState ? *PlayerState->UniqueId->ToString() : TEXT("Unknown"));
+			LobbyJoinServerState = ELobbyBeaconJoinState::SentJoinRequest;
+			ServerNotifyJoiningServer();
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Warning, TEXT("Already joining server, skipping %d"), static_cast<int32>(LobbyJoinServerState));
+		}
 	}
 	else
 	{
@@ -260,6 +267,7 @@ void ALobbyBeaconClient::AckJoiningServer()
 	if (GetNetMode() < NM_Client)
 	{
 		UE_LOG(LogBeacon, Log, TEXT("AckJoiningServer %s Id: %s"), *GetName(), PlayerState ? *PlayerState->UniqueId->ToString() : TEXT("Unknown"));
+		LobbyJoinServerState = ELobbyBeaconJoinState::JoinRequestAcknowledged;
 		ClientAckJoiningServer();
 	}
 }
@@ -267,7 +275,7 @@ void ALobbyBeaconClient::AckJoiningServer()
 void ALobbyBeaconClient::ClientAckJoiningServer_Implementation()
 {
 	UE_LOG(LogBeacon, Log, TEXT("ClientAckJoiningServer %s Id: %s LoggedIn: %d"), *GetName(), PlayerState ? *PlayerState->UniqueId->ToString() : TEXT("Unknown"), bLoggedIn);
-	bLobbyJoinAcked = true;
+	LobbyJoinServerState = ELobbyBeaconJoinState::JoinRequestAcknowledged;
 	OnJoiningGameAck().ExecuteIfBound();
 }
 

@@ -1446,21 +1446,29 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 				}
 				break;
 		}
-		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
-  	    FDirectLightInjectBufferRef InjectUniformBuffer = 
-			FDirectLightInjectBufferRef::CreateUniformBufferImmediate(InjectUniformBufferParams, UniformBuffer_SingleFrame );
+		if (Shader)
+		{
+			RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
-		mWriteBufferIndex = 1 - mWriteBufferIndex; // Swap buffers with each iteration
+			FDirectLightInjectBufferRef InjectUniformBuffer =
+				FDirectLightInjectBufferRef::CreateUniformBufferImmediate(InjectUniformBufferParams, UniformBuffer_SingleFrame);
 
-		FLpvBaseWriteShaderParams ShaderParams;
-		GetShaderParams( ShaderParams );
+			mWriteBufferIndex = 1 - mWriteBufferIndex; // Swap buffers with each iteration
 
-		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
+			FLpvBaseWriteShaderParams ShaderParams;
+			GetShaderParams(ShaderParams);
 
-		Shader->SetParameters(RHICmdList, ShaderParams, InjectUniformBuffer );
-		DispatchComputeShader(RHICmdList, Shader, LPV_GRIDRES / 4, LPV_GRIDRES / 4, LPV_GRIDRES / 4 );
-		Shader->UnbindBuffers(RHICmdList, ShaderParams);
+			LpvWriteUniformBuffer.SetContents(*LpvWriteUniformBufferParams);
+
+			Shader->SetParameters(RHICmdList, ShaderParams, InjectUniformBuffer);
+			DispatchComputeShader(RHICmdList, Shader, LPV_GRIDRES / 4, LPV_GRIDRES / 4, LPV_GRIDRES / 4);
+			Shader->UnbindBuffers(RHICmdList, ShaderParams);
+		}
+		else
+		{
+			checkf(0, TEXT("Failed to find LPV injection shader."));
+		}
 	}
 }
 

@@ -195,6 +195,7 @@
 
 #include "ILauncherPlatform.h"
 #include "LauncherPlatformModule.h"
+#include "Engine/MapBuildDataRegistry.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -3802,39 +3803,145 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 	OnOpenMatinee();
 }
 
-void UEditorEngine::UpdateReflectionCaptures(UWorld* World)
+void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 {
-	const ERHIFeatureLevel::Type ActiveFeatureLevel = World->FeatureLevel;
-	if (ActiveFeatureLevel < ERHIFeatureLevel::SM4 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		FScopedSlowTask SlowTask(4, LOCTEXT("UpdatingReflectionCaptures", "Updating reflection captures"));
-		SlowTask.MakeDialog();
-		// change to GMaxRHIFeatureLevel feature level to generate capture images.
-		SlowTask.EnterProgressFrame();			
-		World->ChangeFeatureLevel(GMaxRHIFeatureLevel, false);
+	// Note: Lighting and reflection build operations should only dirty BuildData packages, not ULevel packages
 
-		// Wait for shaders to compile so the capture result isn't capture black
-		if (GShaderCompilingManager != NULL)
+	FText StatusText = FText(LOCTEXT("BuildReflectionCaptures", "Building Reflection Captures..."));
+	GWarn->BeginSlowTask(StatusText, true);
+	GWarn->StatusUpdate(0, 1, StatusText);
+
+	// Wait for shader compiling to finish so we don't capture the default material
+	if (GShaderCompilingManager != NULL)
+	{
+		GShaderCompilingManager->FinishAllCompilation();
+	}
+
+	// Process any outstanding captures before we start operating on scenarios
+	UReflectionCaptureComponent::UpdateReflectionCaptureContents(World);
+
+	// Only the cubemap array path supports reading back from the GPU
+	// Calling code should not allow building reflection captures on lower feature levels
+	check(World->FeatureLevel >= ERHIFeatureLevel::SM5);
+
+	// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
+	World->UpdateAllSkyCaptures();
+
+	TArray<ULevel*> LightingScenarios;
+
+	for (ULevel* Level : World->GetLevels())
+	{
+		if (Level->bIsVisible)
 		{
-			GShaderCompilingManager->FinishAllCompilation();
+			if (Level->MapBuildData)
+			{
+				// Remove all existing reflection capture data from visible levels before the build
+				Level->MapBuildData->InvalidateReflectionCaptures();
+			}
+
+			if (Level->bIsLightingScenario)
+			{
+				LightingScenarios.Add(Level);
+			}
+		}
+	}
+
+	if (LightingScenarios.Num() == 0)
+	{
+		// No lighting scenario levels present, add a null entry to represent the default case
+		LightingScenarios.Add(nullptr);
+	}
+
+	// All but the first scenario start hidden
+	for (int32 LevelIndex = 1; LevelIndex < LightingScenarios.Num(); LevelIndex++)
+	{
+		ULevel* LightingScenario = LightingScenarios[LevelIndex];
+
+		if (LightingScenario)
+		{
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, false);
+		}
+	}
+
+	for (int32 LevelIndex = 0; LevelIndex < LightingScenarios.Num(); LevelIndex++)
+	{
+		ULevel* LightingScenario = LightingScenarios[LevelIndex];
+
+		if (LightingScenario && LevelIndex > 0)
+		{
+			// Set current scenario visible
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, true);	
 		}
 
-		// Update captures
-		SlowTask.EnterProgressFrame();
-		World->UpdateAllSkyCaptures();
-		SlowTask.EnterProgressFrame();
-		World->UpdateAllReflectionCaptures();
+		TArray<UReflectionCaptureComponent*> ReflectionCapturesToBuild;
 
-		// restore to the preview feature level.
-		SlowTask.EnterProgressFrame();
-		World->ChangeFeatureLevel(ActiveFeatureLevel, false);
+		for (TObjectIterator<UReflectionCaptureComponent> It; It; ++It)
+		{
+			UReflectionCaptureComponent* CaptureComponent = *It;
+
+			if (CaptureComponent->GetOwner()
+				&& World->ContainsActor(CaptureComponent->GetOwner()) 
+				&& !CaptureComponent->GetOwner()->bHiddenEdLevel
+				&& !CaptureComponent->IsPendingKill())
+			{
+				// Queue an update
+				// Note InvalidateReflectionCaptures will guarantee this is a recapture, we don't want old data to persist
+				// We cannot modify MapBuildDataId to force a recapture as that would modify CaptureComponent's package, build operations should only modify the BuildData package
+				CaptureComponent->MarkDirtyForRecaptureOrUpload();	
+				ReflectionCapturesToBuild.Add(CaptureComponent);
+			}
+		}
+
+		FString UpdateReason = LightingScenario ? LightingScenario->GetOuter()->GetName() : TEXT("all levels");
+
+		// Passing in flag to verify all recaptures, no uploads
+		UReflectionCaptureComponent::UpdateReflectionCaptureContents(World, *UpdateReason, true);
+
+		for (int32 CaptureIndex = 0; CaptureIndex < ReflectionCapturesToBuild.Num(); CaptureIndex++)
+		{ 
+			UReflectionCaptureComponent* CaptureComponent = ReflectionCapturesToBuild[CaptureIndex];
+
+			FReflectionCaptureData ReadbackCaptureData;
+			World->Scene->GetReflectionCaptureData(CaptureComponent, ReadbackCaptureData);
+
+			// Capture can fail if there are more than GMaxNumReflectionCaptures captures
+			if (ReadbackCaptureData.CubemapSize > 0)
+			{
+				ULevel* StorageLevel = LightingScenarios[LevelIndex] ? LightingScenarios[LevelIndex] : CaptureComponent->GetOwner()->GetLevel();
+				UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+				FReflectionCaptureMapBuildData& CaptureBuildData = Registry->AllocateReflectionCaptureBuildData(CaptureComponent->MapBuildDataId, true);
+				(FReflectionCaptureData&)CaptureBuildData = ReadbackCaptureData;
+
+				CaptureBuildData.FinalizeLoad();
+
+				// Recreate capture render state now that we have valid BuildData
+				CaptureComponent->MarkRenderStateDirty();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("Unable to build Reflection Capture %s, max number of reflection captures exceeded"), *CaptureComponent->GetPathName());
+			}
+		}
+
+		if (LightingScenario)
+		{
+			// Hide current scenario now that we are done capturing it
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, false);	
+		}
 	}
-	else
+
+	// Restore initial visibility
+	for (int32 LevelIndex = 0; LevelIndex < LightingScenarios.Num(); LevelIndex++)
 	{
-		// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
-		World->UpdateAllSkyCaptures();
-		World->UpdateAllReflectionCaptures();
+		ULevel* LightingScenario = LightingScenarios[LevelIndex];
+
+		if (LightingScenario)
+		{
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, true);
+		}
 	}
+
+	GWarn->EndSlowTask();
 }
 
 void UEditorEngine::EditorAddModalWindow( TSharedRef<SWindow> InModalWindow ) const
@@ -4245,10 +4352,13 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 			// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
 			World->ClearWorldComponents();
 			World->SetPhysicsScene(nullptr);
+
+#if WITH_PHYSX
 			if (GPhysCommandHandler)
 			{
 				GPhysCommandHandler->Flush();
 			}
+#endif	// WITH_PHYSX
 			
 			// Update components again in case it was a world without a physics scene but did have rendered components.
 			World->UpdateWorldComponents(true, true);

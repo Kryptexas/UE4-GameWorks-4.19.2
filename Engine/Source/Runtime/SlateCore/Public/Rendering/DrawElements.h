@@ -1019,6 +1019,7 @@ class FElementBatchMap
 {
 public:
 	FElementBatchMap()
+		: ResourceVersion(0)
 	{
 		Reset();
 	}
@@ -1101,6 +1102,26 @@ public:
 		}
 	}
 
+	FORCEINLINE_DEBUGGABLE void UpdateResourceVersion(uint32 NewResourceVersion)
+	{
+		if (ResourceVersion != NewResourceVersion)
+		{
+			OverflowLayers.Empty();
+
+			// Since the resource version changed, clean out all cached data in the element batch arrays
+			for (int32 LayerIdx = 0; LayerIdx < Layers.Num(); ++LayerIdx)
+			{
+				Layers[LayerIdx]->Empty();
+			}
+
+			MinLayer = UINT_MAX;
+			MaxLayer = 0;
+			ActiveLayers.Init(false, Layers.Num());
+
+			ResourceVersion = NewResourceVersion;
+		}
+	}
+
 	FORCEINLINE_DEBUGGABLE void Reset()
 	{
 		MinLayer = UINT_MAX;
@@ -1115,6 +1136,7 @@ private:
 	TMap<uint32, TUniqueObj<FElementBatchArray>> OverflowLayers;
 	uint32 MinLayer;
 	uint32 MaxLayer;
+	uint32 ResourceVersion;
 };
 
 #if STATS

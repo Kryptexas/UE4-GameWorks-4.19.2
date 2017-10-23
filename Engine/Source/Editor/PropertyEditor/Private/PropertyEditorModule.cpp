@@ -238,7 +238,7 @@ TSharedPtr<FAssetThumbnailPool> FPropertyEditorModule::GetThumbnailPool()
 	if (!GlobalThumbnailPool.IsValid())
 	{
 		// Create a thumbnail pool for the view if it doesn't exist.  This does not use resources of no thumbnails are used
-		GlobalThumbnailPool = MakeShareable(new FAssetThumbnailPool(50, false));
+		GlobalThumbnailPool = MakeShareable(new FAssetThumbnailPool(50, true));
 	}
 
 	return GlobalThumbnailPool;

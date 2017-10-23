@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ParticleVertexFactory.h: Particle vertex factory definitions.
+ParticleVertexFactory.h: Particle vertex factory definitions.
 =============================================================================*/
 
 #pragma once
@@ -14,6 +14,7 @@
 #include "SceneView.h"
 #include "Components.h"
 #include "SceneManagement.h"
+#include "VertexFactory.h"
 
 
 class FMaterial;
@@ -63,18 +64,18 @@ struct FNiagaraMeshInstanceVertexPrevTransform
 * Uniform buffer for mesh particle vertex factories.
 */
 BEGIN_UNIFORM_BUFFER_STRUCT(FNiagaraMeshUniformParameters, NIAGARAVERTEXFACTORIES_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubImageSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightA)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightB)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, PrevTransformAvailable)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DeltaSeconds)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, PositionDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, VelocityDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ColorDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, TransformDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ScaleDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, SizeDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, MaterialParamDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubImageSize)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightA)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightB)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, PrevTransformAvailable)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DeltaSeconds)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, PositionDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, VelocityDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ColorDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, TransformDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ScaleDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, SizeDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, MaterialParamDataOffset)
 
 END_UNIFORM_BUFFER_STRUCT(FNiagaraMeshUniformParameters)
 typedef TUniformBufferRef<FNiagaraMeshUniformParameters> FNiagaraMeshUniformBufferRef;
@@ -91,20 +92,8 @@ class NIAGARAVERTEXFACTORIES_API FNiagaraMeshVertexFactory : public FNiagaraVert
 public:
 
 	// TODO get rid of the unnecessary components here when streams are no longer necessary
-	struct FDataType
+	struct FDataType : public FStaticMeshDataType
 	{
-		/** The stream to read the vertex position from. */
-		FVertexStreamComponent PositionComponent;
-
-		/** The streams to read the tangent basis from. */
-		FVertexStreamComponent TangentBasisComponents[2];
-
-		/** The streams to read the texture coordinates from. */
-		TArray<FVertexStreamComponent, TFixedAllocator<MAX_TEXCOORDS> > TextureCoordinates;
-
-		/** The stream to read the vertex  color from. */
-		FVertexStreamComponent VertexColorComponent;
-
 		/** The stream to read the vertex  color from. */
 		FVertexStreamComponent ParticleColorComponent;
 

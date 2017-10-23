@@ -49,6 +49,7 @@ namespace PixelInspector
 		//~ End SCompoundWidget Interface
 
 		void OnApplicationPreInputKeyDownListener(const FKeyEvent& InKeyEvent);
+		void OnWindowClosed();
 
 		/** Button handlers */
 		FReply HandleTogglePixelInspectorEnableButton();

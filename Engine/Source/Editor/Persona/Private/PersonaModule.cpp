@@ -482,15 +482,15 @@ void FPersonaModule::TestSkeletonCurveNamesForUse(const TSharedRef<IEditableSkel
 						UMaterial* Material = (Mat.MaterialInterface != nullptr) ? Mat.MaterialInterface->GetMaterial() : nullptr;
 						if (Material)
 						{
-							TArray<FName> OutParameterNames;
+							TArray<FMaterialParameterInfo> OutParameterInfo;
 							TArray<FGuid> OutParameterIds;
 
 							// Retrieve all scalar parameter names from the material
-							Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
+							Mat.MaterialInterface->GetAllScalarParameterInfo(OutParameterInfo, OutParameterIds);
 
-							for (FName SPName : OutParameterNames)
+							for (FMaterialParameterInfo SPInfo : OutParameterInfo)
 							{
-								UnusedNames.RemoveSingleSwap(SPName);
+								UnusedNames.RemoveSingleSwap(SPInfo.Name);
 							}
 						}
 					}

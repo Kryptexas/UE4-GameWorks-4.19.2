@@ -492,6 +492,7 @@ enum EBufferUsageFlags
 {
 	BUF_None			  = 0x0000,
 	
+
 	// Mutually exclusive write-frequency flags
 
 	/** The buffer will be written to once. */

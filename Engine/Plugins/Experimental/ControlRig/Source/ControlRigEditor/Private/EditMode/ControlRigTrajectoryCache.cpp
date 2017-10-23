@@ -360,7 +360,7 @@ void FControlRigTrajectoryCache::RenderTrajectories(const FTransform& ComponentT
 {
 	if (Vertices.Num() > 0 && Indices.Num() > 0)
 	{
-		FDynamicMeshBuilder MeshBuilder;
+		FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 		MeshBuilder.AddVertices(Vertices);
 		MeshBuilder.AddTriangles(Indices);
 

@@ -82,9 +82,6 @@
 
 using namespace VulkanRHI;
 
-// Default is 1 (which is aniso off), the number is adjusted after the limits are queried.
-static int32 GMaxVulkanTextureFilterAnisotropic = 1;
-
 class FVulkanQueue;
 class FVulkanCmdBuffer;
 class FVulkanShader;
@@ -707,6 +704,14 @@ static inline VkPrimitiveTopology UEToVulkanType(EPrimitiveType PrimitiveType)
 	return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 }
 
+namespace VulkanRHI
+{
+	static inline FString GetPipelineCacheFilename()
+	{
+		return FPaths::ProjectSavedDir() / TEXT("VulkanPSO.cache");
+	}
+}
+
 #if 0
 namespace FRCLog
 {
@@ -720,3 +725,4 @@ namespace FRCLog
 #endif
 
 #define SUPPORTS_MAINTENANCE_LAYER							VK_KHR_maintenance1
+

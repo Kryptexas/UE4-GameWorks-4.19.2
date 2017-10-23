@@ -149,10 +149,14 @@ UBlendProfile* FEditableSkeleton::CreateNewBlendProfile(const FName& NameToUse)
 
 void FEditableSkeleton::RemoveBlendProfile(UBlendProfile* InBlendProfile)
 {
-	FScopedTransaction Transaction(LOCTEXT("RemoveBlendProfile", "Remove Blend Profile"));
+	if(InBlendProfile)
+	{
+		FScopedTransaction Transaction(LOCTEXT("RemoveBlendProfile", "Remove Blend Profile"));
 
-	Skeleton->Modify();
-	Skeleton->BlendProfiles.Remove(InBlendProfile);
+		Skeleton->Modify();
+		Skeleton->BlendProfiles.Remove(InBlendProfile);
+		InBlendProfile->MarkPendingKill();
+	}
 }
 
 void FEditableSkeleton::SetBlendProfileScale(const FName& InBlendProfileName, const FName& InBoneName, float InNewScale, bool bInRecurse)
@@ -1038,7 +1042,8 @@ TSharedRef<SWidget> FEditableSkeleton::CreateBlendProfilePicker(const FBlendProf
 		.InitialProfile(InArgs.InitialProfile)
 		.OnBlendProfileSelected(InArgs.OnBlendProfileSelected)
 		.AllowNew(InArgs.bAllowNew)
-		.AllowClear(InArgs.bAllowClear);
+		.AllowClear(InArgs.bAllowClear)
+		.AllowRemove(InArgs.bAllowRemove);
 
 	BlendProfilePickers.Add(BlendProfilePicker);
 	return BlendProfilePicker;

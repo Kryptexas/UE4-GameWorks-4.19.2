@@ -767,6 +767,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	Set( "GenericViewButton", new IMAGE_BRUSH( "Icons/view_button", Icon20x20 ) );
 
+	Set("GenericLink", new IMAGE_BRUSH("Common/link", Icon16x16));
+
 #if WITH_EDITOR || IS_PROGRAM
 	{
 		// Dark Hyperlink - for use on light backgrounds
@@ -6391,6 +6393,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 
 		Set( "MaterialEditor.NormalFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
 		Set( "MaterialEditor.BoldFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 9 ) );
+		Set("MaterialEditor.Layers.EditableFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 8));
 
 		Set( "MaterialEditor.Apply", new IMAGE_BRUSH( "Icons/icon_MatEd_Apply_40x", Icon40x40 ) );
 		Set( "MaterialEditor.Apply.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Apply_40x", Icon20x20 ) );
@@ -6437,6 +6440,9 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 	{
 		Set( "MaterialInstanceEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 		Set( "MaterialInstanceEditor.Tabs.Parents", new IMAGE_BRUSH( "/Icons/layers_16x", Icon16x16 ) );
+		Set( "MaterialInstanceEditor.LayersBorder", new FSlateColorBrush(FLinearColor(0.1f, 0.1f, 0.1f, 1.0f)));
+		Set("MaterialInstanceEditor.StackHeader", new FSlateColorBrush(FLinearColor(0.025f, 0.025f, 0.025f, 1.0f)));
+		Set("MaterialInstanceEditor.StackBody", new FSlateColorBrush(FLinearColor(0.05f, 0.05f, 0.05f, 1.0f)));
 	}
 
 	// Sound Class Editor

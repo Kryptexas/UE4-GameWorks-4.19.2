@@ -431,7 +431,7 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		return true;
 	}
 
-	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
+	const int32 NumLocalPlayers = World ? World->GetGameInstance()->GetNumLocalPlayers() : 0;
 
 	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
 	{
@@ -916,7 +916,12 @@ void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize ) const
 
 bool UGameViewportClient::IsFullScreenViewport() const
 {
-	return Viewport->IsFullscreen();
+	if (Viewport != nullptr)
+	{
+		return Viewport->IsFullscreen();
+	}
+
+	return false;
 }
 
 bool UGameViewportClient::ShouldForceFullscreenViewport() const
@@ -989,8 +994,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	FIntPoint DebugCanvasSize = InViewport->GetSizeXY();
 	static FName DebugCanvasObjectName(TEXT("DebugCanvasObject"));
 	UCanvas* DebugCanvasObject = GetCanvasByName(DebugCanvasObjectName);
-	DebugCanvasObject->Canvas = DebugCanvas;	
-	DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL);
+	DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL, DebugCanvas);
 
 	static const auto DebugCanvasInLayerCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.DebugCanvasInLayer"));
 	const bool bDebugInLayer = bStereoRendering && (DebugCanvasInLayerCVar && DebugCanvasInLayerCVar->GetValueOnAnyThread() != 0);
@@ -1209,8 +1213,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 					}
 
-					// Add view information for resource streaming.
-					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.GetViewOrigin(), View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.GetProjectionMatrix().M[0][0]);
+					// Add view information for resource streaming. Allow up to 5X boost for small FOV.
+					const float StreamingScale = 1.f / FMath::Clamp<float>(View->LODDistanceFactor, .2f, 1.f);
+					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.GetViewOrigin(), View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.GetProjectionMatrix().M[0][0], StreamingScale);
 					MyWorld->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.GetViewOrigin());
 				}
 			}
@@ -1343,7 +1348,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						// rendering to directly to viewport target
 						FVector CanvasOrigin(FMath::TruncToFloat(View->UnscaledViewRect.Min.X), FMath::TruncToInt(View->UnscaledViewRect.Min.Y), 0.f);
 												
-						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
+						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View, SceneCanvas);
 
 						// Set the canvas transform for the player's view rectangle.
 						check(SceneCanvas);
@@ -1413,7 +1418,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		{
 			// Reset the debug canvas to be full-screen before drawing the console
 			// (the debug draw service above has messed with the viewport size to fit it to a single player's subregion)
-			DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL);
+			DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL, DebugCanvas);
 
 			ViewportConsole->PostRender_Console(DebugCanvasObject);
 		}

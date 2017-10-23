@@ -54,6 +54,7 @@ AGameModeBase::AGameModeBase(const FObjectInitializer& ObjectInitializer)
 	GameSessionClass = AGameSession::StaticClass();
 	SpectatorClass = ASpectatorPawn::StaticClass();
 	ReplaySpectatorPlayerControllerClass = APlayerController::StaticClass();
+	ServerStatReplicatorClass = AServerStatReplicator::StaticClass();
 }
 
 void AGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -850,6 +851,7 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 		if (MyWorld->StreamingLevels.Num() > 0)
 		{
 			// Tell the player controller the current streaming level status
+			TArray<FUpdateLevelStreamingLevelStatus> LevelStatuses;
 			for (int32 LevelIndex = 0; LevelIndex < MyWorld->StreamingLevels.Num(); LevelIndex++)
 			{
 				ULevelStreaming* TheLevel = MyWorld->StreamingLevels[LevelIndex];
@@ -858,7 +860,7 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 				{
 					const ULevel* LoadedLevel = TheLevel->GetLoadedLevel();
 
-					UE_LOG(LogGameMode, Log, TEXT("levelStatus: %s %i %i %i %s %i"),
+					UE_LOG(LogGameMode, Verbose, TEXT("ReplicateStreamingStatus: %s %i %i %i %s %i"),
 						*TheLevel->GetWorldAssetPackageName(),
 						TheLevel->bShouldBeVisible,
 						LoadedLevel && LoadedLevel->bIsVisible,
@@ -866,14 +868,15 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 						*GetNameSafe(LoadedLevel),
 						TheLevel->bHasLoadRequestPending);
 
-					PC->ClientUpdateLevelStreamingStatus(
-						PC->NetworkRemapPath(TheLevel->GetWorldAssetPackageFName(), false),
-						TheLevel->bShouldBeLoaded,
-						TheLevel->bShouldBeVisible,
-						TheLevel->bShouldBlockOnLoad,
-						TheLevel->LevelLODIndex);
+					FUpdateLevelStreamingLevelStatus& LevelStatus = *new( LevelStatuses ) FUpdateLevelStreamingLevelStatus();
+					LevelStatus.PackageName = PC->NetworkRemapPath(*TheLevel->GetWorldAssetPackageName(), false);
+					LevelStatus.bNewShouldBeLoaded = TheLevel->bShouldBeLoaded;
+					LevelStatus.bNewShouldBeVisible = TheLevel->bShouldBeVisible;
+					LevelStatus.bNewShouldBlockOnLoad = TheLevel->bShouldBlockOnLoad;
+					LevelStatus.LODIndex = TheLevel->LevelLODIndex;
 				}
 			}
+			PC->ClientUpdateMultipleLevelsStreamingStatus( LevelStatuses );
 			PC->ClientFlushLevelStreaming();
 		}
 
@@ -1297,17 +1300,6 @@ void AGameModeBase::InitStartSpot_Implementation(AActor* StartSpot, AController*
 void AGameModeBase::SetPlayerDefaults(APawn* PlayerPawn)
 {
 	PlayerPawn->SetPlayerDefaults();
-
-#if !UE_WITH_PHYSICS
-	// If there is no physics, set to flying by default
-	UCharacterMovementComponent* CharacterMovement = Cast<UCharacterMovementComponent>(NewPlayer->GetPawn()->GetMovementComponent());
-	if (CharacterMovement)
-	{
-		CharacterMovement->bCheatFlying = true;
-		CharacterMovement->SetMovementMode(MOVE_Flying);
-	}
-#endif	//!UE_WITH_PHYSICS
-
 }
 
 void AGameModeBase::ChangeName(AController* Other, const FString& S, bool bNameChange)

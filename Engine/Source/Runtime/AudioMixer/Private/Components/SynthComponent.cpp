@@ -11,7 +11,7 @@ USynthSound::USynthSound(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-void USynthSound::Init(USynthComponent* InSynthComponent, int32 InNumChannels)
+void USynthSound::Init(USynthComponent* InSynthComponent, const int32 InNumChannels, const int32 InSampleRate)
 {
 	OwningSynthComponent = InSynthComponent;
 	bVirtualizeWhenSilent = true;
@@ -31,7 +31,7 @@ void USynthSound::Init(USynthComponent* InSynthComponent, int32 InNumChannels)
 
 	Duration = INDEFINITELY_LOOPING_DURATION;
 	bLooping = true;
-	SampleRate = InSynthComponent->GetAudioDevice()->SampleRate;
+	SampleRate = InSampleRate;
 	bAudioMixer = InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled();
 }
 
@@ -127,14 +127,18 @@ void USynthComponent::Deactivate()
 	}
 }
 
-void USynthComponent::Initialize()
+void USynthComponent::Initialize(int32 SampleRateOverride)
 {
 	FAudioDevice* AudioDevice = GetAudioDevice();
 	if (!bIsInitialized && AudioDevice)
 	{
 		bIsInitialized = true;
 
-		const int32 SampleRate = AudioDevice->SampleRate;
+		int32 SampleRate = AudioDevice->SampleRate;
+		if (SampleRateOverride != INDEX_NONE)
+		{
+			SampleRate = SampleRateOverride;
+		}
 
 #if SYNTH_GENERATOR_TEST_TONE
 		NumChannels = 2;
@@ -159,7 +163,7 @@ void USynthComponent::Initialize()
 		Synth->SoundSubmixObject = SoundSubmix;
 		Synth->SoundSubmixSends = SoundSubmixSends;
 
-		Synth->Init(this, NumChannels);
+		Synth->Init(this, NumChannels, SampleRate);
 	}
 }
 

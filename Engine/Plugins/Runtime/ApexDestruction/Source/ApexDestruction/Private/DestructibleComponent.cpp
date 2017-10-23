@@ -47,8 +47,10 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 
 	SetComponentSpaceTransformsDoubleBuffering(false);
 
+#if WITH_PHYSX
 	// Get contact offset params
 	FBodySetupShapeIterator::GetContactOffsetParams(ContactOffsetFactor, MinContactOffset, MaxContactOffset);
+#endif //WITH_PHYSX
 }
 
 #if WITH_EDITORONLY_DATA
@@ -1518,6 +1520,9 @@ bool UDestructibleComponent::IsChunkLarge(PxRigidActor* ChunkActor) const
 #endif // WITH_APEX
 }
 
+#endif	//WITH_PHYSX
+
+
 void UDestructibleComponent::OnActorEnableCollisionChanged()
 {
 	ECollisionEnabled::Type NewCollisionType = GetBodyInstance()->GetCollisionEnabled();
@@ -1556,6 +1561,8 @@ void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType
 	OnComponentCollisionSettingsChanged();
 #endif // WITH_APEX
 }
+
+#if WITH_PHYSX
 
 void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor, int32 ChunkIdx, const FCollisionResponseContainer* ResponseOverride /*= NULL*/)
 {
@@ -1642,6 +1649,9 @@ void UDestructibleComponent::SetCollisionResponseForShape(PxShape* Shape, int32 
 	}
 }
 
+#endif	//WITH_PHYSX
+
+
 void UDestructibleComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Material)
 {
 	// Mesh component handles render side materials
@@ -1692,4 +1702,3 @@ void UDestructibleComponent::SetMaterial(int32 ElementIndex, UMaterialInterface*
 #endif
 }
 
-#endif // WITH_PHYSX

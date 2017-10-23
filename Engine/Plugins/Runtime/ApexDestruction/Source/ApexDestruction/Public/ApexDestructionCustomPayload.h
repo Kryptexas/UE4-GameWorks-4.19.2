@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "CustomPhysXPayload.h"
 
+#if WITH_APEX
+
 struct FApexDestructionSyncActors : public FCustomPhysXSyncActors
 {
 	virtual void SyncToActors_AssumesLocked(int32 SceneType, const TArray<physx::PxRigidActor*>& RigidActors) override;
@@ -34,3 +36,5 @@ private:
 	friend class FApexDestructionModule;
 	static FApexDestructionSyncActors* SingletonCustomSync;
 };
+
+#endif // WITH_APEX

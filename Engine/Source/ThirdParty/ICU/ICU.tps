@@ -5,7 +5,7 @@
   <Date>2016-06-10T12:02:52.5030733-04:00</Date>
   <Function>ICU is a mature, widely used set of C/C++ and Java libraries providing Unicode and Globalization support for software applications</Function>
   <Justification>Needed for UE4 ship</Justification>
-  <Eula>http://source.icu-project.org/repos/icu/icu/trunk/license.html</Eula>
+  <Eula>http://www.unicode.org/copyright.html#License</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

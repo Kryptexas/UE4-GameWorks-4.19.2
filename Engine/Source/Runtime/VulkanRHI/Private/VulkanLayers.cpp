@@ -41,10 +41,6 @@ static const ANSICHAR* GRequiredLayersInstance[] =
 // List of validation layers which we want to activate for the instance
 static const ANSICHAR* GValidationLayersInstance[] =
 {
-#if VULKAN_ENABLE_API_DUMP
-	"VK_LAYER_LUNARG_api_dump",
-#endif
-
 #if VULKAN_ENABLE_STANDARD_VALIDATION
 	"VK_LAYER_LUNARG_standard_validation",
 #else
@@ -76,10 +72,6 @@ static const ANSICHAR* GRequiredLayersDevice[] =
 // List of validation layers which we want to activate for the device
 static const ANSICHAR* GValidationLayersDevice[] =
 {
-#if VULKAN_ENABLE_API_DUMP
-	"VK_LAYER_LUNARG_api_dump",
-#endif
-
 	// Only have device validation layers on SDKs below 13
 #if defined(VK_HEADER_VERSION) && (VK_HEADER_VERSION < 13)
 #if VULKAN_ENABLE_STANDARD_VALIDATION
@@ -212,6 +204,12 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	FMemory::Memzero(GlobalExtensions.LayerProps);
 	GetInstanceLayerExtensions(nullptr, GlobalExtensions);
 
+	for (int32 Index = 0; Index < GlobalExtensions.ExtensionProps.Num(); ++Index)
+	{
+		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Instance Layer %s"), ANSI_TO_TCHAR(GlobalExtensions.ExtensionProps[Index].extensionName));
+	}
+
+
 	// Now per layer
 	TArray<VkLayerProperties> GlobalLayerProperties;
 	do
@@ -235,7 +233,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 		FLayerExtension* Layer = new(GlobalLayers) FLayerExtension;
 		Layer->LayerProps = GlobalLayerProperties[Index];
 		GetInstanceLayerExtensions(GlobalLayerProperties[Index].layerName, *Layer);
-		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Global Layer %s"), ANSI_TO_TCHAR(GlobalLayerProperties[Index].layerName));
+		UE_LOG(LogVulkanRHI, Display, TEXT("- Found global layer %s"), ANSI_TO_TCHAR(GlobalLayerProperties[Index].layerName));
 	}
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
@@ -286,12 +284,33 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 			}
 		}
 	}
+
+#if VULKAN_ENABLE_API_DUMP
+	{
+		bool bApiDumpFound = false;
+		const char* ApiDumpName = "VK_LAYER_LUNARG_api_dump";
+		for (int32 Index = 0; Index < GlobalLayers.Num(); ++Index)
+		{
+			if (!FCStringAnsi::Strcmp(GlobalLayers[Index].LayerProps.layerName, ApiDumpName))
+			{
+				bApiDumpFound = true;
+				OutInstanceLayers.Add(ApiDumpName);
+				break;
+			}
+		}
+		if (!bApiDumpFound)
+		{
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to find Vulkan instance layer %s"), ANSI_TO_TCHAR(ApiDumpName));
+		}
+	}
+#endif	// VULKAN_ENABLE_API_DUMP
 #endif	// VULKAN_HAS_DEBUGGING_ENABLED
 
 #if PLATFORM_LINUX
-	uint32_t count = 0;
-	auto RequiredExtensions = SDL_VK_GetRequiredInstanceExtensions(&count);
-	for(int32 i = 0; i < count; i++) {
+	uint32_t Count = 0;
+	auto RequiredExtensions = SDL_VK_GetRequiredInstanceExtensions(&Count);
+	for(int32 i = 0; i < Count; i++)
+	{
 		OutInstanceExtensions.Add(RequiredExtensions[i]);
 	}
 #endif

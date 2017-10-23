@@ -42,8 +42,8 @@ public:
 		, bUsesDynamicParameter(true)
 	{}
 
-	FParticleBeamTrailVertexFactory()
-		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+	FParticleBeamTrailVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FParticleVertexFactoryBase(PVFT_MAX, InFeatureLevel)
 		, IndexBuffer(nullptr)
 		, FirstIndex(0)
 		, OutTriangleCount(0)

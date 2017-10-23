@@ -289,7 +289,7 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 	check(!EncoderFence);
 	NSString* Label = nil;
 	
-	if(GEmitDrawEvents)
+	if(GetEmitDrawEvents())
 	{
 		Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[RenderCommandEncoder setLabel:Label];
@@ -320,7 +320,7 @@ void FMetalCommandEncoder::BeginComputeCommandEncoding(void)
 	check(!EncoderFence);
 	NSString* Label = nil;
 	
-	if(GEmitDrawEvents)
+	if(GetEmitDrawEvents())
 	{
 		Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[ComputeCommandEncoder setLabel:Label];
@@ -350,7 +350,7 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 	check(!EncoderFence);
 	NSString* Label = nil;
 	
-	if(GEmitDrawEvents)
+	if(GetEmitDrawEvents())
 	{
 		Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[BlitCommandEncoder setLabel:Label];

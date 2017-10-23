@@ -11,6 +11,13 @@
 #include "PaperTileLayer.h"
 #include "Paper2DPrivate.h"
 
+#if WITH_EDITOR
+#include "PaperTileMapComponent.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "ComponentReregisterContext.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "Paper2D"
 
 //////////////////////////////////////////////////////////////////////////
@@ -112,11 +119,6 @@ void UPaperTileMap::PostLoad()
 }
 
 #if WITH_EDITOR
-
-#include "PaperTileMapComponent.h"
-#include "UObject/UObjectHash.h"
-#include "UObject/UObjectIterator.h"
-#include "ComponentReregisterContext.h"
 
 /** Removes all components that use the specified sprite asset from their scenes for the lifetime of the class. */
 class FTileMapReregisterContext

@@ -9,7 +9,7 @@
 namespace VulkanRHI
 {
 #if VULKAN_ENABLE_DUMP_LAYER
-	void PrintfBeginResult(const FString& String);
+	VULKANRHI_API void PrintfBeginResult(const FString& String);
 	void DevicePrintfBeginResult(VkDevice Device, const FString& String);
 	void PrintfBegin(const FString& String);
 	void DevicePrintfBegin(VkDevice Device, const FString& String);
@@ -18,7 +18,7 @@ namespace VulkanRHI
 	void PrintResult(VkResult Result);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, void* Handle);
 	void PrintResultAndNamedHandles(VkResult Result, const TCHAR* HandleName, uint32 NumHandles, uint64* Handles);
-	void PrintResultAndPointer(VkResult Result, void* Handle);
+	VULKANRHI_API void PrintResultAndPointer(VkResult Result, void* Handle);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, uint64 Handle);
 	void PrintResultAndPointer(VkResult Result, uint64 Handle);
 	void DumpPhysicalDeviceProperties(VkPhysicalDeviceMemoryProperties* Properties);

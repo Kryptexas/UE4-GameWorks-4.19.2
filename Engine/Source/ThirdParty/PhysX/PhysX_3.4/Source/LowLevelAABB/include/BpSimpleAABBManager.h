@@ -135,6 +135,11 @@ namespace Bp
 
 		PX_FORCE_INLINE void initEntry(PxU32 index)
 		{
+			// Add one to index to avoid a problem of reading outside the bounds of the array in Aggregate::computeBounds
+			// when using V4LoadU on the last element of the array to read the maximum vector. There is always room for
+			// the highest requested index plus one
+			index++;
+
 			const PxU32 oldCapacity = mBounds.capacity();
 			if(index>=oldCapacity)
 			{

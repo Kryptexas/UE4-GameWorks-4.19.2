@@ -5,51 +5,80 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#pragma once
+
 #include "command_encoder.hpp"
 #include "device.hpp"
-#include <Metal/MTLCommandEncoder.h>
+#ifdef __OBJC__
+#import <Metal/MTLCommandEncoder.h>
+#endif
 
 namespace mtlpp
 {
-    Device CommandEncoder::GetDevice() const
+	template<typename T>
+    Device CommandEncoder<T>::GetDevice() const
     {
-        Validate();
-        return ns::Handle { (__bridge void*)[(__bridge id<MTLCommandEncoder>)m_ptr device] };
+        this->Validate();
+#ifdef __OBJC__
+        return [(id<MTLCommandEncoder>)this->m_ptr device];
+#else
+		return Device();
+#endif
     }
 
-    ns::String CommandEncoder::GetLabel() const
+	template<typename T>
+    ns::String CommandEncoder<T>::GetLabel() const
     {
-        Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLCommandEncoder>)m_ptr label] };
+        this->Validate();
+#ifdef __OBJC__
+        return [(id<MTLCommandEncoder>)this->m_ptr label];
+#else
+		return ns::String();
+#endif
     }
 
-    void CommandEncoder::SetLabel(const ns::String& label)
+	template<typename T>
+    void CommandEncoder<T>::SetLabel(const ns::String& label)
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr setLabel:(__bridge NSString*)label.GetPtr()];
+        this->Validate();
+#ifdef __OBJC__
+        [(id<MTLCommandEncoder>)this->m_ptr setLabel:(NSString*)label.GetPtr()];
+#endif
     }
 
-    void CommandEncoder::EndEncoding()
+	template<typename T>
+    void CommandEncoder<T>::EndEncoding()
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr endEncoding];
+        this->Validate();
+#ifdef __OBJC__
+        [(id<MTLCommandEncoder>)this->m_ptr endEncoding];
+#endif
     }
 
-    void CommandEncoder::InsertDebugSignpost(const ns::String& string)
+	template<typename T>
+    void CommandEncoder<T>::InsertDebugSignpost(const ns::String& string)
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr insertDebugSignpost:(__bridge NSString*)string.GetPtr()];
+       this->Validate();
+#ifdef __OBJC__
+        [(id<MTLCommandEncoder>)this->m_ptr insertDebugSignpost:(NSString*)string.GetPtr()];
+#endif
     }
 
-    void CommandEncoder::PushDebugGroup(const ns::String& string)
+	template<typename T>
+    void CommandEncoder<T>::PushDebugGroup(const ns::String& string)
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr pushDebugGroup:(__bridge NSString*)string.GetPtr()];
+        this->Validate();
+#ifdef __OBJC__
+        [(id<MTLCommandEncoder>)this->m_ptr pushDebugGroup:(NSString*)string.GetPtr()];
+#endif
     }
 
-    void CommandEncoder::PopDebugGroup()
+	template<typename T>
+    void CommandEncoder<T>::PopDebugGroup()
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr popDebugGroup];
+        this->Validate();
+#ifdef __OBJC__
+        [(id<MTLCommandEncoder>)this->m_ptr popDebugGroup];
+#endif
     }
 }

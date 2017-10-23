@@ -14,24 +14,24 @@ namespace mtlpp
     {
         Validate();
 		if(@available(macOS 10.13, iOS 10.0, *))
-			return ns::Handle{ (__bridge void*)[(__bridge id<MTLFence>)m_ptr device] };
+			return [(id<MTLFence>)m_ptr device];
 		else
-			return ns::Handle{ nullptr };
+			return nullptr;
     }
 
     ns::String Fence::GetLabel() const
     {
         Validate();
 		if(@available(macOS 10.13, iOS 10.0, *))
-			return ns::Handle{ (__bridge void*)[(__bridge id<MTLFence>)m_ptr label] };
+			return [(id<MTLFence>)m_ptr label];
 		else
-			return ns::Handle{ nullptr };
+			return ns::String();
     }
 
     void Fence::SetLabel(const ns::String& label)
     {
         Validate();
 		if(@available(macOS 10.13, iOS 10.0, *))
-			[(__bridge id<MTLFence>)m_ptr setLabel:(__bridge NSString*)label.GetPtr()];
+			[(id<MTLFence>)m_ptr setLabel:(NSString*)label.GetPtr()];
     }
 }

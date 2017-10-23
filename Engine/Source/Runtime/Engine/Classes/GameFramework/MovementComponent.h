@@ -363,7 +363,7 @@ public:
 	 * @param	Radius		The radius in which the force will be applied
 	 * @param	Strength	The strength of the force
 	 * @param	Falloff		The falloff from the force's origin
-	 * @param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	 * @param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no effect).
 	 */
 	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 

@@ -437,6 +437,11 @@ public:
 	 * @return The display name of the property
 	 */
 	virtual FText GetPropertyDisplayName() const = 0;
+
+	/** 
+	* Allows the handle to override the node's display name
+	*/
+	virtual void SetPropertyDisplayName(FText InDisplayName) = 0;
 	
 	/**
 	 * Resets the value to its default
@@ -466,7 +471,7 @@ public:
 	/**
 	 * Marks this property has having a custom reset to default (reset to default will not show up in the default place)
 	 */
-	virtual void MarkResetToDefaultCustomized() = 0;
+	virtual void MarkResetToDefaultCustomized(bool bCustomized = true) = 0;
 
 	/**
 	 * Marks this property as not having a custom reset to default (useful when a widget customizing reset to default goes away)

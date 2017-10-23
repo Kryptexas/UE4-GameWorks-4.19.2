@@ -377,6 +377,9 @@ void UVectorFieldStatic::PostInitProperties()
 class FVectorFieldCollectorResources : public FOneFrameResource
 {
 public:
+	FVectorFieldCollectorResources(ERHIFeatureLevel::Type InFeatureLevel)
+		: VisualizationVertexFactory(InFeatureLevel){}
+
 	FVectorFieldVisualizationVertexFactory VisualizationVertexFactory;
 
 	virtual ~FVectorFieldCollectorResources()
@@ -396,6 +399,7 @@ public:
 	/** Initialization constructor. */
 	explicit FVectorFieldSceneProxy( UVectorFieldComponent* VectorFieldComponent )
 		: FPrimitiveSceneProxy(VectorFieldComponent)
+		, VisualizationVertexFactory(GetScene().GetFeatureLevel())
 	{
 		bWillEverBeLit = false;
 		VectorFieldInstance = VectorFieldComponent->VectorFieldInstance;
@@ -434,7 +438,7 @@ public:
 				// Draw a visualization of the vectors contained in the field when selected.
 				if (IsSelected() || View->Family->EngineShowFlags.VectorFields)
 				{
-					FVectorFieldCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FVectorFieldCollectorResources>();
+					FVectorFieldCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FVectorFieldCollectorResources>(View->GetFeatureLevel());
 					CollectorResources.VisualizationVertexFactory.InitResource();
 
 					GetVectorFieldMesh(&CollectorResources.VisualizationVertexFactory, VectorFieldInstance, ViewIndex, Collector);

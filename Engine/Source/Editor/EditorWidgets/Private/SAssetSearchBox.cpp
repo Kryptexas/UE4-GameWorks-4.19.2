@@ -153,6 +153,9 @@ FReply SAssetSearchBox::OnFocusReceived( const FGeometry& MyGeometry, const FFoc
 void SAssetSearchBox::HandleTextChanged(const FText& NewText)
 {
 	OnTextChanged.ExecuteIfBound(NewText);
+	// if I don't do this, in the beginning, when no text is set, search does not work
+	// it thinks the current text is empty, so no suggestion is made
+	InputText->SetText(NewText);
 	UpdateSuggestionList();
 }
 

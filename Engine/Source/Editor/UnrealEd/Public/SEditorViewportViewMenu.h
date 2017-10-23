@@ -9,6 +9,7 @@
 #include "Widgets/SWidget.h"
 #include "SEditorViewport.h"
 #include "SEditorViewportToolBarMenu.h"
+#include "Styling/SlateTypes.h"
 
 struct FSlateBrush;
 
@@ -22,7 +23,7 @@ public:
 	void Construct( const FArguments& InArgs, TSharedRef<SEditorViewport> InViewport, TSharedRef<class SViewportToolBar> InParentToolBar );
 
 	/** Generate the view menu */
-	static void GenerateViewMenu(FMenuBuilder& InMenuBuilder, TWeakPtr<SViewportToolBar> ParentToolBar);
+	static void GenerateViewMenu(FMenuBuilder& InMenuBuilder, TWeakPtr<SViewportToolBar> ParentToolBar, TSharedRef<SWidget> FixedEV100Menu, bool bIsLevelEditor);
 
 	static FText GetViewMenuLabel(TWeakPtr<SEditorViewport> InViewport);
 

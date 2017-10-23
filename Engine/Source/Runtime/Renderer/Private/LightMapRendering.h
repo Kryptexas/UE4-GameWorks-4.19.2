@@ -267,7 +267,7 @@ public:
 		) const
 	{
 		check(VertexFactory);
-		VertexFactory->Set(RHICmdList);
+		VertexFactory->Set(View->GetFeatureLevel(), RHICmdList);
 	}
 
 	void SetMesh(

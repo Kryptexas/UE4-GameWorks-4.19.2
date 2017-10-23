@@ -10,6 +10,8 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_PROTOCOL(MTLResource);
+
 namespace mtlpp
 {
     class Heap;
@@ -60,11 +62,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class Resource : public ns::Object
+	class Resource : public ns::Object<ns::Protocol<id<MTLResource>>::type>
     {
     public:
         Resource() { }
-        Resource(const ns::Handle& handle) : ns::Object(handle) { }
+        Resource(ns::Protocol<id<MTLResource>>::type handle) : ns::Object<ns::Protocol<id<MTLResource>>::type>(handle) { }
 
         ns::String   GetLabel() const;
         CpuCacheMode GetCpuCacheMode() const;

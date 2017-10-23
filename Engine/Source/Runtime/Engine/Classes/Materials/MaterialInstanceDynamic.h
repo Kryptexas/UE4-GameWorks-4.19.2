@@ -96,7 +96,7 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	 * @param OutFontValue - New font value to set for this MIC
 	 * @param OutFontPage - New font page value to set for this MIC
 	 */
-	void SetFontParameterValue(FName ParameterName, class UFont* FontValue, int32 FontPage);
+	void SetFontParameterValue(const FMaterialParameterInfo& ParameterInfo, class UFont* FontValue, int32 FontPage);
 
 	/** Remove all parameter values */
 	void ClearParameterValues();

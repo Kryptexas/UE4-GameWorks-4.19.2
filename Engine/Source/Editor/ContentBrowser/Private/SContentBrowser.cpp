@@ -2623,7 +2623,10 @@ TArray<FString> SContentBrowser::GetAssetSearchSuggestions() const
 		if ( (*TypeActionsIt).IsValid() )
 		{
 			const TSharedPtr<IAssetTypeActions> TypeActions = (*TypeActionsIt).Pin();
-			AllSuggestions.Add( TypeActions->GetSupportedClass()->GetName() );
+			if ( TypeActions->GetSupportedClass() )
+			{
+				AllSuggestions.Add( TypeActions->GetSupportedClass()->GetName() );
+			}
 		}
 	}
 

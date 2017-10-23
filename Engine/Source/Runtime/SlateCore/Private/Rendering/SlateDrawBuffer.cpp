@@ -65,3 +65,12 @@ void FSlateDrawBuffer::ClearBuffer()
 
 	WindowElementLists.Reset();
 }
+
+void FSlateDrawBuffer::UpdateResourceVersion(uint32 NewResourceVersion)
+{
+	if (NewResourceVersion != ResourceVersion)
+	{
+		WindowElementListsPool.Empty();
+		ResourceVersion = NewResourceVersion;
+	}
+}

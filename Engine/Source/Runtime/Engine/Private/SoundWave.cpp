@@ -291,6 +291,11 @@ float USoundWave::GetSubtitlePriority() const
 	return SubtitlePriority;
 };
 
+bool USoundWave::IsAllowedVirtual() const
+{
+	return bVirtualizeWhenSilent || (Subtitles.Num() > 0);
+}
+
 void USoundWave::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -797,9 +802,9 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->ReverbPluginSettings = ParseParams.ReverbPluginSettings;
 
 		bool bAddedWaveInstance = false;
-		// For now, we must virtualize sounds if we are supposed to handle subtitles, because otherwise the subtitles never play.
-		// That needs to change in the future, because there are still reasons a sound (and thus its subtitle) may not play.
-		// But for now at least that makes it possible handle virtualizing properly.
+
+		// Recompute the virtualizability here even though we did it up-front in the active sound parse.
+		// This is because an active sound can generate multiple sound waves, not all of them are necessarily virtualizable.
 		bool bHasSubtitles = ActiveSound.bHandleSubtitles && (ActiveSound.bHasExternalSubtitles || (Subtitles.Num() > 0));
 		if (WaveInstance->GetVolumeWithDistanceAttenuation() > KINDA_SMALL_NUMBER || ((bVirtualizeWhenSilent || bHasSubtitles) && AudioDevice->VirtualSoundsEnabled()))
 		{

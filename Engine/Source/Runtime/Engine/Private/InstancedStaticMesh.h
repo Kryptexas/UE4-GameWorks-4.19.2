@@ -49,7 +49,7 @@ extern const int32 InstancedStaticMeshMaxTexCoord;
 -----------------------------------------------------------------------------*/
 
 /** A vertex buffer of positions. */
-class FStaticMeshInstanceBuffer : public FVertexBuffer
+class FStaticMeshInstanceBuffer : public FRenderResource
 {
 public:
 
@@ -103,18 +103,9 @@ public:
 	void operator=(const FStaticMeshInstanceBuffer &Other);
 
 	// Other accessors.
-	FORCEINLINE uint32 GetStride() const
-	{
-		return Stride;
-	}
 	FORCEINLINE uint32 GetNumInstances() const
 	{
 		return NumInstances;
-	}
-
-	FORCEINLINE const void* GetRawData() const
-	{
-		return InstanceData->GetDataPointer();
 	}
 
 	FORCEINLINE  void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
@@ -122,22 +113,41 @@ public:
 		InstanceData->GetInstanceTransform(InstanceIndex, Transform);
 	}
 
-	FORCEINLINE  void GetInstanceShaderValues(int32 InstanceIndex, FVector4 InstanceTransform[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
+	FORCEINLINE  void GetInstanceShaderValues(int32 InstanceIndex, FVector4 (&InstanceTransform)[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
 	{
 		InstanceData->GetInstanceShaderValues(InstanceIndex, InstanceTransform, InstanceLightmapAndShadowMapUVBias, InstanceOrigin);
 	}
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
+	virtual void InitResource() override;
+	virtual void ReleaseResource() override;
 	virtual FString GetFriendlyName() const override { return TEXT("Static-mesh instances"); }
 
+	void BindInstanceVertexBuffer(const class FVertexFactory* VertexFactory, struct FInstancedStaticMeshDataType& InstancedStaticMeshData) const;
+
 private:
+	class FInstanceOriginBuffer : public FVertexBuffer
+	{
+		virtual FString GetFriendlyName() const override { return TEXT("FInstanceOriginBuffer"); }
+	} InstanceOriginBuffer;
+	FShaderResourceViewRHIRef InstanceOriginSRV;
+
+	class FInstanceTransformBuffer : public FVertexBuffer
+	{
+		virtual FString GetFriendlyName() const override { return TEXT("FInstanceTransformBuffer"); }
+	} InstanceTransformBuffer;
+	FShaderResourceViewRHIRef InstanceTransformSRV;
+
+	class FInstanceLightmapBuffer : public FVertexBuffer
+	{
+		virtual FString GetFriendlyName() const override { return TEXT("FInstanceLightmapBuffer"); }
+	} InstanceLightmapBuffer;
+	FShaderResourceViewRHIRef InstanceLightmapSRV;
 
 	/** The vertex data storage type */
 	FStaticMeshInstanceData* InstanceData;
-
-	/** The cached vertex stride. */
-	uint32 Stride;
 
 	/** The cached number of instances. */
 	uint32 NumInstances;
@@ -152,14 +162,14 @@ private:
 	FRandomStream RandomStream;
 
 	/** Allocates the vertex data storage type. */
-	void AllocateData();
+	void AllocateData(bool bRequestsCPUAccess);
 
 	/** Accepts preallocated data; Other is left empty after the call because no memory is copied. */
-	void AllocateData(FStaticMeshInstanceData& Other);
+	void AllocateData(FStaticMeshInstanceData& Other, bool bRequestsCPUAccess);
 
-	void SetupCPUAccess(UInstancedStaticMeshComponent* InComponent);
-
-	void UpdateRHIVertexBuffer(int32 StartingIndex, uint32 InstanceCount, uint32 InstanceSize);
+	void UpdateRHIVertexBuffer(int32 StartingIndex, uint32 InstanceCount);
+	
+	bool ComponentRequestsCPUAccess(UInstancedStaticMeshComponent* InComponent);
 };
 
 /*-----------------------------------------------------------------------------
@@ -180,6 +190,22 @@ struct FInstancingUserData
 	bool bRenderUnselected;
 };
 
+struct FInstancedStaticMeshDataType
+{
+	/** The stream to read the mesh transform from. */
+	FVertexStreamComponent InstanceOriginComponent;
+
+	/** The stream to read the mesh transform from. */
+	FVertexStreamComponent InstanceTransformComponent[3];
+
+	/** The stream to read the Lightmap Bias and Random instance ID from. */
+	FVertexStreamComponent InstanceLightmapAndShadowMapUVBiasComponent;
+
+	FShaderResourceViewRHIRef InstanceOriginSRV;
+	FShaderResourceViewRHIRef InstanceTransformSRV;
+	FShaderResourceViewRHIRef InstanceLightmapSRV;
+};
+
 /**
  * A vertex factory for instanced static meshes
  */
@@ -187,16 +213,13 @@ struct FInstancedStaticMeshVertexFactory : public FLocalVertexFactory
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FInstancedStaticMeshVertexFactory);
 public:
-	struct FDataType : public FLocalVertexFactory::FDataType
+	FInstancedStaticMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLocalVertexFactory(InFeatureLevel, "FInstancedStaticMeshVertexFactory", &Data)
 	{
-		/** The stream to read the mesh transform from. */
-		FVertexStreamComponent InstanceOriginComponent;
+	}
 
-		/** The stream to read the mesh transform from. */
-		FVertexStreamComponent InstanceTransformComponent[3];
-
-		/** The stream to read the Lightmap Bias and Random instance ID from. */
-		FVertexStreamComponent InstanceLightmapAndShadowMapUVBiasComponent;
+	struct FDataType : public FInstancedStaticMeshDataType, public FLocalVertexFactory::FDataType
+	{
 	};
 
 	/**
@@ -210,6 +233,12 @@ public:
 	 */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
+		if (!ContainsManualVertexFetch && !IsES2Platform(Platform) && !IsMetalPlatform(Platform))
+		{
+			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
+		}
+
 		OutEnvironment.SetDefine(TEXT("USE_INSTANCING"),TEXT("1"));
 		OutEnvironment.SetDefine(TEXT("USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED"), ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES);
 		FLocalVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
@@ -254,6 +283,21 @@ public:
 	virtual bool SupportsNullPixelShader() const override { return false; }
 #endif
 
+	inline const FShaderResourceViewRHIParamRef GetInstanceOriginSRV() const
+	{
+		return Data.InstanceOriginSRV;
+	}
+
+	inline const FShaderResourceViewRHIParamRef GetInstanceTransformSRV() const
+	{
+		return Data.InstanceTransformSRV;
+	}
+
+	inline const FShaderResourceViewRHIParamRef GetInstanceLightmapSRV() const
+	{
+		return Data.InstanceLightmapSRV;
+	}
+
 private:
 	FDataType Data;
 };
@@ -263,6 +307,11 @@ struct FEmulatedInstancedStaticMeshVertexFactory : public FInstancedStaticMeshVe
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FEmulatedInstancedStaticMeshVertexFactory);
 public:
+	FEmulatedInstancedStaticMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FInstancedStaticMeshVertexFactory(InFeatureLevel)
+	{
+	}
+
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */
@@ -300,6 +349,9 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 		CPUInstanceOrigin.Bind(ParameterMap, TEXT("CPUInstanceOrigin"));
 		CPUInstanceTransform.Bind(ParameterMap, TEXT("CPUInstanceTransform"));
 		CPUInstanceLightmapAndShadowMapBias.Bind(ParameterMap, TEXT("CPUInstanceLightmapAndShadowMapBias"));
+		VertexFetch_InstanceOriginBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_InstanceOriginBuffer"));
+		VertexFetch_InstanceTransformBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_InstanceTransformBuffer"));
+		VertexFetch_InstanceLightmapBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_InstanceLightmapBuffer"));
 	}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
@@ -316,6 +368,9 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 		Ar << CPUInstanceOrigin;
 		Ar << CPUInstanceTransform;
 		Ar << CPUInstanceLightmapAndShadowMapBias;
+		Ar << VertexFetch_InstanceOriginBufferParameter;
+		Ar << VertexFetch_InstanceTransformBufferParameter;
+		Ar << VertexFetch_InstanceLightmapBufferParameter;
 	}
 
 	virtual uint32 GetSize() const override { return sizeof(*this); }
@@ -331,6 +386,10 @@ private:
 	FShaderParameter CPUInstanceOrigin;
 	FShaderParameter CPUInstanceTransform;
 	FShaderParameter CPUInstanceLightmapAndShadowMapBias;
+
+	FShaderResourceParameter VertexFetch_InstanceOriginBufferParameter;
+	FShaderResourceParameter VertexFetch_InstanceTransformBufferParameter;
+	FShaderResourceParameter VertexFetch_InstanceLightmapBufferParameter;
 };
 
 /*-----------------------------------------------------------------------------
@@ -460,7 +519,7 @@ struct FPerInstanceRenderData
 
 		UpdateInstanceData(InComponent, InInstanceIndex, 1, false);
 	}
-
+		
 	/** Instance buffer */
 	FStaticMeshInstanceBuffer			InstanceBuffer;
 	/** Hit proxies for the instances */
@@ -485,8 +544,8 @@ public:
 	{
 		// Allocate the vertex factories for each LOD
 		InitVertexFactories();
-		InitResources();
-
+		ReInitVertexFactories();
+		RegisterSpeedTreeWind();
 	}
 
 	FInstancedStaticMeshRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
@@ -497,7 +556,8 @@ public:
 		, NumInstances(PerInstanceRenderData.IsValid() ? PerInstanceRenderData->InstanceBuffer.GetNumInstances() : 0)
 	{
 		InitVertexFactories();
-		InitResources();
+		ReInitVertexFactories();
+		RegisterSpeedTreeWind();
 	}
 
 	~FInstancedStaticMeshRenderData()
@@ -518,34 +578,33 @@ public:
 			}
 			else
 			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-					FPerInstanceRenderDataBufferUpdate,
-					FStaticMeshInstanceBuffer*, InstanceBuffer, &PerInstanceRenderData->InstanceBuffer,
-					TSet<int32>, InstanceIndexList, InNeedUpdatingInstanceIndexList,
+				FStaticMeshInstanceBuffer* InstanceBuffer = &PerInstanceRenderData->InstanceBuffer;
+				TSet<int32> InstanceIndexList = InNeedUpdatingInstanceIndexList;
+				ENQUEUE_RENDER_COMMAND(FPerInstanceRenderDataBufferUpdate)(
+						[InstanceBuffer, InstanceIndexList](FRHICommandListImmediate& RHICmdList)
 					{
 						InstanceBuffer->UpdateRHIVertexBuffer(InstanceIndexList);
 					});
 			}
 		}
+		ReInitVertexFactories();
 	}
 
-	void InitResources()
+	void ReInitVertexFactories()
 	{
 		// Initialize the static mesh's vertex factory.
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			CallInitStaticMeshVertexFactory,
-			TIndirectArray<FInstancedStaticMeshVertexFactory>*,VertexFactories,&VertexFactories,
-			FInstancedStaticMeshRenderData*,InstancedRenderData,this,
-			UStaticMesh*,Parent,Component->GetStaticMesh(),
+		TIndirectArray<FInstancedStaticMeshVertexFactory>* InVertexFactories = &VertexFactories;
+		FInstancedStaticMeshRenderData* InstancedRenderData = this;
+		UStaticMesh* Parent = Component->GetStaticMesh();
+		ENQUEUE_RENDER_COMMAND(CallInitStaticMeshVertexFactory)(
+			[InVertexFactories, InstancedRenderData, Parent](FRHICommandListImmediate& RHICmdList)
 		{
-			InitStaticMeshVertexFactories( VertexFactories, InstancedRenderData, Parent );
+			InitStaticMeshVertexFactories(InVertexFactories, InstancedRenderData, Parent );
 		});
+	}
 
-		for( int32 LODIndex=0;LODIndex<VertexFactories.Num();LODIndex++ )
-		{
-			BeginInitResource(&VertexFactories[LODIndex]);
-		}
-
+	void RegisterSpeedTreeWind()
+	{
 		// register SpeedTree wind with the scene
 		if (Component->GetStaticMesh()->SpeedTreeWind.IsValid())
 		{
@@ -608,13 +667,12 @@ private:
 			FInstancedStaticMeshVertexFactory* VertexFactoryPtr;
 			if (bEmulatedInstancing)
 			{
-				VertexFactoryPtr = new FEmulatedInstancedStaticMeshVertexFactory();
+				VertexFactoryPtr = new FEmulatedInstancedStaticMeshVertexFactory(FeatureLevel);
 			}
 			else
 			{
-				VertexFactoryPtr = new FInstancedStaticMeshVertexFactory();
+				VertexFactoryPtr = new FInstancedStaticMeshVertexFactory(FeatureLevel);
 			}
-			VertexFactoryPtr->SetFeatureLevel(FeatureLevel);
 			VertexFactories.Add(VertexFactoryPtr);
 		}
 	}

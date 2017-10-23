@@ -1256,7 +1256,8 @@ bool FPostProcessing::AllowFullPostProcessing(const FViewInfo& View, ERHIFeature
 		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldGI
 		&& !View.Family->EngineShowFlags.VisualizeShadingModels
 		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields
-		&& !View.Family->EngineShowFlags.VisualizeGlobalDistanceField;
+		&& !View.Family->EngineShowFlags.VisualizeGlobalDistanceField
+		&& !View.Family->EngineShowFlags.ShaderComplexity;
 }
 
 void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
@@ -1618,7 +1619,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 				{
 					if (!GIsHighResScreenshot && View.State &&
 						(StereoPass != eSSP_RIGHT_EYE) &&
-						(AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic))
+						AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic)
 					{
 						BloomAndEyeDownSamplesPtr = CreateDownSampleArray(Context, SceneColorHalfRes, true /*bGenerateLog2Alpha*/);
 					}
@@ -1629,7 +1630,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			if(!GIsHighResScreenshot && View.State && (StereoPass != eSSP_RIGHT_EYE))
 			{
 				
-				const bool bUseBasicEyeAdaptation = (AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic);  
+				const bool bUseBasicEyeAdaptation = (AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic);
 
 				if (bUseBasicEyeAdaptation) // log average ps reduction ( non histogram ) 
 				{

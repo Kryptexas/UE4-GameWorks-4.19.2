@@ -3,11 +3,11 @@
 #include "ApexDestructionCustomPayload.h"
 #include "DestructibleComponent.h"
 
+#if WITH_APEX
+
 void FApexDestructionSyncActors::SyncToActors_AssumesLocked(int32 SceneType, const TArray<physx::PxRigidActor*>& RigidActors)
 {
-#if WITH_APEX
 	UDestructibleComponent::UpdateDestructibleChunkTM(RigidActors);
-#endif
 }
 
 TWeakObjectPtr<UPrimitiveComponent> FApexDestructionCustomPayload::GetOwningComponent() const
@@ -36,3 +36,5 @@ FBodyInstance* FApexDestructionCustomPayload::GetBodyInstance() const
 {
 	return OwningComponent.IsValid() ? &OwningComponent->BodyInstance : nullptr;
 }
+
+#endif // WITH_APEX

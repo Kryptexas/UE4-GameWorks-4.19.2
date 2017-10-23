@@ -135,7 +135,7 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 		// Generate Crash GUID
 		TCHAR CrashGUID[FGenericCrashContext::CrashGUIDLength];
 		InContext.GetUniqueCrashName(CrashGUID, FGenericCrashContext::CrashGUIDLength);
-		const FString AppName = FString::Printf(TEXT("UE4-%s"), FApp::GetProjectName());
+		const FString AppName = InContext.GetCrashGameName();
 
 		FString CrashFolder = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Crashes"), CrashGUID);
 		FString CrashFolderAbsolute = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashFolder);

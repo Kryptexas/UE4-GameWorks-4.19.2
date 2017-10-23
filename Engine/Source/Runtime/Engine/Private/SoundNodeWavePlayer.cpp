@@ -152,6 +152,11 @@ float USoundNodeWavePlayer::GetDuration()
 	return Duration;
 }
 
+bool USoundNodeWavePlayer::IsAllowedVirtual() const
+{
+	return SoundWave && SoundWave->IsAllowedVirtual();
+}
+
 #if WITH_EDITOR
 FText USoundNodeWavePlayer::GetTitle() const
 {

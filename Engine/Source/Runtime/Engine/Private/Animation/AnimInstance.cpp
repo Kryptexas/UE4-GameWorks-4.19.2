@@ -1232,22 +1232,23 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 
 	for (int32 Index=0; Index<NotifyQueue.AnimNotifies.Num(); Index++)
 	{
-		const FAnimNotifyEvent* AnimNotifyEvent = NotifyQueue.AnimNotifies[Index];
-
-		// AnimNotifyState
-		if( AnimNotifyEvent->NotifyStateClass )
+		if(const FAnimNotifyEvent* AnimNotifyEvent = NotifyQueue.AnimNotifies[Index].GetNotify())
 		{
-			if( !ActiveAnimNotifyState.RemoveSingleSwap(*AnimNotifyEvent) )
+			// AnimNotifyState
+			if (AnimNotifyEvent->NotifyStateClass)
 			{
-				// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
-				NotifyStateBeginEvent.Add(AnimNotifyEvent);
+				if (!ActiveAnimNotifyState.RemoveSingleSwap(*AnimNotifyEvent))
+				{
+					// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
+					NotifyStateBeginEvent.Add(AnimNotifyEvent);
+				}
+				NewActiveAnimNotifyState.Add(*AnimNotifyEvent);
+				continue;
 			}
-			NewActiveAnimNotifyState.Add(*AnimNotifyEvent);
-			continue;
-		}
 
-		// Trigger non 'state' AnimNotifies
-		TriggerSingleAnimNotify(AnimNotifyEvent);
+			// Trigger non 'state' AnimNotifies
+			TriggerSingleAnimNotify(AnimNotifyEvent);
+		}
 	}
 
 	// Send end notification to AnimNotifyState not active anymore.
@@ -2312,10 +2313,14 @@ void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, const FAlphaBl
 {
 	for (int32 InstanceIndex = MontageInstances.Num() - 1; InstanceIndex >= 0; InstanceIndex--)
 	{
-		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
-		if (MontageInstance && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
+		// If we have emptied the entire list as a result of calling Stop previously, we can end up with an empty list
+		if (MontageInstances.IsValidIndex(InstanceIndex))
 		{
-			MontageInstances[InstanceIndex]->Stop(BlendOut, true);
+			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
+			{
+				MontageInstances[InstanceIndex]->Stop(BlendOut, true);
+			}
 		}
 	}
 }

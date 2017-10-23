@@ -116,10 +116,17 @@ void UImage::SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize)
 		Texture->bIgnoreStreamingMipBias = true;
 	}
 
-	if (bMatchSize && Texture)
+	if (bMatchSize)
 	{
-		Brush.ImageSize.X = Texture->GetSizeX();
-		Brush.ImageSize.Y = Texture->GetSizeY();
+		if (Texture)
+		{
+			Brush.ImageSize.X = Texture->GetSizeX();
+			Brush.ImageSize.Y = Texture->GetSizeY();
+		}
+		else
+		{
+			Brush.ImageSize = FVector2D(0, 0);
+		}
 	}
 
 	if ( MyImage.IsValid() )

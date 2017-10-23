@@ -29,6 +29,10 @@ public:
 
 protected:
 
+#if WITH_PHYSX
+
 	/** Allocate and setup the PhysX vehicle */
 	virtual void SetupVehicleDrive(physx::PxVehicleWheelsSimData* PWheelsSimData) override;
+
+#endif // WITH_PHYSX
 };

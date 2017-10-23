@@ -73,9 +73,9 @@ private:
 	TArray<FString> PathPointFlags;
 
 	TArray<FDynamicMeshVertex> OpenSetVerts;
-	TArray<int32> OpenSetIndices;
+	TArray<uint32> OpenSetIndices;
 	TArray<FDynamicMeshVertex> ClosedSetVerts;
-	TArray<int32> ClosedSetIndices;
+	TArray<uint32> ClosedSetIndices;
 	TSet<FNodeDebugData> NodeDebug;
 	FSetElementId BestNodeId;
 

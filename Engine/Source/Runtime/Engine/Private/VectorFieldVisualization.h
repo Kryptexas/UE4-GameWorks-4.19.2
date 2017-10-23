@@ -52,6 +52,10 @@ class FVectorFieldVisualizationVertexFactory : public FVertexFactory
 	DECLARE_VERTEX_FACTORY_TYPE(FVectorFieldVisualizationVertexFactory);
 
 public:
+	FVectorFieldVisualizationVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FVertexFactory(InFeatureLevel)
+	{
+	}
 
 	/**
 	 * Constructs render resources for this vertex factory.

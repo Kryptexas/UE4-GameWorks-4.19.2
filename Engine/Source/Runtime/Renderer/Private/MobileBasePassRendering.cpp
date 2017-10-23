@@ -103,10 +103,6 @@ FMobileBasePassDynamicPointLightInfo::FMobileBasePassDynamicPointLightInfo(const
 
 				if (LightProxy->IsInverseSquared())
 				{
-					// Correction for lumen units
-					LightColorAndFalloffExponent[NumDynamicPointLights].X *= 16.0f;
-					LightColorAndFalloffExponent[NumDynamicPointLights].Y *= 16.0f;
-					LightColorAndFalloffExponent[NumDynamicPointLights].Z *= 16.0f;
 					LightColorAndFalloffExponent[NumDynamicPointLights].W = 0;
 				}
 
@@ -372,7 +368,7 @@ public:
 		for( int32 BatchElementIndex=0;BatchElementIndex<Parameters.Mesh.Elements.Num();BatchElementIndex++ )
 		{
 			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::MobileBasePass));
 
 			DrawingPolicy.SetMeshRenderState(
 				RHICmdList, 

@@ -684,68 +684,39 @@ void FPhysxSharedData::Terminate()
 	}
 }
 
-void FPhysxSharedData::Add( PxBase* Obj )
+void FPhysxSharedData::Add( PxBase* Obj, const FString& OwnerName )
 {
 	if(Obj) 
 	{ 
 		SharedObjects->add(*Obj, (PxSerialObjectId)Obj);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		OwnerNames.Add(Obj, OwnerName);
+#endif
 	}
 }
 
-void FPhysxSharedData::DumpSharedMemoryUsage(FOutputDevice* Ar)
+struct FSharedResourceEntry
 {
-	struct FSharedResourceEntry
-	{
-		uint64 MemorySize;
-		uint64 Count;
-	};
+	uint64 MemorySize;
+	uint64 Count;
+};
 
-	struct FSortBySize
-	{
-		FORCEINLINE bool operator()( const FSharedResourceEntry& A, const FSharedResourceEntry& B ) const 
-		{ 
-			// Sort descending
-			return B.MemorySize < A.MemorySize;
-		}
-	};
-
-	TMap<FString, FSharedResourceEntry> AllocationsByType;
-
-	uint64 OverallSize = 0;
-	int32 OverallCount = 0;
-
-	TMap<FString, TArray<PxBase*> > ObjectsByType;
-
-	for (int32 i=0; i < (int32)SharedObjects->getNbObjects(); ++i)
-	{
-		PxBase& Obj = SharedObjects->getObject(i);
-		FString TypeName = ANSI_TO_TCHAR(Obj.getConcreteTypeName());
-
-		TArray<PxBase*>* ObjectsArray = ObjectsByType.Find(TypeName);
-		if (ObjectsArray == NULL)
-		{
-			ObjectsByType.Add(TypeName, TArray<PxBase*>());
-			ObjectsArray = ObjectsByType.Find(TypeName);
-		}
-
-		check(ObjectsArray);
-		ObjectsArray->Add(&Obj);
-	}
-
+void HelperCollectUsage(const TMap<FString, TArray<PxBase*> >& ObjectsByType, TMap<FString, FSharedResourceEntry>& AllocationsByType, uint64& OverallSize, int32& OverallCount)
+{
 	TArray<FString> TypeNames;
 	ObjectsByType.GetKeys(TypeNames);
 
-	for (int32 TypeIdx=0; TypeIdx < TypeNames.Num(); ++TypeIdx)
+	for (int32 TypeIdx = 0; TypeIdx < TypeNames.Num(); ++TypeIdx)
 	{
 		const FString& TypeName = TypeNames[TypeIdx];
-		
-		TArray<PxBase*>* ObjectsArray = ObjectsByType.Find(TypeName);
+
+		const TArray<PxBase*>* ObjectsArray = ObjectsByType.Find(TypeName);
 		check(ObjectsArray);
 
 		PxSerializationRegistry* Sr = PxSerialization::createSerializationRegistry(*GPhysXSDK);
 		PxCollection* Collection = PxCreateCollection();
-		
-		for (int32 i=0; i < ObjectsArray->Num(); ++i)
+
+		for (int32 i = 0; i < ObjectsArray->Num(); ++i)
 		{
 			Collection->add(*((*ObjectsArray)[i]));;
 		}
@@ -767,18 +738,79 @@ void FPhysxSharedData::DumpSharedMemoryUsage(FOutputDevice* Ar)
 
 		AllocationsByType.Add(TypeName, NewEntry);
 	}
+}
+
+void FPhysxSharedData::DumpSharedMemoryUsage(FOutputDevice* Ar)
+{
+	
+
+	struct FSortBySize
+	{
+		FORCEINLINE bool operator()( const FSharedResourceEntry& A, const FSharedResourceEntry& B ) const 
+		{ 
+			// Sort descending
+			return B.MemorySize < A.MemorySize;
+		}
+	};
+
+	TMap<FString, FSharedResourceEntry> AllocationsByType;
+	TMap<FString, FSharedResourceEntry> AllocationsByObject;
+
+	uint64 OverallSize = 0;
+	int32 OverallCount = 0;
+
+	TMap<FString, TArray<PxBase*> > ObjectsByType;
+	TMap<FString, TArray<PxBase*> > ObjectsByObjectName;	//array is just there for code reuse, should be a single object
+
+	for (int32 i=0; i < (int32)SharedObjects->getNbObjects(); ++i)
+	{
+		PxBase& Obj = SharedObjects->getObject(i);
+		FString TypeName = ANSI_TO_TCHAR(Obj.getConcreteTypeName());
+
+		TArray<PxBase*>* ObjectsArray = ObjectsByType.Find(TypeName);
+		if (ObjectsArray == NULL)
+		{
+			ObjectsByType.Add(TypeName, TArray<PxBase*>());
+			ObjectsArray = ObjectsByType.Find(TypeName);
+		}
+
+		check(ObjectsArray);
+		ObjectsArray->Add(&Obj);
+
+		if (const FString* OwnerName = OwnerNames.Find(&Obj))
+		{
+			TArray<PxBase*> Objs;
+			Objs.Add(&Obj);
+			ObjectsByObjectName.Add(*OwnerName, Objs);
+		}
+	}
+
+	HelperCollectUsage(ObjectsByType, AllocationsByType, OverallSize, OverallCount);
+
+	uint64 IgnoreSize;
+	int32 IgnoreCount;
+	HelperCollectUsage(ObjectsByObjectName, AllocationsByObject, IgnoreSize, IgnoreCount);
+
 
 	Ar->Logf(TEXT(""));
 	Ar->Logf(TEXT("Shared Resources:"));
 	Ar->Logf(TEXT(""));
 
 	AllocationsByType.ValueSort(FSortBySize());
+	AllocationsByObject.ValueSort(FSortBySize());
 	
 	Ar->Logf(TEXT("%-10d %s (%d)"), OverallSize, TEXT("Overall"), OverallCount );
 	
 	for( auto It=AllocationsByType.CreateConstIterator(); It; ++It )
 	{
 		Ar->Logf(TEXT("%-10d %s (%d)"), It.Value().MemorySize, *It.Key(), It.Value().Count );
+	}
+
+	Ar->Logf(TEXT("Detailed:"));
+
+	for (auto It = AllocationsByObject.CreateConstIterator(); It; ++It)
+	{
+		Ar->Logf(TEXT("%-10d %s (%d)"), It.Value().MemorySize, *It.Key(), It.Value().Count);
 	}
 }
 

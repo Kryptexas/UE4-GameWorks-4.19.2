@@ -1255,19 +1255,18 @@ bool SSkeletonTree::CanRemoveAllAssets() const
 bool SSkeletonTree::CanRenameSelected() const
 {
 	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
-	FSkeletonTreeSelection TreeSelection(SelectedItems);
-	return TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>();
+
+	return SelectedItems.Num() == 1 && SelectedItems[0]->CanRenameItem();
 }
 
 void SSkeletonTree::OnRenameSelected()
 {
 	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
-	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
-	if(TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>())
+	if(SelectedItems.Num() == 1 && SelectedItems[0]->CanRenameItem())
 	{
-		SkeletonTreeView->RequestScrollIntoView(TreeSelection.GetSingleSelectedItem());
-		DeferredRenameRequest = TreeSelection.GetSingleSelectedItem();
+		SkeletonTreeView->RequestScrollIntoView(SelectedItems[0]);
+		DeferredRenameRequest = SelectedItems[0];
 	}
 }
 
@@ -1483,7 +1482,7 @@ void SSkeletonTree::SetSelectedSocket( const FSelectedSocketInfo& SocketInfo )
 		{
 			TSharedPtr<ISkeletonTreeItem> SkeletonRow = *(SkeletonRowIt);
 
-			if (SkeletonRow->IsOfType<FSkeletonTreeSocketItem>() && StaticCastSharedPtr<FSkeletonTreeSocketItem>(SkeletonRow)->GetSocket() == SocketInfo.Socket)
+			if (SkeletonRow->GetFilterResult() != ESkeletonTreeFilterResult::Hidden && SkeletonRow->IsOfType<FSkeletonTreeSocketItem>() && StaticCastSharedPtr<FSkeletonTreeSocketItem>(SkeletonRow)->GetSocket() == SocketInfo.Socket)
 			{
 				SkeletonTreeView->SetSelection(SkeletonRow);
 				SkeletonTreeView->RequestScrollIntoView(SkeletonRow);
@@ -1519,7 +1518,7 @@ void SSkeletonTree::SetSelectedBone( const FName& BoneName )
 		{
 			TSharedPtr<ISkeletonTreeItem> SkeletonRow = *(SkeletonRowIt);
 
-			if (SkeletonRow->IsOfType<FSkeletonTreeBoneItem>() && SkeletonRow->GetRowItemName() == BoneName)
+			if (SkeletonRow->GetFilterResult() != ESkeletonTreeFilterResult::Hidden && SkeletonRow->IsOfType<FSkeletonTreeBoneItem>() && SkeletonRow->GetRowItemName() == BoneName)
 			{
 				SkeletonTreeView->SetSelection(SkeletonRow);
 				SkeletonTreeView->RequestScrollIntoView(SkeletonRow);
@@ -1939,16 +1938,31 @@ void SSkeletonTree::OnLODSwitched()
 
 void SSkeletonTree::SelectItemsBy(TFunctionRef<bool(const TSharedRef<ISkeletonTreeItem>&, bool&)> Predicate) const
 {
-	SkeletonTreeView->ClearSelection();
-
+	TArray<TPair<TSharedPtr<ISkeletonTreeItem>, bool>> ItemsToSelect;
 	TSharedPtr<ISkeletonTreeItem> ScrollItem = nullptr;
 	for (const TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
 	{
-		bool bExpand = false;
-		if (Predicate(Item.ToSharedRef(), bExpand))
+		if(Item->GetFilterResult() != ESkeletonTreeFilterResult::Hidden)
 		{
+			bool bExpand = false;
+			if (Predicate(Item.ToSharedRef(), bExpand))
+			{
+				ItemsToSelect.Emplace(Item, bExpand);
+				ScrollItem = Item;
+			}
+		}
+	}
+
+	if(ItemsToSelect.Num() > 0)
+	{
+		SkeletonTreeView->ClearSelection();
+
+		for (const TPair<TSharedPtr<ISkeletonTreeItem>, bool>& ItemPair : ItemsToSelect)
+		{
+			TSharedPtr<ISkeletonTreeItem> Item = ItemPair.Key;
+
 			SkeletonTreeView->SetItemSelection(Item, true);
-			if (bExpand)
+			if (ItemPair.Value)
 			{
 				if(Item->GetChildren().Num() == 0)
 				{
@@ -1964,7 +1978,6 @@ void SSkeletonTree::SelectItemsBy(TFunctionRef<bool(const TSharedRef<ISkeletonTr
 					SkeletonTreeView->SetItemExpansion(Item, true);
 				}
 			}
-			ScrollItem = Item;
 		}
 	}
 

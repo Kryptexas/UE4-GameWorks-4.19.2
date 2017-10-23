@@ -132,7 +132,7 @@ static TAutoConsoleVariable<float> CVarQLSpawnRateReferenceLevel(
 
 
 /** Whether to allow particle systems to perform work. */
-bool GIsAllowingParticles = true;
+ENGINE_API bool GIsAllowingParticles = true;
 
 /** Whether to calculate LOD on the GameThread in-game. */
 bool GbEnableGameThreadLODCalculation = true;
@@ -3454,6 +3454,12 @@ void UParticleSystemComponent::FinishDestroy()
 	Super::FinishDestroy();
 }
 
+void UParticleSystemComponent::NotifyObjectReferenceEliminated() const
+{
+	UE_LOG(LogParticles, Error, TEXT("Garbage collector eliminated reference from particle system!  Particle system objects should not be cleaned up via MarkPendingKill().\n           ParticleSystem=%s"),
+		*GetPathName());
+}
+
 
 void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
@@ -4057,25 +4063,15 @@ void UParticleSystemComponent::SetMaterial(int32 ElementIndex, UMaterialInterfac
 		}
 		EmitterMaterials[ElementIndex] = Material;
 		bIsViewRelevanceDirty = true;
-
-		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
-		{
-			if (FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex])
-			{
-				if (!Inst->Tick_MaterialOverrides())
-				{
-					if (EmitterMaterials.IsValidIndex(EmitterIndex))
-					{
-						if (EmitterMaterials[EmitterIndex])
-						{
-							Inst->CurrentMaterial = EmitterMaterials[EmitterIndex];
-						}
-					}
-				}
-			}
-		}
-		MarkRenderDynamicDataDirty();
 	}
+	for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+	{
+		if (FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex])
+		{
+			Inst->Tick_MaterialOverrides(EmitterIndex);
+		}
+	}
+	MarkRenderDynamicDataDirty();
 }
 
 void UParticleSystemComponent::ClearDynamicData()
@@ -4371,6 +4367,7 @@ public:
 		{
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueFinalize);
 			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(Target);
+			MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			MyCompletionGraphEvent->DontCompleteUntil(Finalize);
 		}
 #endif
@@ -4654,6 +4651,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueAsync);
 			AsyncWork = TGraphTask<FParticleAsyncTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
 #if !WITH_EDITOR  // we need to not complete until this is done because the game thread finalize task has not beed queued yet
+			ThisTickFunction->GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(AsyncWork);
 #endif
 		}
@@ -4663,6 +4661,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			FGraphEventArray Prereqs;
 			Prereqs.Add(AsyncWork);
 			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(&Prereqs, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
+			ThisTickFunction->GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(Finalize);
 		}
 #endif
@@ -4750,16 +4749,7 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
 
-				if (!Instance->Tick_MaterialOverrides())
-				{
-					if (EmitterMaterials.IsValidIndex(EmitterIndex))
-					{
-						if (EmitterMaterials[EmitterIndex])
-						{
-							Instance->CurrentMaterial = EmitterMaterials[EmitterIndex];
-						}
-					}
-				}
+				Instance->Tick_MaterialOverrides(EmitterIndex);
 				TotalActiveParticles += Instance->ActiveParticles;
 			}
 
@@ -5228,6 +5218,11 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 	{
 		Template = NULL;
 	}
+	if (!ensureMsgf(IsRenderStateDirty() || EmitterMaterials.Num() == 0, TEXT("About to lose material references without calling MarkRenderStateDirty on: %s"), *GetOwner()->GetName()))
+	{
+		MarkRenderStateDirty();
+	}
+	
 	EmitterMaterials.Empty();
 
 	for (int32 Idx = 0; Idx < EmitterInstances.Num(); Idx++)
@@ -5351,6 +5346,19 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		bWasActive = false; // Set to false now, it may get set to true when it's deactivated due to unregister
 		SetComponentTickEnabled(true);
 
+		// Force an LOD update - [op] do this before InitializeSystem, as that's going to set LOD level on all instances 
+		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
+		{
+			FVector EffectPosition = GetComponentLocation();
+			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
+			SetLODLevel(DesiredLODLevel);
+		}
+		else
+		{
+			bForceLODUpdateFromRenderer = true;
+		}
+
+
 		// if no instances, or recycling
 		if (EmitterInstances.Num() == 0 || (bIsGameWorld && (!bAutoActivate || bHasBeenActivated)))
 		{
@@ -5371,17 +5379,6 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		}
 
 
-		// Force an LOD update
-		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
-		{
-			FVector EffectPosition = GetComponentLocation();
-			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
-			SetLODLevel(DesiredLODLevel);
-		}
-		else
-		{
-			bForceLODUpdateFromRenderer = true;
-		}
 
 
 		// Flag the system as having been activated at least once
@@ -6747,6 +6744,115 @@ void UParticleSystemComponent::AutoPopulateInstanceProperties()
 	}
 }
 
+void UParticleLODLevel::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, const TArray<FNamedEmitterMaterial>& Slots, const TArray<class UMaterialInterface*>& EmitterMaterials) const
+{
+	// Only process enabled emitters
+	if (bEnabled)
+	{
+		const UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(TypeDataModule);
+
+		if (MeshTypeData && MeshTypeData->Mesh)
+		{
+			const FStaticMeshLODResources& LODModel = MeshTypeData->Mesh->RenderData->LODResources[0];
+
+			// Gather the materials applied to the LOD.
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+			{
+				UMaterialInterface* Material = NULL;
+							
+				TArray<FName>& NamedOverrides = RequiredModule->NamedMaterialOverrides;
+
+				if (NamedOverrides.IsValidIndex(SectionIndex))
+				{	
+					//If we have named material overrides then get it's index into the emitter materials array.	
+					for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+					{
+						if (NamedOverrides[SectionIndex] == Slots[CheckIdx].Name)
+						{
+							//Default to the default material for that slot.
+							Material = Slots[CheckIdx].Material;
+							if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
+							{
+								//This material has been overridden externally, e.g. from a BP so use that one.
+								Material = EmitterMaterials[CheckIdx];
+							}
+
+							break;
+						}
+					}
+				}
+
+				// See if there is a mesh material module.
+				if (Material == NULL)
+				{
+					// Walk in reverse order as in the case of multiple modules, only the final result will be applied
+					for (int32 ModuleIndex = Modules.Num()-1; ModuleIndex >= 0; --ModuleIndex)
+					{
+						UParticleModuleMeshMaterial* MeshMatModule = Cast<UParticleModuleMeshMaterial>(Modules[ModuleIndex]);
+						if (MeshMatModule && MeshMatModule->bEnabled)
+						{
+							if (SectionIndex < MeshMatModule->MeshMaterials.Num())
+							{
+								Material = MeshMatModule->MeshMaterials[SectionIndex];
+								break;
+							}
+						}
+					}
+				}
+
+				// Overriding the material?
+				if (Material == NULL && MeshTypeData->bOverrideMaterial == true)
+				{
+					Material = RequiredModule->Material;
+				}
+
+				// Use the material set on the mesh.
+				if (Material == NULL)
+				{
+					Material = MeshTypeData->Mesh->GetMaterial(LODModel.Sections[SectionIndex].MaterialIndex);
+				}
+
+				if (Material)
+				{
+					OutMaterials.Add(Material);
+				}
+			}
+		}
+		else
+		{
+			UMaterialInterface* Material = NULL;
+							
+			TArray<FName>& NamedOverrides = RequiredModule->NamedMaterialOverrides;
+
+			if (NamedOverrides.Num() > 0)
+			{
+				for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+				{
+					if (NamedOverrides[0] == Slots[CheckIdx].Name)
+					{
+						//Default to the default material for that slot.
+						Material = Slots[CheckIdx].Material;
+						if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
+						{
+							//This material has been overridden externally, e.g. from a BP so use that one.
+							Material = EmitterMaterials[CheckIdx];
+						}
+        
+						break;
+					}
+				}
+			}
+
+			if (!Material)
+			{
+				Material = RequiredModule->Material;
+			}
+
+			OutMaterials.Add(Material);
+		}
+	}
+}
+
 void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	if (Template)
@@ -6762,119 +6868,85 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 			for (int32 LodIndex = 0; LodIndex < Emitter->LODLevels.Num(); ++LodIndex)
 			{
 				const UParticleLODLevel* LOD = Emitter->LODLevels[LodIndex];
-
-				// Only process enabled emitters
-				if (LOD->bEnabled)
+				if (LOD)
 				{
-					const UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(LOD->TypeDataModule);
-
-					if (MeshTypeData && MeshTypeData->Mesh)
-					{
-						const FStaticMeshLODResources& LODModel = MeshTypeData->Mesh->RenderData->LODResources[0];
-
-						// Gather the materials applied to the LOD.
-						for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
-						{
-							UMaterialInterface* Material = NULL;
-							
-							TArray<FName>& NamedOverrides = LOD->RequiredModule->NamedMaterialOverrides;
-							TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
-
-							if (NamedOverrides.IsValidIndex(SectionIndex))
-							{	
-								//If we have named material overrides then get it's index into the emitter materials array.	
-								for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
-								{
-									if (NamedOverrides[SectionIndex] == Slots[CheckIdx].Name)
-									{
-										//Default to the default material for that slot.
-										Material = Slots[CheckIdx].Material;
-										if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
-										{
-											//This material has been overridden externally, e.g. from a BP so use that one.
-											Material = EmitterMaterials[CheckIdx];
-										}
-
-										break;
-									}
-								}
-							}
-
-							// See if there is a mesh material module.
-							if (Material == NULL)
-							{
-								// Walk in reverse order as in the case of multiple modules, only the final result will be applied
-								for (int32 ModuleIndex = LOD->Modules.Num()-1; ModuleIndex >= 0; --ModuleIndex)
-								{
-									UParticleModuleMeshMaterial* MeshMatModule = Cast<UParticleModuleMeshMaterial>(LOD->Modules[ModuleIndex]);
-									if (MeshMatModule && MeshMatModule->bEnabled)
-									{
-										if (SectionIndex < MeshMatModule->MeshMaterials.Num())
-										{
-											Material = MeshMatModule->MeshMaterials[SectionIndex];
-											break;
-										}
-									}
-								}
-							}
-
-							// Overriding the material?
-							if (Material == NULL && MeshTypeData->bOverrideMaterial == true)
-							{
-								Material = LOD->RequiredModule->Material;
-							}
-
-							// Use the material set on the mesh.
-							if (Material == NULL)
-							{
-								Material = MeshTypeData->Mesh->GetMaterial(LODModel.Sections[SectionIndex].MaterialIndex);
-							}
-
-							if (Material)
-							{
-								OutMaterials.Add(Material);
-							}
-						}
-					}
-					else
-					{
-						UMaterialInterface* Material = NULL;
-							
-						TArray<FName>& NamedOverrides = LOD->RequiredModule->NamedMaterialOverrides;
-						TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
-
-						if (NamedOverrides.Num() > 0)
-						{
-							for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
-							{
-								if (NamedOverrides[0] == Slots[CheckIdx].Name)
-								{
-									//Default to the default material for that slot.
-									Material = Slots[CheckIdx].Material;
-									if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
-									{
-										//This material has been overridden externally, e.g. from a BP so use that one.
-										Material = EmitterMaterials[CheckIdx];
-									}
-        
-									break;
-								}
-							}
-						}
-
-						if (!Material)
-						{
-							Material = LOD->RequiredModule->Material;
-						}
-
-						OutMaterials.Add(Material);
-					}
+					LOD->GetUsedMaterials(OutMaterials, Template->NamedMaterialSlots, EmitterMaterials);
 				}
 			}
 		}
 	}
 
 	OutMaterials.Append(EmitterMaterials);
+}
+
+typedef TPair<const UMaterialInterface*, float> FMaterialWithScale;
+
+void AddMaterials(TArray<FMaterialWithScale, TInlineAllocator<12> >& OutMaterialWithScales, const TArray<UMaterialInterface*>& InMaterials, float InScale)
+{
+	for (const UMaterialInterface* Material : InMaterials)
+	{
+		if (Material)
+		{
+			FMaterialWithScale* Entry = OutMaterialWithScales.FindByPredicate([&](const FMaterialWithScale& Ref) { return Ref.Key == Material; });
+			if (Entry)
+			{
+				Entry->Value = FMath::Max<int32>(Entry->Value, InScale);
+			}
+			else
+			{
+				new (OutMaterialWithScales) FMaterialWithScale(Material, InScale);
+			}
+		}
+	}
+}
+
+void UParticleSystemComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	TArray<FMaterialWithScale, TInlineAllocator<12> > MaterialWithScales;
+
+	if (Template)
+	{
+		// Find the max sub uv scale of each texture as we can't apply them incrementally
+		TArray<UMaterialInterface*> LODLevelMaterials;
+
+		for (int32 EmitterIdx = 0; EmitterIdx < Template->Emitters.Num(); ++EmitterIdx)
+		{
+			const UParticleEmitter* Emitter = Template->Emitters[EmitterIdx];
+			if (!Emitter)
+			{
+				continue;
+			}
+
+			for (int32 LodIndex = 0; LodIndex < Emitter->LODLevels.Num(); ++LodIndex)
+			{
+				const UParticleLODLevel* LOD = Emitter->LODLevels[LodIndex];
+				if (!LOD || !LOD->RequiredModule)
+				{
+					continue;
+				}
+
+				LODLevelMaterials.Reset();
+				LOD->GetUsedMaterials(LODLevelMaterials, Template->NamedMaterialSlots, EmitterMaterials);
+				AddMaterials(MaterialWithScales, LODLevelMaterials, (float)FMath::Max<int32>(LOD->RequiredModule->SubImages_Horizontal, LOD->RequiredModule->SubImages_Vertical));
+			}
+		}
+
+		AddMaterials(MaterialWithScales, EmitterMaterials, 1.f);
+
+		if (MaterialWithScales.Num())
+		{
+			static const FMeshUVChannelInfo UVChannelData(1.f);
+			FPrimitiveMaterialInfo MaterialData;
+			MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
+			MaterialData.UVChannelData = &UVChannelData;
+
+			for (const FMaterialWithScale& MaterialWithScale : MaterialWithScales)
+			{
+				MaterialData.Material = MaterialWithScale.Key;
+				LevelContext.ProcessMaterial(Bounds, MaterialData, Bounds.SphereRadius * MaterialWithScale.Value, OutStreamingTextures);
+			}
+		}
+	}
 }
 
 FBodyInstance* UParticleSystemComponent::GetBodyInstance(FName BoneName /*= NAME_None*/, bool bGetWelded /*= true*/) const
@@ -7098,6 +7170,7 @@ int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 	}
 	return INDEX_NONE;
 }
+
 
 UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

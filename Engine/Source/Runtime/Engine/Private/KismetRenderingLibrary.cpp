@@ -109,16 +109,16 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 	{
 		UCanvas* Canvas = World->GetCanvasForDrawMaterialToRenderTarget();
 
-		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr);
-		Canvas->Update();
-
 		FCanvas RenderCanvas(
-			TextureRenderTarget->GameThread_GetRenderTargetResource(), 
-			nullptr, 
+			TextureRenderTarget->GameThread_GetRenderTargetResource(),
+			nullptr,
 			World,
 			World->FeatureLevel);
 
-		Canvas->Canvas = &RenderCanvas;
+		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr, &RenderCanvas);
+		Canvas->Update();
+
+
 
 		TDrawEvent<FRHICommandList>* DrawMaterialToTargetEvent = new TDrawEvent<FRHICommandList>();
 
@@ -396,16 +396,15 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 
 		Size = FVector2D(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY);
 
-		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr);
-		Canvas->Update();
-
-		Canvas->Canvas = new FCanvas(
-			TextureRenderTarget->GameThread_GetRenderTargetResource(), 
-			nullptr, 
+		FCanvas* NewCanvas = new FCanvas(
+			TextureRenderTarget->GameThread_GetRenderTargetResource(),
+			nullptr,
 			World,
-			World->FeatureLevel, 
+			World->FeatureLevel,
 			// Draw immediately so that interleaved SetVectorParameter (etc) function calls work as expected
 			FCanvas::CDM_ImmediateDrawing);
+		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr, NewCanvas);
+		Canvas->Update();
 
 		Context.DrawEvent = new TDrawEvent<FRHICommandList>();
 

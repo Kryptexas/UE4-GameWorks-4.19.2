@@ -40,11 +40,11 @@ private:
 	void CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, class IDetailCategoryBuilder& GroupsCategory);
 
 	/** Builds the widget for an individual parameter group */
-	void CreateSingleGroupWidget(struct FEditorParameterGroup& ParameterGroup, TSharedPtr<IPropertyHandle> ParameterGroupProperty, class IDetailGroup& DetailGroup );
+	void CreateSingleGroupWidget(struct FEditorParameterGroup& ParameterGroup, TSharedPtr<IPropertyHandle> ParameterGroupProperty, class IDetailGroup& DetailGroup);
 
 	/** These methods generate the custom widgets for the various parameter types */
-	void CreateParameterValueWidget(class UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup );
-	void CreateMaskParameterValueWidget(class UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup );
+	void CreateParameterValueWidget(class UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup);
+	void CreateMaskParameterValueWidget(class UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup);
 
 	/** Returns true if the parameter is in the visible expressions list */
 	bool IsVisibleExpression(class UDEditorParameterValue* Parameter);
@@ -52,25 +52,8 @@ private:
 	/** Returns true if the parameter should be displayed */
 	EVisibility ShouldShowExpression(class UDEditorParameterValue* Parameter) const;
 
-	/** Returns true if the parameter is being overridden */
-	bool IsOverriddenExpression(class UDEditorParameterValue* Parameter);
-
-	/** Gets the expression description of this parameter from the the base material */
-	FText GetParameterExpressionDescription(class UDEditorParameterValue* Parameter) const;
-
-	/**
-	 * Called when a parameter is overridden;
-	 */
-	void OnOverrideParameter(bool NewValue, class UDEditorParameterValue* Parameter);
-
 	/** Called when an asset is set as a parent */
 	bool OnShouldSetAsset(const FAssetData& InAssetData) const;
-
-	/** Reset to default implementation.  Resets Parameter to default */
-	void ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter);
-
-	/** If reset to default button should show */
-	bool ShouldShowResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter);
 
 	/** Returns true if the refraction options should be displayed */
 	EVisibility ShouldShowMaterialRefractionSettings() const;

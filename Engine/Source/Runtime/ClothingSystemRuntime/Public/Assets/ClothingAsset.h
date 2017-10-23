@@ -13,6 +13,7 @@
 class UClothingAsset;
 class UPhysicsAsset;
 struct FClothPhysicalMeshData;
+struct FSkelMeshSection;
 
 namespace nvidia
 {
@@ -457,6 +458,11 @@ namespace ClothingAssetUtils
 	
 	// Similar to above, but only inspects the specified LOD
 	void CLOTHINGSYSTEMRUNTIME_API GetMeshClothingAssetBindings(USkeletalMesh* InSkelMesh, TArray<FClothingAssetMeshBinding>& OutBindings, int32 InLodIndex);
+
+#if WITH_EDITOR
+	// Clears the clothing tracking struct of a section.
+	CLOTHINGSYSTEMRUNTIME_API void ClearSectionClothingData(FSkelMeshSection& InSection);
+#endif
 }
 
 /**
@@ -488,7 +494,7 @@ public:
 	// UClothingAssetBase Interface ////////////////////////////////////////////
 	virtual void RefreshBoneMapping(USkeletalMesh* InSkelMesh) override;
 #if WITH_EDITOR
-	virtual bool BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshLodIndex, int32 InSectionIndex, int32 InAssetLodIndex) override;
+	virtual bool BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshLodIndex, int32 InSectionIndex, int32 InAssetLodIndex, bool bCallPostEditChange=true) override;
 	virtual void UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh) override;
 	virtual void UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshLodIndex) override;
 	virtual void InvalidateCachedData() override;

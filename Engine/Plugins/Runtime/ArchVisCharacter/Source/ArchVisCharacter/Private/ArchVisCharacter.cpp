@@ -3,6 +3,7 @@
 #include "ArchVisCharacter.h"
 #include "Components/InputComponent.h"
 #include "ArchVisCharMovementComponent.h"
+#include "Engine/World.h"
 
 AArchVisCharacter::AArchVisCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UArchVisCharMovementComponent>(ACharacter::CharacterMovementComponentName))

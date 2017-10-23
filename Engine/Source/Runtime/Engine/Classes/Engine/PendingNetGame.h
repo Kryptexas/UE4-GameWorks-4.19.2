@@ -45,6 +45,14 @@ class UPendingNetGame :
 	 */
 	void FinalizeEncryptedConnection(const FEncryptionKeyResponse& Response, TWeakObjectPtr<UNetConnection> WeakConnection);
 
+	/**
+	 * Set the encryption key for the connection. This doesn't cause outgoing packets to be encrypted,
+	 * but it allows the connection to decrypt any incoming packets if needed.
+	 *
+	 * @param Response response from the game containing its encryption key or an error message
+	 */
+	ENGINE_API void SetEncryptionKey(const FEncryptionKeyResponse& Response);
+
 public:
 	/** URL associated with this level. */
 	FURL					URL;

@@ -40,7 +40,7 @@ static TAutoConsoleVariable<int32> CVarRandomizeSequence(TEXT("net.RandomizeSequ
 
 DECLARE_CYCLE_STAT(TEXT("NetConnection SendAcks"), Stat_NetConnectionSendAck, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("NetConnection Tick"), Stat_NetConnectionTick, STATGROUP_Net);
-
+DECLARE_CYCLE_STAT(TEXT("NetConnection ReceivedNak"), Stat_NetConnectionReceivedNak, STATGROUP_Net);
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
@@ -339,14 +339,61 @@ void UNetConnection::EnableEncryptionWithKeyServer(TArrayView<const uint8> Key)
 {
 	if (State != USOCK_Invalid && State != USOCK_Closed && Driver)
 	{
-		FNetControlMessage<NMT_EncryptionAck>::Send(this);
-		FlushNet();
-
+		SendClientEncryptionAck();
 		EnableEncryptionWithKey(Key);
 	}
 	else
 	{
 		UE_LOG(LogNet, Log, TEXT("UNetConnection::EnableEncryptionWithKeyServer, connection in invalid state. %s"), *Describe());
+	}
+}
+
+void UNetConnection::SendClientEncryptionAck()
+{
+	if (State != USOCK_Invalid && State != USOCK_Closed && Driver)
+	{
+		FNetControlMessage<NMT_EncryptionAck>::Send(this);
+		FlushNet();
+	}
+	else
+	{
+		UE_LOG(LogNet, Log, TEXT("UNetConnection::SendClientEncryptionAck, connection in invalid state. %s"), *Describe());
+	}
+}
+
+void UNetConnection::SetEncryptionKey(TArrayView<const uint8> Key)
+{
+	if (Handler.IsValid())
+	{
+		UE_LOG(LogNet, Verbose, TEXT("UNetConnection::SetEncryptionKey, %s"), *Describe());
+
+		TSharedPtr<FEncryptionComponent> EncryptionComponent = Handler->GetEncryptionComponent();
+		if (EncryptionComponent.IsValid())
+		{
+			EncryptionComponent->SetEncryptionKey(Key);
+		}
+		else
+		{
+			UE_LOG(LogNet, Warning, TEXT("UNetConnection::SetEncryptionKey, encryption component not found!"));
+		}
+	}
+}
+
+void UNetConnection::EnableEncryption()
+{
+	if (Handler.IsValid())
+	{
+		UE_LOG(LogNet, Verbose, TEXT("UNetConnection::EnableEncryption, %s"), *Describe());
+
+		TSharedPtr<FEncryptionComponent> EncryptionComponent = Handler->GetEncryptionComponent();
+		if (EncryptionComponent.IsValid())
+		{
+			EncryptionComponent->EnableEncryption();
+		}
+		else
+		{
+			UE_LOG(LogNet, Warning, TEXT("UNetConnection::EnableEncryption, encryption component not found!"));
+		}
 	}
 }
 
@@ -397,13 +444,14 @@ void UNetConnection::Close()
 
 FString UNetConnection::Describe()
 {
-	return FString::Printf( TEXT( "[UNetConnection] RemoteAddr: %s, Name: %s, Driver: %s, IsServer: %s, PC: %s, Owner: %s" ),
+	return FString::Printf( TEXT( "[UNetConnection] RemoteAddr: %s, Name: %s, Driver: %s, IsServer: %s, PC: %s, Owner: %s, UniqueId: %s" ),
 			*LowLevelGetRemoteAddress( true ),
 			*GetName(),
 			Driver ? *Driver->GetDescription() : TEXT( "NULL" ),
 			Driver && Driver->IsServer() ? TEXT( "YES" ) : TEXT( "NO" ),
 			PlayerController ? *PlayerController->GetName() : TEXT( "NULL" ),
-			OwningActor ? *OwningActor->GetName() : TEXT( "NULL" ) );
+			OwningActor ? *OwningActor->GetName() : TEXT( "NULL" ),
+			*PlayerId.ToDebugString());
 }
 
 void UNetConnection::CleanUp()
@@ -467,7 +515,7 @@ void UNetConnection::CleanUp()
 		if (OwningActor != NULL)
 		{	
 			// Cleanup/Destroy the connection actor & controller
-			if (!OwningActor->HasAnyFlags( RF_BeginDestroyed | RF_FinishDestroyed ) )
+			if (!OwningActor->HasAnyFlags(RF_BeginDestroyed | RF_FinishDestroyed))
 			{
 				// UNetConnection::CleanUp can be called from UNetDriver::FinishDestroyed that is called from GC.
 				OwningActor->OnNetCleanup(this);
@@ -475,9 +523,13 @@ void UNetConnection::CleanUp()
 			OwningActor = NULL;
 			PlayerController = NULL;
 		}
-		else 
+		else
 		{
-			FGameDelegates::Get().GetPendingConnectionLostDelegate().Broadcast();
+			if (ClientLoginState < EClientLoginState::ReceivedJoin)
+			{
+				UE_LOG(LogNet, Log, TEXT("UNetConnection::PendingConnectionLost. %s bPendingDestroy=%d "), *Describe(), bPendingDestroy);
+				FGameDelegates::Get().GetPendingConnectionLostDelegate().Broadcast(PlayerId);
+			}
 		}
 	}
 
@@ -486,6 +538,7 @@ void UNetConnection::CleanUp()
 	Handler.Reset(NULL);
 
 	Driver = NULL;
+	SetClientLoginState(EClientLoginState::CleanedUp);
 }
 
 UChildConnection::UChildConnection(const FObjectInitializer& ObjectInitializer)
@@ -760,6 +813,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		{
 			UE_LOG(LogNet, Log, TEXT("Attempting to send data before handshake is complete. %s"), *Describe());
 			Close();
+			InitSendBuffer();
 			return;
 		}
 
@@ -901,6 +955,8 @@ void UNetConnection::ReadInput( float DeltaSeconds )
 
 void UNetConnection::ReceivedNak( int32 NakPacketId )
 {
+	SCOPE_CYCLE_COUNTER(Stat_NetConnectionReceivedNak);
+
 	// Update pending NetGUIDs
 	PackageMap->ReceivedNak(NakPacketId);
 
@@ -1656,6 +1712,7 @@ UVoiceChannel* UNetConnection::GetVoiceChannel()
 
 float UNetConnection::GetTimeoutValue()
 {
+	check(Driver);
 #if !UE_BUILD_SHIPPING
 	if (Driver->bNoTimeouts)
 	{
@@ -1792,14 +1849,18 @@ void UNetConnection::Tick()
 
 	if ((Driver->Time - LastReceiveTime) > Timeout)
 	{
+		const TCHAR* const TimeoutString = TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection.");
+		const TCHAR* const DestroyString = TEXT("UNetConnection::Tick: Connection closing during pending destroy, not all shutdown traffic may have been negotiated");
+		
 		// Compute true realtime since packet was received (as well as truly processed)
 		const double Seconds = FPlatformTime::Seconds();
 
-		const float ReceiveRealtimeDelta	= Seconds - LastReceiveRealtime;
-		const float GoodRealtimeDelta		= Seconds - LastGoodPacketRealtime;
+		const float ReceiveRealtimeDelta = Seconds - LastReceiveRealtime;
+		const float GoodRealtimeDelta = Seconds - LastGoodPacketRealtime;
 
 		// Timeout.
-		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Elapsed: %2.2f, Real: %2.2f, Good: %2.2f, DriverTime: %2.2f, Threshold: %2.2f, %s"),
+		FString Error = FString::Printf(TEXT("%s. Elapsed: %2.2f, Real: %2.2f, Good: %2.2f, DriverTime: %2.2f, Threshold: %2.2f, %s"),
+			bPendingDestroy ? DestroyString : TimeoutString,
 			Driver->Time - LastReceiveTime,
 			ReceiveRealtimeDelta,
 			GoodRealtimeDelta,
@@ -1807,14 +1868,18 @@ void UNetConnection::Tick()
 			Timeout,
 			*Describe());
 		UE_LOG(LogNet, Warning, TEXT("%s"), *Error);
-		GEngine->BroadcastNetworkFailure(Driver->GetWorld(), Driver, ENetworkFailure::ConnectionTimeout, Error);
-		Close();
 
+		if (!bPendingDestroy)
+		{
+			GEngine->BroadcastNetworkFailure(Driver->GetWorld(), Driver, ENetworkFailure::ConnectionTimeout, Error);
+		}
+
+		Close();
 		PerfCountersIncrement(TEXT("TimedoutConnections"));
 
 		if (Driver == NULL)
 		{
-            // Possible that the Broadcast above caused someone to kill the net driver, early out
+			// Possible that the Broadcast above caused someone to kill the net driver, early out
 			return;
 		}
 	}
@@ -2000,16 +2065,25 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 
 	UWorld* World = PlayerController->GetWorld();
 	// if we have already loaded some sublevels, tell the server about them
-	for (int32 i = 0; i < World->StreamingLevels.Num(); ++i)
 	{
-		ULevelStreaming* LevelStreaming = World->StreamingLevels[i];
-		if (LevelStreaming != NULL)
+		TArray<FUpdateLevelVisibilityLevelInfo> LevelVisibilities;
+		for (int32 i = 0; i < World->StreamingLevels.Num(); ++i)
 		{
-			const ULevel* Level = LevelStreaming->GetLoadedLevel();
-			if ( Level != NULL && Level->bIsVisible && !Level->bClientOnlyVisible )
+			ULevelStreaming* LevelStreaming = World->StreamingLevels[i];
+			if (LevelStreaming != NULL)
 			{
-				PC->ServerUpdateLevelVisibility(PC->NetworkRemapPath(Level->GetOutermost()->GetFName(), false), true );
+				const ULevel* Level = LevelStreaming->GetLoadedLevel();
+				if ( Level != NULL && Level->bIsVisible && !Level->bClientOnlyVisible )
+				{
+					FUpdateLevelVisibilityLevelInfo& LevelVisibility = *new( LevelVisibilities ) FUpdateLevelVisibilityLevelInfo();
+					LevelVisibility.PackageName = PC->NetworkRemapPath(Level->GetOutermost()->GetFName(), false);
+					LevelVisibility.bIsVisible = true;
+				}
 			}
+		}
+		if( LevelVisibilities.Num() > 0 )
+		{
+			PC->ServerUpdateMultipleLevelsVisibility( LevelVisibilities );
 		}
 	}
 

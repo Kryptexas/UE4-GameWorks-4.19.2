@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "BasePassVertexCommon.ush"
+#include "SHCommon.ush"
+#include "VolumetricLightmapShared.ush"
 
 // Metal needs to combine the vertex & hull shaders for tesellation support.
 #if COMPILER_METAL && USING_TESSELLATION
@@ -125,6 +127,11 @@ void Main(
 	#endif
 #endif
 
+#if TRANSLUCENCY_ANY_PERVERTEX_LIGHTING
+	float3 WorldPositionForVertexLightingTranslated = VertexFactoryGetPositionForVertexLighting(Input, VFIntermediates, WorldPosition.xyz);
+	float3 WorldPositionForVertexLighting = WorldPositionForVertexLightingTranslated - ResolvedView.PreViewTranslation.xyz;
+#endif
+
 #if TRANSLUCENCY_PERVERTEX_LIGHTING_VOLUME
 	float4 VolumeLighting;
 	float3 InterpolatedLighting = 0;
@@ -135,8 +142,7 @@ void Main(
 
 	//@todo - get from VF
 	float3 LightingPositionOffset = 0;
-	float3 WorldPositionForVertexLighting = VertexFactoryGetPositionForVertexLighting(Input, VFIntermediates, WorldPosition.xyz);
-	ComputeVolumeUVs(WorldPositionForVertexLighting - ResolvedView.PreViewTranslation.xyz, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+	ComputeVolumeUVs(WorldPositionForVertexLighting, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 
 	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
 	
@@ -150,15 +156,27 @@ void Main(
 	#endif
 #elif TRANSLUCENCY_PERVERTEX_FORWARD_SHADING
 
-	float3 WorldPositionForVertexLighting = VertexFactoryGetPositionForVertexLighting(Input, VFIntermediates, WorldPosition.xyz);
-	float4 VertexLightingClipSpacePosition = mul(WorldPositionForVertexLighting, ResolvedView.TranslatedWorldToClip);
+	float4 VertexLightingClipSpacePosition = mul(WorldPositionForVertexLightingTranslated, ResolvedView.TranslatedWorldToClip);
 	float2 SvPosition = (VertexLightingClipSpacePosition.xy / VertexLightingClipSpacePosition.w * float2(.5f, -.5f) + .5f) * ResolvedView.ViewSizeAndInvSize.xy;
 	uint GridIndex = ComputeLightGridCellIndex((uint2)SvPosition, VertexLightingClipSpacePosition.w, EyeIndex);
-	float3 AbsoluteWorldPosition = WorldPositionForVertexLighting - ResolvedView.PreViewTranslation.xyz;
-	Output.BasePassInterpolants.VertexDiffuseLighting = GetForwardDirectLightingForVertexLighting(GridIndex, AbsoluteWorldPosition, VertexParameters.TangentToWorld[2], EyeIndex);
+	Output.BasePassInterpolants.VertexDiffuseLighting = GetForwardDirectLightingForVertexLighting(GridIndex, WorldPositionForVertexLighting, VertexParameters.TangentToWorld[2], EyeIndex);
 
 #endif
 
+	#if PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING && TRANSLUCENCY_ANY_PERVERTEX_LIGHTING
+		float3 BrickTextureUVs = ComputeVolumetricLightmapBrickTextureUVs(WorldPositionForVertexLighting);
+
+		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
+			FOneBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH1(BrickTextureUVs);
+			Output.BasePassInterpolants.VertexIndirectAmbient = float3(IrradianceSH.R.V, IrradianceSH.G.V, IrradianceSH.B.V);
+		#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
+			// Need to interpolate directional lighting so we can incorporate a normal in the pixel shader
+			FTwoBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH2(BrickTextureUVs);
+			Output.BasePassInterpolants.VertexIndirectSH[0] = IrradianceSH.R.V;
+			Output.BasePassInterpolants.VertexIndirectSH[1] = IrradianceSH.G.V;
+			Output.BasePassInterpolants.VertexIndirectSH[2] = IrradianceSH.B.V;
+		#endif
+	#endif
 
 #if WRITES_VELOCITY_TO_GBUFFER
 	{

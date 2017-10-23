@@ -10,6 +10,7 @@
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "Preferences/MaterialEditorOptions.h"
+#include "MaterialEditorModule.h"
 
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionParameter.h"
@@ -23,6 +24,7 @@
 
 MaterialExpressionClasses::MaterialExpressionClasses()
 	: bInitialized( false )
+	, bMaterialLayersEnabled( false )
 {
 
 }
@@ -72,8 +74,14 @@ FCategorizedMaterialExpressionNode* MaterialExpressionClasses::GetCategoryNode(c
 
 void MaterialExpressionClasses::InitMaterialExpressionClasses()
 {
-	if( !bInitialized )
+	// @TODO: Remove this. Temporary flag for toggling experimental material layers functionality
+	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
+	const bool bNewMaterialLayersEnabled = MaterialEditorModule.MaterialLayersEnabled();
+
+	if( !bInitialized || bMaterialLayersEnabled != bNewMaterialLayersEnabled )
 	{
+		bMaterialLayersEnabled = bNewMaterialLayersEnabled;
+
 		UMaterialEditorOptions* TempEditorOptions = NewObject<UMaterialEditorOptions>();
 		UClass* BaseType = UMaterialExpression::StaticClass();
 		if( BaseType )
@@ -89,6 +97,12 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 					if( Class->IsChildOf(UMaterialExpression::StaticClass()) )
 					{
 						ExpressionInputs.Empty();
+
+						// @TODO: Remove this. Temporary flag for toggling experimental material layers functionality
+						if (!bMaterialLayersEnabled && Class == UMaterialExpressionMaterialAttributeLayers::StaticClass())
+						{
+							continue;
+						}
 
 						// Exclude comments from the expression list, as well as the base parameter expression, as it should not be used directly
 						if ( Class != UMaterialExpressionComment::StaticClass() 

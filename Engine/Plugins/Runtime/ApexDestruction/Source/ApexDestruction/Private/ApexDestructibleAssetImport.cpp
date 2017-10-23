@@ -14,9 +14,7 @@
 
 
 #if WITH_EDITOR
-
 #include "Modules/ModuleManager.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/SkeletalMesh.h"
 #include "Materials/Material.h"
 #include "Factories/Factory.h"
@@ -33,6 +31,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
+#include "Rendering/SkeletalMeshModel.h"
 #include "DestructibleMesh.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 
@@ -842,10 +841,10 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 	// process bone influences from import data
 	ProcessImportMeshInfluences(*SkelMeshImportDataPtr);
 
-	FSkeletalMeshResource& DestructibleMeshResource = *DestructibleMesh.GetImportedResource();
+	FSkeletalMeshModel& DestructibleMeshResource = *DestructibleMesh.GetImportedModel();
 	check(DestructibleMeshResource.LODModels.Num() == 0);
 	DestructibleMeshResource.LODModels.Empty();
-	new(DestructibleMeshResource.LODModels)FStaticLODModel();
+	new(DestructibleMeshResource.LODModels)FSkeletalMeshLODModel();
 
 	DestructibleMesh.LODInfo.Empty();
 	DestructibleMesh.LODInfo.AddZeroed();
@@ -858,7 +857,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 	// Store whether or not this mesh has vertex colors
 	DestructibleMesh.bHasVertexColors = SkelMeshImportDataPtr->bHasVertexColors;
 
-	FStaticLODModel& LODModel = DestructibleMeshResource.LODModels[0];
+	FSkeletalMeshLODModel& LODModel = DestructibleMeshResource.LODModels[0];
 	
 	LODModel.ActiveBoneIndices.Add(0);
 
@@ -886,14 +885,6 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 		{
 			DestructibleMesh.MarkPendingKill();
 			return false;
-		}
-
-		// Presize the per-section shadow casting array with the number of sections in the imported LOD.
-		const int32 NumSections = LODModel.Sections.Num();
-
-		for ( int32 SectionIndex = 0 ; SectionIndex < NumSections ; ++SectionIndex )
-		{
-			DestructibleMesh.LODInfo[0].TriangleSortSettings.AddZeroed();
 		}
 
 		if (ExistDestMeshDataPtr)
@@ -996,7 +987,7 @@ bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& DestructibleMe
 
 	return Success;
 }
-
+    #endif
 UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, apex::DestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options)
 {
 	// The APEX Destructible Asset contains an APEX Render Mesh Asset, get a pointer to this
@@ -1020,13 +1011,8 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 	if(DestructibleMesh)
 	{
 		// we found an existing mesh (reimport), clean up LODModels for the import process
-		if(FSkeletalMeshResource* ImportedResource = DestructibleMesh->GetImportedResource())
+		if(FSkeletalMeshModel* ImportedResource = DestructibleMesh->GetImportedModel())
 		{
-			for(FStaticLODModel& LODModel : ImportedResource->LODModels)
-			{
-				LODModel.ReleaseResources();
-			}
-
 			// Although we flushed above to make sure the resources weren't being used, we need
 			// to flush again as the call to Empty below will call destructors on the lod models.
 			// The renderer must release the resources before that happens.
@@ -1076,4 +1062,3 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 }
 
 #endif // WITH_APEX
-#endif

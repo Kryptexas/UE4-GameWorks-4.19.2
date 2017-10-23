@@ -45,5 +45,5 @@ public class RHI : ModuleRules
 		}
 
 		PrivateIncludePaths.Add("Runtime/RHI/Private");
-	}
+    }
 }

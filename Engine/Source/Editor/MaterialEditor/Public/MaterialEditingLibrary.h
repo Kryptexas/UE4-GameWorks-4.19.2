@@ -37,6 +37,12 @@ public:
 	*/
 	static void RebuildMaterialInstanceEditors(UMaterial* BaseMaterial);
 
+	/**
+	*	Rebuilds dependent Material Instance Editors
+	*	@param	BaseMaterial	Material that MaterialInstance must be based on for Material Instance Editor to be rebuilt
+	*/
+	static void RebuildMaterialInstanceEditors(UMaterialFunction* BaseFunction);
+
 	///////////// MATERIAL EDITING
 
 

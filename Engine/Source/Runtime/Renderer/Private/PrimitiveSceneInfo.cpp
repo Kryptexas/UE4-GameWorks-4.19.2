@@ -161,6 +161,7 @@ void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList)
 		{
 			// Use a separate index into StaticMeshBatchVisibility, since most meshes don't use it
 			Mesh.BatchVisibilityId = Scene->StaticMeshBatchVisibility.AddUninitialized().Index;
+			Scene->StaticMeshBatchVisibility[Mesh.BatchVisibilityId] = true;
 		}
 
 		// By this point, the index buffer render resource must be initialized
@@ -600,7 +601,7 @@ void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 		EUniformBufferUsage BufferUsage = Proxy->IsOftenMoving() ? UniformBuffer_SingleFrame : UniformBuffer_MultiFrame;
 
 		// If the PrimitiveInfo has no precomputed lighting buffer, it will fallback to the global Empty buffer.
-		if (!UseGPUInterpolatedVolumetricLightmaps(Scene->GetShadingPath())
+		if (!RHISupportsVolumeTextures(Scene->GetFeatureLevel())
 			&& Scene->VolumetricLightmapSceneData.HasData()
 			&& (Proxy->IsMovable() || Proxy->NeedsUnbuiltPreviewLighting())
 			&& Proxy->WillEverBeLit())

@@ -37,7 +37,7 @@ public:
 	{
 		if (!IOSSingleton.IsValid())
 		{
-			IOSSingleton = MakeShareable(new FOnlineSubsystemIOS(InstanceName));
+			IOSSingleton = MakeShared<FOnlineSubsystemIOS, ESPMode::ThreadSafe>(InstanceName);
 			if (IOSSingleton->IsEnabled())
 			{
 				if(!IOSSingleton->Init())

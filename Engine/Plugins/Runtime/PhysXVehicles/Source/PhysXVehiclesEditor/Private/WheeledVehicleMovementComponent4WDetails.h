@@ -18,6 +18,8 @@ public:
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
+
+	~FWheeledVehicleMovementComponent4WDetails();
 	
 private:
 

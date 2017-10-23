@@ -36,7 +36,8 @@ public:
 		TArray<FVertexStreamComponent,TFixedAllocator<LANDSCAPE_MAX_ES_LOD_COMP> > LODHeightsComponent;
 	};
 
-	FLandscapeVertexFactoryMobile()
+	FLandscapeVertexFactoryMobile(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLandscapeVertexFactory(InFeatureLevel)
 	{
 	}
 

@@ -1318,12 +1318,6 @@ void ULevel::UpdateModelComponents()
 		BeginInitResource(IndexBufferIt->Value.Get());
 	}
 
-	// Can now release the model's vertex buffer, will have been used for collision
-	if(!IsRunningCommandlet())
-	{
-		Model->ReleaseVertices();
-	}
-
 	Model->bInvalidForStaticLighting = true;
 }
 
@@ -1823,7 +1817,7 @@ void ULevel::SetLightingScenario(bool bNewIsLightingScenario)
 {
 	bIsLightingScenario = bNewIsLightingScenario;
 
-	OwningWorld->PropagateLightingScenarioChange(true);
+	OwningWorld->PropagateLightingScenarioChange();
 }
 
 #if WITH_EDITOR

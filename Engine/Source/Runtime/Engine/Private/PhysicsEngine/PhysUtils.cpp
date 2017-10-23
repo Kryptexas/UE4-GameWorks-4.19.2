@@ -454,6 +454,42 @@ void PvdConnect(FString Host, bool bVisualization)
 }
 #endif
 
+void DumpPhysXInstanceMemoryUsage(FOutputDevice* Ar)
+{
+#if WITH_PHYSX
+	for (auto It = GPhysXSceneMap.CreateIterator(); It; ++It)
+	{
+		PxScene* PScene = nullptr;
+#if WITH_APEX
+		if (apex::Scene* Scene = It.Value())
+		{
+			PScene = Scene->getPhysXScene();
+		}
+#else
+		PScene = It.Value();
+#endif
+
+		if (PScene)
+		{
+			SCOPED_SCENE_READ_LOCK(PScene);
+			const uint32 NumActors = PScene->getNbActors(PxActorTypeFlag::eRIGID_DYNAMIC | PxActorTypeFlag::eRIGID_STATIC);
+			TArray<PxActor*> Actors;
+			Actors.AddZeroed(NumActors);
+			PScene->getActors(PxActorTypeFlag::eRIGID_DYNAMIC | PxActorTypeFlag::eRIGID_STATIC, Actors.GetData(), sizeof(Actors[0]) * NumActors);
+
+			Ar->Logf(TEXT("PhysX Actors: %d"), NumActors);
+			for (const PxActor* PActor : Actors)
+			{
+				if (FBodyInstance* BI = FPhysxUserData::Get<FBodyInstance>(PActor->userData))
+				{
+					Ar->Logf(*BI->GetBodyDebugName());
+				}
+			}
+		}
+	}
+#endif
+}
+
 //// EXEC
 bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 {
@@ -577,6 +613,11 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 	else if(FParse::Command(&Cmd, TEXT("PHYSXSHARED")) )
 	{
 		FPhysxSharedData::Get().DumpSharedMemoryUsage(Ar);
+		return 1;
+	}
+	else if (FParse::Command(&Cmd, TEXT("PHYSXINSTANCES")))
+	{
+		DumpPhysXInstanceMemoryUsage(Ar);
 		return 1;
 	}
 	else if(FParse::Command(&Cmd, TEXT("PHYSXINFO")))

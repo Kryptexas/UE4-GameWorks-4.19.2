@@ -493,50 +493,52 @@ void FSoundConcurrencyManager::RemoveActiveSound(FActiveSound* ActiveSound)
 		const uint32 OwnerObjectID = ActiveSound->GetOwnerID();
 		const FSoundConcurrencySettings* ConcurrencySettings = ActiveSound->GetSoundConcurrencySettingsToApply();
 
-		// If 0, that means we're in override mode (i.e. concurrency is limited per-sound instance, not per-group)
-		if (ConcurrencyObjectID == 0)
+		if (ConcurrencySettings)
 		{
-			// Get the sounds unique ID
-			const FSoundObjectID SoundObjectID = ActiveSound->GetSound()->GetUniqueID();
-
-			// If we're limiting to owner, we need to clean up the per-owner record keeping
-			if (ConcurrencySettings->bLimitToOwner && OwnerObjectID != 0)
+			// If 0, that means we're in override mode (i.e. concurrency is limited per-sound instance, not per-group)
+			if (ConcurrencyObjectID == 0)
 			{
-				FSoundInstanceEntry* OwnerPerSoundEntry = OwnerPerSoundConcurrencyMap.Find(OwnerObjectID);
-				OwnerPerSoundEntry->SoundInstanceToConcurrencyGroup.Remove(SoundObjectID);
+				// Get the sounds unique ID
+				const FSoundObjectID SoundObjectID = ActiveSound->GetSound()->GetUniqueID();
 
-				if (!OwnerPerSoundEntry->SoundInstanceToConcurrencyGroup.Num())
+				// If we're limiting to owner, we need to clean up the per-owner record keeping
+				if (ConcurrencySettings->bLimitToOwner && OwnerObjectID != 0)
 				{
-					OwnerPerSoundConcurrencyMap.Remove(OwnerObjectID);
+					FSoundInstanceEntry* OwnerPerSoundEntry = OwnerPerSoundConcurrencyMap.Find(OwnerObjectID);
+					OwnerPerSoundEntry->SoundInstanceToConcurrencyGroup.Remove(SoundObjectID);
+
+					if (!OwnerPerSoundEntry->SoundInstanceToConcurrencyGroup.Num())
+					{
+						OwnerPerSoundConcurrencyMap.Remove(OwnerObjectID);
+					}
+				}
+				else
+				{
+					// If we're not limiting per-owner, we need to clean up the global map of per-sound concurrency
+					SoundObjectToActiveSounds.Remove(SoundObjectID);
 				}
 			}
-			else
+			else if (ConcurrencyObjectID != INDEX_NONE) // We're limiting concurrency per-group (not per-instance)
 			{
-				// If we're not limiting per-owner, we need to clean up the global map of per-sound concurrency
-				SoundObjectToActiveSounds.Remove(SoundObjectID);
-			}
-		}
-		else if (ConcurrencyObjectID != INDEX_NONE) // We're limiting concurrency per-group (not per-instance)
-		{
-			// Check if we're doing a per-owner concurrency group
-			if (ConcurrencySettings->bLimitToOwner && OwnerObjectID != 0)
-			{
-				FOwnerConcurrencyMapEntry* ConcurrencyEntry = OwnerConcurrencyMap.Find(OwnerObjectID);
-				ConcurrencyEntry->ConcurrencyObjectToConcurrencyGroup.Remove(ConcurrencyObjectID);
-
-				if (!ConcurrencyEntry->ConcurrencyObjectToConcurrencyGroup.Num())
+				// Check if we're doing a per-owner concurrency group
+				if (ConcurrencySettings->bLimitToOwner && OwnerObjectID != 0)
 				{
-					OwnerConcurrencyMap.Remove(OwnerObjectID);
+					FOwnerConcurrencyMapEntry* ConcurrencyEntry = OwnerConcurrencyMap.Find(OwnerObjectID);
+					ConcurrencyEntry->ConcurrencyObjectToConcurrencyGroup.Remove(ConcurrencyObjectID);
+
+					if (!ConcurrencyEntry->ConcurrencyObjectToConcurrencyGroup.Num())
+					{
+						OwnerConcurrencyMap.Remove(OwnerObjectID);
+					}
 				}
-			}
-			else
-			{
-				// Just remove the map entry that maps concurrency object ID to concurrency group
-				ConcurrencyMap.Remove(ConcurrencyObjectID);
+				else
+				{
+					// Just remove the map entry that maps concurrency object ID to concurrency group
+					ConcurrencyMap.Remove(ConcurrencyObjectID);
+				}
 			}
 		}
 	}
-
 }
 
 FActiveSound* FSoundConcurrencyManager::MakeNewActiveSound(const FActiveSound& NewActiveSound)

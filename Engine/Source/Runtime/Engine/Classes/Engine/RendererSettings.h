@@ -100,6 +100,8 @@ namespace EAutoExposureMethodUI
 		AEM_Histogram  UMETA(DisplayName = "Auto Exposure Histogram"),
 		/** Not supported on mobile, faster method that computes single value by downsampling */
 		AEM_Basic      UMETA(DisplayName = "Auto Exposure Basic"),
+		/** Uses camera settings. */
+		AEM_Manual   UMETA(DisplayName = "Manual"),
 		AEM_MAX,
 	};
 }
@@ -277,6 +279,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 	uint32 bEnableAlphaChannelInPostProcessing : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.UsePreExposure", DisplayName = "Apply Pre-exposure before writing to the scene color",
+		ToolTip = "Whether to use pre-exposure to remap the range of the scene color around the camera exposure. This limits the render target range required to support HDR lighting value.",
+		ConfigRestartRequired=true))
+	uint32 bUsePreExposure : 1;
+
 	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.Bloom", DisplayName = "Bloom",
 		ToolTip = "Whether the default for Bloom is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
@@ -314,8 +322,18 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AntiAliasing", DisplayName = "Anti-Aliasing Method",
-		ToolTip = "What anti-aliasing mode is used by default"))
+		ToolTip = "Which anti-aliasing mode is used by default"))
 	TEnumAsByte<EAntiAliasingMethod> DefaultFeatureAntiAliasing;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.PointLightUnits", DisplayName = "Point Light Units",
+		ToolTip = "Which units to use for point lights"))
+	ELightUnits DefaultPointLightUnits;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.SpotLightUnits", DisplayName = "Spot Light Units",
+		ToolTip = "Which units to use for spot lights"))
+	ELightUnits DefaultSpotLightUnits;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
 		ConsoleVariable="r.Shadow.UnbuiltPreviewInGame",DisplayName="Render Unbuilt Preview Shadows in game",

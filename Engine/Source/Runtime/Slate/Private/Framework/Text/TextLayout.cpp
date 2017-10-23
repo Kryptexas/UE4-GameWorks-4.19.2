@@ -599,6 +599,22 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 					const bool IsLastGraphemeBreak = CurrentBreak == NonBreakingString.Len();
 					const bool IsFirstGraphemeBreakOnSoftLine = CurrentWidth == 0;
 					const bool GraphemeBreakDoesFit = CurrentWidth + BreakWidth <= WrappingDrawWidth;
+					
+					// TODO : This probably needs to be handled differently
+					// if your break fits, 
+					// and you're the last grapheme, 
+					// and you have another break candidate available, 
+					// and that break candidate fits on the line (excluding trailing whitespace), 
+					// then hand over responsibility of adding the line to the next iteration of the outer loop
+					if (GraphemeBreakDoesFit && IsLastGraphemeBreak && BreakIndex + 1 < LineModel.BreakCandidates.Num())
+					{
+						const bool NextBreakWithoutTrailingWhitespaceDoesFit = CurrentWidth + BreakWidth + LineModel.BreakCandidates[BreakIndex + 1].TrimmedSize.X + Kerning <= WrappingDrawWidth;
+						if (NextBreakWithoutTrailingWhitespaceDoesFit)
+						{
+							break;
+						}
+					}
+
 					if (!GraphemeBreakDoesFit || IsLastGraphemeBreak)
 					{
 						bool bHasTrailingText = IsLastGraphemeBreak;

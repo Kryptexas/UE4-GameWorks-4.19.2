@@ -21,7 +21,7 @@ inline static bool DelayAcquireBackBuffer()
 	return GCVarDelayAcquireBackBuffer->GetInt() != 0;
 }
 
-struct FRHICommandAcquireBackBuffer : public FRHICommand<FRHICommandAcquireBackBuffer>
+struct FRHICommandAcquireBackBuffer final : public FRHICommand<FRHICommandAcquireBackBuffer>
 {
 	FVulkanViewport* Viewport;
 	FVulkanBackBuffer* NewBackBuffer;
@@ -38,7 +38,7 @@ struct FRHICommandAcquireBackBuffer : public FRHICommand<FRHICommandAcquireBackB
 };
 
 
-struct FRHICommandProcessDeferredDeletionQueue : public FRHICommand<FRHICommandProcessDeferredDeletionQueue>
+struct FRHICommandProcessDeferredDeletionQueue final : public FRHICommand<FRHICommandProcessDeferredDeletionQueue>
 {
 	FVulkanDevice* Device;
 	FORCEINLINE_DEBUGGABLE FRHICommandProcessDeferredDeletionQueue(FVulkanDevice* InDevice)

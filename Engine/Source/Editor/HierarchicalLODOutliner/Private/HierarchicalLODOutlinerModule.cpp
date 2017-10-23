@@ -49,7 +49,7 @@ void FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent()
 
 	if (WorldSettings)
 	{
-		TArray<FHierarchicalSimplification>& HierarchicalLODSetup = WorldSettings->HierarchicalLODSetup;
+		TArray<FHierarchicalSimplification>& HierarchicalLODSetup = WorldSettings->GetHierarchicalLODSetup();
 		int32 NumHLODLevels = WorldSettings->NumHLODLevels;
 
 		if (HierarchicalLODSetup.Num() > 1 && HierarchicalLODSetup.Num() > NumHLODLevels)

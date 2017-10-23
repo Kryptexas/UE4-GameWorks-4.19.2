@@ -108,7 +108,7 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 }
 
 template<typename TKeepAliveType>
-struct TKeepAliveCommand : public FRHICommand < TKeepAliveCommand<TKeepAliveType> >
+struct TKeepAliveCommand final : public FRHICommand < TKeepAliveCommand<TKeepAliveType> >
 {
 	TKeepAliveType Value;
 	

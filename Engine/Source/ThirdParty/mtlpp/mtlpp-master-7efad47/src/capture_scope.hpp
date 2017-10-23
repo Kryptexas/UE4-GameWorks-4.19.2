@@ -5,16 +5,18 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_PROTOCOL(MTLCaptureScope);
+
 namespace mtlpp
 {
 	class Device;
 	class CommandQueue;
 	
-	class CaptureScope : public ns::Object
+	class CaptureScope : public ns::Object<ns::Protocol<id<MTLCaptureScope>>::type>
 	{
 	public:
 		CaptureScope() { }
-		CaptureScope(const ns::Handle& handle) : ns::Object(handle) { }
+		CaptureScope(ns::Protocol<id<MTLCaptureScope>>::type handle) : ns::Object<ns::Protocol<id<MTLCaptureScope>>::type>(handle) { }
 		
 		void BeginScope();
 		void EndScope();

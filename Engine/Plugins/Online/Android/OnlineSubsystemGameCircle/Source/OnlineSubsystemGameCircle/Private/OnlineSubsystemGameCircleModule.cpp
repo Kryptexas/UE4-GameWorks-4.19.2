@@ -37,7 +37,7 @@ public:
 	{
 		if (!GameCircleSingleton.IsValid())
 		{
-			GameCircleSingleton = MakeShareable(new FOnlineSubsystemGameCircle(InInstanceName));
+			GameCircleSingleton = MakeShared<FOnlineSubsystemGameCircle, ESPMode::ThreadSafe>(InInstanceName);
 			if (GameCircleSingleton->IsEnabled())
 			{
 				if(!GameCircleSingleton->Init())

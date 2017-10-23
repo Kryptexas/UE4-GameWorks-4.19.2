@@ -14,6 +14,11 @@
 
 #define BEACON_RPC_TIMEOUT 15.0f
 
+/** For backwards compatibility with newer engine encryption API */
+#ifndef NETCONNECTION_HAS_SETENCRYPTIONKEY
+	#define NETCONNECTION_HAS_SETENCRYPTIONKEY 0
+#endif
+
 AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	BeaconOwner(nullptr),
@@ -22,6 +27,10 @@ AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitial
 {
 	NetDriverName = FName(TEXT("BeaconDriverClient"));
 	bOnlyRelevantToOwner = true;
+
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bAllowTickOnDedicatedServer = false;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 }
 
 FString AOnlineBeaconClient::GetBeaconType() const
@@ -94,7 +103,24 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 			FString Error;
 			if (NetDriver->InitConnect(this, URL, Error))
 			{
+				check(NetDriver->ServerConnection);
+				UWorld* World = GetWorld();
+
 				BeaconConnection = NetDriver->ServerConnection;
+
+				ULocalPlayer* LocalPlayer = GEngine->GetFirstGamePlayer(World);
+				if (LocalPlayer)
+				{
+					// Send the player unique Id at login
+					BeaconConnection->PlayerId = LocalPlayer->GetPreferredUniqueNetId();
+				}
+
+#if NETCONNECTION_HAS_SETENCRYPTIONKEY
+				if (EncryptionKey.Num() > 0)
+				{
+					BeaconConnection->SetEncryptionKey(EncryptionKey);
+				}
+#endif
 
 				// Kick off the connection handshake
 				bool bSentHandshake = false;
@@ -109,7 +135,7 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 
 				SetConnectionState(EBeaconConnectionState::Pending);
 
-				NetDriver->SetWorld(GetWorld());
+				NetDriver->SetWorld(World);
 				NetDriver->Notify = this;
 				NetDriver->InitialConnectTimeout = BeaconConnectionInitialTimeout;
 				NetDriver->ConnectionTimeout = BeaconConnectionTimeout;
@@ -119,7 +145,6 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 				{
 					SendInitialJoin();
 				}
-
 
 				bSuccess = true;
 			}
@@ -136,9 +161,33 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 	return bSuccess;
 }
 
+void AOnlineBeaconClient::Tick(float DeltaTime)
+{
+	if (NetDriver != nullptr && NetDriver->ServerConnection != nullptr)
+	{
+		// Monitor for close bunches sent by the server which close down the connection in UChannel::Cleanup
+		// See similar code in UWorld::TickNetClient
+		if (((ConnectionState == EBeaconConnectionState::Pending) || (ConnectionState == EBeaconConnectionState::Open)) &&
+			(NetDriver->ServerConnection->State == USOCK_Closed))
+		{
+			UE_LOG(LogBeacon, Verbose, TEXT("Client beacon (%s) socket has closed, triggering failure."), *GetName());
+			OnFailure();
+		}
+	}
+}
+
 void AOnlineBeaconClient::SetEncryptionToken(const FString& InEncryptionToken)
 {
 	EncryptionToken = InEncryptionToken;
+}
+
+void AOnlineBeaconClient::SetEncryptionKey(TArrayView<uint8> InEncryptionKey)
+{
+	if (CVarNetAllowEncryption.GetValueOnGameThread() != 0)
+	{
+		EncryptionKey.Reset(InEncryptionKey.Num());
+		EncryptionKey.Append(InEncryptionKey.GetData(), InEncryptionKey.Num());
+	}
 }
 
 void AOnlineBeaconClient::SendInitialJoin()
@@ -198,6 +247,7 @@ bool AOnlineBeaconClient::UseShortConnectTimeout() const
 void AOnlineBeaconClient::DestroyBeacon()
 {
 	SetConnectionState(EBeaconConnectionState::Closed);
+	SetActorTickEnabled(false);
 
 	UWorld* World = GetWorld();
 	if (World)
@@ -259,16 +309,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 				FString BeaconType = GetBeaconType();
 				if (!BeaconType.IsEmpty())
 				{
-					FUniqueNetIdRepl UniqueIdRepl;
-
-					ULocalPlayer* LocalPlayer = GEngine->GetFirstGamePlayer(GetWorld());
-					if (LocalPlayer)
-					{
-						// Send the player unique Id at login
-						UniqueIdRepl = LocalPlayer->GetPreferredUniqueNetId();
-					}
-
-					FNetControlMessage<NMT_BeaconJoin>::Send(Connection, BeaconType, UniqueIdRepl);
+					FNetControlMessage<NMT_BeaconJoin>::Send(Connection, BeaconType, Connection->PlayerId);
 					NetDriver->ServerConnection->FlushNet();
 				}
 				else

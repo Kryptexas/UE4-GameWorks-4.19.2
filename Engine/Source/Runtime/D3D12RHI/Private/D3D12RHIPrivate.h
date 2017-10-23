@@ -868,6 +868,8 @@ protected:
 	{
 		return GetAdapter().GetDevice();
 	}
+
+	HANDLE FlipEvent;
 };
 
 /** Implements the D3D12RHI module as a dynamic RHI providing module. */

@@ -5,21 +5,51 @@ DEFINE_LOG_CATEGORY(LogTapDelay);
 
 static void GetMultichannelPan(const float& Input, const float& Angle, const float& Gain, const int32& NumChannels, float* DestinationFrame)
 {
+	const float InputWithGain = Input * Gain;
+
 	if (NumChannels == 2)
 	{
 		float LeftGain;
 		float RightGain;
 		Audio::GetStereoPan(Angle / -90.0f, LeftGain, RightGain);
 
-		DestinationFrame[0] += LeftGain * Gain * Input;
-		DestinationFrame[1] += RightGain * Gain * Input;
+		DestinationFrame[0] += LeftGain * InputWithGain;
+		DestinationFrame[1] += RightGain * InputWithGain;
 	}
 	else
 	{
-		// TODO: improve multichannel pan to take into account the speaker positions in audio mixer
-		for (int32 Channel = 0; Channel < NumChannels; Channel++)
+		float QuadChannelMap[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		// We will spatialize using quad panning
+		// Note input angle results in 0.0 being behind you
+		// We offset the value to align the value so that 0.0 is "front left" i.e. index 0
+		// We use the modulo to make sure it wraps to be between 0.0 and 1.0
+		// We're also (for simplicity) assuming isotropic distribution of the quad speaker map.
+		const float NormalizedAngle = FMath::Fmod((Angle + 180.0f) / 360.0f + 0.625f, 1.0f);
+
+		const float ChannelFraction = 4 * NormalizedAngle;
+		const int32 Channel0 = FMath::FloorToInt(ChannelFraction);
+		const int32 Channel1 = (Channel0 + 1) % 4;
+		const float ChannelAlpha = (ChannelFraction - Channel0) * -2.0f + 1.0f;
+
+		Audio::GetStereoPan(ChannelAlpha, QuadChannelMap[Channel0], QuadChannelMap[Channel1]);
+
+		// Now map to the specific channel outputs
+		if (NumChannels == 6 || NumChannels == 8)
 		{
-			DestinationFrame[Channel] += Gain * Input / ((float)NumChannels);
+			// Specifically skipping LFE, Center channel, and side channels
+			DestinationFrame[0] += QuadChannelMap[0] * InputWithGain;
+			DestinationFrame[1] += QuadChannelMap[1] * InputWithGain;
+			DestinationFrame[5] += QuadChannelMap[2] * InputWithGain;
+			DestinationFrame[4] += QuadChannelMap[3] * InputWithGain;
+		}
+		else if (NumChannels >= 4)
+		{
+			// only really supporting quad, but weird channel configs will do something
+			for (int32 i = 0; i < 4; ++i)
+			{
+				DestinationFrame[i] += QuadChannelMap[i] * InputWithGain;
+			}
 		}
 	}
 }
@@ -163,7 +193,7 @@ void FSubmixEffectTapDelay::SetTap(int32 TapId, const FTapDelayInfo& DelayInfo)
 			TapInfo.OutputChannel = DelayInfo.OutputChannel;
 
 			// cache the tap's gain as a linear value:
-			TapInfo.Gain = Audio::ConvertToLinear(TapInfo.Gain);
+			TapInfo.Gain = Audio::ConvertToLinear(DelayInfo.Gain);
 			bSettingsModified = true;
 			break;
 		}
@@ -407,4 +437,3 @@ float FTapDelayInterpolationInfo::GetLengthValue()
 {
 	return LengthParam.GetValue();
 }
-

@@ -2186,11 +2186,11 @@ void FAudioDevice::UpdateSoundClassProperties(float DeltaTime)
 			// Work out the fade in portion
 			SoundMixState->InterpValue = (float)((AudioTime - SoundMixState->FadeInStartTime) / (SoundMixState->FadeInEndTime - SoundMixState->FadeInStartTime));
 			SoundMixState->CurrentState = ESoundMixState::FadingIn;
-		}
+		}	
 		else if (AudioTime >= SoundMixState->FadeInEndTime
 			&& (SoundMixState->IsBaseSoundMix
-				|| ((SoundMixState->PassiveRefCount > 0 || SoundMixState->ActiveRefCount > 0) && SoundMixState->FadeOutStartTime < 0.f)
-				|| AudioTime < SoundMixState->FadeOutStartTime)) 
+			|| ((SoundMixState->PassiveRefCount > 0 || SoundMixState->ActiveRefCount > 0) && SoundMixState->FadeOutStartTime < 0.f)
+			|| AudioTime < SoundMixState->FadeOutStartTime))
 		{
 			// .. ensure the full mix is applied between the end of the fade in time and the start of the fade out time
 			// or if SoundMix is the base or active via a passive push - ignores duration.
@@ -3550,7 +3550,7 @@ void FAudioDevice::ProcessingPendingActiveSoundStops(bool bForceDelete)
 	for (int32 i = PendingSoundsToDelete.Num() - 1; i >= 0; --i)
 	{
 		FActiveSound* ActiveSound = PendingSoundsToDelete[i];
-		if (bForceDelete || ActiveSound->CanDelete())
+		if (ActiveSound && (bForceDelete || ActiveSound->CanDelete()))
 		{
 			ActiveSound->bAsyncOcclusionPending = false;
 			PendingSoundsToDelete.RemoveAtSwap(i, 1, false);
@@ -3573,7 +3573,7 @@ void FAudioDevice::ProcessingPendingActiveSoundStops(bool bForceDelete)
 		else
 		{
 			// There was an async operation pending. We need to defer deleting this sound
-			PendingSoundsToDelete.Add(ActiveSound);
+			PendingSoundsToDelete.AddUnique(ActiveSound);
 		}
 	}
 	PendingSoundsToStop.Reset();

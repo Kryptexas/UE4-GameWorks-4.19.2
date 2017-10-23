@@ -59,7 +59,6 @@ public:
 		ShadowParameters.Bind(Initializer.ParameterMap);
 		ShadowViewProjectionMatrices.Bind(Initializer.ParameterMap, TEXT("ShadowViewProjectionMatrices"));
 		MeshVisibleToFace.Bind(Initializer.ParameterMap, TEXT("MeshVisibleToFace"));
-		InstanceCount.Bind(Initializer.ParameterMap, TEXT("InstanceCount"));
 	}
 
 	FShadowDepthVS() {}
@@ -70,7 +69,6 @@ public:
 		Ar << ShadowParameters;
 		Ar << ShadowViewProjectionMatrices;
 		Ar << MeshVisibleToFace;
-		Ar << InstanceCount;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -130,20 +128,11 @@ public:
 																	);
 		}
 	}
-		
-	void SetDrawInstanceCount(FRHICommandList& RHICmdList, uint32 NumInstances)
-	{
-		if(InstanceCount.IsBound())
-		{
-			SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, NumInstances);
-		}
-	}
 
 private:
 	FShadowDepthShaderParameters ShadowParameters;
 	FShaderParameter ShadowViewProjectionMatrices;
 	FShaderParameter MeshVisibleToFace;
-	FShaderParameter InstanceCount;
 };
 
 enum EShadowDepthVertexShaderMode
@@ -186,6 +175,13 @@ public:
 		{
 			return false;
 		}
+
+#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
+		if (Material->IsEditorOnlyDefaultMaterial())
+		{
+			return (!bUsePositionOnlyStream || VertexFactoryType->SupportsPositionOnly()) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		}
+#endif
 
 		//Note: This logic needs to stay in sync with OverrideWithDefaultMaterialForShadowDepth!
 		// Compile for special engine materials.
@@ -719,6 +715,8 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 {
 	check(!bInOnePassPointLightShadow || !bRenderingReflectiveShadowMaps);
 
+	InstanceFactor = !bOnePassPointLightShadow || RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[FeatureLevel]) ? 1 : 6;
+
 	if(!InVertexFactory)
 	{
 		// dummy object, needs call to UpdateElementState() to be fully initialized
@@ -841,6 +839,7 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 			PixelShader = (TShadowDepthBasePS<bRenderingReflectiveShadowMaps> *)MaterialResource->GetShader<TShadowDepthPS<PixelShadowDepth_NonPerspectiveCorrect, bRenderingReflectiveShadowMaps> >(VFType);
 		}
 	}
+	BaseVertexShader = VertexShader;
 }
 
 static void SetViewFlagsForShadowPass(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View, ERHIFeatureLevel::Type FeatureLevel, bool isTwoSided, bool isReflectiveShadowmap, bool isOnePassPointLightShadow)
@@ -1106,7 +1105,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 				for (int32 BatchElementIndex = 0, Num = Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::ShadowDepthRsm));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderStateLocal,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
@@ -1137,7 +1136,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::ShadowDepth));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderStateLocal,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
@@ -1150,133 +1149,6 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 	}
 	
 	return bDirty;
-}
-
-template <bool bRenderingReflectiveShadowMaps>
-void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
-{
-	if(!bOnePassPointLightShadow || RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[FeatureLevel]))
-	{
-		FMeshDrawingPolicy::DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
-	}
-	else
-	{
-		INC_DWORD_STAT(STAT_MeshDrawCalls);
-		SCOPED_DRAW_EVENT(RHICmdList, OnePassPointLightMeshDraw);
-		
-		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
-		
-		if (Mesh.UseDynamicData)
-		{
-			check(Mesh.DynamicVertexData);
-			
-			// @todo This code path *assumes* that DrawPrimitiveUP & DrawIndexedPrimitiveUP implicitly
-			// turn the following into instanced draw calls to route a draw to each face.
-			// This avoids adding anything to the public RHI API but is a filthy hack.
-			
-			VertexShader->SetDrawInstanceCount(RHICmdList, 1);
-			if (BatchElement.DynamicIndexData)
-			{
-				DrawIndexedPrimitiveUP(
-									   RHICmdList,
-									   Mesh.Type,
-									   BatchElement.MinVertexIndex,
-									   BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-									   BatchElement.NumPrimitives,
-									   BatchElement.DynamicIndexData,
-									   BatchElement.DynamicIndexStride,
-									   Mesh.DynamicVertexData,
-									   Mesh.DynamicVertexStride
-									   );
-			}
-			else
-			{
-				DrawPrimitiveUP(
-								RHICmdList,
-								Mesh.Type,
-								BatchElement.NumPrimitives,
-								Mesh.DynamicVertexData,
-								Mesh.DynamicVertexStride
-								);
-			}
-		}
-		else
-		{
-			if(BatchElement.IndexBuffer)
-			{
-				check(BatchElement.IndexBuffer->IsInitialized());
-				if (BatchElement.bIsInstanceRuns)
-				{
-					checkSlow(BatchElement.bIsInstanceRuns);
-					if (bUsePositionOnlyVS)
-					{
-						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
-						{
-							VertexFactory->OffsetPositionInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
-							uint32 Instances = 1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2];
-							VertexShader->SetDrawInstanceCount(RHICmdList, Instances);
-							RHICmdList.DrawIndexedPrimitive(
-															BatchElement.IndexBuffer->IndexBufferRHI,
-															Mesh.Type,
-															0,
-															0,
-															BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-															BatchElement.FirstIndex,
-															BatchElement.NumPrimitives,
-															Instances
-															);
-						}
-					}
-					else
-					{
-						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
-						{
-							VertexFactory->OffsetInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
-							uint32 Instances = 1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2];
-							VertexShader->SetDrawInstanceCount(RHICmdList, Instances);
-							RHICmdList.DrawIndexedPrimitive(
-															BatchElement.IndexBuffer->IndexBufferRHI,
-															Mesh.Type,
-															0,
-															0,
-															BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-															BatchElement.FirstIndex,
-															BatchElement.NumPrimitives,
-															Instances * 6
-															);
-						}
-					}
-				}
-				else
-				{
-					// Point light shadow cube maps shouldn't be rendered in stereo
-					check(!bIsInstancedStereo);
-
-					VertexShader->SetDrawInstanceCount(RHICmdList, BatchElement.NumInstances);
-					RHICmdList.DrawIndexedPrimitive(
-													BatchElement.IndexBuffer->IndexBufferRHI,
-													Mesh.Type,
-													0,
-													0,
-													BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-													BatchElement.FirstIndex,
-													BatchElement.NumPrimitives,
-													BatchElement.NumInstances * 6
-													);
-				}
-			}
-			else
-			{
-				VertexShader->SetDrawInstanceCount(RHICmdList, BatchElement.NumInstances);
-				RHICmdList.DrawPrimitive(
-										 Mesh.Type,
-										 BatchElement.FirstIndex,
-										 BatchElement.NumPrimitives,
-										 BatchElement.NumInstances * 6
-										 );
-			}
-		}
-	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -1384,7 +1256,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 		if(BatchElementMask & 1)
 		{
 			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, MeshEvent);
+			BeginMeshDrawEvent(RHICmdList, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::ShadowDepthStatic));
 
 			SharedDrawingPolicy.SetMeshRenderState(RHICmdList, View, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 			SharedDrawingPolicy.DrawMesh(RHICmdList, *Mesh, BatchElementIndex);
@@ -1635,6 +1507,9 @@ public:
 		, RenderMode(RenderModeIn)
 	{
 		SetStateOnCommandList(ParentCmdList);
+		// It is difficult to get accurate counts from the last frame. Cascades interfere with each other.
+		bBalanceCommandsWithLastFrame = false;
+		bBalanceCommands = false;
 	}
 
 	virtual ~FShadowParallelCommandListSet()
@@ -2070,7 +1945,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	FString EventName;
 	GetShadowTypeNameForDrawEvent(EventName);
 
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		EventName += FString(TEXT(" ")) + FString::FromInt(ResolutionX) + TEXT("x") + FString::FromInt(ResolutionY);
 	}
@@ -2120,7 +1995,7 @@ void FProjectedShadowInfo::SortSubjectMeshElements()
 
 void FProjectedShadowInfo::GetShadowTypeNameForDrawEvent(FString& TypeName) const
 {
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		const FName ParentName = ParentSceneInfo ? ParentSceneInfo->Proxy->GetOwnerName() : NAME_None;
 

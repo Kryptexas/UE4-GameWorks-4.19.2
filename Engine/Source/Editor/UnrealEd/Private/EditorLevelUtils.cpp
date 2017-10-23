@@ -776,6 +776,56 @@ void UEditorLevelUtils::DeselectAllSurfacesInLevel(ULevel* InLevel)
 	}
 }
 
+void UEditorLevelUtils::SetLevelVisibilityTemporarily(ULevel* Level, bool bShouldBeVisible)
+{
+	// Nothing to do
+	if (Level == NULL)
+	{
+		return;
+	}
+
+	// Set the visibility of each actor in the p-level
+	for (TArray<AActor*>::TIterator ActorIter(Level->Actors); ActorIter; ++ActorIter)
+	{
+		AActor* CurActor = *ActorIter;
+		if (CurActor && !FActorEditorUtils::IsABuilderBrush(CurActor) && CurActor->bHiddenEdLevel == bShouldBeVisible)
+		{
+			CurActor->bHiddenEdLevel = !bShouldBeVisible;
+			CurActor->MarkComponentsRenderStateDirty();
+		}
+	}
+
+	// Set the visibility of each BSP surface in the p-level
+	UModel* CurLevelModel = Level->Model;
+	if (CurLevelModel)
+	{
+		for (TArray<FBspSurf>::TIterator SurfaceIterator(CurLevelModel->Surfs); SurfaceIterator; ++SurfaceIterator)
+		{
+			FBspSurf& CurSurf = *SurfaceIterator;
+			CurSurf.bHiddenEdLevel = !bShouldBeVisible;
+		}
+	}
+
+	// Add/remove model components from the scene
+	for (int32 ComponentIndex = 0; ComponentIndex < Level->ModelComponents.Num(); ComponentIndex++)
+	{
+		UModelComponent* CurLevelModelCmp = Level->ModelComponents[ComponentIndex];
+		if (CurLevelModelCmp)
+		{
+			CurLevelModelCmp->MarkRenderStateDirty();
+		}
+	}
+
+	Level->GetWorld()->SendAllEndOfFrameUpdates();
+
+	Level->bIsVisible = bShouldBeVisible;
+
+	if (Level->bIsLightingScenario)
+	{
+		Level->OwningWorld->PropagateLightingScenarioChange();
+	}
+}
+
 void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible)
 {
 	// Nothing to do
@@ -813,6 +863,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 		if (CurLevelModel)
 		{
 			CurLevelModel->Modify();
+
 			for (TArray<FBspSurf>::TIterator SurfaceIterator(CurLevelModel->Surfs); SurfaceIterator; ++SurfaceIterator)
 			{
 				FBspSurf& CurSurf = *SurfaceIterator;
@@ -984,7 +1035,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 
 	if (Level->bIsLightingScenario)
 	{
-		Level->OwningWorld->PropagateLightingScenarioChange(bShouldBeVisible);
+		Level->OwningWorld->PropagateLightingScenarioChange();
 	}
 }
 

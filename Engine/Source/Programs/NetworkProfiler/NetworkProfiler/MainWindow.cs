@@ -791,9 +791,29 @@ namespace NetworkProfiler
 				MaxProfileMinutesTextBox.Text = "";
 			}
 		}
-	}
 
-	public class FilterValues
+        private void CheckAllConnectionsCheckBox_Click(object sender, System.EventArgs e)
+        {
+            bool bAreAllUnchecked = true;
+            for (int i = 0; i < ConnectionListBox.Items.Count; i++)
+            {
+                if (ConnectionListBox.GetItemChecked(i) == false)
+                {
+                    bAreAllUnchecked = false;
+                    break;
+                }
+            }
+
+            for (int i = 0; i < ConnectionListBox.Items.Count; i++)
+            {
+                ConnectionListBox.SetItemChecked(i, !bAreAllUnchecked);
+            }
+
+            checkAllConnectionsCheckBox.Checked = !bAreAllUnchecked;
+        }
+    }
+
+    public class FilterValues
 	{
 		public string ActorFilter		= "";
 		public string PropertyFilter	= "";

@@ -225,8 +225,12 @@ public:
 	/** Called from CommitMapChange after unloading previous level and loading new level+sublevels. Used for asynchronous level streaming */
 	virtual void PostCommitMapChange();
 
-	/** Called when a connection closes before getting to PostLogin() */
-	virtual void NotifyPendingConnectionLost();
+	/** 
+	 * Called when a connection closes before getting to PostLogin() 
+	 *
+	 * @param ConnectionUniqueId the unique id on the connection, if known (may be very early and impossible to know)
+	 */
+	virtual void NotifyPendingConnectionLost(const FUniqueNetIdRepl& ConnectionUniqueId);
 
 	/** Handles when a player is disconnected, before the session does */
 	virtual void HandleDisconnect(UWorld* InWorld, UNetDriver* NetDriver);

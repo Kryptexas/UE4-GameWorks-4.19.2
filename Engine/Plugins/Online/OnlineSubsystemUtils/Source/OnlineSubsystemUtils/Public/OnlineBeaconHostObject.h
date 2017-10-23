@@ -70,6 +70,11 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHostObject : public AActor
 	 */
 	virtual void Unregister();
 
+	/**
+	 * @return the number of connections currently with this beacon host
+	 */
+	int32 GetNumClientActors() const { return ClientActors.Num(); }
+
 protected:
 
 	/** Custom name for this beacon */

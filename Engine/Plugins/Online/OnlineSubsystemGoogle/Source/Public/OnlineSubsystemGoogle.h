@@ -23,7 +23,6 @@ public:
 	// FOnlineSubsystemGoogleCommon Interface
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
-	virtual bool IsEnabled() const override;
 
 	// FOnlineSubsystemGoogle
 

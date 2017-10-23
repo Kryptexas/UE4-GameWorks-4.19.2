@@ -44,11 +44,11 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 #endif
 }
 
-FPaperTileMapRenderSceneProxy* FPaperTileMapRenderSceneProxy::CreateTileMapProxy(const UPaperTileMapComponent* InComponent, TArray<FSpriteRenderSection>*& OutSections, TArray<FPaperSpriteVertex>*& OutVertices)
+FPaperTileMapRenderSceneProxy* FPaperTileMapRenderSceneProxy::CreateTileMapProxy(const UPaperTileMapComponent* InComponent, TArray<FSpriteRenderSection>*& OutSections, TArray<FDynamicMeshVertex>*& OutVertices)
 {
 	FPaperTileMapRenderSceneProxy* NewProxy = new FPaperTileMapRenderSceneProxy(InComponent);
 
-	OutVertices = &(NewProxy->VertexBuffer.Vertices);
+	OutVertices = &(NewProxy->Vertices);
 	OutSections = &(NewProxy->BatchedSections);
 
 	return NewProxy;
@@ -56,15 +56,6 @@ FPaperTileMapRenderSceneProxy* FPaperTileMapRenderSceneProxy::CreateTileMapProxy
 
 void FPaperTileMapRenderSceneProxy::FinishConstruction_GameThread()
 {
-	if (VertexBuffer.Vertices.Num() > 0)
-	{
-		// Init the vertex factory
-		MyVertexFactory.Init(&VertexBuffer);
-
-		// Enqueue initialization of render resources
-		BeginInitResource(&VertexBuffer);
-		BeginInitResource(&MyVertexFactory);
-	}
 }
 
 void FPaperTileMapRenderSceneProxy::DrawBoundsForLayer(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const

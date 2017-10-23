@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
+#include "Materials/MaterialExpressionParameter.h"
 
 #include "DEditorParameterValue.generated.h"
 
@@ -18,7 +19,7 @@ class UNREALED_API UDEditorParameterValue : public UObject
 	uint32 bOverride:1;
 
 	UPROPERTY(EditAnywhere, Category=DEditorParameterValue)
-	FName ParameterName;
+	FMaterialParameterInfo ParameterInfo;
 
 	UPROPERTY()
 	FGuid ExpressionId;

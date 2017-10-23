@@ -19,6 +19,7 @@
 class Error;
 class UMaterialParameterCollection;
 class UTexture;
+struct FMaterialParameterInfo;
 
 enum EMaterialForceCastFlags
 {
@@ -40,7 +41,7 @@ public:
 	// @param OverrideShaderFrequency SF_NumFrequencies to not override
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) = 0;
 	
-	/** Pushes a material attriubtes property onto the stack. Called as we begin compiling a property through a MaterialAttributes pin. */
+	/** Pushes a material attributes property onto the stack. Called as we begin compiling a property through a MaterialAttributes pin. */
 	virtual void PushMaterialAttribute(const FGuid& InAttributeID) = 0;
 	/** Pops a MaterialAttributes property off the stack. Called as we finish compiling a property through a MaterialAttributes pin. */
 	virtual FGuid PopMaterialAttribute() = 0;
@@ -48,6 +49,11 @@ public:
 	virtual const FGuid GetMaterialAttribute() = 0;
 	/** Sets the bottom MaterialAttributes property of the stack. */
 	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) = 0;
+
+	/** Pushes a parameter owner onto the stack. Called as we begin compiling each layer function of MaterialAttributeLayers. */
+	virtual void PushParameterOwner(const FMaterialParameterInfo& InOwnerInfo) = 0;
+	/** Pops a parameter owner off the stack. Called as we finish compiling each layer function of MaterialAttributeLayers. */
+	virtual FMaterialParameterInfo PopParameterOwner() = 0;
 
 	// gets value stored by SetMaterialProperty()
 	virtual EShaderFrequency GetCurrentShaderFrequency() const = 0;
@@ -82,9 +88,11 @@ public:
 	/** Pops a function from the compiler's function stack, which indicates that compilation is leaving a function. */
 	virtual FMaterialFunctionCompileState PopFunction() = 0;
 
+	virtual int32 GetCurrentFunctionStackDepth() = 0;
+
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) = 0;
-	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) = 0;
-	virtual int32 ScalarParameter(FName ParameterName,float DefaultValue) = 0;
+	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) = 0;
+	virtual int32 VectorParameter(FName ParameterName, const FLinearColor& DefaultValue) = 0;
 
 	virtual int32 Constant(float X) = 0;
 	virtual int32 Constant2(float X,float Y) = 0;
@@ -205,6 +213,7 @@ public:
 	virtual int32 StaticBool(bool Value) = 0;
 	virtual int32 StaticBoolParameter(FName ParameterName,bool bDefaultValue) = 0;
 	virtual int32 StaticComponentMask(int32 Vector,FName ParameterName,bool bDefaultR,bool bDefaultG,bool bDefaultB,bool bDefaultA) = 0;
+	virtual const FMaterialLayersFunctions* StaticMaterialLayersParameter(FName ParameterName) = 0;
 	virtual bool GetStaticBoolValue(int32 BoolIndex, bool& bSucceeded) = 0;
 	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) = 0;
 
@@ -309,6 +318,10 @@ public:
 	virtual FGuid PopMaterialAttribute() override { return Compiler->PopMaterialAttribute(); }
 	virtual const FGuid GetMaterialAttribute() override { return Compiler->GetMaterialAttribute(); }
 	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) override { Compiler->SetBaseMaterialAttribute(InAttributeID); }
+
+	virtual void PushParameterOwner(const FMaterialParameterInfo& InOwnerInfo) override { Compiler->PushParameterOwner(InOwnerInfo); }
+	virtual FMaterialParameterInfo PopParameterOwner() override { return Compiler->PopParameterOwner(); }
+
 	virtual EShaderFrequency GetCurrentShaderFrequency() const override { return Compiler->GetCurrentShaderFrequency(); }
 	virtual int32 Error(const TCHAR* Text) override { return Compiler->Error(Text); }
 
@@ -316,6 +329,7 @@ public:
 
 	virtual void PushFunction(const FMaterialFunctionCompileState& FunctionState) override { Compiler->PushFunction(FunctionState); }
 	virtual FMaterialFunctionCompileState PopFunction() override { return Compiler->PopFunction(); }
+	virtual int32 GetCurrentFunctionStackDepth() override { return Compiler->GetCurrentFunctionStackDepth(); }
 
 	virtual EMaterialValueType GetType(int32 Code) override { return Compiler->GetType(Code); }
 	virtual EMaterialQualityLevel::Type GetQualityLevel() override { return Compiler->GetQualityLevel(); }
@@ -325,8 +339,8 @@ public:
 	{ return Compiler->ForceCast(Code,DestType,ForceCastFlags); }
 
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override { return Compiler->AccessCollectionParameter(ParameterCollection, ParameterIndex, ComponentIndex); }
-	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) override { return Compiler->VectorParameter(ParameterName,DefaultValue); }
-	virtual int32 ScalarParameter(FName ParameterName,float DefaultValue) override { return Compiler->ScalarParameter(ParameterName,DefaultValue); }
+	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) override { return Compiler->ScalarParameter(ParameterName,DefaultValue); }
+	virtual int32 VectorParameter(FName ParameterName, const FLinearColor& DefaultValue) override { return Compiler->VectorParameter(ParameterName,DefaultValue); }
 
 	virtual int32 Constant(float X) override { return Compiler->Constant(X); }
 	virtual int32 Constant2(float X,float Y) override { return Compiler->Constant2(X,Y); }
@@ -414,6 +428,7 @@ public:
 	virtual int32 StaticBool(bool Value) override { return Compiler->StaticBool(Value); }
 	virtual int32 StaticBoolParameter(FName ParameterName,bool bDefaultValue) override { return Compiler->StaticBoolParameter(ParameterName,bDefaultValue); }
 	virtual int32 StaticComponentMask(int32 Vector,FName ParameterName,bool bDefaultR,bool bDefaultG,bool bDefaultB,bool bDefaultA) override { return Compiler->StaticComponentMask(Vector,ParameterName,bDefaultR,bDefaultG,bDefaultB,bDefaultA); }
+	virtual const FMaterialLayersFunctions* StaticMaterialLayersParameter(FName ParameterName) override { return Compiler->StaticMaterialLayersParameter(ParameterName); }
 	virtual bool GetStaticBoolValue(int32 BoolIndex, bool& bSucceeded) override { return Compiler->GetStaticBoolValue(BoolIndex, bSucceeded); }
 	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) override { return Compiler->StaticTerrainLayerWeight(ParameterName,Default); }
 

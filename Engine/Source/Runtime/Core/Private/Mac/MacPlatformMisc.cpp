@@ -1285,6 +1285,38 @@ bool FMacPlatformMisc::IsSupportedXcodeVersionInstalled()
 	return GMacAppInfo.XcodeVersion.majorVersion > 8 || (GMacAppInfo.XcodeVersion.majorVersion == 8 && GMacAppInfo.XcodeVersion.minorVersion >= 2);
 }
 
+CGDisplayModeRef FMacPlatformMisc::GetSupportedDisplayMode(CGDirectDisplayID DisplayID, uint32 Width, uint32 Height)
+{
+	CGDisplayModeRef BestMatchingMode = nullptr;
+	uint32 BestWidth = 0;
+	uint32 BestHeight = 0;
+
+	CFArrayRef AllModes = CGDisplayCopyAllDisplayModes(DisplayID, nullptr);
+	if (AllModes)
+	{
+		const int32 NumModes = CFArrayGetCount(AllModes);
+		for (int32 Index = 0; Index < NumModes; Index++)
+		{
+			CGDisplayModeRef Mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
+			const int32 ModeWidth = (int32)CGDisplayModeGetWidth(Mode);
+			const int32 ModeHeight = (int32)CGDisplayModeGetHeight(Mode);
+
+			const bool bIsEqualOrBetterWidth = FMath::Abs((int32)ModeWidth - (int32)Width) <= FMath::Abs((int32)BestWidth - (int32)Width);
+			const bool bIsEqualOrBetterHeight = FMath::Abs((int32)ModeHeight - (int32)Height) <= FMath::Abs((int32)BestHeight - (int32)Height);
+			if (!BestMatchingMode || (bIsEqualOrBetterWidth && bIsEqualOrBetterHeight))
+			{
+				BestWidth = ModeWidth;
+				BestHeight = ModeHeight;
+				BestMatchingMode = Mode;
+			}
+		}
+		BestMatchingMode = CGDisplayModeRetain(BestMatchingMode);
+		CFRelease(AllModes);
+	}
+
+	return BestMatchingMode;
+}
+
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 

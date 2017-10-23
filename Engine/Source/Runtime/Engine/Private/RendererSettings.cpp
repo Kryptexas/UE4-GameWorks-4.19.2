@@ -48,7 +48,7 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(URendererSettings, ReflectionCaptureResolution) && 
 			PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 		{
-			GEditor->UpdateReflectionCaptures();
+			GEditor->BuildReflectionCaptures();
 		}
 	}
 }

@@ -17,6 +17,9 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Settings/EditorProjectSettings.h"
 #include "Kismet2/DebuggerCommands.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Input/SCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewport"
 
@@ -328,24 +331,11 @@ void SEditorViewport::BindCommands()
 		FIsActionChecked::CreateStatic( &SEditorViewport::OnIsSurfaceSnapEnabled ) 
 		);
 
-		// Simple macro for binding many Exposure Setting commands
-#define MAP_EXPOSURE_ACTION( Command, ID ) \
-	CommandListRef.MapAction( \
-	Command, \
-	FExecuteAction::CreateSP( this, &SEditorViewport::ChangeExposureSetting, ID ), \
-	FCanExecuteAction(), \
-	FIsActionChecked::CreateSP( this, &SEditorViewport::IsExposureSettingSelected, ID ) ) 
-
-	MAP_EXPOSURE_ACTION( Commands.ToggleAutoExposure, FEditorViewportCommands::AutoExposureRadioID );
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure4m, -4);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure3m, -3);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure2m, -2);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure1m, -1);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure0, 0);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure1p, 1);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure2p, 2);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure3p, 3);
-	MAP_EXPOSURE_ACTION( Commands.FixedExposure4p, 4);
+	CommandListRef.MapAction(
+		(Client.IsValid() && Client->IsLevelEditorClient()) ? Commands.ToggleInGameExposure : Commands.ToggleAutoExposure,
+		FExecuteAction::CreateSP( this, &SEditorViewport::ChangeExposureSetting),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SEditorViewport::IsExposureSettingSelected ) );
 
 	// Simple macro for binding many view mode UI commands
 
@@ -496,22 +486,15 @@ bool SEditorViewport::IsShowFlagEnabled(uint32 EngineShowFlagIndex) const
 	return Client->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
 }
 
-void SEditorViewport::ChangeExposureSetting( int32 ID )
+void SEditorViewport::ChangeExposureSetting()
 {
-	Client->ExposureSettings.bFixed = (ID != FEditorViewportCommands::AutoExposureRadioID);
-	Client->ExposureSettings.LogOffset = ID;
+	Client->ExposureSettings.bFixed = !Client->ExposureSettings.bFixed;
+	Client->Invalidate();
 }
 
-bool SEditorViewport::IsExposureSettingSelected( int32 ID ) const
+bool SEditorViewport::IsExposureSettingSelected() const
 {
-	if (ID == FEditorViewportCommands::AutoExposureRadioID)
-	{
-		return !Client->ExposureSettings.bFixed;
-	}
-	else
-	{
-		return Client->ExposureSettings.bFixed && Client->ExposureSettings.LogOffset == ID;
-	}
+	return !Client->ExposureSettings.bFixed;
 }
 
 void SEditorViewport::Invalidate()
@@ -555,6 +538,49 @@ void SEditorViewport::OnScreenCaptureForProjectThumbnail()
 EVisibility SEditorViewport::GetTransformToolbarVisibility() const
 {
 	return (Client->GetWidgetMode() != FWidget::WM_None) ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+TSharedRef<SWidget> SEditorViewport::BuildFixedEV100Menu()  const
+{
+	const float EV100Min = -10.f;
+	const float EV100Max = 20.f;
+
+	return
+		SNew( SBox )
+		.HAlign( HAlign_Right )
+		[
+			SNew( SBox )
+			.Padding( FMargin(0.0f, 0.0f, 0.0f, 0.0f) )
+			.WidthOverride( 100.0f )
+			[
+				SNew(SSpinBox<float>)
+				.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) )
+				.MinValue(EV100Min)
+				.MaxValue(EV100Max)
+				.Value( this, &SEditorViewport::OnGetFixedEV100Value )
+				.OnValueChanged( this, &SEditorViewport::OnFixedEV100ValueChanged )
+			]
+		];
+};
+
+				
+float SEditorViewport::OnGetFixedEV100Value() const
+{
+	if( Client.IsValid() )
+	{
+		return Client->ExposureSettings.FixedEV100;
+	}
+	return 0;
+}
+
+void SEditorViewport::OnFixedEV100ValueChanged(float NewValue)
+{
+	if( Client.IsValid() )
+	{
+		Client->ExposureSettings.bFixed = true;
+		Client->ExposureSettings.FixedEV100 = NewValue;
+		Client->Invalidate();
+	}
 }
 
 bool SEditorViewport::IsWidgetModeActive( FWidget::EWidgetMode Mode ) const

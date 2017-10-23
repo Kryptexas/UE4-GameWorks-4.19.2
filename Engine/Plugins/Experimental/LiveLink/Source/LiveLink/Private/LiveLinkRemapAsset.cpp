@@ -3,7 +3,8 @@
 #include "LiveLinkRemapAsset.h"
 #include "LiveLinkTypes.h"
 #include "BonePose.h"
-
+#include "Engine/Blueprint.h"
+  
 ULiveLinkRemapAsset::ULiveLinkRemapAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

@@ -613,6 +613,8 @@ void FMetalRHICommandContext::RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef Un
 				case PF_A16B16G16R16:
 				case PF_R16G16B16A16_UINT:
 				case PF_R16G16B16A16_SINT:
+				case PF_R16G16B16A16_UNORM:
+				case PF_R16G16B16A16_SNORM:
 				{
 					UE_LOG(LogMetal, Warning, TEXT("UAV pattern fill for format: %d is untested"), Format);
 					Pattern[0] = Values[0];

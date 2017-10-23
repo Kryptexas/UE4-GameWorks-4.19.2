@@ -422,10 +422,9 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 #if WITH_EDITOR
 	if(bReturnFaceIndex && World->IsGameWorld())
 	{
-		if(!ensure(UPhysicsSettings::Get()->bSuppressFaceRemapTable == false))
+		if(UPhysicsSettings::Get()->bSuppressFaceRemapTable)
 		{
-			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSuppressFaceRemapTable is true."));
-			bReturnFaceIndex = false;
+			bReturnFaceIndex = false;	//The editor uses the remap table, so we modify this to get the same results as you would in a cooked build
 		}
 	}
 #endif

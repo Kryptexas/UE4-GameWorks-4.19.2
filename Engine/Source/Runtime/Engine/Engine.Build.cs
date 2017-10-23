@@ -342,17 +342,14 @@ public class Engine : ModuleRules
 			DynamicallyLoadedModuleNames.Add("PhysXCooking");
 		}
 
-		if(Target.bCompilePhysX)
-		{
-			// Engine public headers need to know about some types (enums etc.)
-			PublicIncludePathModuleNames.Add("ClothingSystemRuntimeInterface");
-			PublicDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
+		// Engine public headers need to know about some types (enums etc.)
+		PublicIncludePathModuleNames.Add("ClothingSystemRuntimeInterface");
+		PublicDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
 
-			if (Target.bBuildEditor)
-			{
-				PrivateDependencyModuleNames.Add("ClothingSystemEditorInterface");
-				PrivateIncludePathModuleNames.Add("ClothingSystemEditorInterface");
-			}
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("ClothingSystemEditorInterface");
+			PrivateIncludePathModuleNames.Add("ClothingSystemEditorInterface");
 		}
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||

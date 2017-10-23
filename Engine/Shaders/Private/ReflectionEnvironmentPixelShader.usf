@@ -50,6 +50,12 @@ void ReflectionEnvironmentTiledDeferredMain(
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 	
 	OutColor = 0;
+
+#if USE_PREEXPOSURE
+	const float PreExposure = View.PreExposure;
+#else
+	const float PreExposure = 1.f;
+#endif
 	
 	float4 Color = float4(0, 0, 0, 1);
 	
@@ -117,7 +123,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 #endif
 
 		//bottom for clearcoat or the only reflection.
-		Color.rgb += GatherRadiance(Color.a, WorldPosition, R, GBuffer.Roughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
+		Color.rgb += PreExposure * GatherRadiance(Color.a, WorldPosition, R, GBuffer.Roughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
 
 		BRANCH
 		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
@@ -146,7 +152,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 			Color.a *= SpecularOcclusion;
 
 			float3 TopLayerR = 2 * dot( V, N ) * N - V;
-			Color.rgb += GatherRadiance(Color.a, WorldPosition, TopLayerR, ClearCoatRoughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
+			Color.rgb += PreExposure * GatherRadiance(Color.a, WorldPosition, TopLayerR, ClearCoatRoughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
 		}
 		else
 		{

@@ -138,13 +138,22 @@ void UAnimSequenceBase::UnregisterOnAnimTrackCurvesChanged(void* Unregister)
 }
 #endif 
 
-/** 
- * Retrieves AnimNotifies given a StartTime and a DeltaTime.
- * Time will be advanced and support looping if bAllowLooping is true.
- * Supports playing backwards (DeltaTime<0).
- * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
- */
 void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+{
+	TArray<FAnimNotifyEventReference> NotifyRefs;
+	GetAnimNotifies(StartTime, DeltaTime, bAllowLooping, NotifyRefs);
+
+	OutActiveNotifies.Reset(NotifyRefs.Num());
+	for (FAnimNotifyEventReference& NotifyRef : NotifyRefs)
+	{
+		if (const FAnimNotifyEvent* Notify = NotifyRef.GetNotify())
+		{
+			OutActiveNotifies.Add(Notify);
+		}
+	}
+}
+
+void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<FAnimNotifyEventReference> & OutActiveNotifies) const
 {
 	if(DeltaTime == 0.f)
 	{
@@ -190,13 +199,22 @@ void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& Del
 	while( true );
 }
 
-/** 
- * Retrieves AnimNotifies between two time positions. ]PreviousPosition, CurrentPosition]
- * Between PreviousPosition (exclusive) and CurrentPosition (inclusive).
- * Supports playing backwards (CurrentPosition<PreviousPosition).
- * Only supports contiguous range, does NOT support looping and wrapping over.
- */
 void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float& CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+{
+	TArray<FAnimNotifyEventReference> NotifyRefs;
+	GetAnimNotifiesFromDeltaPositions(PreviousPosition, CurrentPosition, NotifyRefs);
+
+	OutActiveNotifies.Reset(NotifyRefs.Num());
+	for (FAnimNotifyEventReference NotifyRef : NotifyRefs)
+	{
+		if (const FAnimNotifyEvent* Notify = NotifyRef.GetNotify())
+		{
+			OutActiveNotifies.Add(Notify);
+		}
+	}
+}
+
+void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float& CurrentPosition, TArray<FAnimNotifyEventReference> & OutActiveNotifies) const
 {
 	// Early out if we have no notifies
 	if( (Notifies.Num() == 0) || (PreviousPosition == CurrentPosition) )
@@ -217,7 +235,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousP
 
 			if( (NotifyStartTime < PreviousPosition) && (NotifyEndTime >= CurrentPosition) )
 			{
-				OutActiveNotifies.Add(&AnimNotifyEvent);
+				OutActiveNotifies.Emplace(&AnimNotifyEvent, this);
 			}
 		}
 	}
@@ -231,7 +249,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousP
 
 			if( (NotifyStartTime <= CurrentPosition) && (NotifyEndTime > PreviousPosition) )
 			{
-				OutActiveNotifies.Add(&AnimNotifyEvent);
+				OutActiveNotifies.Emplace(&AnimNotifyEvent, this);
 			}
 		}
 	}
@@ -672,12 +690,9 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 
 void UAnimSequenceBase::HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const
 {
-	if (Context.ShouldGenerateNotifies())
-	{
-		// Harvest and record notifies
-		TArray<const FAnimNotifyEvent*> AnimNotifies;
-		GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
-		NotifyQueue.AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
-	}
+	// Harvest and record notifies
+	TArray<FAnimNotifyEventReference> AnimNotifies;
+	GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
+	NotifyQueue.AddAnimNotifies(Context.ShouldGenerateNotifies(),AnimNotifies, Instance.EffectiveBlendWeight);
 }
 #undef LOCTEXT_NAMESPACE 

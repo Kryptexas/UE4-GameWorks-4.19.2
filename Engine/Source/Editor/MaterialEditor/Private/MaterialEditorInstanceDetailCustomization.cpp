@@ -12,6 +12,7 @@
 #include "EditorStyleSet.h"
 #include "Materials/MaterialInterface.h"
 #include "MaterialEditor/DEditorFontParameterValue.h"
+#include "MaterialEditor/DEditorMaterialLayersParameterValue.h"
 #include "MaterialEditor/DEditorScalarParameterValue.h"
 #include "MaterialEditor/DEditorStaticComponentMaskParameterValue.h"
 #include "MaterialEditor/DEditorStaticSwitchParameterValue.h"
@@ -22,6 +23,7 @@
 #include "Materials/MaterialExpressionParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
+#include "Materials/MaterialExpressionMaterialAttributeLayers.h"
 #include "EditorSupportDelegates.h"
 #include "DetailWidgetRow.h"
 #include "PropertyHandle.h"
@@ -32,6 +34,7 @@
 #include "PropertyCustomizationHelpers.h"
 #include "ScopedTransaction.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "MaterialPropertyHelpers.h"
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 
@@ -76,69 +79,85 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 	// Create default category for class properties
 	const FName DefaultCategoryName = NAME_None;
 	IDetailCategoryBuilder& DefaultCategory = DetailLayout.EditCategory(DefaultCategoryName);
+	DetailLayout.HideProperty("MaterialLayersParameterValues");
+	if (MaterialEditorInstance->bIsFunctionPreviewMaterial)
+	{
+		// TODO: Need to properly expose function instance parent, not preview material parent
+		DetailLayout.HideProperty("Parent");
+		DetailLayout.HideProperty("PhysMaterial");
+		DetailLayout.HideProperty("LightmassSettings");
+		DetailLayout.HideProperty("bUseOldStyleMICEditorGroups");
+		DetailLayout.HideProperty("ParameterGroups");
+		DetailLayout.HideProperty("RefractionDepthBias");
+		DetailLayout.HideProperty("bOverrideSubsurfaceProfile");
+		DetailLayout.HideProperty("SubsurfaceProfile");
+		DetailLayout.HideProperty("BasePropertyOverrides");
+	}
+	else
+	{
+		// Add PhysMaterial property
+		DefaultCategory.AddProperty("PhysMaterial");
 
-	// Add PhysMaterial property
-	DefaultCategory.AddProperty("PhysMaterial");
+		// Customize Parent property so we can check for recursively set parents
+		TSharedRef<IPropertyHandle> ParentPropertyHandle = DetailLayout.GetProperty("Parent");
+		IDetailPropertyRow& ParentPropertyRow = DefaultCategory.AddProperty(ParentPropertyHandle);
 
-	// Customize Parent property so we can check for recursively set parents
-	TSharedRef<IPropertyHandle> ParentPropertyHandle = DetailLayout.GetProperty("Parent");
-	IDetailPropertyRow& ParentPropertyRow = DefaultCategory.AddProperty(ParentPropertyHandle);
-
-	ParentPropertyHandle->MarkResetToDefaultCustomized();
+		ParentPropertyHandle->MarkResetToDefaultCustomized();
 	
-	TSharedPtr<SWidget> NameWidget;
-	TSharedPtr<SWidget> ValueWidget;
-	FDetailWidgetRow Row;
+		TSharedPtr<SWidget> NameWidget;
+		TSharedPtr<SWidget> ValueWidget;
+		FDetailWidgetRow Row;
 
-	ParentPropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+		ParentPropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
 	
-	ParentPropertyHandle->ClearResetToDefaultCustomized();
+		ParentPropertyHandle->ClearResetToDefaultCustomized();
 
-	const bool bShowChildren = true;
-	ParentPropertyRow.CustomWidget(bShowChildren)
-		.NameContent()
-		.MinDesiredWidth(Row.NameWidget.MinWidth)
-		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
-		[
-			NameWidget.ToSharedRef()
-		]
-		.ValueContent()
-		.MinDesiredWidth(Row.ValueWidget.MinWidth)
-		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
-		[
-			SNew(SObjectPropertyEntryBox)
-			.PropertyHandle(ParentPropertyHandle)
-			.AllowedClass(UMaterialInterface::StaticClass())
-			.ThumbnailPool(DetailLayout.GetThumbnailPool())
-			.AllowClear(true)
-			.OnShouldSetAsset(this, &FMaterialInstanceParameterDetails::OnShouldSetAsset)
-		];
+		const bool bShowChildren = true;
+		ParentPropertyRow.CustomWidget(bShowChildren)
+			.NameContent()
+			.MinDesiredWidth(Row.NameWidget.MinWidth)
+			.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+			[
+				NameWidget.ToSharedRef()
+			]
+			.ValueContent()
+			.MinDesiredWidth(Row.ValueWidget.MinWidth)
+			.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+			[
+				SNew(SObjectPropertyEntryBox)
+				.PropertyHandle(ParentPropertyHandle)
+				.AllowedClass(UMaterialInterface::StaticClass())
+				.ThumbnailPool(DetailLayout.GetThumbnailPool())
+				.AllowClear(true)
+				.OnShouldSetAsset(this, &FMaterialInstanceParameterDetails::OnShouldSetAsset)
+			];
 
-	ValueWidget.Reset();
+		ValueWidget.Reset();
 
 
-	// Add/hide other properties
-	DefaultCategory.AddProperty("LightmassSettings");
-	DetailLayout.HideProperty("bUseOldStyleMICEditorGroups");
-	DetailLayout.HideProperty("ParameterGroups");
+		// Add/hide other properties
+		DefaultCategory.AddProperty("LightmassSettings");
+		DetailLayout.HideProperty("bUseOldStyleMICEditorGroups");
+		DetailLayout.HideProperty("ParameterGroups");
 
-	{
-		IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("RefractionDepthBias");
-		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings)));
+		{
+			IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("RefractionDepthBias");
+			PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings)));
+		}
+
+		{
+			IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("bOverrideSubsurfaceProfile");
+			PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
+		}
+
+		{
+			IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("SubsurfaceProfile");
+			PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
+		}
+
+		DetailLayout.HideProperty("BasePropertyOverrides");
+		CreateBasePropertyOverrideWidgets(DetailLayout);
 	}
-
-	{
-		IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("bOverrideSubsurfaceProfile");
-		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
-	}
-
-	{
-		IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("SubsurfaceProfile");
-		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
-	}
-
-	DetailLayout.HideProperty("BasePropertyOverrides");
-	CreateBasePropertyOverrideWidgets(DetailLayout);
 
 	// Add the preview mesh property directly from the material instance 
 	FName PreviewingCategoryName = TEXT("Previewing");
@@ -154,14 +173,16 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, IDetailCategoryBuilder& GroupsCategory)
 {
 	check(MaterialEditorInstance);
-
+	static FName MaterialParamName = FName("Material Layers Parameter Values");
 	for (int32 GroupIdx = 0; GroupIdx < MaterialEditorInstance->ParameterGroups.Num(); ++GroupIdx)
 	{
 		FEditorParameterGroup& ParameterGroup = MaterialEditorInstance->ParameterGroups[GroupIdx];
+		if (ParameterGroup.GroupAssociation == EMaterialParameterAssociation::GlobalParameter)
+		{
+			IDetailGroup& DetailGroup = GroupsCategory.AddGroup(ParameterGroup.GroupName, FText::FromName(ParameterGroup.GroupName), false, true);
 
-		IDetailGroup& DetailGroup = GroupsCategory.AddGroup( ParameterGroup.GroupName, FText::FromName(ParameterGroup.GroupName), false, true );
-
-		CreateSingleGroupWidget( ParameterGroup, ParameterGroupsProperty->GetChildHandle(GroupIdx), DetailGroup );
+			CreateSingleGroupWidget(ParameterGroup, ParameterGroupsProperty->GetChildHandle(GroupIdx), DetailGroup);
+		}
 	}
 }
 
@@ -174,60 +195,64 @@ void FMaterialInstanceParameterDetails::CreateSingleGroupWidget(FEditorParameter
 	{
 		TSharedPtr<IPropertyHandle> ParameterProperty = ParametersArrayProperty->GetChildHandle(ParamIdx);
 
-		FString ParameterName = ParameterGroup.Parameters[ParamIdx]->ParameterName.ToString();
-		
 		UDEditorParameterValue* Parameter = ParameterGroup.Parameters[ParamIdx];
 		UDEditorFontParameterValue* FontParam = Cast<UDEditorFontParameterValue>(Parameter);
+		UDEditorMaterialLayersParameterValue* LayersParam = Cast<UDEditorMaterialLayersParameterValue>(Parameter);
 		UDEditorScalarParameterValue* ScalarParam = Cast<UDEditorScalarParameterValue>(Parameter);
 		UDEditorStaticComponentMaskParameterValue* CompMaskParam = Cast<UDEditorStaticComponentMaskParameterValue>(Parameter);
 		UDEditorStaticSwitchParameterValue* SwitchParam = Cast<UDEditorStaticSwitchParameterValue>(Parameter);
 		UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
 		UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
 
-		if( ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
+		if (Parameter->ParameterInfo.Association == EMaterialParameterAssociation::GlobalParameter)
 		{
-			if (ScalarParam && ScalarParam->SliderMax > ScalarParam->SliderMin)
+			if (ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
 			{
-				TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
-				ParameterValueProperty->SetInstanceMetaData("UIMin",FString::Printf(TEXT("%f"), ScalarParam->SliderMin));
-				ParameterValueProperty->SetInstanceMetaData("UIMax",FString::Printf(TEXT("%f"), ScalarParam->SliderMax));
-			}
+				if (ScalarParam && ScalarParam->SliderMax > ScalarParam->SliderMin)
+				{
+					TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
+					ParameterValueProperty->SetInstanceMetaData("UIMin", FString::Printf(TEXT("%f"), ScalarParam->SliderMin));
+					ParameterValueProperty->SetInstanceMetaData("UIMax", FString::Printf(TEXT("%f"), ScalarParam->SliderMax));
+				}
 
-			CreateParameterValueWidget(Parameter, ParameterProperty, DetailGroup );
-		}
-		else if (CompMaskParam)
-		{
-			CreateMaskParameterValueWidget(Parameter, ParameterProperty, DetailGroup );
-		}
-		else
-		{
-			// Unsupported parameter type
-			check(false);
+				CreateParameterValueWidget(Parameter, ParameterProperty, DetailGroup);
+			}
+			else if (LayersParam)
+			{
+			}
+			else if (CompMaskParam)
+			{
+				CreateMaskParameterValueWidget(Parameter, ParameterProperty, DetailGroup);
+			}
+			else
+			{
+				// Unsupported parameter type
+				check(false);
+			}
 		}
 	}
 }
 
-void FMaterialInstanceParameterDetails::CreateParameterValueWidget(UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup )
+void FMaterialInstanceParameterDetails::CreateParameterValueWidget(UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup)
 {
 	TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
 
-	if( ParameterValueProperty->IsValidHandle() )
+	if (ParameterValueProperty->IsValidHandle())
 	{
-		TAttribute<bool> IsParamEnabled = TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP( this, &FMaterialInstanceParameterDetails::IsOverriddenExpression, Parameter ) ) ;
+		TAttribute<bool> IsParamEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&FMaterialPropertyHelpers::IsOverriddenExpression, Parameter));
 
-		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow( ParameterValueProperty.ToSharedRef() );
+		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow(ParameterValueProperty.ToSharedRef());
 
-		FIsResetToDefaultVisible IsResetVisible = FIsResetToDefaultVisible::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowResetToDefault, Parameter);
-		FResetToDefaultHandler ResetHandler = FResetToDefaultHandler::CreateSP(this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter);
+		FIsResetToDefaultVisible IsResetVisible = FIsResetToDefaultVisible::CreateStatic(&FMaterialPropertyHelpers::ShouldShowResetToDefault, Parameter, MaterialEditorInstance);
+		FResetToDefaultHandler ResetHandler = FResetToDefaultHandler::CreateStatic(&FMaterialPropertyHelpers::ResetToDefault, Parameter, MaterialEditorInstance);
 		FResetToDefaultOverride ResetOverride = FResetToDefaultOverride::Create(IsResetVisible, ResetHandler);
 
 		PropertyRow
-		.DisplayName( FText::FromName(Parameter->ParameterName) )
-		.ToolTip( GetParameterExpressionDescription(Parameter) )
-		.EditCondition( IsParamEnabled, FOnBooleanValueChanged::CreateSP( this, &FMaterialInstanceParameterDetails::OnOverrideParameter, Parameter ) )
-		.Visibility( TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowExpression, Parameter)) )
-		// Handle reset to default manually
-		.OverrideResetToDefault(ResetOverride);
+			.DisplayName(FText::FromName(Parameter->ParameterInfo.Name))
+			.ToolTip(FMaterialPropertyHelpers::GetParameterExpressionDescription(Parameter, MaterialEditorInstance))
+			.EditCondition(IsParamEnabled, FOnBooleanValueChanged::CreateStatic(&FMaterialPropertyHelpers::OnOverrideParameter, Parameter, MaterialEditorInstance))
+			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FMaterialPropertyHelpers::ShouldShowExpression, Parameter, MaterialEditorInstance, ShowHiddenDelegate)))
+			.OverrideResetToDefault(ResetOverride);
 	}
 }
 
@@ -239,125 +264,109 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 	TSharedPtr<IPropertyHandle> BMaskProperty = ParameterValueProperty->GetChildHandle("B");
 	TSharedPtr<IPropertyHandle> AMaskProperty = ParameterValueProperty->GetChildHandle("A");
 
-	if( ParameterValueProperty->IsValidHandle() )
+	if (ParameterValueProperty->IsValidHandle())
 	{
-		TAttribute<bool> IsParamEnabled = TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP( this, &FMaterialInstanceParameterDetails::IsOverriddenExpression, Parameter ) ) ;
+		TAttribute<bool> IsParamEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&FMaterialPropertyHelpers::IsOverriddenExpression, Parameter));
 
-		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow( ParameterValueProperty.ToSharedRef() );
-		PropertyRow.EditCondition( IsParamEnabled, FOnBooleanValueChanged::CreateSP( this, &FMaterialInstanceParameterDetails::OnOverrideParameter, Parameter ) );
+		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow(ParameterValueProperty.ToSharedRef());
+		PropertyRow.EditCondition(IsParamEnabled, FOnBooleanValueChanged::CreateStatic(&FMaterialPropertyHelpers::OnOverrideParameter, Parameter, MaterialEditorInstance));
 		// Handle reset to default manually
-		PropertyRow.OverrideResetToDefault(FResetToDefaultOverride::Create(FResetToDefaultHandler::CreateSP(this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter)));
-		PropertyRow.Visibility( TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowExpression, Parameter)) );
+		PropertyRow.OverrideResetToDefault(FResetToDefaultOverride::Create(FResetToDefaultHandler::CreateStatic(&FMaterialPropertyHelpers::ResetToDefault, Parameter, MaterialEditorInstance)));
+		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FMaterialPropertyHelpers::ShouldShowExpression, Parameter, MaterialEditorInstance, ShowHiddenDelegate)));
 
-		const FText ParameterName = FText::FromName(Parameter->ParameterName); 
+		const FText ParameterName = FText::FromName(Parameter->ParameterInfo.Name);
 
 		FDetailWidgetRow& CustomWidget = PropertyRow.CustomWidget();
 		CustomWidget
-		.FilterString( ParameterName )
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Text( ParameterName )
-			.ToolTipText( GetParameterExpressionDescription(Parameter) )
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		]
+			.FilterString(ParameterName)
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Text(ParameterName)
+				.ToolTipText(FMaterialPropertyHelpers::GetParameterExpressionDescription(Parameter, MaterialEditorInstance))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
 		.ValueContent()
-		.MaxDesiredWidth(200.0f)
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
+			.MaxDesiredWidth(200.0f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			[
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.AutoWidth()
-				[
-					RMaskProperty->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.AutoWidth()
-				[
-					RMaskProperty->CreatePropertyValueWidget()
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
-				.AutoWidth()
-				[
-					GMaskProperty->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.AutoWidth()
-				[
-					GMaskProperty->CreatePropertyValueWidget()
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
-				.AutoWidth()
-				[
-					BMaskProperty->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.AutoWidth()
-				[
-					BMaskProperty->CreatePropertyValueWidget()
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
-				.AutoWidth()
-				[
-					AMaskProperty->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.AutoWidth()
-				[
-					AMaskProperty->CreatePropertyValueWidget()
-				]
+				+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.AutoWidth()
+			[
+				RMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
 			]
-		];
+		+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.AutoWidth()
+			[
+				RMaskProperty->CreatePropertyValueWidget()
+			]
+		+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.Padding(FMargin(10.0f, 0.0f, 0.0f, 0.0f))
+			.AutoWidth()
+			[
+				GMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
+			]
+		+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.AutoWidth()
+			[
+				GMaskProperty->CreatePropertyValueWidget()
+			]
+		+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.Padding(FMargin(10.0f, 0.0f, 0.0f, 0.0f))
+			.AutoWidth()
+			[
+				BMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
+			]
+		+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.AutoWidth()
+			[
+				BMaskProperty->CreatePropertyValueWidget()
+			]
+		+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.Padding(FMargin(10.0f, 0.0f, 0.0f, 0.0f))
+			.AutoWidth()
+			[
+				AMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
+			]
+		+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.AutoWidth()
+			[
+				AMaskProperty->CreatePropertyValueWidget()
+			]
+			]
+			];
 	}
 }
 
 bool FMaterialInstanceParameterDetails::IsVisibleExpression(UDEditorParameterValue* Parameter)
 {
-	return MaterialEditorInstance->VisibleExpressions.Contains(Parameter->ExpressionId);
+	return MaterialEditorInstance->VisibleExpressions.Contains(Parameter->ParameterInfo);
 }
 
 EVisibility FMaterialInstanceParameterDetails::ShouldShowExpression(UDEditorParameterValue* Parameter) const
 {
-	bool bShowHidden = true;
-
-	ShowHiddenDelegate.ExecuteIfBound(bShowHidden);
-
-	return (bShowHidden || MaterialEditorInstance->VisibleExpressions.Contains(Parameter->ExpressionId))? EVisibility::Visible: EVisibility::Collapsed;
-}
-
-bool FMaterialInstanceParameterDetails::IsOverriddenExpression(UDEditorParameterValue* Parameter)
-{
-	return Parameter->bOverride != 0;
-}
-
-void FMaterialInstanceParameterDetails::OnOverrideParameter(bool NewValue, class UDEditorParameterValue* Parameter)
-{
-	const FScopedTransaction Transaction( LOCTEXT( "OverrideParameter", "Override Parameter" ) );
-	Parameter->Modify();
-	Parameter->bOverride = NewValue;
-
-	// Fire off a dummy event to the material editor instance, so it knows to update the material, then refresh the viewports.
-	FPropertyChangedEvent OverrideEvent(NULL);
-	MaterialEditorInstance->PostEditChangeProperty( OverrideEvent );
-	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+	return FMaterialPropertyHelpers::ShouldShowExpression(Parameter, MaterialEditorInstance, ShowHiddenDelegate);
 }
 
 bool FMaterialInstanceParameterDetails::OnShouldSetAsset(const FAssetData& AssetData) const
 {
+	if (MaterialEditorInstance->bIsFunctionPreviewMaterial)
+	{
+		return false;
+	}
+
 	UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(AssetData.GetAsset());
 
 	if (MaterialInstance != nullptr)
@@ -373,185 +382,6 @@ bool FMaterialInstanceParameterDetails::OnShouldSetAsset(const FAssetData& Asset
 	}
 
 	return true;
-}
-
-FText FMaterialInstanceParameterDetails::GetParameterExpressionDescription(UDEditorParameterValue* Parameter) const
-{
-	UMaterial* BaseMaterial = MaterialEditorInstance->SourceInstance->GetMaterial();
-	if ( BaseMaterial )
-	{
-		UMaterialExpression* MaterialExpression = BaseMaterial->FindExpressionByGUID<UMaterialExpression>(Parameter->ExpressionId);
-
-		if (MaterialExpression)
-		{
-			return FText::FromString(MaterialExpression->Desc);
-		}
-	}
-
-	return FText::GetEmpty();
-}
-
-void FMaterialInstanceParameterDetails::ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
-{
-	const FScopedTransaction Transaction( LOCTEXT( "ResetToDefault", "Reset To Default" ) );
-	Parameter->Modify();
-	FName ParameterName = Parameter->ParameterName;
-	
-	UDEditorFontParameterValue* FontParam = Cast<UDEditorFontParameterValue>(Parameter);
-	UDEditorScalarParameterValue* ScalarParam = Cast<UDEditorScalarParameterValue>(Parameter);
-	UDEditorStaticComponentMaskParameterValue* CompMaskParam = Cast<UDEditorStaticComponentMaskParameterValue>(Parameter);
-	UDEditorStaticSwitchParameterValue* SwitchParam = Cast<UDEditorStaticSwitchParameterValue>(Parameter);
-	UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
-	UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
-
-	if (ScalarParam)
-	{
-		float OutValue;
-		if (MaterialEditorInstance->Parent->GetScalarParameterValue(ParameterName, OutValue))
-		{
-			ScalarParam->ParameterValue = OutValue;
-			MaterialEditorInstance->CopyToSourceInstance();
-		}
-	}
-	else if (FontParam)
-	{
-		UFont* OutFontValue;
-		int32 OutFontPage;
-		if (MaterialEditorInstance->Parent->GetFontParameterValue(ParameterName, OutFontValue,OutFontPage))
-		{
-			FontParam->ParameterValue.FontValue = OutFontValue;
-			FontParam->ParameterValue.FontPage = OutFontPage;
-			MaterialEditorInstance->CopyToSourceInstance();
-		}
-	}
-	else if (TextureParam)
-	{
-		UTexture* OutValue;
-		if (MaterialEditorInstance->Parent->GetTextureParameterValue(ParameterName, OutValue))
-		{
-			TextureParam->ParameterValue = OutValue;
-			MaterialEditorInstance->CopyToSourceInstance();
-		}
-	}
-	else if (VectorParam)
-	{
-		FLinearColor OutValue;
-		if (MaterialEditorInstance->Parent->GetVectorParameterValue(ParameterName, OutValue))
-		{
-			VectorParam->ParameterValue = OutValue;
-			MaterialEditorInstance->CopyToSourceInstance();
-		}
-	}
-	else if (SwitchParam)
-	{
-		bool OutValue;
-		FGuid TempGuid(0,0,0,0);
-		if (MaterialEditorInstance->Parent->GetStaticSwitchParameterValue(ParameterName, OutValue, TempGuid))
-		{
-			SwitchParam->ParameterValue = OutValue;
-			MaterialEditorInstance->CopyToSourceInstance();
-		}
-	}
-	else if (CompMaskParam)
-	{
-		bool OutValue[4];
-		FGuid TempGuid(0,0,0,0);
-		if (MaterialEditorInstance->Parent->GetStaticComponentMaskParameterValue(ParameterName, OutValue[0], OutValue[1], OutValue[2], OutValue[3], TempGuid))
-		{
-			CompMaskParam->ParameterValue.R = OutValue[0];
-			CompMaskParam->ParameterValue.G = OutValue[1];
-			CompMaskParam->ParameterValue.B = OutValue[2];
-			CompMaskParam->ParameterValue.A = OutValue[3];
-			MaterialEditorInstance->CopyToSourceInstance();
-		}
-	}
-}
-
-bool FMaterialInstanceParameterDetails::ShouldShowResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
-{
-	FName ParameterName = Parameter->ParameterName;
-
-	UDEditorFontParameterValue* FontParam = Cast<UDEditorFontParameterValue>(Parameter);
-	UDEditorScalarParameterValue* ScalarParam = Cast<UDEditorScalarParameterValue>(Parameter);
-	UDEditorStaticComponentMaskParameterValue* CompMaskParam = Cast<UDEditorStaticComponentMaskParameterValue>(Parameter);
-	UDEditorStaticSwitchParameterValue* SwitchParam = Cast<UDEditorStaticSwitchParameterValue>(Parameter);
-	UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
-	UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
-
-	if (ScalarParam)
-	{
-		float OutValue;
-		if (MaterialEditorInstance->Parent->GetScalarParameterValue(ParameterName, OutValue))
-		{
-			if (ScalarParam->ParameterValue != OutValue)
-			{
-				return true;
-			}
-		}
-	}
-	else if (FontParam)
-	{
-		UFont* OutFontValue;
-		int32 OutFontPage;
-		if (MaterialEditorInstance->Parent->GetFontParameterValue(ParameterName, OutFontValue, OutFontPage))
-		{
-			if (FontParam->ParameterValue.FontValue != OutFontValue ||
-				FontParam->ParameterValue.FontPage != OutFontPage)
-			{
-				return true;
-			}
-		}
-	}
-	else if (TextureParam)
-	{
-		UTexture* OutValue;
-		if (MaterialEditorInstance->Parent->GetTextureParameterValue(ParameterName, OutValue))
-		{
-			if (TextureParam->ParameterValue != OutValue)
-			{
-				return true;
-			}
-		}
-	}
-	else if (VectorParam)
-	{
-		FLinearColor OutValue;
-		if (MaterialEditorInstance->Parent->GetVectorParameterValue(ParameterName, OutValue))
-		{
-			if (VectorParam->ParameterValue != OutValue)
-			{
-				return true;
-			}
-		}
-	}
-	else if (SwitchParam)
-	{
-		bool OutValue;
-		FGuid TempGuid(0, 0, 0, 0);
-		if (MaterialEditorInstance->Parent->GetStaticSwitchParameterValue(ParameterName, OutValue, TempGuid))
-		{
-			if (SwitchParam->ParameterValue != OutValue)
-			{
-				return true;
-			}
-		}
-	}
-	else if (CompMaskParam)
-	{
-		bool OutValue[4];
-		FGuid TempGuid(0, 0, 0, 0);
-		if (MaterialEditorInstance->Parent->GetStaticComponentMaskParameterValue(ParameterName, OutValue[0], OutValue[1], OutValue[2], OutValue[3], TempGuid))
-		{
-			if (CompMaskParam->ParameterValue.R != OutValue[0] ||
-			CompMaskParam->ParameterValue.G != OutValue[1] ||
-			CompMaskParam->ParameterValue.B != OutValue[2] ||
-			CompMaskParam->ParameterValue.A != OutValue[3])
-			{
-				return true;
-			}
-		}
-	}
-	return false;
 }
 
 EVisibility FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings() const

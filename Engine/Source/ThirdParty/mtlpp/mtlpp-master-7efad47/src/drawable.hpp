@@ -10,13 +10,15 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_PROTOCOL(MTLDrawable);
+
 namespace mtlpp
 {
-    class Drawable : public ns::Object
+    class Drawable : public ns::Object<ns::Protocol<id<MTLDrawable>>::type>
     {
     public:
         Drawable() { }
-        Drawable(const ns::Handle& handle) : ns::Object(handle) { }
+        Drawable(ns::Protocol<id<MTLDrawable>>::type handle) : ns::Object<ns::Protocol<id<MTLDrawable>>::type>(handle) { }
 
         double   GetPresentedTime() const MTLPP_AVAILABLE_IOS(10_3);
         uint64_t GetDrawableID() const MTLPP_AVAILABLE_IOS(10_3);

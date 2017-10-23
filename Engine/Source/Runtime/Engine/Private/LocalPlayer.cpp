@@ -26,7 +26,7 @@
 #include "Net/OnlineEngineInterface.h"
 #include "SceneManagement.h"
 #include "PhysicsPublic.h"
-#include "SkeletalMeshTypes.h"
+#include "SkeletalMeshRenderData.h"
 #include "HAL/PlatformApplicationMisc.h"
 
 #include "IHeadMountedDisplay.h"
@@ -258,6 +258,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		PlayerController = InWorld->SpawnActor<APlayerController>(PCClass, SpawnInfo);
 		const int32 PlayerIndex = GEngine->GetGamePlayers(InWorld).Find(this);
 		PlayerController->NetPlayerIndex = PlayerIndex;
+		PlayerController->Player = this;
 	}
 	return PlayerController != NULL;
 }
@@ -308,6 +309,13 @@ void ULocalPlayer::SendSplitJoin()
 			if (PlayerName.Len() > 0)
 			{
 				URL.AddOption(*FString::Printf(TEXT("Name=%s"), *PlayerName));
+			}
+
+			// Send any game-specific url options for this player
+			FString GameUrlOptions = GetGameLoginOptions();
+			if (GameUrlOptions.Len() > 0)
+			{
+				URL.AddOption(*FString::Printf(TEXT("%s"), *GameUrlOptions));
 			}
 
 			// Send the player unique Id at login
@@ -1173,9 +1181,9 @@ bool ULocalPlayer::HandleListSkelMeshesCommand( const TCHAR* Cmd, FOutputDevice&
 		if( SkeletalMesh && SkeletalMeshComponents.Num() )
 		{
 			// Dump information about skeletal mesh.
-			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
-			check(SkelMeshResource->LODModels.Num());
-			UE_LOG(LogPlayerManagement, Log, TEXT("%5i Vertices for LOD 0 of %s"),SkelMeshResource->LODModels[0].NumVertices,*SkeletalMesh->GetFullName());
+			FSkeletalMeshRenderData* SkelMeshRenderData = SkeletalMesh->GetResourceForRendering();
+			check(SkelMeshRenderData->LODRenderData.Num());
+			UE_LOG(LogPlayerManagement, Log, TEXT("%5i Vertices for LOD 0 of %s"), SkelMeshRenderData->LODRenderData[0].GetNumVertices(),*SkeletalMesh->GetFullName());
 
 			// Dump all instances.
 			for( int32 InstanceIndex=0; InstanceIndex<SkeletalMeshComponents.Num(); InstanceIndex++ )
@@ -1243,14 +1251,14 @@ bool ULocalPlayer::HandleExecCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 bool ULocalPlayer::HandleToggleDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 #if WITH_PROFILEGPU
-	if( GEmitDrawEvents )
+	if( GetEmitDrawEvents() )
 	{
-		GEmitDrawEvents = false;
+		SetEmitDrawEvents(false);
 		UE_LOG(LogEngine, Warning, TEXT("Draw events are now DISABLED"));
 	}
 	else
 	{
-		GEmitDrawEvents = true;
+		SetEmitDrawEvents(true);
 		UE_LOG(LogEngine, Warning, TEXT("Draw events are now ENABLED"));
 	}
 #endif

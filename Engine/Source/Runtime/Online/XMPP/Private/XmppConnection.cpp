@@ -5,8 +5,8 @@
 
 enum class XMPP_RESOURCE_VERSION : uint8
 {
-	INITIAL = 2,
-	ADDED_PLATFORMUSERID,
+	INITIAL = 1,
+	ADDED_PLATFORMUSERID = 2,
 	
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

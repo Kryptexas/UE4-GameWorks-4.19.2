@@ -369,6 +369,8 @@ namespace AutomationTool
 
 		/// <summary>
 		/// Remaps movie directory for platforms that need a remap
+		/// If true, CopyBuildToStagingDirectory.Automation.cs will do this. 
+		/// If false, each platform can still do this individually.
 		/// </summary>
 		public virtual bool StageMovies
 		{

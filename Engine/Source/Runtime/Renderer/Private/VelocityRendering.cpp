@@ -17,6 +17,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "PostProcess/ScreenSpaceReflections.h"
+#include "UnrealEngine.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(
@@ -92,7 +93,7 @@ public:
 	bool SupportsVelocity() const
 	{
 		return PreviousLocalToWorld.IsBound() || 
-			GPUSkinCachePreviousBuffer.IsBound() || 
+			GPUSkinCachePreviousPositionBuffer.IsBound() ||
 			PrevTransformBuffer.IsBound() || 
 			(PrevTransform0.IsBound() && PrevTransform1.IsBound() && PrevTransform2.IsBound());
 	}
@@ -114,7 +115,7 @@ protected:
 		FMeshMaterialShader(Initializer)
 	{
 		PreviousLocalToWorld.Bind(Initializer.ParameterMap,TEXT("PreviousLocalToWorld"));
-		GPUSkinCachePreviousBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousBuffer"));
+		GPUSkinCachePreviousPositionBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousPositionBuffer"));
 		PrevTransform0.Bind(Initializer.ParameterMap, TEXT("PrevTransform0"));
 		PrevTransform1.Bind(Initializer.ParameterMap, TEXT("PrevTransform1"));
 		PrevTransform2.Bind(Initializer.ParameterMap, TEXT("PrevTransform2"));
@@ -130,7 +131,7 @@ protected:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 
 		Ar << PreviousLocalToWorld;
-		Ar << GPUSkinCachePreviousBuffer;
+		Ar << GPUSkinCachePreviousPositionBuffer;
 		Ar << PrevTransform0;
 		Ar << PrevTransform1;
 		Ar << PrevTransform2;
@@ -143,7 +144,7 @@ protected:
 
 private:
 	FShaderParameter PreviousLocalToWorld;
-	FShaderResourceParameter GPUSkinCachePreviousBuffer;
+	FShaderResourceParameter GPUSkinCachePreviousPositionBuffer;
 	FShaderParameter PrevTransform0;
 	FShaderParameter PrevTransform1;
 	FShaderParameter PrevTransform2;
@@ -312,6 +313,7 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 		VertexShader = bHasVertexShader ? MeshShaderIndex->GetShader<FVelocityVS>() : nullptr;
 		PixelShader = bHasPixelShader ? MeshShaderIndex->GetShader<FVelocityPS>() : nullptr;
 	}
+	BaseVertexShader = VertexShader;
 }
 
 bool FVelocityDrawingPolicy::SupportsVelocity() const
@@ -569,7 +571,7 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 					DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 
 					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::Velocity));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);

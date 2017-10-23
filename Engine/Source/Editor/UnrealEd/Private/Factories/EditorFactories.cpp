@@ -47,6 +47,9 @@
 #include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialFunctionMaterialLayer.h"
+#include "Materials/MaterialFunctionMaterialLayerBlend.h"
+#include "Materials/MaterialFunctionInstance.h"
 #include "Materials/Material.h"
 #include "Animation/AnimSequence.h"
 #include "Curves/CurveBase.h"
@@ -86,6 +89,9 @@
 #include "Factories/LevelFactory.h"
 #include "Factories/MaterialFactoryNew.h"
 #include "Factories/MaterialFunctionFactoryNew.h"
+#include "Factories/MaterialFunctionMaterialLayerFactory.h"
+#include "Factories/MaterialFunctionMaterialLayerBlendFactory.h"
+#include "Factories/MaterialFunctionInstanceFactory.h"
 #include "Factories/MaterialInstanceConstantFactoryNew.h"
 #include "Factories/MaterialParameterCollectionFactoryNew.h"
 #include "Factories/ModelFactory.h"
@@ -428,7 +434,6 @@ UObject* UMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,F
 UMaterialFunctionFactoryNew::UMaterialFunctionFactoryNew(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 	SupportedClass = UMaterialFunction::StaticClass();
 	bCreateNew = true;
 	bEditAfterNew = true;
@@ -437,6 +442,72 @@ UMaterialFunctionFactoryNew::UMaterialFunctionFactoryNew(const FObjectInitialize
 UObject* UMaterialFunctionFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
 	return NewObject<UObject>(InParent, Class, Name, Flags);
+}
+
+/*------------------------------------------------------------------------------
+	UMaterialFunctionMaterialLayerFactory implementation.
+------------------------------------------------------------------------------*/
+UMaterialFunctionMaterialLayerFactory::UMaterialFunctionMaterialLayerFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UMaterialFunctionMaterialLayer::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UMaterialFunctionMaterialLayerFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+{
+	UMaterialFunction* Function = NewObject<UMaterialFunction>(InParent, UMaterialFunction::StaticClass(), Name, Flags);
+	if (Function)
+	{
+		Function->SetMaterialFunctionUsage(EMaterialFunctionUsage::MaterialLayer);
+	}
+	return Function;
+}
+
+/*------------------------------------------------------------------------------
+	UMaterialFunctionMaterialLayerBlendFactory implementation.
+------------------------------------------------------------------------------*/
+UMaterialFunctionMaterialLayerBlendFactory::UMaterialFunctionMaterialLayerBlendFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UMaterialFunctionMaterialLayerBlend::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UMaterialFunctionMaterialLayerBlendFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+{
+	UMaterialFunction* Function = NewObject<UMaterialFunction>(InParent, UMaterialFunction::StaticClass(), Name, Flags);
+	if (Function)
+	{
+		Function->SetMaterialFunctionUsage(EMaterialFunctionUsage::MaterialLayerBlend);
+	}
+	return Function;
+}
+
+
+/*------------------------------------------------------------------------------
+	UMaterialFunctionInstanceFactory implementation.
+------------------------------------------------------------------------------*/
+UMaterialFunctionInstanceFactory::UMaterialFunctionInstanceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UMaterialFunctionInstance::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UMaterialFunctionInstanceFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+{
+	auto MFI = NewObject<UMaterialFunctionInstance>(InParent, Class, Name, Flags);
+
+	if (MFI)
+	{
+		MFI->SetParent(InitialParent);
+	}
+
+	return MFI;
 }
 
 

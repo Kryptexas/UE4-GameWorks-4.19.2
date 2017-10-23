@@ -34,7 +34,7 @@ struct FAnalyticsPerfTracker : FTickerObjectBase
 		if (bEnabled)
 		{
 			LogFile.SetSuppressEventTag(true);
-			LogFile.Serialize(TEXT("Date,CL,RunID,Time,WindowSeconds,ProfiledSeconds,Frames,Flushes,Events,Bytes"), ELogVerbosity::Log, FName());
+			LogFile.Serialize(TEXT("Date,CL,RunID,Time,WindowSeconds,ProfiledSeconds,Frames,Flushes,Events,Bytes,FrameCounter"), ELogVerbosity::Log, FName());
 			LastSubmitTime = StartTime;
 			StartDate = FDateTime::UtcNow().ToIso8601();
 			CL = Lex::ToString(FEngineVersion::Current().GetChangelist());
@@ -80,7 +80,7 @@ private:
 			double Now = FPlatformTime::Seconds();
 			if (WindowExpired(Now))
 			{
-				LogFile.Serialize(*FString::Printf(TEXT("%s,%s,%s,%f,%f,%f,%d,%d,%d,%d"),
+				LogFile.Serialize(*FString::Printf(TEXT("%s,%s,%s,%f,%f,%f,%d,%d,%d,%d,%d"),
 					*StartDate,
 					*CL,
 					*RunID,
@@ -90,7 +90,8 @@ private:
 					FramesThisWindow,
 					FlushesThisWindow,
 					NumEventsThisWindow,
-					BytesThisWindow),
+					BytesThisWindow,
+					GFrameCounter),
 					ELogVerbosity::Log, FName(), Now);
 				ResetWindow(Now);
 			}
@@ -427,10 +428,23 @@ bool FAnalyticsProviderET::Tick(float DeltaSeconds)
 		if (FlushEventsCountdown <= 0 ||
 			CachedEvents.Num() >= MaxCachedNumEvents)
 		{
-			FTimespan TimeSinceLastFailure = FDateTime::UtcNow() - LastFailedFlush;
-			if (TimeSinceLastFailure.GetTotalSeconds() >= RetryDelaySecs)
+			// Never tick-flush more than one provider in a single frame. There's non-trivial overhead to flushing events.
+			// On servers where there may be dozens of provider instances, this will spread out the cost a bit.
+			// If caching is disabled, we still want events to be flushed immediately, so we are only guarding the flush calls from tick,
+			// any other calls to flush are allowed to happen in the same frame.
+			static uint32 LastFrameNumberFlushed = 0;
+			if (GFrameNumber == LastFrameNumberFlushed)
 			{
-				FlushEvents();
+				UE_LOG(LogAnalytics, Verbose, TEXT("Tried to flush more than one analytics provider in a single frame. Deferring until next frame."));
+			}
+			else
+			{
+				LastFrameNumberFlushed = GFrameNumber;
+				FTimespan TimeSinceLastFailure = FDateTime::UtcNow() - LastFailedFlush;	
+				if (TimeSinceLastFailure.GetTotalSeconds() >= RetryDelaySecs)
+				{
+					FlushEvents();
+				}
 			}
 		}
 	}

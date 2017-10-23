@@ -1376,7 +1376,7 @@ FORCEINLINE void SetResource(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCac
 }
 
 template <EShaderFrequency ShaderFrequency>
-inline int32 SetShaderResourcesFromBuffer_Surface(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, FD3D11UniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex)
+inline int32 SetShaderResourcesFromBuffer_Surface(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, FD3D11UniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex, uint32 LayoutHash)
 {
 	const TRefCountPtr<FRHIResource>* RESTRICT Resources = Buffer->ResourceTable.GetData();
 	float CurrentTime = FApp::GetCurrentTime();
@@ -1396,6 +1396,10 @@ inline int32 SetShaderResourcesFromBuffer_Surface(FD3D11DynamicRHI* RESTRICT D3D
 			ID3D11ShaderResourceView* D3D11Resource = nullptr;
 
 			FRHITexture* TextureRHI = (FRHITexture*)Resources[ResourceIndex].GetReference();
+			if (!TextureRHI)
+			{
+				UE_LOG(LogD3D11RHI, Fatal, TEXT("Null texture (resource %d bind %d) on UB Layout 0x%0x"), ResourceIndex, BindIndex, LayoutHash);
+			}
 			TextureRHI->SetLastRenderTime(CurrentTime);
 			FD3D11TextureBase* TextureD3D11 = GetD3D11TextureFromRHITexture(TextureRHI);
 			ShaderResource = TextureD3D11->GetBaseShaderResource();
@@ -1412,7 +1416,7 @@ inline int32 SetShaderResourcesFromBuffer_Surface(FD3D11DynamicRHI* RESTRICT D3D
 
 
 template <EShaderFrequency ShaderFrequency>
-inline int32 SetShaderResourcesFromBuffer_SRV(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, FD3D11UniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex)
+inline int32 SetShaderResourcesFromBuffer_SRV(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, FD3D11UniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex, uint32 LayoutHash)
 {
 	const TRefCountPtr<FRHIResource>* RESTRICT Resources = Buffer->ResourceTable.GetData();
 	float CurrentTime = FApp::GetCurrentTime();
@@ -1432,6 +1436,10 @@ inline int32 SetShaderResourcesFromBuffer_SRV(FD3D11DynamicRHI* RESTRICT D3D11RH
 			ID3D11ShaderResourceView* D3D11Resource = nullptr;
 
 			FD3D11ShaderResourceView* ShaderResourceViewRHI = (FD3D11ShaderResourceView*)Resources[ResourceIndex].GetReference();
+			if (!ShaderResourceViewRHI)
+			{
+				UE_LOG(LogD3D11RHI, Fatal, TEXT("Null SRV (resource %d bind %d) on UB Layout 0x%0x"), ResourceIndex, BindIndex, LayoutHash);
+			}
 			ShaderResource = ShaderResourceViewRHI->Resource.GetReference();
 			D3D11Resource = ShaderResourceViewRHI->View.GetReference();
 
@@ -1489,10 +1497,12 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 		check(Buffer);
 		check(BufferIndex < Shader->ShaderResourceTable.ResourceTableLayoutHashes.Num());
 
+		const uint32 LayoutHash = Buffer->GetLayout().GetHash();
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// to track down OR-7159 CRASH: Client crashed at start of match in D3D11Commands.cpp
 		{
-			if (Buffer->GetLayout().GetHash() != Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex])
+			if (LayoutHash != Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex])
 			{
 				auto& BufferLayout = Buffer->GetLayout();
 				FString DebugName = BufferLayout.GetDebugName().GetPlainNameString();
@@ -1520,8 +1530,8 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 #endif
 
 		// todo: could make this two pass: gather then set
-		SetShaderResourcesFromBuffer_Surface<(EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.TextureMap.GetData(), BufferIndex);
-		SetShaderResourcesFromBuffer_SRV<(EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
+		SetShaderResourcesFromBuffer_Surface<(EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.TextureMap.GetData(), BufferIndex, LayoutHash);
+		SetShaderResourcesFromBuffer_SRV<(EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex, LayoutHash);
 		SetShaderResourcesFromBuffer_Sampler<(EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
 	}
 	DirtyUniformBuffers[ShaderType::StaticFrequency] = 0;
@@ -1659,6 +1669,109 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	StateCache.SetIndexBuffer(IndexBuffer->Resource, Format, 0);
 	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType,bUsingTessellation));
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	extern bool D3D11RHI_ShouldCreateWithD3DDebug();
+	static bool bHasD3DDebug = D3D11RHI_ShouldCreateWithD3DDebug();
+	if (bHasD3DDebug)
+	{
+		FBoundShaderStateRHIParamRef BSS = BoundShaderStateHistory.GetLast();
+		if (BSS)
+		{
+			FD3D11BoundShaderState* BoundShaderState = ResourceCast(BSS);
+			FVertexDeclarationRHIParamRef VertexDescRHI = BoundShaderState->CacheLink.GetVertexDeclaration();
+			FD3D11VertexDeclaration* VertexDeclaration = ResourceCast(VertexDescRHI);
+
+			uint32 MaxNumInstances = FMath::Max(NumInstances, 1u);
+
+			ID3D11Buffer* Buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+			uint32 Offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+			uint32 Strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+
+			FMemory::Memzero(Buffers);
+			FMemory::Memzero(Offsets);
+
+			StateCache.GetStreamSources(0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, Buffers, Strides, Offsets);
+
+			// Don't care about the draw call strides anymore - they must come from vertex-declarations
+			FMemory::Memzero(Strides);
+
+			for (uint32 i = 0; i < MaxVertexElementCount && i < (uint32)VertexDeclaration->VertexElements.Num(); i++)
+			{
+				D3D11_INPUT_ELEMENT_DESC Element = VertexDeclaration->VertexElements[i];
+				if (Element.InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA)
+				{
+					if (VertexDeclaration->StreamStrides[i] == 0)
+					{
+						uint32 Stride = 0;
+						switch (Element.Format)
+						{
+						case DXGI_FORMAT_R32_FLOAT:		Stride = sizeof(float); break;
+						case DXGI_FORMAT_R32G32_FLOAT:		Stride = sizeof(float) * 2; break;
+						case DXGI_FORMAT_R32G32B32_FLOAT:		Stride = sizeof(float) * 3; break;
+						case DXGI_FORMAT_R32G32B32A32_FLOAT:		Stride = sizeof(float) * 4; break;
+						case DXGI_FORMAT_R8G8B8A8_UNORM:	Stride = sizeof(char) * 4; break; //TODO: uint32 doesn't work because D3D11 squishes it to 0 in the IA-VS conversion
+						case DXGI_FORMAT_R8G8B8A8_UINT:		Stride = sizeof(char) * 4; break; //TODO: SINT, blendindices
+						case DXGI_FORMAT_B8G8R8A8_UNORM:			Stride = sizeof(char) * 4; break;
+						case DXGI_FORMAT_R16G16_SINT:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_SINT:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16_SNORM:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16_FLOAT:			Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_FLOAT:			Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16B16A16_SNORM:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16_UINT:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_UINT:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R16G16_UNORM:		Stride = 2 * 2; break;
+						case DXGI_FORMAT_R16G16B16A16_UNORM:		Stride = 2 * 4; break;
+						case DXGI_FORMAT_R10G10B10A2_UNORM:		Stride = sizeof(uint32); break;
+						default: UE_LOG(LogD3D11RHI, Fatal, TEXT("Unknown RHI vertex element type %u"), (uint8)Element.Format);
+						};
+
+						Strides[Element.InputSlot] += Stride;
+					}
+				}
+			}
+
+			D3D11_BUFFER_DESC BufferDesc;
+			for (uint32 i = 0; i < MaxVertexElementCount && i < (uint32)VertexDeclaration->VertexElements.Num(); i++)
+			{
+				D3D11_INPUT_ELEMENT_DESC Element = VertexDeclaration->VertexElements[i];
+				if (Element.InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA)
+				{
+					uint32 AvailElementCount = 0;
+
+					if (Buffers[Element.InputSlot])
+					{
+						Buffers[Element.InputSlot]->GetDesc(&BufferDesc);
+
+						uint32 Stride = VertexDeclaration->StreamStrides[i] ? VertexDeclaration->StreamStrides[i] : Strides[Element.InputSlot];
+						check(Stride > 0);
+
+						uint32 MaxElements = ((BufferDesc.ByteWidth - Offsets[Element.InputSlot])) / Stride;
+						if (MaxElements > FirstInstance)
+						{
+							AvailElementCount = MaxElements - FirstInstance;
+						}
+
+						// In D3D, when stride is 0 in a per-instance VB, it means the same instance data
+						// is applied to all instances
+						if (VertexDeclaration->StreamStrides[i] == 0)
+						{
+							AvailElementCount = MaxElements >= 1 ? NumInstances : 0;
+						}
+					}
+
+					MaxNumInstances = FMath::Min(MaxNumInstances, AvailElementCount);
+				}
+			}
+
+			if (MaxNumInstances < FMath::Max(NumInstances, 1u))
+			{
+				UE_LOG(LogD3D11RHI, Error, TEXT("DrawIndexedPrimitive requested to draw %d NumInstances with %d FirstInstance but stream layout only has data for %d instances."), FMath::Max(NumInstances, 1u), FirstInstance, MaxNumInstances);
+			}
+		}
+	}
+#endif
 
 	if (NumInstances > 1 || FirstInstance != 0)
 	{

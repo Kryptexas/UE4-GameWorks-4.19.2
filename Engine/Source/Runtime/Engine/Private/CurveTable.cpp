@@ -82,6 +82,19 @@ void UCurveTable::Serialize( FArchive& Ar )
 			FRichCurve::StaticStruct()->SerializeTaggedProperties(Ar, (uint8*)Curve, FRichCurve::StaticStruct(), NULL);
 		}
 	}
+	else if (Ar.IsCountingMemory())
+	{
+		RowMap.CountBytes(Ar);
+
+		const size_t SizeOfDirectCurveAllocs = sizeof(FRichCurve) * RowMap.Num();
+		Ar.CountBytes(SizeOfDirectCurveAllocs, SizeOfDirectCurveAllocs);
+
+		for (auto RowIt = RowMap.CreateConstIterator(); RowIt; ++RowIt)
+		{
+			FRichCurve* Curve = RowIt.Value();
+			Curve->Keys.CountBytes(Ar);
+		}
+	}
 }
 
 void UCurveTable::FinishDestroy()

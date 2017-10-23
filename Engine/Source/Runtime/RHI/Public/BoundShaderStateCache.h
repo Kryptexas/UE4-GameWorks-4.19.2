@@ -72,6 +72,11 @@ public:
 	FORCEINLINE FDomainShaderRHIParamRef   GetDomainShader() const   { return DomainShader; }
 	FORCEINLINE FGeometryShaderRHIParamRef GetGeometryShader() const { return GeometryShader; }
 
+	/**
+	* Get the RHI vertex declaration.
+	*/
+	FORCEINLINE FVertexDeclarationRHIParamRef GetVertexDeclaration() const { return VertexDeclaration; }
+
 private:
 	/**
 	 * Note: We intentionally do use ...Ref, not ...ParamRef to get 
@@ -143,6 +148,12 @@ public:
 	FORCEINLINE FHullShaderRHIParamRef     GetHullShader() const     { return Key.GetHullShader(); }
 	FORCEINLINE FDomainShaderRHIParamRef   GetDomainShader() const   { return Key.GetDomainShader(); }
 	FORCEINLINE FGeometryShaderRHIParamRef GetGeometryShader() const { return Key.GetGeometryShader(); }
+
+	/**
+	* Get the RHI vertex declaration.
+	*/
+	FORCEINLINE FVertexDeclarationRHIParamRef GetVertexDeclaration() const { return Key.GetVertexDeclaration(); }
+
 protected:
 	FBoundShaderStateKey Key;
 	bool bAddedToSingleThreadedCache;

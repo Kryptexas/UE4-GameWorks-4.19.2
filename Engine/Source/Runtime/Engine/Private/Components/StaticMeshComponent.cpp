@@ -349,6 +349,12 @@ void UStaticMeshComponent::PostInitProperties()
 	}
 }
 
+void UStaticMeshComponent::NotifyObjectReferenceEliminated() const
+{
+	UE_LOG(LogStaticMesh, Error, TEXT("Garbage collector eliminated reference from staticmeshcomponent!  Static Mesh objects should not be cleaned up via MarkPendingKill().\n           StaticMesh=%s"),
+		*GetPathName());
+}
+
 bool UStaticMeshComponent::AreNativePropertiesIdenticalTo( UObject* Other ) const
 {
 	bool bNativePropertiesAreIdentical = Super::AreNativePropertiesIdenticalTo( Other );
@@ -495,30 +501,6 @@ FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	}
 }
 
-void UStaticMeshComponent::AddSpeedTreeWind()
-{
-	if (GetStaticMesh() && GetStaticMesh()->RenderData && GetStaticMesh()->SpeedTreeWind.IsValid() && GetScene())
-	{
-		for (int32 LODIndex = 0; LODIndex < GetStaticMesh()->RenderData->LODResources.Num(); ++LODIndex)
-		{
-			GetScene()->AddSpeedTreeWind(&GetStaticMesh()->RenderData->LODResources[LODIndex].VertexFactory, GetStaticMesh());
-			GetScene()->AddSpeedTreeWind(&GetStaticMesh()->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, GetStaticMesh());
-		}
-	}
-}
-
-void UStaticMeshComponent::RemoveSpeedTreeWind()
-{
-	if (GetStaticMesh() && GetStaticMesh()->RenderData && GetStaticMesh()->SpeedTreeWind.IsValid() && GetScene())
-	{
-		for (int32 LODIndex = 0; LODIndex < GetStaticMesh()->RenderData->LODResources.Num(); ++LODIndex)
-		{
-			GetScene()->RemoveSpeedTreeWind(&GetStaticMesh()->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, GetStaticMesh());
-			GetScene()->RemoveSpeedTreeWind(&GetStaticMesh()->RenderData->LODResources[LODIndex].VertexFactory, GetStaticMesh());
-		}
-	}
-}
-
 void UStaticMeshComponent::PropagateLightingScenarioChange()
 {
 	FComponentRecreateRenderStateContext Context(this);
@@ -580,11 +562,6 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 void UStaticMeshComponent::OnRegister()
 {
 	UpdateCollisionFromStaticMesh();
-	
-	if (GetStaticMesh() != NULL && GetStaticMesh()->RenderData)
-	{
-		AddSpeedTreeWind();
-	}
 
 #if WITH_EDITORONLY_DATA
 	//Remap the override materials if the import version is different
@@ -629,8 +606,6 @@ void UStaticMeshComponent::OnRegister()
 
 void UStaticMeshComponent::OnUnregister()
 {
-	RemoveSpeedTreeWind();
-
 	Super::OnUnregister();
 }
 
@@ -1103,7 +1078,7 @@ void UStaticMeshComponent::CopyInstanceVertexColorsIfCompatible( UStaticMeshComp
 
 					if (TargetLODInfo.OverrideVertexColors != NULL || CopiedColors.Num() > 0)
 					{
-						FColorVertexBuffer* TargetColorBuffer = &TargetLODModel.ColorVertexBuffer;
+						FColorVertexBuffer* TargetColorBuffer = &TargetLODModel.VertexBuffers.ColorVertexBuffer;
 
 						if ( TargetLODInfo.OverrideVertexColors != NULL )
 						{
@@ -1163,8 +1138,8 @@ void UStaticMeshComponent::CachePaintedDataIfNecessary()
 					for ( int32 VertIndex = 0; VertIndex < CurRenderData->GetNumVertices(); ++VertIndex )
 					{
 						FPaintedVertex* Vertex = new( CurCompLODInfo.PaintedVertices ) FPaintedVertex;
-						Vertex->Position = CurRenderData->PositionVertexBuffer.VertexPosition( VertIndex );
-						Vertex->Normal = CurRenderData->VertexBuffer.VertexTangentZ( VertIndex );
+						Vertex->Position = CurRenderData->VertexBuffers.PositionVertexBuffer.VertexPosition( VertIndex );
+						Vertex->Normal = CurRenderData->VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ( VertIndex );
 						Vertex->Color = CurCompLODInfo.OverrideVertexColors->VertexColor( VertIndex );
 					}
 				}
@@ -1275,10 +1250,10 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			RemapPaintedVertexColors(
 				LODInfo.PaintedVertices,
 				*LODInfo.OverrideVertexColors,
-				SourceRenderData.PositionVertexBuffer,
-				SourceRenderData.VertexBuffer,
-				CurRenderData.PositionVertexBuffer,
-				&CurRenderData.VertexBuffer,
+				SourceRenderData.VertexBuffers.PositionVertexBuffer,
+				SourceRenderData.VertexBuffers.StaticMeshVertexBuffer,
+				CurRenderData.VertexBuffers.PositionVertexBuffer,
+				&CurRenderData.VertexBuffers.StaticMeshVertexBuffer,
 				NewOverrideColors
 				);
 		}
@@ -1287,10 +1262,10 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			RemapPaintedVertexColors(
 				LOD0Info.PaintedVertices,
 				*LOD0Info.OverrideVertexColors,
-				SourceRenderData.PositionVertexBuffer,
-				SourceRenderData.VertexBuffer,
-				CurRenderData.PositionVertexBuffer,
-				&CurRenderData.VertexBuffer,
+				SourceRenderData.VertexBuffers.PositionVertexBuffer,
+				SourceRenderData.VertexBuffers.StaticMeshVertexBuffer,
+				CurRenderData.VertexBuffers.PositionVertexBuffer,
+				&CurRenderData.VertexBuffers.StaticMeshVertexBuffer,
 				NewOverrideColors
 				);
 		}
@@ -1306,8 +1281,8 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 			{
 				FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
-				Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
-				Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
+				Vertex->Position = CurRenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(VertIndex);
+				Vertex->Normal = CurRenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertIndex);
 				Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
 			}
 		}
@@ -1758,15 +1733,9 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 		}
 	}
 
-	// Remove speed tree wind for this staticmesh from scene
-	RemoveSpeedTreeWind();
-
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	StaticMesh = NewMesh;
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
-	// Add speed tree wind if required
-	AddSpeedTreeWind();
 
 	// Need to send this to render thread at some point
 	MarkRenderStateDirty();
@@ -1982,7 +1951,7 @@ bool UStaticMeshComponent::HasLightmapTextureCoordinates() const
 		(GetStaticMesh()->RenderData != NULL) &&
 		(GetStaticMesh()->RenderData->LODResources.Num() > 0) &&
 		(GetStaticMesh()->LightMapCoordinateIndex >= 0) &&	
-		((uint32)GetStaticMesh()->LightMapCoordinateIndex < GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumTexCoords()))
+		((uint32)GetStaticMesh()->LightMapCoordinateIndex < GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords()))
 	{
 		return true;
 	}
@@ -2245,30 +2214,22 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 
 bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
-	if (GetStaticMesh() != NULL && GetStaticMesh()->NavCollision != NULL)
+	const FVector Scale3D = GetComponentToWorld().GetScale3D();
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision && !Scale3D.IsZero())
 	{
 		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
 		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;
 
 		if (bExportAsObstacle)
 		{
+			// skip default export
 			return false;
 		}
-		
-		if (NavCollision->bHasConvexGeometry)
+
+		const bool bHasData = NavCollision->ExportGeometry(GetComponentToWorld(), GeomExport);
+		if (bHasData)
 		{
-			const FVector Scale3D = GetComponentTransform().GetScale3D();
-			// if any of scales is 0 there's no point in exporting it
-			if (!Scale3D.IsZero())
-			{
-				GeomExport.ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
-					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), GetComponentTransform());
-
-				GeomExport.ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
-					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), GetComponentTransform());
-			}
-
-			// regardless of above we don't want "regular" collision export for this mesh instance
+			// skip default export
 			return false;
 		}
 	}
@@ -2310,7 +2271,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 					}
 				}
 			}
-		}		
+		}
 	}
 
 	return Result;
@@ -2326,7 +2287,8 @@ void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) cons
 {
 	Super::GetNavigationData(Data);
 
-	if (GetStaticMesh() && GetStaticMesh()->NavCollision)	
+	const FVector Scale3D = GetComponentToWorld().GetScale3D();
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision && !Scale3D.IsZero())
 	{
 		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
 		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;
@@ -2362,7 +2324,7 @@ bool UStaticMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox
 					for (int32 i = 0; i < 3; i++)
 					{
 						int32 VertexIndex = Indices[FirstIndex + i];
-						FVector LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
+						FVector LocalPosition = LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
 						Vertex.Emplace(GetComponentTransform().TransformPosition(LocalPosition));
 					}
 
@@ -2403,10 +2365,10 @@ bool UStaticMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolu
 
 			FStaticMeshLODResources& LODModel = GetStaticMesh()->RenderData->LODResources[0];
 
-			uint32 NumVertices = LODModel.VertexBuffer.GetNumVertices();
+			uint32 NumVertices = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 			for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 			{
-				const FVector& LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
+				const FVector& LocalPosition = LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
 				const FVector WorldPosition = GetComponentTransform().TransformPosition(LocalPosition);
 				bool bLocationIntersected = InFrustum.IntersectSphere(WorldPosition, 0.0f);
 				if (bLocationIntersected && !bMustEncompassEntireComponent)
@@ -2602,7 +2564,7 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 			( I.OwningComponent->GetStaticMesh() == NULL || 
 			I.OwningComponent->GetStaticMesh()->RenderData == NULL ||
 			LODIndex >= I.OwningComponent->GetStaticMesh()->RenderData->LODResources.Num() ||
-			I.OverrideVertexColors->GetNumVertices() != I.OwningComponent->GetStaticMesh()->RenderData->LODResources[LODIndex].VertexBuffer.GetNumVertices() );
+			I.OverrideVertexColors->GetNumVertices() != I.OwningComponent->GetStaticMesh()->RenderData->LODResources[LODIndex].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() );
 	}
 #endif // WITH_EDITORONLY_DATA
 	FStripDataFlags StripFlags( Ar, bStrippedOverrideColors ? OverrideColorsStripFlag : 0 );

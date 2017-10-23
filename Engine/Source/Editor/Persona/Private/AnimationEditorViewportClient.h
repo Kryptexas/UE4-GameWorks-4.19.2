@@ -17,6 +17,7 @@ class ISkeletonTree;
 class UPersonaOptions;
 class USkeletalMeshSocket;
 struct FCompactHeapPose;
+struct FSkelMeshRenderSection;
 
 //////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode
@@ -433,7 +434,7 @@ private:
 
 	/** Gets all vertex indices that the given section references. */
 	void GetAllVertexIndicesUsedInSection(const FRawStaticIndexBuffer16or32Interface& IndexBuffer,
-										  const FSkelMeshSection& SkelMeshSection,
+										  const FSkelMeshRenderSection& SkelMeshSection,
 										  TArray<int32>& OutIndices) const;
 
 	/** Override for preview component selection to inform the editor we consider it selected */

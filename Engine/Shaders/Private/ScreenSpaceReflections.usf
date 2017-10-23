@@ -280,4 +280,8 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 	
 	OutColor *= RoughnessFade;
 	OutColor *= SSRParams.r;
+
+#if USE_PREEXPOSURE
+	OutColor.rgb *= View.PreExposure * View.LastOneOverPreExposure;
+#endif
 }

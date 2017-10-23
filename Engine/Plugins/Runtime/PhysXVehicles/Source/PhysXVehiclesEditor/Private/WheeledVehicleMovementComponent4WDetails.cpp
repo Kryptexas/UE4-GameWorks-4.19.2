@@ -95,6 +95,19 @@ void FWheeledVehicleMovementComponent4WDetails::CustomizeDetails(IDetailLayoutBu
 	}
 }
 
+FWheeledVehicleMovementComponent4WDetails::~FWheeledVehicleMovementComponent4WDetails()
+{
+	if(SCurveEditor* SteeringCurveRaw = SteeringCurveWidget.Get())
+	{
+		SteeringCurveRaw->SetCurveOwner(nullptr);
+	}
+
+	if (SCurveEditor* TorqueCurveRaw = TorqueCurveWidget.Get())
+	{
+		TorqueCurveRaw->SetCurveOwner(nullptr);
+	}
+}
+
 TArray<FRichCurveEditInfoConst> FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::GetCurves() const
 {
 	TArray<FRichCurveEditInfoConst> Curves;

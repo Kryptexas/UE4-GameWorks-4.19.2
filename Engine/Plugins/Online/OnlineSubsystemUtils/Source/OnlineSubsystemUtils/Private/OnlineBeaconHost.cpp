@@ -75,7 +75,7 @@ void AOnlineBeaconHost::HandleNetworkFailure(UWorld* World, class UNetDriver* In
 
 void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch)
 {
-	if(NetDriver->ServerConnection == nullptr)
+	if (NetDriver->ServerConnection == nullptr)
 	{
 		bool bCloseConnection = false;
 
@@ -165,6 +165,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 							NewClientActor->SetNetConnection(Connection);
 							Connection->PlayerId = UniqueId;
 							Connection->OwningActor = NewClientActor;
+							Connection->SetClientLoginState(EClientLoginState::ReceivedJoin);
 							NewClientActor->Role = ROLE_Authority;
 							NewClientActor->SetReplicates(false);
 							check(NetDriverName == NetDriver->NetDriverName);

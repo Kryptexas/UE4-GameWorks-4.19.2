@@ -421,12 +421,17 @@ namespace MetalUtils
 							continue;
 						}
 					}
-					ir_variable* Variable = new(ParseState) ir_variable(SystemValues[i].Type, SystemValues[i].MetalName, ir_var_in);
-					Variable->semantic = SystemValues[i].MetalSemantic;
-					Variable->read_only = true;
-					Variable->origin_upper_left = false;
-					DeclInstructions->push_tail(Variable);
-					ParseState->symbols->add_variable(Variable);
+					
+					ir_variable* Variable = ParseState->symbols->get_variable(SystemValues[i].MetalName);
+					if (!Variable)
+					{
+						Variable = new(ParseState) ir_variable(SystemValues[i].Type, SystemValues[i].MetalName, ir_var_in);
+						Variable->semantic = SystemValues[i].MetalSemantic;
+						Variable->read_only = true;
+						Variable->origin_upper_left = false;
+						DeclInstructions->push_tail(Variable);
+						ParseState->symbols->add_variable(Variable);
+					}
 					ir_dereference_variable* VariableDeref = new(ParseState) ir_dereference_variable(Variable);
 					if (!FCStringAnsi::Stricmp(Semantic, "SV_Position") && Frequency == HSF_PixelShader)
 					{
@@ -665,8 +670,46 @@ namespace MetalUtils
 			}
 		}
 
+		// Need to generate a single clip-distance for broken desktop drivers - done by simply dropping the higher clip-distances
+		// As it happens we already order them by importance (0: Global > 1: VR-instanced fallback > 2: vertex-shader-layer)
 		uint32 const ClipPrefixLen = 15;
-		if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_ClipDistance", ClipPrefixLen) == 0 && !Variable)
+		if ((bIsDesktop == EMetalGPUSemanticsImmediateDesktop) && Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_ClipDistance", ClipPrefixLen) == 0 && !Variable)
+		{
+			FMetalLanguageSpec* Spec = (FMetalLanguageSpec*)ParseState->LanguageSpec;
+			uint32 const Count = Spec->GetClipDistanceCount();
+			uint32 const Used = Spec->ClipDistancesUsed;
+			check(Count > 0);
+			
+			uint32 Index = 0;
+			if (Semantic[ClipPrefixLen] >= '1' && Semantic[ClipPrefixLen] <= '7')
+			{
+				Index = Semantic[ClipPrefixLen] - '0';
+			}
+			
+			bool bUsed = false;
+			for (uint32 i = 0; !bUsed && i < Index; i++)
+			{
+				bUsed = (Used & (1 << i)) != 0;
+			}
+			
+			if (!bUsed)
+			{
+				ir_variable* compacted_clip = ParseState->symbols->get_variable("clip_distance_array");
+				if (!compacted_clip)
+				{
+					compacted_clip = new(ParseState)ir_variable(glsl_type::float_type, "clip_distance_array", ir_var_out);
+					compacted_clip->semantic = ralloc_asprintf(ParseState, "[[ clip_distance ]]");
+					DeclInstructions->push_tail(compacted_clip);
+					ParseState->symbols->add_variable(compacted_clip);
+				}
+				*DestVariableType = glsl_type::float_type;
+				ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(compacted_clip);
+				return VariableDeref;
+			}
+		}
+		
+		// But for iOS/tvOS and future, non-broken desktop we can just remap the variable to the actual clip-distance-array
+		if ((bIsDesktop != EMetalGPUSemanticsImmediateDesktop) && Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_ClipDistance", ClipPrefixLen) == 0 && !Variable)
 		{
 			Variable = ParseState->symbols->get_variable("clip_distance_array");
 			

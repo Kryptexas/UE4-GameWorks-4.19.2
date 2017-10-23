@@ -7,6 +7,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimSequenceBase.h"
 
+#if WITH_EDITOR
+#include "MessageLog.h"
+#include "UObjectToken.h"
+#endif
+
 /////////////////////////////////////////////////////
 // UAnimNotify_PlayParticleEffect
 
@@ -38,6 +43,31 @@ void UAnimNotify_PlayParticleEffect::PostEditChangeProperty(FPropertyChangedEven
 		RotationOffsetQuat = FQuat(RotationOffset);
 	}
 }
+
+void UAnimNotify_PlayParticleEffect::ValidateAssociatedAssets()
+{
+	static const FName NAME_AssetCheck("AssetCheck");
+
+	if ((PSTemplate != nullptr) && (PSTemplate->IsLooping()))
+	{
+		UObject* ContainingAsset = GetContainingAsset();
+			
+		FMessageLog AssetCheckLog(NAME_AssetCheck);
+
+		const FText MessageLooping = FText::Format(
+			NSLOCTEXT("AnimNotify", "ParticleSystem_ShouldNotLoop", "Particle system {0} used in anim notify for asset {1} is set to looping, but the slot is a one-shot (it won't be played to avoid leaking a component per notify)."),
+			FText::AsCultureInvariant(PSTemplate->GetPathName()),
+			FText::AsCultureInvariant(ContainingAsset->GetPathName()));
+		AssetCheckLog.Warning()
+			->AddToken(FUObjectToken::Create(ContainingAsset))
+			->AddToken(FTextToken::Create(MessageLooping));
+
+		if (GIsEditor)
+		{
+			AssetCheckLog.Notify(MessageLooping, EMessageSeverity::Warning, /*bForce=*/ true);
+		}
+	}
+}
 #endif
 
 void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation)
@@ -45,7 +75,7 @@ void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshCo
 	// Don't call super to avoid unnecessary call in to blueprints
 	if (PSTemplate)
 	{
-		if (PSTemplate->IsImmortal())
+		if (PSTemplate->IsLooping())
 		{
 			UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Anim '%s' tried to spawn infinitely looping particle system '%s'. Spawning suppressed."), *GetNameSafe(Animation), *GetNameSafe(PSTemplate));
 			return;

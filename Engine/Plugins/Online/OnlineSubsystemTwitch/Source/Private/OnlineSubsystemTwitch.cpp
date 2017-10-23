@@ -258,14 +258,6 @@ bool FOnlineSubsystemTwitch::HandleAuthExecCommands(UWorld* InWorld, const TCHAR
 }
 
 
-bool FOnlineSubsystemTwitch::IsEnabled()
-{
-	// Check the ini for disabling Twitch
-	bool bEnableTwitch = true;
-	GConfig->GetBool(TEXT("OnlineSubsystemTwitch"), TEXT("bEnabled"), bEnableTwitch, GEngineIni);
-	return bEnableTwitch;
-}
-
 FOnlineSubsystemTwitch::FOnlineSubsystemTwitch(FName InInstanceName)
 	: FOnlineSubsystemImpl(TWITCH_SUBSYSTEM, InInstanceName)
 	, TwitchApiVersion(TEXT("application/vnd.twitchtv.v5+json"))

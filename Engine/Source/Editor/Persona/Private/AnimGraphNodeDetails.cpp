@@ -187,7 +187,9 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 					]
 				];
 
-			const bool bShowChildren = true;
+			// we only show children if visilibity is one
+			// whenever toggles, this gets called, so it will be refreshed
+			const bool bShowChildren = GetVisibilityOfProperty(ShowHidePropertyHandle) == EVisibility::Visible;
 			PropertyRow.CustomWidget(bShowChildren)
 			.NameContent()
 			.MinDesiredWidth(Row.NameWidget.MinWidth)
@@ -230,6 +232,8 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 
 			FBlendProfilePickerArgs Args;
 			Args.bAllowNew = false;
+			Args.bAllowRemove = false;
+			Args.bAllowClear = true;
 			Args.OnBlendProfileSelected = FOnBlendProfileSelected::CreateSP(this, &FAnimGraphNodeDetails::OnBlendProfileChanged, PropertyPtr);
 			Args.InitialProfile = CurrentProfile;
 
@@ -462,7 +466,6 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth(200.f)
 		[
 			SNew(SBoneSelectionWidget)
 			.ToolTipText(StructPropertyHandle->GetToolTipText())
@@ -479,6 +482,10 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	}
 }
 
+void FBoneReferenceCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+{
+
+}
 void FBoneReferenceCustomization::SetEditableSkeleton(TSharedRef<IPropertyHandle> StructPropertyHandle) 
 {
 	TArray<UObject*> Objects;
@@ -564,11 +571,6 @@ void FBoneReferenceCustomization::SetPropertyHandle(TSharedRef<IPropertyHandle> 
 	check(BoneNameProperty->IsValidHandle());
 }
 
-void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
-{
-	
-}
-
 void FBoneReferenceCustomization::OnBoneSelectionChanged(FName Name)
 {
 	BoneNameProperty->SetValue(Name);
@@ -635,7 +637,6 @@ void FBoneSocketTargetCustomization::Build(TSharedRef<IPropertyHandle> StructPro
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth(200.f)
 		[
 			SNew(SBoneSelectionWidget)
 			.ToolTipText(StructPropertyHandle->GetToolTipText())

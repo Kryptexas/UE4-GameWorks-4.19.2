@@ -6,7 +6,6 @@
 
 #include "Common.ush"
 #include "PostProcessCommon.ush"
-#include "PostProcessHistogramCommon.ush"
 #include "DeferredShadingCommon.ush"
 
 uint FrameNumber;

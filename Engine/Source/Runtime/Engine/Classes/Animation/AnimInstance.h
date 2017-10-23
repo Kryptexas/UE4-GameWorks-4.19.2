@@ -989,6 +989,7 @@ public:
 	const FBoneContainer& GetRequiredBones() const;
 
 	/** Animation Notifies that has been triggered in the latest tick **/
+	UPROPERTY(transient)
 	FAnimNotifyQueue NotifyQueue;
 
 	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to

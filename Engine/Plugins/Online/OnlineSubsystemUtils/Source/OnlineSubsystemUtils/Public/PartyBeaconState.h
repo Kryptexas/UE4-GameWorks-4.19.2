@@ -160,6 +160,8 @@ namespace ETeamAssignmentMethod
 	extern ONLINESUBSYSTEMUTILS_API const FName BestFit;
 	/** Assign random team */
 	extern ONLINESUBSYSTEMUTILS_API const FName Random;
+	/** Manually assign the team */
+	extern ONLINESUBSYSTEMUTILS_API const FName Manual;
 }
 
 /** A single player reservation */

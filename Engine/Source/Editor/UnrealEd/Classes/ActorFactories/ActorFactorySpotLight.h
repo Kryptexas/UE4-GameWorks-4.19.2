@@ -13,6 +13,9 @@ class UActorFactorySpotLight : public UActorFactory
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
+
+	void PostSpawnActor(UObject* Asset, AActor* NewActor) override;
 };
 
 

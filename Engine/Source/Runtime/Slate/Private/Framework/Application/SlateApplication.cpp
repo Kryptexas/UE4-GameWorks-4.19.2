@@ -2982,6 +2982,39 @@ TSharedPtr<SWindow> FSlateApplication::FindWidgetWindow( TSharedRef< const SWidg
 }
 
 
+void FSlateApplication::ProcessExternalReply(const FWidgetPath& CurrentEventPath, const FReply TheReply, const uint32 UserIndex, const uint32 PointerIndex)
+{
+	if (PointerIndex == FSlateApplicationBase::CursorPointerIndex)
+	{
+		const FWeakWidgetPath& LastWidgetsUnderCursor = WidgetsUnderCursorLastEvent.FindRef(FUserAndPointer(UserIndex, PointerIndex));
+	
+		const FWidgetPath* PathToWidgetPtr = nullptr;
+		FWidgetPath PathToWidget;
+		if (LastWidgetsUnderCursor.IsValid())
+		{
+			PathToWidget = LastWidgetsUnderCursor.ToWidgetPath();
+			PathToWidgetPtr = &PathToWidget;
+		}
+
+		FPointerEvent MouseEvent(
+			UserIndex,
+			PointerIndex,
+			GetCursorPos(),
+			GetLastCursorPos(),
+			PressedMouseButtons,
+			EKeys::Invalid,
+			0,
+			PlatformApplication->GetModifierKeys()
+		);
+
+		ProcessReply(CurrentEventPath, TheReply, PathToWidgetPtr, &MouseEvent, UserIndex);
+	}
+	else
+	{
+		ProcessReply(CurrentEventPath, TheReply, nullptr, nullptr, UserIndex);
+	}
+}
+
 void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, const uint32 UserIndex )
 {
 	const TSharedPtr<FDragDropOperation> ReplyDragDropContent = TheReply.GetDragDropContent();
@@ -3798,9 +3831,13 @@ TSharedPtr<FDragDropOperation> FSlateApplication::GetDragDroppingContent() const
 
 void FSlateApplication::CancelDragDrop()
 {
+	if (!IsDragDropping())
+	{
+		return;
+	}
+
 	for( auto LastWidgetIterator = WidgetsUnderCursorLastEvent.CreateConstIterator(); LastWidgetIterator; ++LastWidgetIterator)
 	{
-		
 		FWidgetPath WidgetsToDragLeave = LastWidgetIterator.Value().ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::Truncate);
 		if(WidgetsToDragLeave.IsValid())
 		{
@@ -4446,6 +4483,7 @@ void FSlateApplication::RegisterUser(TSharedRef<FSlateUser> NewUser)
 	}
 
 	NewUser->NavigationConfig = NavigationConfigFactory();
+	UserRegisteredEvent.Broadcast(NewUser->GetUserIndex());
 }
 
 void FSlateApplication::UnregisterUser(int32 UserIndex)

@@ -79,6 +79,9 @@ const float RetryClientRestartThrottleTime = 0.5f;
 const float RetryServerAcknowledgeThrottleTime = 0.25f;
 const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 
+// Note: This value should be sufficiently small such that it is considered to be in the past before RetryClientRestartThrottleTime and RetryServerAcknowledgeThrottleTime.
+const float ForceRetryClientRestartTime = -100.0f;
+
 //////////////////////////////////////////////////////////////////////////
 // APlayerController
 
@@ -94,7 +97,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	PrimaryActorTick.bTickEvenWhenPaused = true;
 	bAllowTickBeforeBeginPlay = true;
 	bShouldPerformFullTickWhenPaused = false;
-	LastRetryPlayerTime = 0.f;
+	LastRetryPlayerTime = ForceRetryClientRestartTime;
 	DefaultMouseCursor = EMouseCursor::Default;
 	DefaultClickTraceChannel = ECollisionChannel::ECC_Visibility;
 	HitResultTraceDistance = 100000.f;
@@ -283,6 +286,14 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 	}
 }
 
+void APlayerController::ClientUpdateMultipleLevelsStreamingStatus_Implementation( const TArray<FUpdateLevelStreamingLevelStatus>& LevelStatuses )
+{
+	for( const FUpdateLevelStreamingLevelStatus& LevelStatus : LevelStatuses )
+	{
+		ClientUpdateLevelStreamingStatus_Implementation( LevelStatus.PackageName, LevelStatus.bNewShouldBeLoaded, LevelStatus.bNewShouldBeVisible, LevelStatus.bNewShouldBlockOnLoad, LevelStatus.LODIndex );
+	}
+}
+
 void APlayerController::ClientFlushLevelStreaming_Implementation()
 {
 	// if we're already doing a map change, requesting another blocking load is just wasting time	
@@ -373,6 +384,27 @@ bool APlayerController::ServerUpdateLevelVisibility_Validate(FName PackageName, 
 	{
 		UE_LOG( LogPlayerController, Warning, TEXT( "ServerUpdateLevelVisibility() Invalid package name: %s (%s)" ), *PackageName.ToString(), *Reason.ToString() );
 		return false;
+	}
+
+	return true;
+}
+
+void APlayerController::ServerUpdateMultipleLevelsVisibility_Implementation( const TArray<FUpdateLevelVisibilityLevelInfo>& LevelVisibilities )
+{
+	for( const FUpdateLevelVisibilityLevelInfo& LevelVisibility : LevelVisibilities )
+	{
+		ServerUpdateLevelVisibility_Implementation( LevelVisibility.PackageName, LevelVisibility.bIsVisible );
+	}
+}
+
+bool APlayerController::ServerUpdateMultipleLevelsVisibility_Validate( const TArray<FUpdateLevelVisibilityLevelInfo>& LevelVisibilities )
+{
+	for( const FUpdateLevelVisibilityLevelInfo& LevelVisibility : LevelVisibilities )
+	{
+		if( !ServerUpdateLevelVisibility_Validate( LevelVisibility.PackageName, LevelVisibility.bIsVisible ) )
+		{
+			return false;
+		}
 	}
 
 	return true;
@@ -635,7 +667,7 @@ void APlayerController::ForceSingleNetUpdateFor(AActor* Target)
 			UActorChannel* Channel = Conn->ActorChannels.FindRef(Target);
 			if (Channel != NULL)
 			{
-				FNetworkObjectInfo* NetActor = Target->GetNetworkObjectInfo();
+				FNetworkObjectInfo* NetActor = Target->FindOrAddNetworkObjectInfo();
 
 				if (NetActor != nullptr)
 				{
@@ -1737,22 +1769,23 @@ void APlayerController::LocalTravel( const FString& FURL )
 	}
 }
 
-/// @cond DOXYGEN_WARNINGS
-
-void APlayerController::ClientReturnToMainMenu_Implementation(const FString& ReturnReason)
+void APlayerController::ClientReturnToMainMenuWithTextReason_Implementation(const FText& ReturnReason)
 {
-	UWorld* World = GetWorld();
-	if (GetGameInstance() && GetGameInstance()->GetOnlineSession())
+	if (UGameInstance* const GameInstance = GetGameInstance())
 	{
-		GetGameInstance()->GetOnlineSession()->HandleDisconnect(World, World->GetNetDriver());
+		GameInstance->ReturnToMainMenu();
 	}
 	else
 	{
+		UWorld* const World = GetWorld();
 		GEngine->HandleDisconnect(World, World->GetNetDriver());
 	}
 }
 
-/// @endcond
+void APlayerController::ClientReturnToMainMenu_Implementation(const FString& ReturnReason)
+{
+	ClientReturnToMainMenuWithTextReason_Implementation(FText::FromString(ReturnReason));
+}
 
 bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 {
@@ -2653,7 +2686,7 @@ void APlayerController::ServerCheckClientPossession_Implementation()
 	if (AcknowledgedPawn != GetPawn())
 	{
 		// Client already throttles their call to this function, so respond immediately by resetting LastRetryClientTime
-		LastRetryPlayerTime = 0.f;
+		LastRetryPlayerTime = ForceRetryClientRestartTime;
 		SafeRetryClientRestart();			
 	}
 }
@@ -3722,7 +3755,7 @@ public:
 				PC->DynamicForceFeedbacks.Add(LatentUUID, ForceFeedbackDetails);
 			}
 		}
-		
+
 		Response.FinishAndTriggerIf(bComplete, ExecutionFunction, OutputLink, CallbackTarget);
 	}
 

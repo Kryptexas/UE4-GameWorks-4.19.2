@@ -232,7 +232,6 @@ void NiagaraRendererSprites::GetDynamicMeshElements(const TArray<const FSceneVie
 				CollectorResources.VertexFactory.SetVectorAligned(bUseVectorAlignment);
 				CollectorResources.VertexFactory.SetCameraPlaneFacing(Properties->FacingMode == ENiagaraSpriteFacingMode::FaceCameraPlane);
 
-				CollectorResources.VertexFactory.SetFeatureLevel(ViewFamily.GetFeatureLevel());
 				CollectorResources.VertexFactory.SetParticleFactoryType(NVFT_Sprite);
 
 

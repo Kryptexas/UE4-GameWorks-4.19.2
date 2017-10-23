@@ -46,6 +46,16 @@ bool USoundBase::IsPlayable() const
 	return false;
 }
 
+bool USoundBase::IsAllowedVirtual() const
+{ 
+	return false; 
+}
+
+bool USoundBase::HasAttenuationNode() const
+{
+	return false;
+}
+
 const FSoundAttenuationSettings* USoundBase::GetAttenuationSettingsToApply() const
 {
 	if (AttenuationSettings)
@@ -80,7 +90,7 @@ bool USoundBase::IsLooping()
 	return (GetDuration() >= INDEFINITELY_LOOPING_DURATION); 
 }
 
-bool USoundBase::ShouldApplyInteriorVolumes() const
+bool USoundBase::ShouldApplyInteriorVolumes()
 {
 	return (SoundClassObject && SoundClassObject->Properties.bApplyAmbientVolumes);
 }

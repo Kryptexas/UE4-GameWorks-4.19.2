@@ -108,7 +108,8 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 				if (IntersectsFrustum( *Actor, Frustum, bStrictDragSelection))
 				{
 					// Select the actor if it intersected
-					GEditor->SelectActor( Actor, bShouldSelect, true);
+					const bool bShouldNotifyNow = false;	// We'll notify after everything has been selected
+					GEditor->SelectActor( Actor, bShouldSelect, bShouldNotifyNow );
 					bSelectionChanged = true;
 				}
 			}

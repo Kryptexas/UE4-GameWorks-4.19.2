@@ -11,6 +11,10 @@
 #include "ns.hpp"
 #include "device.hpp"
 
+MTLPP_CLASS(MTLStencilDescriptor);
+MTLPP_CLASS(MTLDepthStencilDescriptor);
+MTLPP_PROTOCOL(MTLDepthStencilState);
+
 namespace mtlpp
 {
     enum class CompareFunction
@@ -39,11 +43,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class StencilDescriptor : public ns::Object
+    class StencilDescriptor : public ns::Object<MTLStencilDescriptor*>
     {
     public:
         StencilDescriptor();
-        StencilDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        StencilDescriptor(MTLStencilDescriptor* handle) : ns::Object<MTLStencilDescriptor*>(handle) { }
 
         CompareFunction  GetStencilCompareFunction() const;
         StencilOperation GetStencilFailureOperation() const;
@@ -61,11 +65,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class DepthStencilDescriptor : public ns::Object
+    class DepthStencilDescriptor : public ns::Object<MTLDepthStencilDescriptor*>
     {
     public:
         DepthStencilDescriptor();
-        DepthStencilDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        DepthStencilDescriptor(MTLDepthStencilDescriptor* handle) : ns::Object<MTLDepthStencilDescriptor*>(handle) { }
 
         CompareFunction   GetDepthCompareFunction() const;
         bool              IsDepthWriteEnabled() const;
@@ -81,11 +85,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class DepthStencilState : public ns::Object
+    class DepthStencilState : public ns::Object<ns::Protocol<id<MTLDepthStencilState>>::type>
     {
     public:
         DepthStencilState() { }
-        DepthStencilState(const ns::Handle& handle) : ns::Object(handle) { }
+        DepthStencilState(ns::Protocol<id<MTLDepthStencilState>>::type handle) : ns::Object<ns::Protocol<id<MTLDepthStencilState>>::type>(handle) { }
 
         ns::String GetLabel() const;
         Device     GetDevice() const;

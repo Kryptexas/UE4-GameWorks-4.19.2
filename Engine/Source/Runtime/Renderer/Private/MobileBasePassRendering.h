@@ -288,7 +288,7 @@ public:
 						{
 							ReflectionCubemapTextures[i] = PrimitiveSceneInfo->CachedReflectionCaptureProxies[i]->EncodedHDRCubemap;
 						}
-						AverageBrightness[i] = ReflectionProxy->AverageBrightness;
+						AverageBrightness[i] = ReflectionProxy->EncodedHDRAverageBrightness;
 					}
 				}
 			}
@@ -318,7 +318,7 @@ public:
 				&& PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap
 				&& PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap->IsInitialized())
 			{
-				AverageBrightness = PrimitiveSceneInfo->CachedReflectionCaptureProxy->AverageBrightness;
+				AverageBrightness = PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRAverageBrightness;
 				ReflectionTexture = PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap;
 			}
 
@@ -662,14 +662,15 @@ public:
 			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
 		}
 #endif
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.
 
-	FDrawingPolicyMatchResult Matches(const TMobileBasePassDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TMobileBasePassDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
 			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy) &&

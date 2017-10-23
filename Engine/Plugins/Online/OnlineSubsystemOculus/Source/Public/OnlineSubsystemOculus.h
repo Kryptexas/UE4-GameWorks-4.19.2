@@ -73,12 +73,6 @@ public:
 	// FOnlineSubsystemOculus
 
 	/**
-	* Is the Oculus API available for use
-	* @return true if Oculus functionality is available, false otherwise
-	*/
-	bool IsEnabled() const;
-
-	/**
 	 * Allows for the LibOVRPlatform calls to be used directly with the Delegates in the Oculus OSS
 	 */
 	void AddRequestDelegate(ovrRequest RequestId, FOculusMessageOnCompleteDelegate&& Delegate) const;

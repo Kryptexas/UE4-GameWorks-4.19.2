@@ -32,6 +32,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogNetPartialBunch, Warning, All);
 DECLARE_CYCLE_STAT(TEXT("ActorChan_ReceivedBunch"), Stat_ActorChanReceivedBunch, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("ActorChan_CleanUp"), Stat_ActorChanCleanUp, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("ActorChan_PostNetInit"), Stat_PostNetInit, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("Channel ReceivedRawBunch"), Stat_ChannelReceivedRawBunch, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("Channel ReceivedNextBunch"), Stat_ChannelReceivedNextBunch, STATGROUP_Net);
 
 extern FAutoConsoleVariable CVarDoReplicationContextString;
 
@@ -318,6 +320,8 @@ bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 
 void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
+	SCOPE_CYCLE_COUNTER(Stat_ChannelReceivedRawBunch);
+
 	SCOPED_NAMED_EVENT(UChannel_ReceivedRawBunch, FColor::Green);
 	// Immediately consume the NetGUID portion of this bunch, regardless if it is partial or reliable.
 	// NOTE - For replays, we do this even earlier, to try and load this as soon as possible, in case there is an issue creating the channel
@@ -438,6 +442,8 @@ void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 
 bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
+	SCOPE_CYCLE_COUNTER(Stat_ChannelReceivedNextBunch);
+
 	// We received the next bunch. Basically at this point:
 	//	-We know this is in order if reliable
 	//	-We dont know if this is partial or not
@@ -762,7 +768,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	}
 
 	check(!Closing);
-	check(Connection->Channels[ChIndex]==this);
+	checkf(Connection->Channels[ChIndex]==this, TEXT("This: %s, Connection->Channels[ChIndex]: %s"), *Describe(), Connection->Channels[ChIndex] ? *Connection->Channels[ChIndex]->Describe() : TEXT("Null"));
 	check(!Bunch->IsError());
 	check( !Bunch->bHasPackageMapExports );
 
@@ -1130,6 +1136,7 @@ IMPLEMENT_CONTROL_CHANNEL_MESSAGE(BeaconWelcome);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(BeaconJoin);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(BeaconAssignGUID);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(BeaconNetGUIDAck);
+IMPLEMENT_CONTROL_CHANNEL_MESSAGE(EncryptionAck);
 
 void UControlChannel::Init( UNetConnection* InConnection, int32 InChannelIndex, bool InOpenedLocally )
 {

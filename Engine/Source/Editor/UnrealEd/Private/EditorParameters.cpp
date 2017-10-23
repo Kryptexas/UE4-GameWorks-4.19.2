@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "MaterialEditor/DEditorParameterValue.h"
 #include "MaterialEditor/DEditorFontParameterValue.h"
+#include "MaterialEditor/DEditorMaterialLayersParameterValue.h"
 #include "MaterialEditor/DEditorScalarParameterValue.h"
 #include "MaterialEditor/DEditorStaticComponentMaskParameterValue.h"
 #include "MaterialEditor/DEditorStaticSwitchParameterValue.h"
@@ -15,6 +16,11 @@ UDEditorParameterValue::UDEditorParameterValue(const FObjectInitializer& ObjectI
 }
 
 UDEditorFontParameterValue::UDEditorFontParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+UDEditorMaterialLayersParameterValue::UDEditorMaterialLayersParameterValue(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }

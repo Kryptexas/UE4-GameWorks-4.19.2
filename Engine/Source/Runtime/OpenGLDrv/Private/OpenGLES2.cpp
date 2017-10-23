@@ -263,7 +263,7 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 		// Enable GL debug markers if we're running in Xcode
 		extern int32 GEmitMeshDrawEvent;
 		GEmitMeshDrawEvent = 1;
-		GEmitDrawEvents = true;
+		SetEmitDrawEvents(true);
 	}
 
 	// ES2 requires a color attachment when rendering to depth-only.

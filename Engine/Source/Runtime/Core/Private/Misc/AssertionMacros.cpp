@@ -77,7 +77,7 @@ static FCriticalSection	FailDebugCriticalSection;
 	#define CALLSTACK_IGNOREDEPTH 2
 #endif // PLATFORM_LINUX
 
-void PrintScriptCallstack(bool bEmptyWhenDone)
+void InternalPrintScriptCallstack(bool bEmptyWhenDone)
 {
 #if DO_BLUEPRINT_GUARD
 	// Walk the script stack, if any
@@ -98,6 +98,11 @@ void PrintScriptCallstack(bool bEmptyWhenDone)
 		}
 	}
 #endif
+}
+
+void PrintScriptCallstack()
+{
+	InternalPrintScriptCallstack(false);
 }
 
 /**
@@ -214,7 +219,7 @@ VARARG_BODY(void, FDebug::LogAssertFailedMessage, const TCHAR*, VARARG_EXTRA(con
 	if( !GIsCriticalError )
 	{
 		// Print out the blueprint callstack
-		PrintScriptCallstack(true);
+		InternalPrintScriptCallstack(true);
 
 		TCHAR DescriptionString[4096];
 		GET_VARARGS( DescriptionString, ARRAY_COUNT( DescriptionString ), ARRAY_COUNT( DescriptionString ) - 1, Fmt, Fmt );
@@ -252,7 +257,7 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 	}
 
 	// Print out the blueprint callstack
-	PrintScriptCallstack(false);
+	InternalPrintScriptCallstack(false);
 
 	// Print initial debug message for this error
 	TCHAR ErrorString[MAX_SPRINTF];

@@ -52,7 +52,7 @@ void FLineBatcherSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 				FBatchedMesh const& M = Meshes[i];
 
 				// this seems far from optimal in terms of perf, but it's for debugging
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 
 				// set up geometry
 				for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)

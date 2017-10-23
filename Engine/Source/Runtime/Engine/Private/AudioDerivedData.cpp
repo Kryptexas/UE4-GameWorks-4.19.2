@@ -1099,7 +1099,7 @@ void USoundWave::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 
 		// If source data is resident in memory then allow the streamed audio to be built
 		// in a background thread.
-		if (GetCompressedData(PlatformFormat)->IsBulkDataLoaded())
+		if (GetCompressedData(PlatformFormat) && GetCompressedData(PlatformFormat)->IsBulkDataLoaded())
 		{
 			CacheFlags |= EStreamedAudioCacheFlags::AllowAsyncBuild;
 		}

@@ -21,7 +21,7 @@ void SBoneTreeMenu::Construct(const FArguments& InArgs)
 	bShowVirtualBones = InArgs._bShowVirtualBones;
 	bShowSocket = InArgs._bShowSocket;
 
-	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Pick Bone...");
+	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Select...");
 
 	SAssignNew(TreeView, STreeView<TSharedPtr<FBoneNameInfo>>)
 		.TreeItemsSource(&SkeletonTreeInfo)

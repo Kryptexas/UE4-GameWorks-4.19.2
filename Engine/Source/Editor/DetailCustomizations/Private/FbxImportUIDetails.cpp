@@ -368,7 +368,7 @@ void FFbxImportUIDetails::ConstructBaseMaterialUI(TSharedPtr<IPropertyHandle> Ha
 	BaseTextureNames.Empty();
 	BaseColorNames.Add(MakeShareable(new FString()));
 	BaseTextureNames.Add(MakeShareable(new FString()));
-	TArray<FName> ParameterNames;
+	TArray<FMaterialParameterInfo> OutParameterInfo;
 	TArray<FGuid> Guids;
 	float MinDesiredWidth = 150.0f;
 	TSharedPtr<SWidget> NameWidget;
@@ -377,10 +377,10 @@ void FFbxImportUIDetails::ConstructBaseMaterialUI(TSharedPtr<IPropertyHandle> Ha
 	MaterialPropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
 
 	// base color properties, only used when there is no texture in the diffuse map
-	Material->GetAllVectorParameterNames(ParameterNames, Guids);
-	for (FName &ParameterName : ParameterNames)
+	Material->GetAllVectorParameterInfo(OutParameterInfo, Guids);
+	for (FMaterialParameterInfo &ParameterInfo : OutParameterInfo)
 	{
-		BaseColorNames.Add(MakeShareable(new FString(ParameterName.ToString())));
+		BaseColorNames.Add(MakeShareable(new FString(ParameterInfo.Name.ToString())));
 	}
 	int InitialSelect = FindString(BaseColorNames, ImportUI->TextureImportData->BaseColorName);
 	InitialSelect = InitialSelect == INDEX_NONE ? 0 : InitialSelect; // default to the empty string located at index 0
@@ -411,12 +411,11 @@ void FFbxImportUIDetails::ConstructBaseMaterialUI(TSharedPtr<IPropertyHandle> Ha
 	];
 
 	// base texture properties
-	ParameterNames.Empty();
-	Guids.Empty();
-	Material->GetAllTextureParameterNames(ParameterNames, Guids);
-	for (FName &ParameterName : ParameterNames)
+	OutParameterInfo.Empty();
+	Material->GetAllTextureParameterInfo(OutParameterInfo, Guids);
+	for (FMaterialParameterInfo &ParameterInfo : OutParameterInfo)
 	{
-		BaseTextureNames.Add(MakeShareable(new FString(ParameterName.ToString())));
+		BaseTextureNames.Add(MakeShareable(new FString(ParameterInfo.Name.ToString())));
 	}
 	InitialSelect = FindString(BaseTextureNames, ImportUI->TextureImportData->BaseDiffuseTextureName);
 	InitialSelect = InitialSelect == INDEX_NONE ? 0 : InitialSelect; // default to the empty string located at index 0

@@ -1,6 +1,8 @@
 #pragma once
 
-#include "../mtlpp.hpp"
+#include "../src/mtlpp.hpp"
+
+MTLPP_CLASS(MTKView);
 
 class Window
 {
@@ -15,11 +17,11 @@ public:
     static void Run();
 
 private:
-    class MtlView : public ns::Object
+    class MtlView : public ns::Object<MTKView*>
     {
     public:
         MtlView() { }
-        MtlView(const ns::Handle& handle) : ns::Object(handle) { }
+        MtlView(MTKView* handle) : ns::Object<MTKView*>(handle) { }
     };
 
     MtlView m_view;

@@ -9,6 +9,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "Materials/MaterialFunctionInstance.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
@@ -161,7 +162,7 @@ void UMaterialEditingLibrary::RebuildMaterialInstanceEditors(UMaterial* BaseMate
 		// Ensure the material instance is valid and not a UMaterialInstanceDynamic, as that doesn't use FMaterialInstanceEditor as its editor
 		if (SourceInstance != nullptr && !SourceInstance->IsA(UMaterialInstanceDynamic::StaticClass()))
 		{
-			UMaterial * MICOriginalMaterial = SourceInstance->GetMaterial();
+			UMaterial* MICOriginalMaterial = SourceInstance->GetMaterial();
 			if (MICOriginalMaterial == BaseMaterial)
 			{
 				IAssetEditorInstance* EditorInstance = AssetEditorManager.FindEditorForAsset(EditedAsset, false);
@@ -169,6 +170,63 @@ void UMaterialEditingLibrary::RebuildMaterialInstanceEditors(UMaterial* BaseMate
 				{
 					FMaterialInstanceEditor* OtherEditor = static_cast<FMaterialInstanceEditor*>(EditorInstance);
 					OtherEditor->RebuildMaterialInstanceEditor();
+				}
+			}
+		}
+	}
+}
+
+void UMaterialEditingLibrary::RebuildMaterialInstanceEditors(UMaterialFunction* BaseFunction)
+{
+	FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
+	TArray<UObject*> EditedAssets = AssetEditorManager.GetAllEditedAssets();
+
+	for (int32 AssetIdx = 0; AssetIdx < EditedAssets.Num(); AssetIdx++)
+	{
+		UObject* EditedAsset = EditedAssets[AssetIdx];
+
+		UMaterialFunctionInstance* FunctionInstance = Cast<UMaterialFunctionInstance>(EditedAsset);	
+		UMaterialInstance* SourceInstance = Cast<UMaterialInstance>(EditedAsset);
+	
+		if (FunctionInstance)
+		{
+			// Update function instances that are children of this material function	
+			if (BaseFunction && BaseFunction == FunctionInstance->GetBaseFunction())
+			{
+				IAssetEditorInstance* EditorInstance = AssetEditorManager.FindEditorForAsset(EditedAsset, false);
+				if (EditorInstance)
+				{
+					FMaterialInstanceEditor* OtherEditor = static_cast<FMaterialInstanceEditor*>(EditorInstance);
+					OtherEditor->RebuildMaterialInstanceEditor();
+				}
+			}
+		}
+		else
+		{
+			if (!SourceInstance)
+			{
+				// Check to see if the EditedAssets are from material instance editor
+				UMaterialEditorInstanceConstant* EditorInstance = Cast<UMaterialEditorInstanceConstant>(EditedAsset);
+				if (EditorInstance && EditorInstance->SourceInstance)
+				{
+					SourceInstance = Cast<UMaterialInstance>(EditorInstance->SourceInstance);
+				}
+			}
+
+			// Ensure the material instance is valid and not a UMaterialInstanceDynamic, as that doesn't use FMaterialInstanceEditor as its editor
+			if (SourceInstance != nullptr && !SourceInstance->IsA(UMaterialInstanceDynamic::StaticClass()))
+			{
+				TArray<UMaterialFunctionInterface*> DependentFunctions;
+				SourceInstance->GetDependentFunctions(DependentFunctions);
+
+				if (DependentFunctions.Contains(BaseFunction) || DependentFunctions.Contains(BaseFunction->ParentFunction))
+				{
+					IAssetEditorInstance* EditorInstance = AssetEditorManager.FindEditorForAsset(EditedAsset, false);
+					if (EditorInstance != nullptr)
+					{
+						FMaterialInstanceEditor* OtherEditor = static_cast<FMaterialInstanceEditor*>(EditorInstance);
+						OtherEditor->RebuildMaterialInstanceEditor();
+					}
 				}
 			}
 		}
@@ -516,12 +574,22 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 		// mark the function as changed
 		MaterialFunction->PreEditChange(nullptr);
 		MaterialFunction->PostEditChange();
-
 		MaterialFunction->MarkPackageDirty();
 
 		// Create a material update context so we can safely update materials using this function.
 		{
 			FMaterialUpdateContext UpdateContext;
+
+			// Go through all function instances in memory and update them if they are children
+			for (TObjectIterator<UMaterialFunctionInstance> It; It; ++It)
+			{
+				UMaterialFunctionInstance* FunctionInstance = *It;
+				if (FunctionInstance->GetBaseFunction() == MaterialFunction)
+				{
+					FunctionInstance->UpdateParameterSet();
+					FunctionInstance->MarkPackageDirty();
+				}
+			}
 
 			// Go through all materials in memory and recompile them if they use this material function
 			for (TObjectIterator<UMaterial> It; It; ++It)
@@ -540,9 +608,10 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 					}
 					else
 					{
-						for (int32 FunctionIndex = 0; FunctionIndex < CurrentMaterial->MaterialFunctionInfos.Num(); FunctionIndex++)
+						for (const FMaterialFunctionInfo& FunctionInfo : CurrentMaterial->MaterialFunctionInfos)
 						{
-							if (CurrentMaterial->MaterialFunctionInfos[FunctionIndex].Function == MaterialFunction)
+							UMaterialFunctionInstance* FunctionInstance = Cast<UMaterialFunctionInstance>(FunctionInfo.Function);
+							if (FunctionInfo.Function == MaterialFunction || (FunctionInstance && FunctionInstance->GetBaseFunction() == MaterialFunction))
 							{
 								bRecompile = true;
 								break;
@@ -566,9 +635,28 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 					}
 				}
 			}
+
+			// Go through all material instances in memory and recompile them if they use this material function
+			for (TObjectIterator<UMaterialInstance> It; It; ++It)
+			{
+				UMaterialInstance* CurrentInstance = *It;
+				if (CurrentInstance->GetBaseMaterial())
+				{
+					TArray<UMaterialFunctionInterface*> Functions;
+					CurrentInstance->GetDependentFunctions(Functions);
+					if (Functions.Contains(MaterialFunction))
+					{
+						UpdateContext.AddMaterialInstance(CurrentInstance);
+						CurrentInstance->PreEditChange(nullptr);
+						CurrentInstance->PostEditChange();
+						break;
+					}
+				}
+			}
 		}
 
 		// update the world's viewports
+		UMaterialEditingLibrary::RebuildMaterialInstanceEditors(MaterialFunction);
 		FEditorDelegates::RefreshEditor.Broadcast();
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 	}

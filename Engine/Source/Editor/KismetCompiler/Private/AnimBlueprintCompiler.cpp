@@ -1515,6 +1515,10 @@ void FAnimBlueprintCompiler::ProcessStateMachine(UAnimGraphNode_StateMachineBase
 			UAnimStateTransitionNode* TransitionNode = *TransitionIt;
 			const int32 TransitionIndex = Oven.FindOrAddTransition(TransitionNode);
 
+			// Validate the blend profile for this transition - incase the skeleton of the node has
+			// changed or the blend profile no longer exists.
+			TransitionNode->ValidateBlendProfile();
+
 			FBakedStateExitTransition& Rule = *new (BakedState.Transitions) FBakedStateExitTransition();
 			Rule.bDesiredTransitionReturnValue = (TransitionNode->GetPreviousState() == StateNode);
 			Rule.TransitionIndex = TransitionIndex;

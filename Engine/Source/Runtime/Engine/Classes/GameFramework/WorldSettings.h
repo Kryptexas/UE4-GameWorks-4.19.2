@@ -292,12 +292,17 @@ struct ENGINE_API FHierarchicalSimplification
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "1", UIMin = "1"))
 	int32 MinNumberOfActorsToBuild;	
 
+	/** Min number of actors to build LODActor */
+	UPROPERTY(EditAnywhere, Category = FHierarchicalSimplification, AdvancedDisplay)
+	bool bOnlyGenerateClustersForVolumes;
+
 	FHierarchicalSimplification()
 		: TransitionScreenSize(0.315f)
-		, bSimplifyMesh(false)		
-		, DesiredBoundRadius(2000) 
+		, bSimplifyMesh(false)
+		, DesiredBoundRadius(2000)
 		, DesiredFillingPercentage(50)
 		, MinNumberOfActorsToBuild(2)
+		, bOnlyGenerateClustersForVolumes(false)
 	{
 		MergeSetting.bMergeMaterials = true;
 		MergeSetting.bGenerateLightMapUV = true;
@@ -318,6 +323,21 @@ private:
 };
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+UCLASS(Blueprintable)
+class ENGINE_API UHierarchicalLODSetup : public UObject
+{
+	GENERATED_BODY()
+public:
+	UHierarchicalLODSetup()
+	{
+		HierarchicalLODSetup.AddDefaulted();
+	}
+
+	/** Hierarchical LOD Setup */
+	UPROPERTY(EditAnywhere, Category = HLODSystem)
+	TArray<struct FHierarchicalSimplification> HierarchicalLODSetup;
+};
 
 /**
  * Actor containing all script accessible world properties.
@@ -506,12 +526,22 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, config, Category=LODSystem)
 	uint32 bEnableHierarchicalLODSystem:1;
 
+	/** If sets overrides the level settings and global project settings */
+	UPROPERTY(EditAnywhere, config, Category = LODSystem)
+	TSoftClassPtr<class UHierarchicalLODSetup> HLODSetupAsset;
+
+protected:
 	/** Hierarchical LOD Setup */
-	UPROPERTY(EditAnywhere, Category=LODSystem, meta=(editcondition = "bEnableHierarchicalLODSystem"))
+	UPROPERTY(EditAnywhere, Category=LODSystem, config, meta=(editcondition = "bEnableHierarchicalLODSystem"))
 	TArray<struct FHierarchicalSimplification>	HierarchicalLODSetup;
 
+public:
 	UPROPERTY()
 	int32 NumHLODLevels;
+
+	/** if set to true, all eligible actors in this level will be added to a single cluster representing the entire level (used for small sublevels)*/
+	UPROPERTY(EditAnywhere, config, Category = LODSystem, AdvancedDisplay)
+	uint32 bGenerateSingleClusterForLevel : 1;
 #endif
 	/************************************/
 	/** DEFAULT SETTINGS **/
@@ -651,6 +681,11 @@ public:
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	//~ End IInterface_AssetUserData Interface
 
+#if WITH_EDITOR
+	const TArray<struct FHierarchicalSimplification>& GetHierarchicalLODSetup() const;
+	TArray<struct FHierarchicalSimplification>& GetHierarchicalLODSetup();
+	int32 GetNumHierarchicalLODLevels() const;
+#endif // WITH EDITOR
 
 private:
 

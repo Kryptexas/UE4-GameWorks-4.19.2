@@ -60,7 +60,7 @@
 #endif
 
 /** Max buffer size for receiving libstrophe messages. Default of 4096 has proven too small in practice */
-#define STROPE_MESSAGE_BUFFER_SIZE (1024*16)
+#define STROPE_MESSAGE_BUFFER_SIZE (1024*32)
 
 /** Run the event loop once.
  *  This function will run send any data that has been queued by

@@ -618,7 +618,11 @@ void STableViewBase::RequestListRefresh()
 		bItemsNeedRefresh = true;
 		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
 	}
-	ItemsPanel->SetRefreshPending(true);
+
+	if (ItemsPanel.IsValid())
+	{
+		ItemsPanel->SetRefreshPending(true);
+	}
 }
 
 bool STableViewBase::IsPendingRefresh() const

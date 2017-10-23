@@ -189,9 +189,9 @@ public:
 		if (!bUseAutoExposure)
 		{
 			// Compute a CPU-based default.  NB: reverts to "1" if SM5 feature level is not supported
-			float DefaultEyeExposureValue = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
+			float FixedExposure = FRCPassPostProcessEyeAdaptation::GetFixedExposure(Context.View);
 			// Load a default value 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, DefaultEyeExposure, DefaultEyeExposureValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, DefaultEyeExposure, FixedExposure);
 		}
 
 		{

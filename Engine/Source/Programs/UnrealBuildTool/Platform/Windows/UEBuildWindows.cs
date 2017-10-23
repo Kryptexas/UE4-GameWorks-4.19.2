@@ -311,7 +311,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public override void ValidateTarget(TargetRules Target)
 		{
-			Target.bCompileNvCloth = true;
 			// Disable Simplygon support if compiling against the NULL RHI.
 			if (Target.GlobalDefinitions.Contains("USE_NULL_RHI=1"))
 			{

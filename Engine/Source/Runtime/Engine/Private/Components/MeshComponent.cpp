@@ -121,19 +121,32 @@ void UMeshComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 
 void UMeshComponent::CleanUpOverrideMaterials()
 {
+	bool bUpdated = false;
+
 	//We have to remove material override Ids that are bigger then the material list
 	if (GetNumOverrideMaterials() > GetNumMaterials())
 	{
 		//Remove the override material id that are superior to the static mesh materials number
 		int32 RemoveCount = GetNumOverrideMaterials() - GetNumMaterials();
 		OverrideMaterials.RemoveAt(GetNumMaterials(), RemoveCount);
+		bUpdated = true;
+	}
+
+	if (bUpdated)
+	{
+		MarkRenderStateDirty();
 	}
 }
+#endif
+
 void UMeshComponent::EmptyOverrideMaterials()
 {
-	OverrideMaterials.Reset();
+	if (OverrideMaterials.Num())
+	{
+		OverrideMaterials.Reset();
+		MarkRenderStateDirty();
+	}
 }
-#endif
 
 int32 UMeshComponent::GetNumMaterials() const
 {
@@ -311,15 +324,15 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 		UMaterial* Material = (MaterialInterface != nullptr) ? MaterialInterface->GetMaterial() : nullptr;
 		if (Material)
 		{
-			TArray<FName> OutParameterNames;
+			TArray<FMaterialParameterInfo> OutParameterInfo;
 			TArray<FGuid> OutParameterIds;
 
 			// Retrieve all scalar parameter names from the material
-			Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
-			for (FName& ParameterName : OutParameterNames)
+			Material->GetAllScalarParameterInfo(OutParameterInfo, OutParameterIds);
+			for (FMaterialParameterInfo& ParameterInfo : OutParameterInfo)
 			{
 				// Add or retrieve entry for this parameter name
-				FMaterialParameterCache& ParameterCache = MaterialParameterCache.FindOrAdd(ParameterName);
+				FMaterialParameterCache& ParameterCache = MaterialParameterCache.FindOrAdd(ParameterInfo.Name);
 				// Add the corresponding material index
 				ParameterCache.ScalarParameterMaterialIndices.Add(MaterialIndex);
 				
@@ -327,20 +340,20 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 				if (bHasMaterialResource)
 				{
 					// store the default value
-					ParameterCache.ScalarParameterDefaultValue = Material->GetScalarParameterDefault(ParameterName, FeatureLevel);
+					ParameterCache.ScalarParameterDefaultValue = Material->GetScalarParameterDefault(ParameterInfo.Name, FeatureLevel);
 				}
 			}
 
 			// Empty parameter names and ids
-			OutParameterNames.Reset();
+			OutParameterInfo.Reset();
 			OutParameterIds.Reset();
 
 			// Retrieve all vector parameter names from the material
-			Material->GetAllVectorParameterNames(OutParameterNames, OutParameterIds);
-			for (FName& ParameterName : OutParameterNames)
+			Material->GetAllVectorParameterInfo(OutParameterInfo, OutParameterIds);
+			for (FMaterialParameterInfo& ParameterInfo : OutParameterInfo)
 			{
 				// Add or retrieve entry for this parameter name
-				FMaterialParameterCache& ParameterCache = MaterialParameterCache.FindOrAdd(ParameterName);
+				FMaterialParameterCache& ParameterCache = MaterialParameterCache.FindOrAdd(ParameterInfo.Name);
 				// Add the corresponding material index
 				ParameterCache.VectorParameterMaterialIndices.Add(MaterialIndex);
 			}

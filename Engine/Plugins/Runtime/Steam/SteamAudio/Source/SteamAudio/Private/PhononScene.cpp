@@ -118,7 +118,7 @@ namespace SteamAudio
 				for (auto v = 2; v > -1; v--)
 				{
 					auto i = Indices[BaseIndex + v];
-					auto vtx = AStaticMeshItr->ActorToWorld().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(i));
+					auto vtx = AStaticMeshItr->ActorToWorld().TransformPosition(LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(i));
 					VertexArray.Add(UnrealToPhononIPLVector3(vtx));
 					NumVerts++;
 				}

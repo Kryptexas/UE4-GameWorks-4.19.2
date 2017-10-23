@@ -1373,6 +1373,9 @@ public:
 	/** @return true if the string only contains numeric characters */
 	bool IsNumeric() const;
 	
+	/** Removes spaces from the string.  I.E. "Spaces Are Cool" --> "SpacesAreCool". */
+	void RemoveSpacesInline();
+
 	/**
 	 * Constructs FString object similarly to how classic sprintf works.
 	 *

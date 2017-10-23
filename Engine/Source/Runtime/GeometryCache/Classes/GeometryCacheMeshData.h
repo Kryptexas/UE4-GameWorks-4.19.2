@@ -77,7 +77,7 @@ struct FGeometryCacheMeshData
 			{
 				FDynamicMeshVertex& Vertex = Mesh.Vertices[VertexIndex];
 				Ar << Vertex.Position;
-				Ar << Vertex.TextureCoordinate;
+				Ar << Vertex.TextureCoordinate[0];
 				Ar << Vertex.TangentX;
 				Ar << Vertex.TangentZ;
 				Ar << Vertex.Color;

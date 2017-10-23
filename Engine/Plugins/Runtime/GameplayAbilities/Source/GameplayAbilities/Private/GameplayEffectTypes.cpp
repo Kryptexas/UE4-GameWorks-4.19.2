@@ -186,7 +186,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		{
 			RepBits |= 1 << 2;
 		}
-		if (SourceObject.IsValid())
+		if (bReplicateSourceObject && SourceObject.IsValid())
 		{
 			RepBits |= 1 << 3;
 		}

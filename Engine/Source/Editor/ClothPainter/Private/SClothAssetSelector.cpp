@@ -23,6 +23,7 @@
 #include "ClothingMeshUtils.h"
 #include "ClothingAssetListCommands.h"
 #include "GenericCommands.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #define LOCTEXT_NAMESPACE "ClothAssetSelector"
 
@@ -183,13 +184,15 @@ private:
 
 					FMultiComponentReregisterContext ReregisterContext(ComponentsToReregister);
 
+					SkelMesh->PreEditChange(nullptr);
+
 					Asset->UnbindFromSkeletalMesh(SkelMesh);
 					SkelMesh->MeshClothingAssets.RemoveAt(AssetIndex);
 
 					// Need to fix up asset indices on sections.
-					if(FSkeletalMeshResource* MeshResource = SkelMesh->GetImportedResource())
+					if(FSkeletalMeshModel* Model = SkelMesh->GetImportedModel())
 					{
-						for(FStaticLODModel& LodModel : MeshResource->LODModels)
+						for(FSkeletalMeshLODModel& LodModel : Model->LODModels)
 						{
 							for(FSkelMeshSection& Section : LodModel.Sections)
 							{
@@ -200,6 +203,8 @@ private:
 							}
 						}
 					}
+
+					SkelMesh->PostEditChange();
 
 					OnInvalidateList.ExecuteIfBound();
 				}

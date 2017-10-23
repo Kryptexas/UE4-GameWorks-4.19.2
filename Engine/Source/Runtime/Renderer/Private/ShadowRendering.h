@@ -125,12 +125,6 @@ void SetDeferredLightParameters(
 		DeferredLightUniformsValue.ContactShadowLength = LightSceneInfo->Proxy->GetContactShadowLength();
 	}
 
-	if( LightSceneInfo->Proxy->IsInverseSquared() )
-	{
-		// Correction for lumen units
-		DeferredLightUniformsValue.LightColor *= 16.0f;
-	}
-
 	// When rendering reflection captures, the direct lighting of the light is actually the indirect specular from the main view
 	if (View.bIsReflectionCapture)
 	{
@@ -481,10 +475,10 @@ public:
 	}
 
 	//~ Begin FMeshDrawingPolicy Interface.
-	FDrawingPolicyMatchResult Matches(const FShadowDepthDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FShadowDepthDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) && 
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(GeometryShader == Other.GeometryShader) &&
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
@@ -526,11 +520,6 @@ public:
 		return bReverseCulling;
 	}
 	
-	/**
-	  * Executes the draw commands for a mesh.
-	  */
-	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
-
 private:
 
 	class FShadowDepthVS* VertexShader;

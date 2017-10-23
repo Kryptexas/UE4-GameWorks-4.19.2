@@ -51,7 +51,8 @@ ExtendedBucketPruner::ExtendedBucketPruner(const PruningPool* pool)
 	// preallocated size for bounds, trees
 	mCurrentTreeCapacity = 32;
 
-	mBounds = reinterpret_cast<PxBounds3*>(PX_ALLOC(sizeof(PxBounds3)*mCurrentTreeCapacity, "Bounds"));			
+	// We always allocate one extra box, to make sure we can safely use V4 loads on the array
+	mBounds = reinterpret_cast<PxBounds3*>(PX_ALLOC(sizeof(PxBounds3)*(mCurrentTreeCapacity+1), "Bounds"));			
 	mMergedTrees = reinterpret_cast<MergedTree*>(PX_ALLOC(sizeof(MergedTree)*mCurrentTreeCapacity, "AABB trees"));			
 	mExtendedBucketPrunerMap.reserve(mCurrentTreeCapacity);
 
@@ -192,7 +193,8 @@ void ExtendedBucketPruner::resize(PxU32 size)
 {
 	PX_ASSERT(size > mCurrentTreeCapacity);
 	// allocate new bounds
-	PxBounds3* newBounds = reinterpret_cast<PxBounds3*>(PX_ALLOC(sizeof(PxBounds3)*size, "Bounds"));
+	// We always allocate one extra box, to make sure we can safely use V4 loads on the array
+	PxBounds3* newBounds = reinterpret_cast<PxBounds3*>(PX_ALLOC(sizeof(PxBounds3)*(size+1), "Bounds"));
 	// copy previous bounds
 	PxMemCopy(newBounds, mBounds, sizeof(PxBounds3)*mCurrentTreeCapacity);
 	PX_FREE(mBounds);

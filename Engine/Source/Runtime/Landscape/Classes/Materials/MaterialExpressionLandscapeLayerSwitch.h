@@ -11,6 +11,7 @@
 #include "MaterialExpressionLandscapeLayerSwitch.generated.h"
 
 class UTexture;
+struct FMaterialParameterInfo;
 
 UCLASS(collapsecategories, hidecategories=Object)
 class LANDSCAPE_API UMaterialExpressionLandscapeLayerSwitch : public UMaterialExpression
@@ -55,7 +56,7 @@ public:
 
 	virtual FGuid& GetParameterExpressionId() override;
 
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	void GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const;
 
 	//~ Begin UObject Interface
 	/**

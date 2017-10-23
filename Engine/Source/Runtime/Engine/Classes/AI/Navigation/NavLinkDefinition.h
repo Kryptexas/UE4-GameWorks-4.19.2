@@ -157,8 +157,6 @@ struct ENGINE_API FNavigationLinkBase
 #endif // WITH_EDITOR
 
 private:
-	uint32 bAreaClassInitialized : 1;
-
 	/** Area type of this link (empty = default) */
 	UPROPERTY(EditAnywhere, Category = Default)
 	TSubclassOf<class UNavArea> AreaClass;

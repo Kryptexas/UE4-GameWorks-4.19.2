@@ -56,7 +56,7 @@ class ENGINE_API APlayerState : public AInfo
 	FString OldName;
 
 	/** Unique net id number. Actual value varies based on current online subsystem, use it only as a guaranteed unique number per player. */
-	UPROPERTY(replicated, BlueprintReadOnly, Category=PlayerState)
+	UPROPERTY(replicatedUsing=OnRep_PlayerId, BlueprintReadOnly, Category=PlayerState)
 	int32 PlayerId;
 
 	/** Whether this player is currently a spectator */
@@ -124,6 +124,15 @@ private:
 	/** The timestamp for when the current PingBucket began filling */
 	float			CurPingBucketTimestamp;
 
+	/**
+	 * Whether or not this player's replicated Ping value is updated automatically.
+	 * Since player states are always relevant by default, in cases where there are many players replicating,
+	 * replicating the ping value can cause additional unnecessary overhead on servers if the value isn't
+	 * needed on clients.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category=PlayerState)
+	bool bShouldUpdateReplicatedPing;
+
 public:
 	/** Replication Notification Callbacks */
 	UFUNCTION()
@@ -134,6 +143,9 @@ public:
 
 	UFUNCTION()
 	virtual void OnRep_bIsInactive();
+
+	UFUNCTION()
+	virtual void OnRep_PlayerId();
 
 	UFUNCTION()
 	virtual void OnRep_UniqueId();
@@ -226,6 +238,9 @@ protected:
 	*/
 	UFUNCTION(BlueprintImplementableEvent, Category = PlayerState, meta = (DisplayName = "CopyProperties"))
 	void ReceiveCopyProperties(APlayerState* NewPlayerState);
+
+	/** Sets whether or not the replicated ping value is updated automatically. */
+	void SetShouldUpdateReplicatedPing(bool bInShouldUpdateReplicatedPing) { bShouldUpdateReplicatedPing = bInShouldUpdateReplicatedPing; }
 
 private:
 	// Hidden functions that don't make sense to use on this class.

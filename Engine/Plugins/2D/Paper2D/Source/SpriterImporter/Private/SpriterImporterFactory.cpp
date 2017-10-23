@@ -340,10 +340,10 @@ UObject* USpriterImporterFactory::FactoryCreateText(UClass* InClass, UObject* In
 			USkeleton* EntitySkeleton = CastChecked<USkeleton>(CreateNewAsset(USkeleton::StaticClass(), TargetSkeletonPath, TargetSkeletonName, Flags));
 
 			// Initialize the mesh asset
-			FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
-			check(ImportedResource->LODModels.Num() == 0);
-			ImportedResource->LODModels.Empty();
-			FStaticLODModel& LODModel = *new (ImportedResource->LODModels) FStaticLODModel();
+			FSkeletalMeshModel* ImportedModel = SkeletalMesh->GetImportedModel();
+			check(ImportedModel->LODModels.Num() == 0);
+			ImportedModel->LODModels.Empty();
+			FSkeletalMeshLODModel& LODModel = *new (ImportedModel->LODModels) FSkeletalMeshLODModel();
 
 			SkeletalMesh->LODInfo.Empty();
 			SkeletalMesh->LODInfo.AddZeroed();

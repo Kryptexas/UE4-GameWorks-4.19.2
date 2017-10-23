@@ -513,7 +513,7 @@ void FEdModeGeometry::RenderPoly( const FSceneView* View, FViewport* Viewport, F
 			const FGeomPoly* GeomPoly = &GeomObject->PolyPool[PolyIdx];
 			PDI->SetHitProxy( new HGeomPolyProxy(GeomPoly->GetParentObject(),PolyIdx) );
 			{
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 
 				TArray<FVector> Verts;
 

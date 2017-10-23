@@ -952,7 +952,7 @@ void FArchive::SerializeIntPacked(uint32& Value)
 	}
 	else
 	{
-		TArray<uint8> PackedBytes;
+		TArray<uint8, TInlineAllocator<6>> PackedBytes;
 		uint32 Remaining = Value;
 		while(true)
 		{

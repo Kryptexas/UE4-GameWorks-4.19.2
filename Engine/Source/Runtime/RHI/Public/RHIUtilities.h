@@ -786,6 +786,7 @@ inline uint32 GetVertexCountForPrimitiveCount(uint32 NumPrimitives, uint32 Primi
 inline void DrawPrimitiveUP(FRHICommandList& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride)
 {
 	void* Buffer = NULL;
+	check(NumPrimitives > 0);
 	const uint32 VertexCount = GetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
 	RHICmdList.BeginDrawPrimitiveUP(PrimitiveType, NumPrimitives, VertexCount, VertexDataStride, Buffer);
 	FMemory::Memcpy( Buffer, VertexData, VertexCount * VertexDataStride );
@@ -867,6 +868,15 @@ private:
 
 extern RHI_API void EnableDepthBoundsTest(FRHICommandList& RHICmdList, float WorldSpaceDepthNear, float WorldSpaceDepthFar, const FMatrix& ProjectionMatrix);
 extern RHI_API void DisableDepthBoundsTest(FRHICommandList& RHICmdList);
+
+/** Returns the value of the rhi.SyncInterval CVar. */
+extern RHI_API uint32 RHIGetSyncInterval();
+
+/** Signals the completion of the specified task graph event when the given frame has flipped. */
+extern RHI_API void RHICompleteGraphEventOnFlip(uint64 PresentIndex, FGraphEventRef Event);
+
+extern RHI_API void RHIInitializeFlipTracking();
+extern RHI_API void RHIShutdownFlipTracking();
 
 struct FRHILockTracker
 {

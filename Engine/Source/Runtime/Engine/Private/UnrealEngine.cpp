@@ -187,6 +187,7 @@
 #include "Engine/LODActor.h"
 #include "Engine/AssetManager.h"
 #include "GameplayTagsManager.h"
+#include "SceneManagement.h"
 
 #if !UE_BUILD_SHIPPING
 	#include "HAL/ExceptionHandling.h"
@@ -246,15 +247,37 @@ ENGINE_API UEngine*	GEngine = NULL;
  */
 ENGINE_API bool GShowDebugSelectedLightmap = false;
 
-#if WITH_PROFILEGPU
+int32 GShowMaterialDrawEventTypes = 0;
+
+#if WANTS_DRAW_MESH_EVENTS
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.	 
 	 */
-	int32 GShowMaterialDrawEvents = 0;	
 	static FAutoConsoleVariableRef CVARShowMaterialDrawEvents(
 		TEXT("r.ShowMaterialDrawEvents"),
-		GShowMaterialDrawEvents,
-		TEXT("Enables a draw event around each material draw if supported by the platform"),
+		GShowMaterialDrawEventTypes,
+		TEXT("Uses a flags array to enable a draw event around specific material draw types if supported by the platform.\n")
+		TEXT("Set to -1 to enable everything. \n")
+		TEXT("Otherwise sum up these flags:   \n")
+		TEXT("None						0	  \n")
+		TEXT("CompositionLighting		1	  \n")
+		TEXT("BasePass					2	  \n")
+		TEXT("DepthPositionOnly			4	  \n")
+		TEXT("Depth						8	  \n")
+		TEXT("DistortionDynamic			16	  \n")
+		TEXT("DistortionStatic			32	  \n")
+		TEXT("MobileBasePass			64	  \n")
+		TEXT("MobileTranslucent			128	  \n")
+		TEXT("MobileTranslucentOpacity	256	  \n")
+		TEXT("ShadowDepth				512	  \n")
+		TEXT("ShadowDepthRsm			1024  \n")
+		TEXT("ShadowDepthStatic			2048  \n")
+		TEXT("StaticDraw				4096  \n")
+		TEXT("StaticDrawStereo			8192  \n")
+		TEXT("TranslucentLighting		16384 \n")
+		TEXT("Translucent				32768 \n")
+		TEXT("Velocity					65536 \n")
+		TEXT("FogVoxelization			131072\n"),
 		ECVF_Default
 		);
 #endif
@@ -369,7 +392,8 @@ void ScalabilityCVarsSinkCallback()
 
 	{
 		static const auto ViewDistanceScale = ConsoleMan.FindTConsoleVariableDataFloat(TEXT("r.ViewDistanceScale"));
-		LocalScalabilityCVars.ViewDistanceScale = FMath::Max(ViewDistanceScale->GetValueOnGameThread(), 0.0f);
+		static const auto ViewDistanceScale_NoScalability = ConsoleMan.FindTConsoleVariableDataFloat( TEXT( "r.ViewDistanceScaleNoScalability" ) );
+		LocalScalabilityCVars.ViewDistanceScale = FMath::Max(ViewDistanceScale->GetValueOnGameThread() * ViewDistanceScale_NoScalability->GetValueOnGameThread(), 0.0f);
 		LocalScalabilityCVars.ViewDistanceScaleSquared = FMath::Square(LocalScalabilityCVars.ViewDistanceScale);
 	}
 
@@ -572,6 +596,30 @@ void RefreshSamplerStatesCallback()
 			UTexture2D* Texture = *It;
 			Texture->RefreshSamplerStates();
 		}
+	
+		// The shared sampler states don't have an associated texture so must be manually refreshed
+		if (Wrap_WorldGroupSettings || Clamp_WorldGroupSettings)
+		{
+			FSharedSamplerState* WrapState = Wrap_WorldGroupSettings;
+			FSharedSamplerState* ClampState = Clamp_WorldGroupSettings;
+			ENQUEUE_RENDER_COMMAND(RefreshSharedSamplerStatesCommand)(
+				[WrapState, ClampState](FRHICommandListImmediate& RHICmdList)
+			{
+				if (WrapState)
+				{
+					WrapState->ReleaseRHI();
+					WrapState->InitRHI();
+				}
+
+				if (ClampState)
+				{
+					ClampState->ReleaseRHI();
+					ClampState->InitRHI();
+				}
+			}
+			);
+		}
+
 		UMaterialInterface::RecacheAllMaterialUniformExpressions();
 	}
 }
@@ -8267,22 +8315,30 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 		MessageY += FontSizeY;
 	}
 
-	// Warn about invalid reflection captures, this can appear only with FeatureLevel < SM4
-	if (World->NumInvalidReflectionCaptureComponents > 0)
+	if (World->NumUnbuiltReflectionCaptures > 0)
 	{
-		SmallTextItem.SetColor(FLinearColor::Red);
-		if( World->IsGameWorld())
+		int32 NumLightingScenariosEnabled = 0;
+
+		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
 		{
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("INVALID REFLECTION CAPTURES (%u Components, resave map in the editor)"), World->NumInvalidReflectionCaptureComponents));
+			ULevel* Level = World->GetLevels()[LevelIndex];
+
+			if (Level->bIsLightingScenario && Level->bIsVisible)
+			{
+				NumLightingScenariosEnabled++;
+			}
 		}
-		else
+
+		if (NumLightingScenariosEnabled <= 1)
 		{
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("REFLECTION CAPTURE UPDATE REQUIRED (%u out-of-date reflection capture(s))"), World->NumInvalidReflectionCaptureComponents));
+			SmallTextItem.SetColor(FLinearColor::White);
+			SmallTextItem.Text = FText::FromString( FString::Printf(TEXT("REFLECTION CAPTURES NEED TO BE REBUILT (%u unbuilt)"), World->NumUnbuiltReflectionCaptures) );		
+
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
 		}
-		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-		MessageY += FontSizeY;
 	}
-	
+
 	// Check HLOD clusters and show warning if unbuilt
 #if WITH_EDITOR
 	if (World->GetWorldSettings()->bEnableHierarchicalLODSystem)
@@ -8823,7 +8879,8 @@ void FFrameEndSync::Sync( bool bAllowOneFrameThreadLag )
 {
 	check(IsInGameThread());			
 
-	Fence[EventIndex].BeginFence();
+	// Since this is the frame end sync, allow sync with the RHI and GPU (true).
+	Fence[EventIndex].BeginFence(true);
 
 	bool bEmptyGameThreadTasks = !FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread);
 
@@ -12906,6 +12963,125 @@ bool UEngine::ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient
 }
 #endif
 
+#if !UE_BUILD_SHIPPING
+
+static TArray<FString> AssetLoadTest_Filenames;
+
+static void TickAssetLoadTest(bool bInfinite = false)
+{
+	check(IsInGameThread());
+	static FRandomStream RNG(FPlatformTime::Cycles());
+	static int32 RequestsOutstanding = 0;
+	static int32 NumProcessed = 0;
+	if (!GIsRequestingExit)
+	{
+		if (RequestsOutstanding < 100)
+		{
+			int32 IndexToDo;
+			bool bFirstTime = false;
+			if (NumProcessed < AssetLoadTest_Filenames.Num())
+			{
+				IndexToDo = (NumProcessed * 9973) % AssetLoadTest_Filenames.Num();
+				bFirstTime = true;
+			}
+			else
+			{
+				IndexToDo = RNG.RandRange(0, AssetLoadTest_Filenames.Num() - 1);
+			}
+			FString TestFile = AssetLoadTest_Filenames[IndexToDo];
+			int32 CapturedNumProcessed = NumProcessed;
+			LoadPackageAsync(TestFile, FLoadPackageAsyncDelegate::CreateLambda(
+				[CapturedNumProcessed, bFirstTime](const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result)
+			{
+				check(IsInGameThread());
+				check(Result == EAsyncLoadingResult::Succeeded);
+				UE_LOG(LogStreaming, Log, TEXT("UAssetLoadTest[%9d] - %s %s"), CapturedNumProcessed, bFirstTime ? TEXT("Loaded") : TEXT("Reloaded"), *PackageName.ToString());
+				RequestsOutstanding--;
+			}
+			));
+			RequestsOutstanding++;
+			NumProcessed++;
+		}
+		uint64 LocalFrameCounter = GFrameCounter;
+		if (bInfinite)
+		{
+			LocalFrameCounter = NumProcessed / 10;
+		}
+
+
+		if (LocalFrameCounter % (30 * 13) == 0)
+		{
+			UE_LOG(LogStreaming, Log, TEXT("Flushing Async Loading Test***************************************************"));
+			FlushAsyncLoading();
+			check(RequestsOutstanding == 0);
+		}
+		if (bInfinite && LocalFrameCounter % (30 * 10) == 0)
+		{
+			UE_LOG(LogStreaming, Log, TEXT("GC****************************************************************************"));
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+			check(RequestsOutstanding == 0);
+		}
+	}
+}
+
+static void DoUAssetLoadTest(const TArray<FString>& Args)
+{
+	check(IsInGameThread());
+	if (AssetLoadTest_Filenames.Num())
+	{
+		UE_LOG(LogConsoleResponse, Display, TEXT("Already running"));
+		return;
+	}
+	FString MountPoint = FPaths::ProjectContentDir();
+	if (Args.Num() > 0 && !Args[0].StartsWith(TEXT("-")))
+	{
+		MountPoint = Args[0];
+	}
+	bool bInfinite = (Args.Num() > 0 && Args[0].StartsWith(TEXT("-infiniteloop"))) || (Args.Num() > 1 && Args[1].StartsWith(TEXT("-infiniteloop")));
+
+	UE_LOG(LogConsoleResponse, Display, TEXT("Scanning disk, this might take 30s or more with a big game."));
+
+	IFileManager::Get().FindFilesRecursive(AssetLoadTest_Filenames, *MountPoint, TEXT("*.uasset"), true, false);
+	if (!AssetLoadTest_Filenames.Num())
+	{
+		UE_LOG(LogConsoleResponse, Display, TEXT("Try again, no uasset files in %s"), *MountPoint);
+		return;
+	}
+
+	if (bInfinite)
+	{
+		static FRandomStream RNG(FPlatformTime::Cycles());
+		GEngine->Exec(nullptr, TEXT("log logstreaming log"));
+		UE_LOG(LogConsoleResponse, Display, TEXT("Not all aspects of the game are running in an infinite loop like this. Things like stats may not get flushed because the frame never ends. This might appear to be leaking memory."));
+		while (true)
+		{
+			TickAssetLoadTest(true);
+			GLog->FlushThreadedLogs();
+			bool bUseTimeLimit = RNG.FRand() < .995f;
+			bool bUseFullTimeLimit = bUseTimeLimit && RNG.FRand() < .5f;
+			float TimeLimit = RNG.FRandRange(0.0011f, 0.025f);
+
+			ProcessAsyncLoading(bUseTimeLimit, bUseFullTimeLimit, TimeLimit);
+		}
+	}
+	else
+	{
+		GEngine->Exec(nullptr, TEXT("gc.TimeBetweenPurgingPendingKillObjects 10"));
+		UE_LOG(LogConsoleResponse, Display, TEXT("gc.TimeBetweenPurgingPendingKillObjects set to 10, you might want to adjust that or do gc.CollectGarbageEveryFrame 1"));
+
+		UE_LOG(LogConsoleResponse, Display, TEXT("Testing %d uasset files in %s"), AssetLoadTest_Filenames.Num(), *MountPoint);
+		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float Delta) -> bool { TickAssetLoadTest(); return true; }));
+	}
+
+}
+
+static FAutoConsoleCommand UAssetLoadTestCmd(
+	TEXT("UAssetLoadTest"),
+	TEXT("Continuously load assets and GC in the backgroud. Debugging option, this may or may not work with all assets. The test runs forever. If no arg is given all assets in /Game/Content are scanned."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&DoUAssetLoadTest)
+);
+
+#endif
 
 static uint64 TaskThread = 0xFFFFFFFFFFFFFFFF;
 static uint64 GameThread = 0xFFFFFFFFFFFFFFFF;

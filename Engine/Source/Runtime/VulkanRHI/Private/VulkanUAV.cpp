@@ -3,13 +3,16 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanContext.h"
 
-FVulkanShaderResourceView::FVulkanShaderResourceView(FVulkanDevice* Device, FVulkanResourceMultiBuffer* InSourceBuffer, uint32 InSize, EPixelFormat InFormat)
+FVulkanShaderResourceView::FVulkanShaderResourceView(FVulkanDevice* Device, FRHIResource* InRHIBuffer, FVulkanResourceMultiBuffer* InSourceBuffer, uint32 InSize, EPixelFormat InFormat)
 	: VulkanRHI::FDeviceChild(Device)
 	, BufferViewFormat(InFormat)
+	, SourceTexture(nullptr)
+	, SourceStructuredBuffer(nullptr)
 	, MipLevel(0)
 	, NumMips(-1)
 	, Size(InSize)
 	, SourceBuffer(InSourceBuffer)
+	, SourceRHIBuffer(InRHIBuffer)
 	, VolatileLockCounter(MAX_uint32)
 {
 	int32 NumBuffers = SourceBuffer->IsVolatile() ? 1 : SourceBuffer->GetNumBuffers();
@@ -68,19 +71,11 @@ void FVulkanShaderResourceView::UpdateView()
 			{
 				FVulkanTexture2D* VTex2D = ResourceCast(Tex2D);
 				EPixelFormat OriginalFormat = Format;
-				if (Format == PF_X24_G8)
-				{
-					Format = PF_DepthStencil;
-				}
-				TextureView.Create(*Device, VTex2D->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, VTex2D->Surface.GetPartialAspectMask(), OriginalFormat, UEToVkFormat(Format, false), MipLevel, NumMips, 0, 1);
+				TextureView.Create(*Device, VTex2D->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, VTex2D->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, NumMips, 0, 1);
 			}
 			else if (FRHITextureCube* TexCube = SourceTexture->GetTextureCube())
 			{
 				FVulkanTextureCube* VTexCube = ResourceCast(TexCube);
-				if (Format == PF_X24_G8)
-				{
-					Format = PF_DepthStencil;
-				}
 				TextureView.Create(*Device, VTexCube->Surface.Image, VK_IMAGE_VIEW_TYPE_CUBE, VTexCube->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, NumMips, 0, 1);
 			}
 			else
@@ -151,28 +146,16 @@ void FVulkanUnorderedAccessView::UpdateView()
 		if (FRHITexture2D* Tex2D = SourceTexture->GetTexture2D())
 		{
 			FVulkanTexture2D* VTex2D = ResourceCast(Tex2D);
-			if (Format == PF_X24_G8)
-			{
-				Format = PF_DepthStencil;
-			}
 			TextureView.Create(*Device, VTex2D->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, VTex2D->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, 1, 0, 1);
 		}
 		else if (FRHITextureCube* TexCube = SourceTexture->GetTextureCube())
 		{
 			FVulkanTextureCube* VTexCube = ResourceCast(TexCube);
-			if (Format == PF_X24_G8)
-			{
-				Format = PF_DepthStencil;
-			}
 			TextureView.Create(*Device, VTexCube->Surface.Image, VK_IMAGE_VIEW_TYPE_CUBE, VTexCube->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, 1, 0, 1);
 		}
 		else if (FRHITexture3D* Tex3D = SourceTexture->GetTexture3D())
 		{
 			FVulkanTexture3D* VTex3D = ResourceCast(Tex3D);
-			if (Format == PF_X24_G8)
-			{
-				Format = PF_DepthStencil;
-			}
 			TextureView.Create(*Device, VTex3D->Surface.Image, VK_IMAGE_VIEW_TYPE_3D, VTex3D->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, 1, 0, VTex3D->GetSizeZ());
 		}
 		else
@@ -225,37 +208,37 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FStruct
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint8 Format)
 {	
 	FVulkanVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, VertexBuffer, VertexBuffer->GetSize(), (EPixelFormat)Format);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, VertexBufferRHI, VertexBuffer, VertexBuffer->GetSize(), (EPixelFormat)Format);
 	return SRV;
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
 {
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture2DRHI, MipLevel, 1);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture2DRHI, MipLevel, 1, ResourceCast(Texture2DRHI)->Surface.PixelFormat);
 	return SRV;
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format)
 {
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture2DRHI, MipLevel, NumMipLevels);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture2DRHI, MipLevel, NumMipLevels, (EPixelFormat)Format);
 	return SRV;
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel)
 {
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture3DRHI, MipLevel, 1);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture3DRHI, MipLevel, 1, ResourceCast(Texture3DRHI)->Surface.PixelFormat);
 	return SRV;
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture2DArrayRHIParamRef Texture2DArrayRHI, uint8 MipLevel)
 {
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture2DArrayRHI, MipLevel, 1);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, Texture2DArrayRHI, MipLevel, 1, ResourceCast(Texture2DArrayRHI)->Surface.PixelFormat);
 	return SRV;
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel)
 {
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, TextureCubeRHI, MipLevel, 1);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, TextureCubeRHI, MipLevel, 1, ResourceCast(TextureCubeRHI)->Surface.PixelFormat);
 	return SRV;
 }
 
@@ -264,7 +247,7 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FIndexB
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 	check(IndexBufferRHI->GetStride() == 2 || IndexBufferRHI->GetStride() == 4);
 	EPixelFormat Format = (IndexBufferRHI->GetStride() == 4) ? PF_R32_UINT : PF_R16_UINT;
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, IndexBuffer, IndexBuffer->GetSize(), Format);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, IndexBufferRHI, IndexBuffer, IndexBuffer->GetSize(), Format);
 	return SRV;
 }
 

@@ -64,6 +64,12 @@ void FQosInterface::ForceSelectRegion(const FString& InRegionId)
 	RegionManager->ForceSelectRegion(InRegionId);
 }
 
+bool FQosInterface::IsUsableRegion(const FString& InRegionId) const
+{
+	check(RegionManager);
+	return RegionManager->IsUsableRegion(InRegionId);
+}
+
 bool FQosInterface::SetSelectedRegion(const FString& InRegionId)
 {
 	check(RegionManager);

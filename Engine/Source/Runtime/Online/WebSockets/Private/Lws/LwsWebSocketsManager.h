@@ -47,7 +47,7 @@ private:
 	// IWebSocketsManager
 	virtual void InitWebSockets(TArrayView<const FString> Protocols) override;
 	virtual void ShutdownWebSockets() override;
-	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const FString& UpgradeHeader) override;
+	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const TMap<FString, FString>& UpgradeHeaders) override;
 
 	//~ Begin FRunnable Interface
 	virtual bool Init() override;

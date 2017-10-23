@@ -15,12 +15,15 @@
 #include "texture.hpp"
 #include "types.hpp"
 
+MTLPP_CLASS(MTLHeapDescriptor);
+MTLPP_PROTOCOL(MTLHeap);
+
 namespace mtlpp
 {
-    class HeapDescriptor : public ns::Object
+    class HeapDescriptor : public ns::Object<MTLHeapDescriptor*>
     {
     public:
-        HeapDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        HeapDescriptor(MTLHeapDescriptor* handle) : ns::Object<MTLHeapDescriptor*>(handle) { }
 
         uint32_t     GetSize() const;
         StorageMode  GetStorageMode() const;
@@ -32,10 +35,10 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_13, 10_0);
 
-    class Heap : public ns::Object
+    class Heap : public ns::Object<ns::Protocol<id<MTLHeap>>::type>
     {
     public:
-        Heap(const ns::Handle& handle) : ns::Object(handle) { }
+        Heap(ns::Protocol<id<MTLHeap>>::type handle) : ns::Object<ns::Protocol<id<MTLHeap>>::type>(handle) { }
 
         ns::String   GetLabel() const;
         Device       GetDevice() const;

@@ -118,6 +118,31 @@ int32 GetPortFromNetDriver(FName InstanceName)
 	return Port;
 }
 
+int32 GetClientPeerIp(FName InstanceName, const FUniqueNetId& UserId)
+{
+	int32 PeerIp = 0;
+#if WITH_ENGINE
+	if (GEngine)
+	{
+		UWorld* World = GetWorldForOnline(InstanceName);
+		UNetDriver* NetDriver = World ? GEngine->FindNamedNetDriver(World, NAME_GameNetDriver) : NULL;
+		if (NetDriver && NetDriver->GetNetMode() < NM_Client)
+		{
+			for (UNetConnection* ClientConnection : NetDriver->ClientConnections)
+			{
+				if (ClientConnection && 
+					ClientConnection->PlayerId.ToString() == UserId.ToString())
+				{
+					PeerIp = ClientConnection->GetAddrAsInt();
+					break;
+				}
+			}
+		}
+	}
+#endif
+	return PeerIp;
+}
+
 bool HandleSessionCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	bool bWasHandled = true;

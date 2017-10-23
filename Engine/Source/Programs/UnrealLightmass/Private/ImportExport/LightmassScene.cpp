@@ -990,9 +990,6 @@ FLinearColor FPointLight::GetDirectIntensity(const FVector4& Point, bool bCalcul
 			DistanceAttenuation = 1.0f / ( DistanceSqr + 1.0f );
 		}
 
-		// lumens
-		DistanceAttenuation *= 16.0f;
-
 		float LightRadiusMask = FMath::Square(FMath::Max(0.0f, 1.0f - FMath::Square(DistanceSqr / (Radius * Radius))));
 		DistanceAttenuation *= LightRadiusMask;
 
@@ -1017,7 +1014,7 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 	if( LightFlags & GI_LIGHT_INVERSE_SQUARED )
 	{
 		const float LightRadiusMask = FMath::Square( FMath::Max( 0.0f, 1.0f - FMath::Square( PointDistanceSquared / (Radius * Radius) ) ) );
-		UnrealAttenuation = 16.0f * PhysicalAttenuation * LightRadiusMask;
+		UnrealAttenuation = PhysicalAttenuation * LightRadiusMask;
 	}
 	else
 	{
@@ -1179,7 +1176,7 @@ float FPointLight::Power() const
 
 	if (LightFlags & GI_LIGHT_INVERSE_SQUARED)
 	{
-		IncidentPower = IncidentPower * 16 / (DistanceToEvaluate * DistanceToEvaluate);
+		IncidentPower = IncidentPower / (DistanceToEvaluate * DistanceToEvaluate);
 	}
 	else
 	{
@@ -1425,9 +1422,6 @@ FLinearColor FSpotLight::GetDirectIntensity(const FVector4& Point, bool bCalcula
 			// Sphere irradiance (technically just 1/d^2 but this avoids inf)
 			DistanceAttenuation = 1.0f / ( DistanceSqr + 1.0f );
 		}
-
-		// lumens
-		DistanceAttenuation *= 16.0f;
 
 		float LightRadiusMask = FMath::Square( FMath::Max( 0.0f, 1.0f - FMath::Square( DistanceSqr / (Radius * Radius) ) ) );
 		DistanceAttenuation *= LightRadiusMask;

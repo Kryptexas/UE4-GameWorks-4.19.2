@@ -645,6 +645,7 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 			.IsEnabled(IsEnabledAttrib)
 			.CustomResetToDefault(CustomResetToDefault);
 	};
+	
 
 	TSharedRef<SWidget> ResetWidget = ResetButton.IsValid() ? ResetButton.ToSharedRef() : SNullWidget::NullWidget;
 

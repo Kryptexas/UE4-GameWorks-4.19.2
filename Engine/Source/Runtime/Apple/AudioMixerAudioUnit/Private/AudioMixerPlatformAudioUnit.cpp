@@ -42,7 +42,8 @@ namespace Audio
 #if PLATFORM_IOS || PLATFORM_TVOS
     static const int32 DefaultBufferSize = 4096;
 #else
-    static const int32 DefaultBufferSize = 512;
+    static const int32 DefaultBufferSize = 1024;
+    static const int32 AUBufferSize = 256;
 #endif //#if PLATFORM_IOS || PLATFORM_TVOS
     static const double DefaultSampleRate = 48000.0;
     
@@ -54,6 +55,7 @@ namespace Audio
         , SubmittedBufferPtr(nullptr)
         , RemainingBytesInCurrentSubmittedBuffer(0)
         , BytesPerSubmittedBuffer(0)
+        , GraphSampleRate(DefaultSampleRate)
 	{
 	}
 
@@ -94,7 +96,7 @@ namespace Audio
 		}
         
 		OSStatus Status;
-        double GraphSampleRate = (double) AudioStreamInfo.DeviceInfo.SampleRate;
+        GraphSampleRate = (double) AudioStreamInfo.DeviceInfo.SampleRate;
         UInt32 BufferSize = (UInt32) GetNumFrames(OpenStreamParams.NumFrames);
         const int32 NumChannels = 2;
 
@@ -232,8 +234,8 @@ namespace Audio
         DevicePropertyAddress.mSelector = kAudioDevicePropertyBufferFrameSize;
         DevicePropertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
         DevicePropertyAddress.mElement = 0;
-        AudioDeviceQuerySize = sizeof(BufferSize);
-        Status = AudioObjectSetPropertyData(DeviceAudioObjectID, &DevicePropertyAddress, 0, nullptr, AudioDeviceQuerySize, &BufferSize);
+        AudioDeviceQuerySize = sizeof(AUBufferSize);
+        Status = AudioObjectSetPropertyData(DeviceAudioObjectID, &DevicePropertyAddress, 0, nullptr, AudioDeviceQuerySize, &AUBufferSize);
         if(Status != 0)
         {
             HandleError(TEXT("Failed to set output format!"), true);
@@ -402,7 +404,7 @@ namespace Audio
         double SampleRate = [AudioSession preferredSampleRate];
         DeviceInfo.SampleRate = (int32)SampleRate;
 #else
-        DeviceInfo.SampleRate = DefaultSampleRate;
+        DeviceInfo.SampleRate = GraphSampleRate;
 #endif
         DeviceInfo.NumChannels = 2;
         DeviceInfo.Format = EAudioMixerStreamDataFormat::Float;
@@ -506,7 +508,7 @@ namespace Audio
         Settings.MaxChannels = 32;
         
 #else
-        Settings.SampleRate = DefaultSampleRate;
+        Settings.SampleRate = GraphSampleRate;
         Settings.CallbackBufferFrameSize = DefaultBufferSize;
         
 #endif //#if PLATFORM_IOS || PLATFORM_TVOS

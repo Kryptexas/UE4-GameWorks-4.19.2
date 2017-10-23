@@ -28,7 +28,7 @@ public:
 	virtual void GenerateWidgetForNameColumn(TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected) override;
 	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
 	virtual FName GetRowItemName() const override { return BoneName; }
-
+	virtual bool CanRenameItem() const override { return true; }
 	virtual void RequestRename() override;
 	virtual void OnItemDoubleClicked() override;
 	virtual UObject* GetObject() const override { return BoneProxy; }

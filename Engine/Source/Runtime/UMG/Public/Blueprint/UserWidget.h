@@ -289,8 +289,7 @@ public:
 	 * Gets the player controller associated with this UI.
 	 * @return The player controller that owns the UI.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
-	class APlayerController* GetOwningPlayer() const;
+	class APlayerController* GetOwningPlayer() const override;
 
 	/**
 	 * Sets the local player associated with this UI via PlayerController reference.

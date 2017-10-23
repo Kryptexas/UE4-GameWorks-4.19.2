@@ -130,6 +130,12 @@ public:
 	 */
 	static UNREALED_API bool RemoveInvalidLevelFromWorld(ULevelStreaming* InLevelStreaming);
 
+	/** 
+	 * Sets the actors within a level's visibility via bHiddenEdLevel.  
+	 * Warning: modifies ULevel::bIsVisible and bHiddenEdLevel without marking packages dirty or supporting undo.  
+	 * Calling code must restore to the original state before the user can interact with the levels.
+	 */
+	static UNREALED_API void SetLevelVisibilityTemporarily(ULevel* Level, bool bShouldBeVisible);
 
 	/**
 	 * Sets a level's visibility in the editor.

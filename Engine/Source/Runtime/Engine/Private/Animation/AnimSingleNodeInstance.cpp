@@ -346,7 +346,7 @@ void UAnimSingleNodeInstance::SetPositionWithPreviousTime(float InPosition, floa
 		{
 			NotifyQueue.Reset(GetSkelMeshComponent());
 
-			TArray<const FAnimNotifyEvent*> Notifies;
+			TArray<FAnimNotifyEventReference> Notifies;
 			SequenceBase->GetAnimNotifiesFromDeltaPositions(InPreviousTime, Proxy.GetCurrentTime(), Notifies);
 			if ( Notifies.Num() > 0 )
 			{

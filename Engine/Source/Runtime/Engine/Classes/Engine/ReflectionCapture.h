@@ -31,10 +31,6 @@ public:
 
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
 
-#if WITH_EDITOR
-	virtual void PostEditMove(bool bFinished) override;
-#endif // WITH_EDITOR
-
 	/** Returns CaptureComponent subobject **/
 	ENGINE_API class UReflectionCaptureComponent* GetCaptureComponent() const { return CaptureComponent; }
 #if WITH_EDITORONLY_DATA

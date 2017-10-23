@@ -682,6 +682,8 @@ public:
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
 
+	virtual void NotifyObjectReferenceEliminated() const {}
+
 	/**
 	 * Returns an Type:Name pair representing the PrimaryAssetId for this object.
 	 * Assets that need to be globally referenced at runtime should return a valid Identifier.

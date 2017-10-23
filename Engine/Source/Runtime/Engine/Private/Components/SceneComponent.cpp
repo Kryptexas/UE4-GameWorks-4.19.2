@@ -2206,12 +2206,14 @@ void USceneComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+#if WITH_EDITORONLY_DATA
 	// Copy from deprecated properties
 	if(Ar.UE4Ver() < VER_UE4_SCENECOMP_TRANSLATION_TO_LOCATION)
 	{
 		RelativeLocation = RelativeTranslation_DEPRECATED;
 		bAbsoluteLocation = bAbsoluteTranslation_DEPRECATED;
 	}
+#endif
 }
 #endif
 

@@ -960,14 +960,13 @@ struct FExposureSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	FExposureSettings()
-		: LogOffset(0), bFixed(false)
+	FExposureSettings() : FixedEV100(1), bFixed(false)
 	{
 	}
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("%d,%d"), LogOffset, bFixed ? 1 : 0);
+		return FString::Printf(TEXT("%d,%d"), FixedEV100, bFixed ? 1 : 0);
 	}
 
 	void SetFromString(const TCHAR *In)
@@ -983,13 +982,13 @@ struct FExposureSettings
 		check((Comma-In)+1 < BUFFER_SIZE);
 		
 		FCString::Strncpy(Buffer, In, (Comma-In)+1);
-		LogOffset = FCString::Atoi(Buffer);
+		FixedEV100 = FCString::Atof(Buffer);
 		bFixed = !!FCString::Atoi(Comma+1);
 	}
 
-	// usually -4:/16 darker .. +4:16x brighter
+	// EV100 settings for fixed mode
 	UPROPERTY()
-	int32 LogOffset;
+	float FixedEV100;
 	// true: fixed exposure using the LogOffset value, false: automatic eye adaptation
 	UPROPERTY()
 	bool bFixed;

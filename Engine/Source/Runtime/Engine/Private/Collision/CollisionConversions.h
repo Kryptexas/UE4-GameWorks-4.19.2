@@ -102,8 +102,6 @@ bool ConvertOverlapResults(int32 NumOverlaps,  PxOverlapHit* POverlapResults, co
 #endif // WITH_PHYX
 
 
-#if UE_WITH_PHYSICS
-
 struct FCompareFHitResultTime
 {
 	FORCEINLINE bool operator()(const FHitResult& A, const FHitResult& B) const
@@ -118,5 +116,3 @@ struct FCompareFHitResultTime
 		return A.Time < B.Time;
 	}
 };
-
-#endif

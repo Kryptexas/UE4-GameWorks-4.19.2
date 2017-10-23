@@ -21,6 +21,7 @@
 #include "Components/SkinnedMeshComponent.h"
 #include "UniquePtr.h"
 #include "Features/IModularFeatures.h"
+#include "Rendering/SkeletalMeshModel.h"
 #include "AnimationBlueprintLibrary.h"
 
 #include "MeshMergeData.h"
@@ -218,8 +219,8 @@ public:
 	}
 
 	bool ReduceLODModel(
-		FStaticLODModel * SrcModel,
-		FStaticLODModel *& OutModel, 
+		FSkeletalMeshLODModel * SrcModel,
+		FSkeletalMeshLODModel *& OutModel,
 		const FBoxSphereBounds & Bounds, 
 		float &MaxDeviation, 
 		const FReferenceSkeleton& RefSkeleton, 
@@ -284,8 +285,8 @@ public:
 	/** internal only access function, so that you can use with register or with no-register */
 	void Reduce(
 		USkeletalMesh* SkeletalMesh,
-		FSkeletalMeshResource* SkeletalMeshResource,
-		FStaticLODModel* SrcModel,
+		FSkeletalMeshModel* SkeletalMeshResource,
+		FSkeletalMeshLODModel* SrcModel,
 		int32 LODIndex,
 		int32 BaseLOD,
 		const FSkeletalMeshOptimizationSettings& Settings,
@@ -303,7 +304,7 @@ public:
 
 		// Swap in a new model, delete the old.
 		check(LODIndex < SkeletalMeshResource->LODModels.Num());
-		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
+		FSkeletalMeshLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
 		//delete LODModels[LODIndex]; -- keep model valid until we'll be ready to replace it; required to be able to refresh UI with mesh stats
 
 		// Copy over LOD info from LOD0 if there is no previous info.
@@ -328,7 +329,7 @@ public:
 			BoneNames.Add(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
 		}
 
-		TArray<FTransform> MultipliedBonePoses;	
+		TArray<FTransform> MultipliedBonePoses;
 		if (SkeletalMesh->LODInfo[LODIndex].BakePose != nullptr)
 		{
 			TArray<FTransform> BonePoses;
@@ -389,7 +390,7 @@ public:
 		if (MeshBoneReductionInterface->GetBoneReductionData(SkeletalMesh, LODIndex, BonesToRemove))
 		{
 			// if we do, now create new model and make a copy of SrcMesh to cut the bone count
-			FStaticLODModel * NewSrcModel = new FStaticLODModel();
+			FSkeletalMeshLODModel * NewSrcModel = new FSkeletalMeshLODModel();
 
 			//	Bulk data arrays need to be locked before a copy can be made.
 			SrcModel->RawPointIndices.Lock(LOCK_READ_ONLY);
@@ -398,18 +399,12 @@ public:
 			SrcModel->RawPointIndices.Unlock();
 			SrcModel->LegacyRawPointIndices.Unlock();
 
-			// The index buffer needs to be rebuilt on copy.
-			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
-			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
-			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
-			NewSrcModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
-
 			// now fix up SrcModel to NewSrcModel
 			SrcModel = NewSrcModel;
 			//todo: check - memory leak here - SrcModel is not released?
 		}
 
-		FStaticLODModel * NewModel = new FStaticLODModel();
+		FSkeletalMeshLODModel * NewModel = new FSkeletalMeshLODModel();
 		LODModels[LODIndex] = NewModel;
 		
 		// Reduce LOD model with SrcMesh
@@ -466,12 +461,6 @@ public:
 			SrcModel->RawPointIndices.Unlock();
 			SrcModel->LegacyRawPointIndices.Unlock();
 
-			// The index buffer needs to be rebuilt on copy.
-			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
-			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
-			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
-			NewModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
-
 			// Required bones are recalculated later on.
 			NewModel->RequiredBones.Empty();
 			SkeletalMesh->LODInfo[LODIndex].bHasBeenSimplified = false;
@@ -505,11 +494,11 @@ public:
 		check( LODIndex >= 0 );
 		check( LODIndex <= SkeletalMesh->LODInfo.Num() );
 
-		FSkeletalMeshResource* SkeletalMeshResource = SkeletalMesh->GetImportedResource();
+		FSkeletalMeshModel* SkeletalMeshResource = SkeletalMesh->GetImportedModel();
 		check(SkeletalMeshResource);
 		check( LODIndex <= SkeletalMeshResource->LODModels.Num() );
 
-		FStaticLODModel* SrcModel = &SkeletalMesh->PreModifyMesh();
+		FSkeletalMeshLODModel* SrcModel = &SkeletalMeshResource->LODModels[0];
 
 		int32 BaseLOD = 0;
 		// only allow to set BaseLOD if the LOD is less than this
@@ -1615,12 +1604,10 @@ private:
 	 * @param BoneIDs A maps of Bone IDs from RefSkeleton to Simplygon BoneTable IDs
 	 * @returns a Simplygon geometry data representation of the skeletal mesh LOD.
 	 */
-	SimplygonSDK::spGeometryData CreateGeometryFromSkeletalLODModel( SimplygonSDK::spScene& Scene, const FStaticLODModel& LODModel, const TArray<SimplygonSDK::rid>& BoneIDs, const TArray<FTransform>& BoneTransforms)
+	SimplygonSDK::spGeometryData CreateGeometryFromSkeletalLODModel( SimplygonSDK::spScene& Scene, const FSkeletalMeshLODModel& LODModel, const TArray<SimplygonSDK::rid>& BoneIDs, const TArray<FTransform>& BoneTransforms)
 	{
 		TArray<FSoftSkinVertex> Vertices;
-		FMultiSizeIndexContainerData IndexData;
 		LODModel.GetVertices( Vertices );
-		LODModel.MultiSizeIndexContainer.GetIndexBufferData( IndexData );
 
 		const uint32 VertexCount = LODModel.NumVertices;
 		const uint32 TexCoordCount = LODModel.NumTexCoords;
@@ -1628,7 +1615,7 @@ private:
 
 		uint32 TriCount = 0;
 
-		const uint32 SectionCount = (uint32)LODModel.NumNonClothingSections();
+		const uint32 SectionCount = (uint32)LODModel.Sections.Num();
 
 		for ( uint32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex )
 		{
@@ -1662,15 +1649,11 @@ private:
 		SimplygonSDK::spRealArray Tangents = GeometryData->GetTangents(0);
 		SimplygonSDK::spRealArray Bitangents = GeometryData->GetBitangents(0);
 
-		SimplygonSDK::spUnsignedCharArray Colors;
-		if ( LODModel.ColorVertexBuffer.GetNumVertices() == VertexCount )
-		{
 			GeometryData->AddBaseTypeUserTriangleVertexField( SimplygonSDK::TYPES_ID_UCHAR, SIMPLYGON_COLOR_CHANNEL, 4 );
 			SimplygonSDK::spValueArray ColorValues = GeometryData->GetUserTriangleVertexField( SIMPLYGON_COLOR_CHANNEL );
 			check( ColorValues );
-			Colors = SimplygonSDK::IUnsignedCharArray::SafeCast( ColorValues );
+		SimplygonSDK::spUnsignedCharArray Colors = SimplygonSDK::IUnsignedCharArray::SafeCast( ColorValues );
 			check( Colors );
-		}
 
 		// Per-triangle data.
 		GeometryData->AddMaterialIds();
@@ -1738,7 +1721,7 @@ private:
 
 			for ( uint32 Index = FirstIndex; Index < LastIndex; ++Index )
 			{
-				uint32 VertexIndex = IndexData.Indices[ Index ];
+				uint32 VertexIndex = LODModel.IndexBuffer[ Index ];
 				FSoftSkinVertex& Vertex = Vertices[ VertexIndex ];
 
 				FVector Normal = Vertex.TangentZ;
@@ -1764,11 +1747,7 @@ private:
 					TexCoords[TexCoordIndex]->SetTuple( Index, (float*)&TexCoord );
 				}
 
-				if ( Colors )
-				{
-					FColor Color = LODModel.ColorVertexBuffer.VertexColor( VertexIndex );
-					Colors->SetTuple( Index, (UCHAR*)&Color );
-				}
+				Colors->SetTuple( Index, (UCHAR*)&Vertex.Color );
 			}
 		}
 
@@ -2029,7 +2008,7 @@ private:
 					//VertexColors->GetTuple( WedgeIndex, (uint8 *)&Wedge.Color );
 					VertexColors->GetTuple(WedgeIndex, sgVertexColorData);
 					uint8* sgColors = sgVertexColorData->GetData();
-					Wedge.Color = FColor(sgColors[0], sgColors[1], sgColors[2], sgColors[3]);
+					Wedge.Color = FColor(sgColors[2], sgColors[1], sgColors[0], sgColors[3]);
 				}
 				else
 				{
@@ -2047,7 +2026,7 @@ private:
 	 * @param SkeletalMesh the skeletal mesh in to which the LOD model will be added.
 	 * @param NewModel the LOD model in to which the geometry will be stored.
 	 */
-	void CreateSkeletalLODModelFromGeometry( const SimplygonSDK::spGeometryData& GeometryData, const FReferenceSkeleton& RefSkeleton, FStaticLODModel* NewModel )
+	void CreateSkeletalLODModelFromGeometry( const SimplygonSDK::spGeometryData& GeometryData, const FReferenceSkeleton& RefSkeleton, FSkeletalMeshLODModel* NewModel )
 	{
 		check( GeometryData );
 

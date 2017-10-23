@@ -21,7 +21,7 @@ public:
 	// End of FPrimitiveSceneProxy interface.
 
 	// Construct a tile map scene proxy
-	static FPaperTileMapRenderSceneProxy* CreateTileMapProxy(const UPaperTileMapComponent* InComponent, TArray<FSpriteRenderSection>*& OutSections, TArray<FPaperSpriteVertex>*& OutVertices);
+	static FPaperTileMapRenderSceneProxy* CreateTileMapProxy(const UPaperTileMapComponent* InComponent, TArray<FSpriteRenderSection>*& OutSections, TArray<FDynamicMeshVertex>*& OutVertices);
 	
 	// Call this once the tile map sections/vertices are finished
 	void FinishConstruction_GameThread();

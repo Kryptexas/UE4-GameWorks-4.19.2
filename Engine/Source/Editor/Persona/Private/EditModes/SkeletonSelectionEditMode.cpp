@@ -10,6 +10,8 @@
 #include "AssetEditorModeManager.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "EngineUtils.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+
 
 #define LOCTEXT_NAMESPACE "SkeletonSelectionEditMode"
 
@@ -378,14 +380,15 @@ bool FSkeletonSelectionEditMode::IsSelectedBoneRequired() const
 {
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
 	int32 SelectedBoneIndex = GetAnimPreviewScene().GetSelectedBoneIndex();
-	if (SelectedBoneIndex != INDEX_NONE && PreviewMeshComponent->SkeletalMesh && PreviewMeshComponent->SkeletalMesh->GetImportedResource())
+	if (SelectedBoneIndex != INDEX_NONE && PreviewMeshComponent->GetSkeletalMeshRenderData())
 	{
 		//Get current LOD
-		const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
-		FStaticLODModel& LODModel = PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+		FSkeletalMeshRenderData* SkelMeshRenderData = PreviewMeshComponent->GetSkeletalMeshRenderData();
+		const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshRenderData->LODRenderData.Num() - 1);
+		FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
 
 		//Check whether the bone is vertex weighted
-		return LODModel.RequiredBones.Find(SelectedBoneIndex) != INDEX_NONE;
+		return LODData.RequiredBones.Find(SelectedBoneIndex) != INDEX_NONE;
 	}
 
 	return false;

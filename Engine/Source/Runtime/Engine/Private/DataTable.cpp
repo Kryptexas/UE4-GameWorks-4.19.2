@@ -455,6 +455,7 @@ bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJs
 {
 	return FDataTableExporterJSON(InDTExportFlags, JsonWriter).WriteTable(*this);
 }
+#endif
 
 /** Get array of UProperties that corresponds to columns in the table */
 TArray<UProperty*> UDataTable::GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* InRowStruct, TArray<FString>& OutProblems)
@@ -563,6 +564,8 @@ TArray<FString> UDataTable::CreateTableFromJSONString(const FString& InString)
 
 	return OutProblems;
 }
+
+#if WITH_EDITOR
 
 TArray<FString> UDataTable::GetColumnTitles() const
 {

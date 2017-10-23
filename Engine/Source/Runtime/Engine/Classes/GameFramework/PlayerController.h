@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -129,6 +129,48 @@ protected:
 	EMouseLockMode MouseLockMode;
 
 	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
+};
+
+/** This structure is used to pass arguments to ClientUpdateMultipleLevelsStreamingStatus() client RPC function */
+USTRUCT()
+struct ENGINE_API FUpdateLevelStreamingLevelStatus
+{
+	GENERATED_BODY();
+
+	/** Name of the level package name used for loading. */
+	UPROPERTY()
+	FName PackageName;
+
+	/** Current LOD index for a streaming level */
+	UPROPERTY()
+	int32 LODIndex;
+
+	/** Whether the level should be loaded */
+	UPROPERTY()
+	uint32 bNewShouldBeLoaded : 1;
+	
+	/** Whether the level should be visible if it is loaded */
+	UPROPERTY()
+	uint32 bNewShouldBeVisible : 1;
+	
+	/** Whether we want to force a blocking load */
+	UPROPERTY()
+	uint32 bNewShouldBlockOnLoad : 1;
+};
+
+/** This structure is used to pass arguments to ServerUpdateMultipleLevelsVisibility() server RPC function */
+USTRUCT()
+struct ENGINE_API FUpdateLevelVisibilityLevelInfo
+{
+	GENERATED_BODY();
+
+	/** The name of the package for the level whose status changed */
+	UPROPERTY()
+	FName PackageName;
+
+	/** The new visibility state for this level */
+	UPROPERTY()
+	uint32 bIsVisible : 1;
 };
 
 /** Data structure used to setup an input mode that allows the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
@@ -441,8 +483,13 @@ public:
 	virtual void LocalTravel(const FString& URL);
 
 	/** Return the client to the main menu gracefully */
+	DEPRECATED(4.19, "As an FString, the ReturnReason parameter is not easily localized. Please use ClientReturnToMainMenuWithTextReason instead.")
 	UFUNCTION(Reliable, Client)
 	virtual void ClientReturnToMainMenu(const FString& ReturnReason);
+
+	/** Return the client to the main menu gracefully */
+	UFUNCTION(Reliable, Client)
+	virtual void ClientReturnToMainMenuWithTextReason(const FText& ReturnReason);
 
 	/** Development RPC for testing object reference replication */
 	UFUNCTION(Reliable, Client)
@@ -1015,6 +1062,13 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientUpdateLevelStreamingStatus(FName PackageName, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex);
 
+	/**
+	 * Replicated Update streaming status.  This version allows for the streaming state of many levels to be sent in a single RPC.
+	 * @param LevelStatuses	The list of levels the client should have either streamed in or not, depending on state.
+	 */
+	UFUNCTION(Reliable, Client)
+	void ClientUpdateMultipleLevelsStreamingStatus(const TArray<FUpdateLevelStreamingLevelStatus>& LevelStatuses);
+
 	/** Notify client they were kicked from the server */
 	UFUNCTION(Reliable, Client)
 	void ClientWasKicked(const FText& KickReason);
@@ -1100,6 +1154,15 @@ public:
 	 */
 	UFUNCTION(reliable, server, WithValidation, SealedEvent)
 	void ServerUpdateLevelVisibility(FName PackageName, bool bIsVisible);
+
+	/** 
+	 * Called when the client adds/removes a streamed level.  This version of the function allows you to pass the state of 
+	 * multiple levels at once, to reduce the number of RPC events that will be sent.
+	 *
+	 * @param	LevelVisibilities	Visibility state for each level whose state has changed
+	 */
+	UFUNCTION(reliable, server, WithValidation, SealedEvent)
+	void ServerUpdateMultipleLevelsVisibility( const TArray<FUpdateLevelVisibilityLevelInfo>& LevelVisibilities );
 
 	/** Used by client to request server to confirm current viewtarget (server will respond with ClientSetViewTarget() ). */
 	UFUNCTION(reliable, server, WithValidation)
@@ -1291,6 +1354,18 @@ public:
 
 	/** Returns the ULocalPlayer for this controller if it exists, or null otherwise */
 	class ULocalPlayer* GetLocalPlayer() const;
+
+	/** 
+	 *	Called on the server by the networking system when an actor that was network-relevant
+	 *	to this player controller is no longer relevant.  The actor's counterpart on the
+	 *	client may be deleted.
+	 *
+	 *	@param	Actor	The actor which is no longer network relevant to this player
+	 */
+	virtual void OnActorNoLongerRelevant( AActor* Actor )
+	{
+		// Override this in a derived class
+	}
 
 	/**
 	 * Called client-side to smoothly interpolate received TargetViewRotation (result is in BlendedTargetViewRotation)

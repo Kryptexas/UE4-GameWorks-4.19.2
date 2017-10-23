@@ -75,6 +75,10 @@ void DirectionalPixelMain(
 
 		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Dither, Random);
 	}
+
+#if USE_PREEXPOSURE
+		OutColor *= View.PreExposure;
+#endif
 }
 
 /** 
@@ -113,5 +117,9 @@ void RadialPixelMain(
 
 		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Dither, Random);
 		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, DeferredLightUniforms.NormalizedLightDirection);
+
+#if USE_PREEXPOSURE
+		OutColor *= View.PreExposure;
+#endif
 	}
 }

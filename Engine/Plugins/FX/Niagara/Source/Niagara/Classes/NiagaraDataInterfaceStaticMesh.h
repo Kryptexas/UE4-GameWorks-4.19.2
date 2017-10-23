@@ -91,9 +91,9 @@ struct FNDIStaticMesh_InstanceData
 
 	FORCEINLINE UStaticMesh* GetActualMesh()const { return Mesh; }
 	FORCEINLINE bool UsesAreaWeighting()const { return bIsAreaWeightedSampling; }
-	FORCEINLINE bool MeshHasPositions()const { return Mesh && Mesh->RenderData->LODResources[0].PositionVertexBuffer.GetNumVertices() > 0; }
-	FORCEINLINE bool MeshHasVerts()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() > 0; }
-	FORCEINLINE bool MeshHasColors()const { return Mesh && Mesh->RenderData->LODResources[0].ColorVertexBuffer.GetNumVertices() > 0; }
+	FORCEINLINE bool MeshHasPositions()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer.GetNumVertices() > 0; }
+	FORCEINLINE bool MeshHasVerts()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() > 0; }
+	FORCEINLINE bool MeshHasColors()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffers.ColorVertexBuffer.GetNumVertices() > 0; }
 
 	FORCEINLINE_DEBUGGABLE bool ResetRequired()const;
 

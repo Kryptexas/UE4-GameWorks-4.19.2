@@ -993,6 +993,7 @@ void FRCPassPostProcessWeightedSampleSum::DispatchCS(TRHICmdList& RHICmdList, FR
 		case 10: DISPATCH_METHODS(10); break;
 		case 11: DISPATCH_METHODS(11); break;
 		case 12: DISPATCH_METHODS(12); break;
+		case 13: DISPATCH_METHODS(13); break;
 		case 14: DISPATCH_METHODS(14); break;
 		case 15: DISPATCH_METHODS(15); break;
 		case 16: DISPATCH_METHODS(16); break;

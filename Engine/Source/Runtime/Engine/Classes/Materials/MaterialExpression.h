@@ -420,7 +420,7 @@ protected:
 	 * @param ExpressionStack    List of expression keys that have been checked already in the current stack
 	 * @param VisitedExpressions List of all expression keys that have been visited
 	 */
-	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall);
+	bool ContainsInputLoopInternal(TArray<class FMaterialExpressionKey>& ExpressionStack, TSet<class FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall);
 };
 
 

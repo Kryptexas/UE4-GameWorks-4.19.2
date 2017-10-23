@@ -60,7 +60,7 @@ template void FD3D12TextureStats::D3D12TextureDeleted(TD3D12Texture2D<FD3D12Base
 
 /// @endcond
 
-struct FRHICommandUpdateTexture : public FRHICommand<FRHICommandUpdateTexture>
+struct FRHICommandUpdateTexture final : public FRHICommand<FRHICommandUpdateTexture>
 {
 	FD3D12TextureBase* TextureBase;
 	const D3D12_TEXTURE_COPY_LOCATION DestCopyLocation;

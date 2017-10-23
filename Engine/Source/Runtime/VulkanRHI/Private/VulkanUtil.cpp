@@ -22,11 +22,9 @@ void FVulkanGPUTiming::PlatformStaticInitialize(void* UserData)
 	check( !GAreGlobalsInitialized );
 
 	FVulkanGPUTiming* Caller = (FVulkanGPUTiming*)UserData;
-	if (Caller)
+	if (Caller && Caller->Device)
 	{
-		FVulkanDevice * Device = Caller->CmdContext->GetDevice();
-
-		bool bSupportsTimestamps = (Device->GetDeviceProperties().limits.timestampComputeAndGraphics == VK_TRUE);
+ 		bool bSupportsTimestamps = (Caller->Device->GetDeviceProperties().limits.timestampComputeAndGraphics == VK_TRUE);
 		if (!bSupportsTimestamps)
 		{
 			UE_LOG(LogVulkanRHI, Warning, TEXT("Timestamps not supported on Device"));
@@ -92,12 +90,16 @@ void FVulkanGPUTiming::StartTiming(FVulkanCmdBuffer* CmdBuffer)
  * End a GPU timing measurement.
  * The timing for this particular measurement will be resolved at a later time by the GPU.
  */
-void FVulkanGPUTiming::EndTiming()
+void FVulkanGPUTiming::EndTiming(FVulkanCmdBuffer* CmdBuffer)
 {
 	// Issue a timestamp query for the 'end' time.
-	if ( GIsSupported && bIsTiming )
+	if (GIsSupported && bIsTiming)
 	{
-		CmdContext->RHIEndRenderQuery(EndTimer);
+		if (CmdBuffer == nullptr)
+		{
+			CmdBuffer = CmdContext->GetCommandBufferManager()->GetActiveCmdBuffer();
+		}
+		CmdContext->EndRenderQueryInternal(CmdBuffer, EndTimer);
 		bIsTiming = false;
 		bEndTimestampIssued = true;
 	}
@@ -191,7 +193,7 @@ void FVulkanGPUProfiler::BeginFrame()
 	// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 	if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 	{
-		bOriginalGEmitDrawEvents = GEmitDrawEvents;
+		bOriginalGEmitDrawEvents = GetEmitDrawEvents();
 	}
 
 	if (bLatchedGProfilingGPU || bLatchedGProfilingGPUHitches)
@@ -204,9 +206,9 @@ void FVulkanGPUProfiler::BeginFrame()
 		}
 		else
 		{
-			GEmitDrawEvents = true;  // thwart an attempt to turn this off on the game side
+			SetEmitDrawEvents(true);  // thwart an attempt to turn this off on the game side
 			bTrackingEvents = true;
-			CurrentEventNodeFrame = new FVulkanEventNodeFrame(CmdContext);
+			CurrentEventNodeFrame = new FVulkanEventNodeFrame(CmdContext, Device);
 			CurrentEventNodeFrame->StartFrame();
 		}
 	}
@@ -214,11 +216,11 @@ void FVulkanGPUProfiler::BeginFrame()
 	{
 		// hitch profiler is turning off, clear history and restore draw events
 		GPUHitchEventNodeFrames.Empty();
-		GEmitDrawEvents = bOriginalGEmitDrawEvents;
+		SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 	}
 	bPreviousLatchedGProfilingGPUHitches = bLatchedGProfilingGPUHitches;
 
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 	}
@@ -226,7 +228,7 @@ void FVulkanGPUProfiler::BeginFrame()
 
 void FVulkanGPUProfiler::EndFrameBeforeSubmit()
 {
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		// Finish all open nodes
 		// This is necessary because timestamps must be issued before SubmitDone(), and SubmitDone() happens in RHIEndDrawingViewport instead of RHIEndFrame
@@ -257,7 +259,7 @@ void FVulkanGPUProfiler::EndFrame()
 		{
 			CmdContext->GetDevice()->SubmitCommandsAndFlushGPU();
 
-			GEmitDrawEvents = bOriginalGEmitDrawEvents;
+			SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 			UE_LOG(LogRHI, Warning, TEXT(""));
 			UE_LOG(LogRHI, Warning, TEXT(""));
 			check(CurrentEventNodeFrame);

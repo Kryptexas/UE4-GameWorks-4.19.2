@@ -345,7 +345,7 @@ uint32 FOnlineSessionSteam::CreateLANSession(int32 HostingPlayerNum, FNamedOnlin
 	NewSessionInfo->InitLAN();
 	Session->SessionInfo = MakeShareable(NewSessionInfo);
 
-	// Don't create a the beacon if advertising is off
+	// Don't create the LAN beacon if advertising is off
 	if (Session->SessionSettings.bShouldAdvertise)
 	{
 		if (!LANSession)

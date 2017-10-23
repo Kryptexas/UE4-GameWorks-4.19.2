@@ -1825,6 +1825,78 @@ void UAnimationBlueprintLibrary::FindBonePathToRoot(const UAnimSequence* Animati
 	}
 }
 
+void UAnimationBlueprintLibrary::RemoveBoneAnimation(UAnimSequence* AnimationSequence, FName BoneName, bool bIncludeChildren /*= true*/, bool bFinalize /*= true*/)
+{
+	if (AnimationSequence)
+	{
+		const TArray<FName>& TrackNames = AnimationSequence->GetAnimationTrackNames();
+		const int32 TrackIndex = TrackNames.Find(BoneName);
+		if (TrackIndex != INDEX_NONE)
+		{
+			TArray<int32> TracksToRemove;
+			TracksToRemove.Add(TrackIndex);
+
+			// remove all children if required
+			if (bIncludeChildren)
+			{
+				USkeleton* Skeleton = AnimationSequence->GetSkeleton();
+				if (Skeleton)
+				{
+					const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+					const int32 ParentBoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+
+					// slow
+					for (int32 ChildTrackIndex = 0; ChildTrackIndex < TrackNames.Num(); ++ChildTrackIndex)
+					{
+						if (TrackIndex != ChildTrackIndex)
+						{
+							const int32 ChildBoneIndex = RefSkeleton.FindBoneIndex(TrackNames[ChildTrackIndex]);
+							if (RefSkeleton.BoneIsChildOf(ChildBoneIndex, ParentBoneIndex))
+							{
+								TracksToRemove.Add(ChildTrackIndex);
+							}
+						}
+					}
+				}
+			}
+
+			TracksToRemove.Sort([](const int32& A, const int32& B) { return A < B; });
+
+			// go reverse since we're removing by index
+			for (int32 Index = TracksToRemove.Num() - 1; Index >= 0; --Index)
+			{
+				AnimationSequence->RemoveTrack(TracksToRemove[Index]);
+			}
+
+			if (bFinalize)
+			{
+				AnimationSequence->PostProcessSequence();
+			}
+		}
+		else
+		{
+			// print warning with track index
+			UE_LOG(LogAnimationBlueprintLibrary, Warning, TEXT("Invalid Bone Name for the animation."));
+		}
+	}
+}
+
+void UAnimationBlueprintLibrary::RemoveAllBoneAnimation(UAnimSequence* AnimationSequence)
+{
+	if (AnimationSequence)
+	{
+		AnimationSequence->RemoveAllTracks();
+	}
+}
+
+void UAnimationBlueprintLibrary::FinalizeBoneAnimation(UAnimSequence* AnimationSequence)
+{
+	if (AnimationSequence)
+	{
+		AnimationSequence->PostProcessSequence();
+	}
+}
+
 template void UAnimationBlueprintLibrary::AddCurveKeysInternal<float, FFloatCurve>(UAnimSequence* AnimationSequence, FName CurveName, const TArray<float>& Times, const TArray<float>& KeyData, ERawCurveTrackTypes CurveType);
 template void UAnimationBlueprintLibrary::AddCurveKeysInternal<FVector, FVectorCurve>(UAnimSequence* AnimationSequence, FName CurveName, const TArray<float>& Times, const TArray<FVector>& KeyData, ERawCurveTrackTypes CurveType);
 template void UAnimationBlueprintLibrary::AddCurveKeysInternal<FTransform, FTransformCurve>(UAnimSequence* AnimationSequence, FName CurveName, const TArray<float>& Times, const TArray<FTransform>& KeyData, ERawCurveTrackTypes CurveType);

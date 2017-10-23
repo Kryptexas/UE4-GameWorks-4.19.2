@@ -65,6 +65,8 @@ namespace Audio
         int32       RemainingBytesInCurrentSubmittedBuffer;
         int32       BytesPerSubmittedBuffer;
         
+        double GraphSampleRate;
+        
 		bool PerformCallback(AudioBufferList* OutputBufferData);
 		void HandleError(const TCHAR* InLogOutput, bool bTeardown = true);
 		static OSStatus AudioRenderCallback(void* RefCon, AudioUnitRenderActionFlags* ActionFlags,

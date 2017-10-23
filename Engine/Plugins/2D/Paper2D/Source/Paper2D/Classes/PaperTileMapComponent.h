@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "PaperTileLayer.h"
 #include "Components/MeshComponent.h"
+#include "DynamicMeshBuilder.h"
 #include "PaperTileMapComponent.generated.h"
 
 class FPaperTileMapRenderSceneProxy;
@@ -101,7 +102,7 @@ public:
 protected:
 	friend FPaperTileMapRenderSceneProxy;
 
-	void RebuildRenderData(TArray<FSpriteRenderSection>& Sections, TArray<FPaperSpriteVertex>& Vertices);
+	void RebuildRenderData(TArray<FSpriteRenderSection>& Sections, TArray<FDynamicMeshVertex>& Vertices);
 
 public:
 	// UObject interface

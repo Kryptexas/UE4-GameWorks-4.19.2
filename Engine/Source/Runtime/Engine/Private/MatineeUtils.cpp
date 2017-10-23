@@ -4,6 +4,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/LinkerLoad.h"
 #include "AnimationUtils.h"
+#include "GameFramework/Actor.h"
 
 /////////////////////////////////////////////////////
 // FInterpPropertyGatherer

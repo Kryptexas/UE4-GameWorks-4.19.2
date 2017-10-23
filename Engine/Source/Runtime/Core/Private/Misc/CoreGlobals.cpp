@@ -257,6 +257,8 @@ bool					GIsGameThreadIdInitialized		= false;
 void					(*GFlushStreamingFunc)(void)	  = &appNoop;
 /** Whether to emit begin/ end draw events.																	*/
 bool					GEmitDrawEvents					= false;
+/** Whether forward DrawEvents to the RHI or keep them only on the Commandlist. */
+bool					GCommandListOnlyDrawEvents		= false;
 /** Whether we want the rendering thread to be suspended, used e.g. for tracing.							*/
 bool					GShouldSuspendRenderingThread	= false;
 /** Determines what kind of trace should occur, NAME_None for none.											*/
@@ -279,6 +281,23 @@ bool					GEnableVREditorHacks = false;
 
 bool CORE_API			GIsGPUCrashed = false;
 
+bool GetEmitDrawEvents()
+{
+	return GEmitDrawEvents;
+}
+
+void CORE_API SetEmitDrawEvents(bool EmitDrawEvents)
+{
+	GEmitDrawEvents = EmitDrawEvents;
+	GCommandListOnlyDrawEvents = !GEmitDrawEvents;
+}
+
+void CORE_API EnableEmitDrawEventsOnlyOnCommandlist()
+{
+	GCommandListOnlyDrawEvents = !GEmitDrawEvents;
+	GEmitDrawEvents = true;
+}
+
 void ToggleGDebugPUCrashedFlag(const TArray<FString>& Args)
 {
 	GIsGPUCrashed = !GIsGPUCrashed;
@@ -291,6 +310,7 @@ FAutoConsoleCommand ToggleDebugGPUCrashedCmd(
 	FConsoleCommandWithArgsDelegate::CreateStatic(&ToggleGDebugPUCrashedFlag),
 	ECVF_Cheat);
 
+
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);
@@ -298,8 +318,6 @@ DEFINE_STAT(STAT_MemoryICUTotalAllocationSize);
 DEFINE_STAT(STAT_MemoryICUDataFileAllocationSize);
 DEFINE_STAT(STAT_AnimationMemory);
 DEFINE_STAT(STAT_PrecomputedVisibilityMemory);
-DEFINE_STAT(STAT_PrecomputedLightVolumeMemory);
-DEFINE_STAT(STAT_PrecomputedVolumetricLightmapMemory);
 DEFINE_STAT(STAT_SkeletalMeshVertexMemory);
 DEFINE_STAT(STAT_SkeletalMeshIndexMemory);
 DEFINE_STAT(STAT_SkeletalMeshMotionBlurSkinningMemory);

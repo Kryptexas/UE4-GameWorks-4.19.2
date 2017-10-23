@@ -118,23 +118,27 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 			UTexture* Texture = FMaterialUtilities::CreateTexture(OuterPackage, TEXT("T_") + AssetName + TEXT("_") + TrimmedPropertyName, DataSize, ColorData, CompressionSettings, TEXTUREGROUP_HierarchicalLOD, RF_Public | RF_Standalone, bSRGBEnabled);
 
 			// Set texture parameter value on instance material
-			Material->SetTextureParameterValueEditorOnly(*(TrimmedPropertyName + "Texture"), Texture);
+			FMaterialParameterInfo ParameterInfo(*(TrimmedPropertyName + TEXT("Texture")));
+			Material->SetTextureParameterValueEditorOnly(ParameterInfo, Texture);
+
 			FStaticSwitchParameter SwitchParameter;
-			SwitchParameter.ParameterName = *("Use" + TrimmedPropertyName);
+			SwitchParameter.ParameterInfo.Name = *(TEXT("Use") + TrimmedPropertyName);
 			SwitchParameter.Value = true;
 			SwitchParameter.bOverride = true;
 			NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 		}
 		else
 		{
-			// Otherwise set either float4 or float constnat values on instance material
+			// Otherwise set either float4 or float constant values on instance material
+			FMaterialParameterInfo ParameterInfo(*(TrimmedPropertyName + TEXT("Const")));
+
 			if (Property == MP_BaseColor || Property == MP_EmissiveColor)
 			{
-				Material->SetVectorParameterValueEditorOnly(*(TrimmedPropertyName + "Const"), ColorData[0].ReinterpretAsLinear());
+				Material->SetVectorParameterValueEditorOnly(ParameterInfo, ColorData[0].ReinterpretAsLinear());
 			}
 			else
 			{
-				Material->SetScalarParameterValueEditorOnly(*(TrimmedPropertyName + "Const"), ColorData[0].ReinterpretAsLinear().R);
+				Material->SetScalarParameterValueEditorOnly(ParameterInfo, ColorData[0].ReinterpretAsLinear().R);
 			}
 		}
 	}
@@ -144,7 +148,8 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 	{
 		if (BakeOutput.EmissiveScale != 1.0f)
 		{
-			Material->SetScalarParameterValueEditorOnly("EmissiveScale", BakeOutput.EmissiveScale);
+			FMaterialParameterInfo ParameterInfo(TEXT("EmissiveScale"));
+			Material->SetScalarParameterValueEditorOnly(ParameterInfo, BakeOutput.EmissiveScale);
 		}
 	}
 
@@ -152,13 +157,12 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 	if (MeshData.TextureCoordinateIndex != 0)
 	{
 		FStaticSwitchParameter SwitchParameter;
-		SwitchParameter.ParameterName = TEXT("UseCustomUV");
+		SwitchParameter.ParameterInfo.Name = TEXT("UseCustomUV");
 		SwitchParameter.Value = true;
 		SwitchParameter.bOverride = true;
-
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 
-		SwitchParameter.ParameterName = *("UseUV" + FString::FromInt(MeshData.TextureCoordinateIndex));
+		SwitchParameter.ParameterInfo.Name = *(TEXT("UseUV") + FString::FromInt(MeshData.TextureCoordinateIndex));
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 	}
 
@@ -398,7 +402,7 @@ public:
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 		Material = InMaterialInterface->GetMaterial();
-		Material->AppendReferencedTextures(ReferencedTextures);
+		InMaterialInterface->AppendReferencedTextures(ReferencedTextures);
 		FPlatformMisc::CreateGuid(Id);
 
 		FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
@@ -428,6 +432,7 @@ public:
 		case MP_AmbientOcclusion: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportAO; break;
 		case MP_EmissiveColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportEmissive; break;
 		case MP_Opacity: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportOpacity; break;
+		case MP_OpacityMask: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportOpacity; break;
 		case MP_SubsurfaceColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportSubSurfaceColor; break;
 		default:
 			ensureMsgf(false, TEXT("ExportMaterial has no usage for property %i.  Will likely reuse the normal rendering shader and crash later with a parameter mismatch"), (int32)InPropertyToCompile);
@@ -477,19 +482,19 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
+		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterInfo,OutValue,Context);
 	}
 
 	// Material properties.
@@ -729,7 +734,7 @@ public:
 
 	virtual bool IsVolumetricPrimitive() const override
 	{
-		return false;
+		return Material && Material->MaterialDomain == MD_Volume;
 	}
 private:
 	/** The material interface for this proxy */
@@ -1515,17 +1520,17 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 	FFlattenMaterial Material;
 
 	// TODO REMOVE THIS FEATURE?
-	FIntPoint MaximumSize = InMaterialLODSettings.TextureSize;	
+	FIntPoint MaximumSize = FIntPoint::ZeroValue;// InMaterialLODSettings.TextureSize;
 	// If the user is manually overriding the texture size, make sure we have the max texture size to render with
 	if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseManualOverrideTextureSize)
 	{
-		MaximumSize = (MaximumSize.X < InMaterialLODSettings.DiffuseTextureSize.X) ? MaximumSize : InMaterialLODSettings.DiffuseTextureSize;
-		MaximumSize = (InMaterialLODSettings.bSpecularMap && MaximumSize.X < InMaterialLODSettings.SpecularTextureSize.X) ? MaximumSize : InMaterialLODSettings.SpecularTextureSize;
-		MaximumSize = (InMaterialLODSettings.bMetallicMap && MaximumSize.X < InMaterialLODSettings.MetallicTextureSize.X) ? MaximumSize : InMaterialLODSettings.MetallicTextureSize;
-		MaximumSize = (InMaterialLODSettings.bRoughnessMap && MaximumSize.X < InMaterialLODSettings.RoughnessTextureSize.X) ? MaximumSize : InMaterialLODSettings.RoughnessTextureSize;
-		MaximumSize = (InMaterialLODSettings.bNormalMap && MaximumSize.X < InMaterialLODSettings.NormalTextureSize.X) ? MaximumSize : InMaterialLODSettings.NormalTextureSize;
-		MaximumSize = (InMaterialLODSettings.bEmissiveMap && MaximumSize.X < InMaterialLODSettings.EmissiveTextureSize.X) ? MaximumSize : InMaterialLODSettings.EmissiveTextureSize;
-		MaximumSize = (InMaterialLODSettings.bOpacityMap && MaximumSize.X < InMaterialLODSettings.OpacityTextureSize.X) ? MaximumSize : InMaterialLODSettings.OpacityTextureSize;
+		MaximumSize = (MaximumSize.X < InMaterialLODSettings.DiffuseTextureSize.X) ? InMaterialLODSettings.DiffuseTextureSize : MaximumSize ;
+		MaximumSize = (InMaterialLODSettings.bSpecularMap && (MaximumSize.X < InMaterialLODSettings.SpecularTextureSize.X)) ? InMaterialLODSettings.SpecularTextureSize	:	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bMetallicMap && (MaximumSize.X < InMaterialLODSettings.MetallicTextureSize.X)) ? InMaterialLODSettings.MetallicTextureSize	:	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bRoughnessMap && (MaximumSize.X < InMaterialLODSettings.RoughnessTextureSize.X)) ? InMaterialLODSettings.RoughnessTextureSize :	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bNormalMap && (MaximumSize.X < InMaterialLODSettings.NormalTextureSize.X)) ? InMaterialLODSettings.NormalTextureSize :			MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bEmissiveMap && (MaximumSize.X < InMaterialLODSettings.EmissiveTextureSize.X)) ? InMaterialLODSettings.EmissiveTextureSize :	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bOpacityMap && (MaximumSize.X < InMaterialLODSettings.OpacityTextureSize.X)) ? InMaterialLODSettings.OpacityTextureSize :		MaximumSize;
 	}
 	
 	if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseManualOverrideTextureSize)
@@ -1559,15 +1564,17 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 		Material.SetPropertySize(EFlattenMaterialProperties::Emissive, (InMaterialLODSettings.bEmissiveMap) ? PropertiesSize : FIntPoint::ZeroValue );
 		Material.SetPropertySize(EFlattenMaterialProperties::Opacity, (InMaterialLODSettings.bOpacityMap) ? PropertiesSize : FIntPoint::ZeroValue );
 	}
-	
-	Material.RenderSize = InMaterialLODSettings.TextureSize;
-	Material.SetPropertySize(EFlattenMaterialProperties::Diffuse , InMaterialLODSettings.TextureSize);
-	Material.SetPropertySize(EFlattenMaterialProperties::Specular, (InMaterialLODSettings.bSpecularMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Metallic, (InMaterialLODSettings.bMetallicMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Roughness,  (InMaterialLODSettings.bRoughnessMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Normal,  (InMaterialLODSettings.bNormalMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Emissive,  (InMaterialLODSettings.bEmissiveMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Opacity,  (InMaterialLODSettings.bOpacityMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+	else if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseSingleTextureSize)
+	{
+		Material.RenderSize = InMaterialLODSettings.TextureSize;
+		Material.SetPropertySize(EFlattenMaterialProperties::Diffuse, InMaterialLODSettings.TextureSize);
+		Material.SetPropertySize(EFlattenMaterialProperties::Specular, (InMaterialLODSettings.bSpecularMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Metallic, (InMaterialLODSettings.bMetallicMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Roughness, (InMaterialLODSettings.bRoughnessMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Normal, (InMaterialLODSettings.bNormalMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Emissive, (InMaterialLODSettings.bEmissiveMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Opacity, (InMaterialLODSettings.bOpacityMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+	}
 
 	return Material;
 }
@@ -2799,7 +2806,7 @@ void FMaterialUtilities::DetermineMaterialImportance(const TArray<UMaterialInter
 	for (UMaterialInterface* Material : InMaterials)
 	{
 		TArray<UTexture*> UsedTextures;
-		Material->GetMaterial()->AppendReferencedTextures(UsedTextures);
+		Material->AppendReferencedTextures(UsedTextures);
 		if (UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(Material))
 		{
 			for (const FTextureParameterValue& TextureParameter : MaterialInstance->TextureParameterValues)

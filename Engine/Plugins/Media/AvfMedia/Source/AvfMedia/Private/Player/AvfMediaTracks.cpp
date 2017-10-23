@@ -854,6 +854,7 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 
 				[AudioReaderOutput resetForReadingTimeRanges : Array];
 
+				PlayerItem.tracks[AudioTracks[SelectedAudioTrack].StreamIndex].enabled = NO;
 #else
 				AVPlayerItemTrack* PlayerTrack = (AVPlayerItemTrack*)AudioTracks[SelectedAudioTrack].Output;
 				check(PlayerTrack);
@@ -881,7 +882,8 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 			if (SelectedAudioTrack != INDEX_NONE)
 			{
 				const FTrack& SelectedTrack = AudioTracks[SelectedAudioTrack];
-				
+				PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
+
 #if AUDIO_PLAYBACK_VIA_ENGINE
 				CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[SelectedTrack.AssetTrack.formatDescriptions objectAtIndex : 0];
 				AudioStreamBasicDescription const* ASBD = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);

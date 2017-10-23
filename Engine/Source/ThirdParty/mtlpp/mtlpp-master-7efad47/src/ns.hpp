@@ -9,23 +9,66 @@
 
 #include "defines.hpp"
 
+MTLPP_CLASS(NSDictionary);
+MTLPP_CLASS(NSString);
+MTLPP_CLASS(NSURL);
+MTLPP_CLASS(NSError);
+MTLPP_CLASS(NSBundle);
+MTLPP_CLASS(NSArray);
+typedef struct __IOSurface* IOSurfaceRef;
+
 namespace ns
 {
-    struct Handle
-    {
-        const void* ptr;
-    };
-
-    class Object
+#if __OBJC__
+	template<typename T>
+	struct Protocol
+	{
+		typedef T type;
+	};
+#else
+	template<typename t>
+	struct id
+	{
+		typedef t* ptr;
+	};
+	
+	template<typename T>
+	struct Protocol
+	{
+		typedef typename T::ptr type;
+	};
+#endif
+	
+	template<typename T>
+	class Object
     {
     public:
-        inline const void* GetPtr() const { return m_ptr; }
+		typedef T Type;
+		
+        inline const T GetPtr() const { return m_ptr; }
 
         inline operator bool() const { return m_ptr != nullptr; }
+		
+		void Retain()
+		{
+#if __OBJC__
+			__sync_fetch_and_add(&RefCount, 1);
+#endif
+		}
+		
+		void Release()
+		{
+#if __OBJC__
+			if ((__sync_fetch_and_sub(&RefCount, 1) - 1) == 0)
+			{
+				delete this;
+			}
+#endif
+		}
 
     protected:
         Object();
-        Object(const Handle& handle, bool const retain = true);
+        Object(T const handle, bool const retain = true);
         Object(const Object& rhs);
 #if MTLPP_CONFIG_RVALUE_REFERENCES
         Object(Object&& rhs);
@@ -46,8 +89,80 @@ namespace ns
 	#define Validate()
 #endif
 
-        const void* m_ptr = nullptr;
+        T m_ptr = nullptr;
+		volatile uint64_t RefCount = 0;
     };
+	
+	template<class T>
+	class Ref
+	{
+		T* Ptr;
+	public:
+		typedef typename T::Type Type;
+		
+		Ref() : Ptr(nullptr) {}
+		Ref(Type inner) : Ptr(new T(inner)) {}
+		Ref(T* Pointer) : Ptr(Pointer) {}
+		Ref(const Ref& rhs) : Ptr(nullptr) { operator=(rhs); }
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		Ref(Ref&& rhs) : Ptr(rhs.Ptr) { rhs.Ptr = nullptr; }
+#endif
+		virtual ~Ref() { if(Ptr) { Ptr->Release(); Ptr = nullptr; } }
+		
+		Ref& operator=(const Ref& rhs)
+		{
+			if (this != &rhs)
+			{
+				if (rhs.Ptr)
+				{
+					rhs.Ptr->Retain();
+				}
+				if (Ptr)
+				{
+					Ptr->Release();
+				}
+				Ptr = rhs.Ptr;
+			}
+			return *this;
+		}
+		
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		Ref& operator=(Ref&& rhs)
+		{
+			if (this != &rhs)
+			{
+				if (Ptr)
+				{
+					Ptr->Release();
+				}
+				Ptr = rhs.Ptr;
+				rhs.Ptr = nullptr;
+			}
+			return *this;
+		}
+#endif
+		
+		T* operator->() const
+		{
+			return Ptr;
+		}
+		
+		operator T*() const
+		{
+			return Ptr;
+		}
+		
+		operator T const&() const
+		{
+			assert(Ptr);
+			return *Ptr;
+		}
+		
+		T* operator*() const
+		{
+			return Ptr;
+		}
+	};
 
     struct Range
     {
@@ -60,11 +175,11 @@ namespace ns
         uint32_t Length;
     };
 
-    class ArrayBase : public Object
+	class ArrayBase : public Object<NSArray*>
     {
     public:
         ArrayBase() { }
-        ArrayBase(const Handle& handle) : Object(handle) { }
+        ArrayBase(NSArray* const handle) : Object<NSArray*>(handle) { }
 
         uint32_t GetSize() const;
 
@@ -77,24 +192,26 @@ namespace ns
     {
     public:
         Array() { }
-        Array(const Handle& handle) : ArrayBase(handle) { }
+        Array(NSArray* const handle) : ArrayBase(handle) { }
 
         const T operator[](uint32_t index) const
         {
-            return Handle{ GetItem(index) };
+			typedef typename T::Type InnerType;
+			return (InnerType)GetItem(index);
         }
 
         T operator[](uint32_t index)
         {
-            return Handle{ GetItem(index) };
+			typedef typename T::Type InnerType;
+			return (InnerType)GetItem(index);
         }
     };
 
-    class DictionaryBase : public Object
+    class DictionaryBase : public Object<NSDictionary*>
     {
     public:
         DictionaryBase() { }
-        DictionaryBase(const Handle& handle) : Object(handle) { }
+        DictionaryBase(NSDictionary* const handle) : Object<NSDictionary*>(handle) { }
 
     protected:
 
@@ -105,55 +222,59 @@ namespace ns
     {
     public:
         Dictionary() { }
-        Dictionary(const Handle& handle) : DictionaryBase(handle) { }
+        Dictionary(NSDictionary* const handle) : DictionaryBase(handle) { }
     };
 
-    class String : public Object
+    class String : public Object<NSString*>
     {
     public:
         String() { }
-        String(const Handle& handle) : Object(handle) { }
+        String(NSString* handle) : Object<NSString*>(handle) { }
         String(const char* cstr);
 
         const char* GetCStr() const;
         uint32_t    GetLength() const;
     };
 	
-	class URL : public Object
+	class URL : public Object<NSURL*>
 	{
 	public:
 		URL() { }
-		URL(const Handle& handle) : Object(handle) { }
+		URL(NSURL* const handle) : Object<NSURL*>(handle) { }
 	};
 
-    class Error : public Object
+    class Error : public Object<NSError*>
     {
     public:
         Error();
-        Error(const Handle& handle) : Object(handle) { }
+        Error(NSError* const handle) : Object<NSError*>(handle) { }
 
+		inline NSError** GetInnerPtr() { return &m_ptr; }
+		
         String   GetDomain() const;
         uint32_t GetCode() const;
         //@property (readonly, copy) NSDictionary *userInfo;
         String   GetLocalizedDescription() const;
         String   GetLocalizedFailureReason() const;
         String   GetLocalizedRecoverySuggestion() const;
-        String   GetLocalizedRecoveryOptions() const;
+        Array<String>   GetLocalizedRecoveryOptions() const;
         //@property (nullable, readonly, strong) id recoveryAttempter;
         String   GetHelpAnchor() const;
     };
 	
-	class IOSurface : public Object
+	class IOSurface : public Object<IOSurfaceRef>
 	{
 	public:
 		IOSurface() {}
-		IOSurface(const Handle& handle) : Object(handle) { }
+		IOSurface(IOSurfaceRef const handle) : Object<IOSurfaceRef>(handle) { }
 	};
 	
-	class Bundle : public Object
+	class Bundle : public Object<NSBundle*>
 	{
 	public:
 		Bundle() {}
-		Bundle(const Handle& handle) : Object(handle) { }
+		Bundle(NSBundle* const handle) : Object<NSBundle*>(handle) { }
 	};
 }
+
+#include "ns.inl"

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Subversion 1.9.5</Name>
-  <Location>/Engine/Plugins/Developer/SubversionSourceControl/</Location>
+  <Location>/Engine/Binaries/ThirdParty/svn/</Location>
   <Date>2016-06-16T12:01:00.8219478-04:00</Date>
   <Function>Adds support for version control systems other than Perforce</Function>
   <Justification>Subversion provides all the features we need and can be used as a close analogue to Perforce (as opposed to say, GIT).</Justification>

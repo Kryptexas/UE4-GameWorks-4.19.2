@@ -443,6 +443,11 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 		if (ShowDebugTargetActor && !ShowDebugTargetActor->IsPendingKill())
 		{
 			ShowDebugTargetActor->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+
+			if (!bShowDebugForReticleTarget && ShowDebugTargetActor->Role == ROLE_SimulatedProxy)
+			{
+				PlayerOwner->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+			}
 		}
 
 		if (ShouldDisplayDebug(NAME_Game))

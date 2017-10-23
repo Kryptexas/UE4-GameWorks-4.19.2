@@ -338,9 +338,6 @@ extern CORE_API uint32 GAudioThreadId;
 /** Has GGameThreadId been set yet? */
 extern CORE_API bool GIsGameThreadIdInitialized;
 
-/** Whether to emit begin/ end draw events. */
-extern CORE_API bool GEmitDrawEvents;
-
 /** Whether we want the rendering thread to be suspended, used e.g. for tracing. */
 extern CORE_API bool GShouldSuspendRenderingThread;
 
@@ -461,6 +458,11 @@ struct FScopedLoadingState
 #endif
 
 
+bool CORE_API GetEmitDrawEvents();
+
+void CORE_API SetEmitDrawEvents(bool EmitDrawEvents);
+
+void CORE_API EnableEmitDrawEventsOnlyOnCommandlist();
 
 /** Array to help visualize weak pointers in the debugger */
 class FFixedUObjectArray;

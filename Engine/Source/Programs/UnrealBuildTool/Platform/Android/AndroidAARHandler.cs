@@ -137,7 +137,6 @@ namespace UnrealBuildTool
 
 			return null;
 		}
-		
 		private bool HasAnyVersionCharacters(string InValue)
 		{
 			for (int Index = 0; Index < InValue.Length; Index++)

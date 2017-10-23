@@ -190,6 +190,7 @@ private:
 	FTextureMemoryStats MemoryStats;
 	FMetalRHIImmediateCommandContext ImmediateContext;
 	FMetalRHICommandContext* AsyncComputeContext;
+	TMap<uint32, FVertexDeclarationRHIRef> VertexDeclarationCache;
 };
 
 /** Implements the Metal module as a dynamic RHI providing module. */

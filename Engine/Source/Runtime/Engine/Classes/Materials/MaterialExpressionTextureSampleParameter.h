@@ -10,6 +10,7 @@
 #include "MaterialExpressionTextureSampleParameter.generated.h"
 
 class UTexture;
+struct FMaterialParameterInfo;
 
 UCLASS(collapsecategories, abstract, hidecategories=Object)
 class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExpressionTextureSample
@@ -52,7 +53,7 @@ class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExp
 	//~ End UMaterialExpression Interface
 
 	/** Return whether this is the named parameter, and fill in its value */
-	bool IsNamedParameter(FName InParameterName, UTexture*& OutValue) const;
+	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue) const;
 
 	/**
 	 * Return true if the texture is a movie texture
@@ -79,5 +80,5 @@ class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExp
 		return ExpressionGUID;
 	}
 
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	void GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const;
 };

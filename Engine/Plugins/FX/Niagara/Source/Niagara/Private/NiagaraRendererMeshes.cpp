@@ -60,74 +60,10 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 {
 	FNiagaraMeshVertexFactory::FDataType Data;
 
-	Data.PositionComponent = FVertexStreamComponent(
-		&LODResources.PositionVertexBuffer,
-		STRUCT_OFFSET(FPositionVertex, Position),
-		LODResources.PositionVertexBuffer.GetStride(),
-		VET_Float3
-		);
-
-	uint32 TangentXOffset = 0;
-	uint32 TangetnZOffset = 0;
-	uint32 UVsBaseOffset = 0;
-
-	SELECT_STATIC_MESH_VERTEX_TYPE(
-		LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis(),
-		LODResources.VertexBuffer.GetUseFullPrecisionUVs(),
-		LODResources.VertexBuffer.GetNumTexCoords(),
-		{
-			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
-	TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
-	UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
-		});
-
-	Data.TangentBasisComponents[0] = FVertexStreamComponent(
-		&LODResources.VertexBuffer,
-		TangentXOffset,
-		LODResources.VertexBuffer.GetStride(),
-		LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ?
-		TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType :
-		TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
-		);
-
-	Data.TangentBasisComponents[1] = FVertexStreamComponent(
-		&LODResources.VertexBuffer,
-		TangetnZOffset,
-		LODResources.VertexBuffer.GetStride(),
-		LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ?
-		TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType :
-		TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
-		);
-
-	Data.TextureCoordinates.Empty();
-
-
-	uint32 UVSizeInBytes = LODResources.VertexBuffer.GetUseFullPrecisionUVs() ?
-		sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
-
-	EVertexElementType UVVertexElementType = LODResources.VertexBuffer.GetUseFullPrecisionUVs() ?
-		VET_Float2 : VET_Half2;
-
-	uint32 NumTexCoords = FMath::Min<uint32>(LODResources.VertexBuffer.GetNumTexCoords(), MAX_TEXCOORDS);
-	for (uint32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++)
-	{
-		Data.TextureCoordinates.Add(FVertexStreamComponent(
-			&LODResources.VertexBuffer,
-			UVsBaseOffset + UVSizeInBytes * UVIndex,
-			LODResources.VertexBuffer.GetStride(),
-			UVVertexElementType
-			));
-	}
-
-	if (LODResources.ColorVertexBuffer.GetNumVertices() > 0)
-	{
-		Data.VertexColorComponent = FVertexStreamComponent(
-			&LODResources.ColorVertexBuffer,
-			0,
-			LODResources.ColorVertexBuffer.GetStride(),
-			VET_Color
-			);
-	}
+	LODResources.VertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(InVertexFactory, Data);
+	LODResources.VertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(InVertexFactory, Data);
+	LODResources.VertexBuffers.StaticMeshVertexBuffer.BindTexCoordVertexBuffer(InVertexFactory, Data, MAX_TEXCOORDS);
+	LODResources.VertexBuffers.ColorVertexBuffer.BindColorVertexBuffer(InVertexFactory, Data);
 
 	// Initialize instanced data. Vertex buffer and stride are set before render.
 	// Particle color
@@ -136,7 +72,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, Color),
 		0,
 		VET_Float4,
-		true
+		EVertexStreamUsage::Instanceing
 		);
 
 	// Particle transform matrix
@@ -147,7 +83,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 			STRUCT_OFFSET(FNiagaraMeshInstanceVertex, Transform) + sizeof(FVector4)* MatrixRow,
 			0,
 			VET_Float4,
-			true
+			EVertexStreamUsage::Instanceing
 			);
 	}
 
@@ -156,7 +92,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, Velocity),
 		0,
 		VET_Float4,
-		true
+		EVertexStreamUsage::Instanceing
 		);
 	// SubUVs.
 	Data.SubUVs = FVertexStreamComponent(
@@ -164,7 +100,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, SubUVParams),
 		0,
 		VET_Short4,
-		true
+		EVertexStreamUsage::Instanceing
 		);
 
 	// Pack SubUV Lerp and the particle's relative time
@@ -173,7 +109,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, SubUVLerp),
 		0,
 		VET_Float2,
-		true
+		EVertexStreamUsage::Instanceing
 		);
 
 	Data.bInitialized = true;
@@ -257,7 +193,6 @@ void NiagaraRendererMeshes::GetDynamicMeshElements(const TArray<const FSceneView
 				CollectorResources.VertexFactory.SetParticleData(DynamicDataMesh->DataSet);
 
 				// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory
-				CollectorResources.VertexFactory.SetFeatureLevel(ViewFamily.GetFeatureLevel());
 				CollectorResources.VertexFactory.SetParticleFactoryType(NVFT_Mesh);
 				CollectorResources.UniformBuffer = FNiagaraMeshUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 				CollectorResources.VertexFactory.SetStrides(0, 0);
@@ -286,9 +221,7 @@ void NiagaraRendererMeshes::GetDynamicMeshElements(const TArray<const FSceneView
 
 					FMeshBatch& Mesh = Collector.AllocateMesh();
 					Mesh.VertexFactory = &CollectorResources.VertexFactory;
-					Mesh.DynamicVertexData = NULL;
 					Mesh.LCI = NULL;
-					Mesh.UseDynamicData = false;
 					Mesh.ReverseCulling = SceneProxy->IsLocalToWorldDeterminantNegative();
 					Mesh.CastShadow = SceneProxy->CastsDynamicShadow();
 					Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)SceneProxy->GetDepthPriorityGroup(View);

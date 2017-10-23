@@ -17,6 +17,8 @@
 #include "Engine/DemoNetDriver.h"
 
 
+DECLARE_CYCLE_STAT(TEXT("Custom Delta Property Rep Time"), STAT_NetReplicateCustomDeltaPropTime, STATGROUP_Game);
+
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
 static TAutoConsoleVariable<int32> CVarDelayUnmappedRPCs( TEXT("net.DelayUnmappedRPCs" ), 0, TEXT( "If >0 delay received RPCs with unmapped properties" ) );
 static TAutoConsoleVariable<int32> CVarShareShadowState( TEXT( "net.ShareShadowState" ), 1, TEXT( "If true, work done to compare properties will be shared across connections" ) );
@@ -1065,6 +1067,8 @@ static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetir
 
 void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, FReplicationFlags RepFlags )
 {
+	SCOPE_CYCLE_COUNTER(STAT_NetReplicateCustomDeltaPropTime);
+
 	if ( LifetimeCustomDeltaProperties.Num() == 0 )
 	{
 		// No custom properties

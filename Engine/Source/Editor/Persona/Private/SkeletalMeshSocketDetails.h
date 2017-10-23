@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
 #include "Engine/SkeletalMesh.h"
+#include "Types/SlateEnums.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;

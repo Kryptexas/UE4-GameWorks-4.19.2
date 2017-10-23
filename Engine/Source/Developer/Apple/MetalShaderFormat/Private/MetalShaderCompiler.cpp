@@ -1290,10 +1290,26 @@ void BuildMetalShaderOutput(
 						
 						if (!bDataWasBuilt)
 						{
-							bUseSharedPCH = FFileHelper::SaveArrayToFile(Bytecode.OutputFile, *MetalPCHFile);
-							if (!bUseSharedPCH)
+							FString TempPath = FPaths::CreateTempFilename(TempDir, TEXT("MetalSharedPCH-"), TEXT(".metal.pch"));
+							if (FFileHelper::SaveArrayToFile(Bytecode.OutputFile, *TempPath))
 							{
-								UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH failed to save %s - compilation will proceed without a shared PCH: %s."), CompileType, *MetalPCHFile);
+								IFileManager::Get().Move(*MetalPCHFile, *TempPath, false, false, true, false);
+								IFileManager::Get().Delete(*TempPath);
+								int64 FileSize = IFileManager::Get().FileSize(*MetalPCHFile);
+								if(FileSize == Bytecode.OutputFile.Num())
+								{
+									bUseSharedPCH = true;
+								}
+								else
+								{
+									bUseSharedPCH = false;
+									UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH failed to save %s - compilation will proceed without a shared PCH: %s."), CompileType, *MetalPCHFile);
+								}
+							}
+							else
+							{
+								bUseSharedPCH = false;
+								UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH failed to save %s to %s- compilation will proceed without a shared PCH: %s."), CompileType, *TempPath, *MetalPCHFile);
 							}
 						}
 					}
@@ -1667,6 +1683,12 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	
 	FString Standard = FString::Printf(TEXT("-std=%s-metal%s"), StandardPlatform, *StandardVersion);
 	
+	bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
+	if (bDirectCompile)
+	{
+		Input.DumpDebugInfoPath = FPaths::GetPath(Input.VirtualSourceFilePath);
+	}
+	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 
 	// Allow the shader pipeline to override the platform default in here.
@@ -1686,7 +1708,6 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 	}
 
-	bool const bDirectCompile = FParse::Param(FCommandLine::Get(), TEXT("directcompile"));
 	if (!Input.bSkipPreprocessedCache && !bDirectCompile)
 	{
 		FString const* UsingTessellationDefine = Input.Environment.GetDefinitions().Find(TEXT("USING_TESSELLATION"));

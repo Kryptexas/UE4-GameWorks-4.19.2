@@ -174,6 +174,21 @@ void ULightComponentBase::OnRegister()
 		UpdateLightSpriteTexture();
 	}
 }
+
+bool ULightComponentBase::CanEditChange(const UProperty* InProperty) const
+{
+	if (InProperty)
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponentBase, VolumetricScatteringIntensity))
+		{
+			return Mobility != EComponentMobility::Static;
+		}
+	}
+
+	return Super::CanEditChange(InProperty);
+}
 #endif
 
 bool ULightComponentBase::ShouldCollideWhenPlacing() const
@@ -211,6 +226,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastTranslucentShadows(InLightComponent->CastTranslucentShadows)
 	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
 	, bCastShadowsFromCinematicObjectsOnly(InLightComponent->bCastShadowsFromCinematicObjectsOnly)
+	, bForceCachedShadowsForMovablePrimitives(InLightComponent->bForceCachedShadowsForMovablePrimitives)
 	, bAffectTranslucentLighting(InLightComponent->bAffectTranslucentLighting)
 	, bUsedAsAtmosphereSunLight(InLightComponent->IsUsedAsAtmosphereSunLight())
 	, bAffectDynamicIndirectLighting(InLightComponent->bAffectDynamicIndirectLighting)
@@ -356,6 +372,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	MaxDrawDistance = 0.0f;
 	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
+	bForceCachedShadowsForMovablePrimitives = false;
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
@@ -467,10 +484,7 @@ bool ULightComponent::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionMaterial)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionScale)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionFadeDistance)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, IESTexture)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bUseIESBrightness)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, IESBrightnessScale))
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness))
 		{
 			if (Mobility == EComponentMobility::Static)
 			{
@@ -896,6 +910,16 @@ void ULightComponent::SetShadowBias(float NewValue)
 		&& ShadowBias != NewValue)
 	{
 		ShadowBias = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void ULightComponent::SetForceCachedShadowsForMovablePrimitives(bool bNewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& bForceCachedShadowsForMovablePrimitives != bNewValue)
+	{
+		bForceCachedShadowsForMovablePrimitives = bNewValue;
 		MarkRenderStateDirty();
 	}
 }

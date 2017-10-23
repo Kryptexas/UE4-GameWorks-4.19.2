@@ -50,6 +50,7 @@
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionMaterialAttributeLayers.h"
 #include "Materials/MaterialExpressionParameter.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureSample.h"
@@ -66,6 +67,7 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialFunctionInstance.h"
 #include "Materials/MaterialParameterCollection.h"
 
 #include "MaterialEditorActions.h"
@@ -111,6 +113,7 @@
 #include "Engine/Selection.h"
 #include "Materials/Material.h"
 #include "AdvancedPreviewSceneModule.h"
+#include "MaterialLayersFunctionsCustomization.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -528,7 +531,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 
 		if (Material->Expressions.Num() == 0)
 		{
-			// If this is an empty functions, create an output by default and start previewing it
+			// If this is an empty function, create an output by default and start previewing it
 			if (GraphEditor.IsValid())
 			{
 				check(!bMaterialDirty);
@@ -536,6 +539,36 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 				SetPreviewExpression(Expression);
 				// This shouldn't count as having dirtied the material, so reset the flag
 				bMaterialDirty = false;
+
+				// We can check the usage here and add the appropriate inputs too (e.g. Layer==1MA, Blend==2MA)
+				if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayer)
+				{
+					UMaterialExpression* Input = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-200, 300), false, true);
+					if (Input)
+					{
+						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(Input);
+						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
+						BaseAttributesInput->InputName = TEXT("Base Attributes");
+					}
+				}
+				else if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
+				{
+					UMaterialExpression* InputTop = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-200, 200), false, true);
+					if (InputTop)
+					{
+						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(InputTop);
+						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
+						BaseAttributesInput->InputName = TEXT("Top Layer");
+					}
+
+					UMaterialExpression* InputBottom = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-200, 400), false, true);
+					if (InputBottom)
+					{
+						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(InputBottom);
+						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
+						BaseAttributesInput->InputName = TEXT("Bottom Layer");
+					}
+				}
 			}
 		}
 		else
@@ -651,20 +684,20 @@ void FMaterialEditor::GetAllMaterialExpressionGroups(TArray<FString>* OutGroups)
 	for (int32 MaterialExpressionIndex = 0; MaterialExpressionIndex < Material->Expressions.Num(); ++MaterialExpressionIndex)
 	{
 		UMaterialExpression* MaterialExpression = Material->Expressions[ MaterialExpressionIndex ];
-		UMaterialExpressionParameter *Switch = Cast<UMaterialExpressionParameter>(MaterialExpression);
-		UMaterialExpressionTextureSampleParameter *TextureS = Cast<UMaterialExpressionTextureSampleParameter>(MaterialExpression);
-		UMaterialExpressionFontSampleParameter *FontS = Cast<UMaterialExpressionFontSampleParameter>(MaterialExpression);
-		if(Switch)
+		UMaterialExpressionParameter* Param = Cast<UMaterialExpressionParameter>(MaterialExpression);
+		UMaterialExpressionTextureSampleParameter* TextureS = Cast<UMaterialExpressionTextureSampleParameter>(MaterialExpression);
+		UMaterialExpressionFontSampleParameter* FontS = Cast<UMaterialExpressionFontSampleParameter>(MaterialExpression);
+		if (Param)
 		{
-			OutGroups->AddUnique(Switch->Group.ToString());
-			Material->AttemptInsertNewGroupName(Switch->Group.ToString());
+			OutGroups->AddUnique(Param->Group.ToString());
+			Material->AttemptInsertNewGroupName(Param->Group.ToString());
 		}
-		if(TextureS)
+		else if (TextureS)
 		{
 			OutGroups->AddUnique(TextureS->Group.ToString());
 			Material->AttemptInsertNewGroupName(TextureS->Group.ToString());
 		}
-		if(FontS)
+		else if (FontS)
 		{
 			OutGroups->AddUnique(FontS->Group.ToString());
 			Material->AttemptInsertNewGroupName(FontS->Group.ToString());
@@ -719,6 +752,14 @@ void FMaterialEditor::CreateInternalWidgets()
 	MaterialDetailsView->RegisterInstancedCustomPropertyLayout( 
 		UMaterialExpressionTextureSampleParameter::StaticClass(), 
 		LayoutExpressionParameterDetails
+		);
+
+	FOnGetDetailCustomizationInstance LayoutLayerExpressionParameterDetails = FOnGetDetailCustomizationInstance::CreateStatic(
+		&FMaterialExpressionLayersParameterDetails::MakeInstance, FOnCollectParameterGroups::CreateSP(this, &FMaterialEditor::GetAllMaterialExpressionGroups));
+
+	MaterialDetailsView->RegisterInstancedCustomPropertyLayout(
+		UMaterialExpressionMaterialAttributeLayers::StaticClass(),
+		LayoutLayerExpressionParameterDetails
 		);
 
 	FOnGetDetailCustomizationInstance LayoutCollectionParameterDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialExpressionCollectionParameterDetails::MakeInstance);
@@ -3964,7 +4005,17 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 	
 	if (MaterialFunction)
 	{
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL FUNCTION");
+		switch(MaterialFunction->GetMaterialFunctionUsage())
+		{
+		case EMaterialFunctionUsage::MaterialLayer:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL LAYER");
+			break;
+		case EMaterialFunctionUsage::MaterialLayerBlend:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL LAYER BLEND");
+			break;
+		default:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL FUNCTION");
+		}
 	}
 	else
 	{
@@ -4215,7 +4266,7 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 			// Since it is too slow to recompile preview expressions as the user is picking different colors
 			FColorPickerArgs PickerArgs;
 			PickerArgs.ParentWidget = GraphEditor;//AsShared();
-			PickerArgs.bUseAlpha = Constant4Expression != NULL || VectorExpression != NULL;
+			PickerArgs.bUseAlpha = ChannelEditStruct.Alpha != nullptr;
 			PickerArgs.bOnlyRefreshOnOk = false;
 			PickerArgs.bOnlyRefreshOnMouseUp = true;
 			PickerArgs.bExpandAdvancedSection = true;

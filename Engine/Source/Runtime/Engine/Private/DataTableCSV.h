@@ -27,6 +27,9 @@ private:
 	FString& ExportedText;
 };
 
+#endif // WITH_EDITOR
+
+
 class FDataTableImporterCSV
 {
 public:
@@ -42,4 +45,3 @@ private:
 	TArray<FString>& ImportProblems;
 };
 
-#endif // WITH_EDITOR

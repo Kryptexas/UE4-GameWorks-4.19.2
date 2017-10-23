@@ -46,7 +46,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "PrimitiveSceneProxy.h"
 #include "BoneIndices.h"
 #include "ReferenceSkeleton.h"
-#include "SkeletalMeshTypes.h"
 #include "AnimInterpFilter.h"
 #include "Animation/AnimTypes.h"
 #include "CustomBoneIndexArray.h"

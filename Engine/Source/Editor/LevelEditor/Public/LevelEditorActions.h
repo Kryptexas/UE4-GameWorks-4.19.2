@@ -724,6 +724,9 @@ public:
 
 	static void ConfigureLightingBuildOptions( const FLightingBuildOptions& Options );
 
+	static bool CanBuildLighting();
+	static bool CanBuildReflectionCaptures();
+
 	/**
 	 * Build callbacks
 	 */
@@ -733,6 +736,7 @@ public:
 	static void BuildLightingOnly_Execute();
 	static bool BuildLighting_CanExecute();
 	static void BuildReflectionCapturesOnly_Execute();
+	static bool BuildReflectionCapturesOnly_CanExecute();
 	static void BuildLightingOnly_VisibilityOnly_Execute();
 	static bool LightingBuildOptions_UseErrorColoring_IsChecked();
 	static void LightingBuildOptions_UseErrorColoring_Toggled();

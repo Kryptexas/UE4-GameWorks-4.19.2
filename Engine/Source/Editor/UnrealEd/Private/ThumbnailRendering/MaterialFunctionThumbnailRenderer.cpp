@@ -5,7 +5,9 @@
 #include "ShowFlags.h"
 #include "SceneView.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialFunctionInstance.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "ThumbnailHelpers.h"
 
 
@@ -21,19 +23,40 @@ UMaterialFunctionThumbnailRenderer::UMaterialFunctionThumbnailRenderer(const FOb
 
 void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas)
 {
-	UMaterialFunction* MatFunc = Cast<UMaterialFunction>(Object);
-	if (MatFunc != nullptr)
+	UMaterialFunctionInterface* MatFunc = Cast<UMaterialFunctionInterface>(Object);
+	UMaterialFunctionInstance* MatFuncInst = Cast<UMaterialFunctionInstance>(Object);
+	const bool bIsFunctionInstancePreview = MatFuncInst && MatFuncInst->GetBaseFunction();
+
+	if (MatFunc || bIsFunctionInstancePreview)
 	{
-		if ( ThumbnailScene == nullptr )
+		if (!ThumbnailScene)
 		{
 			ThumbnailScene = new FMaterialThumbnailScene();
 		}
 
-		UMaterial* PreviewMaterial = MatFunc->GetPreviewMaterial();
-		if( PreviewMaterial )
+		UMaterial* PreviewMaterial = bIsFunctionInstancePreview ? MatFuncInst->GetPreviewMaterial() : MatFunc->GetPreviewMaterial();
+		UMaterialInstanceConstant* FunctionInstanceProxy = nullptr;
+
+		if (PreviewMaterial)
 		{
-			PreviewMaterial->ThumbnailInfo = MatFunc->ThumbnailInfo;
-			ThumbnailScene->SetMaterialInterface( PreviewMaterial );
+			if (bIsFunctionInstancePreview)
+			{
+				FunctionInstanceProxy = NewObject<UMaterialInstanceConstant>((UObject*)GetTransientPackage(), FName(TEXT("None")), RF_Transactional);
+				FunctionInstanceProxy->SetParentEditorOnly(PreviewMaterial);
+				
+				MatFuncInst->OverrideMaterialInstanceParameterValues(FunctionInstanceProxy);
+				FunctionInstanceProxy->PreEditChange(NULL);
+				FunctionInstanceProxy->PostEditChange();
+
+				PreviewMaterial->ThumbnailInfo = MatFuncInst->ThumbnailInfo;
+				ThumbnailScene->SetMaterialInterface((UMaterialInterface*)FunctionInstanceProxy);
+			}
+			else
+			{
+				PreviewMaterial->ThumbnailInfo = MatFunc->ThumbnailInfo;
+				ThumbnailScene->SetMaterialInterface((UMaterialInterface*)PreviewMaterial);
+			}
+	
 			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game) )
 				.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime));
 
@@ -54,7 +77,7 @@ void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y,
 
 void UMaterialFunctionThumbnailRenderer::BeginDestroy()
 { 	
-	if ( ThumbnailScene != nullptr )
+	if (ThumbnailScene)
 	{
 		delete ThumbnailScene;
 		ThumbnailScene = nullptr;

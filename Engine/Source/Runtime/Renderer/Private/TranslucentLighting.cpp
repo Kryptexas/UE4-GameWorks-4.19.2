@@ -384,6 +384,7 @@ public:
 			VertexShader = InMaterialResource.GetShader<TTranslucencyShadowDepthVS<TranslucencyShadowDepth_Standard> >(InVertexFactory->GetType());
 			PixelShader = InMaterialResource.GetShader<TTranslucencyShadowDepthPS<TranslucencyShadowDepth_Standard> >(InVertexFactory->GetType());
 		}
+		BaseVertexShader = VertexShader;
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
@@ -482,7 +483,7 @@ public:
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::TranslucentLighting));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderStateLocal,
 						FTranslucencyShadowDepthDrawingPolicy::ElementDataType(),
@@ -1579,14 +1580,6 @@ public:
 		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightPositionAndRadius, PositionAndRadius);
 
 		FVector4 LightColorAndExponent(SimpleLight.Color, SimpleLight.Exponent);
-
-		if (SimpleLight.Exponent == 0)
-		{
-			// Correction for lumen units
-			LightColorAndExponent.X *= 16.0f;
-			LightColorAndExponent.Y *= 16.0f;
-			LightColorAndExponent.Z *= 16.0f;
-		}
 
 		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightColorAndExponent, LightColorAndExponent);
 	}

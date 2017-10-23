@@ -321,15 +321,46 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 	#if PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
 
-		FThreeBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH3(VolumetricLightmapBrickTextureUVs);
+		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
 
-		// Diffuse convolution
-		FThreeBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH3(DiffuseDir, 1);
-		OutDiffuseLighting = max(float3(0,0,0), DotSH3(IrradianceSH, DiffuseTransferSH)) / PI;
+			#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
+				FOneBandSHVectorRGB IrradianceSH;
+				IrradianceSH.R.V = BasePassInterpolants.VertexIndirectAmbient.x;
+				IrradianceSH.G.V = BasePassInterpolants.VertexIndirectAmbient.y;
+				IrradianceSH.B.V = BasePassInterpolants.VertexIndirectAmbient.z;
+			#else
+				FOneBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH1(VolumetricLightmapBrickTextureUVs);
+			#endif
 
-		#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-			FThreeBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH3(-DiffuseDir, 1);
-			OutSubsurfaceLighting += max(float3(0,0,0), DotSH3(IrradianceSH, SubsurfaceTransferSH)) / PI;
+			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(1);
+			OutDiffuseLighting = max(float3(0,0,0), DotSH1(IrradianceSH, DiffuseTransferSH)) / PI;
+
+		#else
+
+			#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
+				FThreeBandSHVectorRGB IrradianceSH = (FThreeBandSHVectorRGB)0;
+				IrradianceSH.R.V0 = BasePassInterpolants.VertexIndirectSH[0];
+				IrradianceSH.G.V0 = BasePassInterpolants.VertexIndirectSH[1];
+				IrradianceSH.B.V0 = BasePassInterpolants.VertexIndirectSH[2];
+			#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL
+				// Limit Volume Directional to SH2 for performance
+				FTwoBandSHVectorRGB IrradianceSH2 = GetVolumetricLightmapSH2(VolumetricLightmapBrickTextureUVs);
+				FThreeBandSHVectorRGB IrradianceSH = (FThreeBandSHVectorRGB)0;
+				IrradianceSH.R.V0 = IrradianceSH2.R.V;
+				IrradianceSH.G.V0 = IrradianceSH2.G.V;
+				IrradianceSH.B.V0 = IrradianceSH2.B.V;
+			#else
+				FThreeBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH3(VolumetricLightmapBrickTextureUVs);
+			#endif
+
+			// Diffuse convolution
+			FThreeBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH3(DiffuseDir, 1);
+			OutDiffuseLighting = max(float3(0,0,0), DotSH3(IrradianceSH, DiffuseTransferSH)) / PI;
+
+			#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+				FThreeBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH3(-DiffuseDir, 1);
+				OutSubsurfaceLighting += max(float3(0,0,0), DotSH3(IrradianceSH, SubsurfaceTransferSH)) / PI;
+			#endif
 		#endif
 
 		// Visualize volumetric lightmap texel positions
@@ -1150,6 +1181,10 @@ void FPixelShaderInOut_MainPS(
 	#if GBUFFER_HAS_PRECSHADOWFACTOR
 		Out.MRT[GBUFFER_HAS_VELOCITY ? 6 : 5] = OutGBufferE;
 	#endif
+#endif
+
+#if !MATERIALBLENDING_MODULATE && USE_PREEXPOSURE
+	Out.MRT[0].xyz *= View.PreExposure;
 #endif
 }
 

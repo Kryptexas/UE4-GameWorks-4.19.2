@@ -298,9 +298,15 @@ void FLwsWebSocketsManager::Tick()
 	SocketsDestroyedDuringService.Empty();
 }
 
-TSharedRef<IWebSocket> FLwsWebSocketsManager::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const FString& UpgradeHeader)
+TSharedRef<IWebSocket> FLwsWebSocketsManager::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const TMap<FString, FString>& UpgradeHeaders)
 {
-	FLwsWebSocketRef Socket = MakeShared<FLwsWebSocket>(Url, Protocols, UpgradeHeader);
+	FString UpgradeHeaderString;
+	for (const auto& OneHeader : UpgradeHeaders)
+	{
+		UpgradeHeaderString += FString::Printf(TEXT("%s: %s\r\n"), *OneHeader.Key, *OneHeader.Value);
+	}
+
+	FLwsWebSocketRef Socket = MakeShared<FLwsWebSocket>(Url, Protocols, UpgradeHeaderString);
 	return Socket;
 }
 

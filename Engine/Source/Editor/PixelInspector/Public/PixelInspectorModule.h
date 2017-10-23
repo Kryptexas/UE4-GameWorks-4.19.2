@@ -52,6 +52,10 @@ public:
 	virtual void RegisterTabSpawner(const TSharedPtr<FWorkspaceItem>& WorkspaceGroup);
 
 	virtual void UnregisterTabSpawner();
+	
+private:
+	
+	void OnTabClosed(TSharedRef<SDockTab> TabBeingClosed);
 
 private:
 	TSharedRef<SDockTab> MakePixelInspectorTab(const FSpawnTabArgs&);

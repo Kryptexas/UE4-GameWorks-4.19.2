@@ -106,6 +106,7 @@ FCoreDelegates::FVRControllerRecentered FCoreDelegates::VRControllerRecentered;
 
 FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringChanged;
 FCoreDelegates::FOnGameSessionIDChange FCoreDelegates::GameSessionIDChanged;
+FCoreDelegates::FOnGameStateClassChange FCoreDelegates::GameStateClassChanged;
 FCoreDelegates::FOnCrashOverrideParamsChanged FCoreDelegates::CrashOverrideParamsChanged;
 FCoreDelegates::FOnIsVanillaProductChanged FCoreDelegates::IsVanillaProductChanged;
 

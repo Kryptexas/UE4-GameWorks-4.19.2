@@ -121,8 +121,6 @@ PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceCompl
 #endif // WITH_PHYX
 
 
-#if UE_WITH_PHYSICS
-
 // RAYCAST
 
 /** Trace a ray against the world and return if a blocking hit is found */
@@ -162,8 +160,6 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 /** Function for sweeping a supplied PxGeometry against the world */
 bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
 
-#endif
-
 // Note: Do not use these methods for new code, they are being phased out!
 // These functions do not empty the OutOverlaps/OutHits array; they add items to them.
 #if WITH_PHYSX
@@ -172,7 +168,7 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 
 DEPRECATED_FORGAME(4.9, "Do not access this function directly, use the generic non-PhysX functions.")
 bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#endif
+#endif // WITH_PHYSX
 
 
 
@@ -257,4 +253,4 @@ private:
 	PxQuat Rotation;
 };
 
-#endif
+#endif // WITH_PHYSX

@@ -82,9 +82,22 @@ namespace PixelInspector
 			bIsPixelInspectorEnable = false;
 		}
 	}
-
+	
+	void SPixelInspector::OnWindowClosed()
+	{
+		if(bIsPixelInspectorEnable)
+		{
+			bIsPixelInspectorEnable = false;
+		
+			// We need to invalide the draw as the pixel inspector message is left on from the last draw
+			GEditor->RedrawLevelEditingViewports();
+		}
+	}
+	
 	void SPixelInspector::ReleaseRessource()
 	{
+		bIsPixelInspectorEnable = false;
+		
 		if (DisplayResult != nullptr)
 		{
 			DisplayResult->RemoveFromRoot();

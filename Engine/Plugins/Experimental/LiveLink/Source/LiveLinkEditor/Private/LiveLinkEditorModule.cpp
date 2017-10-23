@@ -29,6 +29,7 @@
 #define LOCTEXT_NAMESPACE "LiveLinkModule"
 
 static const FName LiveLinkClientTabName(TEXT("LiveLink"));
+static const FName LevelEditorModuleName(TEXT("LevelEditor"));
 
 #define IMAGE_PLUGIN_BRUSH( RelativePath, ... ) FSlateImageBrush( InPluginContent( RelativePath, ".png" ), __VA_ARGS__ )
 
@@ -49,25 +50,19 @@ public:
 
 	virtual void StartupModule() override
 	{
-		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		if (FModuleManager::Get().IsModuleLoaded(LevelEditorModuleName))
+		{
+			RegisterTab();
+		}
+		else
+		{
+			ModulesChangedHandle = FModuleManager::Get().OnModulesChanged().AddRaw(this, &FLiveLinkEditorModule::ModulesChangesCallback);
+		}
 
 		static FName LiveLinkStyle(TEXT("LiveLinkStyle"));
 		StyleSet = MakeShareable(new FSlateStyleSet(LiveLinkStyle));
 
 		FLiveLinkClientCommands::Register();
-
-		TSharedPtr<FSlateStyleSet> StyleSetPtr = StyleSet;
-
-		//Register our UI
-		LevelEditorTabManagerChangedHandle = LevelEditorModule.OnTabManagerChanged().AddLambda([StyleSetPtr]()
-		{
-			FLevelEditorModule& LocalLevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-			LocalLevelEditorModule.GetLevelEditorTabManager()->RegisterTabSpawner(LiveLinkClientTabName, FOnSpawnTab::CreateStatic(&FLiveLinkEditorModule::SpawnLiveLinkTab, StyleSetPtr))
-				.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
-				.SetDisplayName(LOCTEXT("LiveLinkTabTitle", "Live Link"))
-				.SetTooltipText(LOCTEXT("SequenceRecorderTooltipText", "Open the Live Link streaming manager tab."))
-				.SetIcon(FSlateIcon(StyleSetPtr->GetStyleSetName(), "LiveLinkClient.Common.Icon.Small"));
-		});
 
 		const FVector2D Icon16x16(16.0f, 16.0f);
 		const FVector2D Icon20x20(20.0f, 20.0f);
@@ -86,6 +81,32 @@ public:
 		FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 	}
 
+	void ModulesChangesCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
+	{
+		if (ReasonForChange == EModuleChangeReason::ModuleLoaded && ModuleName == LevelEditorModuleName)
+		{
+			RegisterTab();
+		}
+	}
+
+	void RegisterTab()
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>(LevelEditorModuleName);
+
+		TSharedPtr<FSlateStyleSet> StyleSetPtr = StyleSet;
+
+		//Register our UI
+		LevelEditorTabManagerChangedHandle = LevelEditorModule.OnTabManagerChanged().AddLambda([StyleSetPtr]()
+		{
+			FLevelEditorModule& LocalLevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(LevelEditorModuleName);
+			LocalLevelEditorModule.GetLevelEditorTabManager()->RegisterTabSpawner(LiveLinkClientTabName, FOnSpawnTab::CreateStatic(&FLiveLinkEditorModule::SpawnLiveLinkTab, StyleSetPtr))
+				.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
+				.SetDisplayName(LOCTEXT("LiveLinkTabTitle", "Live Link"))
+				.SetTooltipText(LOCTEXT("SequenceRecorderTooltipText", "Open the Live Link streaming manager tab."))
+				.SetIcon(FSlateIcon(StyleSetPtr->GetStyleSetName(), "LiveLinkClient.Common.Icon.Small"));
+		});
+	}
+
 	virtual void ShutdownModule() override
 	{
 		if (FSlateApplication::IsInitialized())
@@ -93,9 +114,11 @@ public:
 			FGlobalTabmanager::Get()->UnregisterTabSpawner(LiveLinkClientTabName);
 		}
 
-		if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
+		FModuleManager::Get().OnModulesChanged().Remove(ModulesChangedHandle);
+
+		if (LevelEditorTabManagerChangedHandle.IsValid() && FModuleManager::Get().IsModuleLoaded(LevelEditorModuleName))
 		{
-			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(LevelEditorModuleName);
 			LevelEditorModule.OnTabManagerChanged().Remove(LevelEditorTabManagerChangedHandle);
 		}
 	}
@@ -124,6 +147,7 @@ public:
 private:
 
 	FDelegateHandle LevelEditorTabManagerChangedHandle;
+	FDelegateHandle ModulesChangedHandle;
 };
 
 IMPLEMENT_MODULE(FLiveLinkEditorModule, LiveLinkEditor);

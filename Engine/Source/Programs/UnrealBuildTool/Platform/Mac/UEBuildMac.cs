@@ -166,8 +166,6 @@ namespace UnrealBuildTool
 				Target.bCompileLeanAndMeanUE = false;
 			}
 
-			Target.bCompileNvCloth = true;
-
 			Target.bUsePDBFiles = !Target.bDisableDebugInfo && Target.Configuration != UnrealTargetConfiguration.Debug && Platform == UnrealTargetPlatform.Mac && Target.MacPlatform.bGenerateDsymFile;
 
 			// we always deploy - the build machines need to be able to copy the files back, which needs the full bundle

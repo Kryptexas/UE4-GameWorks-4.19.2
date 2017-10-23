@@ -13,8 +13,9 @@
 #include "StaticParameterSet.h"
 #include "MaterialShared.h"
 #include "Stats/StatsMisc.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialFunctionInstance.h"
 #include "MaterialCompiler.h"
 #include "RenderUtils.h"
 #include "EngineGlobals.h"
@@ -126,6 +127,8 @@ protected:
 	EMaterialProperty MaterialProperty;
 	/** Stack of currently compiling material attributes*/
 	TArray<FGuid> MaterialAttributesStack;
+	/** Stack of currently compiling material parameter owners*/
+	TArray<FMaterialParameterInfo> ParameterOwnerStack;
 	/** The code chunks corresponding to the currently compiled property or custom output. */
 	TArray<FShaderCodeChunk>* CurrentScopeChunks;
 
@@ -318,6 +321,9 @@ public:
 		// Default value for attribute stack added to simplify code when compiling new attributes, see SetMaterialProperty.
 		const FGuid& MissingAttribute = FMaterialAttributeDefinitionMap::GetID(MP_MAX);
 		MaterialAttributesStack.Add(MissingAttribute);
+
+		// Default owner for parameters
+		ParameterOwnerStack.Add(FMaterialParameterInfo());
 	}
 
 	void GatherCustomVertexInterpolators(TArray<UMaterialExpression*> Expressions)
@@ -349,11 +355,55 @@ public:
 					FunctionCall->MaterialFunction->LinkIntoCaller(FunctionCall->FunctionInputs);
 					PushFunction(FMaterialFunctionCompileState(FunctionCall));
 
-					GatherCustomVertexInterpolators(FunctionCall->MaterialFunction->FunctionExpressions);
+					if (const TArray<UMaterialExpression*>* FunctionExpressions = FunctionCall->MaterialFunction->GetFunctionExpressions())
+					{
+						GatherCustomVertexInterpolators(*FunctionExpressions);
+					}
 
 					const FMaterialFunctionCompileState CompileState = PopFunction();
 					check(CompileState.ExpressionStack.Num() == 0);
 					FunctionCall->MaterialFunction->UnlinkFromCaller();
+				}
+			}
+			else if (UMaterialExpressionMaterialAttributeLayers* LayersExpression = Cast<UMaterialExpressionMaterialAttributeLayers>(Expression))
+			{
+				if (LayersExpression->bIsLayerGraphBuilt)
+				{
+					for (auto* Layer : LayersExpression->LayerCallers)
+					{
+						if (Layer && Layer->MaterialFunction)
+						{
+							Layer->MaterialFunction->LinkIntoCaller(Layer->FunctionInputs);
+							PushFunction(FMaterialFunctionCompileState(Layer));
+
+							if (const TArray<UMaterialExpression*>* FunctionExpressions = Layer->MaterialFunction->GetFunctionExpressions())
+							{
+								GatherCustomVertexInterpolators(*FunctionExpressions);
+							}
+
+							const FMaterialFunctionCompileState CompileState = PopFunction();
+							check(CompileState.ExpressionStack.Num() == 0);
+							Layer->MaterialFunction->UnlinkFromCaller();
+						}
+					}
+
+					for (auto* Blend : LayersExpression->BlendCallers)
+					{
+						if (Blend && Blend->MaterialFunction)
+						{
+							Blend->MaterialFunction->LinkIntoCaller(Blend->FunctionInputs);
+							PushFunction(FMaterialFunctionCompileState(Blend));
+
+							if (const TArray<UMaterialExpression*>* FunctionExpressions = Blend->MaterialFunction->GetFunctionExpressions())
+							{
+								GatherCustomVertexInterpolators(*FunctionExpressions);
+							}
+
+							const FMaterialFunctionCompileState CompileState = PopFunction();
+							check(CompileState.ExpressionStack.Num() == 0);
+							Blend->MaterialFunction->UnlinkFromCaller();
+						}
+					}
 				}
 			}
 		}
@@ -411,6 +461,22 @@ public:
 				TArray<UMaterialExpression*> Expressions;
 				Material->GatherExpressionsForCustomInterpolators(Expressions);
 				GatherCustomVertexInterpolators(Expressions);
+
+				// Whilst expression list is available, apply node count limits
+				int32 NumMaterialLayersAttributes = 0;
+				for (UMaterialExpression* Expression : Expressions)
+				{
+					if (UMaterialExpressionMaterialAttributeLayers* Layers = Cast<UMaterialExpressionMaterialAttributeLayers>(Expression))
+					{
+						++NumMaterialLayersAttributes;
+
+						if (NumMaterialLayersAttributes > 1)
+						{
+							Errorf(TEXT("Materials can contain only one Material Attribute Layers node."));
+							break;
+						}
+					}
+				}
 			}
 
 			const EShaderFrequency NormalShaderFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency(MP_Normal);
@@ -635,7 +701,7 @@ public:
 				FMaterialAttributeDefinitionMap::GetCustomAttributeList(CustomAttributeList);
 				TArray<FShaderCodeChunk> CustomExpressionChunks;
 				
-				for (FMaterialAttributeDefintion& Attribute : CustomAttributeList)
+				for (FMaterialCustomOutputAttributeDefintion& Attribute : CustomAttributeList)
 				{
 					// Compile all outputs for attribute
 					bool bValidResultCompiled = false;
@@ -1518,6 +1584,39 @@ protected:
 				UniformExpression = TestExpression;
 				break;
 			}
+
+#if 0
+			// Test for the case where we have non-identical expressions of the same type and name.
+			// This means they exist with separate values and the one retrieved for shading will
+			// effectively be random, as we evaluate the first found during expression traversal
+			if (TestExpression->GetType() == UniformExpression->GetType()) 
+			{
+				if (TestExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
+				{
+					FMaterialUniformExpressionScalarParameter* ScalarParameterA = (FMaterialUniformExpressionScalarParameter*)TestExpression;
+					FMaterialUniformExpressionScalarParameter* ScalarParameterB = (FMaterialUniformExpressionScalarParameter*)UniformExpression;
+
+					if (!ScalarParameterA->GetParameterInfo().Name.IsNone() && ScalarParameterA->GetParameterInfo() == ScalarParameterB->GetParameterInfo())
+					{
+						delete UniformExpression;
+						return Errorf(TEXT("Invalid scalar parameter '%s' found. Identical parameters must have the same value."), *(ScalarParameterA->GetParameterInfo().Name.ToString()));
+					}
+				}
+				else if (TestExpression->GetType() == &FMaterialUniformExpressionVectorParameter::StaticType) 
+				{
+					FMaterialUniformExpressionVectorParameter* VectorParameterA = (FMaterialUniformExpressionVectorParameter*)TestExpression;
+					FMaterialUniformExpressionVectorParameter* VectorParameterB = (FMaterialUniformExpressionVectorParameter*)UniformExpression;
+
+					// Note: Skipping NAME_SelectionColor here as this behavior is relied on for editor materials
+					if (!VectorParameterA->GetParameterInfo().Name.IsNone() && VectorParameterA->GetParameterInfo() == VectorParameterB->GetParameterInfo()
+						&& VectorParameterA->GetParameterInfo().Name != NAME_SelectionColor)
+					{
+						delete UniformExpression;
+						return Errorf(TEXT("Invalid vector parameter '%s' found. Identical parameters must have the same value."), *(VectorParameterA->GetParameterInfo().Name.ToString()));
+					}
+				}
+			}
+#endif
 		}
 
 		int32	BufferSize		= 256;
@@ -1607,9 +1706,9 @@ protected:
 				}
 				else
 				{
-				const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
-				FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameVectorExpression%u%s"), VectorInputIndex, Mask);
-			}
+					const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
+					FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameVectorExpression%u%s"), VectorInputIndex, Mask);
+				}
 			}
 			else
 			{
@@ -1791,6 +1890,22 @@ protected:
 		// A base property is kept on the stack and updated by SetMaterialProperty(), the stack is only utilized during translation
 		checkf(MaterialAttributesStack.Num() == 1, TEXT("Tried to set non-base attribute on stack."));
 		MaterialAttributesStack.Top() = InAttributeID;
+	}
+
+	virtual void PushParameterOwner(const FMaterialParameterInfo& InOwnerInfo) override
+	{
+		ParameterOwnerStack.Push(InOwnerInfo);
+	}
+
+	virtual FMaterialParameterInfo PopParameterOwner() override
+	{
+		return ParameterOwnerStack.Pop(false);
+	}
+
+	FORCEINLINE FMaterialParameterInfo GetParameterAssociationInfo()
+	{
+		check(ParameterOwnerStack.Num());
+		return ParameterOwnerStack.Last();
 	}
 
 	virtual EShaderFrequency GetCurrentShaderFrequency() const override
@@ -2087,6 +2202,13 @@ protected:
 		return CurrentFunctionStack.Pop();
 	}
 
+	virtual int32 GetCurrentFunctionStackDepth() override
+	{
+		check(ShaderFrequency < SF_NumFrequencies);
+		auto& CurrentFunctionStack = FunctionStacks[ShaderFrequency];
+		return CurrentFunctionStack.Num();
+	}
+
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override
 	{
 		if (!ParameterCollection || ParameterIndex == -1)
@@ -2116,14 +2238,18 @@ protected:
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 3);
 	}
 
-	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) override
+	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) override
 	{
-		return AddUniformExpression(new FMaterialUniformExpressionVectorParameter(ParameterName,DefaultValue),MCT_Float4,TEXT(""));
+		FMaterialParameterInfo ParameterInfo = GetParameterAssociationInfo();
+		ParameterInfo.Name = ParameterName;
+		return AddUniformExpression(new FMaterialUniformExpressionScalarParameter(ParameterInfo,DefaultValue),MCT_Float,TEXT(""));
 	}
 
-	virtual int32 ScalarParameter(FName ParameterName,float DefaultValue) override
+	virtual int32 VectorParameter(FName ParameterName, const FLinearColor& DefaultValue) override
 	{
-		return AddUniformExpression(new FMaterialUniformExpressionScalarParameter(ParameterName,DefaultValue),MCT_Float,TEXT(""));
+		FMaterialParameterInfo ParameterInfo = GetParameterAssociationInfo();
+		ParameterInfo.Name = ParameterName;
+		return AddUniformExpression(new FMaterialUniformExpressionVectorParameter(ParameterInfo,DefaultValue),MCT_Float4,TEXT(""));
 	}
 
 	virtual int32 Constant(float X) override
@@ -3679,7 +3805,10 @@ protected:
 		EMaterialValueType ShaderType = DefaultValue->GetMaterialType();
 		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
-		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
+
+		FMaterialParameterInfo ParameterInfo = GetParameterAssociationInfo();
+		ParameterInfo.Name = ParameterName;
+		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterInfo, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
 	virtual int32 ExternalTexture(const FGuid& ExternalTextureGuid) override
@@ -3748,10 +3877,13 @@ protected:
 	{
 		// Look up the value we are compiling with for this static parameter.
 		bool bValue = bDefaultValue;
-		for(int32 ParameterIndex = 0;ParameterIndex < StaticParameters.StaticSwitchParameters.Num();++ParameterIndex)
+
+		FMaterialParameterInfo ParameterInfo = GetParameterAssociationInfo();
+		ParameterInfo.Name = ParameterName;
+
+		for (const FStaticSwitchParameter& Parameter : StaticParameters.StaticSwitchParameters)
 		{
-			const FStaticSwitchParameter& Parameter = StaticParameters.StaticSwitchParameters[ParameterIndex];
-			if(Parameter.ParameterName == ParameterName)
+			if (Parameter.ParameterInfo == ParameterInfo)
 			{
 				bValue = Parameter.Value;
 				break;
@@ -3768,10 +3900,13 @@ protected:
 		bool bValueG = bDefaultG;
 		bool bValueB = bDefaultB;
 		bool bValueA = bDefaultA;
-		for(int32 ParameterIndex = 0;ParameterIndex < StaticParameters.StaticComponentMaskParameters.Num();++ParameterIndex)
+
+		FMaterialParameterInfo ParameterInfo = GetParameterAssociationInfo();
+		ParameterInfo.Name = ParameterName;
+
+		for (const FStaticComponentMaskParameter& Parameter : StaticParameters.StaticComponentMaskParameters)
 		{
-			const FStaticComponentMaskParameter& Parameter = StaticParameters.StaticComponentMaskParameters[ParameterIndex];
-			if(Parameter.ParameterName == ParameterName)
+			if (Parameter.ParameterInfo == ParameterInfo)
 			{
 				bValueR = Parameter.R;
 				bValueG = Parameter.G;
@@ -3782,6 +3917,22 @@ protected:
 		}
 
 		return ComponentMask(Vector,bValueR,bValueG,bValueB,bValueA);
+	}
+
+	virtual const FMaterialLayersFunctions* StaticMaterialLayersParameter(FName ParameterName) override
+	{
+		FMaterialParameterInfo ParameterInfo = GetParameterAssociationInfo();
+		ParameterInfo.Name = ParameterName;
+
+		for (const FStaticMaterialLayersParameter& Parameter : StaticParameters.MaterialLayersParameters)
+		{
+			if(Parameter.ParameterInfo == ParameterInfo)
+			{
+				return &Parameter.Value;
+			}
+		}
+
+		return nullptr;
 	}
 
 	virtual bool GetStaticBoolValue(int32 BoolIndex, bool& bSucceeded) override
@@ -3812,10 +3963,14 @@ protected:
 		// Look up the weight-map index for this static parameter.
 		int32 WeightmapIndex = INDEX_NONE;
 		bool bFoundParameter = false;
+		
+		FMaterialParameterInfo ParameterInfo = GetParameterAssociationInfo();
+		ParameterInfo.Name = ParameterName;
+
 		for(int32 ParameterIndex = 0;ParameterIndex < StaticParameters.TerrainLayerWeightParameters.Num();++ParameterIndex)
 		{
 			const FStaticTerrainLayerWeightParameter& Parameter = StaticParameters.TerrainLayerWeightParameters[ParameterIndex];
-			if(Parameter.ParameterName == ParameterName)
+			if(Parameter.ParameterInfo == ParameterInfo)
 			{
 				WeightmapIndex = Parameter.WeightmapIndex;
 				bFoundParameter = true;

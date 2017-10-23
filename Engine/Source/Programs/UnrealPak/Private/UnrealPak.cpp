@@ -1369,7 +1369,7 @@ bool ListFilesInPak(const TCHAR * InPakFilename, int64 SizeFilter = 0)
 struct FFileInfo
 {
 	uint64 FileSize;
-	uint64 PatchIndex;
+	int32 PatchIndex;
 	uint8 Hash[16];
 };
 

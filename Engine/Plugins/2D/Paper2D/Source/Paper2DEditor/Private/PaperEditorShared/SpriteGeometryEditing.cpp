@@ -382,11 +382,11 @@ void FSpriteGeometryEditingHelper::DrawGeometry(const FSceneView& View, FPrimiti
 
 			if (((TriangulatedPolygonVertices.Num() % 3) == 0) && (TriangulatedPolygonVertices.Num() > 0))
 			{
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View.GetFeatureLevel());
 
 				FDynamicMeshVertex MeshVertex;
 				MeshVertex.Color = BackgroundColor;
-				MeshVertex.TextureCoordinate = FVector2D::ZeroVector;
+				MeshVertex.TextureCoordinate[0] = FVector2D::ZeroVector;
 				MeshVertex.SetTangents(PaperAxisX, PaperAxisY, PaperAxisZ);
 
 				for (const FVector2D& SrcTriangleVertex : TriangulatedPolygonVertices)

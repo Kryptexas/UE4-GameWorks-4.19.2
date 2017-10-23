@@ -127,7 +127,7 @@ which can be configured via defines for various temporal AA passes.
 #endif
 
 	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
-    // ------------------------------------------------
+	// ------------------------------------------------
 	float3 PosN; // Position of this pixel, possibly later nearest pixel in neighborhood.
 	PosN.xy = ScreenPos;
 	PosN.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UV, 0).r;
@@ -223,7 +223,7 @@ which can be configured via defines for various temporal AA passes.
 
 
 	// FILTER PIXEL (RESAMPLE TO REMOVE JITTER OFFSET) AND GET NEIGHBORHOOD
-    // --------------------------------------------------------------------
+	// --------------------------------------------------------------------
 	// 012
 	// 345
 	// 678
@@ -245,6 +245,10 @@ which can be configured via defines for various temporal AA passes.
 	for( uint i = 0; i < 9; i++ )
 	{
 		Neighbors[i] = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0, Offsets[i] );
+
+	#if USE_PREEXPOSURE
+		Neighbors[i].rgb *= View.OneOverPreExposure;
+	#endif
 
 		if( AA_YCOCG )
 			Neighbors[i].xyz = RGBToYCoCg( Neighbors[i].rgb );
@@ -359,6 +363,10 @@ which can be configured via defines for various temporal AA passes.
 		float4 HistoryColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, HistoryUV, 0);
 	#endif
 
+	#if USE_PREEXPOSURE
+		HistoryColor.rgb *= View.LastOneOverPreExposure;
+	#endif
+
 	#if AA_YCOCG
 		HistoryColor.rgb = RGBToYCoCg(HistoryColor.rgb);
 	#endif
@@ -412,7 +420,7 @@ which can be configured via defines for various temporal AA passes.
 	#endif
 
 	// ADD BACK IN ALIASING TO SHARPEN
-    // -------------------------------
+	// -------------------------------
 	#if AA_FILTERED && !AA_BICUBIC
 		// Blend in non-filtered based on the amount of sub-pixel motion.
 		float AddAliasing = saturate(HistoryBlur) * 0.5;
@@ -427,22 +435,24 @@ which can be configured via defines for various temporal AA passes.
 	#endif
 		
 	// COMPUTE BLEND AMOUNT 
-    // --------------------
+	// --------------------
 	float BlendFinal = CurrentFrameWeight;
 
 	BlendFinal = lerp( BlendFinal, 0.2, saturate( Velocity / 40 ) );
-	BlendFinal += 0.8 * saturate( 0.02 * LumaHistory / abs( Filtered.x - LumaHistory ) );
 	
+#if 0
 	// Anti-flicker
 	float DistToClamp = 2 * abs( min( LumaHistory - LumaMin, LumaMax - LumaHistory ) / ( LumaMax - LumaMin ) );
 	//BlendFinal *= lerp( 0, 1, saturate(4 * DistToClamp) );
+	BlendFinal += 0.8 * saturate( 0.02 * LumaHistory / abs( Filtered.x - LumaHistory ) );
 	BlendFinal *= (LumaMin * InExposureScale + 0.5) / (LumaMax * InExposureScale + 0.5);
+#endif
 
 	// Make sure to have at least some small contribution
 	BlendFinal = max( BlendFinal, saturate( 0.01 * LumaHistory / abs( Filtered.x - LumaHistory ) ) );
 
-	#if AA_NAN && (COMPILER_GLSL || COMPILER_METAL)
-		// The current Metal & GLSL compilers don't handle saturate(NaN) -> 0, instead they return NaN/INF.
+	#if AA_NAN && COMPILER_HLSLCC
+		// Hlslcc doesn't handle saturate(NaN) -> 0, instead returns NaN/INF.
 		BlendFinal = -min(-BlendFinal, 0.0);
 	#endif
 
@@ -477,6 +487,10 @@ which can be configured via defines for various temporal AA passes.
 
 	#if AA_YCOCG
 		OutColor.rgb = YCoCgToRGB(OutColor.xyz);
+	#endif
+
+	#if USE_PREEXPOSURE
+		OutColor.rgb *= View.PreExposure;
 	#endif
 
 	#if AA_NAN

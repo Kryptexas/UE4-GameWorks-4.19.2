@@ -60,6 +60,13 @@ struct CORE_API FRenderingObjectVersion
 
 		VolumetricLightmaps,
 
+		MaterialAttributeLayerParameters,
+
+		StoreReflectionCaptureBrightnessForCooking,
+
+		// FModelVertexBuffer does serialize a regular TArray instead of a TResourceArray
+		ModelVertexBufferSerialization,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

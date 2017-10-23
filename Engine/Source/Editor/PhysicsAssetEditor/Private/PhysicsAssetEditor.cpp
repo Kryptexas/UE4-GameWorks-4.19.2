@@ -72,6 +72,7 @@
 #include "SkeletonTreePhysicsConstraintItem.h"
 #include "ScopedSlowTask.h"
 #include "PhysicsAssetGenerationSettings.h"
+#include "Framework/Commands/GenericCommands.h"
 
 const FName PhysicsAssetEditorModes::PhysicsAssetEditorMode("PhysicsAssetEditorMode");
 
@@ -461,10 +462,19 @@ void FPhysicsAssetEditor::ExtendToolbar()
 			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
 			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PhysicsAssetEditor->PersonaToolkit.ToSharedRef());
 
-			ToolbarBuilder.BeginSection("PhysicsAssetEditorTools");
+			ToolbarBuilder.BeginSection("PhysicsAssetEditorBodyTools");
 			{
 				ToolbarBuilder.AddToolBarButton(Commands.EnableCollision);
 				ToolbarBuilder.AddToolBarButton(Commands.DisableCollision);
+			}
+			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.BeginSection("PhysicsAssetEditorConstraintTools");
+			{
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToBallAndSocket);
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToHinge);
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToPrismatic);
+				ToolbarBuilder.AddToolBarButton(Commands.ConvertToSkeletal);
 			}
 			ToolbarBuilder.EndSection();
 
@@ -1055,6 +1065,7 @@ void FPhysicsAssetEditor::BuildMenuWidgetPrimitives(FMenuBuilder& InMenuBuilder)
 		const FPhysicsAssetEditorCommands& Commands = FPhysicsAssetEditorCommands::Get();
 
 		InMenuBuilder.BeginSection("PrimitiveActions", LOCTEXT("PrimitivesHeader", "Primitives"));
+		InMenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename);
 		InMenuBuilder.AddMenuEntry(Commands.DuplicatePrimitive);
 		InMenuBuilder.AddMenuEntry(Commands.DeletePrimitive);
 		InMenuBuilder.EndSection();
@@ -1137,7 +1148,7 @@ void FPhysicsAssetEditor::BuildMenuWidgetNewConstraint(FMenuBuilder& InMenuBuild
 	BuildMenuWidgetNewConstraintForBody(InMenuBuilder, INDEX_NONE);
 }
 
-void FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex)
+TSharedRef<ISkeletonTree> FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex, SGraphEditor::FActionMenuClosed InOnActionMenuClosed)
 {
 	FSkeletonTreeBuilderArgs SkeletonTreeBuilderArgs(false, false, false, false);
 
@@ -1154,7 +1165,7 @@ void FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMe
 	SkeletonTreeArgs.bShowFilterMenu = false;
 	SkeletonTreeArgs.Builder = Builder;
 	SkeletonTreeArgs.PreviewScene = GetPersonaToolkit()->GetPreviewScene();
-	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateLambda([this, InSourceBodyIndex](const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type SelectInfo)
+	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateLambda([this, InSourceBodyIndex, InOnActionMenuClosed](const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type SelectInfo)
 	{
 		if(InSelectedItems.Num() > 0)
 		{
@@ -1176,23 +1187,28 @@ void FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMe
 		}
 
 		FSlateApplication::Get().DismissAllMenus();
+
+		InOnActionMenuClosed.ExecuteIfBound();
 	});
+
+	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+	TSharedRef<ISkeletonTree> SkeletonPicker = SkeletonEditorModule.CreateSkeletonTree(SkeletonTree->GetEditableSkeleton(), SkeletonTreeArgs);
 
 	InMenuBuilder.BeginSection(TEXT("CreateNewConstraint"), LOCTEXT("CreateNewConstraint", "Create New Constraint With..."));
 	{
-		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-
 		InMenuBuilder.AddWidget(
 			SNew(SBox)
 			.IsEnabled(this, &FPhysicsAssetEditor::IsNotSimulation)
 			.WidthOverride(300.0f)
 			.HeightOverride(400.0f)
 			[
-				SkeletonEditorModule.CreateSkeletonTree(SkeletonTree->GetEditableSkeleton(), SkeletonTreeArgs)
+				SkeletonPicker
 			], 
 			FText(), true, false);
 	}
 	InMenuBuilder.EndSection();
+
+	return SkeletonPicker;
 }
 
 void FPhysicsAssetEditor::BuildMenuWidgetBone(FMenuBuilder& InMenuBuilder)
@@ -1470,7 +1486,7 @@ bool FPhysicsAssetEditor::HasSelectedBodyAndIsNotSimulation() const
 
 bool FPhysicsAssetEditor::CanEditConstraintProperties() const
 {
-	if(IsNotSimulation() && SharedData->PhysicsAsset)
+	if(IsNotSimulation() && SharedData->PhysicsAsset && SharedData->GetSelectedConstraint())
 	{
 		//If we are currently editing a constraint profile, make sure all selected constraints belong to the profile
 		if(SharedData->PhysicsAsset->CurrentConstraintProfileName != NAME_None)
@@ -1900,6 +1916,8 @@ bool FPhysicsAssetEditor::IsToggleMassProperties() const
 
 void FPhysicsAssetEditor::OnSetCollision(bool bEnable)
 {
+	FScopedTransaction Transaction(LOCTEXT("SetCollision", "Set Collision"));
+
 	SharedData->SetCollisionBetweenSelected(bEnable);
 }
 
@@ -1910,6 +1928,8 @@ bool FPhysicsAssetEditor::CanSetCollision(bool bEnable) const
 
 void FPhysicsAssetEditor::OnSetCollisionAll(bool bEnable)
 {
+	FScopedTransaction Transaction(LOCTEXT("SetCollision", "Set Collision"));
+
 	SharedData->SetCollisionBetweenSelectedAndAll(bEnable);
 }
 

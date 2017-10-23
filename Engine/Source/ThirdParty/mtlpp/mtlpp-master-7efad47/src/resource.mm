@@ -14,20 +14,20 @@ namespace mtlpp
     ns::String Resource::GetLabel() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLResource>)m_ptr label] };
+        return [(id<MTLResource>)m_ptr label];
     }
 
     CpuCacheMode Resource::GetCpuCacheMode() const
     {
         Validate();
-        return CpuCacheMode([(__bridge id<MTLResource>)m_ptr cpuCacheMode]);
+        return CpuCacheMode([(id<MTLResource>)m_ptr cpuCacheMode]);
     }
 
     StorageMode Resource::GetStorageMode() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return StorageMode([(__bridge id<MTLResource>)m_ptr storageMode]);
+        return StorageMode([(id<MTLResource>)m_ptr storageMode]);
 #else
         return StorageMode(0);
 #endif
@@ -37,16 +37,16 @@ namespace mtlpp
     {
         Validate();
 		if(@available(macOS 10.13, iOS 10.0, *))
-			return ns::Handle{ (__bridge void*)[(__bridge id<MTLResource>)m_ptr heap] };
+			return [(id<MTLResource>)m_ptr heap];
 		else
-			return ns::Handle{ nullptr };
+			return nullptr;
     }
 
     bool Resource::IsAliasable() const
     {
         Validate();
 		if(@available(macOS 10.13, iOS 10.0, *))
-			return [(__bridge id<MTLResource>)m_ptr isAliasable];
+			return [(id<MTLResource>)m_ptr isAliasable];
 		else
 			return false;
     }
@@ -54,7 +54,7 @@ namespace mtlpp
 	uint32_t Resource::GetAllocatedSize() const
 	{
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(__bridge id<MTLResource>)m_ptr allocatedSize];
+		return [(id<MTLResource>)m_ptr allocatedSize];
 #else
 		return 0;
 #endif
@@ -63,19 +63,19 @@ namespace mtlpp
     void Resource::SetLabel(const ns::String& label)
     {
         Validate();
-        [(__bridge id<MTLResource>)m_ptr setLabel:(__bridge NSString*)label.GetPtr()];
+        [(id<MTLResource>)m_ptr setLabel:(NSString*)label.GetPtr()];
     }
 
     PurgeableState Resource::SetPurgeableState(PurgeableState state)
     {
         Validate();
-        return PurgeableState([(__bridge id<MTLResource>)m_ptr setPurgeableState:MTLPurgeableState(state)]);
+        return PurgeableState([(id<MTLResource>)m_ptr setPurgeableState:MTLPurgeableState(state)]);
     }
 
     void Resource::MakeAliasable() const
     {
         Validate();
 		if(@available(macOS 10.13, iOS 10.0, *))
-			[(__bridge id<MTLResource>)m_ptr makeAliasable];
+			[(id<MTLResource>)m_ptr makeAliasable];
     }
 }

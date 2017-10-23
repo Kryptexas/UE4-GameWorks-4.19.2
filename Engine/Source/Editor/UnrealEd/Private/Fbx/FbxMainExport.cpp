@@ -2608,7 +2608,7 @@ void DetermineUVsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, co
 
 void DetermineVertsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, const FStaticMeshLODResources& RenderMesh)
 {
-	const int32 VertexCount = RenderMesh.VertexBuffer.GetNumVertices();
+	const int32 VertexCount = RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 
 	// Maps unreal verts to reduced list of verts 
 	VertRemap.Empty(VertexCount);
@@ -2621,7 +2621,7 @@ void DetermineVertsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, 
 	TMap<FVector,int32> HashedVerts;
 	for(int32 a=0; a < VertexCount; a++)
 	{
-		const FVector& PositionA = RenderMesh.PositionVertexBuffer.VertexPosition(a);
+		const FVector& PositionA = RenderMesh.VertexBuffers.PositionVertexBuffer.VertexPosition(a);
 		const int32* FoundIndex = HashedVerts.Find(PositionA);
 		if ( !FoundIndex )
 		{
@@ -3343,7 +3343,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		const FStaticMeshLODResources& RenderMesh = StaticMesh->GetLODForExport(ExportLOD);
 
 		// Verify the integrity of the static mesh.
-		if (RenderMesh.VertexBuffer.GetNumVertices() == 0)
+		if (RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() == 0)
 		{
 			return nullptr;
 		}
@@ -3365,7 +3365,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		else
 		{
 			// Do not weld verts
-			VertRemap.Add(RenderMesh.VertexBuffer.GetNumVertices());
+			VertRemap.Add(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 			for (int32 i = 0; i < VertRemap.Num(); i++)
 			{
 				VertRemap[i] = i;
@@ -3384,7 +3384,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		for (int32 PosIndex = 0; PosIndex < UniqueVerts.Num(); ++PosIndex)
 		{
 			int32 UnrealPosIndex = UniqueVerts[PosIndex];
-			FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(UnrealPosIndex);
+			FVector Position = RenderMesh.VertexBuffers.PositionVertexBuffer.VertexPosition(UnrealPosIndex);
 			ControlPoints[PosIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
 		}
 
@@ -3439,17 +3439,17 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		
 		for (int32 NTBIndex = 0; NTBIndex < VertexCount; ++NTBIndex)
 		{
-			FVector Normal = (FVector)(RenderMesh.VertexBuffer.VertexTangentZ(NTBIndex));
+			FVector Normal = (FVector)(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(NTBIndex));
 			FbxVector4& FbxNormal = FbxNormals[NTBIndex];
 			FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z);
 			FbxNormal.Normalize();
 
-			FVector Tangent = (FVector)(RenderMesh.VertexBuffer.VertexTangentX(NTBIndex));
+			FVector Tangent = (FVector)(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(NTBIndex));
 			FbxVector4& FbxTangent = FbxTangents[NTBIndex];
 			FbxTangent = FbxVector4(Tangent.X, -Tangent.Y, Tangent.Z);
 			FbxTangent.Normalize();
 
-			FVector Binormal = -(FVector)(RenderMesh.VertexBuffer.VertexTangentY(NTBIndex));
+			FVector Binormal = -(FVector)(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(NTBIndex));
 			FbxVector4& FbxBinormal = FbxBinormals[NTBIndex];
 			FbxBinormal = FbxVector4(Binormal.X, -Binormal.Y, Binormal.Z);
 			FbxBinormal.Normalize();
@@ -3474,7 +3474,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 
 		// Create and fill in the per-face-vertex texture coordinate data source(s).
 		// Create UV for Diffuse channel.
-		int32 TexCoordSourceCount = (LightmapUVChannel == -1) ? RenderMesh.VertexBuffer.GetNumTexCoords() : LightmapUVChannel + 1;
+		int32 TexCoordSourceCount = (LightmapUVChannel == -1) ? RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords() : LightmapUVChannel + 1;
 		int32 TexCoordSourceIndex = (LightmapUVChannel == -1) ? 0 : LightmapUVChannel;
 		for (; TexCoordSourceIndex < TexCoordSourceCount; ++TexCoordSourceIndex)
 		{
@@ -3504,7 +3504,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			if (ExportOptions->WeldedVertices)
 			{
 				// Weld UVs
-				DetermineUVsToWeld(UvsRemap, UniqueUVs, RenderMesh.VertexBuffer, TexCoordSourceIndex);
+				DetermineUVsToWeld(UvsRemap, UniqueUVs, RenderMesh.VertexBuffers.StaticMeshVertexBuffer, TexCoordSourceIndex);
 			}
 			else
 			{
@@ -3517,7 +3517,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			for (int32 FbxVertIndex = 0; FbxVertIndex < UniqueUVs.Num(); FbxVertIndex++)
 			{
 				int32 UnrealVertIndex = UniqueUVs[FbxVertIndex];
-				const FVector2D& TexCoord = RenderMesh.VertexBuffer.GetVertexUV(UnrealVertIndex, TexCoordSourceIndex);
+				const FVector2D& TexCoord = RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(UnrealVertIndex, TexCoordSourceIndex);
 				UVDiffuseLayer->GetDirectArray().Add(FbxVector2(TexCoord.X, -TexCoord.Y + 1.0));
 			}
 
@@ -3610,7 +3610,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 #endif // #if TODO_FBX
 
 		// Create and fill in the vertex color data source.
-		const FColorVertexBuffer* ColorBufferToUse = ColorBuffer ? ColorBuffer : &RenderMesh.ColorVertexBuffer;
+		const FColorVertexBuffer* ColorBufferToUse = ColorBuffer ? ColorBuffer : &RenderMesh.VertexBuffers.ColorVertexBuffer;
 		uint32 ColorVertexCount = ColorBufferToUse->GetNumVertices();
 
 		// Only export vertex colors if they exist
@@ -3689,7 +3689,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 	const FStaticMeshLODResources& RenderMesh = StaticMesh->GetLODForExport(LODIndex);
 
 	// Verify the integrity of the static mesh.
-	if (RenderMesh.VertexBuffer.GetNumVertices() == 0)
+	if (RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() == 0)
 	{
 		return;
 	}
@@ -3711,7 +3711,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 	else
 	{
 		// Do not weld verts
-		VertRemap.Add(RenderMesh.VertexBuffer.GetNumVertices());
+		VertRemap.Add(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 		for (int32 i = 0; i < VertRemap.Num(); i++)
 		{
 			VertRemap[i] = i;
@@ -3732,7 +3732,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 	for (int32 PosIndex = 0; PosIndex < UniqueVerts.Num(); ++PosIndex)
 	{
 		int32 UnrealPosIndex = UniqueVerts[PosIndex];
-		FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(UnrealPosIndex);
+		FVector Position = RenderMesh.VertexBuffers.PositionVertexBuffer.VertexPosition(UnrealPosIndex);
 
 		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis));
 		USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis) = 0;
@@ -3780,9 +3780,9 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 	FbxNormals.AddUninitialized(VertexCount);
 	for (int32 VertIndex = 0; VertIndex < VertexCount; ++VertIndex)
 	{
-		FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(VertIndex);
+		FVector Position = RenderMesh.VertexBuffers.PositionVertexBuffer.VertexPosition(VertIndex);
 		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis));
-		FVector Normal = FVector(RenderMesh.VertexBuffer.VertexTangentZ(VertIndex));
+		FVector Normal = FVector(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertIndex));
 		Normal = SliceTransform.TransformVector(Normal);
 		FbxVector4& FbxNormal = FbxNormals[VertIndex];
 		FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z);
@@ -3799,7 +3799,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 
 	// Create and fill in the per-face-vertex texture coordinate data source(s).
 	// Create UV for Diffuse channel.
-	int32 TexCoordSourceCount = RenderMesh.VertexBuffer.GetNumTexCoords();
+	int32 TexCoordSourceCount = RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords();
 	for (int32 TexCoordSourceIndex = 0; TexCoordSourceIndex < TexCoordSourceCount; ++TexCoordSourceIndex)
 	{
 		FbxLayer* UVsLayer = Mesh->GetLayer(TexCoordSourceIndex);
@@ -3826,7 +3826,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 		if (ExportOptions->WeldedVertices)
 		{
 			// Weld UVs
-			DetermineUVsToWeld(UvsRemap, UniqueUVs, RenderMesh.VertexBuffer, TexCoordSourceIndex);
+			DetermineUVsToWeld(UvsRemap, UniqueUVs, RenderMesh.VertexBuffers.StaticMeshVertexBuffer, TexCoordSourceIndex);
 		}
 		else
 		{
@@ -3838,7 +3838,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 		// Create the texture coordinate data source.
 		for (int32 UnrealVertIndex : UniqueUVs)
 		{
-			const FVector2D& TexCoord = RenderMesh.VertexBuffer.GetVertexUV(UnrealVertIndex, TexCoordSourceIndex);
+			const FVector2D& TexCoord = RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(UnrealVertIndex, TexCoordSourceIndex);
 			UVDiffuseLayer->GetDirectArray().Add(FbxVector2(TexCoord.X, -TexCoord.Y + 1.0));
 		}
 
@@ -3906,7 +3906,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 #endif // #if TODO_FBX
 
 	// Create and fill in the vertex color data source.
-	const FColorVertexBuffer* ColorBufferToUse = &RenderMesh.ColorVertexBuffer;
+	const FColorVertexBuffer* ColorBufferToUse = &RenderMesh.VertexBuffers.ColorVertexBuffer;
 	uint32 ColorVertexCount = ColorBufferToUse->GetNumVertices();
 
 	// Only export vertex colors if they exist

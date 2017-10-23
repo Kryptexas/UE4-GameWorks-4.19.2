@@ -9,6 +9,8 @@
 #include "UObject/Object.h"
 #include "Engine/EngineBaseTypes.h"
 
+class UPendingNetGame;
+
 /**
 * Accepting connection response codes
 */
@@ -180,5 +182,13 @@ public:
 	 */
 	DECLARE_DELEGATE_OneParam(FReceivedNetworkEncryptionAck, const FOnEncryptionKeyResponse& /*Delegate*/);
 	static FReceivedNetworkEncryptionAck OnReceivedNetworkEncryptionAck;
+
+	/**
+	 * Delegate fired when a pending net game has created a UNetConnection to the server but hasn't sent the initial join message yet.
+	 *
+	 * @param PendingNetGame pointer to the PendingNetGame that is initializing its connection to a server.
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPendingNetGameConnectionCreated, UPendingNetGame* /*PendingNetGame*/);
+	static FOnPendingNetGameConnectionCreated OnPendingNetGameConnectionCreated;
 
 };

@@ -489,13 +489,18 @@ bool FSoundCueEditor::CanAddInput() const
 
 void FSoundCueEditor::DeleteInput()
 {
-	UEdGraphPin* SelectedPin = SoundCueGraphEditor->GetGraphPinForMenu();
-	
-	USoundCueGraphNode* SelectedNode = Cast<USoundCueGraphNode>(SelectedPin->GetOwningNode());
-
-	if (SelectedNode && SelectedNode == SelectedPin->GetOwningNode())
+	if (SoundCueGraphEditor.IsValid())
 	{
-		SelectedNode->RemoveInputPin(SelectedPin);
+		UEdGraphPin* SelectedPin = SoundCueGraphEditor->GetGraphPinForMenu();
+		if (ensure(SelectedPin))
+		{
+			USoundCueGraphNode* SelectedNode = Cast<USoundCueGraphNode>(SelectedPin->GetOwningNode());
+
+			if (SelectedNode && SelectedNode == SelectedPin->GetOwningNode())
+			{
+				SelectedNode->RemoveInputPin(SelectedPin);
+			}
+		}
 	}
 }
 

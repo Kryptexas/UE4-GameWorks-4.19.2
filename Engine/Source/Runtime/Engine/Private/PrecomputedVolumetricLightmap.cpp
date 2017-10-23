@@ -13,11 +13,32 @@
 #include "Engine/MapBuildDataRegistry.h"
 #include "Interfaces/ITargetPlatform.h"
 
+DECLARE_MEMORY_STAT(TEXT("Volumetric Lightmap"),STAT_VolumetricLightmapBuildData,STATGROUP_MapBuildData);
+
+void FVolumetricLightmapDataLayer::CreateTexture(FIntVector Dimensions)
+{
+	FRHIResourceCreateInfo CreateInfo;
+	CreateInfo.BulkData = this;
+
+	Texture = RHICreateTexture3D(
+		Dimensions.X, 
+		Dimensions.Y, 
+		Dimensions.Z, 
+		Format,
+		1,
+		TexCreate_ShaderResource,
+		CreateInfo);
+}
 
 FArchive& operator<<(FArchive& Ar,FVolumetricLightmapDataLayer& Layer)
 {
 	Ar << Layer.Data;
 	
+	if (Ar.IsLoading())
+	{
+		Layer.DataSize = Layer.Data.Num() * Layer.Data.GetTypeSize();
+	}
+
 	UEnum* PixelFormatEnum = UTexture::GetPixelFormatEnum();
 
 	if (Ar.IsLoading())
@@ -56,9 +77,8 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedVolumetricLightmapData& Volume)
 
 	if (Ar.IsLoading())
 	{
-		Volume.bInitialized = true;
 		const SIZE_T VolumeBytes = Volume.GetAllocatedBytes();
-		INC_DWORD_STAT_BY(STAT_PrecomputedVolumetricLightmapMemory, VolumeBytes);
+		INC_DWORD_STAT_BY(STAT_VolumetricLightmapBuildData, VolumeBytes);
 	}
 
 	return Ar;
@@ -100,24 +120,18 @@ int32 FVolumetricLightmapBrickData::GetMinimumVoxelSize() const
 	return VoxelSize;
 }
 
-FPrecomputedVolumetricLightmapData::FPrecomputedVolumetricLightmapData() :
-	bInitialized(false)
+FPrecomputedVolumetricLightmapData::FPrecomputedVolumetricLightmapData()
 {}
 
 FPrecomputedVolumetricLightmapData::~FPrecomputedVolumetricLightmapData()
 {
-	if (bInitialized)
-	{
-		const SIZE_T VolumeBytes = GetAllocatedBytes();
-		DEC_DWORD_STAT_BY(STAT_PrecomputedVolumetricLightmapMemory, VolumeBytes);
-	}
+	const SIZE_T VolumeBytes = GetAllocatedBytes();
+	DEC_DWORD_STAT_BY(STAT_VolumetricLightmapBuildData, VolumeBytes);
 }
 
 /** */
-void FPrecomputedVolumetricLightmapData::Initialize(const FBox& NewBounds, int32 InBrickSize)
+void FPrecomputedVolumetricLightmapData::InitializeOnImport(const FBox& NewBounds, int32 InBrickSize)
 {
-	check(!bInitialized);
-	bInitialized = true;
 	Bounds = NewBounds;
 	BrickSize = InBrickSize;
 }
@@ -125,12 +139,44 @@ void FPrecomputedVolumetricLightmapData::Initialize(const FBox& NewBounds, int32
 void FPrecomputedVolumetricLightmapData::FinalizeImport()
 {
 	const SIZE_T VolumeBytes = GetAllocatedBytes();
-	INC_DWORD_STAT_BY(STAT_PrecomputedVolumetricLightmapMemory, VolumeBytes);
+	INC_DWORD_STAT_BY(STAT_VolumetricLightmapBuildData, VolumeBytes);
+}
+
+ENGINE_API void FPrecomputedVolumetricLightmapData::InitRHI()
+{
+	IndirectionTexture.CreateTexture(IndirectionTextureDimensions);
+	BrickData.AmbientVector.CreateTexture(BrickDataDimensions);
+
+	for (int32 i = 0; i < ARRAY_COUNT(BrickData.SHCoefficients); i++)
+	{
+		BrickData.SHCoefficients[i].CreateTexture(BrickDataDimensions);
+	}
+
+	if (BrickData.SkyBentNormal.Data.Num() > 0)
+	{
+		BrickData.SkyBentNormal.CreateTexture(BrickDataDimensions);
+	}
+
+	BrickData.DirectionalLightShadowing.CreateTexture(BrickDataDimensions);
+}
+
+ENGINE_API void FPrecomputedVolumetricLightmapData::ReleaseRHI()
+{
+	IndirectionTexture.Texture.SafeRelease();
+	BrickData.AmbientVector.Texture.SafeRelease();
+
+	for (int32 i = 0; i < ARRAY_COUNT(BrickData.SHCoefficients); i++)
+	{
+		BrickData.SHCoefficients[i].Texture.SafeRelease();
+	}
+
+	BrickData.SkyBentNormal.Texture.SafeRelease();
+	BrickData.DirectionalLightShadowing.Texture.SafeRelease();
 }
 
 SIZE_T FPrecomputedVolumetricLightmapData::GetAllocatedBytes() const
 {
-	return IndirectionTexture.Data.Num() + BrickData.GetAllocatedBytes();
+	return IndirectionTexture.DataSize + BrickData.GetAllocatedBytes();
 }
 
 
@@ -155,7 +201,7 @@ void FPrecomputedVolumetricLightmap::AddToScene(FSceneInterface* Scene, UMapBuil
 		NewData = Registry->GetLevelPrecomputedVolumetricLightmapBuildData(LevelBuildDataId);
 	}
 
-	if (NewData && NewData->bInitialized && Scene)
+	if (NewData && Scene)
 	{
 		bAddedToScene = true;
 
@@ -188,6 +234,11 @@ void FPrecomputedVolumetricLightmap::RemoveFromScene(FSceneInterface* Scene)
 void FPrecomputedVolumetricLightmap::SetData(FPrecomputedVolumetricLightmapData* NewData, FSceneInterface* Scene)
 {
 	Data = NewData;
+
+	if (Data && RHISupportsVolumeTextures(Scene->GetFeatureLevel()))
+	{
+		Data->InitResource();
+	}
 }
 
 void FPrecomputedVolumetricLightmap::ApplyWorldOffset(const FVector& InOffset)

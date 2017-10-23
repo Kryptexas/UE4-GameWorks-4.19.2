@@ -170,7 +170,7 @@ void FAvfMediaPlayer::OnStatusNotification(AVPlayerItemStatus Status)
 				
 				PlayerTasks.Enqueue([=]() {
 					Duration = FTimespan::FromSeconds(CMTimeGetSeconds(PlayerItem.asset.duration));
-					CurrentState = (CurrentState == EMediaState::Closed) ? EMediaState::Preparing : CurrentState;
+					CurrentState = (CurrentState == EMediaState::Closed) ? EMediaState::Stopped : CurrentState;
 
 					if (!bPrerolled)
 					{

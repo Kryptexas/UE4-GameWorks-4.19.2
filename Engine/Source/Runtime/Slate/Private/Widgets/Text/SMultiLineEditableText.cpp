@@ -470,6 +470,15 @@ void SMultiLineEditableText::Refresh()
 	EditableTextLayout->Refresh();
 }
 
+void SMultiLineEditableText::ForceScroll(int32 UserIndex, float ScrollAxisMagnitude)
+{
+	const FGeometry& CachedGeom = GetCachedGeometry();
+	FVector2D ScrollPos = (CachedGeom.LocalToAbsolute(FVector2D::ZeroVector) + CachedGeom.LocalToAbsolute(CachedGeom.GetLocalSize())) * 0.5f;
+	TSet<FKey> PressedKeys;
+
+	OnMouseWheel(CachedGeom, FPointerEvent(UserIndex, 0, ScrollPos, ScrollPos, PressedKeys, EKeys::Invalid, ScrollAxisMagnitude, FModifierKeysState()));
+}
+
 void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	EditableTextLayout->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);

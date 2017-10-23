@@ -12,9 +12,9 @@ namespace mtlpp
 {
     FunctionConstantValues::FunctionConstantValues() :
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLFunctionConstantValues alloc] init] }, false)
+        ns::Object<MTLFunctionConstantValues*>([[MTLFunctionConstantValues alloc] init], false)
 #else
-        ns::Object(ns::Handle{ nullptr })
+        ns::Object<MTLFunctionConstantValues*>(nullptr)
 #endif
     {
     }
@@ -23,7 +23,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLFunctionConstantValues*)m_ptr setConstantValue:value type:MTLDataType(type) atIndex:index];
+        [(MTLFunctionConstantValues*)m_ptr setConstantValue:value type:MTLDataType(type) atIndex:index];
 #endif
     }
 
@@ -31,7 +31,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLFunctionConstantValues*)m_ptr setConstantValue:value type:MTLDataType(type) withName:(__bridge NSString*)name.GetPtr()];
+        [(MTLFunctionConstantValues*)m_ptr setConstantValue:value type:MTLDataType(type) withName:(NSString*)name.GetPtr()];
 #endif
     }
 
@@ -39,7 +39,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge MTLFunctionConstantValues*)m_ptr setConstantValues:value type:MTLDataType(type) withRange:NSMakeRange(range.Location, range.Length)];
+        [(MTLFunctionConstantValues*)m_ptr setConstantValues:value type:MTLDataType(type) withRange:NSMakeRange(range.Location, range.Length)];
 #endif
     }
 
@@ -47,7 +47,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(__bridge MTLFunctionConstantValues*)m_ptr reset];
+        return [(MTLFunctionConstantValues*)m_ptr reset];
 #endif
     }
 }

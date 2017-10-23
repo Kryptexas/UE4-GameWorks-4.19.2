@@ -33,7 +33,7 @@ template FD3D12StructuredBuffer* FD3D12Adapter::CreateRHIBuffer<FD3D12Structured
 	FRHIResourceCreateInfo& CreateInfo,
 	bool SkipCreate);
 
-struct FRHICommandUpdateBuffer : public FRHICommand<FRHICommandUpdateBuffer>
+struct FRHICommandUpdateBuffer final : public FRHICommand<FRHICommandUpdateBuffer>
 {
 	FD3D12ResourceLocation Source;
 	FD3D12ResourceLocation* Destination;
@@ -59,7 +59,7 @@ struct FRHICommandUpdateBuffer : public FRHICommand<FRHICommandUpdateBuffer>
 // is done in parallel and this small function is called to switch the resource to point to the correct location
 // a the correct time.
 template<typename ResourceType>
-struct FRHICommandRenameUploadBuffer : public FRHICommand<FRHICommandRenameUploadBuffer<ResourceType>>
+struct FRHICommandRenameUploadBuffer final : public FRHICommand<FRHICommandRenameUploadBuffer<ResourceType>>
 {
 	ResourceType* Resource;
 	FD3D12ResourceLocation NewResource;
@@ -266,13 +266,15 @@ void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferT
 					FScopeResourceBarrier ScopeResourceBarrierSource(hCommandList, pResource, pResource->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
 					// Don't need to transition upload heaps
 
+					uint64 SubAllocOffset = Buffer->ResourceLocation.GetOffsetFromBaseOfResource();
+
 					DefaultContext.numCopies++;
 					hCommandList.FlushResourceBarriers();	// Must flush so the desired state is actually set.
 					hCommandList->CopyBufferRegion(
 						StagingBuffer->GetResource(),
 						0,
 						pResource->GetResource(),
-						Offset, Size);
+						SubAllocOffset + Offset, Size);
 
 					hCommandList.UpdateResidency(StagingBuffer);
 					hCommandList.UpdateResidency(pResource);
@@ -290,7 +292,7 @@ void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferT
 				}
 				else
 				{
-					check(IsInRHIThread());
+					check(IsInRenderingThread() && !GRHIThreadId);
 					pfnCopyContents();
 				}
 			}

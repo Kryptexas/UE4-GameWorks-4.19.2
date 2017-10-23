@@ -28,8 +28,6 @@ float4x4 PreviousLocalToWorld;
 
 #define FIXED_VERTEX_INDEX 0xFFFF
 
-float3 MeshOrigin;
-float3 MeshExtension;
 // if the per bone motion blur is enabled for this draw call
 bool PerBoneMotionBlur;
 
@@ -103,9 +101,9 @@ struct FVertexFactoryInput
 uint2 GPUSkinApexClothStartIndexOffset;
 struct FClothVertex
 {
-	// APEX cloth mesh-mesh mapping data
-	// Barycentric Coordinate Data
-	float4	BaryCoordPos;
+// APEX cloth mesh-mesh mapping data
+// Barycentric Coordinate Data
+float4	BaryCoordPos;
 	float4	BaryCoordNormal;
 	float4	BaryCoordTangent;
 
@@ -295,7 +293,7 @@ float3 ClothingPosition(FClothVertex Input, bool bPrevious)
 					+ Input.BaryCoordPos.y*(GetClothSimulPosition(Input.SimulIndices.y, bPrevious)+GetClothSimulNormal(Input.SimulIndices.y, bPrevious)*Input.BaryCoordPos.w)
 					+ Input.BaryCoordPos.z*(GetClothSimulPosition(Input.SimulIndices.z, bPrevious)+GetClothSimulNormal(Input.SimulIndices.z, bPrevious)*Input.BaryCoordPos.w);
 
-	return float3(Position.xyz*MeshExtension + MeshOrigin);
+	return float3(Position.xyz);
 }
 
 #endif //#if GPUSKIN_APEX_CLOTH
@@ -305,7 +303,7 @@ float3 ClothingPosition(FClothVertex Input, bool bPrevious)
 */
 float3 UnpackedPosition( FVertexFactoryInput Input )
 {
-	return float3(Input.Position.xyz*MeshExtension + MeshOrigin);
+		return float3(Input.Position.xyz);
 }
 
 #if GPUSKIN_MORPH_BLEND
@@ -460,8 +458,8 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 								+ ClothVertex.BaryCoordTangent.y*(B+NB*ClothVertex.BaryCoordTangent.w)
 								+ ClothVertex.BaryCoordTangent.z*(C+NC*ClothVertex.BaryCoordTangent.w);
 
-		TangentToLocal[0] = normalize(TangentPosition*MeshExtension + MeshOrigin - Intermediates.SimulatedPosition);
-		TangentToLocal[2] = normalize(NormalPosition*MeshExtension + MeshOrigin - Intermediates.SimulatedPosition);
+		TangentToLocal[0] = normalize(TangentPosition - Intermediates.SimulatedPosition);
+		TangentToLocal[2] = normalize(NormalPosition - Intermediates.SimulatedPosition);
 
 		// cloth data are all in world space so need to change into local space
 		TangentToLocal[0] = mul(TangentToLocal[0], (half3x3)Primitive.WorldToLocal);

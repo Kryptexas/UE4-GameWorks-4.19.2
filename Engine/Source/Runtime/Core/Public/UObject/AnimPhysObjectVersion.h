@@ -35,6 +35,8 @@ struct CORE_API FAnimPhysObjectVersion
 		RenameDisableAnimCurvesToAllowAnimCurveEvaluation,
 		// link curve to LOD, so curve metadata has to include LODIndex
 		AddLODToCurveMetaData,
+		// Fixed blend profile references persisting after paste when they aren't compatible
+		FixupBadBlendProfileReferences,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

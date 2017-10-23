@@ -1,7 +1,7 @@
-#include "../mtlpp.hpp"
+#include "../src/mtlpp.hpp"
 #include "window.hpp"
 
-mtlpp::Device              g_device;
+ns::Ref<mtlpp::Device>     g_device;
 mtlpp::CommandQueue        g_commandQueue;
 mtlpp::Buffer              g_vertexBuffer;
 mtlpp::RenderPipelineState g_renderPipelineState;
@@ -50,20 +50,24 @@ int main()
         -1.0f, -1.0f, 0.0f,
          1.0f, -1.0f, 0.0f,
     };
-    g_device = mtlpp::Device::CreateSystemDefaultDevice();
-    g_commandQueue = g_device.NewCommandQueue();
+	
+	ns::Array<ns::Ref<mtlpp::Device>> devices = mtlpp::Device::CopyAllDevices();
+	g_device = devices[0];
+	
+//    g_device = mtlpp::Device::CreateSystemDefaultDevice();
+    g_commandQueue = g_device->NewCommandQueue();
 
-    mtlpp::Library library = g_device.NewLibrary(shadersSrc, mtlpp::CompileOptions(), nullptr);
+    mtlpp::Library library = g_device->NewLibrary(shadersSrc, mtlpp::CompileOptions(), nullptr);
     mtlpp::Function vertFunc = library.NewFunction("vertFunc");
     mtlpp::Function fragFunc = library.NewFunction("fragFunc");
 
-    g_vertexBuffer = g_device.NewBuffer(vertexData, sizeof(vertexData), mtlpp::ResourceOptions::CpuCacheModeDefaultCache);
+    g_vertexBuffer = g_device->NewBuffer(vertexData, sizeof(vertexData), mtlpp::ResourceOptions::CpuCacheModeDefaultCache);
 
     mtlpp::RenderPipelineDescriptor renderPipelineDesc;
     renderPipelineDesc.SetVertexFunction(vertFunc);
     renderPipelineDesc.SetFragmentFunction(fragFunc);
     renderPipelineDesc.GetColorAttachments()[0].SetPixelFormat(mtlpp::PixelFormat::BGRA8Unorm);
-    g_renderPipelineState = g_device.NewRenderPipelineState(renderPipelineDesc, nullptr);
+    g_renderPipelineState = g_device->NewRenderPipelineState(renderPipelineDesc, nullptr);
 
     Window win(g_device, &Render, 320, 240);
     Window::Run();

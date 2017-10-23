@@ -1287,6 +1287,19 @@ void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayE
 	}
 }
 
+void UGameplayAbility::K2_AddGameplayCueWithParams(FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameter, bool bRemoveOnAbilityEnd)
+{
+	check(CurrentActorInfo);
+
+	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, GameplayCueParameter);
+
+	if (bRemoveOnAbilityEnd)
+	{
+		TrackedGameplayCues.Add(GameplayCueTag);
+	}
+}
+
+
 void UGameplayAbility::K2_RemoveGameplayCue(FGameplayTag GameplayCueTag)
 {
 	check(CurrentActorInfo);
@@ -1325,9 +1338,12 @@ int32 UGameplayAbility::GetAbilityLevel() const
 int32 UGameplayAbility::GetAbilityLevel(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
-	check(Spec);
+	if (ensure(Spec))
+	{
+		return Spec->Level;
+	}
 
-	return Spec->Level;
+	return 1;
 }
 
 FGameplayAbilitySpec* UGameplayAbility::GetCurrentAbilitySpec() const
@@ -1629,6 +1645,16 @@ void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithGrantedTags(FGameplay
 
 	FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(WithGrantedTags);
 	CurrentActorInfo->AbilitySystemComponent->RemoveActiveEffects(Query, StacksToRemove);
+}
+
+void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithHandle(FActiveGameplayEffectHandle Handle, int32 StacksToRemove)
+{
+	if (HasAuthority(&CurrentActivationInfo) == false)
+	{
+		return;
+	}
+
+	CurrentActorInfo->AbilitySystemComponent->RemoveActiveGameplayEffect(Handle, StacksToRemove);
 }
 
 float UGameplayAbility::GetCooldownTimeRemaining() const

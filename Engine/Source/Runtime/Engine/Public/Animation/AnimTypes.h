@@ -252,6 +252,10 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings)
 	bool bTriggerOnDedicatedServer;
 
+	/** If enabled this notify will trigger when the animation is a follower in a sync group (by default only the sync group leaders notifies trigger */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings)
+	bool bTriggerOnFollower;
+
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
 	UPROPERTY()
@@ -277,6 +281,7 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 		, NotifyFilterType(ENotifyFilterType::NoFiltering)
 		, NotifyFilterLOD(0)
 		, bTriggerOnDedicatedServer(true)
+		, bTriggerOnFollower(false)
 #if WITH_EDITORONLY_DATA
 		, NotifyColor(FColor::Black)
 #endif // WITH_EDITORONLY_DATA

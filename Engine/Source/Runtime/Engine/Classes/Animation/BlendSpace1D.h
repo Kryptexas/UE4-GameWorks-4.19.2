@@ -25,7 +25,7 @@ public:
 #endif
 
 	/** Drive animation speed by blend input position **/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = InputInterpolation)
 	bool bScaleAnimation;
 
 	virtual bool IsValidAdditive() const override;

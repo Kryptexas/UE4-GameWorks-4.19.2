@@ -6,103 +6,39 @@
 // Modifications for Unreal Engine
 
 #include "ns.hpp"
-#include <CoreFoundation/CFBase.h>
-#include <Foundation/NSString.h>
-#include <Foundation/NSError.h>
-#include <Foundation/NSArray.h>
-#include <cstring>
 
 namespace ns
 {
-    Object::Object() :
-        m_ptr(nullptr)
-    {
-    }
-
-    Object::Object(const Handle& handle, bool const retain) :
-        m_ptr(handle.ptr)
-    {
-		if (m_ptr && retain)
-			CFRetain(m_ptr);
-    }
-
-    Object::Object(const Object& rhs) :
-        m_ptr(rhs.m_ptr)
-    {
-        if (m_ptr)
-            CFRetain(m_ptr);
-    }
-
-#if MTLPP_CONFIG_RVALUE_REFERENCES
-    Object::Object(Object&& rhs) :
-        m_ptr(rhs.m_ptr)
-    {
-        rhs.m_ptr = nullptr;
-    }
-#endif
-
-    Object::~Object()
-    {
-        if (m_ptr)
-            CFRelease(m_ptr);
-    }
-
-    Object& Object::operator=(const Object& rhs)
-    {
-        if (rhs.m_ptr == m_ptr)
-            return *this;
-        if (rhs.m_ptr)
-            CFRetain(rhs.m_ptr);
-        if (m_ptr)
-            CFRelease(m_ptr);
-        m_ptr = rhs.m_ptr;
-        return *this;
-    }
-
-#if MTLPP_CONFIG_RVALUE_REFERENCES
-    Object& Object::operator=(Object&& rhs)
-    {
-        if (rhs.m_ptr == m_ptr)
-            return *this;
-        if (m_ptr)
-            CFRelease(m_ptr);
-        m_ptr = rhs.m_ptr;
-        rhs.m_ptr = nullptr;
-        return *this;
-    }
-#endif
-
     uint32_t ArrayBase::GetSize() const
     {
-        Validate();
-        return uint32_t([(__bridge NSArray*)m_ptr count]);
+		ns::Object<NSArray*>::Validate();
+        return uint32_t([ns::Object<NSArray*>::m_ptr count]);
     }
 
     void* ArrayBase::GetItem(uint32_t index) const
     {
-        Validate();
-        return (__bridge void*)[(__bridge NSArray*)m_ptr objectAtIndexedSubscript:index];
+        ns::Object<NSArray*>::Validate();
+        return (void*)[ns::Object<NSArray*>::m_ptr objectAtIndexedSubscript:index];
     }
 
     String::String(const char* cstr) :
-        Object(Handle{ (__bridge void*)[NSString stringWithUTF8String:cstr] })
+        Object<NSString*>([NSString stringWithUTF8String:cstr])
     {
     }
 
     const char* String::GetCStr() const
     {
         Validate();
-        return [(__bridge NSString*)m_ptr cStringUsingEncoding:NSUTF8StringEncoding];
+        return [(NSString*)m_ptr cStringUsingEncoding:NSUTF8StringEncoding];
     }
 
     uint32_t String::GetLength() const
     {
         Validate();
-        return uint32_t([(__bridge NSString*)m_ptr length]);
+        return uint32_t([(NSString*)m_ptr length]);
     }
 
-    Error::Error() :
-        Object(Handle{ (__bridge void*)[[NSError alloc] init] })
+    Error::Error()
     {
 
     }
@@ -110,13 +46,13 @@ namespace ns
     String Error::GetDomain() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr domain] };
+        return [(NSError*)m_ptr domain];
     }
 
     uint32_t Error::GetCode() const
     {
         Validate();
-        return uint32_t([(__bridge NSError*)m_ptr code]);
+        return uint32_t([(NSError*)m_ptr code]);
     }
 
     //@property (readonly, copy) NSDictionary *userInfo;
@@ -124,25 +60,25 @@ namespace ns
     String Error::GetLocalizedDescription() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedDescription] };
+        return [(NSError*)m_ptr localizedDescription];
     }
 
     String Error::GetLocalizedFailureReason() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedFailureReason] };
+        return [(NSError*)m_ptr localizedFailureReason];
     }
 
     String Error::GetLocalizedRecoverySuggestion() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedRecoverySuggestion] };
+        return [(NSError*)m_ptr localizedRecoverySuggestion];
     }
 
-    String Error::GetLocalizedRecoveryOptions() const
+    Array<String> Error::GetLocalizedRecoveryOptions() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedRecoveryOptions] };
+        return (NSArray*)[(NSError*)m_ptr localizedRecoveryOptions];
     }
 
     //@property (nullable, readonly, strong) id recoveryAttempter;
@@ -150,6 +86,6 @@ namespace ns
     String Error::GetHelpAnchor() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr helpAnchor] };
+        return [(NSError*)m_ptr helpAnchor];
     }
 }

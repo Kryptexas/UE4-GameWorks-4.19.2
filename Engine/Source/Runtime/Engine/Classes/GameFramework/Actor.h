@@ -489,7 +489,7 @@ public:
 	uint8 bIgnoresOriginShifting:1;
 	
 	/** If true, and if World setting has bEnableHierarchicalLOD equal to true, then it will generate LODActor from groups of clustered Actor */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = HLOD, meta = (DisplayName = "Include Actor for HLOD Mesh generation"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = LOD, meta = (DisplayName = "Include Actor for HLOD Mesh generation"))
 	uint8 bEnableAutoLODGeneration:1;
 
 public:
@@ -2629,8 +2629,30 @@ public:
 	/** Updates NetUpdateTime to the new value for future net relevancy checks */
 	void SetNetUpdateTime(float NewUpdateTime);
 
-	/** Return the FNetworkObjectInfo struct associated with this actor (for the main NetDriver) */
-	FNetworkObjectInfo* GetNetworkObjectInfo() const;
+	/**
+	 *	Find the FNetworkObjectInfo struct associated with this actor (for the main NetDriver).
+	 *	If no info is found, one will be created and added to the main NetDriver.
+	 *
+	 *	@return The FNetworkObejctInfo associated with this Actor, or nullptr if one couldn't be created.
+	 */
+	 FNetworkObjectInfo* FindOrAddNetworkObjectInfo();
+
+	/**
+	 *	Find the FNetworkObjectInfo struct associated with this actor (for the main NetDriver).
+	 *
+	 *	@return The FNetworkObejctInfo associated with this Actor, or nullptr if none was found.
+	 */
+	FNetworkObjectInfo* FindNetworkObjectInfo();
+	const FNetworkObjectInfo* FindNetworkObjectInfo() const
+	{
+		return const_cast<AActor*>(this)->FindNetworkObjectInfo();
+	}
+
+	DEPRECATED(4.19, "This method is deprecated. Please use FindNetworkObjectInfo instead.")
+	FNetworkObjectInfo* GetNetworkObjectInfo() const
+	{
+		return const_cast<AActor*>(this)->FindOrAddNetworkObjectInfo();
+	}
 
 	/** Force actor to be updated to clients */
 	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category="Networking")

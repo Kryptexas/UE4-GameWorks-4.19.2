@@ -15,6 +15,7 @@
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "GameFramework/WorldSettings.h"
 #include "PersonaModule.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "SEditorViewport.h"
 #include "CanvasTypes.h"
@@ -26,12 +27,12 @@
 #include "SAnimationEditorViewport.h"
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
-#include "SkeletalMeshTypes.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "SkeletalDebugRendering.h"
 #include "SkeletalRenderPublic.h"
 #include "AudioDevice.h"
+#include "RawIndexBuffer.h"
 
 namespace {
 	// Value from UE3
@@ -465,7 +466,7 @@ void FAnimationViewportClient::DrawUVsForMesh(FViewport* InViewport, FCanvas* In
 
 	TArray<FVector2D> SelectedEdgeTexCoords; //No functionality in Persona for this (yet?)
 
-	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannelToDraw, SelectedEdgeTexCoords, NULL, &PreviewMeshComponent->GetSkeletalMeshResource()->LODModels[LODLevel] );
+	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannelToDraw, SelectedEdgeTexCoords, NULL, &PreviewMeshComponent->GetSkeletalMeshRenderData()->LODRenderData[LODLevel] );
 }
 
 void FAnimationViewportClient::Tick(float DeltaSeconds) 
@@ -522,29 +523,29 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 	}
 
 	//Most of the code taken from FASVViewportClient::Draw() in AnimSetViewerMain.cpp
-	FSkeletalMeshResource* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshResource();
-	check(SkelMeshResource);
-	const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num()-1);
-	FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
+	FSkeletalMeshRenderData* SkelMeshRenderData = PreviewMeshComponent->GetSkeletalMeshRenderData();
+	check(SkelMeshRenderData);
+	const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshRenderData->LODRenderData.Num()-1);
+	FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[ LODIndex ];
 
 	const int32 HalfX = Viewport->GetSizeXY().X/2;
 	const int32 HalfY = Viewport->GetSizeXY().Y/2;
 
-	for (int32 i=0; i< LODModel.RequiredBones.Num(); i++)
+	for (int32 i=0; i< LODData.RequiredBones.Num(); i++)
 	{
-		const int32 BoneIndex = LODModel.RequiredBones[i];
+		const int32 BoneIndex = LODData.RequiredBones[i];
 
 		// If previewing a specific section, only show the bone names that belong to it
-		if ((PreviewMeshComponent->SectionIndexPreview >= 0) && !LODModel.Sections[PreviewMeshComponent->SectionIndexPreview].BoneMap.Contains(BoneIndex))
+		if ((PreviewMeshComponent->SectionIndexPreview >= 0) && !LODData.RenderSections[PreviewMeshComponent->SectionIndexPreview].BoneMap.Contains(BoneIndex))
 		{
 			continue;
 		}
 		if ((PreviewMeshComponent->MaterialIndexPreview >= 0))
 		{
 			TArray<int32> FoundSectionIndex;
-			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+			for (int32 SectionIndex = 0; SectionIndex < LODData.RenderSections.Num(); ++SectionIndex)
 			{
-				if (LODModel.Sections[SectionIndex].MaterialIndex == PreviewMeshComponent->MaterialIndexPreview)
+				if (LODData.RenderSections[SectionIndex].MaterialIndex == PreviewMeshComponent->MaterialIndexPreview)
 				{
 					FoundSectionIndex.Add(SectionIndex);
 					break;
@@ -555,7 +556,7 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 				bool PreviewSectionContainBoneIndex = false;
 				for (int32 SectionIndex : FoundSectionIndex)
 				{
-					if (LODModel.Sections[SectionIndex].BoneMap.Contains(BoneIndex))
+					if (LODData.RenderSections[SectionIndex].BoneMap.Contains(BoneIndex))
 					{
 						PreviewSectionContainBoneIndex = true;
 						break;
@@ -749,7 +750,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	{
 		if (bDisplayAllInfo)
 		{
-			FSkeletalMeshResource* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshResource();
+			FSkeletalMeshRenderData* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshRenderData();
 			check(SkelMeshResource);
 
 			// Draw stats about the mesh
@@ -761,19 +762,19 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			int32 NumSectionsInUse;
 			FString WeightUsage;
 
-			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num() - 1);
-			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODRenderData.Num() - 1);
+			FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[LODIndex];
 
-			NumBonesInUse = LODModel.RequiredBones.Num();
-			NumBonesMappedToVerts = LODModel.ActiveBoneIndices.Num();
-			NumSectionsInUse = LODModel.Sections.Num();
+			NumBonesInUse = LODData.RequiredBones.Num();
+			NumBonesMappedToVerts = LODData.ActiveBoneIndices.Num();
+			NumSectionsInUse = LODData.RenderSections.Num();
 
 			// Calculate polys based on non clothing sections so we don't duplicate the counts.
 			uint32 NumTotalTriangles = 0;
-			int32 NumSections = LODModel.NumNonClothingSections();
+			int32 NumSections = LODData.NumNonClothingSections();
 			for(int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 			{
-				NumTotalTriangles += LODModel.Sections[SectionIndex].NumTriangles;
+				NumTotalTriangles += LODData.RenderSections[SectionIndex].NumTriangles;
 			}
 
 			InfoString = FString::Printf(TEXT("LOD: %d, Bones: %d (Mapped to Vertices: %d), Polys: %d"),
@@ -790,14 +791,14 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			CurYOffset += 1; // --
 
-			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+			for (int32 SectionIndex = 0; SectionIndex < LODData.RenderSections.Num(); SectionIndex++)
 			{
-				int32 SectionVerts = LODModel.Sections[SectionIndex].GetNumVertices();
+				int32 SectionVerts = LODData.RenderSections[SectionIndex].GetNumVertices();
 
 				InfoString = FString::Printf(TEXT(" [Section %d] Verts:%d, Bones:%d"),
 					SectionIndex,
 					SectionVerts,
-					LODModel.Sections[SectionIndex].BoneMap.Num()
+					LODData.RenderSections[SectionIndex].BoneMap.Num()
 					);
 
 				CurYOffset += YL + 2;
@@ -805,7 +806,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			}
 
 			InfoString = FString::Printf(TEXT("TOTAL Verts:%d"),
-				LODModel.NumVertices);
+				LODData.GetNumVertices());
 
 			CurYOffset += 1; // --
 
@@ -864,11 +865,11 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		}
 		else // simplified default display info to be same as static mesh editor
 		{
-			FSkeletalMeshResource* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshResource();
+			FSkeletalMeshRenderData* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshRenderData();
 			check(SkelMeshResource);
 
-			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num() - 1);
-			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODRenderData.Num() - 1);
+			FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[LODIndex];
 
 			// Current LOD 
 			InfoString = FString::Printf(TEXT("LOD: %d"), LODIndex);
@@ -884,22 +885,22 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			// Triangles
 			uint32 NumTotalTriangles = 0;
-			int32 NumSections = LODModel.NumNonClothingSections();
+			int32 NumSections = LODData.NumNonClothingSections();
 			for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 			{
-				NumTotalTriangles += LODModel.Sections[SectionIndex].NumTriangles;
+				NumTotalTriangles += LODData.RenderSections[SectionIndex].NumTriangles;
 			}
 			InfoString = FString::Printf(TEXT("Triangles: %d"), NumTotalTriangles);
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
 			// Vertices
-			InfoString = FString::Printf(TEXT("Vertices: %d"), LODModel.NumVertices);
+			InfoString = FString::Printf(TEXT("Vertices: %d"), LODData.GetNumVertices());
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
 			// UV Channels
-			InfoString = FString::Printf(TEXT("UV Channels: %d"), LODModel.NumTexCoords);
+			InfoString = FString::Printf(TEXT("UV Channels: %d"), LODData.GetNumTexCoords());
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 			
@@ -1505,7 +1506,7 @@ void FAnimationViewportClient::TransformVertexPositionsToWorld(TArray<FFinalSkin
 }
 
 void FAnimationViewportClient::GetAllVertexIndicesUsedInSection(const FRawStaticIndexBuffer16or32Interface& IndexBuffer,
-																const FSkelMeshSection& SkelMeshSection,
+																const FSkelMeshRenderSection& SkelMeshSection,
 																TArray<int32>& OutIndices) const
 {
 
@@ -1551,10 +1552,10 @@ FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() cons
 
 	const int32 LODLevel = PreviewMeshComponent->PredictedLODLevel;
 	const int32 SelectedEditorSection = SkeletalMesh->SelectedEditorSection;
-	const FSkeletalMeshResource& SkeletalMeshResource = MeshObject->GetSkeletalMeshResource();
+	const FSkeletalMeshRenderData& SkelMeshRenderData = MeshObject->GetSkeletalMeshRenderData();
 
-	const FStaticLODModel& StaticLODModel = SkeletalMeshResource.LODModels[LODLevel];
-	const FSkelMeshSection& SelectedSectionSkelMesh = StaticLODModel.Sections[SelectedEditorSection];
+	const FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData.LODRenderData[LODLevel];
+	const FSkelMeshRenderSection& SelectedSectionSkelMesh = LODData.RenderSections[SelectedEditorSection];
 
 	// Get us vertices from the entire LOD model.
 	TArray<FFinalSkinVertex> SkinnedVertices;
@@ -1563,7 +1564,7 @@ FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() cons
 
 	// Find out which of these the selected section actually uses.
 	TArray<int32> VertexIndices;
-	GetAllVertexIndicesUsedInSection(*StaticLODModel.MultiSizeIndexContainer.GetIndexBuffer(), SelectedSectionSkelMesh, VertexIndices);
+	GetAllVertexIndicesUsedInSection(*LODData.MultiSizeIndexContainer.GetIndexBuffer(), SelectedSectionSkelMesh, VertexIndices);
 
 	// Get their bounds.
 	FBox BoundingBox(ForceInitToZero);

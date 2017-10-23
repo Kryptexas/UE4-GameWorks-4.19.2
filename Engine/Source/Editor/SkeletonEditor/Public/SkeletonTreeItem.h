@@ -32,6 +32,7 @@ public:
 	virtual void ToggleInlineEditorExpansion() override {}
 	virtual bool IsInlineEditorExpanded() const override { return false; }
 	virtual FName GetAttachName() const override { return GetRowItemName(); }
+	virtual bool CanRenameItem() const override { return false; }
 	virtual void RequestRename() override {}
 	virtual void OnItemDoubleClicked() override {}
 	virtual void HandleDragEnter(const FDragDropEvent& DragDropEvent) override {}

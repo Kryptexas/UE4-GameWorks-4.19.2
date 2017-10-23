@@ -164,6 +164,8 @@ $ bStopXGECompilationAfterErrors : When enabled, XGE will stop compiling targets
 
 ### ProjectFileGenerator
 
+$ Format : Default list of project file formats to generate
+
 ### VCProjectFileGenerator
 
 $ Version : The version of Visual Studio to generate project files for.

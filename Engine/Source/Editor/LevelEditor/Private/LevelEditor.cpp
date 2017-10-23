@@ -1396,7 +1396,8 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BuildLighting_CanExecute ) );
 
 	ActionList.MapAction( Commands.BuildReflectionCapturesOnly,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute ) );
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_CanExecute )  );
 
 	ActionList.MapAction( Commands.BuildLightingOnly_VisibilityOnly,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BuildLightingOnly_VisibilityOnly_Execute ) );

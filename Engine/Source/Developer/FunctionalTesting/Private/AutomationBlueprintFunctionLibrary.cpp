@@ -47,6 +47,12 @@ static TAutoConsoleVariable<int32> CVarAutomationScreenshotResolutionHeight(
 	TEXT("The height of automation screenshots."),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarMaxContactOffset(
+	TEXT("AutomationTestUseRelaxedPhysicsStabilityThresholds"),
+	0,
+	TEXT("Relaxes the thresold of automated physics stability tests. Default: Off"),
+	ECVF_Default);
+
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
 template<typename T>

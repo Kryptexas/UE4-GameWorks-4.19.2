@@ -658,12 +658,12 @@ static const char *const operator_strs[ir_opcode_count] =
 	"vector",
 };
 
-static_assert(Elements(operator_strs) == (ir_quadop_vector + 1), "operator_strs_wrong_size");
+static_assert(GetNumArrayElements(operator_strs) == (ir_quadop_vector + 1), "operator_strs_wrong_size");
 
 const char *ir_expression::operator_string(ir_expression_operation op)
 {
-	check((unsigned int)op < Elements(operator_strs));
-	check(Elements(operator_strs) == (ir_quadop_vector + 1));
+	check((unsigned int)op < GetNumArrayElements(operator_strs));
+	check(GetNumArrayElements(operator_strs) == (ir_quadop_vector + 1));
 	return operator_strs[op];
 }
 
@@ -2044,7 +2044,7 @@ ir_atomic::operator_string()
 		"atomic_load",
 		"atomic_store"
 	};
-	static_assert(Elements(str) == ir_atomic_count, "Mismatched atomic count");
+	static_assert(GetNumArrayElements(str) == ir_atomic_count, "Mismatched atomic count");
 	return str[this->operation];
 }
 

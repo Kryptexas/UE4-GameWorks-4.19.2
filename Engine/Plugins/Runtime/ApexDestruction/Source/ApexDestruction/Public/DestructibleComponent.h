@@ -78,7 +78,7 @@ class APEXDESTRUCTION_API UDestructibleComponent : public USkinnedMeshComponent,
 	class UDestructibleMesh* DestructibleMesh;
 #endif // WITH_EDITORONLY_DATA
 
-#if WITH_PHYSX
+#if WITH_APEX
 	/** Per chunk info */
 	TArray<FApexDestructionCustomPayload> ChunkInfos;
 #endif // WITH_PHYSX 

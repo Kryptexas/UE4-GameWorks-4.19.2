@@ -122,12 +122,9 @@ void FPersonaToolkit::CreatePreviewScene(const FPersonaToolkitArgs& PersonaToolk
 		bool bSetMesh = false;
 
 		// Set the mesh
-		if (Mesh != nullptr)
-		{
-			PreviewScene->SetPreviewMesh(Mesh);
-			bSetMesh = true;
-		}
-		else if (AnimationAsset != nullptr)
+		// first check assets first
+		// mesh exists with anim BP
+		if (AnimationAsset != nullptr)
 		{
 			USkeletalMesh* AssetMesh = AnimationAsset->GetPreviewMesh();
 			if (AssetMesh)
@@ -144,6 +141,11 @@ void FPersonaToolkit::CreatePreviewScene(const FPersonaToolkitArgs& PersonaToolk
 				PreviewScene->SetPreviewMesh(AssetMesh);
 				bSetMesh = true;
 			}
+		}
+		else if (Mesh != nullptr)
+		{
+			PreviewScene->SetPreviewMesh(Mesh);
+			bSetMesh = true;
 		}
 
 		if (!bSetMesh && Skeleton.IsValid())

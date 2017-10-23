@@ -34,7 +34,8 @@ using namespace D3D12RHI;
 
 FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	NumThreadDynamicHeapAllocators(0),
-	ChosenAdapters(ChosenAdaptersIn)
+	ChosenAdapters(ChosenAdaptersIn),
+	FlipEvent(INVALID_HANDLE_VALUE)
 {
 	LLM(D3D12LLM::Initialise());
 
@@ -174,6 +175,9 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	GPixelFormats[PF_BC7			].PlatformFormat = DXGI_FORMAT_BC7_TYPELESS;
 	GPixelFormats[PF_R8_UINT		].PlatformFormat = DXGI_FORMAT_R8_UINT;
 
+	GPixelFormats[PF_R16G16B16A16_UNORM].PlatformFormat = DXGI_FORMAT_R16G16B16A16_UNORM;
+	GPixelFormats[PF_R16G16B16A16_SNORM].PlatformFormat = DXGI_FORMAT_R16G16B16A16_SNORM;
+
 	// MS - Not doing any feature level checks. D3D12 currently supports these limits.
 	// However this may need to be revisited if new feature levels are introduced with different HW requirement
 	GSupportsSeparateRenderTargetBlendState = true;
@@ -224,6 +228,8 @@ FD3D12DynamicRHI::~FD3D12DynamicRHI()
 void FD3D12DynamicRHI::Shutdown()
 {
 	check(IsInGameThread() && IsInRenderingThread());  // require that the render thread has been shut down
+
+	RHIShutdownFlipTracking();
 
 	// Cleanup All of the Adapters
 	for (FD3D12Adapter*& Adapter : ChosenAdapters)

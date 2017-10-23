@@ -188,7 +188,7 @@ UEdGraphPin* UEdGraphNode::FindPin(const FString& PinName, const EEdGraphPinDire
 {
 	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
 	{
-		if( Pins[PinIdx]->PinName == PinName && (Direction == EGPD_MAX || Direction == Pins[PinIdx]->Direction))
+		if ((Direction == EGPD_MAX || Direction == Pins[PinIdx]->Direction) && (Pins[PinIdx]->PinName == PinName))
 		{
 			return Pins[PinIdx];
 		}

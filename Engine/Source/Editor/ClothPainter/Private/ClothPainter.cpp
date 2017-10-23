@@ -36,7 +36,7 @@ FClothPainter::FClothPainter()
 
 FClothPainter::~FClothPainter()
 {
-	SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
+	SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, true);
 
 	// Cancel rendering of the paint proxy
 	SkeletalMeshComponent->SelectedClothingGuidForPainting = FGuid();
@@ -200,14 +200,14 @@ void FClothPainter::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 					Asset->ApplyParameterMasks();
 				}
 			}
-
+		
 			SkeletalMeshComponent->RebuildClothingSectionsFixedVerts();
 		}
 
 		FComponentReregisterContext ReregisterContext(SkeletalMeshComponent);
-		SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
-		SkeletalMeshComponent->bDisableClothSimulation = !bShouldSimulate;		
+		SkeletalMeshComponent->bDisableClothSimulation = !bShouldSimulate;
 		SkeletalMeshComponent->bShowClothData = !bShouldSimulate;
+		SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, bShouldSimulate);
 		ViewportClient->Invalidate();
 	}
 
@@ -251,8 +251,9 @@ void FClothPainter::Reset()
 	}
 
 	bArePainting = false;
-	SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
+	SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, true);
 	SkeletalMeshComponent->SelectedClothingGuidForPainting = FGuid();
+	bShouldSimulate = false;
 }
 
 TSharedPtr<IMeshPaintGeometryAdapter> FClothPainter::GetMeshAdapterForComponent(const UMeshComponent* Component)
@@ -419,8 +420,8 @@ void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, 
 			 InNewSelectedAsset->LodData[InAssetLod].ParameterMasks.IsValidIndex(InMaskIndex))
 		{
 			const FGuid NewGuid = InNewSelectedAsset->GetAssetGuid();
-			SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
-			SkeletalMeshComponent->ToggleMeshSectionForCloth(NewGuid);
+			SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, true);
+			SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(NewGuid, false);
 
 			SkeletalMeshComponent->bDisableClothSimulation = true;
 			SkeletalMeshComponent->bShowClothData = true;

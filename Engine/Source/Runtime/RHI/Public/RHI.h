@@ -11,6 +11,10 @@
 #include "RHIDefinitions.h"
 #include "Containers/StaticArray.h"
 
+#ifndef RHI_COMMAND_LIST_DEBUG_TRACES
+#define RHI_COMMAND_LIST_DEBUG_TRACES 0
+#endif
+
 class FResourceArrayInterface;
 class FResourceBulkDataInterface;
 
@@ -118,6 +122,12 @@ inline bool RHISupportsMSAA(EShaderPlatform Platform)
 #endif
 		// @todo marksatt iOS Desktop Forward needs more work internally
 		&& Platform != SP_METAL_MRT;
+}
+
+/** Whether the platform supports reading from volume textures (does not cover rendering to volume textures). */
+inline bool RHISupportsVolumeTextures(ERHIFeatureLevel::Type FeatureLevel)
+{
+	return FeatureLevel >= ERHIFeatureLevel::SM4;
 }
 
 // Wrapper for GRHI## global variables, allows values to be overridden for mobile preview modes.
@@ -385,6 +395,9 @@ extern RHI_API bool GRHISupportsHDROutput;
 
 /** Format used for the backbuffer when outputting to a HDR display. */
 extern RHI_API EPixelFormat GRHIHDRDisplayOutputFormat;
+
+/** Counter incremented once on each frame present. Used to support game thread synchronization with swap chain frame flips. */
+extern RHI_API uint64 GRHIPresentCounter;
 
 /** Called once per frame only from within an RHI. */
 extern RHI_API void RHIPrivateBeginFrame();

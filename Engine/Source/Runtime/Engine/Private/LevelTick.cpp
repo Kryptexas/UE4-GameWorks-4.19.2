@@ -116,6 +116,9 @@ DEFINE_STAT(STAT_NetInitialDormantCheckTime);
 DEFINE_STAT(STAT_NetPrioritizeActorsTime);
 DEFINE_STAT(STAT_NetReplicateActorsTime);
 DEFINE_STAT(STAT_NetReplicateDynamicPropTime);
+DEFINE_STAT(STAT_NetReplicateDynamicPropCompareTime);
+DEFINE_STAT(STAT_NetReplicateDynamicPropSendTime);
+DEFINE_STAT(STAT_NetReplicateDynamicPropSendBackCompatTime);
 DEFINE_STAT(STAT_NetSkippedDynamicProps);
 DEFINE_STAT(STAT_NetSerializeItemDeltaTime);
 DEFINE_STAT(STAT_NetUpdateGuidToReplicatorMap);
@@ -1529,10 +1532,12 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		FWorldDelegates::OnWorldPostActorTick.Broadcast(this, TickType, DeltaSeconds);
 
+#if WITH_PHYSX
 		if ( PhysicsScene != NULL )
 		{
 			GPhysCommandHandler->Flush();
 		}
+#endif // WITH_PHYSX
 		
 		// All tick is done, execute async trace
 		{

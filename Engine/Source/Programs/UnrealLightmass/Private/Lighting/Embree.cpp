@@ -342,6 +342,13 @@ void EmbreeFilterFunc(void* UserPtr, RTCRay& InRay)
 		return;
 	}
 
+	// Only collide with surface domain materials
+	if (!Proc.Desc.SurfaceDomain)
+	{
+		Proc.Invalidate();
+		return;
+	}
+
 	// No collision with translucent primitives.
 	if (Proc.Desc.Translucent && !(Proc.Ray.bDirectShadowingRay && Proc.Desc.CastShadowAsMasked))
 	{
@@ -434,6 +441,7 @@ FEmbreeGeometry::FEmbreeGeometry(
 		Desc.StaticAndOpaqueMask = !Mesh->IsMasked(ElementIndex) && !Mesh->IsTranslucent(ElementIndex) && !Mesh->bMovable;;
 		Desc.TwoSidedMask = Mesh->IsTwoSided(ElementIndex) || Mesh->IsCastingShadowAsTwoSided();
 		Desc.Translucent = Mesh->IsTranslucent(ElementIndex);
+		Desc.SurfaceDomain = Mesh->IsSurfaceDomain(ElementIndex);
 		Desc.IndirectlyShadowedOnly = Mesh->IsIndirectlyShadowedOnly(ElementIndex);
 		Desc.Masked = Mesh->IsMasked(ElementIndex);
 		Desc.CastShadowAsMasked = Mesh->IsCastingShadowsAsMasked(ElementIndex);

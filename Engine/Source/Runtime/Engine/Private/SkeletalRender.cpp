@@ -8,6 +8,7 @@
 #include "SkeletalRenderPublic.h"
 #include "SceneManagement.h"
 #include "GPUSkinCache.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 /*-----------------------------------------------------------------------------
 Globals
@@ -22,7 +23,7 @@ const float MaxMorphTargetBlendWeight = 5.0f;
 FSkeletalMeshObject
 -----------------------------------------------------------------------------*/
 
-FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel)
+FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, ERHIFeatureLevel::Type InFeatureLevel)
 :	MinDesiredLODLevel(0)
 ,	MaxDistanceFactor(0.f)
 ,	WorkingMinDesiredLODLevel(0)
@@ -32,19 +33,15 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,   SectionIndexPreview(InMeshComponent->SectionIndexPreview)
 ,   MaterialIndexPreview(InMeshComponent->MaterialIndexPreview)
 #endif	
-,	SkeletalMeshResource(InSkeletalMeshResource)
+,	SkeletalMeshRenderData(InSkelMeshRenderData)
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)
 ,	SkinCacheEntry(nullptr)
 ,	LastFrameNumber(0)
-#if WITH_EDITORONLY_DATA
-,	ProgressiveDrawingFraction(InMeshComponent->ProgressiveDrawingFraction)
-#endif
-,	CustomSortAlternateIndexMode((ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode)
 ,	bUsePerBoneMotionBlur(InMeshComponent->bPerBoneMotionBlur)
 ,	StatId(InMeshComponent->SkeletalMesh->GetStatID(true))
 ,	FeatureLevel(InFeatureLevel)
 {
-	check(SkeletalMeshResource);
+	check(SkeletalMeshRenderData);
 
 #if WITH_EDITORONLY_DATA
 	if ( !GIsEditor )
@@ -75,7 +72,7 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 
 	const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Bounds.Origin, Bounds.SphereRadius, *View) * LODScale * LODScale;
 
-	checkf( SkeletalMeshLODInfo.Num() == SkeletalMeshResource->LODModels.Num(), TEXT("Mismatched LOD arrays. SkeletalMeshLODInfo.Num() = %d, SkeletalMeshResource->LODModels.Num() = %d"), SkeletalMeshLODInfo.Num(), SkeletalMeshResource->LODModels.Num());
+	checkf( SkeletalMeshLODInfo.Num() == SkeletalMeshRenderData->LODRenderData.Num(), TEXT("Mismatched LOD arrays. SkeletalMeshLODInfo.Num() = %d, SkeletalMeshRenderData->LODRenderData.Num() = %d"), SkeletalMeshLODInfo.Num(), SkeletalMeshRenderData->LODRenderData.Num());
 
 	// Need the current LOD
 	const int32 CurrentLODLevel = GetLOD();
@@ -87,7 +84,7 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 	if( View->Family && 1==View->Family->EngineShowFlags.LOD )
 	{
 		// Iterate from worst to best LOD
-		for(int32 LODLevel = SkeletalMeshResource->LODModels.Num()-1; LODLevel > 0; LODLevel--) 
+		for(int32 LODLevel = SkeletalMeshRenderData->LODRenderData.Num()-1; LODLevel > 0; LODLevel--)
 		{
 			// Get ScreenSize for this LOD
 			float ScreenSize = SkeletalMeshLODInfo[LODLevel].ScreenSize;
@@ -129,10 +126,10 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
  * List of chunks to be rendered based on instance weight usage. Full swap of weights will render with its own chunks.
  * @return Chunks to iterate over for rendering
  */
-const TArray<FSkelMeshSection>& FSkeletalMeshObject::GetRenderSections(int32 InLODIndex) const
+const TArray<FSkelMeshRenderSection>& FSkeletalMeshObject::GetRenderSections(int32 InLODIndex) const
 {
-	const FStaticLODModel& LOD = SkeletalMeshResource->LODModels[InLODIndex];
-	return LOD.Sections;
+	const FSkeletalMeshLODRenderData& LOD = SkeletalMeshRenderData->LODRenderData[InLODIndex];
+	return LOD.RenderSections;
 }
 
 /**
@@ -188,12 +185,12 @@ Global functions
  * @param	LODIndex - each LOD has its own mapping of bones to update
  * @param	ExtraRequiredBoneIndices - any extra bones apart from those active in the LOD that we'd like to update
  */
-void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices )
+void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshRenderData* InSkeletalMeshRenderData, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices )
 {
 	const USkeletalMesh* const ThisMesh = InMeshComponent->SkeletalMesh;
 	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent.Get();
 	const USkeletalMesh* const MasterCompMesh = MasterComp? MasterComp->SkeletalMesh : nullptr;
-	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
+	const FSkeletalMeshLODRenderData& LOD = InSkeletalMeshRenderData->LODRenderData[LODIndex];
 
 	const TArray<int32>& MasterBoneMap = InMeshComponent->GetMasterBoneMap();
 
@@ -295,86 +292,3 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 	}
 }
 
-/**
- * Utility function that calculates the local-space origin and bone direction vectors for the
- * current pose for any TRISORT_CustomLeftRight sections.
- * @param	OutVectors - origin and direction vectors to update
- * @param	SkeletalMeshComponent - mesh primitive with updated bone matrices
- * @param	LODIndex - current LOD
- */
-void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutVectors, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex )
-{
-	const USkeletalMesh* const ThisMesh = InMeshComponent->SkeletalMesh;
-	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent.Get();
-	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
-	const FSkeletalMeshLODInfo& LODInfo = ThisMesh->LODInfo[LODIndex];
-	const TArray<int32>& MasterBoneMap = InMeshComponent->GetMasterBoneMap();
-
-	if(OutVectors.Num() != LODInfo.TriangleSortSettings.Num())
-	{
-		OutVectors.Reset();
-		OutVectors.AddUninitialized(LODInfo.TriangleSortSettings.Num());
-	}
-
-	const FVector AxisDirections[] = { FVector(1.f,0.f,0.f), FVector(0.f,1.f,0.f), FVector(0.f,0.f,1.f) };
-
-	for ( int32 SectionIndex = 0 ; SectionIndex < LOD.Sections.Num() ; ++SectionIndex )
-	{
-		if( LOD.Sections[SectionIndex].TriangleSorting == TRISORT_CustomLeftRight )
-		{
-			FName CustomLeftRightBoneName = LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightBoneName;
-			if( CustomLeftRightBoneName == NAME_None )
-			{
-				OutVectors[SectionIndex].v1 = FVector::ZeroVector;
-				OutVectors[SectionIndex].v2 = AxisDirections[LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightAxis];
-			}
-			else
-			{
-				int32 SpaceBasesBoneIndex = ThisMesh->RefSkeleton.FindBoneIndex(CustomLeftRightBoneName);
-				const TArray<FTransform>* SpaceBases = &InMeshComponent->GetComponentSpaceTransforms();
-				
-				// Handle case of using MasterPoseComponent for SpaceBases.
-				if( MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum() && SpaceBasesBoneIndex != INDEX_NONE )
-				{
-					// If valid, use matrix from parent component.
-					SpaceBasesBoneIndex = MasterBoneMap[SpaceBasesBoneIndex];
-					SpaceBases = &MasterComp->GetComponentSpaceTransforms();
-				}
-
-				if (SpaceBases->IsValidIndex(SpaceBasesBoneIndex))
-				{
-					const FMatrix BoneMatrix = (*SpaceBases)[SpaceBasesBoneIndex].ToMatrixWithScale();
-					OutVectors[SectionIndex].v1 = BoneMatrix.GetOrigin();
-
-					EAxis::Type MatrixAxis = EAxis::X;
-
-					// TEnumAsByte<ETriangleSortAxis> won't cast to EMatrixAxis, so lets do this the hard way...
-					switch ( LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightAxis )
-					{
-					case TSA_X_Axis:
-						MatrixAxis = EAxis::X;
-						break;
-
-					case TSA_Y_Axis:
-						MatrixAxis = EAxis::Y;
-						break;
-
-					case TSA_Z_Axis:
-						MatrixAxis = EAxis::Z;
-						break;
-
-					default:
-						check(0);
-					}
-
-					OutVectors[SectionIndex].v2 = BoneMatrix.GetScaledAxis( MatrixAxis );
-				}
-				else
-				{
-					OutVectors[SectionIndex].v1 = FVector::ZeroVector;
-					OutVectors[SectionIndex].v2 = AxisDirections[LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightAxis];
-				}
-			}
-		}
-	}
-}

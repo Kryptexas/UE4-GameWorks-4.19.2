@@ -23,10 +23,14 @@ struct FBlendProfilePickerArgs
 	/** Allow the option to clear the profile selection */
 	bool bAllowClear;
 
+	/** Allow the option to delete blend profiles from the skeleton */
+	bool bAllowRemove;
+
 	FBlendProfilePickerArgs()
 		: InitialProfile(nullptr)
 		, OnBlendProfileSelected()
 		, bAllowNew(false)
 		, bAllowClear(false)
+		, bAllowRemove(false)
 	{}
 };

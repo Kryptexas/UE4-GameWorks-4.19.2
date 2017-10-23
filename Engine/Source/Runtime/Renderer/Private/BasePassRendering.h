@@ -1043,14 +1043,15 @@ public:
 			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
 		}
 #endif
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.
 
-	FDrawingPolicyMatchResult Matches(const TBasePassDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TBasePassDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
@@ -1410,7 +1411,7 @@ void ProcessBasePassMeshForSimpleForwardShading(
 			Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING), Parameters.Mesh.LCI);
 		}
 	}
-	if (bIsLitMaterial
+	else if (bIsLitMaterial
 		&& bAllowStaticLighting
 		&& Action.UseVolumetricLightmap()
 		&& Parameters.PrimitiveSceneProxy)

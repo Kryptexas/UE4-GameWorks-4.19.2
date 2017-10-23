@@ -9,6 +9,7 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 #include "Misc/Paths.h"
+#include "HAL/FileManager.h"
 
 TAutoConsoleVariable<int32> GRHIAllowAsyncComputeCvar(
 	TEXT("r.Vulkan.AllowAsyncCompute"),
@@ -378,6 +379,12 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_R32G32B32A32_UINT, VK_FORMAT_R32G32B32A32_UINT);
 	SetComponentMapping(PF_R32G32B32A32_UINT, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
+	MapFormatSupport(PF_R16G16B16A16_SNORM, VK_FORMAT_R16G16B16A16_SNORM);
+	SetComponentMapping(PF_R16G16B16A16_SNORM, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+	MapFormatSupport(PF_R16G16B16A16_UNORM, VK_FORMAT_R16G16B16A16_UNORM);
+	SetComponentMapping(PF_R16G16B16A16_UNORM, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
 	MapFormatSupport(PF_R8G8, VK_FORMAT_R8G8_UNORM);
 	SetComponentMapping(PF_R8G8, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO);
 
@@ -576,11 +583,19 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	PipelineStateCache = new FVulkanPipelineStateCache(this);
 
 	TArray<FString> CacheFilenames;
-	if (PLATFORM_ANDROID)
+	FString StagedCacheDirectory = FPaths::ProjectDir() / TEXT("Build") / TEXT("ShaderCaches") / FPlatformProperties::IniPlatformName();
+
+	// look for any staged caches
+	TArray<FString> StagedCaches;
+	IFileManager::Get().FindFiles(StagedCaches, *StagedCacheDirectory, TEXT("cache"));
+	// FindFiles returns the filenames without directory, so prepend the stage directory
+	for (const FString& Filename : StagedCaches)
 	{
-		CacheFilenames.Add(FPaths::ProjectDir() / TEXT("Build") / TEXT("ShaderCaches") / TEXT("Android") / TEXT("VulkanPSO.cache"));
+		CacheFilenames.Add(StagedCacheDirectory / Filename);
 	}
-	CacheFilenames.Add(FPaths::ProjectSavedDir() / TEXT("VulkanPSO.cache"));	
+
+	// always look in the saved directory (for the cache from previous run that wasn't moved over to stage directory)
+	CacheFilenames.Add(VulkanRHI::GetPipelineCacheFilename());
 
 	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, GfxQueue, true);
 
@@ -666,12 +681,11 @@ void FVulkanDevice::Destroy()
 	delete ComputeQueue;
 	delete GfxQueue;
 
-	FenceManager.Deinit();
-
-	MemoryManager.Deinit();
-
 	FRHIResource::FlushPendingDeletes();
 	DeferredDeletionQueue.Clear();
+
+	FenceManager.Deinit();
+	MemoryManager.Deinit();
 
 	VulkanRHI::vkDestroyDevice(Device, nullptr);
 	Device = VK_NULL_HANDLE;

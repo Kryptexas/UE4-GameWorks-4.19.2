@@ -265,28 +265,22 @@ void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			// by specifying that the texture is stretched across the bounds. To do this, we use a density of 1
 			// while also specifying the component scale as the bound radius. 
 			// Note that material UV scaling will  still apply.
-			static FMeshUVChannelInfo UVChannelData;
-			if (!UVChannelData.bInitialized)
-			{
-				UVChannelData.bInitialized = true;
-				for (float& Density : UVChannelData.LocalUVDensities)
-				{
-					Density = 1.f;
-				}
-			}
+			static const FMeshUVChannelInfo UVChannelData(1.f);
 
 			FPrimitiveMaterialInfo MaterialData;
 			MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
 			MaterialData.UVChannelData = &UVChannelData;
 
-			TArray<UTexture*> UsedTextures;
-			for (UMaterialInterface* MaterialInterface : UsedMaterials)
+			while (UsedMaterials.Num())
 			{
+				UMaterialInterface* MaterialInterface = UsedMaterials[0];
 				if (MaterialInterface)
 				{
 					MaterialData.Material = MaterialInterface;
 					LevelContext.ProcessMaterial(Bounds, MaterialData, Bounds.SphereRadius, OutStreamingTextures);
 				}
+				// Remove all instances of this material in case there were duplicates.
+				UsedMaterials.RemoveSwap(MaterialInterface);
 			}
 		}
 	}
@@ -619,13 +613,11 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 				BodyTransform.SetScale3D(FVector(KINDA_SMALL_NUMBER));
 			}
 
-#if UE_WITH_PHYSICS
 			// Create the body.
 			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());		
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			SendRenderDebugPhysics();
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
 			// Make sure we have a valid body instance here. As we do not keep BIs with no collision shapes at all,

@@ -337,6 +337,8 @@ public:
 	bool						bIsPeer;
 	/** @todo document */
 	bool						ProfileStats;
+	/** If true, it assumes the stats are being set by server data */
+	bool						bSkipLocalStats;
 	/** Timings for Socket::SendTo() and Socket::RecvFrom() */
 	int32						SendCycles, RecvCycles;
 	/** Stats for network perf */
@@ -659,6 +661,7 @@ public:
 	bool HandleNetDebugTextCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleNetDisconnectCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleNetDumpDormancy( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif
 
 	/** Flushes actor from NetDriver's dormancy list, but does not change any state on the Actor itself */
@@ -754,17 +757,32 @@ public:
 	/** Returns the object that manages the list of replicated UObjects. */
 	ENGINE_API const FNetworkObjectList& GetNetworkObjectList() const { return *NetworkObjects; }
 
-	/** Get the network object matching the given Actor, or null if not found. */
-	ENGINE_API const FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor) const;
+	/**
+     *	Get the network object matching the given Actor.
+	 *	If the Actor is not present in the NetworkObjectInfo list, it will be added.
+	 */
+	ENGINE_API FNetworkObjectInfo* FindOrAddNetworkObjectInfo(const AActor* InActor);
 
-	/** Get the network object matching the given Actor, or null if not found. */
-	ENGINE_API FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor);
+	/** Get the network object matching the given Actor. */
+	ENGINE_API FNetworkObjectInfo* FindNetworkObjectInfo(const AActor* InActor);
+	ENGINE_API const FNetworkObjectInfo* FindNetworkObjectInfo(const AActor* InActor) const
+	{
+		return const_cast<UNetDriver*>(this)->FindNetworkObjectInfo(InActor);
+	}
 
-	DEPRECATED(4.16, "GetNetworkActor is deprecated.  Use GetNetworkObjectInfo instead.")
-	ENGINE_API const FNetworkObjectInfo* GetNetworkActor( const AActor* InActor ) const;
+	DEPRECATED(4.19, "GetNetworkObjectInfo is deprecated. Use FindNetworkObjectInfo instead.")
+	ENGINE_API FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor)
+	{
+		// Use FindOrAdd to preserve old behavior.
+		return FindOrAddNetworkObjectInfo(InActor);
+	}
 
-	DEPRECATED(4.16, "GetNetworkActor is deprecated.  Use GetNetworkObjectInfo instead.")
-	ENGINE_API FNetworkObjectInfo* GetNetworkActor( const AActor* InActor );
+	DEPRECATED(4.19, "GetNetworkObjectInfo is deprecated. Use FindNetworkObjectInfo instead.")
+	ENGINE_API const FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor) const
+	{
+		// Use FindOrAdd to preserve old behavior.
+		return const_cast<UNetDriver*>(this)->FindOrAddNetworkObjectInfo(InActor);
+	}
 
 	/**
 	 * Returns whether adaptive net frequency is enabled. If enabled, update frequency is allowed to ramp down to MinNetUpdateFrequency for an actor when no replicated properties have changed.

@@ -212,16 +212,23 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		return;
 	}
 
-	const FViewInfo& View = Context.View;
-	const FSceneViewFamily& ViewFamily = *(View.Family);
-	
-	FDrawingPolicyRenderState DrawRenderState(View);
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
+	FViewInfo& EditorView = *Context.View.CreateSnapshot();
+
+	// Disable pre-exposure so that the 
+	EditorView.bDisablePreExposure = true;
+	EditorView.CachedViewUniformShaderParameters = MakeUnique<FViewUniformShaderParameters>();
+
+	FBox VolumeBounds[TVC_MAX];
+	EditorView.SetupUniformBufferParameters(SceneContext, VolumeBounds, TVC_MAX,*EditorView.CachedViewUniformShaderParameters);
+	EditorView.ViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*EditorView.CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
+
+	FDrawingPolicyRenderState DrawRenderState(EditorView);
 	DrawRenderState.SetDepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite);
 
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect SrcRect = EditorView.ViewRect;
+	FIntRect DestRect = EditorView.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	// If we render wirframe we already started rendering to the EditorPrimitives buffer, so we don't want to clear it.
 	bool bClearIsNeeded = !IsValidRef(SceneContext.EditorPrimitivesColor);
@@ -250,11 +257,11 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 
 		if (bDeferredBasePass)
 		{
-			RenderPrimitivesToComposite<FBasePassOpaqueDrawingPolicyFactory>(Context.RHICmdList, View, DrawRenderState);
+			RenderPrimitivesToComposite<FBasePassOpaqueDrawingPolicyFactory>(Context.RHICmdList, EditorView, DrawRenderState);
 		}
 		else
 		{
-			RenderPrimitivesToComposite<FMobileBasePassOpaqueDrawingPolicyFactory>(Context.RHICmdList, View, DrawRenderState);
+			RenderPrimitivesToComposite<FMobileBasePassOpaqueDrawingPolicyFactory>(Context.RHICmdList, EditorView, DrawRenderState);
 		}
 
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, SceneContext.EditorPrimitivesColor);

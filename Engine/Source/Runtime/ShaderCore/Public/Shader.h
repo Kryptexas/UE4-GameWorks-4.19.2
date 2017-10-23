@@ -564,32 +564,32 @@ public:
 	virtual const FVertexFactoryParameterRef* GetVertexFactoryParameterRef() const { return NULL; }
 
 	/** @return the shader's vertex shader */
-	inline const FVertexShaderRHIParamRef GetVertexShader()
+	inline const FVertexShaderRHIParamRef GetVertexShader() const
 	{
 		return Resource->GetVertexShader();
 	}
 	/** @return the shader's pixel shader */
-	inline const FPixelShaderRHIParamRef GetPixelShader()
+	inline const FPixelShaderRHIParamRef GetPixelShader() const
 	{
 		return Resource->GetPixelShader();
 	}
 	/** @return the shader's hull shader */
-	inline const FHullShaderRHIParamRef GetHullShader()
+	inline const FHullShaderRHIParamRef GetHullShader() const
 	{
 		return Resource->GetHullShader();
 	}
 	/** @return the shader's domain shader */
-	inline const FDomainShaderRHIParamRef GetDomainShader()
+	inline const FDomainShaderRHIParamRef GetDomainShader() const
 	{
 		return Resource->GetDomainShader();
 	}
 	/** @return the shader's geometry shader */
-	inline const FGeometryShaderRHIParamRef GetGeometryShader()
+	inline const FGeometryShaderRHIParamRef GetGeometryShader() const
 	{
 		return Resource->GetGeometryShader();
 	}
 	/** @return the shader's compute shader */
-	inline const FComputeShaderRHIParamRef GetComputeShader()
+	inline const FComputeShaderRHIParamRef GetComputeShader() const
 	{
 		return Resource->GetComputeShader();
 	}

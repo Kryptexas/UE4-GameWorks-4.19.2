@@ -378,6 +378,8 @@ namespace Audio
 	void FMixerDevice::OnAudioStreamShutdown()
 	{
 		// Make sure the source manager pumps any final commands on shutdown. These allow for cleaning up sources, interfacing with plugins, etc.
+		// Because we double buffer our command queues, we call this function twice to ensure all commands are successfully pumped.
+		SourceManager.PumpCommandQueue();
 		SourceManager.PumpCommandQueue();
 	}
 

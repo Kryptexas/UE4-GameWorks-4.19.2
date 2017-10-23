@@ -7,6 +7,7 @@ UFbxAnimSequenceImportData::UFbxAnimSequenceImportData(const FObjectInitializer&
 	: Super(ObjectInitializer)
 	, bImportMeshesInBoneHierarchy(true)
 	, bImportCustomAttribute(true)
+	, bImportBoneTracks(true)
 	, bRemoveRedundantKeys(true)
 	, bDoNotImportCurveWithZero(true)
 {

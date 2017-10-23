@@ -40,6 +40,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetGlobalChatColor(const FLinearColor& InF
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetFounderChatColor(const FLinearColor& InFontColor)
+{
+	FounderChatColor = InFontColor;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetWhisplerChatColor(const FLinearColor& InFontColor)
 {
 	WhisperChatColor = InFontColor;
@@ -103,6 +109,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetWhisplerHyperlinkChatColor(const FLinea
 FFriendsChatStyle& FFriendsChatStyle::SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor)
 {
 	GlobalHyperlinkChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetFounderHyperlinkChatColor(const FLinearColor& InFontColor)
+{
+	FounderHyperlinkChatColor = InFontColor;
 	return *this;
 }
 

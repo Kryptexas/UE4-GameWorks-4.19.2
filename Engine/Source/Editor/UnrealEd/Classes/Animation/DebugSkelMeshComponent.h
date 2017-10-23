@@ -64,6 +64,7 @@ namespace EPersonaTurnTableMode
 // FDebugSkelMeshSceneProxy
 
 class UDebugSkelMeshComponent;
+class FSkeletalMeshRenderData;
 
 class FDebugSkelMeshDynamicData
 {
@@ -103,7 +104,7 @@ public:
 	* Constructor.
 	* @param	Component - skeletal mesh primitive being added
 	*/
-	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor::White);
+	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, const FColor& InWireframeOverlayColor = FColor::White);
 
 	virtual ~FDebugSkelMeshSceneProxy()
 	{}
@@ -404,7 +405,8 @@ class UNREALED_API UDebugSkelMeshComponent : public USkeletalMeshComponent
 	/** The currently selected mask inside the above LOD to be painted */
 	int32 SelectedClothingLodMaskForPainting;
 
-	void ToggleMeshSectionForCloth(FGuid InClothGuid);
+	/** Find a section using a clothing asset with the given GUID and set its visiblity */
+	void SetMeshSectionVisibilityForCloth(FGuid InClothGuid, bool bVisibility);
 
 	// fixes up the disabled flags so clothing is enabled and originals are disabled as
 	// ToggleMeshSectionForCloth will make these get out of sync

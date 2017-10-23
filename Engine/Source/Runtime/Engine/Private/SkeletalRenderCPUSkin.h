@@ -13,64 +13,12 @@
 #include "Components/SkinnedMeshComponent.h"
 #include "SkeletalRenderPublic.h"
 #include "ClothingSystemRuntimeTypes.h"
+#include "SkeletalMeshRenderData.h"
+#include "SkeletalMeshLODRenderData.h"
+#include "StaticMeshResources.h"
 
 class FPrimitiveDrawInterface;
 class UMorphTarget;
-
-/**
- * Skeletal mesh vertices which have been skinned to their final positions 
- */
-class FFinalSkinVertexBuffer : public FVertexBuffer
-{
-public:
-
-	/** 
-	 * Constructor
-	 * @param	InSkelMesh - parent mesh containing the static model data for each LOD
-	 * @param	InLODIdx - index of LOD model to use from the parent mesh
-	 */
-	FFinalSkinVertexBuffer(FSkeletalMeshResource* InSkelMeshResource, int32 InLODIdx)
-	:	LODIdx(InLODIdx)
-	,	SkeletalMeshResource(InSkelMeshResource)
-	{
-		check(SkeletalMeshResource);
-		check(SkeletalMeshResource->LODModels.IsValidIndex(LODIdx));
-	}
-	/** 
-	 * Initialize the dynamic RHI for this rendering resource 
-	 */
-	virtual void InitDynamicRHI();
-
-	/** 
-	 * Release the dynamic RHI for this rendering resource 
-	 */
-	virtual void ReleaseDynamicRHI();
-
-	/** 
-	 * Cpu skinned vertex name 
-	 */
-	virtual FString GetFriendlyName() const { return TEXT("CPU skinned mesh vertices"); }
-
-	/**
-	 * Get Resource Size : mostly copied from InitDynamicRHI - how much they allocate when initialize
-	 */
-	virtual SIZE_T GetResourceSize()
-	{
-		// all the vertex data for a single LOD of the skel mesh
-		FStaticLODModel& LodModel = SkeletalMeshResource->LODModels[LODIdx];
-
-		return LodModel.NumVertices * sizeof(FFinalSkinVertex);
-	}
-
-private:
-	/** index to the SkeletalMeshResource.LODModels */
-	int32	LODIdx;
-	/** parent mesh containing the source data */
-	FSkeletalMeshResource* SkeletalMeshResource;
-
-	void InitVertexData(FStaticLODModel& LodModel);
-};
-
 
 /** 
 * Stores the updated matrices needed to skin the verts.
@@ -90,7 +38,7 @@ public:
 	*/
 	FDynamicSkelMeshObjectDataCPUSkin(
 		USkinnedMeshComponent* InMeshComponent,
-		FSkeletalMeshResource* InSkeletalMeshResource,
+		FSkeletalMeshRenderData* InSkelMeshRenderData,
 		int32 InLODIndex,
 		const TArray<FActiveMorphTarget>& InActiveMorphTargets,
 		const TArray<float>& InMorphTargetWeights
@@ -105,9 +53,6 @@ public:
 
 	/** ref pose to local space transforms */
 	TArray<FMatrix> ReferenceToLocal;
-
-	/** origin and direction vectors for TRISORT_CustomLeftRight sections */
-	TArray<FTwoVectors> CustomLeftRightVectors;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
 	/** component space bone transforms*/
@@ -162,7 +107,7 @@ class ENGINE_API FSkeletalMeshObjectCPUSkin : public FSkeletalMeshObject
 public:
 
 	/** @param	InSkeletalMeshComponent - skeletal mesh primitive we want to render */
-	FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel);
+	FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FSkeletalMeshObjectCPUSkin();
 
 	//~ Begin FSkeletalMeshObject Interface
@@ -170,7 +115,6 @@ public:
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetsWeights) override;
 	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare);
-	virtual void UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent) override;
 	virtual void EnableOverlayRendering(bool bEnabled, const TArray<int32>* InBonesOfInterest, const TArray<UMorphTarget*>* InMorphTargetOfInterest) override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override;
 	virtual bool IsCPUSkinned() const override { return true; }
@@ -188,7 +132,6 @@ public:
 			return 0;
 		}
 	}
-	virtual const FTwoVectors& GetCustomLeftRightVectors(int32 SectionIndex) const override;
 
 	virtual bool HaveValidDynamicData() override
 	{ 
@@ -226,24 +169,32 @@ private:
 	/** vertex data for rendering a single LOD */
 	struct FSkeletalMeshObjectLOD
 	{
-		FSkeletalMeshResource* SkelMeshResource;
-		// index into FSkeletalMeshResource::LODModels[]
+		FSkeletalMeshRenderData* SkelMeshRenderData;
+		// index into FSkeletalMeshRenderData::LODRenderData[]
 		int32 LODIndex;
 
-		FLocalVertexFactory				VertexFactory;
-		mutable FFinalSkinVertexBuffer	VertexBuffer;
+		FLocalVertexFactory					VertexFactory;
+
+		/** The buffer containing vertex data. */
+		mutable FStaticMeshVertexBuffer StaticMeshVertexBuffer;
+		/** The buffer containing the position vertex data. */
+		mutable FPositionVertexBuffer PositionVertexBuffer;
 
 		/** Skin weight buffer to use, could be from asset or component override */
 		FSkinWeightVertexBuffer* MeshObjectWeightBuffer;
 
+		/** Color buffer to use, could be from asset or component override */
+		FColorVertexBuffer* MeshObjectColorBuffer;
+
 		/** true if resources for this LOD have already been initialized. */
 		bool						bResourcesInitialized;
 
-		FSkeletalMeshObjectLOD(FSkeletalMeshResource* InSkelMeshResource, int32 InLOD)
-		:	SkelMeshResource(InSkelMeshResource)
+		FSkeletalMeshObjectLOD(ERHIFeatureLevel::Type InFeatureLevel, FSkeletalMeshRenderData* InSkelMeshRenderData, int32 InLOD)
+		:	SkelMeshRenderData(InSkelMeshRenderData)
 		,	LODIndex(InLOD)
-		,	VertexBuffer(InSkelMeshResource,InLOD)
+		,	VertexFactory(InFeatureLevel, "FSkeletalMeshObjectLOD")
 		,	MeshObjectWeightBuffer(nullptr)
+		,	MeshObjectColorBuffer(nullptr)
 		,	bResourcesInitialized( false )
 		{
 		}
@@ -255,12 +206,6 @@ private:
 		 * Release rendering resources for this LOD 
 		 */
 		void ReleaseResources();
-		/** 
-		 * Update the contents of the vertex buffer with new data
-		 * @param	NewVertices - array of new vertex data
-		 * @param	Size - size of new vertex data aray 
-		 */
-		void UpdateFinalSkinVertexBuffer(void* NewVertices, uint32 Size) const;
 
 		/**
 	 	 * Get Resource Size : return the size of Resource this allocates
@@ -273,7 +218,7 @@ private:
 
 		void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 		{
-			CumulativeResourceSize.AddUnknownMemoryBytes(VertexBuffer.GetResourceSize());
+			CumulativeResourceSize.AddUnknownMemoryBytes(StaticMeshVertexBuffer.GetResourceSize() + PositionVertexBuffer.GetStride() * PositionVertexBuffer.GetNumVertices());
 		}
 
 		SIZE_T GetResourceSizeBytes()
@@ -285,7 +230,7 @@ private:
 	};
 
 	/** Render data for each LOD */
-	TArray<struct FSkeletalMeshObjectLOD> LODs;
+	TArray<FSkeletalMeshObjectLOD> LODs;
 
 protected:
 	/** Data that is updated dynamically and is needed for rendering */

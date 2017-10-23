@@ -552,7 +552,6 @@
 #include "Animation/AnimLinkableElement.h"
 #include "BoneContainer.h"
 #include "Animation/PreviewAssetAttachComponent.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimationAsset.h"
 #include "AnimInterpFilter.h"

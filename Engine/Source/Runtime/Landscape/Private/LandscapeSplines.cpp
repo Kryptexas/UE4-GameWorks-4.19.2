@@ -604,7 +604,7 @@ void ULandscapeSplinesComponent::CheckForErrors()
 	Super::CheckForErrors();
 
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
-	check(ThisOuterWorld->WorldType == EWorldType::Editor);
+	check(IsRunningCommandlet() || ThisOuterWorld->WorldType == EWorldType::Editor);
 
 	TSet<UWorld*> OutdatedWorlds;
 	TMap<UWorld*, FForeignWorldSplineData*> ForeignWorldSplineDataMapCache;

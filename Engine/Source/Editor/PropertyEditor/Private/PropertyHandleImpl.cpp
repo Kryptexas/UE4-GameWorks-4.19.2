@@ -2276,6 +2276,14 @@ FText FPropertyHandleBase::GetPropertyDisplayName() const
 {
 	return Implementation->GetDisplayName();
 }
+
+void FPropertyHandleBase::SetPropertyDisplayName(FText InDisplayName)
+{
+	if (Implementation->GetPropertyNode().IsValid())
+	{
+		Implementation->GetPropertyNode()->SetDisplayNameOverride(InDisplayName);
+	}
+}
 	
 void FPropertyHandleBase::ResetToDefault()
 {
@@ -2300,11 +2308,11 @@ void FPropertyHandleBase::MarkHiddenByCustomization()
 	}
 }
 
-void FPropertyHandleBase::MarkResetToDefaultCustomized()
+void FPropertyHandleBase::MarkResetToDefaultCustomized(bool bCustomized/* = true*/)
 {
 	if (Implementation->GetPropertyNode().IsValid())
 	{
-		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, true);
+		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, bCustomized);
 	}
 }
 
@@ -2598,13 +2606,18 @@ void FPropertyHandleBase::OnCustomResetToDefault(const FResetToDefaultOverride& 
 {
 	if (OnCustomResetToDefault.OnResetToDefaultClicked().IsBound())
 	{
-		Implementation->GetPropertyNode()->NotifyPreChange(Implementation->GetPropertyNode()->GetProperty(), Implementation->GetPropertyUtilities()->GetNotifyHook());
-
+		if (Implementation->GetPropertyUtilities().IsValid() && Implementation->GetPropertyUtilities()->GetNotifyHook() != nullptr)
+		{
+			Implementation->GetPropertyNode()->NotifyPreChange(Implementation->GetPropertyNode()->GetProperty(), Implementation->GetPropertyUtilities()->GetNotifyHook());
+		}
 		OnCustomResetToDefault.OnResetToDefaultClicked().Execute(SharedThis(this));
 
 		// Call PostEditchange on all the objects
 		FPropertyChangedEvent ChangeEvent(Implementation->GetPropertyNode()->GetProperty());
-		Implementation->GetPropertyNode()->NotifyPostChange(ChangeEvent, Implementation->GetPropertyUtilities()->GetNotifyHook());
+		if (Implementation->GetPropertyUtilities().IsValid() && Implementation->GetPropertyUtilities()->GetNotifyHook() != nullptr)
+		{
+			Implementation->GetPropertyNode()->NotifyPostChange(ChangeEvent, Implementation->GetPropertyUtilities()->GetNotifyHook());
+		}
 	}
 }
 

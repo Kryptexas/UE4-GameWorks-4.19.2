@@ -14,7 +14,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_PLATFORM_IOS
-        return [(__bridge id<MTLDrawable>)m_ptr presentedTime];
+        return [(id<MTLDrawable>)m_ptr presentedTime];
 #else
         return 0.0;
 #endif
@@ -24,7 +24,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_PLATFORM_IOS
-        return [(__bridge id<MTLDrawable>)m_ptr drawableID];
+        return [(id<MTLDrawable>)m_ptr drawableID];
 #else
         return 0;
 #endif
@@ -33,20 +33,20 @@ namespace mtlpp
     void Drawable::Present()
     {
         Validate();
-        [(__bridge id<MTLDrawable>)m_ptr present];
+        [(id<MTLDrawable>)m_ptr present];
     }
 
     void Drawable::PresentAtTime(double presentationTime)
     {
         Validate();
-        [(__bridge id<MTLDrawable>)m_ptr presentAtTime:presentationTime];
+        [(id<MTLDrawable>)m_ptr presentAtTime:presentationTime];
     }
 
     void Drawable::PresentAfterMinimumDuration(double duration)
     {
         Validate();
 #if MTLPP_PLATFORM_IOS
-        [(__bridge id<MTLDrawable>)m_ptr presentAfterMinimumDuration:duration];
+        [(id<MTLDrawable>)m_ptr presentAfterMinimumDuration:duration];
 #endif
     }
 
@@ -54,8 +54,8 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_PLATFORM_IOS
-        [(__bridge id<MTLDrawable>)m_ptr addPresentedHandler:^(id <MTLDrawable> mtlDrawable){
-            Drawable drawable(ns::Handle{ (__bridge void*)mtlDrawable });
+        [(id<MTLDrawable>)m_ptr addPresentedHandler:^(id <MTLDrawable> mtlDrawable){
+            Drawable drawable(mtlDrawable);
             handler(drawable);
         }];
 #endif

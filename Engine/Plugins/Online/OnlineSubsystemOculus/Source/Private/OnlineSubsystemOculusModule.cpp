@@ -26,7 +26,7 @@ public:
 	{
 		if (!OnlineSub.IsValid())
 		{
-			OnlineSub = MakeShareable(new FOnlineSubsystemOculus(InstanceName));
+			OnlineSub = MakeShared<FOnlineSubsystemOculus, ESPMode::ThreadSafe>(InstanceName);
 		}
 		if (OnlineSub->IsEnabled())
 		{

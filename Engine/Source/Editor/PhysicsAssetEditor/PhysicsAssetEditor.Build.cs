@@ -34,6 +34,7 @@ public class PhysicsAssetEditor : ModuleRules
                 "AnimGraph",
                 "AnimGraphRuntime",
                 "AdvancedPreviewScene",
+                "DetailCustomizations"
             }
         );
 

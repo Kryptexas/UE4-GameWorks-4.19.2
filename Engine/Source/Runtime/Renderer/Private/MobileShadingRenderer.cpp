@@ -160,6 +160,10 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
 	}
 
+	// Dynamic vertex and index buffers need to be committed before rendering.
+	FGlobalDynamicVertexBuffer::Get().Commit();
+	FGlobalDynamicIndexBuffer::Get().Commit();
+
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem && !Views[0].bIsPlanarReflection && ViewFamily.EngineShowFlags.Particles)
 	{
@@ -169,10 +173,6 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
 
 	RenderShadowDepthMaps(RHICmdList);
-
-	// Dynamic vertex and index buffers need to be committed before rendering.
-	FGlobalDynamicVertexBuffer::Get().Commit();
-	FGlobalDynamicIndexBuffer::Get().Commit();
 
 	// This might eventually be a problem with multiple views.
 	// Using only view 0 to check to do on-chip transform of alpha.

@@ -173,7 +173,7 @@ public:
 	* @param Other - draw policy to compare
 	* @return true if the draw policies are a match
 	*/
-	FDrawingPolicyMatchResult Matches(const FConvertToUniformMeshDrawingPolicy& Other) const;
+	FDrawingPolicyMatchResult Matches(const FConvertToUniformMeshDrawingPolicy& Other, bool bForReals = false) const;
 
 	/**
 	* Sets the late state which can be shared between any meshes using this drawer.
@@ -229,14 +229,15 @@ FConvertToUniformMeshDrawingPolicy::FConvertToUniformMeshDrawingPolicy(
 {
 	VertexShader = InMaterialResource.GetShader<FConvertToUniformMeshVS>(InVertexFactory->GetType());
 	GeometryShader = InMaterialResource.GetShader<FConvertToUniformMeshGS>(InVertexFactory->GetType());
+	BaseVertexShader = VertexShader;
 }
 
 FDrawingPolicyMatchResult FConvertToUniformMeshDrawingPolicy::Matches(
-	const FConvertToUniformMeshDrawingPolicy& Other
+	const FConvertToUniformMeshDrawingPolicy& Other, bool bForReals
 	) const
 {
 	DRAWING_POLICY_MATCH_BEGIN
-		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 		DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 		DRAWING_POLICY_MATCH(GeometryShader == Other.GeometryShader);
 	DRAWING_POLICY_MATCH_END

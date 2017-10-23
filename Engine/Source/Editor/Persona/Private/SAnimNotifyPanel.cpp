@@ -179,6 +179,18 @@ struct FNotifyNodeInterface : public INodeObjectInterface
 		{
 			ToolTipText = FText::Format(LOCTEXT("AnimNotify_ToolTipBranchingPoint", "{0} (BranchingPoint)"), ToolTipText);
 		}
+
+		UObject* NotifyToDisplayClassOf = NotifyEvent->Notify;
+		if (NotifyToDisplayClassOf == nullptr)
+		{
+			NotifyToDisplayClassOf = NotifyEvent->NotifyStateClass;
+		}
+
+		if (NotifyToDisplayClassOf != nullptr)
+		{
+			ToolTipText = FText::Format(LOCTEXT("AnimNotify_ToolTipNotifyClass", "{0}\nClass: {1}"), ToolTipText, NotifyToDisplayClassOf->GetClass()->GetDisplayNameText());
+		}
+
 		return ToolTipText;
 	}
 

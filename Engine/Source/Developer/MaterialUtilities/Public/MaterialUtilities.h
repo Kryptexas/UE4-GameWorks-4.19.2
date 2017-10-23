@@ -16,7 +16,6 @@
 
 class ALandscapeProxy;
 class Error;
-class FStaticLODModel;
 class ULandscapeComponent;
 class UMaterial;
 class UMaterialInstanceConstant;
@@ -26,6 +25,7 @@ class UTextureRenderTarget2D;
 class UMaterialOptions;
 struct FMaterialProxySettings;
 struct FRawMesh;
+class FSkeletalMeshLODRenderData;
 struct FBakeOutput;
 struct FMeshData;
 struct FMaterialData;
@@ -37,7 +37,7 @@ enum class EFlattenMaterialProperties : uint8
 	Diffuse,
 	Metallic,
 	Specular,
-	Roughness,	
+	Roughness,
 	Normal,
 	Opacity,
 	Emissive,
@@ -142,7 +142,7 @@ struct FMaterialMergeData
 	/** Raw mesh data used to bake out the material with, optional */
 	const struct FRawMesh* Mesh;
 	/** LODModel data used to bake out the material with, optional */
-	const class FStaticLODModel* LODModel;
+	const FSkeletalMeshLODRenderData* LODData;
 	/** Material index to use when the material is baked out using mesh data (face material indices) */
 	int32 MaterialIndex;
 	/** Optional tex coordinate bounds of original texture coordinates set */
@@ -161,14 +161,14 @@ struct FMaterialMergeData
 	FMaterialMergeData(
 		UMaterialInterface* InMaterial,
 		const FRawMesh* InMesh,
-		const FStaticLODModel* InLODModel,
+		const FSkeletalMeshLODRenderData* InLODData,
 		int32 InMaterialIndex,
 		FBox2D InTexcoordBounds,
 		const TArray<FVector2D>& InTexCoords)
 		: ProxyCache(nullptr)
 		, Material(InMaterial)
 		, Mesh(InMesh)
-		, LODModel(InLODModel)
+		, LODData(InLODData)
 		, MaterialIndex(InMaterialIndex)
 		, TexcoordBounds(InTexcoordBounds)
 		, TexCoords(InTexCoords)

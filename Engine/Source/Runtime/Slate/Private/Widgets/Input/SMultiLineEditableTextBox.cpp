@@ -465,4 +465,9 @@ void SMultiLineEditableTextBox::SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandle
 	EditableText->SetOnKeyDownHandler(InOnKeyDownHandler);
 }
 
+void SMultiLineEditableTextBox::ForceScroll(int32 UserIndex, float ScrollAxisMagnitude)
+{
+	EditableText->ForceScroll(UserIndex, ScrollAxisMagnitude);
+}
+
 #endif //WITH_FANCY_TEXT

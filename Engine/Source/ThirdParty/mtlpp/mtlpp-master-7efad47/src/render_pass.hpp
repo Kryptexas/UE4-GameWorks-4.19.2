@@ -10,6 +10,12 @@
 #include "defines.hpp"
 #include "ns.hpp"
 
+MTLPP_CLASS(MTLRenderPassAttachmentDescriptor);
+MTLPP_CLASS(MTLRenderPassDescriptor);
+MTLPP_CLASS(MTLRenderPassColorAttachmentDescriptor);
+MTLPP_CLASS(MTLRenderPassDepthAttachmentDescriptor);
+MTLPP_CLASS(MTLRenderPassStencilAttachmentDescriptor);
+
 namespace mtlpp
 {
     class Texture;
@@ -63,11 +69,12 @@ namespace mtlpp
         double Alpha;
     };
 
-    class RenderPassAttachmentDescriptor : public ns::Object
+	template<typename T>
+    class RenderPassAttachmentDescriptor : public ns::Object<T>
     {
     public:
         RenderPassAttachmentDescriptor();
-        RenderPassAttachmentDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        RenderPassAttachmentDescriptor(T handle) : ns::Object<T>(handle) { }
 
         Texture     GetTexture() const;
         uint32_t    GetLevel() const;
@@ -95,11 +102,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPassColorAttachmentDescriptor : public RenderPassAttachmentDescriptor
+    class RenderPassColorAttachmentDescriptor : public RenderPassAttachmentDescriptor<MTLRenderPassColorAttachmentDescriptor*>
     {
     public:
         RenderPassColorAttachmentDescriptor();
-        RenderPassColorAttachmentDescriptor(const ns::Handle& handle) : RenderPassAttachmentDescriptor(handle) { }
+        RenderPassColorAttachmentDescriptor(MTLRenderPassColorAttachmentDescriptor* handle) : RenderPassAttachmentDescriptor<MTLRenderPassColorAttachmentDescriptor*>(handle) { }
 
         ClearColor GetClearColor() const;
 
@@ -107,11 +114,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPassDepthAttachmentDescriptor : public RenderPassAttachmentDescriptor
+    class RenderPassDepthAttachmentDescriptor : public RenderPassAttachmentDescriptor<MTLRenderPassDepthAttachmentDescriptor*>
     {
     public:
         RenderPassDepthAttachmentDescriptor();
-        RenderPassDepthAttachmentDescriptor(const ns::Handle& handle) : RenderPassAttachmentDescriptor(handle) { }
+        RenderPassDepthAttachmentDescriptor(MTLRenderPassDepthAttachmentDescriptor* handle) : RenderPassAttachmentDescriptor<MTLRenderPassDepthAttachmentDescriptor*>(handle) { }
 
         double                        GetClearDepth() const;
         MultisampleDepthResolveFilter GetDepthResolveFilter() const MTLPP_AVAILABLE_IOS(9_0);
@@ -121,11 +128,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPassStencilAttachmentDescriptor : public RenderPassAttachmentDescriptor
+    class RenderPassStencilAttachmentDescriptor : public RenderPassAttachmentDescriptor<MTLRenderPassStencilAttachmentDescriptor*>
     {
     public:
         RenderPassStencilAttachmentDescriptor();
-        RenderPassStencilAttachmentDescriptor(const ns::Handle& handle) : RenderPassAttachmentDescriptor(handle) { }
+        RenderPassStencilAttachmentDescriptor(MTLRenderPassStencilAttachmentDescriptor* handle) : RenderPassAttachmentDescriptor<MTLRenderPassStencilAttachmentDescriptor*>(handle) { }
 
         uint32_t GetClearStencil() const;
 
@@ -133,11 +140,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPassDescriptor : public ns::Object
+    class RenderPassDescriptor : public ns::Object<MTLRenderPassDescriptor*>
     {
     public:
         RenderPassDescriptor();
-        RenderPassDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        RenderPassDescriptor(MTLRenderPassDescriptor* handle) : ns::Object<MTLRenderPassDescriptor*>(handle) { }
 
         ns::Array<RenderPassColorAttachmentDescriptor> GetColorAttachments() const;
         RenderPassDepthAttachmentDescriptor   GetDepthAttachment() const;
@@ -149,6 +156,22 @@ namespace mtlpp
         void SetStencilAttachment(const RenderPassStencilAttachmentDescriptor& stencilAttachment);
         void SetVisibilityResultBuffer(const Buffer& visibilityResultBuffer);
         void SetRenderTargetArrayLength(uint32_t renderTargetArrayLength) MTLPP_AVAILABLE_MAC(10_11);
+		
+		uint32_t GetImageblockSampleLength() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetThreadgroupMemoryLength() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetTileWidth() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetTileHeight() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetDefaultRasterSampleCount() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetRenderTargetWidth() const MTLPP_AVAILABLE_IOS(11_0);
+		uint32_t GetRenderTargetHeight() const MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetImageblockSampleLength(uint32_t Val) MTLPP_AVAILABLE_IOS(11_0);
+		void SetThreadgroupMemoryLength(uint32_t Val) MTLPP_AVAILABLE_IOS(11_0);
+		void SetTileWidth(uint32_t Val) MTLPP_AVAILABLE_IOS(11_0);
+		void SetTileHeight(uint32_t Val) MTLPP_AVAILABLE_IOS(11_0);
+		void SetDefaultRasterSampleCount(uint32_t Val) MTLPP_AVAILABLE_IOS(11_0);
+		void SetRenderTargetWidth(uint32_t Val) MTLPP_AVAILABLE_IOS(11_0);
+		void SetRenderTargetHeight(uint32_t Val) MTLPP_AVAILABLE_IOS(11_0);
 		
 		void SetSamplePositions(SamplePosition const* positions, uint32_t count) MTLPP_AVAILABLE(10_13, 11_0);
 		uint32_t GetSamplePositions(SamplePosition const* positions, uint32_t count) MTLPP_AVAILABLE(10_13, 11_0);

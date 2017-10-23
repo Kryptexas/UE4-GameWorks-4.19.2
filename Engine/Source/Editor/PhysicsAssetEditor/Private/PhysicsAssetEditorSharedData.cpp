@@ -180,7 +180,9 @@ void FPhysicsAssetEditorSharedData::CopyConstraintProperties(UPhysicsConstraintT
 	// recover certain data that we'd like to keep - i.e. bone indices those still should stay.  
 	// frame position offsets taken from old, but frame orientations are taken from new source
 	ToConstraintSetup->DefaultInstance.ConstraintIndex = OldInstance.ConstraintIndex;
+#if WITH_PHYSX
 	ToConstraintSetup->DefaultInstance.ConstraintData = OldInstance.ConstraintData;
+#endif	//WITH_PHYSX
 	ToConstraintSetup->DefaultInstance.JointName = OldInstance.JointName;
 	ToConstraintSetup->DefaultInstance.ConstraintBone1 = OldInstance.ConstraintBone1;
 	ToConstraintSetup->DefaultInstance.ConstraintBone2 = OldInstance.ConstraintBone2;
@@ -305,7 +307,7 @@ EPhysicsAssetEditorConstraintViewMode FPhysicsAssetEditorSharedData::GetCurrentC
 	}
 }
 
-void FPhysicsAssetEditorSharedData::HitBone(int32 BodyIndex, EAggCollisionShape::Type PrimType, int32 PrimIndex, bool bGroupSelect /* = false*/)
+void FPhysicsAssetEditorSharedData::HitBone(int32 BodyIndex, EAggCollisionShape::Type PrimType, int32 PrimIndex, bool bGroupSelect)
 {
 	if (!bRunningSimulation)
 	{
@@ -1007,6 +1009,7 @@ void FPhysicsAssetEditorSharedData::MakeNewConstraint(int32 BodyIndex0, int32 Bo
 	// update the tree
 	HierarchyChangedEvent.Broadcast();
 	RefreshPhysicsAssetChange(PhysicsAsset);
+	SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
 }
 
 void FPhysicsAssetEditorSharedData::SetConstraintRelTM(const FPhysicsAssetEditorSharedData::FSelection* Constraint, const FTransform& RelTM)
@@ -1104,7 +1107,10 @@ void CycleMatrixRows(FMatrix* TM)
 
 void FPhysicsAssetEditorSharedData::CycleCurrentConstraintOrientation()
 {
+	const FScopedTransaction Transaction( LOCTEXT("CycleCurrentConstraintOrientation", "Cycle Current Constraint Orientation") );
+
 	UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[GetSelectedConstraint()->Index];
+	ConstraintTemplate->Modify();
 	FMatrix ConstraintTransform = ConstraintTemplate->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2).ToMatrixWithScale();
 	FTransform WParentFrame = GetConstraintWorldTM(GetSelectedConstraint(), EConstraintFrame::Frame2);
 	FTransform WChildFrame = GetConstraintWorldTM(GetSelectedConstraint(), EConstraintFrame::Frame1);
@@ -1118,9 +1124,12 @@ void FPhysicsAssetEditorSharedData::CycleCurrentConstraintOrientation()
 
 void FPhysicsAssetEditorSharedData::CycleCurrentConstraintActive()
 {
+	const FScopedTransaction Transaction( LOCTEXT("CycleCurrentConstraintActive", "Cycle Current Constraint Active") );
+
 	for(int32 i=0; i<SelectedConstraints.Num(); ++i)
 	{
 		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[GetSelectedConstraint()->Index];
+		ConstraintTemplate->Modify();
 		FConstraintInstance & DefaultInstance = ConstraintTemplate->DefaultInstance;
 
 		if(DefaultInstance.GetAngularSwing1Motion() != ACM_Limited && DefaultInstance.GetAngularSwing2Motion() != ACM_Limited)
@@ -1145,9 +1154,12 @@ void FPhysicsAssetEditorSharedData::CycleCurrentConstraintActive()
 
 void FPhysicsAssetEditorSharedData::ToggleConstraint(EPhysicsAssetEditorConstraintType Constraint)
 {
+	const FScopedTransaction Transaction( LOCTEXT("ToggleConstraintTypeLock", "Toggle Constraint Type Lock") );
+
 	for(int32 i=0; i<SelectedConstraints.Num(); ++i)
 	{
 		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[GetSelectedConstraint()->Index];
+		ConstraintTemplate->Modify();
 		FConstraintInstance & DefaultInstance = ConstraintTemplate->DefaultInstance;
 
 		if(Constraint == PCT_Swing1)

@@ -39,6 +39,7 @@
 #include "Editor.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #if WITH_APEX_CLOTHING
 	#include "ApexClothingUtils.h"
@@ -679,11 +680,11 @@ void FPersonaMeshDetails::OnCopySectionList(int32 LODIndex)
 
 	if (Mesh != nullptr)
 	{
-		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = Mesh->GetImportedModel();
 
 		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
 		{
-			const FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+			const FSkeletalMeshLODModel& Model = ImportedResource->LODModels[LODIndex];
 
 			TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
 
@@ -721,7 +722,7 @@ bool FPersonaMeshDetails::OnCanCopySectionList(int32 LODIndex) const
 
 	if (Mesh != nullptr)
 	{
-		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = Mesh->GetImportedModel();
 
 		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
 		{
@@ -747,14 +748,14 @@ void FPersonaMeshDetails::OnPasteSectionList(int32 LODIndex)
 
 		if (RootJsonObject.IsValid())
 		{
-			FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+			FSkeletalMeshModel* ImportedResource = Mesh->GetImportedModel();
 
 			if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
 			{
 				FScopedTransaction Transaction(LOCTEXT("PersonaChangedPasteSectionList", "Persona editor: Pasted section list"));
 				Mesh->Modify();
 
-				FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+				FSkeletalMeshLODModel& Model = ImportedResource->LODModels[LODIndex];
 
 				for (int32 SectionIdx = 0; SectionIdx < Model.Sections.Num(); ++SectionIdx)
 				{
@@ -786,11 +787,11 @@ void FPersonaMeshDetails::OnCopySectionItem(int32 LODIndex, int32 SectionIndex)
 
 	if (Mesh != nullptr)
 	{
-		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = Mesh->GetImportedModel();
 
 		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
 		{
-			const FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+			const FSkeletalMeshLODModel& Model = ImportedResource->LODModels[LODIndex];
 
 			TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
 
@@ -824,7 +825,7 @@ bool FPersonaMeshDetails::OnCanCopySectionItem(int32 LODIndex, int32 SectionInde
 
 	if (Mesh != nullptr)
 	{
-		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = Mesh->GetImportedModel();
 
 		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
 		{
@@ -850,11 +851,11 @@ void FPersonaMeshDetails::OnPasteSectionItem(int32 LODIndex, int32 SectionIndex)
 
 		if (RootJsonObject.IsValid())
 		{
-			FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+			FSkeletalMeshModel* ImportedResource = Mesh->GetImportedModel();
 
 			if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
 			{
-				FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+				FSkeletalMeshLODModel& Model = ImportedResource->LODModels[LODIndex];
 
 				FScopedTransaction Transaction(LOCTEXT("PersonaChangedPasteSectionItem", "Persona editor: Pasted section item"));
 				Mesh->Modify();
@@ -1529,7 +1530,6 @@ FReply FPersonaMeshDetails::RemoveOneLOD(int32 LODIndex)
 		{
 			FText RemoveLODText = FText::Format( LOCTEXT("OnPersonaRemoveLOD", "Persona editor: Remove LOD {0}"), LODIndex );
 			FScopedTransaction Transaction( TEXT(""), RemoveLODText, SkelMesh );
-
 			SkelMesh->Modify();
 			FSkeletalMeshUpdateContext UpdateContext;
 			UpdateContext.SkeletalMesh = SkelMesh;
@@ -2037,7 +2037,6 @@ FReply FPersonaMeshDetails::AddMaterialSlot()
 	}
 
 	FScopedTransaction Transaction(LOCTEXT("PersonaAddMaterialSlotTransaction", "Persona editor: Add material slot"));
-
 	SkeletalMeshPtr->Modify();
 	SkeletalMeshPtr->Materials.Add(FSkeletalMaterial());
 
@@ -2062,11 +2061,11 @@ void FPersonaMeshDetails::OnGetSectionsForView(ISectionListBuilder& OutSections,
 {
 	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
 
-	FSkeletalMeshResource* ImportedResource = SkelMesh->GetImportedResource();
+	FSkeletalMeshModel* ImportedResource = SkelMesh->GetImportedModel();
 
 	if (ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex))
 	{
-		FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+		FSkeletalMeshLODModel& Model = ImportedResource->LODModels[LODIndex];
 
 		bool bHasMaterialMap = SkelMesh->LODInfo.IsValidIndex(LODIndex) && SkelMesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0;
 
@@ -2089,7 +2088,7 @@ void FPersonaMeshDetails::OnGetSectionsForView(ISectionListBuilder& OutSections,
 							AvailableSectionName.Add(CurrentIterMaterialIndex, SkeletalMaterial.MaterialSlotName);
 						CurrentIterMaterialIndex++;
 					}
-					bool bClothSection = Model.Sections[SectionIdx].CorrespondClothSectionIndex >= 0;
+					bool bClothSection = Model.Sections[SectionIdx].HasClothingData();
 					OutSections.AddSection(LODIndex, SectionIdx, CurrentSectionMaterialSlotName, MaterialIndex, CurrentSectionOriginalImportedMaterialName, AvailableSectionName, SkelMesh->Materials[MaterialIndex].MaterialInterface, bClothSection);
 				}
 			}
@@ -2282,7 +2281,7 @@ bool FPersonaMeshDetails::OnMaterialListDirty()
 		for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMeshPtr->Materials.Num(); ++MaterialIndex)
 		{
 			TArray<FSectionLocalizer> SectionLocalizers;
-			FSkeletalMeshResource* ImportedResource = SkeletalMeshPtr->GetImportedResource();
+			FSkeletalMeshModel* ImportedResource = SkeletalMeshPtr->GetImportedModel();
 			check(ImportedResource);
 			for (int32 LODIndex = 0; LODIndex < ImportedResource->LODModels.Num(); ++LODIndex)
 			{
@@ -2762,10 +2761,10 @@ ECheckBoxState FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) 
 	bool AllValueSame = true;
 	if (Mesh == nullptr)
 		return State;
-	check(Mesh->GetResourceForRendering());
-	for (int32 LODIdx = 0; LODIdx < Mesh->GetResourceForRendering()->LODModels.Num(); LODIdx++)
+	check(Mesh->GetImportedModel());
+	for (int32 LODIdx = 0; LODIdx < Mesh->GetImportedModel()->LODModels.Num(); LODIdx++)
 	{
-		const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIdx];
+		const FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIdx];
 		for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
 		{
 			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
@@ -2814,10 +2813,10 @@ void FPersonaMeshDetails::OnShadowCastingChanged(ECheckBoxState NewState, int32 
 			NewValue = false;
 		}
 
-		check(Mesh->GetResourceForRendering());
-		for (int32 LODIdx = 0; LODIdx < Mesh->GetResourceForRendering()->LODModels.Num(); LODIdx++)
+		check(Mesh->GetImportedModel());
+		for (int32 LODIdx = 0; LODIdx < Mesh->GetImportedModel()->LODModels.Num(); LODIdx++)
 		{
-			FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIdx];
+			FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIdx];
 			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
 			{
 				FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
@@ -2829,16 +2828,8 @@ void FPersonaMeshDetails::OnShadowCastingChanged(ECheckBoxState NewState, int32 
 			}
 		}
 
-		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
-		{
-			USkinnedMeshComponent* MeshComponent = *It;
-			if (MeshComponent &&
-				!MeshComponent->IsTemplate() &&
-				MeshComponent->SkeletalMesh == Mesh)
-			{
-				MeshComponent->MarkRenderStateDirty();
-			}
-		}
+		Mesh->PostEditChange(); // update derived mesh data, and recreate render state for components
+
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
 	}
 }
@@ -2854,10 +2845,10 @@ ECheckBoxState FPersonaMeshDetails::IsRecomputeTangentEnabled(int32 MaterialInde
 	bool FirstValueSet = false;
 	bool AllValueState = false;
 	bool AllValueSame = true;
-	check(Mesh->GetResourceForRendering());
-	for (int32 LODIdx = 0; LODIdx < Mesh->GetResourceForRendering()->LODModels.Num(); LODIdx++)
+	check(Mesh->GetImportedModel());
+	for (int32 LODIdx = 0; LODIdx < Mesh->GetImportedModel()->LODModels.Num(); LODIdx++)
 	{
-		const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIdx];
+		const FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIdx];
 		for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
 		{
 			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
@@ -2907,17 +2898,22 @@ void FPersonaMeshDetails::OnRecomputeTangentChanged(ECheckBoxState NewState, int
 			NewValue = false;
 		}
 
-		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
+		for (int32 LODIdx = 0; LODIdx < Mesh->GetImportedModel()->LODModels.Num(); LODIdx++)
 		{
-			USkinnedMeshComponent* MeshComponent = *It;
-			if (MeshComponent &&
-				!MeshComponent->IsTemplate() &&
-				MeshComponent->SkeletalMesh == Mesh)
+			FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIdx];
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
 			{
-				MeshComponent->UpdateRecomputeTangent(MaterialIndex, INDEX_NONE, NewValue);
-				MeshComponent->MarkRenderStateDirty();
+				FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+
+				if (Section.MaterialIndex != MaterialIndex)
+					continue;
+
+				Section.bRecomputeTangent = NewValue;
 			}
 		}
+
+		Mesh->PostEditChange(); // update derived mesh data, and recreate render state for components
+
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
 	}
 }
@@ -2929,12 +2925,12 @@ ECheckBoxState FPersonaMeshDetails::IsSectionShadowCastingEnabled(int32 LODIndex
 	if (Mesh == nullptr)
 		return State;
 	
-	check(Mesh->GetResourceForRendering());
+	check(Mesh->GetImportedModel());
 
-	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+	if (!Mesh->GetImportedModel()->LODModels.IsValidIndex(LODIndex))
 		return State;
 
-	const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+	const FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIndex];
 
 	if (!LODModel.Sections.IsValidIndex(SectionIndex))
 		return State;
@@ -2952,12 +2948,12 @@ void FPersonaMeshDetails::OnSectionShadowCastingChanged(ECheckBoxState NewState,
 	if (Mesh == nullptr)
 		return;
 
-	check(Mesh->GetResourceForRendering());
+	check(Mesh->GetImportedModel());
 
-	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+	if (!Mesh->GetImportedModel()->LODModels.IsValidIndex(LODIndex))
 		return;
 
-	FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+	FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIndex];
 
 	if (!LODModel.Sections.IsValidIndex(SectionIndex))
 		return;
@@ -2977,18 +2973,10 @@ void FPersonaMeshDetails::OnSectionShadowCastingChanged(ECheckBoxState NewState,
 		Section.bCastShadow = false;
 	}
 	
-		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
-		{
-			USkinnedMeshComponent* MeshComponent = *It;
-			if (MeshComponent &&
-				!MeshComponent->IsTemplate() &&
-				MeshComponent->SkeletalMesh == Mesh)
-			{
-				MeshComponent->MarkRenderStateDirty();
-			}
-		}
-		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
-	}
+	Mesh->PostEditChange(); // update derived mesh data, and recreate render state for components
+
+	GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
+}
 
 ECheckBoxState FPersonaMeshDetails::IsSectionRecomputeTangentEnabled(int32 LODIndex, int32 SectionIndex) const
 {
@@ -2997,12 +2985,12 @@ ECheckBoxState FPersonaMeshDetails::IsSectionRecomputeTangentEnabled(int32 LODIn
 	if (Mesh == nullptr)
 		return State;
 
-	check(Mesh->GetResourceForRendering());
+	check(Mesh->GetImportedModel());
 
-	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+	if (!Mesh->GetImportedModel()->LODModels.IsValidIndex(LODIndex))
 		return State;
 
-	const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+	const FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIndex];
 
 	if (!LODModel.Sections.IsValidIndex(SectionIndex))
 		return State;
@@ -3020,43 +3008,33 @@ void FPersonaMeshDetails::OnSectionRecomputeTangentChanged(ECheckBoxState NewSta
 	if (Mesh == nullptr)
 		return;
 
-	check(Mesh->GetResourceForRendering());
+	check(Mesh->GetImportedModel());
 
-	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+	if (!Mesh->GetImportedModel()->LODModels.IsValidIndex(LODIndex))
 		return;
 
-	FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+	FSkeletalMeshLODModel& LODModel = Mesh->GetImportedModel()->LODModels[LODIndex];
 
 	if (!LODModel.Sections.IsValidIndex(SectionIndex))
 		return;
 
 	FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
-	bool NewRecomputeTangentValue = false;
 	if (NewState == ECheckBoxState::Checked)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("PersonaSetSectionRecomputeTangentFlag", "Persona editor: Set Recompute Tangent For Section"));
 		Mesh->Modify();
-		NewRecomputeTangentValue = true;
+		Section.bRecomputeTangent = true;
 	}
 	else if (NewState == ECheckBoxState::Unchecked)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("PersonaClearSectionRecomputeTangentFlag", "Persona editor: Clear Recompute Tangent For Section"));
 		Mesh->Modify();
-		NewRecomputeTangentValue = false;
+		Section.bRecomputeTangent = false;
 	}
 
-	for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
-	{
-		USkinnedMeshComponent* MeshComponent = *It;
-		if (MeshComponent &&
-			!MeshComponent->IsTemplate() &&
-			MeshComponent->SkeletalMesh == Mesh)
-		{
-			MeshComponent->UpdateRecomputeTangent(SectionIndex, LODIndex, NewRecomputeTangentValue);
-			MeshComponent->MarkRenderStateDirty();
-		}
-	}
+	Mesh->PostEditChange(); // update derived mesh data, and recreate render state for components
+
 	GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
 }
 
@@ -3143,7 +3121,7 @@ int32 FPersonaMeshDetails::GetMaterialIndex(int32 LODIndex, int32 SectionIndex) 
 	FSkeletalMeshLODInfo& Info = SkelMesh->LODInfo[LODIndex];
 	if (LODIndex == 0 || Info.LODMaterialMap.Num() == 0 || SectionIndex >= Info.LODMaterialMap.Num())
 	{
-		FSkeletalMeshResource* ImportedResource = SkelMesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = SkelMesh->GetImportedModel();
 		check(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex));
 		return ImportedResource->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex;
 	}
@@ -3163,11 +3141,11 @@ bool FPersonaMeshDetails::IsDuplicatedMaterialIndex(int32 LODIndex, int32 Materi
 		FSkeletalMeshLODInfo& Info = SkelMesh->LODInfo[LODInfoIdx];
 		if (LODIndex == 0 || Info.LODMaterialMap.Num() == 0)
 		{
-			FSkeletalMeshResource* ImportedResource = SkelMesh->GetImportedResource();
+			FSkeletalMeshModel* ImportedResource = SkelMesh->GetImportedModel();
 
 			if (ImportedResource && ImportedResource->LODModels.IsValidIndex(LODInfoIdx))
 			{
-				FStaticLODModel& Model = ImportedResource->LODModels[LODInfoIdx];
+				FSkeletalMeshLODModel& Model = ImportedResource->LODModels[LODInfoIdx];
 
 				for (int32 SectionIdx = 0; SectionIdx < Model.Sections.Num(); SectionIdx++)
 				{
@@ -3198,7 +3176,7 @@ void FPersonaMeshDetails::OnSectionChanged(int32 LODIndex, int32 SectionIndex, i
 	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
 	if(Mesh)
 	{
-		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = Mesh->GetImportedModel();
 		check(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex));
 		const int32 TotalSectionCount = ImportedResource->LODModels[LODIndex].Sections.Num();
 
@@ -3604,9 +3582,9 @@ FReply FPersonaMeshDetails::OnRemoveApexFileClicked(int32 AssetIndex, IDetailLay
 			SkelMesh->MeshClothingAssets.RemoveAt(AssetIndex);
 
 			// Need to fix up asset indices on sections.
-			if(FSkeletalMeshResource* MeshResource = SkelMesh->GetImportedResource())
+			if(FSkeletalMeshModel* MeshResource = SkelMesh->GetImportedModel())
 			{
-				for(FStaticLODModel& LodModel : MeshResource->LODModels)
+				for(FSkeletalMeshLODModel& LodModel : MeshResource->LODModels)
 				{
 					for(FSkelMeshSection& Section : LodModel.Sections)
 					{
@@ -3617,6 +3595,9 @@ FReply FPersonaMeshDetails::OnRemoveApexFileClicked(int32 AssetIndex, IDetailLay
 					}
 				}
 			}
+
+			// Need to regenerate derived data after changing LOD model
+			SkelMesh->PostEditChange();
 		}
 	}
 
@@ -3625,7 +3606,7 @@ FReply FPersonaMeshDetails::OnRemoveApexFileClicked(int32 AssetIndex, IDetailLay
 
 	// Force layout to refresh
 	DetailLayout->ForceRefreshDetails();
-
+	
 	return FReply::Handled();
 }
 
@@ -3838,9 +3819,9 @@ FReply FPersonaMeshDetails::OnDeleteButtonClicked(int32 LODIndex, int32 SectionI
 		}
 		
 		// Patch up section indices
-		for(auto ModelIter = SkelMesh->GetImportedResource()->LODModels.CreateIterator() ; ModelIter ; ++ModelIter)
+		for(auto ModelIter = SkelMesh->GetImportedModel()->LODModels.CreateIterator() ; ModelIter ; ++ModelIter)
 		{
-			FStaticLODModel& Model = *ModelIter;
+			FSkeletalMeshLODModel& Model = *ModelIter;
 			for(auto SectionIter = Model.Sections.CreateIterator() ; SectionIter ; ++SectionIter)
 			{
 				FSkelMeshSection& Section = *SectionIter;

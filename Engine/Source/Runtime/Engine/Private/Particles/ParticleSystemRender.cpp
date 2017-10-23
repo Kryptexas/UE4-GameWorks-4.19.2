@@ -509,6 +509,12 @@ void FDynamicSpriteEmitterDataBase::BuildViewFillData(
 	check(Data.VertexSize == 0 || Data.VertexSize == InVertexSize);
 
 	DynamicVertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( InVertexCount * InVertexSize );
+
+	if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+	{
+		UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), InVertexCount * InVertexSize, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+	}
+
 	Data.VertexData = DynamicVertexAllocation.Buffer;
 	Data.VertexCount = InVertexCount;
 	Data.VertexSize = InVertexSize;
@@ -527,6 +533,12 @@ void FDynamicSpriteEmitterDataBase::BuildViewFillData(
 	{
 		check( InDynamicParameterVertexStride > 0 );
 		*DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( InVertexCount * InDynamicParameterVertexStride );
+
+		if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+		{
+			UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), InVertexCount * InDynamicParameterVertexStride, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+		}
+
 		Data.DynamicParameterData = DynamicParameterAllocation->Buffer;
 	}
 }
@@ -1003,9 +1015,9 @@ public:
 
 
 
-FParticleVertexFactoryBase *FDynamicSpriteEmitterData::CreateVertexFactory()
+FParticleVertexFactoryBase *FDynamicSpriteEmitterData::CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FParticleSpriteVertexFactory *VertexFactory = new FParticleSpriteVertexFactory();
+	FParticleSpriteVertexFactory *VertexFactory = new FParticleSpriteVertexFactory(InFeatureLevel);
 	VertexFactory->SetParticleFactoryType(PVFT_Sprite);
 	const FParticleRequiredModule * RequiredModule = GetSourceData()->RequiredModule;
 	VertexFactory->SetNumVertsInInstanceBuffer(RequiredModule->bCutoutTexureIsValid && RequiredModule->AlphaThreshold ? RequiredModule->NumBoundingVertices : 4);
@@ -1053,8 +1065,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				const FVertexBuffer* TexCoordBuffer = (NumVerticesPerParticle == 4) ? (const FVertexBuffer*)&GParticleTexCoordVertexBuffer : (const FVertexBuffer*)&GParticleEightTexCoordVertexBuffer;
 
 				FDynamicSpriteCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicSpriteCollectorResources>();
-				VertexFactory->SetFeatureLevel(FeatureLevel);
-					CollectorResources.VertexFactory = SpriteVertexFactory;
+				CollectorResources.VertexFactory = SpriteVertexFactory;
 
 				if (SourceData->bUseLocalSpace == false)
 				{
@@ -1066,10 +1077,19 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 				// Allocate memory for render data.
 				Allocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * VertexSize * NumVerticesPerParticleInBuffer );
+				if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+				{
+					UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), ParticleCount * VertexSize * NumVerticesPerParticleInBuffer, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+				}
 
 				if (bUsesDynamicParameter)
 				{
 					DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexSize * NumVerticesPerParticleInBuffer );
+
+					if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+					{
+						UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), ParticleCount * DynamicParameterVertexSize * NumVerticesPerParticleInBuffer, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+					}
 				}
 
 				if (Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
@@ -1080,7 +1100,8 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					{
 						SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData);
 						// If material is using unlit translucency and the blend mode is translucent then we need to sort (back to front)
-						const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
+						int32 SelectedMat = GIsEditor && (ViewFamily.EngineShowFlags.Selection) ? bSelected : false;
+						const FMaterial* Material = MaterialResource[SelectedMat] ? MaterialResource[SelectedMat]->GetMaterial(FeatureLevel) : nullptr;
 
 						if (Material && 
 							(Material->GetBlendMode() == BLEND_Translucent || Material->GetBlendMode() == BLEND_AlphaComposite ||
@@ -1403,18 +1424,25 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 
 	check(Source.ParticleStride < 2 * 1024);	// TTP #3375
 
+	TArray<UMaterialInterface*, TInlineAllocator<2> > MeshMaterialsGT;
 	InEmitterInstance->GetMeshMaterials(
-		MeshMaterials,
+		MeshMaterialsGT,
 		InEmitterInstance->SpriteTemplate->LODLevels[InEmitterInstance->CurrentLODLevelIndex],
-		InFeatureLevel);
+		InFeatureLevel);	
 
-	for (int32 i = 0; i < MeshMaterials.Num(); ++i)
+	for (int32 i = 0; i < MeshMaterialsGT.Num(); ++i)
 	{
-		UMaterialInterface* RenderMaterial = MeshMaterials[i];
+		UMaterialInterface* RenderMaterial = MeshMaterialsGT[i];
 		if (RenderMaterial == NULL  || (RenderMaterial->CheckMaterialUsage_Concurrent(MATUSAGE_MeshParticles) == false))
 		{
-			MeshMaterials[i] = UMaterial::GetDefaultMaterial(MD_Surface);
+			MeshMaterialsGT[i] = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
+	}
+
+	MeshMaterials.AddZeroed(MeshMaterialsGT.Num());
+	for (int32 i = 0; i < MeshMaterialsGT.Num(); ++i)
+	{
+		MeshMaterials[i] = MeshMaterialsGT[i]->GetRenderProxy(bInSelected);
 	}
 
 	bUsesDynamicParameter = GetSourceData()->DynamicParameterDataOffset > 0;
@@ -1524,14 +1552,14 @@ public:
 };
 
 
-FParticleVertexFactoryBase *FDynamicMeshEmitterData::CreateVertexFactory()
+FParticleVertexFactoryBase *FDynamicMeshEmitterData::CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FMeshParticleVertexFactory *VertexFactory = ConstructMeshParticleVertexFactory();
+	FMeshParticleVertexFactory *VertexFactory = ConstructMeshParticleVertexFactory(InFeatureLevel);
 
 	VertexFactory->SetParticleFactoryType(PVFT_Mesh);
 	SetupVertexFactory(VertexFactory, StaticMesh->RenderData->LODResources[0]);
 
-	const int32 InstanceVertexStride = GetDynamicVertexStride(ERHIFeatureLevel::Type::SM5);	// featurelevel is ignored
+	const int32 InstanceVertexStride = GetDynamicVertexStride(InFeatureLevel);
 	const int32 DynamicParameterVertexStride = bUsesDynamicParameter ? GetDynamicParameterVertexStride() : 0;
 	VertexFactory->SetStrides(InstanceVertexStride, DynamicParameterVertexStride);
 	VertexFactory->InitResource();
@@ -1604,6 +1632,11 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					if (bUsesDynamicParameter)
 					{
 						DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate(ParticleCount * DynamicParameterVertexStride);
+
+						if (FGlobalDynamicVertexBuffer::Get().IsRenderAlarmLoggingEnabled())
+						{
+							UE_LOG(LogParticles, Warning, TEXT("Panic logging.  Allocated %u bytes for Resource: %s, Owner: %s"), ParticleCount * DynamicParameterVertexStride, *Proxy->GetResourceName().ToString(), *Proxy->GetOwnerName().ToString())
+						}
 					}
 
 					if (bGeneratePrevTransformBuffer)
@@ -1731,7 +1764,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			{
 				InstanceVerticesCPU = MeshVertexFactory->GetInstanceVerticesCPU();
 			}
-
+			check(StaticMesh != nullptr);
 			const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
 			const bool bIsWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
 
@@ -1743,7 +1776,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					FMaterialRenderProxy* MaterialProxy = nullptr;
 					if (SectionIndex < MeshMaterials.Num() && MeshMaterials[SectionIndex])
 					{
-						MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						MaterialProxy = MeshMaterials[SectionIndex];
 					}
 					const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 
@@ -1755,9 +1788,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 
 					FMeshBatch& Mesh = Collector.AllocateMesh();
 					Mesh.VertexFactory = MeshVertexFactory;
-					Mesh.DynamicVertexData = NULL;
 					Mesh.LCI = NULL;
-					Mesh.UseDynamicData = false;
 					Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
 					Mesh.CastShadow = Proxy->GetCastShadow();
 					Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
@@ -1785,7 +1816,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 						else
 						{
 							Mesh.Type = PT_TriangleList;
-							Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+							Mesh.MaterialRenderProxy = MaterialProxy;
 							Mesh.bWireframe = true;	
 							BatchElement.FirstIndex = 0;
 							BatchElement.IndexBuffer = &LODModel.IndexBuffer;
@@ -1795,7 +1826,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					else
 					{
 						Mesh.Type = PT_TriangleList;
-						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						Mesh.MaterialRenderProxy = MaterialProxy;
 						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
 						BatchElement.FirstIndex = Section.FirstIndex;
 						BatchElement.NumPrimitives = Section.NumTriangles;
@@ -2433,74 +2464,10 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 {
 		FMeshParticleVertexFactory::FDataType Data;
 
-		Data.PositionComponent = FVertexStreamComponent(
-			&LODResources.PositionVertexBuffer,
-			STRUCT_OFFSET(FPositionVertex,Position),
-			LODResources.PositionVertexBuffer.GetStride(),
-			VET_Float3
-			);
-
-		uint32 TangentXOffset = 0;
-		uint32 TangetnZOffset = 0;
-		uint32 UVsBaseOffset = 0;
-
-		SELECT_STATIC_MESH_VERTEX_TYPE(
-			LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis(),
-			LODResources.VertexBuffer.GetUseFullPrecisionUVs(),
-			LODResources.VertexBuffer.GetNumTexCoords(),
-			{
-				TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
-				TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
-				UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
-			});
-
-		Data.TangentBasisComponents[0] = FVertexStreamComponent(
-			&LODResources.VertexBuffer,
-			TangentXOffset,
-			LODResources.VertexBuffer.GetStride(),
-			LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ?
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
-			);
-
-		Data.TangentBasisComponents[1] = FVertexStreamComponent(
-			&LODResources.VertexBuffer,
-			TangetnZOffset,
-			LODResources.VertexBuffer.GetStride(),
-			LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ?
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
-			);
-
-		Data.TextureCoordinates.Empty();
-
-		uint32 UVSizeInBytes = LODResources.VertexBuffer.GetUseFullPrecisionUVs() ?
-			sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
-
-		EVertexElementType UVVertexElementType = LODResources.VertexBuffer.GetUseFullPrecisionUVs() ?
-			VET_Float2 : VET_Half2;
-
-		uint32 NumTexCoords = FMath::Min<uint32>(LODResources.VertexBuffer.GetNumTexCoords(), MAX_TEXCOORDS);
-		for (uint32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++)
-		{
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
-				&LODResources.VertexBuffer,
-				UVsBaseOffset + UVSizeInBytes * UVIndex,
-				LODResources.VertexBuffer.GetStride(),
-				UVVertexElementType
-				));
-		}
-
-		if(LODResources.ColorVertexBuffer.GetNumVertices() > 0)
-		{
-			Data.VertexColorComponent = FVertexStreamComponent(
-				&LODResources.ColorVertexBuffer,
-				0,
-				LODResources.ColorVertexBuffer.GetStride(),
-				VET_Color
-				);
-		}
-
+		LODResources.VertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(InVertexFactory, Data);
+		LODResources.VertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(InVertexFactory, Data);
+		LODResources.VertexBuffers.StaticMeshVertexBuffer.BindTexCoordVertexBuffer(InVertexFactory, Data, MAX_TEXCOORDS);
+		LODResources.VertexBuffers.ColorVertexBuffer.BindColorVertexBuffer(InVertexFactory, Data);
 
 		// Initialize instanced data. Vertex buffer and stride are set before render.
 		// Particle color
@@ -2509,7 +2476,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex, Color),
 			0,
 			VET_Float4,
-			true
+			EVertexStreamUsage::Instanceing
 			);
 
 		// Particle transform matrix
@@ -2520,7 +2487,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 				STRUCT_OFFSET(FMeshParticleInstanceVertex, Transform) + sizeof(FVector4) * MatrixRow, 
 				0,
 				VET_Float4,
-				true
+				EVertexStreamUsage::Instanceing
 				);
 		}
 
@@ -2529,7 +2496,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex,Velocity),
 			0,
 			VET_Float4,
-			true
+			EVertexStreamUsage::Instanceing
 			);
 
 		// SubUVs.
@@ -2538,7 +2505,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex, SubUVParams), 
 			0,
 			VET_Short4,
-			true
+			EVertexStreamUsage::Instanceing
 			);
 
 		// Pack SubUV Lerp and the particle's relative time
@@ -2547,7 +2514,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex, SubUVLerp), 
 			0,
 			VET_Float2,
-			true
+			EVertexStreamUsage::Instanceing
 			);
 
 		Data.bInitialized = true;
@@ -2652,9 +2619,9 @@ public:
 };
 
 
-FParticleVertexFactoryBase *FDynamicBeam2EmitterData::CreateVertexFactory()
+FParticleVertexFactoryBase *FDynamicBeam2EmitterData::CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory();
+	FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory(InFeatureLevel);
 	VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
 	VertexFactory->SetUsesDynamicParameter(bUsesDynamicParameter);
 	VertexFactory->InitResource();
@@ -2702,8 +2669,7 @@ void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSyst
 		if (OutTriangleCount > 0)
 	{
 		FDynamicBeamTrailCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicBeamTrailCollectorResources>();
-		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
-			CollectorResources.VertexFactory = BeamTrailVertexFactory;
+		CollectorResources.VertexFactory = BeamTrailVertexFactory;
 
 		// Create and set the uniform buffer for this emitter.
 
@@ -2730,10 +2696,6 @@ void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSyst
 		BatchElement.IndexBuffer	= IndexBuffer;
 		BatchElement.FirstIndex		= FirstIndex;
 		Mesh.VertexFactory			= BeamTrailVertexFactory;
-		Mesh.DynamicVertexData		= NULL;
-		Mesh.DynamicVertexStride	= 0;
-		BatchElement.DynamicIndexData		= NULL;
-		BatchElement.DynamicIndexStride		= 0;
 		Mesh.LCI					= NULL;
 		if (Source.bUseLocalSpace == true)
 		{
@@ -2751,7 +2713,6 @@ void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSyst
 		BatchElement.NumPrimitives			= TrianglesToRender;
 		BatchElement.MinVertexIndex			= 0;
 		BatchElement.MaxVertexIndex			= Source.VertexCount - 1;
-		Mesh.UseDynamicData			= false;
 		Mesh.ReverseCulling			= Proxy->IsLocalToWorldDeterminantNegative();
 		Mesh.CastShadow				= Proxy->GetCastShadow();
 		Mesh.DepthPriorityGroup		= (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
@@ -5430,9 +5391,9 @@ FParticleVertexFactoryBase* FDynamicTrailsEmitterData::BuildVertexFactory(const 
 
 
 
-FParticleVertexFactoryBase *FDynamicTrailsEmitterData::CreateVertexFactory()
+FParticleVertexFactoryBase *FDynamicTrailsEmitterData::CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory();
+	FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory(InFeatureLevel);
 	VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
 	VertexFactory->SetUsesDynamicParameter(bUsesDynamicParameter);
 	VertexFactory->InitResource();
@@ -5485,9 +5446,7 @@ void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 		if (OutTriangleCount > 0 && bRenderGeometry)
 	{
 		FDynamicBeamTrailCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicBeamTrailCollectorResources>();
-
-		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
-			CollectorResources.VertexFactory = BeamTrailVertexFactory;
+		CollectorResources.VertexFactory = BeamTrailVertexFactory;
 
 		// Create and set the uniform buffer for this emitter.
 		BeamTrailVertexFactory->SetBeamTrailUniformBuffer(CreateBeamTrailUniformBuffer(Proxy, SourcePointer, View));
@@ -5520,7 +5479,6 @@ void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 		BatchElement.NumPrimitives			= OutTriangleCount;
 		BatchElement.MinVertexIndex			= 0;
 		BatchElement.MaxVertexIndex			= SourcePointer->VertexCount - 1;
-		Mesh.UseDynamicData			= false;
 		Mesh.ReverseCulling			= Proxy->IsLocalToWorldDeterminantNegative();
 		Mesh.CastShadow				= Proxy->GetCastShadow();
 		Mesh.DepthPriorityGroup		= (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
@@ -6813,6 +6771,7 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 	, LastFramePreRendered(-1)
 	, FirstFreeMeshBatch(0)
 	, bVertexFactoriesDirty(false)
+	, FeatureLevel(GetScene().GetFeatureLevel())
 {
 	WireframeColor = FLinearColor(3.0f, 0.0f, 0.0f);
 	LevelColor = FLinearColor(1.0f, 1.0f, 0.0f);

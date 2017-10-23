@@ -453,7 +453,7 @@ void DrawCornerHelper( FPrimitiveDrawInterface* PDI, const FMatrix& LocalToWorld
 	float TY = Length.Y/2;
 	float TZ = Length.Z/2;
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 	// Top
 	{
@@ -1790,7 +1790,7 @@ void FWidget::DrawThickArc (const FThickArcParams& InParams, const FVector& Axis
 	FVector ZAxis = Axis0 ^ Axis1;
 	FVector LastVertex;
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(InParams.PDI->View->GetFeatureLevel());
 
 	for (int32 RadiusIndex = 0; RadiusIndex < 2; ++RadiusIndex)
 	{
@@ -1816,7 +1816,7 @@ void FWidget::DrawThickArc (const FThickArcParams& InParams, const FVector& Axis
 			FDynamicMeshVertex MeshVertex;
 			MeshVertex.Position = VertexPosition;
 			MeshVertex.Color = TriangleColor;
-			MeshVertex.TextureCoordinate = TC;
+			MeshVertex.TextureCoordinate[0] = TC;
 
 			MeshVertex.SetTangents(
 				-ZAxis,
@@ -1886,14 +1886,14 @@ void FWidget::DrawSnapMarker(FPrimitiveDrawInterface* PDI, const FVector& InLoca
 		PDI->DrawLine(Vertices[2], Vertices[3], InColor, SDPG_Foreground);
 
 		//fill in the box
-		FDynamicMeshBuilder MeshBuilder;
+		FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 		for(int32 VertexIndex = 0;VertexIndex < 4; VertexIndex++)
 		{
 			FDynamicMeshVertex MeshVertex;
 			MeshVertex.Position = Vertices[VertexIndex];
 			MeshVertex.Color = InColor;
-			MeshVertex.TextureCoordinate = FVector2D(0.0f, 0.0f);
+			MeshVertex.TextureCoordinate[0] = FVector2D(0.0f, 0.0f);
 			MeshVertex.SetTangents(
 				Axis0,
 				Axis1,
@@ -1944,14 +1944,14 @@ void FWidget::DrawStartStopMarker(FPrimitiveDrawInterface* PDI, const FVector& I
 	if (InColor.A > 0)
 	{
 		//fill in the box
-		FDynamicMeshBuilder MeshBuilder;
+		FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 		for(int32 VertexIndex = 0;VertexIndex < 3; VertexIndex++)
 		{
 			FDynamicMeshVertex MeshVertex;
 			MeshVertex.Position = Vertices[VertexIndex];
 			MeshVertex.Color = InColor;
-			MeshVertex.TextureCoordinate = FVector2D(0.0f, 0.0f);
+			MeshVertex.TextureCoordinate[0] = FVector2D(0.0f, 0.0f);
 			MeshVertex.SetTangents(
 				RotatedAxis0,
 				RotatedAxis1,

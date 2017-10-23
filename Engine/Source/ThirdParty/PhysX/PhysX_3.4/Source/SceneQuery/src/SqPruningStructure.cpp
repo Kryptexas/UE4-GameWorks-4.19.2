@@ -222,7 +222,8 @@ bool PruningStructure::build(PxRigidActor*const* actors, PxU32 nbActors)
 	{
 		if(numShapes[i])
 		{
-			bounds[i] = reinterpret_cast<PxBounds3*>(PX_ALLOC(sizeof(PxBounds3)*numShapes[i], "Pruner bounds"));			
+			// We always allocate one extra box, to make sure we can safely use V4 loads on the array
+			bounds[i] = reinterpret_cast<PxBounds3*>(PX_ALLOC(sizeof(PxBounds3)*(numShapes[i]+1), "Pruner bounds"));			
 		}
 	}
 

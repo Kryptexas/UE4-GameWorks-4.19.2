@@ -311,6 +311,7 @@ public:
 	virtual float GetMaxAudibleDistance() override;
 	virtual float GetDuration() override;
 	virtual float GetSubtitlePriority() const override;
+	virtual bool IsAllowedVirtual() const override;
 	//~ End USoundBase Interface.
 
 	/**

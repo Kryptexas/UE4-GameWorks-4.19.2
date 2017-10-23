@@ -200,6 +200,11 @@ class FFeedbackContext;
 	#define USE_LOCALIZED_PACKAGE_CACHE 0
 #endif
 
+#ifndef RHI_COMMAND_LIST_DEBUG_TRACES
+    #define RHI_COMMAND_LIST_DEBUG_TRACES 0
+#endif
+
+
 int32 GUseDisregardForGCOnDedicatedServers = 1;
 static FAutoConsoleVariableRef CVarUseDisregardForGCOnDedicatedServers(
 	TEXT("gc.UseDisregardForGCOnDedicatedServers"),
@@ -364,9 +369,6 @@ static void RHIExitAndStopRHIThread()
 	}
 }
 #endif
-
-extern void DeferredPhysResourceCleanup();
-
 
 /**
  * Initializes std out device and adds it to GLog
@@ -904,7 +906,7 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 
 DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_PreInit_AfterStats, STATGROUP_LoadTime );
 
-int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
+int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 {
 	// disable/enable LLM based on commandline
 	LLM(FLowLevelMemTracker::Get().ProcessCommandLine(CmdLine));
@@ -957,7 +959,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if	STATS
 	// Create the stats malloc profiler proxy.
-	if( FStatsMallocProfilerProxy::HasMemoryProfilerToken() )
+	if (FStatsMallocProfilerProxy::HasMemoryProfilerToken())
 	{
 		if (PLATFORM_USES_FIXED_GMalloc_CLASS)
 		{
@@ -1009,7 +1011,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	if (FParse::Param(FCommandLine::Get(), TEXT("emitdrawevents")))
 	{
-		GEmitDrawEvents = true;
+		SetEmitDrawEvents(true);
 	}
 #endif // !UE_BUILD_SHIPPING
 
@@ -1056,15 +1058,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Initialize file manager
 	IFileManager::Get().ProcessCommandLineOptions();
 
-	if( GIsGameAgnosticExe )
+	if (GIsGameAgnosticExe)
 	{
 		// If we launched without a project file, but with a game name that is incomplete, warn about the improper use of a Game suffix
-		if ( LaunchHasIncompleteGameName() )
+		if (LaunchHasIncompleteGameName())
 		{
 			// We did not find a non-suffixed folder and we DID find the suffixed one.
 			// The engine MUST be launched with <GameName>Game.
 			const FText GameNameText = FText::FromString(FApp::GetProjectName());
-			FMessageDialog::Open(EAppMsgType::Ok, FText::Format( LOCTEXT("RequiresGamePrefix", "Error: UE4Editor does not append 'Game' to the passed in game name.\nYou must use the full name.\nYou specified '{0}', use '{0}Game'."), GameNameText ) );
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("RequiresGamePrefix", "Error: UE4Editor does not append 'Game' to the passed in game name.\nYou must use the full name.\nYou specified '{0}', use '{0}Game'."), GameNameText));
 			return 1;
 		}
 	}
@@ -1082,7 +1084,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FCString::Strcpy( CommandLineCopy, CommandLineSize, CmdLine );
 	const TCHAR* ParsedCmdLine = CommandLineCopy;
 
-	FString Token				= FParse::Token( ParsedCmdLine, 0);
+	FString Token = FParse::Token(ParsedCmdLine, 0);
 
 #if WITH_ENGINE
 	// Add the default engine shader dir
@@ -1094,9 +1096,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	bool bHasCommandletToken = false;
 
-	for( int32 TokenIndex = 0; TokenIndex < Tokens.Num(); ++TokenIndex )
+	for (int32 TokenIndex = 0; TokenIndex < Tokens.Num(); ++TokenIndex)
 	{
-		if( Tokens[TokenIndex].EndsWith(TEXT("Commandlet")) )
+		if (Tokens[TokenIndex].EndsWith(TEXT("Commandlet")))
 		{
 			bHasCommandletToken = true;
 			Token = Tokens[TokenIndex];
@@ -1104,9 +1106,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
-	for( int32 SwitchIndex = 0; SwitchIndex < Switches.Num() && !bHasCommandletToken; ++SwitchIndex )
+	for (int32 SwitchIndex = 0; SwitchIndex < Switches.Num() && !bHasCommandletToken; ++SwitchIndex)
 	{
-		if( Switches[SwitchIndex].StartsWith(TEXT("RUN=")) )
+		if (Switches[SwitchIndex].StartsWith(TEXT("RUN=")))
 		{
 			bHasCommandletToken = true;
 			Token = Switches[SwitchIndex];
@@ -1145,7 +1147,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Set a new command-line that doesn't include the game name as the first argument
 		FCommandLine::Set(ParsedCmdLine);
 
-		Token = FParse::Token( ParsedCmdLine, 0);
+		Token = FParse::Token(ParsedCmdLine, 0);
 		Token.TrimStartInline();
 
 		// if the next token is a project file, then we skip it (which can happen on some platforms that combine
@@ -1223,7 +1225,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		PRIVATE_GIsRunningCommandlet = true;
 	}
 
-	if( !bIsNotEditor && GIsGameAgnosticExe )
+	if (!bIsNotEditor && GIsGameAgnosticExe)
 	{
 		// If we launched without a game name or project name, try to load the most recently loaded project file.
 		// We can not do this if we are using a FilePlatform override since the game directory may already be established.
@@ -1286,7 +1288,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if !UE_BUILD_SHIPPING
 	// Benchmarking.
-	FApp::SetBenchmarking(FParse::Param(FCommandLine::Get(),TEXT("BENCHMARK")));
+	FApp::SetBenchmarking(FParse::Param(FCommandLine::Get(), TEXT("BENCHMARK")));
 #else
 	FApp::SetBenchmarking(false);
 #endif // !UE_BUILD_SHIPPING
@@ -1302,14 +1304,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FApp::SetUseFixedTimeStep(bDeterministic || FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
 #endif
 
-	FApp::bUseFixedSeed = bDeterministic || FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FixedSeed"));
+	FApp::bUseFixedSeed = bDeterministic || FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(), TEXT("FixedSeed"));
 
 	// Initialize random number generator.
 	{
 		uint32 Seed1 = 0;
 		uint32 Seed2 = 0;
 
-		if(!FApp::bUseFixedSeed)
+		if (!FApp::bUseFixedSeed)
 		{
 			Seed1 = FPlatformTime::Cycles();
 			Seed2 = FPlatformTime::Cycles();
@@ -1391,14 +1393,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 	// initialize task graph sub-system with potential multiple threads
-	FTaskGraphInterface::Startup( FPlatformMisc::NumberOfCores() );
-	FTaskGraphInterface::Get().AttachToThread( ENamedThreads::GameThread );
+	FTaskGraphInterface::Startup(FPlatformMisc::NumberOfCores());
+	FTaskGraphInterface::Get().AttachToThread(ENamedThreads::GameThread);
 
 #if STATS
 	FThreadStats::StartThread();
 #endif
 
-	FScopeCycleCounter CycleCount_AfterStats( GET_STATID( STAT_FEngineLoop_PreInit_AfterStats ) );
+	FScopeCycleCounter CycleCount_AfterStats(GET_STATID(STAT_FEngineLoop_PreInit_AfterStats));
 
 	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
 	if (!LoadCoreModules())
@@ -1418,7 +1420,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// If we're running as an game but don't have a project, inform the user and exit.
 	if (bHasEditorToken == false && bHasCommandletToken == false)
 	{
-		if ( !FPaths::IsProjectFilePathSet() )
+		if (!FPaths::IsProjectFilePathSet())
 		{
 			//@todo this is too early to localize
 			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("Engine", "UE4RequiresProjectFiles", "UE4 games require a project file as the first parameter."));
@@ -1467,7 +1469,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 	// Start the application
-	if(!AppInit())
+	if (!AppInit())
 	{
 		return 1;
 	}
@@ -1491,10 +1493,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if WITH_ENGINE
 	// Initialize system settings before anyone tries to use it...
-	GSystemSettings.Initialize( bHasEditorToken );
+	GSystemSettings.Initialize(bHasEditorToken);
 
 	// Apply renderer settings from console variables stored in the INI.
-	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni, ECVF_SetByProjectSetting);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererOverrideSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.StreamingSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.GarbageCollectionSettings"), *GEngineIni, ECVF_SetByProjectSetting);
@@ -1545,14 +1547,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Let LogConsole know what ini file it should use to save its setting on exit.
 	// We can't use GGameIni inside log console because it's destroyed in the global
 	// scoped pointer and at that moment GGameIni may already be gone.
-	if( GLogConsole != nullptr )
+	if (GLogConsole != nullptr)
 	{
 		GLogConsole->SetIniFilename(*GGameIni);
 	}
 
 
 #if CHECK_PUREVIRTUALS
-	FMessageDialog::Open( EAppMsgType::Ok, *NSLOCTEXT("Engine", "Error_PureVirtualsEnabled", "The game cannot run with CHECK_PUREVIRTUALS enabled.  Please disable CHECK_PUREVIRTUALS and rebuild the executable.").ToString() );
+	FMessageDialog::Open(EAppMsgType::Ok, *NSLOCTEXT("Engine", "Error_PureVirtualsEnabled", "The game cannot run with CHECK_PUREVIRTUALS enabled.  Please disable CHECK_PUREVIRTUALS and rebuild the executable.").ToString());
 	FPlatformMisc::RequestExit(false);
 #endif
 
@@ -1600,7 +1602,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		{
 			if (!bDefinitelyCommandlet)
 			{
-				UClass* TempCommandletClass = FindObject<UClass>(ANY_PACKAGE, *(Token+TEXT("Commandlet")), false);
+				UClass* TempCommandletClass = FindObject<UClass>(ANY_PACKAGE, *(Token + TEXT("Commandlet")), false);
 
 				if (TempCommandletClass)
 				{
@@ -1653,7 +1655,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FPlatformProcess::CleanFileCache();
 
 #if !UE_BUILD_SHIPPING
-	GIsDemoMode = FParse::Param( FCommandLine::Get(), TEXT( "DEMOMODE" ) );
+	GIsDemoMode = FParse::Param(FCommandLine::Get(), TEXT("DEMOMODE"));
 #endif
 
 	if (bHasEditorToken)
@@ -1669,7 +1671,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GWarn = &UnrealEdWarn;
 
 #else
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("Engine", "EditorNotSupported", "Editor not supported in this mode."));
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("Engine", "EditorNotSupported", "Editor not supported in this mode."));
 		FPlatformMisc::RequestExit(false);
 		return 1;
 #endif //WITH_EDITOR
@@ -1679,7 +1681,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// If we're not in the editor stop collecting the backlog now that we know
 	if (!GIsEditor)
 	{
-		GLog->EnableBacklog( false );
+		GLog->EnableBacklog(false);
 	}
 #if WITH_ENGINE
 
@@ -1738,6 +1740,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InPackageLocalizationManager.InitializeFromCache(MakeShareable(new FEnginePackageLocalizationCache()));
 	});
 #endif	// USE_LOCALIZED_PACKAGE_CACHE
+
+#if RHI_COMMAND_LIST_DEBUG_TRACES
+	EnableEmitDrawEventsOnlyOnCommandlist();
+#endif
 
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
@@ -1979,6 +1985,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPlatformMisc::PlatformHandleSplashScreen(true);
 	}
 
+	if(!GIsEditor)
 	{
 		FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.AddStatic(StartRenderCommandFenceBundler);
 		FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.AddStatic(StopRenderCommandFenceBundler);
@@ -2928,7 +2935,7 @@ void FEngineLoop::ProcessLocalPlayerSlateOperations() const
 							if (LocalPlayer)
 							{
 								FReply& TheReply = LocalPlayer->GetSlateOperations();
-								SlateApp.ProcessReply(PathToWidget, TheReply, nullptr, nullptr, LocalPlayer->GetControllerId());
+								SlateApp.ProcessExternalReply(PathToWidget, TheReply, LocalPlayer->GetControllerId());
 
 								TheReply = FReply::Unhandled();
 							}

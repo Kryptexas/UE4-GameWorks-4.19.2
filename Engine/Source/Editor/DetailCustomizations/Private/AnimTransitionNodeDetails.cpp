@@ -238,6 +238,8 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			Args.InitialProfile = CurrentProfile;
 			Args.OnBlendProfileSelected = FOnBlendProfileSelected::CreateSP(this, &FAnimTransitionNodeDetails::OnBlendProfileChanged, BlendProfileHandle);
 			Args.bAllowNew = false;
+			Args.bAllowClear = true;
+			Args.bAllowRemove = false;
 
 			CrossfadeCategory.AddProperty(BlendProfileHandle).CustomWidget(true)
 				.NameContent()

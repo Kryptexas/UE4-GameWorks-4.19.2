@@ -662,7 +662,7 @@ public:
 	float GetPreviousAnimationPositionRatio() const
 	{
 		checkSlow(!bIsLeader);
-		return AnimLengthRatio;
+		return PreviousAnimLengthRatio;
 	}
 
 	// Returns the synchronization point (normalized time; only legal to call if ticking a follower)

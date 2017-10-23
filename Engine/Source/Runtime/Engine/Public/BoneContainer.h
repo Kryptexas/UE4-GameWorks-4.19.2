@@ -373,8 +373,7 @@ struct FBoneReference
 
 	bool operator==(const FBoneReference& Other) const
 	{
-		// faster to compare, and BoneName won't matter
-		return BoneIndex == Other.BoneIndex;
+		return BoneName == Other.BoneName;
 	}
 	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
 	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);

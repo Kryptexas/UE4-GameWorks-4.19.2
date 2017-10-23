@@ -13,6 +13,7 @@ namespace NetworkProfiler
 {
 	class StreamParser
 	{
+        public static NetworkStream NetworkStream = new NetworkStream();
 		/**
 		 * Helper function for handling updating actor summaries as they require a bit more work.
 		 * 
@@ -62,7 +63,7 @@ namespace NetworkProfiler
             var StartTime = DateTime.UtcNow;
 
 			// Network stream the file is parsed into.
-			NetworkStream NetworkStream = new NetworkStream();
+			NetworkStream = new NetworkStream();
 			
 			// Serialize the header. This will also return an endian-appropriate binary reader to
 			// be used for reading the data. 

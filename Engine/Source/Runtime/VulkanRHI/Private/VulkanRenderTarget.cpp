@@ -324,7 +324,17 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 
 	if (TransitionState.RenderingMipChainInfo.bInsideRenderingMipChain)
 	{
-		check(Framebuffer);
+		if (!Framebuffer)
+		{
+			UE_LOG(LogVulkanRHI, Fatal, TEXT("Unable to find framebuffer during mipchain generation: W,H:%d,%d CurrMip:%d LastMip:%d #Mips:%d VkViewType:%d PF_:%d"),
+				RTLayout.GetExtent2D().width,
+				RTLayout.GetExtent2D().height,
+				TransitionState.RenderingMipChainInfo.CurrentMip,
+				TransitionState.RenderingMipChainInfo.LastRenderedMip,
+				TransitionState.RenderingMipChainInfo.Texture->Surface.GetNumMips(),
+				(int32)TransitionState.RenderingMipChainInfo.Texture->Surface.GetViewType(),
+				(int32)TransitionState.RenderingMipChainInfo.Texture->Surface.PixelFormat);
+		}
 		TransitionState.ProcessMipChainTransitions(CmdBuffer, Framebuffer, Framebuffer->RTInfo.ColorRenderTarget[0].MipIndex);
 	}
 
@@ -683,12 +693,40 @@ void FVulkanDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntR
 
 void FVulkanDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*& OutData,int32& OutWidth,int32& OutHeight)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	FRHITexture2D* TextureRHI2D = TextureRHI->GetTexture2D();
+	check(TextureRHI2D);
+	FVulkanTexture2D* Texture2D = (FVulkanTexture2D*)TextureRHI2D;
+	check(Texture2D->GetFlags() & TexCreate_CPUReadback);
+
+	FDeviceMemoryAllocation* Allocation = Texture2D->Surface.GetAllocation();
+	check(Allocation->CanBeMapped());
+
+	if (Allocation->IsMapped()) // allocation already mapped
+	{
+		OutData = Allocation->GetMappedPointer();
+	}
+	else
+	{
+		Device->PrepareForCPURead(); //make sure the results are ready 
+		Device->GetImmediateContext().GetCommandBufferManager()->PrepareForNewActiveCommandBuffer();
+
+		OutData = Allocation->Map(Allocation->GetSize(), 0);
+	}
+	OutWidth = Texture2D->GetSizeX();
+	OutHeight = Texture2D->GetSizeY();
 }
 
 void FVulkanDynamicRHI::RHIUnmapStagingSurface(FTextureRHIParamRef TextureRHI)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	FRHITexture2D* TextureRHI2D = TextureRHI->GetTexture2D();
+	check(TextureRHI2D);
+	FVulkanTexture2D* Texture2D = (FVulkanTexture2D*)TextureRHI2D;
+
+	FDeviceMemoryAllocation* Allocation = Texture2D->Surface.GetAllocation();
+	if (Allocation->IsMapped()) //only when actually mapped
+	{
+		Allocation->Unmap();
+	}
 }
 
 void FVulkanDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<FFloat16Color>& OutData, ECubeFace CubeFace,int32 ArrayIndex,int32 MipIndex)
@@ -1151,15 +1189,15 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 	
 			if (bSetExtent)
 			{
-				ensure(Extent.Extent3D.width == Texture->Surface.Width >> RTView.MipIndex);
-				ensure(Extent.Extent3D.height == Texture->Surface.Height >> RTView.MipIndex);
+				ensure(Extent.Extent3D.width == FMath::Max(1u, Texture->Surface.Width >> RTView.MipIndex));
+				ensure(Extent.Extent3D.height == FMath::Max(1u, Texture->Surface.Height >> RTView.MipIndex));
 				ensure(Extent.Extent3D.depth == Texture->Surface.Depth);
 			}
 			else
 			{
 				bSetExtent = true;
-				Extent.Extent3D.width = Texture->Surface.Width >> RTView.MipIndex;
-				Extent.Extent3D.height = Texture->Surface.Height >> RTView.MipIndex;
+				Extent.Extent3D.width = FMath::Max(1u, Texture->Surface.Width >> RTView.MipIndex);
+				Extent.Extent3D.height = FMath::Max(1u, Texture->Surface.Height >> RTView.MipIndex);
 				Extent.Extent3D.depth = Texture->Surface.Depth;
 			}
 

@@ -18,6 +18,7 @@
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
 #include "Animation/PoseSnapshot.h"
+#include "SkeletalMeshTypes.h"
 
 #include "ClothingSystemRuntimeTypes.h"
 #include "ClothingSimulationInterface.h"
@@ -155,8 +156,6 @@ enum class EAllowKinematicDeferral
 	AllowDeferral,
 	DisallowDeferral
 };
-
-class USkeletalMeshComponent;
 
 /**
 * Tick function that does post physics work on skeletal mesh component. This executes in EndPhysics (after physics is done)
@@ -1107,6 +1106,7 @@ public:
 public:
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void NotifyObjectReferenceEliminated() const override;
 #if WITH_EDITOR
 	DECLARE_MULTICAST_DELEGATE(FOnSkeletalMeshPropertyChangedMulticaster)
 	FOnSkeletalMeshPropertyChangedMulticaster OnSkeletalMeshPropertyChanged;
@@ -1279,7 +1279,7 @@ public:
 	*
 	*	@param	Force		 Force vector to apply. Magnitude indicates strength of force.
 	*	@param	BoneName	 If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
-	*   @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
+	*   @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no effect).
 	*   @param  bIncludeSelf If false, Force is only applied to bodies below but not given bone name.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")
@@ -1290,7 +1290,7 @@ public:
 	*
 	*	@param	Impulse		Magnitude and direction of impulse to apply.
 	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply impulse to. 'None' indicates root body.
-	*	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	*	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no effect).
 	*	@param bIncludeSelf If false, Force is only applied to bodies below but not given bone name.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")

@@ -15,8 +15,9 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimStats.h"
 #include "SkeletalRenderPublic.h"
-#include "SkeletalMeshTypes.h"
 #include "Components/LineBatchComponent.h"
+#include "PhysicsPublic.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
 #endif // WITH_PHYSX
@@ -405,6 +406,7 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 			check(!IsValidRef(ParallelBlendPhysicsCompletionTask));
 			ParallelBlendPhysicsCompletionTask = TGraphTask<FParallelBlendPhysicsCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
 
+			ThisTickFunction.GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(ParallelBlendPhysicsCompletionTask);
 		}
 		else
@@ -552,7 +554,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 			const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene, UseAsyncScene);
 			// Lock the scenes we need (flags set in InitArticulated)
 			SCOPED_SCENE_WRITE_LOCK(PhysScene->GetPhysXScene(SceneType));
-#endif
 
 			// Iterate over each body
 			for (int32 i = 0; i < NumBodies; i++)
@@ -572,7 +573,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 					}
 					else
 					{
-#if WITH_PHYSX
 						// update bone transform to world
 						const FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
 						if(!BoneTransform.IsValid())
@@ -596,8 +596,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 							ensure(PNewPose.isValid());
 							RigidActor->setGlobalPose(PNewPose);
 						}
-#endif
-
 
 						// now update scale
 						// if uniform, we'll use BoneTranform
@@ -630,6 +628,9 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 					}
 				}
 			}
+
+#endif // WITH_PHYSX
+
 		}
 	}
 	else
@@ -639,7 +640,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		{
 			if (bNeedsSkinning)
 			{
-				const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
 				TArray<FVector> NewPositions;
 				if (true)
 				{
@@ -648,10 +648,11 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 				}
 				else	//keep old way around for now - useful for comparing performance
 				{
-					NewPositions.AddUninitialized(Model.NumVertices);
+					const FSkeletalMeshLODRenderData& LODData = MeshObject->GetSkeletalMeshRenderData().LODRenderData[0];
+					NewPositions.AddUninitialized(LODData.GetNumVertices());
 					{
 						SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
-						for (uint32 VertIndex = 0; VertIndex < Model.NumVertices; ++VertIndex)
+						for (uint32 VertIndex = 0; VertIndex < LODData.GetNumVertices(); ++VertIndex)
 						{
 							NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
 						}

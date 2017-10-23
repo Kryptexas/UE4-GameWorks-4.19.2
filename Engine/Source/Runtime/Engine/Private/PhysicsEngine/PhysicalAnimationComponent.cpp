@@ -299,10 +299,12 @@ void UPhysicalAnimationComponent::TickComponent(float DeltaTime, enum ELevelTick
 //NOTE: Technically skeletal mesh component could have bodies in multiple scenes. This doesn't seem like a legit setup though and we should probably enforce that it's not supported.
 int32 FindSceneIndexForSkeletalMeshComponent(const USkeletalMeshComponent* SkeletalMeshComp)
 {
+#if WITH_PHYSX
 	for(FBodyInstance* BI : SkeletalMeshComp->Bodies)
 	{
 		return BI->GetSceneIndex();
 	}
+#endif // WITH_PHYSX
 
 	return INDEX_NONE;
 }

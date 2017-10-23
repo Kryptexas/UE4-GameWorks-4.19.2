@@ -197,7 +197,7 @@ public:
 	struct FMesh
 	{
 		TArray<FDynamicMeshVertex>	Vertices;
-		TArray <int32> Indices;
+		TArray <uint32> Indices;
 		FColor Color;
 	};
 

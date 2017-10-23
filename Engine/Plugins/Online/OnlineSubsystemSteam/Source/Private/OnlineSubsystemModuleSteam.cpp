@@ -48,7 +48,7 @@ public:
 	{
 		if (!SteamSingleton.IsValid())
 		{
-			SteamSingleton = MakeShareable(new FOnlineSubsystemSteam(InstanceName));
+			SteamSingleton = MakeShared<FOnlineSubsystemSteam, ESPMode::ThreadSafe>(InstanceName);
 			if (SteamSingleton->IsEnabled())
 			{
 				if(!SteamSingleton->Init())

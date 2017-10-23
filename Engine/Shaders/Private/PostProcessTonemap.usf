@@ -140,7 +140,7 @@ void TonemapCommonVS(
 
 #if EYEADAPTATION_EXPOSURE_FIX == 1
 	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
-	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;//EyeAdaptationLookup();
+	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).x;
 #else
 	// If eye adaptation is disabled (e.g. fixed exposure level ) or  not available.  
 	OutExposureScaleVignette.x = DefaultEyeExposure;
@@ -288,7 +288,7 @@ half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
 
 float4 TonemapCommonPS(
 	float2 UV,
-	float3 InExposureScaleVignette,
+	float3 ExposureScaleVignette,
 	float4 GrainUV,
 	float4 FringeUV,
 	float2 FullViewUV,
@@ -296,6 +296,12 @@ float4 TonemapCommonPS(
 	)
 {
 	float4 OutColor = 0;
+
+#if USE_PREEXPOSURE
+	const float OneOverPreExposure = View.OneOverPreExposure;
+#else
+	const float OneOverPreExposure = 1.f;
+#endif
 
 #if DEBUG_TONEMAPPER
 	// @param DebugTile 0,0 is center, -1,0 is left, 1,0 is right, ...
@@ -343,7 +349,9 @@ float4 TonemapCommonPS(
 		half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).rgb;
 	#endif
 
-	float ExposureScale = InExposureScaleVignette.x;
+	SceneColor *= OneOverPreExposure;
+
+	float ExposureScale = ExposureScaleVignette.x;
 
 #if DEBUG_TONEMAPPER
 	if (all(DebugTile == int2(-1, 1)))
@@ -369,10 +377,10 @@ float4 TonemapCommonPS(
 
 #if USE_SHARPEN
 	{
-		half3 C1 = LookupSceneColor(SceneUV, int2(-1,  0));
-		half3 C2 = LookupSceneColor(SceneUV, int2( 1,  0));
-		half3 C3 = LookupSceneColor(SceneUV, int2(-1, -1));
-		half3 C4 = LookupSceneColor(SceneUV, int2(-1,  1));
+		half3 C1 = LookupSceneColor(SceneUV, int2(-1,  0)) * OneOverPreExposure;
+		half3 C2 = LookupSceneColor(SceneUV, int2( 1,  0)) * OneOverPreExposure;
+		half3 C3 = LookupSceneColor(SceneUV, int2(-1, -1)) * OneOverPreExposure;
+		half3 C4 = LookupSceneColor(SceneUV, int2(-1,  1)) * OneOverPreExposure;
 
 		// reference solution
 //		half A0 = max3(SceneColor);
@@ -417,6 +425,9 @@ float4 TonemapCommonPS(
 
 	#if USE_GAMMA_ONLY
 
+		#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 // On mobile ExposureScale applied in base pass PS
+			SceneColor.rgb *= ExposureScale;
+		#endif
 		OutColor.rgb = pow(SceneColor, InverseGamma.x);
 
 	#else 
@@ -456,7 +467,7 @@ float4 TonemapCommonPS(
 		LinearColor *= ExposureScale;
 
 		#if USE_VIGNETTE
-			LinearColor.rgb *= ComputeVignetteMask( InExposureScaleVignette.yz, TonemapperParams.x );
+			LinearColor.rgb *= ComputeVignetteMask( ExposureScaleVignette.yz, TonemapperParams.x );
 		#endif
 
 		#if USE_GRAIN_INTENSITY

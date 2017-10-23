@@ -81,7 +81,7 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 
 	/** The function to call. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionMaterialFunctionCall)
-	class UMaterialFunction* MaterialFunction;
+	class UMaterialFunctionInterface* MaterialFunction;
 
 	/** Array of all the function inputs that this function exposes. */
 	UPROPERTY()
@@ -91,6 +91,9 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	UPROPERTY()
 	TArray<struct FFunctionExpressionOutput> FunctionOutputs;
 
+	/** Used by material parameters to split references to separate instances. */
+	UPROPERTY(Transient)
+	struct FMaterialParameterInfo FunctionParameterInfo;
 
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
@@ -100,6 +103,13 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	virtual void PostLoad() override;
 	virtual bool NeedsLoadForClient() const override;
 	//~ End UObject Interface.
+
+	ENGINE_API void GetDependentFunctions(TArray<UMaterialFunctionInterface*>& DependentFunctions) const;
+
+#if WITH_EDITOR
+	void UnlinkFunctionFromCaller(FMaterialCompiler* Compiler);
+	void LinkFunctionIntoCaller(FMaterialCompiler* Compiler);
+#endif
 
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
@@ -134,11 +144,11 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	 *
 	 *	@return									true if setting the function was a success, false if it failed.
 	 */
-	ENGINE_API bool SetMaterialFunctionEx(UMaterialFunction* OldFunctionResource, UMaterialFunction* NewResource);
+	ENGINE_API bool SetMaterialFunctionEx(UMaterialFunctionInterface* OldFunctionResource, UMaterialFunctionInterface* NewResource);
 
 	/** */
 	UFUNCTION(BlueprintCallable, Category = "MaterialEditing")
-	ENGINE_API bool SetMaterialFunction(UMaterialFunction* NewMaterialFunction);
+	ENGINE_API bool SetMaterialFunction(UMaterialFunctionInterface* NewMaterialFunction);
 #endif // WITH_EDITOR
 
 	/** 

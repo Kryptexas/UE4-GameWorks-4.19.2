@@ -10,12 +10,12 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PhysicsEngine/PhysXSupport.h"
 
+float DebugLineLifetime = 2.f;
+
 #if WITH_PHYSX
 
 #include "Collision/CollisionDebugDrawing.h"
 #include "Collision/CollisionConversions.h"
-
-float DebugLineLifetime = 2.f;
 
 /**
  * Helper to lock/unlock multiple scenes that also makes sure to unlock everything when it goes out of scope.
@@ -445,8 +445,6 @@ PxQueryFlags StaticDynamicQueryFlags(const FCollisionQueryParams& Params)
 //////////////////////////////////////////////////////////////////////////
 // RAYCAST
 
-#if UE_WITH_PHYSICS
-
 bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
 	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
@@ -460,11 +458,11 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 
 	bool bHaveBlockingHit = false; // Track if we get any 'blocking' hits
 
+#if WITH_PHYSX
 	FVector Delta = End - Start;
 	float DeltaMag = Delta.Size();
 	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
-#if WITH_PHYSX
 		{
 			const PxVec3 PDir = U2PVector(Delta / DeltaMag);
 			PxRaycastBuffer PRaycastBuffer;
@@ -494,7 +492,6 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 				bHaveBlockingHit = PRaycastBuffer.hasBlock;
 			}
 		}
-#endif // WITH_PHYSX
 	}
 
 	TArray<FHitResult> Hits;
@@ -506,6 +503,7 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	CAPTURERAYCAST(World, Start, End, ECAQueryMode::Test, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
 
+#endif // WITH_PHYSX 
 	return bHaveBlockingHit;
 }
 
@@ -526,12 +524,12 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 	}
 
 	bool bHaveBlockingHit = false; // Track if we get any 'blocking' hits
+#if WITH_PHYSX
 
 	FVector Delta = End - Start;
 	float DeltaMag = Delta.Size();
 	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
-#if WITH_PHYSX
 		{
 			FScopedMultiSceneReadLock SceneLocks;
 
@@ -599,7 +597,6 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 				}
 			}
 		}
-#endif //WITH_PHYSX
 
 	}
 
@@ -627,10 +624,12 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 		CAPTURERAYCAST(World, Start, End, ECAQueryMode::Single, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
 	}
 #endif
+#endif // WITH_PHYSX
 
 	return bHaveBlockingHit;
 }
 
+#if WITH_PHYSX
 template<typename HitType>
 class FDynamicHitBuffer : public PxHitCallback<HitType>
 {
@@ -671,6 +670,7 @@ public:
 		return (HitType*)Hits.GetData();
 	}
 };
+#endif // WITH_PHYSX
 
 bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
@@ -689,11 +689,11 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 	// Track if we get any 'blocking' hits
 	bool bHaveBlockingHit = false;
 
+#if WITH_PHYSX
 	FVector Delta = End - Start;
 	float DeltaMag = Delta.Size();
 	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
-#if WITH_PHYSX
 		// Create filter data used to filter collisions
 		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, true);
 		PxQueryFilterData PQueryFilterData(PFilter, StaticDynamicQueryFlags(Params) | PxQueryFlag::ePREFILTER);
@@ -799,7 +799,6 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 		}
 
 		bHaveBlockingHit = bBlockingHit;
-#endif // WITH_PHYSX
 
 	}
 
@@ -812,6 +811,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 
 	CAPTURERAYCAST(World, Start, End, ECAQueryMode::Multi, TraceChannel, Params, ResponseParams, ObjectParams, OutHits);
 
+#endif // WITH_PHYSX
 	return bHaveBlockingHit;
 }
 
@@ -1121,6 +1121,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 	return bHaveBlockingHit;
 }
 
+#if WITH_PHYSX
 bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
@@ -1232,6 +1233,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 
 	return bBlockingHit;
 }
+#endif // WITH_PHYSX 
 
 
 bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
@@ -1262,8 +1264,6 @@ bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& Collision
 //////////////////////////////////////////////////////////////////////////
 // GEOM OVERLAP
 
-#if WITH_PHYSX
-
 namespace EQueryInfo
 {
 	//This is used for templatizing code based on the info we're trying to get out.
@@ -1274,6 +1274,8 @@ namespace EQueryInfo
 		IsAnything		//is any of the data blocking or touching? only return a bool so don't bother collecting
 	};
 }
+
+#if WITH_PHYSX
 
 template <EQueryInfo::Type InfoType>
 bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
@@ -1424,22 +1426,33 @@ bool GeomOverlapMultiImp(const UWorld* World, const struct FCollisionShape& Coll
 
 bool GeomOverlapMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+#if WITH_PHYSX
 	OutOverlaps.Reset();
 	return GeomOverlapMultiImp<EQueryInfo::GatherAll>(World, CollisionShape, Pos, Rot, OutOverlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+#else
+	return false;
+#endif // WITH_PHYSX
 }
 
 bool GeomOverlapBlockingTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+#if WITH_PHYSX
 	TArray<FOverlapResult> Overlaps;	//needed only for template shared code
 	return GeomOverlapMultiImp<EQueryInfo::IsBlocking>(World, CollisionShape, Pos, Rot, Overlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+#else
+	return false;
+#endif // WITH_PHYSX
 }
 
 bool GeomOverlapAnyTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+#if WITH_PHYSX
 	TArray<FOverlapResult> Overlaps;	//needed only for template shared code
 	return GeomOverlapMultiImp<EQueryInfo::IsAnything>(World, CollisionShape, Pos, Rot, Overlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+#else
+	return false;
+#endif // WITH_PHYSX
 }
-#endif //UE_WITH_PHYSICS
 
 //////////////////////////////////////////////////////////////////////////
 

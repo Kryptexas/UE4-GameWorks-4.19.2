@@ -13,6 +13,8 @@
 #include "texture.hpp"
 #include "fence.hpp"
 
+MTLPP_PROTOCOL(MTLBlitCommandEncoder);
+
 namespace mtlpp
 {
     enum class BlitOption
@@ -24,11 +26,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 9_0);
 
-    class BlitCommandEncoder : public CommandEncoder
+    class BlitCommandEncoder : public CommandEncoder<ns::Protocol<id<MTLBlitCommandEncoder>>::type>
     {
     public:
         BlitCommandEncoder() { }
-        BlitCommandEncoder(const ns::Handle& handle) : CommandEncoder(handle) { }
+        BlitCommandEncoder(ns::Protocol<id<MTLBlitCommandEncoder>>::type handle) : CommandEncoder<ns::Protocol<id<MTLBlitCommandEncoder>>::type>(handle) { }
 
         void Synchronize(const Resource& resource) MTLPP_AVAILABLE_MAC(10_11);
         void Synchronize(const Texture& texture, uint32_t slice, uint32_t level) MTLPP_AVAILABLE_MAC(10_11);

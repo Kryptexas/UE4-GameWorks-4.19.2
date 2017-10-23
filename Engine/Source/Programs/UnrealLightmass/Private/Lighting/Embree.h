@@ -150,6 +150,7 @@ namespace Lightmass
 		uint16 StaticAndOpaqueMask : 1;
 		uint16 TwoSidedMask: 1;
 		uint16 Translucent : 1;
+		uint16 SurfaceDomain : 1;
 		uint16 IndirectlyShadowedOnly : 1;
 		uint16 Masked : 1;
 		uint16 CastShadowAsMasked : 1;

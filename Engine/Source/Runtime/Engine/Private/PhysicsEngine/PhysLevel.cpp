@@ -196,6 +196,7 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 			STAT_FSimpleDelegateGraphTask_FinishPhysicsSim,
 			STATGROUP_TaskGraphTasks);
 
+		MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 		MyCompletionGraphEvent->DontCompleteUntil(
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateUObject(Target, &UWorld::FinishPhysicsSim),
@@ -209,6 +210,7 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 		Target->FinishPhysicsSim();
 	}
 
+#if WITH_PHYSX
 #if PHYSX_MEMORY_VALIDATION
 	static int32 Frequency = 0;
 	if (Frequency++ > 10)
@@ -217,6 +219,7 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 		GPhysXAllocator->ValidateHeaders();
 	}
 #endif
+#endif // WITH_PHYSX 
 }
 
 FString FEndPhysicsTickFunction::DiagnosticMessage()
@@ -465,7 +468,7 @@ void TermGamePhys()
 	// @todo delete FPhysXOutputStream
 
 	PhysDLLHelper::UnloadPhysXModules();
-#endif
+#endif // WITH_PHYSX
 }
 
 /** 

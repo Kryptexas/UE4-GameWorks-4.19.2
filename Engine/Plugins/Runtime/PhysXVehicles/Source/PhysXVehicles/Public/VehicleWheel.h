@@ -16,10 +16,12 @@
 class UPhysicalMaterial;
 class FPhysXVehicleManager;
 
+#if WITH_PHYSX
 namespace physx
 {
 	class PxShape;
 }
+#endif // WITH_PHYSX
 
 UENUM()
 enum EWheelSweepType
@@ -208,6 +210,7 @@ class PHYSXVEHICLES_API UVehicleWheel : public UObject
 
 	// Our wheelshape
 	physx::PxShape*									WheelShape;
+#endif // WITH_PHYSX
 
 	/**
 	 * Initialize this wheel instance
@@ -244,10 +247,11 @@ protected:
 	 * Get the wheel's location in physics land
 	 */
 	FVector GetPhysicsLocation();
-#endif // WITH_PHYSX
 
 private:
+#if WITH_PHYSX
 	FPhysXVehicleManager* GetVehicleManager() const;
+#endif // WITH_PHYSX
 
 public:
 

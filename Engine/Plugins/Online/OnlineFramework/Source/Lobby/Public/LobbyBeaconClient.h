@@ -40,6 +40,17 @@ DECLARE_DELEGATE_OneParam(FOnLobbyLoginComplete, bool /* bWasSuccessful*/);
  */
 DECLARE_DELEGATE(FOnJoiningGame);
 
+UENUM()
+enum class ELobbyBeaconJoinState : uint8
+{
+	/** Unknown, beacon may be connected but no intent to actually join the server */
+	None,
+	/** Join request has been sent, waiting for a response */
+	SentJoinRequest,
+	/** Join request has been acknowledged */
+	JoinRequestAcknowledged
+};
+
 /**
  * A beacon client used for quality timings to a specified session
  */
@@ -129,7 +140,8 @@ protected:
 	bool bLoggedIn;
 
 	/** True once the server has acknowledged our join intent */
-	bool bLobbyJoinAcked;
+	UPROPERTY()
+	ELobbyBeaconJoinState LobbyJoinServerState;
 
 	/** Session Id of the destination host */
 	FString DestSessionId;
