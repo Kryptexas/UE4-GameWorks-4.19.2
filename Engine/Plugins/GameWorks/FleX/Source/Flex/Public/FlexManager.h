@@ -88,8 +88,6 @@ private:
 
 	static class UFlexAsset* GetFlexAsset(class UStaticMesh* StaticMesh);
 
-	void RegisterNewFlexFluidSurfaceComponent(struct FParticleEmitterInstance* EmitterInstance, class UFlexFluidSurface* NewFlexFluidSurface);
-
 private:
 	bool bFlexInitialized;
 	NvFlexLibrary* FlexLib;

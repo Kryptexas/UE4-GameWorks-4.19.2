@@ -381,6 +381,15 @@ void FParticleEmitterInstance::Init()
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParticleEmitterInstance_InitSize);
 
+		// NvFlex begin
+#if WITH_FLEX
+		if (GFlexPluginBridge)
+		{
+			GFlexPluginBridge->CreateFlexEmitterInstance(this);
+		}
+#endif
+		// NvFlex end
+
 		// Copy pre-calculated info
 		bRequiresLoopNotification = SpriteTemplate->bRequiresLoopNotification;
 		bAxisLockEnabled = SpriteTemplate->bAxisLockEnabled;
@@ -541,15 +550,6 @@ void FParticleEmitterInstance::Init()
 	IsRenderDataDirty	= 1;
 
 	bEmitterIsDone = false;
-
-	// NvFlex begin
-#if WITH_FLEX
-	if (GFlexPluginBridge)
-	{
-		GFlexPluginBridge->CreateFlexEmitterInstance(this);
-	}
-#endif
-	// NvFlex end
 }
 
 UWorld* FParticleEmitterInstance::GetWorld() const
