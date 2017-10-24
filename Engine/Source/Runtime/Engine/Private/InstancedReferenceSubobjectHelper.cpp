@@ -210,8 +210,7 @@ void FFindInstancedReferenceSubobjectHelper::GetInstancedSubObjects_Inner(FInsta
 				{
 					if (MapHelper.IsValidIndex(ElementIndex))
 					{
-						// use of pair pointer is intentional, next call is going to offset from the pair entry:
-						const uint8* ValueAddress = MapHelper.GetPairPtr(ElementIndex);
+						const uint8* ValueAddress = MapHelper.GetValuePtr(ElementIndex);
 						if (UObject* ObjectValue = ValueObjectProperty->GetObjectPropertyValue(ValueAddress))
 						{
 							PropertyPath.Push(ValueObjectProperty, ElementIndex);
